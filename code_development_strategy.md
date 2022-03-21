@@ -178,17 +178,97 @@ lots of aspects to this:
 
 ## Documentation
 
-There will be documentation. Lots of documentation. RSE have pointed us towards
-the [Diátaxis framework](https://diataxis.fr/) which provides a useful breakdown
-of four distinct documentation modes (tutorial, how-to, explanation and
-reference) and how to approach these with users in mind. This is primarily about
-how to write the content.
+There will be documentation. Lots of documentation. There are three components
+here that we need to address:
 
-There is then the question of the technical documentation framework: the thing
-that takes the content and converts it into a website.
+* the approach we use to actually writing and structuring documentation content,
+* the framework used to deploy documentation from source files,
+* where we actually host documentation so that people can find and read it.
 
-Sphinx / Myst / mkdocs.
+### Content guidance
+
+RSE have pointed us towards the [Diátaxis framework](https://diataxis.fr/) which
+provides a useful breakdown of four distinct documentation modes (tutorial,
+how-to, explanation and reference) and how to approach these with users in mind.
+This is primarily about how to write the content.
+
+### The documentation framework
+
+The idea here is to write content in a quick and easy markup language and then
+let a documentation framework handle converting it all to HTML. We want to handle
+docuementation two broad file types:
+
+* **Reference documentation**: we will be using **docstrings** to provide the
+  reference documentation for the code objects and structure. These are marked
+  up descriptions of what code does that are included right in the code source.
+  Doing this keeps the explanation of the code close to the code itself, making
+  it easier for developers to understand how the code behaves. 
+
+  Documentation frameworks can extract the docstrings from the code and
+  automatically create structured HTML files to provide a code reference.
+
+  ```python
+  def my_function(x: float) -> float:
+    """
+    This is a docstring that describes what `my_function` does.
+
+    Args:
+      x: A number to be doubled
+    
+    Returns:
+      A value twice the value of `x`
+    """
+
+    return 2 * x
+  ```
+
+* **Everything else**: this covers how tos, tutorials and explanation. These
+  will be written in simple markup files, using a framework to convert the
+  markup into HTML. However, for many of these files we will want _dynamic
+  content_: this is typically going to be code that is run within the content show how to use the code or generate figures etc.
 
 
+There are a lot of frameworks around and things are moving fast in this area.
+The classic option for a Python project is [Sphinx](https://www.sphinx-doc.org/)
+but [mkdocs](https://www.mkdocs.org/) is also becomign popular. There is also
+the whole development of [Jupyterbook](https://jupyterbook.org/intro.html). 
 
+RSE have recommended Sphinx: it is incredibly mature and feature rich, but that
+depth can get a bit confusing. `mkdocs` is a bit lighter and faster and has a
+very nice live preview system, but has a less mature automatic reference
+documentation system. 
 
+Some notes:
+
+* Both of these will support dynamic content generation by running `jupyter`
+  notebooks before conversion to HTML.
+* We have a choice of markup languages.
+  [`RST`](https://en.wikipedia.org/wiki/ReStructuredText) is the traditional
+  choice for Sphinx but `mkdocs` use Markdown. I find Markdown cleaner and the
+  recent Markdown extension
+  [`MyST`](https://myst-parser.readthedocs.io/en/latest/) gives it a similar
+  functionality to RST.
+  
+  One minor issue here at the moment is that  although Sphinx supports MyST for standalone files it cannot currently be used in docstrings, leading to a mixed use of RST and MyST. That is an area under active development though.
+
+I don't think the exact details are nailed down yet but I think we should start with Sphinx and MyST and be ready to adopt MyST in docstrings.
+
+### The documentation host site
+
+There are no end of places to host static HTML. You can create a website by just
+putting the content in an Amazon S3 bucket. GitHub has GitHub Pages, which runs a website from the content of a named branch in the same repo as the code.
+
+RSE have recommended [ReadTheDocs](https://readthedocs.org/). I've used this a
+lot and it is very good: it maintains versions of the documentation and builds
+the documentation from scratch whenever code is updated. It is supported by
+adverts, but they aren't very intrusive.
+
+I do have to say that I find it slightly fussy to have to watch and trouble
+shoot the remote documentation building as part of the release cycle. It is in
+some ways easier to build the docs locally and simply update the host with
+changes. However, that is very much in single code projects, and having a remote
+building process is a bit like having Continuous Integration for the
+documentation.
+
+Having said that: switching host is not a big deal, at least in the early stages
+of the project!
