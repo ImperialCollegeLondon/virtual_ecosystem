@@ -10,10 +10,14 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../'))
 
+from virtual_rainforest import version
+
+version = version.__version__
+release = version
 
 # -- Project information -----------------------------------------------------
 
@@ -28,8 +32,37 @@ author = 'Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, Tara
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'myst_parser'
+    #'myst_parser',
+    "sphinx.ext.autodoc",
+    "autodocsumm",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.autosummary",
+    "sphinxcontrib.bibtex",
+    "myst_nb",
+    "sphinx_astrorefs",  # Gives author year references
+    "sphinx_rtd_theme",
 ]
+autodoc_default_flags = ["members"]
+autosummary_generate = True
+
+myst_enable_extensions = ["dollarmath", "deflist"]
+
+# Enable mhchem for chemical formulae
+mathjax3_config = {
+    "tex": {
+        "extensions": ["mhchem.js"],
+        # 'inlineMath': [['$', '$']]
+    }
+}
+
+# Turn off ugly rendering of class attributes
+napoleon_use_ivar = True
+
+# Suppress signature expansion of arguments
+autodoc_preserve_defaults = True
+
+bibtex_bibfiles = ["refs.bib"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -37,16 +70,32 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+                    'development/training/.pytest_cache/*',
+                    ]
 
-master_doc = "contents"
+master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = 'sphinx_material'
+
+html_theme = "sphinx_rtd_theme"  # 'sphinx_material'
+
+html_theme_options = {
+    "logo_only": False,
+    "display_version": True,
+    "prev_next_buttons_location": "top",
+    "style_external_links": False,
+    "style_nav_header_background": "grey",
+    # Toc options
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
