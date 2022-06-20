@@ -34,7 +34,13 @@ demography of each PFT through time.
 
 ## Animal Module
 
-## Microclimate Module
+## Abiotic Module
+The abiotic module provides the microclimate and hydrology for the Virtual Rainforest. This includes
+- vertical profile of Net radiation ($R_{N}$) and Photosynthetic photon flux density (PPFD, $\mu \text{mol}\, m^{-2}\, s^{-1}$)
+- vertical profile of Air temperature (°C)
+- vertical profile of relative humidity and Vapour pressure deficit (VPD, Pa)
+- vertical profile of soil moisture and soil temperature
+- precipitation ($P$) and Runoff 
 
 ## Macroclimate Module
 
