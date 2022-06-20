@@ -45,7 +45,7 @@ The research is based at Imperial College London:
 * Dr. Jaideep Joshi
 * Dr. David Orme
 * Dr. Vivienne Groner
-* Jacob Cook
+* Dr. Jacob Cook
 * Taran Rallings
 
 The research team are supported by the Imperial College London [Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/) team.
