@@ -12,6 +12,9 @@ We will be using some Python tools for the session, so you will need to have:
   _strictly_ needed but it is an improved command line interface for Python and
   makes tinkering with code very much easier.
 
+You _may_ need to use `pip3` here rather than `pip`.
+
+
 ## Visual Studio Code
 
 It is not completely necessary for everyone to use the same code editor, but VSC

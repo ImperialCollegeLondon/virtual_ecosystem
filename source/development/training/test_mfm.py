@@ -68,9 +68,37 @@ def test_pfm_param_ids(x, y, expected):
     argvalues=[(3.0,), (-3.0,)],
     ids=["+", "-"],
 )
-def test_pfm_2param_ids(x, y):
+def test_pfm_twoparam(x, y):
 
     assert 4.5 == abs(my_picky_float_multiplier(x, y))
+
+
+@pytest.fixture
+def twoparam_expected():
+
+    expected = {'+-+':  4.5, '---': 4.5, '--+': -4.5, '+--': -4.5}
+    return expected
+
+
+
+@pytest.mark.parametrize(
+    argnames=["x"],
+    argvalues=[(1.5,), (-1.5,)],
+    ids=["+", "-"],
+)
+@pytest.mark.parametrize(
+    argnames=["y"],
+    argvalues=[(3.0,), (-3.0,)],
+    ids=["+", "-"],
+)
+def test_pfm_twoparam_fixture(request, twoparam_expected, x, y):
+
+    expected = twoparam_expected[request.node.callspec.id]
+
+    assert expected == my_picky_float_multiplier(x, y)
+
+
+
 
 
 @pytest.fixture()
