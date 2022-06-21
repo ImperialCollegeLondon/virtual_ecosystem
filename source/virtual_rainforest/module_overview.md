@@ -60,7 +60,7 @@ The $PPFD$ is calculated is calculated based on the number of quanta received (m
 The vertical profile of $PPFD$ is calculated by reduction based on Leaf area index, light absorption factor, and depth of each layer.
 
 ### 2. Hydrology
-Daily soil moisture, $W_n$ (mm), is calculated based on the previous day’s moisture content, $W_{n−1}$, incremented by daily precipitation, $P_n$ ($\text{mm d}^{−1}$), and condensation, $C_n$ ($\text {mm d}^{−1}$), and reduced by daily actual evapotranspiration,$E^a_n$ ($\text {mm d}^{−1}$), and runoff, $RO$ (mm) based on the SPLASH model {cite}`Davis:2017`:
+Daily soil moisture, $W_n$ (mm), is calculated based on the previous day’s moisture content, $W_{n−1}$, incremented by daily precipitation, $P_n$($\text {mm d}^{−1}$), and condensation, $C_n$($\text {mm d}^{−1}$), and reduced by daily actual evapotranspiration,$E^a_n$($\text {mm d}^{−1}$), and runoff, $RO$ (mm) based on the SPLASH model {cite}`Davis:2017`:
 
 $W_n = W_{n−1} + P_n + C_n − E^a_n − RO$
 
@@ -77,9 +77,9 @@ The daily condensation, $C_n$, may be expressed as the water equivalent of the a
 The evaporative supply rate, $S_w$ ($\text {mm h}^{−1}$), is assumed to be constant over the day and can be estimated based on a linear
 proportion of the previous day’s soil moisture, $W_{n−1}$ {cite}`Federer1982`.
 
-The evaporative demand rate, $D_p$ ($\text {mm h}^{−1}$), is set equal to the potential evapotranspiration rate, $E^p$ ($\text {mm h}^{−1}$), as defined by Priestley and Taylor (1972).
+The evaporative demand rate, $D_p$($\text {mm h}^{−1}$), is set equal to the potential evapotranspiration rate, $E^p$($\text {mm h}^{−1}$), as defined by Priestley and Taylor (1972).
 
-The calculation of daily actual evapotranspiration, $E^a_n$ ($\text {mm d}^{−1}$), is based on the daily integration of the actual evapotranspiration rate, $E^a$ ($\text {mm h}^{−1}$), which may be defined as the minimum of the evaporative supply and demand rates
+The calculation of daily actual evapotranspiration, $E^a_n$($\text {mm d}^{−1}$), is based on the daily integration of the actual evapotranspiration rate, $E^a$($\text {mm h}^{−1}$), which may be defined as the minimum of the evaporative supply and demand rates
 {cite}`Federer1982`.
 
 The calculation of daily runoff, $RO$, is based on the excess of daily soil moisture without runoff compared to the holding capacity, $W_m$.
