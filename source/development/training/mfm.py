@@ -22,6 +22,7 @@ def my_float_multiplier(x: float, y: float) -> float:
 
     return x * y
 
+
 def my_float_multiplier2(x: float, y: float) -> float:
     """Multiplies two floats together.
 
@@ -33,10 +34,9 @@ def my_float_multiplier2(x: float, y: float) -> float:
         >>> round(my_float_multiplier2(2.1, 3.6), 2)
         7.56
     """
-    
+
     return x * y
 
-    
 
 def my_float_multiplier3(x: float, y: float) -> float:
     """Multiplies two floats together.
@@ -63,7 +63,7 @@ def my_picky_float_multiplier(x: float, y: float) -> float:
     Examples:
         >>> my_float_multiplier3(2.1, 3.6)  # doctest: +ELLIPSIS
         7.56...
-        >>> my_picky_float_multiplier(2, 3)  
+        >>> my_picky_float_multiplier(2, 3)
         ... # doctest: +ELLIPSIS
         Traceback (most recent call last):
           ...
@@ -71,8 +71,8 @@ def my_picky_float_multiplier(x: float, y: float) -> float:
     """
 
     if not (isinstance(x, float) and isinstance(y, float)):
-        raise ValueError('Both x and y must be of type float')
-    
+        raise ValueError("Both x and y must be of type float")
+
     return x * y
 
 

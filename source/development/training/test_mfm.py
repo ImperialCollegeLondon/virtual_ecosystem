@@ -28,7 +28,6 @@ def test_pfm_fail():
     assert str(err_hndlr.value) == "Both x and y must be of type float"
 
 
-
 @pytest.mark.parametrize(
     argnames=["x", "y", "expected"],
     argvalues=[
@@ -76,9 +75,8 @@ def test_pfm_twoparam(x, y):
 @pytest.fixture
 def twoparam_expected():
 
-    expected = {'+-+':  4.5, '---': 4.5, '--+': -4.5, '+--': -4.5}
+    expected = {"+-+": 4.5, "---": 4.5, "--+": -4.5, "+--": -4.5}
     return expected
-
 
 
 @pytest.mark.parametrize(
@@ -96,9 +94,6 @@ def test_pfm_twoparam_fixture(request, twoparam_expected, x, y):
     expected = twoparam_expected[request.node.callspec.id]
 
     assert expected == my_picky_float_multiplier(x, y)
-
-
-
 
 
 @pytest.fixture()
