@@ -45,13 +45,13 @@ The abiotic module provides the microclimate and hydrology for the Virtual Rainf
 In the first version of the module, these five subroutines calculate vertical profiles of net radiation, Photosynthetic photon flux density, Soil temperature/moisture, and Atmospheric temperature/humidity for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics of atmospheric temperature/humidity and soil temperature/moisture for other modules.
 
 ### 1. Radiation
-The calculation of Net radiation ($H_{N}$) and Photosynthetic photon flux density (PPFD, $\mu \text{mol}\, m^{-2}\, s^{-1}$) is based on the SPLASH model {cite}`Davis:2017`. 
+The calculation of Net radiation ($H_{N}$) and Photosynthetic photon flux density (PPFD, $\mu$ mol m<sup>-2</sup> s<sup>-1</sup>) is based on the SPLASH model {cite}`Davis:2017`. 
 
-The calculation begins with modeling the extraterrestrial solar flux, $I_0$ ($\text {W m}^{−2}$), as a function of the solar constant, a distance factor, and an inclination factor. 
+The calculation begins with modeling the extraterrestrial solar flux, $I_0$ (W m<sup>-2</sup>), as a function of the solar constant, a distance factor, and an inclination factor. 
 
-The daily top-of-the-atmosphere solar radiation, $H_0$ ($\text {J m}^{−2}$), is calculated as twice the integral of $I_0$ measured between solar noon and the sunset angle, $h_s$, assuming that all angles related to Earth on its orbit are constant over a whole day.
+The daily top-of-the-atmosphere solar radiation, $H_0$ (J m<sup>-2</sup>), is calculated as twice the integral of $I_0$ measured between solar noon and the sunset angle, $h_s$, assuming that all angles related to Earth on its orbit are constant over a whole day.
 
-The net surface radiation, $H_N$($\text {J m}^{−2}$), is the integral of the net surface radiation flux received at the land surface, $I_N$($\text {W m}^{−2}$), which is classically defined as the difference between the net incoming shortwave radiation flux, $I_{SW}$($\text {W m}^{−2}$) and the net outgoing long-wave radiation flux, $I_{LW}$($\text {W m}^{−2}$)). Both $I_{SW}$ and $I_{LW}$ can be calculated internally or taken from regional climate models. For calculations later on in the subroutine, $H_N$ is split in a positive $H_N^+$ and negative $H_N^-$ component.
+The net surface radiation, $H_N$ (J m<sup>-2</sup>), is the integral of the net surface radiation flux received at the land surface, $I_N$ (W m<sup>-2</sup>), which is classically defined as the difference between the net incoming shortwave radiation flux, $I_{SW}$ (W m<sup>-2</sup>) and the net outgoing long-wave radiation flux, $I_{LW}$ (W m<sup>-2</sup>). Both $I_{SW}$ and $I_{LW}$ can be calculated internally or taken from regional climate models. For calculations later on in the subroutine, $H_N$ is split in a positive $H_N^+$ and negative $H_N^-$ component.
 
 The vertical profile of $H_N$ is calculated by reduction of radiation based on Leaf area index, leaf transmissivity factor, and depth of each layer.
 
@@ -60,7 +60,7 @@ The $PPFD$ is calculated is calculated based on the number of quanta received (m
 The vertical profile of $PPFD$ is calculated by reduction based on Leaf area index, light absorption factor, and depth of each layer.
 
 ### 2. Hydrology
-Daily soil moisture, $W_n$ (mm), is calculated based on the previous day’s moisture content, $W_{n−1}$, incremented by daily precipitation, $P_n$($\text {mm d}^{−1}$), and condensation, $C_n$($\text {mm d}^{−1}$), and reduced by daily actual evapotranspiration,$E^a_n$($\text {mm d}^{−1}$), and runoff, $RO$ (mm) based on the SPLASH model {cite}`Davis:2017`:
+Daily soil moisture, $W_n$ (mm), is calculated based on the previous day’s moisture content, $W_{n−1}$, incremented by daily precipitation, $P_n$ (mm d<sup>-1</sup>), and condensation, $C_n$ (mm d<sup>-1</sup>), and reduced by daily actual evapotranspiration,$E^a_n$ (mm d<sup>-1</sup>), and runoff, $RO$ (mm) based on the SPLASH model {cite}`Davis:2017`:
 
 $W_n = W_{n−1} + P_n + C_n − E^a_n − RO$
 
@@ -74,12 +74,12 @@ the radiation terms (see Section 1.), estimate the condensation, estimate the ev
 
 The daily condensation, $C_n$, may be expressed as the water equivalent of the absolute value of negative net radiation, $H_N^-$.
 
-The evaporative supply rate, $S_w$ ($\text {mm h}^{−1}$), is assumed to be constant over the day and can be estimated based on a linear
+The evaporative supply rate, $S_w$ (mm h<sup>-1</sup>), is assumed to be constant over the day and can be estimated based on a linear
 proportion of the previous day’s soil moisture, $W_{n−1}$ {cite}`Federer1982`.
 
-The evaporative demand rate, $D_p$($\text {mm h}^{−1}$), is set equal to the potential evapotranspiration rate, $E^p$($\text {mm h}^{−1}$), as defined by Priestley and Taylor (1972).
+The evaporative demand rate, $D_p$ (mm h<sup>-1</sup>), is set equal to the potential evapotranspiration rate, $E^p$ (mm h<sup>-1</sup>), as defined by Priestley and Taylor (1972).
 
-The calculation of daily actual evapotranspiration, $E^a_n$($\text {mm d}^{−1}$), is based on the daily integration of the actual evapotranspiration rate, $E^a$($\text {mm h}^{−1}$), which may be defined as the minimum of the evaporative supply and demand rates
+The calculation of daily actual evapotranspiration, $E^a_n$ (mm h<sup>-1</sup>), is based on the daily integration of the actual evapotranspiration rate, $E^a$ (mm h<sup>-1</sup>), which may be defined as the minimum of the evaporative supply and demand rates
 {cite}`Federer1982`.
 
 The calculation of daily runoff, $RO$, is based on the excess of daily soil moisture without runoff compared to the holding capacity, $W_m$.
