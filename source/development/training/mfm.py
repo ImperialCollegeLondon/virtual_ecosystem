@@ -52,25 +52,6 @@ def my_float_multiplier3(x: float, y: float) -> float:
 
     return x * y
 
-def my_picky_float_multiplier_doctest(x: float, y: float) -> float:
-    """Multiplies two floats together.
-
-    Arguments:
-        x: The first number
-        y: The second number
-
-    Examples:
-        >>> my_picky_float_multiplier_doctest(2, 3)  #doctest: +ELLIPSIS
-        Traceback (most recent call last):
-          ...
-        ValueError: Both x and y must be of type float
-    """
-
-    if not (isinstance(x, float) and isinstance(y, float)):
-        raise ValueError('Both x and y must be of type float')
-    
-    return x * y
-
 
 def my_picky_float_multiplier(x: float, y: float) -> float:
     """Multiplies two floats together.
@@ -80,8 +61,13 @@ def my_picky_float_multiplier(x: float, y: float) -> float:
         y: The second number
 
     Examples:
-        >>> my_float_multiplier3(2.1, 3.6) #doctest: +ELLIPSIS
+        >>> my_float_multiplier3(2.1, 3.6)  # doctest: +ELLIPSIS
         7.56...
+        >>> my_picky_float_multiplier(2, 3)  
+        ... # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+          ...
+        ValueError: Both x and y must be of type float
     """
 
     if not (isinstance(x, float) and isinstance(y, float)):
