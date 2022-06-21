@@ -51,7 +51,7 @@ The calculation begins with modeling the extraterrestrial solar flux, $I_0$ ($\t
 
 The daily top-of-the-atmosphere solar radiation, $H_0$ ($\text {J m}^{−2}$), is calculated as twice the integral of $I_0$ measured between solar noon and the sunset angle, $h_s$, assuming that all angles related to Earth on its orbit are constant over a whole day.
 
-The net surface radiation, $H_N$ ($\text {J m}^{−2}$), is the integral of the net surface radiation flux received at the land surface, $I_N$ ($\text {W m}^{−2}$), which is classically defined as the difference between the net incoming shortwave radiation flux, $I_SW$ ($\text {W m}^{−2}$) and the net outgoing long-wave radiation flux, $I_LW$ ($\text {W m}^{−2}$)). Both $I_SW$ and $I_LW$ can be calculated internally or taken from regional climate models. For calculations later on in the subroutine, $H_N$ is split in a positive $H_N^+$ and negative $H_N^-$ component.
+The net surface radiation, $H_N$ ($\text {J m}^{−2}$), is the integral of the net surface radiation flux received at the land surface, $I_N$ ($\text {W m}^{−2}$), which is classically defined as the difference between the net incoming shortwave radiation flux, $I_{SW}$ ($\text {W m}^{−2}$) and the net outgoing long-wave radiation flux, $I_{LW}$ ($\text {W m}^{−2}$)). Both $I_{SW}$ and $I_{LW}$ can be calculated internally or taken from regional climate models. For calculations later on in the subroutine, $H_N$ is split in a positive $H_N^+$ and negative $H_N^-$ component.
 
 The vertical profile of $H_N$ is calculated by reduction of radiation based on Leaf area index, leaf transmissivity factor, and depth of each layer.
 
