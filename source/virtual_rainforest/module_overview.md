@@ -87,6 +87,10 @@ With analytical expressions for $C_n$, $E^a_n$, and $RO$, $W_n$ can be calculate
 The vertical distribution of water in different soil levels is calculated like this...
 
 ### 3. Atmospheric humidity
+The atmospheric humidity subroutine combines ambient humidity, soil evaporation and leaf evapotranspitation in vertical profiles of relative humidity and Vapor pressure deficit.
+
+Soil evaporation is calculated following the SPLASH model.
+Leaf evapotranspiration is calculated following Hardwick (2017).
 
 
 ### 4. Atmospheric temperature
