@@ -42,7 +42,7 @@ The abiotic module provides the microclimate and hydrology for the Virtual Rainf
 - Atmospheric temperature
 - Soil temperature
 
-In the first version of the module, these five subroutines calculate vertical profiles of net radiation, Photosynthetic photon flux density, Soil temperature/moisture, and Atmospheric temperature/humidity for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics of atmospheric temperature/humidity and soil temperature/moisture for other modules.
+In the first version of the module, these five subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
 
 ### 1. Radiation
 The calculation of Net radiation ($H_{N}$) and Photosynthetic photon flux density (PPFD, $\mu$ mol m<sup>-2</sup> s<sup>-1</sup>) is based on the SPLASH model {cite}`Davis:2017`. 
@@ -53,11 +53,9 @@ The daily top-of-the-atmosphere solar radiation, $H_0$ (J m<sup>-2</sup>), is ca
 
 The net surface radiation, $H_N$ (J m<sup>-2</sup>), is the integral of the net surface radiation flux received at the land surface, $I_N$ (W m<sup>-2</sup>), which is classically defined as the difference between the net incoming shortwave radiation flux, $I_{SW}$ (W m<sup>-2</sup>) and the net outgoing long-wave radiation flux, $I_{LW}$ (W m<sup>-2</sup>). Both $I_{SW}$ and $I_{LW}$ can be calculated internally or taken from regional climate models. For calculations later on in the subroutine, $H_N$ is split in a positive $H_N^+$ and negative $H_N^-$ component.
 
-The vertical profile of $H_N$ is calculated by reduction of radiation based on Leaf area index, leaf transmissivity factor, and depth of each layer.
-
 The $PPFD$ is calculated is calculated based on the number of quanta received (moles of photons) within the visible light spectrum, which also corresponds to the action spectrum of photosynthesis (Monteith and Unsworth, 1990).
 
-The vertical profile of $PPFD$ is calculated by reduction based on Leaf area index, light absorption factor, and depth of each layer.
+The vertical profiles of $H_N$ and $PPFD$ are calculated as functions of Leaf area index and leaf absorption coefficient at each level. At each model level a certain fraction of the incident solar radiation is absorbed, with the transmitted solar radiation being passed to the next model level (after Hardwick 2017).
 
 ### 2. Hydrology
 Daily soil moisture, $W_n$ (mm), is calculated based on the previous day’s moisture content, $W_{n−1}$, incremented by daily precipitation, $P_n$ (mm d<sup>-1</sup>), and condensation, $C_n$ (mm d<sup>-1</sup>), and reduced by daily actual evapotranspiration,$E^a_n$ (mm d<sup>-1</sup>), and runoff, $RO$ (mm) based on the SPLASH model {cite}`Davis:2017`:
