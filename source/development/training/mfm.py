@@ -6,7 +6,7 @@ Some example code used to demonstrate docstrings
 # flake8: noqa D202, D107
 
 from typing import List
-
+from pydantic import validate_arguments
 
 def my_float_multiplier(x: float, y: float) -> float:
     """Multiplies two floats together.
@@ -117,3 +117,20 @@ class TimesTable:
         """
 
         return [self.num * v for v in range(start, stop + 1)]
+
+
+@validate_arguments
+def my_validated_float_multiplier(x: float, y: float) -> float:
+    """Multiplies two floats together.
+
+    Arguments:
+        x: The first number
+        y: The second number
+
+    Examples:
+        >>> my_float_multiplier(2.1, 3.6)
+        7.56
+    """
+
+    return x * y
+
