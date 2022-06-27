@@ -34,9 +34,34 @@ demography of each PFT through time.
 
 ## Animal Module
 
-## Microclimate Module
+## Abiotic Module
 
-## Macroclimate Module
+The abiotic module provides the microclimate and hydrology for the Virtual Rainforest. 
+The module contains three subroutines:
+
+* Radiation balance
+* Energy balance
+* Water balance
+
+The <b>Radiation balance</b> subroutine uses incoming solar radiation and vegetation 
+structure to calculate vertical profiles of Net radiation and Photosynthetic photon 
+flux density.
+
+The <b>Energy balance</b> subroutine calculates 1) sensible heat flux from leaves and 
+soil, 2) latent heat flux from leaves and soil based on the Penman-Monteith 
+(or Priestley–Taylor) equation, and 3) soil heat flux based on Fourier's law. 
+The output of the subroutine includes vertical profiles of atmospheric temperature, 
+relative humidity, and soil temperature. In the first version of the module, energy 
+balance subroutine runs as single-column model for each grid cell independently 
+without horizontal exchange of information. 
+
+The <b>Water balance</b> subroutine uses rainfall to calculate runoff, infiltration, 
+soil moisture, and drainage. The outputs include vertical soil moisture profiles, 
+average vertical flow, and horizontal flows between grid cells.
+
+All routines run on a daily time step and provide daily outputs as 
+well as monthly statistics (multivariate probability distributions) of atmospheric 
+temperature/humidity, soil temperature/moisture, and hydrological parameters.
 
 ## Disturbance Module
 
