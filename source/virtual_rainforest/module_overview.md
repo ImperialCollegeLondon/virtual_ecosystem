@@ -41,13 +41,15 @@ The abiotic module provides the microclimate and hydrology for the Virtual Rainf
 * Energy balance
 * Water balance
 
-In the first version of the module, the radiation and energy balance subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
-
 The <b>Radiation balance</b> subroutine uses incoming solar radiation and vegetation structure to calculate vertical profiles of Net radiation and Photosynthetic photon flux density.
 
-The <b>Energy balance</b> subroutine calculates 1) soil heat flux based on Fourier's law, 2) sensible heat flux from leaves and soil based on xxx, and 3) latent heat flux from leaves and soil based on the Penman-Monteith (or Priestley–Taylor) equation. The output of the routine will be vertical profiles of atmospheric temperature, relative humidity, soil moisture, and soil temperature.
+The <b>Energy balance</b> subroutine calculates 1) soil heat flux based on Fourier's law, 2) sensible heat flux from leaves and soil, and 3) latent heat flux from leaves and soil based on the Penman-Monteith (or Priestley–Taylor) equation. The output of the routine will be vertical profiles of atmospheric temperature, relative humidity, and soil temperature.
 
-The <b>Water balance</b> subroutine calculates runoff, infiltration, and drainage.
+The <b>Water balance</b> subroutine uses rainfall to calculate runoff, infiltration, vertical soil moisture distribution, and drainage.
+
+In the first version of the module, the radiation and energy balance subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
+
+
 
 
 ## Disturbance Module
