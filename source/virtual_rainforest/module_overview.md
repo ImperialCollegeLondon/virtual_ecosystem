@@ -41,7 +41,7 @@ The abiotic module provides the microclimate and hydrology for the Virtual Rainf
 * Energy balance
 * Water balance
 
-In the first version of the module, the radiaton and energy balance subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
+In the first version of the module, the radiation and energy balance subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
 
 The <b>Radiation balance</b> subroutine uses incoming solar radiation and vegetation structure to calculate vertical profiles of Net radiation and Photosynthetic photon flux density.
 
