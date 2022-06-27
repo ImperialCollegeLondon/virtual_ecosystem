@@ -40,8 +40,8 @@ demography of each PFT through time.
 
 ## Disturbance Module
 
-Introducing disturbances (e.g. logging) into the model will usually require
-making alterations to the state of multiple modules. As such, different
-disturbance models are collected in a seperate disturbance module. This module
-will be capable of altering the state of all the other modules, and will do so
-in a manner that allows the source of the changes to be explicitly identified.
+Introducing disturbances (e.g. logging) into the model will usually require making
+alterations to the state of multiple modules. As such, different disturbance models are
+collected in a seperate disturbance module. This module will be capable of altering the
+state of all the other modules, and will do so in a manner that allows the source of the
+changes to be explicitly identified.
