@@ -1,34 +1,31 @@
 # The Virtual Rainforest modules
 
-This document provides a brief overview of the modules that make up the Virtual Rainforest.
-
+This document provides a brief overview of the modules that make up the Virtual
+Rainforest.
 
 ## Plant Module
 
-The Plant Module models the primary production from plants in the Virtual
-Rainforest. We use the P Model ({cite}`Prentice:2014bc,Wang:2017go`), to
-estimate the optimal balance between water loss and photosynthetic productivity
-and hence gross primary productivity (GPP). The P Model requires estimates of
-the following drivers:
+The Plant Module models the primary production from plants in the Virtual Rainforest. We
+use the P Model ({cite}`Prentice:2014bc,Wang:2017go`), to estimate the optimal balance
+between water loss and photosynthetic productivity and hence gross primary productivity
+(GPP). The P Model requires estimates of the following drivers:
 
-* Air temperature (°C)
-* Vapour pressure deficit (VPD, Pa)
-* Atmospheric pressure (Pa)
-* Atmospheric CO2 concentration (parts per million)
-* Fraction of absorbed photosynthetically active radiation ($F_{APAR}$,
-  unitless)
-* Photosynthetic photon flux density (PPFD, $\mu \text{mol}\, m^{-2}\, s^{-1}$)
+- Air temperature (°C)
+- Vapour pressure deficit (VPD, Pa)
+- Atmospheric pressure (Pa)
+- Atmospheric CO2 concentration (parts per million)
+- Fraction of absorbed photosynthetically active radiation ($F_{APAR}$, unitless)
+- Photosynthetic photon flux density (PPFD, $\mu \text{mol}\, m^{-2}\, s^{-1}$)
 
-GPP is then allocated to plant maintenance, respiration and growth using the T
-Model ({cite}`Li:2014bc`). 
+GPP is then allocated to plant maintenance, respiration and growth using the T Model
+({cite}`Li:2014bc`).
 
-This growth model is used to simulate the demographics of cohorts of key
-plant functional types (PFTs) under physiologically structured population models
-developed in the [Plant-FATE](https://jaideep777.github.io/libpspm/) framework.
-The framework uses the perfect-plasticity approximation (PPA,
-{cite}`purves:2008a`) to model the canopy structure of the plant community, the
-light environments of different PFTs and hence the change in the size-structured
-demography of each PFT through time.
+This growth model is used to simulate the demographics of cohorts of key plant
+functional types (PFTs) under physiologically structured population models developed in
+the [Plant-FATE](https://jaideep777.github.io/libpspm/) framework. The framework uses
+the perfect-plasticity approximation (PPA, {cite}`purves:2008a`) to model the canopy
+structure of the plant community, the light environments of different PFTs and hence the
+change in the size-structured demography of each PFT through time.
 
 ## Soil Module
 
@@ -39,81 +36,69 @@ are taken to principally be either exchanges of or competition for nutrients, an
 modelled within the same nutrient cycling paradigm. Three specific nutrient cycles are
 incorporated into this module:
 
-* Carbon cycle
-* Nitrogen cycle
-* Phosphorus cycle
+### Carbon cycle
 
-The <b>Carbon cycle</b> uses as its basic structure a recently described soil-pool model
-termed the Millennial model ({cite}`abramoff_millennial_2018`). This model splits carbon
-into five separate pools: particulate organic matter, low molecular weight carbon
-(LMWC), mineral associated organic matter, aggregates and microbial biomass. Though
-plant root exudates feed directly into the LMWC pool, most biomass input will less
-direct and occur via litter decomposition. Thus, we utilize a common set of litter pools
+The Carbon cycle uses as its basic structure a recently described soil-pool model termed
+the Millennial model ({cite}`abramoff_millennial_2018`). This model splits carbon into
+five separate pools: particulate organic matter, low molecular weight carbon (LMWC),
+mineral associated organic matter, aggregates and microbial biomass. Though plant root
+exudates feed directly into the LMWC pool, most biomass input will less direct and occur
+via litter decomposition. Thus, we utilize a common set of litter pools
 ({cite}`kirschbaum_modelling_2002`), that are divided between above- and below-ground
 pools, and by biomass source (e.g. deadwood).
 
-The <b>Nitrogen cycle</b> is strongly coupled to the carbon cycle, therefore tracking
-the stoichiometry of the carbon pools is key to modelling it correctly. In addition,
-specific forms of nitrogen are explicitly modelled. They are as follows: a combined
-NH<sub>3</sub> and NH<sub>4</sub><sup>+</sup> pool to represent the products of nitrogen
-fixation and ammonification, a NO<sub>3</sub><sup>-</sup> pool to represent the products
-of nitrification, and a NO<sub>2</sub><sup>-</sup> pool to capture the process of
-denitrification.
+### Nitrogen cycle
 
-The <b>Phosphorus cycle</b> is similarly coupled to the carbon cycle. The additional
-inorganic pools tracked in this case are as follows: primary phosphorus in the form of
-weatherable minerals, mineral phosphorus which can be utilized by plants and microbes,
-secondary phosphorus which is mineral associated but can be recovered as mineral
-phosphorus, and occluded phosphorus which is irrecoverably bound within a mineral
-structure.
+The Nitrogen cycle is strongly coupled to the carbon cycle, therefore tracking the
+stoichiometry of the carbon pools is key to modelling it correctly. In addition,
+specific forms of nitrogen are explicitly modelled. They are as follows: a combined
+$\ce{NH_{3}}$ and $\ce{NH_{4}^{+}}$ pool to represent the products of nitrogen fixation
+and ammonification, a $\ce{NO_{3}^{-}}$ pool to represent the products of nitrification,
+and a $\ce{NO_{2}^{-}}$ pool to capture the process of denitrification.
+
+### Phosphorous cycle
+
+The Phosphorus cycle is similarly coupled to the carbon cycle. The additional inorganic
+pools tracked in this case are as follows: primary phosphorus in the form of weatherable
+minerals, mineral phosphorus which can be utilized by plants and microbes, secondary
+phosphorus which is mineral associated but can be recovered as mineral phosphorus, and
+occluded phosphorus which is irrecoverably bound within a mineral structure.
 
 ## Animal Module
 
 ## Abiotic Module
-<<<<<<< HEAD
-The abiotic module provides the microclimate and hydrology for the Virtual Rainforest. The module contains three subroutines:
-=======
 
-The abiotic module provides the microclimate and hydrology for the Virtual Rainforest. 
+The abiotic module provides the microclimate and hydrology for the Virtual Rainforest.
 The module contains three subroutines:
->>>>>>> ec82a7b8c9dd84926408cd581f01741cff1f070d
 
-* Radiation balance
-* Energy balance
-* Water balance
+### Radiation balance
 
-<<<<<<< HEAD
-The <b>Radiation balance</b> subroutine uses incoming solar radiation and vegetation structure to calculate vertical profiles of Net radiation and Photosynthetic photon flux density.
+The Radiation balance subroutine uses incoming solar radiation and vegetation structure
+to calculate vertical profiles of Net radiation and Photosynthetic photon flux density.
 
-The <b>Energy balance</b> subroutine calculates 1) soil heat flux based on Fourier's law, 2) sensible heat flux from leaves and soil, and 3) latent heat flux from leaves and soil based on the Penman-Monteith (or Priestley–Taylor) equation. The output of the routine will be vertical profiles of atmospheric temperature, relative humidity, and soil temperature.
+### Energy balance
 
-The <b>Water balance</b> subroutine uses rainfall to calculate runoff, infiltration, vertical soil moisture distribution, and drainage.
+The Energy balance subroutine calculates:
 
-In the first version of the module, the radiation and energy balance subroutines run as single-column models for each grid cell independently without horizontal exchange of information. Routines are run on a daily time step and provide daily outputs as well as monthly statistics (multivariate probability distributions) of atmospheric temperature/humidity and soil temperature/moisture for other modules.
+1. sensible heat flux from leaves and soil,
+2. latent heat flux from leaves and soil based on the Penman-Monteith (or
+   Priestley–Taylor) equation, and
+3. soil heat flux based on Fourier's law.
 
+The output of the subroutine includes vertical profiles of atmospheric temperature,
+relative humidity, and soil temperature. In the first version of the module, energy
+balance subroutine runs as single-column model for each grid cell independently without
+horizontal exchange of information.
 
+### Water balance
 
-=======
-The <b>Radiation balance</b> subroutine uses incoming solar radiation and vegetation 
-structure to calculate vertical profiles of Net radiation and Photosynthetic photon 
-flux density.
+The Water balance subroutine uses rainfall to calculate runoff, infiltration, soil
+moisture, and drainage. The outputs include vertical soil moisture profiles, average
+vertical flow, and horizontal flows between grid cells.
 
-The <b>Energy balance</b> subroutine calculates 1) sensible heat flux from leaves and 
-soil, 2) latent heat flux from leaves and soil based on the Penman-Monteith 
-(or Priestley–Taylor) equation, and 3) soil heat flux based on Fourier's law. 
-The output of the subroutine includes vertical profiles of atmospheric temperature, 
-relative humidity, and soil temperature. In the first version of the module, energy 
-balance subroutine runs as single-column model for each grid cell independently 
-without horizontal exchange of information. 
-
-The <b>Water balance</b> subroutine uses rainfall to calculate runoff, infiltration, 
-soil moisture, and drainage. The outputs include vertical soil moisture profiles, 
-average vertical flow, and horizontal flows between grid cells.
-
-All routines run on a daily time step and provide daily outputs as 
-well as monthly statistics (multivariate probability distributions) of atmospheric 
-temperature/humidity, soil temperature/moisture, and hydrological parameters.
->>>>>>> ec82a7b8c9dd84926408cd581f01741cff1f070d
+All routines run on a daily time step and provide daily outputs as well as monthly
+statistics (multivariate probability distributions) of atmospheric temperature/humidity,
+soil temperature/moisture, and hydrological parameters.
 
 ## Disturbance Module
 
