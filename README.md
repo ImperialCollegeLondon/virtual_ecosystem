@@ -23,7 +23,7 @@ Foundation to Professor Robert Ewers:
 
 The research is based at Imperial College London:
 
-[<img alt="Imperial logo" src="docs/static/IMP_ML_1CS_4CP_CLEAR-SPACE.png" width=250>](https://imperial.ac.uk)
+[<img alt="Imperial logo" src="source/_static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png" width=250>](https://imperial.ac.uk)
 
 
 ## Project Team
