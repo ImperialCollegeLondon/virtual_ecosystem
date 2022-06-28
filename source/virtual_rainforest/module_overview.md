@@ -30,7 +30,42 @@ The framework uses the perfect-plasticity approximation (PPA,
 light environments of different PFTs and hence the change in the size-structured
 demography of each PFT through time.
 
-## Soils Module
+## Soil Module
+
+The principal function of the Soil Module is to model the cycling of nutrients. This
+cycling is assumed to be primarily driven by microbial activity, which in turn is
+heavily impacted by both environmental and soil conditions. Plant-microbe interactions
+are taken to principally be either exchanges of or competition for nutrients, and so are
+modelled within the same nutrient cycling paradigm. Three specific nutrient cycles are
+incorporated into this module:
+
+* Carbon cycle
+* Nitrogen cycle
+* Phosphorus cycle
+
+The <b>Carbon cycle</b> uses as its basic structure a recently described soil-pool model
+termed the Millennial model ({cite}`abramoff_millennial_2018`). This model splits carbon
+into five separate pools: particulate organic matter, low molecular weight carbon
+(LMWC), mineral associated organic matter, aggregates and microbial biomass. Though
+plant root exudates feed directly into the LMWC pool, most biomass input will less
+direct and occur via litter decomposition. Thus, we utilize a common set of litter pools
+({cite}`kirschbaum_modelling_2002`), that are divided between above- and below-ground
+pools, and by biomass source (e.g. deadwood).
+
+The <b>Nitrogen cycle</b> is strongly coupled to the carbon cycle, therefore tracking
+the stoichiometry of the carbon pools is key to modelling it correctly. In addition,
+specific forms of nitrogen are explicitly modelled. They are as follows: a combined
+NH<sub>3</sub> and NH<sub>4</sub><sup>+</sup> pool to represent the products of nitrogen
+fixation and ammonification, a NO<sub>3</sub><sup>-</sup> pool to represent the products
+of nitrification, and a NO<sub>2</sub><sup>-</sup> pool to capture the process of
+denitrification.
+
+The <b>Phosphorus cycle</b> is similarly coupled to the carbon cycle. The additional
+inorganic pools tracked in this case are as follows: primary phosphorus in the form of
+weatherable minerals, mineral phosphorus which can be utilized by plants and microbes,
+secondary phosphorus which is mineral associated but can be recovered as mineral
+phosphorus, and occluded phosphorus which is irrecoverably bound within a mineral
+structure.
 
 ## Animal Module
 
@@ -67,6 +102,6 @@ temperature/humidity, soil temperature/moisture, and hydrological parameters.
 
 Introducing disturbances (e.g. logging) into the model will usually require making
 alterations to the state of multiple modules. As such, different disturbance models are
-collected in a seperate disturbance module. This module will be capable of altering the
+collected in a separate Disturbance Module. This module will be capable of altering the
 state of all the other modules, and will do so in a manner that allows the source of the
 changes to be explicitly identified.
