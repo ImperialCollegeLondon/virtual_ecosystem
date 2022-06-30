@@ -3,6 +3,32 @@
 This document provides a brief overview of the modules that make up the Virtual
 Rainforest.
 
+## Core Module
+
+The `core` module is responsible for:
+
+* **Model configuration**: running a model requires a configuration file to set the
+  various options to be used. The `core` module provides loading and validation routines
+  for this configuration.
+
+* **Logger configuration**: the various modules in the model can emit a lot of logging
+  information and the `core` module is used to set up the logging depth and log files.
+
+* **Spatial grid setup**: a model typically contains individual cells to capture spatial
+  heterogeneity and establish landscape scale processes. The `core` module supports the
+  configuration of those cells and potententially mapping of habitats to cells.
+
+* **Input validation**: once a model is configured, the `core` module is able to
+  validate the various inputs to the model to make sure that they are consistent with
+  the spatial grid configuration and each other.
+
+* **Cell initiation and timekeeping**: each cell contains instances of the various
+  modules used to simulate behaviour within that cell. The `core` module sets up those
+  instances.
+
+* **Timekeeping**: the `core` module is also responsible for the timekeeping of the
+  simulation - ensuring that the modules execute the right commands at the right time.
+
 ## Plant Module
 
 The Plant Module models the primary production from plants in the Virtual Rainforest. We
