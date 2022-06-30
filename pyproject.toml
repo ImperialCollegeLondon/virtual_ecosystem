@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "virtual_rainforest"
+version = "0.1.0"
+description = """The package simulates the abiotic, soil, animal and plant components of a rainforest"""
+authors = ["Rob Ewers <r.ewers@imperial.ac.uk>",
+           "David Orme <d.orme@imperial.ac.uk>",
+           "Jacob Cook <j.cook17@imperial.ac.uk>",
+           "Vivienne Groner <v.groner@imperial.ac.uk>",
+           "Taran Rallings <r.tallings@imperial.ac.uk>",
+           "Olivia Daniel <olivia.daniel08@imperial.ac.uk>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "^1.23.0"
+toml = "^0.10.2"
+mdformat = "^0.7.14"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+black = "^22.6.0"
+flake8 = "^4.0.1"
+mypy = "^0.961"
+pre-commit = "^2.19.0"
+isort = "^5.10.1"
+pytest-cov = "^3.0.0"
+pytest-flake8 = "^1.1.1"
+pytest-mypy = "^0.9.1"
+pytest-mock = "^3.8.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
