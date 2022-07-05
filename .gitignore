@@ -75,7 +75,9 @@ docs/_build/
 target/
 
 # Jupyter Notebook
+# - deliberately excluding ipynb files. Using Jupytext to maintain paired Myst Markdown with only MD under version control
 .ipynb_checkpoints
+*.ipynb
 
 # IPython
 profile_default/
