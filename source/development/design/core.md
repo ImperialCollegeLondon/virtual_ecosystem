@@ -34,3 +34,15 @@ The config system should provide a way to:
 - or possibly something like a dataclass for dotted notation:
   (config.plant.functional_types.max_height)
 - validate the config against some kind of template
+- It is likely that different configurations may re-use config subsections in different
+  combinations, so the config system should be capable of loading configs from
+  **multiple** files, so that a complete config can be built up or updated from multiple
+  files, rather than having to compile a single monolithic file for each permutation.
+
+### Design
+
+The system should have:
+
+- A `config_loader` function to read a particular file, optionally validating it
+  against a matching config template.
+- A central `Config` class, which can be built up using `ConfigLoader`.
