@@ -10,10 +10,16 @@ authors = ["Rob Ewers <r.ewers@imperial.ac.uk>",
            "Olivia Daniel <olivia.daniel08@imperial.ac.uk>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 numpy = "^1.23.0"
 toml = "^0.10.2"
 mdformat = "^0.7.14"
+tomli = {version = "^2.0.1", python = "<3.11"}
+dpath = "^2.0.6"
+pydantic = "^1.9.1"
+tomli-w = "^1.0.0"
+Shapely = "^1.8.2"
+Fiona = "^1.8.21"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
@@ -26,6 +32,9 @@ pytest-cov = "^3.0.0"
 pytest-flake8 = "^1.1.1"
 pytest-mypy = "^0.9.1"
 pytest-mock = "^3.8.1"
+ipython = "^8.4.0"
+ipykernel = "^6.15.0"
+matplotlib = "^3.5.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
