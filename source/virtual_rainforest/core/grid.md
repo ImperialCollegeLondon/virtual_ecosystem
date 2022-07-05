@@ -8,6 +8,10 @@ jupytext:
     format_name: myst
     format_version: 0.13
     jupytext_version: 1.13.8
+kernelspec:
+  display_name: virtual-rainforest-Laomc1u4-py3.9
+  language: python
+  name: virtual-rainforest-laomc1u4-py3.9
 ---
 
 # The `core.grid` module
@@ -79,3 +83,4 @@ The created grid can be exported to a GeoJSON file:
 ```{code-cell}
 hex_grid.export_geojson("test.geojson")
 ```
+
