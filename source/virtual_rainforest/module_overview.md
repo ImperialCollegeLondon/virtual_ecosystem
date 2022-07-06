@@ -115,7 +115,7 @@ The atmosphere is devided in four vertical layers:
 1. the top of the canopy which links the external driver to the module,
 2. the upper canopy where most photosynthetic activity occurs,
 3. the understorey where most large animal are active, and 
-4. the near surface which homes ground-dwelling organisms which links the atmosphere
+4. the near surface which homes ground-dwelling organisms and links the atmosphere
  to the top soil layer.
 
 The soil is represented by three vertical layers:
