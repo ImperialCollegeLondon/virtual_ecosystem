@@ -94,37 +94,55 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 
 ## Abiotic Module
 
-The abiotic module provides the microclimate and hydrology for the Virtual Rainforest.
-The module contains three subroutines:
+The abiotic module provides the microclimate and hydrology for the Virtual Rainforest. 
+Using a small set of input variables from external sources such as WFDE5 
+({cite}:`WFDE5-2020`) or regional climate models, the module calculates atmospheric and 
+soil parameters that drive the dynamics of plants, animals, and microbes at different 
+vertical levels. Two subroutines, the energy balance and the water balance, provide 
+the following variables at required levels:
 
-### Radiation balance
+- Net radiation ($R_N$) and Photosynthetic photon flux density ($PPFD$)
+- Air Temperature ($T_{air}$)
+- Relative humidity ($RH$) and vapor pressure deficit ($VPD$)
+- Soil Temperature ($T_{soil}$)
+- Soil moisture ($W_{soil}$)
+- Runoff ($RO$), mean vertical flow ($VF$) and drainage ($D$)
 
-The Radiation balance subroutine uses incoming solar radiation and vegetation structure
-to calculate vertical profiles of Net radiation and Photosynthetic photon flux density.
+### Vertical structure of atmosphere and soil
 
-### Energy balance
+The atmosphere is devided in four vertical layers:
 
-The Energy balance subroutine calculates:
+1. the top of the canopy which links the external driver to the module,
+2. the upper canopy where most photosynthetic activity occurs,
+3. the understorey where most large animal are active, and 
+4. the near surface which homes ground-dwelling organisms which links the atmosphere
+ to the top soil layer.
 
-1. sensible heat flux from leaves and soil,
-2. latent heat flux from leaves and soil based on the Penman-Monteith (or
-   Priestley–Taylor) equation, and
-3. soil heat flux based on Fourier's law.
+The soil is represented by three vertical layers:
 
-The output of the subroutine includes vertical profiles of atmospheric temperature,
-relative humidity, and soil temperature. In the first version of the module, energy
-balance subroutine runs as single-column model for each grid cell independently without
-horizontal exchange of information.
+1. the top soil where most microbial activity occurs,
+2. the root zone where plant water extraction is the prevalent process, and
+3. the deep soil where changes in water storage and subsurface drainage are modeled.
 
-### Water balance
+### The Energy balance
 
-The Water balance subroutine uses rainfall to calculate runoff, infiltration, soil
-moisture, and drainage. The outputs include vertical soil moisture profiles, average
-vertical flow, and horizontal flows between grid cells.
+The Energy balance subroutine uses incoming solar radiation and vegetation structure 
+to calculate vertical profiles of $R_N$ and $PPFD$. 
+Based on the vertical profile of $R_N$, the subroutine derives sensible and latent 
+heat fluxes from leaves and soil to the atmosphere and updates $T_{air}$, $RH$, and 
+$VPD$ at each level. The vertical mixing between levels is assumed to be driven by 
+heat conductance because turbulence is typically low below the canopy 
+({cite}:`MACLEAN2021`). Part of the $R_N$ is converted into soil heat flux. The 
+vertical exchange of heat between soil layers follows that same approach as the 
+atmospheric mixing.
 
-All routines run on a daily time step and provide daily outputs as well as monthly
-statistics (multivariate probability distributions) of atmospheric temperature/humidity,
-soil temperature/moisture, and hydrological parameters.
+### The Water balance
+
+The Water balance subroutine is based on the soil moisture 'bucket' scheme of the SPLASH 
+model ({cite}:`Davis:2017`). The scheme uses rainfall and soil moisture of the previous 
+timestep to calculate runoff, evaporation, condensation, and soil moisture. We extend 
+the SPLASH scheme to derive soil moisture at different vertical levels, mean vertical 
+flow, and drainage. 
 
 ## Disturbance Module
 
