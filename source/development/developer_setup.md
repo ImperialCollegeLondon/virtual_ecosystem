@@ -159,17 +159,20 @@ pre-commit hooks. Once that has been done, the hooks are active:
 - You will need to `git add` further changes to those files to a point where they pass
   the checks.
 
-## Setting up `git` `flow`
+## Setting up `git flow`
 
-In order to setup `git` `flow`, you should first install `git-flow-avh` using your
-preferred package manager. For example on MacOS with `homebrew`, this is done using the
-following command:
+In this project we make use of
+[`gitflow-avh`](https://github.com/petervanderdoes/gitflow-avh), as it offers a helpful
+extended set of publishing commands. Installation instructions for different operating
+systems can be found
+[here](https://github.com/petervanderdoes/gitflow-avh/wiki/Installation). As example, on
+MacOS it can be installed using the following command:
 
 ```bash
 brew install git-flow-avh
 ```
 
-Now that `git-flow-avh` is installed, `git` `flow` should be initialised for the repo by
+Now that `git-flow-avh` is installed, `git flow` should be initialised for the repo by
 calling:
 
 ```bash
@@ -202,5 +205,5 @@ Version tag prefix? [] v
 Hooks and filters directory? [/usr/file/structure/virtual_rainforest/.git/hooks]
 ```
 
-Once this is done `git` `flow` has been setup and new branches can be created using
-`git` `flow` commands
+Once this is done `git flow` has been setup and new branches can be created using
+`git flow` commands
