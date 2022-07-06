@@ -46,25 +46,75 @@ active `poetry` virtual environment:
 
 There is a good discussion of this
 [here](https://janakiev.com/blog/jupyter-virtual-envs/) but the take home is that you
-need to install the venv into your local Jupyter installation, using the short name of
-the venv:
+need to add a kernel specification to your local Jupyter installation that points to the
+venv created by `poetry`.
 
 ```zsh
-poetry shell
-python -m ipykernel install --user --name=virtual-rainforest-Laomc1u4-py3.9
+poetry run python -m ipykernel install --user --name=vr_python3
 ```
 
-When you run `jupyter-lab` now, you will be able to select the virtual-rainforest kernel
-to run the code cells.
+When you run `jupyter-lab` now, you should be able to select the `vr_python3` kernel to
+run the code cells. That command is doing some subtle and important things:
+
+- Python is being run in the active `poetry` virtual environment (`poetry run`).
+- The active `python` environment is then being installed as a kernel specification.
+- It is being installed into a location that is available for the user from anywhere
+  they run `jupyter` (`--user`).
+- It is being installed with the name `vr_python3` (`--name vr_python3`).
+
+The choice of kernel name is **important** because it is included in IPython notebooks
+and we want it to be stable. The kernel name:
+
+- needs to point to a virtual environment including the `virtual_rainforest` package
+  and dependencies, and
+- should be consistent across supported Python versions and developer machines.
+
+The options are:
+
+- By default, it would be installed as `python3`, which is way too generic.
+- The `poetry` venv name contains a hash (e.g. `Laomc1u4`) which uniquely identifies the
+  project directory and helps `poetry` track the project-specific venvs. This is a
+  **spectacularly bad** kernel name because files would change as they are run on
+  different developer machines.
+- Using the `vr_python3` name is hopefully unique and should be a stable pointer to a
+  venv that includes  the `virtual_rainforest` package and dependencies.
+
+Just to point to the gory details, there is now a `kernelspec` called `vr_python3`. That
+is just a pointer to a JSON file that points to the machine-specific venv location.
+
+```zsh
+% jupyter kernelspec list
+Available kernels:
+  ir            /Users/dorme/Library/Jupyter/kernels/ir
+  julia-1.0     /Users/dorme/Library/Jupyter/kernels/julia-1.0
+  vr_python3    /Users/dorme/Library/Jupyter/kernels/vr_python3
+```
+
+```zsh
+% cat /Users/dorme/Library/Jupyter/kernels/vr_python3/kernel.json
+{
+ "argv": [
+  "/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.10/bin/python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "vr_python3",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ }
+}%
+```
 
 ## Notebook formats
 
 The default `jupyter` notebook format is the IPython Notebook `.ipynb`. This file uses
 the JSON format to store the text and code and a whole bunch of other metadata. The
 `.ipynb` format is not great for use in version control. There is a really neat summary
-of the problem and some solutions here:
-
-[](https://nextjournal.com/schmudde/how-to-version-control-jupyter)
+of the problem and some solutions
+[here](https://nextjournal.com/schmudde/how-to-version-control-jupyter)
 
 The basic problem is that - although JSON files are text-based and are **technically**
 human-readable:
@@ -86,6 +136,8 @@ contents of `ipynb` files, so the rendered page you see on GitHub includes the m
 recent output runs.
 
 - We only commit notebooks in markdown format.
+- Notebooks should use the `vr_python3` kernel, so that they will hopefully run on any
+  machine that has set up the `kernelspec` correctly.
 - GitHub will render the markdown and code cells correctly but none of the executed
   outputs will be shown.
 - However, the markdown files **will be executed** by the `sphinx` documentation system,
@@ -115,17 +167,18 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: virtual-rainforest-Laomc1u4-py3.9
+  display_name: vr_python3
   language: python
-  name: virtual-rainforest-laomc1u4-py3.9
+  name: vr_python3
 ---
 ```
 
-If you have a simple Markdown file then the commands below will insert this YAML header:
+If you already have a simple Markdown file then the commands below will insert this YAML
+header:
 
 ```zsh
 % jupytext --set-format md:myst simple.md
-% jupytext --set-kernel virtual-rainforest-Laomc1u4-py3.9  simple.md
+% jupytext --set-kernel vr_python3  simple.md
 ```
 
 ## Notebook pre-commit checking
