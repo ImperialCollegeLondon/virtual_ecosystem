@@ -20,7 +20,6 @@ pydantic = "^1.9.1"
 tomli-w = "^1.0.0"
 Fiona = "^1.8.21"
 
-
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
 black = "^22.6.0"
@@ -43,6 +42,7 @@ autodocsumm = "^0.2.8"
 sphinxcontrib-bibtex = "^2.4.2"
 myst-nb = "^0.16.0"
 sphinx-rtd-theme = "^1.0.0"
+doctestfn = "^1.0.3"               # Used to execute single doctests
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
