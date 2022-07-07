@@ -6,7 +6,9 @@ Some example code used to demonstrate docstrings
 # flake8: noqa D202, D107
 
 from typing import List
+
 from pydantic import validate_arguments
+
 
 def my_float_multiplier(x: float, y: float) -> float:
     """Multiplies two floats together.
@@ -133,4 +135,3 @@ def my_validated_float_multiplier(x: float, y: float) -> float:
     """
 
     return x * y
-
