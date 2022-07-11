@@ -65,6 +65,7 @@ team.
   :hidden:
 
   virtual_rainforest/module_overview.md
+  virtual_rainforest/core/grid.md
 ```
 
 ```{eval-rst}
@@ -74,8 +75,14 @@ team.
   :hidden:
 
   development/code_development_strategy.md
-  development/training/git.ipynb
-  development/training/doctest_and_pytest.ipynb
+  development/jupyter_notebooks.md
+  development/developer_setup.md
+  development/design/core.md
+  development/training/building_slides.md
+  development/training/development_toolchain.md
+  development/training/git_and_gitflow.md
+  development/training/doctest_and_pytest_pre_session.md
+  development/training/doctest_and_pytest.md
 ```
 
 ```{eval-rst}
