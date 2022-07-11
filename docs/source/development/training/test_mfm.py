@@ -1,8 +1,7 @@
 # flake8: noqa D103 - docstrings on unit tests
 
 import pytest
-
-from mfm import my_float_multiplier, my_picky_float_multiplier, TimesTable
+from mfm import TimesTable, my_float_multiplier, my_picky_float_multiplier
 
 
 def test_fm():

@@ -1,29 +1,36 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
 
-# -- Path setup --------------------------------------------------------------
+This file only contains a selection of the most common options. For a full
+list see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+-- Path setup --------------------------------------------------------------
+
+If extensions (or modules to document with autodoc) are in another directory,
+add these directories to sys.path here. If the directory is relative to the
+documentation root, use os.path.abspath to make it absolute, like shown here.
+"""
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
 
-from virtual_rainforest import version
+sys.path.insert(0, os.path.abspath("../"))
 
-version = version.__version__
+from virtual_rainforest import version as vr_version  # noqa: E402
+
+version = vr_version.__version__
 release = version
 
 # -- Project information -----------------------------------------------------
 
-project = 'Virtual Rainforest'
-copyright = '2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, Taran Rallings, Vivienne Groner'
-author = 'Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, Taran Rallings, Vivienne Groner'
+project = "Virtual Rainforest"
+copyright = (
+    "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
+    "Jaideep Joshi, Taran Rallings, Vivienne Groner"
+)
+author = (
+    "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
+    "Taran Rallings, Vivienne Groner"
+)
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,7 +39,6 @@ author = 'Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, Tara
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    #'myst_parser',
     "sphinx.ext.autodoc",
     "autodocsumm",
     "sphinx.ext.napoleon",
@@ -40,7 +46,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
     "myst_nb",
-    "sphinx_astrorefs",  # Gives author year references
+    # "sphinx_astrorefs",  # Gives author year references
     "sphinx_rtd_theme",
 ]
 autodoc_default_flags = ["members"]
@@ -65,14 +71,14 @@ autodoc_preserve_defaults = True
 bibtex_bibfiles = ["refs.bib"]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-                    'development/training/.pytest_cache/*',
-                    ]
+    "development/training/.pytest_cache/*",
+]
 
 master_doc = "index"
 
@@ -100,11 +106,8 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 html_sidebars = {
-    "**": ["logo-text.html", 
-           "globaltoc.html", 
-           "localtoc.html", 
-           "searchbox.html"]
+    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }

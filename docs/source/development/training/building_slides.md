@@ -4,7 +4,7 @@ The python notebooks in this directory are intended to be built as slides. Some 
 slides are supposed to be scrollable to include longer outputs. That is fine:
 
 ```bash
-jupyter-nbconvert --to slides development_toolchain.ipynb\
+jupyter-nbconvert --to slides development_toolchain.md\
                   --SlidesExporter.reveal_scroll=True
 ```
 
