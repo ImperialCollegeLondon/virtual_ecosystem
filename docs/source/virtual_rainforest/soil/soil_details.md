@@ -175,4 +175,12 @@ phosphorus include this pool, so it is important to model it explicitly.
 
 ## Microbial representation
 
-HMMM THIS IS THE ONE THAT REQUIRES THOUGHT
+Microbes are represented principally as a carbon pool. For certain purposes this pool
+will have to be subdivided, e.g. termites feeding upon mycelium should remove biomass
+specifically from a fungal sub-pool. This division is probably best handled by using
+nested sub-pools, where for example mycorrhizal fungal biomass forms a portion of the
+total fungal biomass which in turn is a portion of the total microbial biomass.
+
+Major decisions still need to be made in terms of how this sub-pool division is
+implemented in practice. So the above is likely to be revised/extended in the near
+future.
