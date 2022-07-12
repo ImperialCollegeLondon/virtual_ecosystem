@@ -156,9 +156,9 @@ include it for the sake of model completeness.
 
 ### Labile P
 
-The inorganic phosphorus that can be taken up by plants is termed labile phosphorus. This type
-of phosphorus is formed either by breakdown of organic matter or by weathering of
-primary mineral phosphorus.
+The inorganic phosphorus that can be taken up by plants is termed labile phosphorus.
+This type of phosphorus is formed either by breakdown of organic matter or by weathering
+of primary mineral phosphorus.
 
 ### Secondary mineral P
 
