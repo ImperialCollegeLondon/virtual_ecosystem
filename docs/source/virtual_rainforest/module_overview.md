@@ -16,7 +16,7 @@ The `core` module is responsible for:
 
 - **Spatial grid setup**: a model typically contains individual cells to capture spatial
   heterogeneity and establish landscape scale processes. The `core` module supports the
-  configuration of those cells and potententially mapping of habitats to cells.
+  configuration of those cells and potentially mapping of habitats to cells.
 
 - **Input validation**: once a model is configured, the `core` module is able to
   validate the various inputs to the model to make sure that they are consistent with
@@ -90,6 +90,10 @@ minerals, mineral phosphorus which can be utilized by plants and microbes, secon
 phosphorus which is mineral associated but can be recovered as mineral phosphorus, and
 occluded phosphorus which is irrecoverably bound within a mineral structure.
 
+### Further details
+
+Further theoretical background for the soil module can be found [here](./soil/soil_details.md).
+
 ## Animal Module
 
 ## Abiotic Module
@@ -110,7 +114,7 @@ following variables at required levels:
 
 ### Vertical structure of atmosphere and soil
 
-The atmosphere is devided in four vertical layers:
+The atmosphere is divided in four vertical layers:
 
 1. the top of the canopy which links the external driver to the module,
 1. the upper canopy where most photosynthetic activity occurs,
