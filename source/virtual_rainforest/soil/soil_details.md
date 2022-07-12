@@ -143,9 +143,35 @@ nitrogen pools.
 
 ## Phosphorus pools
 
-MOST PHOSPHORUS CYCLES WITH THE ORGANIC MATTER
+Most phosphorus in tropical forest soils is recycled from organic matter inputs. Thus,
+as with nitrogen we track the phosphorus stoichiometry of all litter and soil carbon
+pools. However, phosphorus does take an inorganic form at key points in the phosphorus
+cycle, and so the following inorganic phosphorus pools are also included:
 
-THEN EXPLAIN THE INORGANIC POOLS, AND THE REASON THAT WE WOULD INCLUDE THEM
+### Primary mineral P
+
+Phosphorus can enter soils through weathering of primary minerals. Though this
+contribution to the overall phosphorus budget is likely to be small in our case, we
+include it for the sake of model completeness.
+
+### Labile P
+
+The inorganic phosphorus that can be taken up by plants is termed labile phosphorus. This type
+of phosphorus is formed either by breakdown of organic matter or by weathering of
+primary mineral phosphorus.
+
+### Secondary mineral P
+
+Labile phosphorus can form associations with minerals that prevent uptake by plants.
+This is termed secondary mineral phosphorus. This phosphorus can be liberated from its
+mineral association as labile phosphorus.
+
+### Occluded P
+
+Alternatively, secondary mineral phosphorus can become physically occluded, preventing
+its liberation. This phosphorus is termed occluded phosphorus, and is inaccessible to
+the wider system (at least on biological time scales). Measurements of total soil
+phosphorus include this pool, so it is important to model it explicitly.
 
 ## Microbial representation
 
