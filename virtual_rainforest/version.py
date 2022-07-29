@@ -6,4 +6,3 @@ use in functions and setup.py.
 
 
 __version__ = "0.0.0_post9000"
-

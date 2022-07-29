@@ -10,7 +10,6 @@ processes involved in a real rainforest including the:
 * biotic and abiotic processes within the soil, and the
 * growth and demography of heterotrophs.
 
-
 ## Project details
 
 This project is funded by a 2021 Distinguished Scientist award from the NOMIS
@@ -19,12 +18,13 @@ Foundation to Professor Robert Ewers:
 * [NOMIS Award details](https://nomisfoundation.ch/people/robert-ewers/)
 * [NOMIS project summary](https://nomisfoundation.ch/research-projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/)
 
-[<img alt="NOMIS logo" src="https://nomisfoundation.ch/wp-content/uploads/2020/05/nomis-foundation-logo-372-by-151.png" width=250>](https://nomisfoundation.ch)
+<!-- markdownlint-disable-next-line  MD033 MD013-->
+[<img alt="NOMIS logo" src="docs/source/_static/images/logo-nomis-822-by-321.png" width=250>](https://nomisfoundation.ch)
 
 The research is based at Imperial College London:
 
-[<img alt="Imperial logo" src="source/_static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png" width=250>](https://imperial.ac.uk)
-
+<!-- markdownlint-disable-next-line  MD033 MD013-->
+[<img alt="Imperial logo" src="docs/source/_static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png" width=250>](https://imperial.ac.uk)
 
 ## Project Team
 
@@ -33,7 +33,10 @@ The research is based at Imperial College London:
 * Dr. Jaideep Joshi
 * Dr. David Orme
 * Dr. Vivienne Groner
-* Jacob Cook
+* Dr. Jacob Cook
 * Taran Rallings
 
-The research team are supported by the Imperial College London [Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/) team.
+The research team are supported by the Imperial College London
+[Research Software
+Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
+team.
