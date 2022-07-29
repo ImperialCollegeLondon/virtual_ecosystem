@@ -176,6 +176,13 @@ class CoreGrid:
         return {"type": "Feature", "geometry": geom, "properties": props}
 
     def export_geojson(self, outfile: str):
+        """Export grid system as geojson file.
+
+
+        Args:
+            outfile: A self.cell_dict returned by a make_square_grid
+                     or make_hex_grid call.
+        """
 
         # Open a collection for writing.
         with fiona.open(
