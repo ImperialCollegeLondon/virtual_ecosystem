@@ -25,7 +25,7 @@ some great extensions that would be useful to share across the team.
   for the project. If you do not already have a clone of this, then open a terminal in a
   suitable directory and use:
 
-  ```
+  ```bash
   git clone https://github.com/ImperialCollegeLondon/virtual_rainforest.git
   ```
 
