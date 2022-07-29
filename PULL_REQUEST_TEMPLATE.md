@@ -17,6 +17,7 @@ Fixes # (issue)
 - [ ] Make sure you've run the `pre-commit` checks: `$ pre-commit run -a`
 - [ ] All tests pass: `$ poetry run pytest`
 
+
 ## Further checks:
 
 - [ ] Code is commented, particularly in hard-to-understand areas
