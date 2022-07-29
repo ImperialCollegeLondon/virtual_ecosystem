@@ -154,6 +154,22 @@ class CoreGrid:
 
         return cell_dict
 
+    def _feature(cell_tuple):
+            """Convert a (key, val) tuple from iterating over the items in
+            self.cell_dict into a fiona feature"""
+
+            cell_id, cell_dict = cell_tuple
+
+            poly = [tuple(x) for x in cell_dict["poly"].tolist()]
+            geom = {"type": "Polygon", "coordinates": [poly]}
+
+            props = {
+                "cell_id": cell_id,
+                "cell_cx": cell_dict["centroid"][0],
+                "cell_cy": cell_dict["centroid"][1],
+            }
+            return {"type": "Feature", "geometry": geom, "properties": props}
+
     def export_geojson(self, outfile: str):
 
         # Open a collection for writing.
@@ -171,22 +187,6 @@ class CoreGrid:
                 },
             },
         ) as output:
-
-            def _feature(cell_tuple):
-                """Convert a (key, val) tuple from iterating over the items in
-                self.cell_dict into a fiona feature"""
-
-                cell_id, cell_dict = cell_tuple
-
-                poly = [tuple(x) for x in cell_dict["poly"].tolist()]
-                geom = {"type": "Polygon", "coordinates": [poly]}
-
-                props = {
-                    "cell_id": cell_id,
-                    "cell_cx": cell_dict["centroid"][0],
-                    "cell_cy": cell_dict["centroid"][1],
-                }
-                return {"type": "Feature", "geometry": geom, "properties": props}
 
             # Write all of self.cell_dict to file
             output.writerecords(map(_feature, self.cell_dict.items()))
