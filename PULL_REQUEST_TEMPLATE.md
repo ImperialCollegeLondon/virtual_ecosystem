@@ -15,7 +15,7 @@ Please add a line in the relevant section of [CHANGELOG.md](https://github.com/I
 
 # Key checklist:
 
-- [ ] No style issues: `$ flake8`
+- [ ] Make sure you've run the `pre-commit` checks: `$ pre-commit run -a`
 - [ ] All tests pass: `$ python run-tests.py --unit`
 - [ ] The documentation builds: `$ cd docs` and then `$ make clean; make html`
 
