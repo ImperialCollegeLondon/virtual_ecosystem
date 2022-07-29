@@ -18,7 +18,7 @@ from pydantic.typing import Literal
 
 @dataclass
 class CoreGridConfig:
-    """Configure the `core.grid` module
+    """Configure the `core.grid` module.
 
     This data class is used to setup the arrangement of grid cells to be used in
     running a `virtual_rainforest` simulation.
@@ -39,7 +39,7 @@ class CoreGridConfig:
 
 
 class CoreGrid:
-    """Define the grid of cells used in a virtual rainforest simulation
+    """Define the grid of cells used in a virtual rainforest simulation.
 
     Args:
         config: A CoreGridConfig instance used to setup the grid
@@ -80,7 +80,7 @@ class CoreGrid:
 
     @staticmethod
     def _make_square_grid(cell_area: float, cell_nx: int, cell_ny: int) -> dict:
-        """Create a square grid
+        """Create a square grid.
 
         Args:
             cell_area:
@@ -111,7 +111,7 @@ class CoreGrid:
 
     @staticmethod
     def _make_hex_grid(cell_area: float, cell_nx: int, cell_ny: int) -> dict:
-        """Create a hexagon grid
+        """Create a hexagon grid.
 
         Args:
             cell_area:
@@ -154,6 +154,27 @@ class CoreGrid:
 
         return cell_dict
 
+    @staticmethod
+    def cell_to_feature(cell_tuple: tuple) -> dict:
+        """Convert a cell_dict entry to a GeoJSON feature.
+
+        The cell_dict keys cell IDs to a dictionary of the cell polygon and centroid.
+        This function takes a (key, val) tuple from iterating over the cell_dict and
+        returns a dictionary in the stucture needed for output to GeoJSON.
+        """
+
+        cell_id, cell_dict = cell_tuple
+
+        poly = [tuple(x) for x in cell_dict["poly"].tolist()]
+        geom = {"type": "Polygon", "coordinates": [poly]}
+
+        props = {
+            "cell_id": cell_id,
+            "cell_cx": cell_dict["centroid"][0],
+            "cell_cy": cell_dict["centroid"][1],
+        }
+        return {"type": "Feature", "geometry": geom, "properties": props}
+
     def export_geojson(self, outfile: str):
         """Export grid system as geojson file.
 
@@ -179,21 +200,5 @@ class CoreGrid:
             },
         ) as output:
 
-            def _feature(cell_tuple):
-                """Convert a (key, val) tuple from iterating over the items in
-                self.cell_dict into a fiona feature"""
-
-                cell_id, cell_dict = cell_tuple
-
-                poly = [tuple(x) for x in cell_dict["poly"].tolist()]
-                geom = {"type": "Polygon", "coordinates": [poly]}
-
-                props = {
-                    "cell_id": cell_id,
-                    "cell_cx": cell_dict["centroid"][0],
-                    "cell_cy": cell_dict["centroid"][1],
-                }
-                return {"type": "Feature", "geometry": geom, "properties": props}
-
             # Write all of self.cell_dict to file
-            output.writerecords(map(_feature, self.cell_dict.items()))
+            output.writerecords(map(self.cell_to_feature, self.cell_dict.items()))
