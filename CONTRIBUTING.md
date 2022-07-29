@@ -17,7 +17,7 @@ set up our development toolchain on your machine to contribute to the project.
   the repo to start using it.
 * We use [`pre-commit`](https://pre-commit.com/) to maintain code quality on
   submitted code. Before changing the code, install `pre-commit` and then use
-  `pre-commit` install to make sure that your code is being checked.
+  `pre-commit install` to make sure that your code is being checked.
 
 ## Contributing code
 
