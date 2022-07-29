@@ -1,7 +1,24 @@
 {
-    "python.testing.pytestArgs": [
-        "."
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.enabled": true,
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "workbench.tree.indent": 24,
+    "editor.rulers": [
+        88
     ],
+    "files.autoSave": "afterDelay",
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "-s",
+        "tests"
+    ],
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter-notebook"
+    },
+    "rewrap.autoWrap.enabled": true,
+    "editor.wordWrapColumn": 88
 }
