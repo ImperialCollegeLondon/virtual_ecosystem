@@ -44,6 +44,7 @@ sphinxcontrib-bibtex = "^2.4.2"
 myst-nb = "^0.16.0"
 sphinx-rtd-theme = "^1.0.0"
 doctestfn = "^1.0.3"               # Used to execute single doctests
+flake8-docstrings = "^1.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

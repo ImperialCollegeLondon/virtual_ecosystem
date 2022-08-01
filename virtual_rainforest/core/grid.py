@@ -69,9 +69,9 @@ class CoreGrid:
             )
 
     def __repr__(self) -> str:
-
+        """Represent a CoreGrid as a string."""
         return (
-            "CoreGridConfig("
+            "CoreGrid("
             f"grid_type={self.config.grid_type}, "
             f"cell_area={self.config.cell_area}, "
             f"cell_nx={self.config.cell_nx}, "
@@ -83,9 +83,9 @@ class CoreGrid:
         """Create a square grid.
 
         Args:
-            cell_area:
-            cell_nx:
-            cell_ny:
+            cell_area: The area of each hexagon cell
+            cell_nx: The number of grid cells in the X direction.
+            cell_ny: The number of grid cells in the Y direction.
         """
 
         # Create the base object, with origin at 0,0
@@ -114,9 +114,9 @@ class CoreGrid:
         """Create a hexagon grid.
 
         Args:
-            cell_area:
-            cell_nx:
-            cell_ny:
+            cell_area: The area of each hexagon cell
+            cell_nx: The number of grid cells in the X direction.
+            cell_ny: The number of grid cells in the Y direction.
         """
 
         # Calculate the side length and apothem of the hexagon and get the base hexagon
@@ -177,7 +177,6 @@ class CoreGrid:
 
     def export_geojson(self, outfile: str):
         """Export grid system as geojson file.
-
 
         Args:
             outfile: A self.cell_dict returned by a make_square_grid
