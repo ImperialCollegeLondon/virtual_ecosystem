@@ -26,13 +26,15 @@ This module tests the following functions from grid.py:
 """
 
 import pytest
+from hypothesis import given
+from hypothesis.strategies import integers
 
 
 def test_CoreGridConfig():
     """Test if CoreGridConfig().
 
-    Check if function created an object with properties: grid_type,
-    cell_contiguity, cell_area, cell_nx, cell_ny.
+    Check if function created an object with default values for the following
+    properties: grid_type, cell_contiguity, cell_area, cell_nx, cell_ny.
     """
     from virtual_rainforest.core.grid import CoreGridConfig
 
@@ -44,8 +46,9 @@ def test_CoreGridConfig():
     assert obj_1.cell_ny == 10
 
 
-def test_make_square_grid():
-    """Test _make_square_grid()."""
+@given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
+def test_make_square_grid(x, y):
+    """Test make_square_grid()."""
     from scipy.spatial.distance import euclidean  # type: ignore
 
     from virtual_rainforest.core.grid import CoreGrid
@@ -55,22 +58,40 @@ def test_make_square_grid():
     # check if correct number of points were created
     assert len(test.keys()) == 100
 
-    # check that distance between neighboring points is euqal for all integers
-    # (this works but is a bit long)
-    for x in range(9):
-        for y in range(9):
-            distance = euclidean(
-                test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][2]
-            )
-            distance2 = euclidean(
-                test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][3]
-            )
-            assert distance == pytest.approx(distance2)
-    # TODO check that angle between points = 90 deg
+    # check distance between corner points is the same
+    distance = euclidean(test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][2])
+    distance2 = euclidean(test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][3])
+    assert distance == pytest.approx(distance2)
+
+    # check angle between corner points is the same
+    from math import atan2, degrees, pi
+
+    def angle(A, B, C, /):
+        Ax, Ay = A[0] - B[0], A[1] - B[1]
+        Cx, Cy = C[0] - B[0], C[1] - B[1]
+        a = atan2(Ay, Ax)
+        c = atan2(Cy, Cx)
+        if a < 0:
+            a += pi * 2
+        if c < 0:
+            c += pi * 2
+        return (pi * 2 + c - a) if a > c else (c - a)
+
+    point1 = test[f"{x}-{y}"]["poly"][0]
+    point2 = test[f"{x}-{y}"]["poly"][1]
+    point3 = test[f"{x}-{y}"]["poly"][2]
+    point4 = test[f"{x}-{y}"]["poly"][3]
+
+    angle1 = angle(point1, point2, point3)
+    angle2 = angle(point2, point3, point4)
+
+    assert degrees(angle1) == pytest.approx(90)
+    assert angle1 == pytest.approx(angle2)
 
 
-def test_make_hex_grid():
-    """Test _make_hex_grid()."""
+@given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
+def test_make_hex_grid(x, y):
+    """Test make_hex_grid()."""
     from scipy.spatial.distance import euclidean  # type: ignore
 
     from virtual_rainforest.core.grid import CoreGrid
@@ -80,20 +101,41 @@ def test_make_hex_grid():
     # check if correct number of points were created
     assert len(test.keys()) == 100
 
-    # check that distance between neighboring points is euqal for all integers
-    # (this works but is a bit long)
-    for x in range(9):
-        for y in range(9):
-            distance = euclidean(
-                test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][3]
-            )
-            distance2 = euclidean(
-                test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][4]
-            )
-            distance3 = euclidean(
-                test[f"{x}-{y}"]["poly"][2], test[f"{x}-{y}"]["poly"][5]
-            )
-            assert distance == pytest.approx(distance2)
-            assert distance == pytest.approx(distance3)
+    # check distance between corner points is the same
+    distance = euclidean(test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][3])
+    distance2 = euclidean(test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][4])
+    distance3 = euclidean(test[f"{x}-{y}"]["poly"][2], test[f"{x}-{y}"]["poly"][5])
+    assert distance == pytest.approx(distance2)
+    assert distance == pytest.approx(distance3)
 
-    # TODO check that angle between points = 120 deg
+    # check that angle between points = 120 deg
+    # (this works but is a bit long)
+    from math import atan2, degrees, pi
+
+    def angle(A, B, C, /):
+        Ax, Ay = A[0] - B[0], A[1] - B[1]
+        Cx, Cy = C[0] - B[0], C[1] - B[1]
+        a = atan2(Ay, Ax)
+        c = atan2(Cy, Cx)
+        if a < 0:
+            a += pi * 2
+        if c < 0:
+            c += pi * 2
+        return (pi * 2 + c - a) if a > c else (c - a)
+
+    point1 = test[f"{x}-{y}"]["poly"][0]
+    point2 = test[f"{x}-{y}"]["poly"][1]
+    point3 = test[f"{x}-{y}"]["poly"][2]
+    point4 = test[f"{x}-{y}"]["poly"][3]
+    point5 = test[f"{x}-{y}"]["poly"][4]
+    point6 = test[f"{x}-{y}"]["poly"][5]
+
+    angle1 = angle(point1, point2, point3)
+    angle2 = angle(point2, point3, point4)
+    angle3 = angle(point3, point4, point5)
+    angle4 = angle(point4, point5, point6)
+
+    assert degrees(angle1) == pytest.approx(120)
+    assert angle1 == pytest.approx(angle2)
+    assert angle1 == pytest.approx(angle3)
+    assert angle1 == pytest.approx(angle4)
