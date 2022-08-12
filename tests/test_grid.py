@@ -52,12 +52,20 @@ def test_make_square_grid():
 
     test = CoreGrid._make_square_grid(100, 10, 10)
 
-    # TODO check if correct number of points were created
+    # check if correct number of points were created
+    assert len(test.keys()) == 100
 
-    # TODO check that distance between neighboring points is euqal for all integers
-    distance = euclidean(test["0-0"]["poly"][0], test["0-0"]["poly"][1])
-    distance2 = euclidean(test["0-0"]["poly"][0], test["0-0"]["poly"][3])
-    assert distance == distance2
+    # check that distance between neighboring points is euqal for all integers
+    # (this works but is a bit long)
+    for x in range(9):
+        for y in range(9):
+            distance = euclidean(
+                test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][2]
+            )
+            distance2 = euclidean(
+                test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][3]
+            )
+            assert distance == pytest.approx(distance2)
     # TODO check that angle between points = 90 deg
 
 
@@ -67,10 +75,25 @@ def test_make_hex_grid():
 
     from virtual_rainforest.core.grid import CoreGrid
 
-    # TODO check if correct number of points were created
-    # TODO check that distance between neighboring points is euqal for all integers
     test = CoreGrid._make_hex_grid(100, 10, 10)
-    distance = euclidean(test["0-0"]["poly"][0], test["0-0"]["poly"][1])
-    distance2 = euclidean(test["0-0"]["poly"][0], test["0-0"]["poly"][3])
-    distance == pytest.approx(2 * distance2)
+
+    # check if correct number of points were created
+    assert len(test.keys()) == 100
+
+    # check that distance between neighboring points is euqal for all integers
+    # (this works but is a bit long)
+    for x in range(9):
+        for y in range(9):
+            distance = euclidean(
+                test[f"{x}-{y}"]["poly"][0], test[f"{x}-{y}"]["poly"][3]
+            )
+            distance2 = euclidean(
+                test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][4]
+            )
+            distance3 = euclidean(
+                test[f"{x}-{y}"]["poly"][2], test[f"{x}-{y}"]["poly"][5]
+            )
+            assert distance == pytest.approx(distance2)
+            assert distance == pytest.approx(distance3)
+
     # TODO check that angle between points = 120 deg
