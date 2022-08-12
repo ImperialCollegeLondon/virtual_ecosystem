@@ -26,7 +26,7 @@ This module tests the following functions from grid.py:
 """
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import integers
 
 
@@ -46,6 +46,7 @@ def test_CoreGridConfig():
     assert obj_1.cell_ny == 10
 
 
+@settings(deadline=None)
 @given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
 def test_make_square_grid(x, y):
     """Test make_square_grid()."""
