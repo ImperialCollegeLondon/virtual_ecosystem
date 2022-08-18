@@ -64,30 +64,17 @@ def test_make_square_grid(x, y):
     distance2 = euclidean(test[f"{x}-{y}"]["poly"][1], test[f"{x}-{y}"]["poly"][3])
     assert distance == pytest.approx(distance2)
 
-    # check angle between corner points is the same
-    from math import atan2, degrees, pi
+    # If AB and AC are numpy arrays that go from point A to B and point A to C
+    # respectively, then they will form a ±90 deg angle if the inner product of the two
+    # segments is zero.
 
-    def angle(A, B, C, /):
-        Ax, Ay = A[0] - B[0], A[1] - B[1]
-        Cx, Cy = C[0] - B[0], C[1] - B[1]
-        a = atan2(Ay, Ax)
-        c = atan2(Cy, Cx)
-        if a < 0:
-            a += pi * 2
-        if c < 0:
-            c += pi * 2
-        return (pi * 2 + c - a) if a > c else (c - a)
+    import numpy as np
 
-    point1 = test[f"{x}-{y}"]["poly"][0]
-    point2 = test[f"{x}-{y}"]["poly"][1]
-    point3 = test[f"{x}-{y}"]["poly"][2]
-    point4 = test[f"{x}-{y}"]["poly"][3]
+    A = np.array(test[f"{x}-{y}"]["poly"][0])
+    B = np.array(test[f"{x}-{y}"]["poly"][1])
+    C = np.array(test[f"{x}-{y}"]["poly"][3])
 
-    angle1 = angle(point1, point2, point3)
-    angle2 = angle(point2, point3, point4)
-
-    assert degrees(angle1) == pytest.approx(90)
-    assert angle1 == pytest.approx(angle2)
+    assert np.inner(B - A, C - A) == pytest.approx(0)
 
 
 @given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
@@ -109,34 +96,17 @@ def test_make_hex_grid(x, y):
     assert distance == pytest.approx(distance2)
     assert distance == pytest.approx(distance3)
 
-    # check that angle between points = 120 deg
-    # (this works but is a bit long)
-    from math import atan2, degrees, pi
+    # check that angle between points = 60 deg
+    import numpy as np
+    import numpy.linalg as LA
 
-    def angle(A, B, C, /):
-        Ax, Ay = A[0] - B[0], A[1] - B[1]
-        Cx, Cy = C[0] - B[0], C[1] - B[1]
-        a = atan2(Ay, Ax)
-        c = atan2(Cy, Cx)
-        if a < 0:
-            a += pi * 2
-        if c < 0:
-            c += pi * 2
-        return (pi * 2 + c - a) if a > c else (c - a)
+    a = np.array(test[f"{x}-{y}"]["poly"][0])
+    b = np.array(test[f"{x}-{y}"]["poly"][1])
+    c = np.array(test[f"{x}-{y}"]["poly"][3])
 
-    point1 = test[f"{x}-{y}"]["poly"][0]
-    point2 = test[f"{x}-{y}"]["poly"][1]
-    point3 = test[f"{x}-{y}"]["poly"][2]
-    point4 = test[f"{x}-{y}"]["poly"][3]
-    point5 = test[f"{x}-{y}"]["poly"][4]
-    point6 = test[f"{x}-{y}"]["poly"][5]
+    inner = np.inner(a - b, a - c)
+    norms = LA.norm(a - b) * LA.norm(a - c)
 
-    angle1 = angle(point1, point2, point3)
-    angle2 = angle(point2, point3, point4)
-    angle3 = angle(point3, point4, point5)
-    angle4 = angle(point4, point5, point6)
-
-    assert degrees(angle1) == pytest.approx(120)
-    assert angle1 == pytest.approx(angle2)
-    assert angle1 == pytest.approx(angle3)
-    assert angle1 == pytest.approx(angle4)
+    cos = inner / norms
+    rad = np.arccos(np.clip(cos, -1.0, 1.0))
+    assert np.rad2deg(rad) == pytest.approx(60)
