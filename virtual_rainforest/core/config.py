@@ -9,7 +9,10 @@ model.
 import os
 import sys
 
+from virtual_rainforest.core.logger import LOGGER
+
 # from jsonschema import validate
+
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -60,21 +63,18 @@ def validate_config(filepath: str):
                 try:
                     toml_dict = tomllib.load(f)
                 except tomllib.TOMLDecodeError as err:
-                    # TODO - log this as a critical error
-                    print(f"Configuration file {file} is incorrectly formatted.")
-                    print(f"Failed with the following message: {err}")
+                    LOGGER.critical(
+                        f"Configuration file {file} is incorrectly formatted.\n"
+                        f"Failed with the following message:\n{err}"
+                    )
                     return None
 
                 print(toml_dict)
 
     # CHECK IF DICTIONARY IS EMPTY, IF SO THIS IS A NOTHING FOUND EXCEPTION
 
-    # Read in collection of toml (or maybe also json files)
     # Merge them into a single object
     # 3 potential critical errors, duplicated tags, missing tags, failed validation
     # against schema
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
-
-
-validate_config("virtual_rainforest/core")
