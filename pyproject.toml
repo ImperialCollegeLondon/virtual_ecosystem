@@ -10,7 +10,7 @@ authors = ["Rob Ewers <r.ewers@imperial.ac.uk>",
            "Olivia Daniel <olivia.daniel08@imperial.ac.uk>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.12"
 numpy = "^1.23.0"
 toml = "^0.10.2"
 mdformat = "^0.7.14"
@@ -20,6 +20,7 @@ pydantic = "^1.9.1"
 tomli-w = "^1.0.0"
 Fiona = "^1.8.21"
 mdformat_tables = "^0.4.1"
+scipy = "^1.9.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
@@ -45,6 +46,7 @@ myst-nb = "^0.16.0"
 sphinx-rtd-theme = "^1.0.0"
 doctestfn = "^1.0.3"               # Used to execute single doctests
 flake8-docstrings = "^1.6.0"
+hypothesis = "^6.54.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
