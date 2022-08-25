@@ -46,6 +46,7 @@ config_schema = {
                                 },
                             },
                             "required": ["nx", "ny"],
+                            "additionalProperties": False,
                         },
                         "modules": {
                             "description": "List of modules to be configured",
@@ -54,12 +55,15 @@ config_schema = {
                         },
                     },
                     "required": ["grid", "modules"],
+                    "additionalProperties": False,
                 }
             },
             "required": ["core"],
+            "additionalProperties": False,
         }
     },
     "required": ["config"],
+    "additionalProperties": False,
 }
 
 
@@ -71,12 +75,16 @@ def validate_config(filepath: str):
         filepath: Path to folder containing configuration files.
     """
 
+    # Preallocate empty dictonary to store the config
+    config_dict = {}
+
     # Find and load all toml files supplied config directory
     for file in os.listdir(filepath):
         if file.endswith(".toml"):
             with open(os.path.join(filepath, file), "rb") as f:
                 try:
                     toml_dict = tomllib.load(f)
+                    config_dict.update(toml_dict)
                 except tomllib.TOMLDecodeError as err:
                     LOGGER.critical(
                         f"Configuration file {file} is incorrectly formatted.\n"
@@ -84,12 +92,14 @@ def validate_config(filepath: str):
                     )
                     return None
 
-    # TODO - Critical check if no toml files are found
-    print(toml_dict)
+    # Critical check if no toml files are found
+    if config_dict == {}:
+        LOGGER.critical("No toml files found in the config folder provided!")
+        return None
 
     # Validate against the core schema
+    # TODO - extend to combine schema as required
     validate(instance=toml_dict, schema=config_schema)
-    # AT THE MOMENT THIS PASSES WITH EXTRA CATAGORIES
 
     # Merge them into a single object
     # 3 potential critical errors, duplicated tags, missing tags, failed validation
