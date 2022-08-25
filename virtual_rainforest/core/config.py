@@ -9,6 +9,7 @@ model.
 import os
 import sys
 
+import dpath.util
 from jsonschema import validate
 
 from virtual_rainforest.core.logger import LOGGER
@@ -140,13 +141,19 @@ def validate_config(filepath: str):
         LOGGER.critical(msg)
         return None
 
+    # Merge everything into a single dictionary
+    config_dict: dict = {}
+    for item in file_data:
+        dpath.util.merge(config_dict, item[1])
+
     # Validate against the core schema
     # TODO - extend to combine schema as required
-    validate(instance=toml_dict, schema=config_schema)
+    # NEED TO HANDLE ALL THE SCHEMA NOT FOUND, SCHEMA REPEAT KEYS ERRORS HERE AS WELL
+    validate(instance=config_dict, schema=config_schema)
 
     # Merge them into a single object
-    # 3 potential critical errors, duplicated tags, missing tags, failed validation
-    # against schema
+    # 2 remaining critical errors, missing tags, failed validation against schema
+    # Basically a matter of how best to report the errors validation spits out
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
 
