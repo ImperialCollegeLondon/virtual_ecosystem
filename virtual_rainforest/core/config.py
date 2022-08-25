@@ -9,10 +9,9 @@ model.
 import os
 import sys
 
+from jsonschema import validate
+
 from virtual_rainforest.core.logger import LOGGER
-
-# from jsonschema import validate
-
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -20,31 +19,47 @@ else:
     import tomli as tomllib
 
 config_schema = {
-    "description": "Schema for configuration of the core module.",
     "type": "object",
     "properties": {
-        "grid": {
-            "description": "Details of the grid to configure",
+        "config": {
             "type": "object",
             "properties": {
-                "nx": {
-                    "description": "Number of grid cells in x direction",
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                },
-                "ny": {
-                    "description": "Number of grid cells in y direction",
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                },
+                "core": {
+                    "description": "Configuration settings for the core module",
+                    "type": "object",
+                    "properties": {
+                        "grid": {
+                            "description": "Details of the grid to configure",
+                            "type": "object",
+                            "properties": {
+                                "nx": {
+                                    "description": "Number of grid cells in x "
+                                    "direction",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                },
+                                "ny": {
+                                    "description": "Number of grid cells in y "
+                                    "direction",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                },
+                            },
+                            "required": ["nx", "ny"],
+                        },
+                        "modules": {
+                            "description": "List of modules to be configured",
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": ["grid", "modules"],
+                }
             },
-        },
-        "modules": {
-            "description": "List of modules to be configured",
-            "type": "array",
-            "items": {"type": "string"},
-        },
+            "required": ["core"],
+        }
     },
+    "required": ["config"],
 }
 
 
@@ -69,12 +84,18 @@ def validate_config(filepath: str):
                     )
                     return None
 
-                print(toml_dict)
+    # TODO - Critical check if no toml files are found
+    print(toml_dict)
 
-    # CHECK IF DICTIONARY IS EMPTY, IF SO THIS IS A NOTHING FOUND EXCEPTION
+    # Validate against the core schema
+    validate(instance=toml_dict, schema=config_schema)
+    # AT THE MOMENT THIS PASSES WITH EXTRA CATAGORIES
 
     # Merge them into a single object
     # 3 potential critical errors, duplicated tags, missing tags, failed validation
     # against schema
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
+
+
+validate_config("virtual_rainforest/core")
