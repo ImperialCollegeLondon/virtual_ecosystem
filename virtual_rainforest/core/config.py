@@ -67,6 +67,29 @@ config_schema = {
 }
 
 
+def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = []):
+    """Recursively checks if leaves are repeated between two nested dictionaries.
+
+    Args:
+        d1: First nested dictionary to compare
+        d2: Second nested dictionary to compare
+        path: List describing recursive path through the nested dictionary
+        conflicts: List of variables that are defined in multiple places
+
+    Returns:
+        conflicts: List of variables that are defined in multiple places
+    """
+
+    for key in d2:
+        if key in d1:
+            if isinstance(d1[key], dict) and isinstance(d2[key], dict):
+                check_dict_leaves(d1[key], d2[key], conflicts, path + [str(key)])
+            else:
+                conflicts.append("%s" % ".".join(path + [str(key)]))
+
+    return conflicts
+
+
 def validate_config(filepath: str):
     """Validates the contents of user provided config files.
 
@@ -75,8 +98,17 @@ def validate_config(filepath: str):
         filepath: Path to folder containing configuration files.
     """
 
-    # Preallocate empty dictonary to store the config
-    config_dict = {}
+    # Count number of toml files
+    c = len([f for f in os.listdir(filepath) if f.endswith(".toml")])
+
+    # Critical check if no toml files are found
+    if c == 0:
+        LOGGER.critical("No toml files found in the config folder provided!")
+        return None
+
+    # Preallocate container for file names and corresponding dictionaries
+    file_data: list[tuple[str, dict]] = []
+    conflicts = []
 
     # Find and load all toml files supplied config directory
     for file in os.listdir(filepath):
@@ -84,7 +116,13 @@ def validate_config(filepath: str):
             with open(os.path.join(filepath, file), "rb") as f:
                 try:
                     toml_dict = tomllib.load(f)
-                    config_dict.update(toml_dict)
+                    # Check for repeated entries across previous nested dictionaries
+                    for item in file_data:
+                        repeats = check_dict_leaves(item[1], toml_dict, [])
+                        for elem in repeats:
+                            conflicts.append((elem, file, item[0]))
+
+                    file_data.append((file, toml_dict))
                 except tomllib.TOMLDecodeError as err:
                     LOGGER.critical(
                         f"Configuration file {file} is incorrectly formatted.\n"
@@ -92,9 +130,14 @@ def validate_config(filepath: str):
                     )
                     return None
 
-    # Critical check if no toml files are found
-    if config_dict == {}:
-        LOGGER.critical("No toml files found in the config folder provided!")
+    # Check if any tags are repeated across files
+    if len(conflicts) != 0:
+        # If so generate full list of errors
+        msg = "The following tags are defined in multiple config files:\n"
+        for conf in conflicts:
+            msg += f"{conf[0]} defined in both {conf[1]} and {conf[2]}\n"
+        msg = msg[:-1]
+        LOGGER.critical(msg)
         return None
 
     # Validate against the core schema
