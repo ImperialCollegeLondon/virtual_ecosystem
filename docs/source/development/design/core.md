@@ -63,7 +63,7 @@ useful (and all of these could add a time dimension):
 
 #### Two dimensial spatial indexing
 
-- Simple indices (`idx_n` and `idx_y`) giving the index of a square grid. The data
+- Simple indices (`idx_x` and `idx_y`) giving the index of a square grid. The data
   should match the configured grid size and only really works for square grids (it could
   just about work for a hex grid with alternate offsets!).
 - Standard `x` and `y` coordinates (or `easting` and `northing`). This would require
@@ -83,7 +83,30 @@ useful (and all of these could add a time dimension):
 ### Defining mappings
 
 A user can optionally configure mappings, which are loaded and validated before any
-other data. These use one of the first three approaches above, which index _individual_
+other data. These _have_ to use one of the methods that provides values to every cell,
+so either of the 2D approaches or using `cell_id`. So for example, the array below might
+define an arrangement of a gradient between different levels of forest cover: matrix to
+logged to forest.
+
+```toml
+[core.data.forest_cover]
+values  = [['M', 'M', 'L'],
+          ['L', 'L', 'F'],
+          ['L', 'F', 'F']]
+```
+
+Then you could have a separate variable that uses that variable to map values per class
+onto the spatial grid. The config structure here is in _no way fixed_ - it is the
+concept that matters!
+
+```toml
+[core.data.soil_depth]
+values = {forest_cover.M=0.1, 
+          forest_cover.L=0.5, 
+          forest_cover.F=1.0}
+```
+
+These use one of the first three approaches above, which index _individual_
 cells, to provide the spatial layout of a categorical variable. For example, it could
 use `x` and `y` coordinates to map `habitat` with values `forest`, `logged_forest` and
 `matrix`.
@@ -104,8 +127,9 @@ var = habitat
 Once any mappings have been established, then the configuration defines the source file
 and variable name for required forcing variables. The dimension names are used to infer
 how to spatially index the data and we have a restricted set of dimension names that
-must be used to avoid ambiguity. We also need to have `time` and `depth` as reserved
-dimension names but the spatial indexing uses:
+must be used to avoid ambiguity. We also need to have other reserved dimension names
+(for example, `time`, `depth`, `height`) but spatial indexing expects the following
+dimension names to define particular indexing approaches:
 
 - `x`, `y`: use coordinates to match data to cells,
 - `idx_x`, `idx_y`: just use indices to match data to cells,
@@ -152,9 +176,6 @@ It would be good if these could be set via configuration but also use the same
 functionality to create a NetCDF output. That _should_ effectively be the same as
 configuring the data generator with a set random number generator seed.
 
-These could get arbitrarily complex - so at some point we should just say, if you want
-sufficiently complex generated data, just roll your own NetCDF files!
-
 I think this can basically just use all the options of `numpy.random`, possibly with the
 inclusion of interpolation along a time dimension at a given interval if a time axis is
 present.
@@ -173,3 +194,44 @@ class DataGenerator:
         ) -> np.ndarray
 
 ```
+
+The model I have in my head is based around the `numpy.random` methods
+[](https://numpy.org/doc/stable/reference/random/generator.html).
+
+A user could provide a scalar (so a global value) or an array (matching a spatial grid
+or mapping) that stipulates a method and keyword arguments. So here a DataGenerator
+might be:
+
+```python
+# Global value varying as a normal distribution around 5
+ex1 = DataGenerator(loc=5, scale=2, distribution='normal')
+# A 2x2 grid with lognormal values with mean varying by cell, but constant variation.
+ ex2 = DataGenerator(mean=[[5, 6], [7, 8]], sigma=2, distribution='lognormal')
+```
+
+More advanced would be providing a time series of values with variation. Here, you'd
+need a time axis giving the temporal location of the sampling points, which could be
+interpolated if necessary. So for example, a 2 x 2 grid with normally distributed values
+that increase in location and scale over a year.
+
+```python
+loc = [[[1, 2],
+        [3, 4]],
+       [[2, 3],
+        [4, 5]]]
+
+scale = [[[1, 1],
+          [1, 1]],
+         [[1.2, 1.2],
+          [1.2, 1.2]]]
+
+time = ['2020-01-01', '2020-12-31']
+
+ex3 = DataGenerator(loc = loc, scale=scale, method='normal', time=time, time_axis=2)
+```
+
+We could provide ways to provide sequences of generators to provide more complex
+scenarios or probabilistic switching between generators (El Niño years?). However, this
+could end up being a deep rabbit hole so at some point we should just say, if you want
+sufficiently complex scenarios, just roll your own NetCDF files! We could provide
+examples of that.
