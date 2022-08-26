@@ -151,7 +151,6 @@ def validate_config(filepath: str):
     # NEED TO HANDLE ALL THE SCHEMA NOT FOUND, SCHEMA REPEAT KEYS ERRORS HERE AS WELL
     validate(instance=config_dict, schema=config_schema)
 
-    # Merge them into a single object
     # 2 remaining critical errors, missing tags, failed validation against schema
     # Basically a matter of how best to report the errors validation spits out
     # Output combined toml (or json?) file, maybe into the same folder
