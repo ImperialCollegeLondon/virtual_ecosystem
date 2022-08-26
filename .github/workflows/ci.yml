@@ -8,6 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: pre-commit/action@v2.0.2
+        with:
+          python-version: 3.9
 
   test:
     needs: qa
