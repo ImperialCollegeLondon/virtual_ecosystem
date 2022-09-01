@@ -8,6 +8,7 @@ model.
 
 import os
 import sys
+from typing import Callable
 
 import dpath.util
 from jsonschema import validate
@@ -19,53 +20,17 @@ if sys.version_info[:2] >= (3, 11):
 else:
     import tomli as tomllib
 
-config_schema = {
-    "type": "object",
-    "properties": {
-        "config": {
-            "type": "object",
-            "properties": {
-                "core": {
-                    "description": "Configuration settings for the core module",
-                    "type": "object",
-                    "properties": {
-                        "grid": {
-                            "description": "Details of the grid to configure",
-                            "type": "object",
-                            "properties": {
-                                "nx": {
-                                    "description": "Number of grid cells in x "
-                                    "direction",
-                                    "type": "integer",
-                                    "exclusiveMinimum": 0,
-                                },
-                                "ny": {
-                                    "description": "Number of grid cells in y "
-                                    "direction",
-                                    "type": "integer",
-                                    "exclusiveMinimum": 0,
-                                },
-                            },
-                            "required": ["nx", "ny"],
-                            "additionalProperties": False,
-                        },
-                        "modules": {
-                            "description": "List of modules to be configured",
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                    },
-                    "required": ["grid", "modules"],
-                    "additionalProperties": False,
-                }
-            },
-            "required": ["core"],
-            "additionalProperties": False,
-        }
-    },
-    "required": ["config"],
-    "additionalProperties": False,
-}
+# Dictionary to store schema registry
+SCHEMA_REGISTRY: dict = {}
+
+
+def register_schema(module_name: str) -> Callable:
+    """Decorator function to add configuration schema to the registry."""
+
+    def wrap(func: Callable):
+        SCHEMA_REGISTRY[module_name] = func()
+
+    return wrap
 
 
 def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = []):
@@ -146,15 +111,29 @@ def validate_config(filepath: str):
     for item in file_data:
         dpath.util.merge(config_dict, item[1])
 
-    # Validate against the core schema
+    # Find which other schema should be searched for
+    try:
+        modules = config_dict["config"]["core"]["modules"]
+    except KeyError:
+        LOGGER.critical(
+            "Core configuration does not specify which other modules should be "
+            "configured"
+        )
+        return None
+
+    print(SCHEMA_REGISTRY)
+    # Construct combined schema for all relevant modules
+    # comb_schema = config_schema
+    for module in modules:
+        print(module)
+    #     print(module.config_schema)
+    # FIND SCHEMA, CRITICAL ERROR IF IT CAN'T BE FOUND
     # TODO - extend to combine schema as required
     # NEED TO HANDLE ALL THE SCHEMA NOT FOUND, SCHEMA REPEAT KEYS ERRORS HERE AS WELL
-    validate(instance=config_dict, schema=config_schema)
 
     # 2 remaining critical errors, missing tags, failed validation against schema
     # Basically a matter of how best to report the errors validation spits out
+    validate(instance=config_dict, schema=SCHEMA_REGISTRY["core"])
+
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
-
-
-validate_config("virtual_rainforest/core")
