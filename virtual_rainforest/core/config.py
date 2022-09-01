@@ -139,7 +139,9 @@ def validate_config(filepath: str):
     for module in modules:
         if module in SCHEMA_REGISTRY:
             try:
-                m_schema = SCHEMA_REGISTRY[module]["properties"]["config"]["properties"]
+                m_schema = SCHEMA_REGISTRY[module]["properties"]["config"][
+                    "properties"
+                ][module]
             except KeyError as err:
                 LOGGER.critical(
                     f"Schema for {module} module incorrectly structured, {err} key "
@@ -153,8 +155,14 @@ def validate_config(filepath: str):
             else:
                 comb_schema["properties"]["config"]["properties"][module] = m_schema
                 # Add module name to list of required modules
-                # TODO - ADD CHECK FOR REQUIRED KEY
-                comb_schema["properties"]["config"]["required"].append(module)
+                try:
+                    comb_schema["properties"]["config"]["required"].append(module)
+                except KeyError:
+                    LOGGER.critical(
+                        f"The schema for {modules[0]} does not set the module as a "
+                        f"required field, so validation cannot occur!"
+                    )
+                    return None
         else:
             LOGGER.critical(
                 f"Expected a schema for {module} module configuration, it was not "
@@ -164,7 +172,9 @@ def validate_config(filepath: str):
 
     # 2 remaining critical errors, missing tags, failed validation against schema
     # Basically a matter of how best to report the errors validation spits out
+    # TODO - WORK OUT WHY VALIDATE ALWAYS PASSES
     validate(instance=config_dict, schema=comb_schema)
+    print(comb_schema["properties"]["config"]["properties"]["core"])
 
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
