@@ -11,7 +11,8 @@ import sys
 from typing import Callable
 
 import dpath.util
-from jsonschema import validate
+import jsonschema
+import tomli_w
 
 from virtual_rainforest.core.logger import LOGGER
 
@@ -170,11 +171,18 @@ def validate_config(filepath: str):
             )
             return None
 
-    # 2 remaining critical errors, missing tags, failed validation against schema
-    # Basically a matter of how best to report the errors validation spits out
-    # TODO - WORK OUT WHY VALIDATE ALWAYS PASSES
-    validate(instance=config_dict, schema=comb_schema)
-    print(comb_schema["properties"]["config"]["properties"]["core"])
+    # Validate the input configuration settings against the combined schema
+    try:
+        jsonschema.validate(instance=config_dict, schema=comb_schema)
+    except jsonschema.exceptions.ValidationError as err:
+        LOGGER.critical(f"Validation of configuration files failed: {err.message}")
+        return None
 
-    # Output combined toml (or json?) file, maybe into the same folder
+    LOGGER.info("Configuration files successfully validated!")
+
+    # Output combined toml file, into the initial config folder
+    LOGGER.info(f"Saving all configuration details to {filepath}/complete_config.toml")
+    with open(f"{filepath}/complete_config.toml", "wb") as toml_file:
+        tomli_w.dump(config_dict, toml_file)
+
     # Return the config object as a final module output
