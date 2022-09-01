@@ -117,23 +117,54 @@ def validate_config(filepath: str):
     except KeyError:
         LOGGER.critical(
             "Core configuration does not specify which other modules should be "
-            "configured"
+            "configured!"
         )
         return None
 
-    print(SCHEMA_REGISTRY)
+    # Add core to list of modules if its not already included
+    if "core" not in modules:
+        modules.append("core")
+
+    if len(modules) != len(set(modules)):
+        LOGGER.critical(
+            f"The list of modules to configure given in the core configuration file "
+            f"repeats {len(modules) - len(set(modules))} names!"
+        )
+        return None
+
     # Construct combined schema for all relevant modules
-    # comb_schema = config_schema
+    comb_schema: dict = {}
+
+    # Loop over expected modules and add them to the registry
     for module in modules:
-        print(module)
-    #     print(module.config_schema)
-    # FIND SCHEMA, CRITICAL ERROR IF IT CAN'T BE FOUND
-    # TODO - extend to combine schema as required
-    # NEED TO HANDLE ALL THE SCHEMA NOT FOUND, SCHEMA REPEAT KEYS ERRORS HERE AS WELL
+        if module in SCHEMA_REGISTRY:
+            try:
+                m_schema = SCHEMA_REGISTRY[module]["properties"]["config"]["properties"]
+            except KeyError as err:
+                LOGGER.critical(
+                    f"Schema for {module} module incorrectly structured, {err} key "
+                    f"missing!"
+                )
+                return None
+            # Store complete schema if no previous schema has been added
+            if comb_schema == {}:
+                comb_schema = SCHEMA_REGISTRY[module]
+            # Otherwise only save truncated part of the schema
+            else:
+                comb_schema["properties"]["config"]["properties"][module] = m_schema
+                # Add module name to list of required modules
+                # TODO - ADD CHECK FOR REQUIRED KEY
+                comb_schema["properties"]["config"]["required"].append(module)
+        else:
+            LOGGER.critical(
+                f"Expected a schema for {module} module configuration, it was not "
+                f"provided!"
+            )
+            return None
 
     # 2 remaining critical errors, missing tags, failed validation against schema
     # Basically a matter of how best to report the errors validation spits out
-    validate(instance=config_dict, schema=SCHEMA_REGISTRY["core"])
+    validate(instance=config_dict, schema=comb_schema)
 
     # Output combined toml (or json?) file, maybe into the same folder
     # Return the config object as a final module output
