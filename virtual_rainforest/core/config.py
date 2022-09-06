@@ -181,8 +181,10 @@ def validate_config(filepath: str):
     LOGGER.info("Configuration files successfully validated!")
 
     # Output combined toml file, into the initial config folder
+    # TODO - ADD A CRITICAL ERROR HERE FOR FILE ALREADY EXISTS/CAN'T BE WRITTEN
     LOGGER.info(f"Saving all configuration details to {filepath}/complete_config.toml")
     with open(f"{filepath}/complete_config.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
-    # Return the config object as a final module output
+    # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED
+    # TODO - RECURSIVE CHECK THAT ADDITIONAL PROPERTIES ARE ALL SET + SET AS FALSE
