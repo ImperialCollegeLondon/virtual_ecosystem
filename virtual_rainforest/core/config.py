@@ -77,9 +77,21 @@ def validate_config(filepath: str):
     file_data: list[tuple[str, dict]] = []
     conflicts = []
 
+    # Set output file name
+    out_file_name = "complete_config"
+
     # Find and load all toml files supplied config directory
     for file in os.listdir(filepath):
         if file.endswith(".toml"):
+            # Throw critical error if combined output file already exists
+            if file == f"{out_file_name}.toml":
+                LOGGER.critical(
+                    f"A config file in the specified configuration folder makes use of "
+                    f"the reserved name {out_file_name}.toml. This file should either "
+                    f"be renamed or deleted!"
+                )
+                return None
+            # If not then read in the file data
             with open(os.path.join(filepath, file), "rb") as f:
                 try:
                     toml_dict = tomllib.load(f)
@@ -181,10 +193,10 @@ def validate_config(filepath: str):
     LOGGER.info("Configuration files successfully validated!")
 
     # Output combined toml file, into the initial config folder
-    # TODO - ADD A CRITICAL ERROR HERE FOR FILE ALREADY EXISTS/CAN'T BE WRITTEN
-    LOGGER.info(f"Saving all configuration details to {filepath}/complete_config.toml")
-    with open(f"{filepath}/complete_config.toml", "wb") as toml_file:
+    LOGGER.info(f"Saving all configuration details to {filepath}/{out_file_name}.toml")
+    with open(f"{filepath}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
     # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED
     # TODO - RECURSIVE CHECK THAT ADDITIONAL PROPERTIES ARE ALL SET + SET AS FALSE
+    # TODO - ADD RELEVANT INFO TO THE DOCUMENTATION
