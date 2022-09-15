@@ -183,6 +183,20 @@ def validate_config(filepath: str):
             )
             return None
 
+    p_paths = []
+    p_len = len("/properties")
+    # Recursively search for all instances of properties in the schema
+    for (path, value) in dpath.util.search(comb_schema, "**/properties", yielded=True):
+        if path == "properties":
+            p_paths.append("")
+        else:
+            size = len(path)
+            p_paths.append(path[: size - p_len])  # Strip out final "/properties"
+
+    # Set additional properties to false everywhere that properties are defined
+    for path in p_paths:
+        dpath.util.new(comb_schema, f"{path}/additionalProperties", False)
+
     # Validate the input configuration settings against the combined schema
     try:
         jsonschema.validate(instance=config_dict, schema=comb_schema)
@@ -198,5 +212,4 @@ def validate_config(filepath: str):
         tomli_w.dump(config_dict, toml_file)
 
     # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED
-    # TODO - RECURSIVE CHECK THAT ADDITIONAL PROPERTIES ARE ALL SET + SET AS FALSE
     # TODO - ADD RELEVANT INFO TO THE DOCUMENTATION
