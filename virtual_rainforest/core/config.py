@@ -57,7 +57,8 @@ def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = [])
     return conflicts
 
 
-def validate_config(filepath: str):
+# TODO - LIST OF FILENAMES
+def validate_config(filepath: str, out_file_name: str = "complete_config"):
     """Validates the contents of user provided config files.
 
     TODO - Add more details here
@@ -77,18 +78,15 @@ def validate_config(filepath: str):
     file_data: list[tuple[str, dict]] = []
     conflicts = []
 
-    # Set output file name
-    out_file_name = "complete_config"
-
     # Find and load all toml files supplied config directory
     for file in os.listdir(filepath):
         if file.endswith(".toml"):
             # Throw critical error if combined output file already exists
             if file == f"{out_file_name}.toml":
                 LOGGER.critical(
-                    f"A config file in the specified configuration folder makes use of "
-                    f"the reserved name {out_file_name}.toml. This file should either "
-                    f"be renamed or deleted!"
+                    f"A config file in the specified configuration folder already makes"
+                    f" use of the specified output file name ({out_file_name}.toml), "
+                    f"this file should either be renamed or deleted!"
                 )
                 return None
             # If not then read in the file data
@@ -209,7 +207,9 @@ def validate_config(filepath: str):
     # Output combined toml file, into the initial config folder
     LOGGER.info(f"Saving all configuration details to {filepath}/{out_file_name}.toml")
     with open(f"{filepath}/{out_file_name}.toml", "wb") as toml_file:
+        # TODO - TABLE OF TABLE WRITING OUT?
         tomli_w.dump(config_dict, toml_file)
 
     # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED
+    # STORE THIS AS SOME KIND OF GLOBALLY ACCESSIBLE CONFIG OBJECT
     # TODO - ADD RELEVANT INFO TO THE DOCUMENTATION
