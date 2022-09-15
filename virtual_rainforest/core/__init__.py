@@ -33,7 +33,6 @@ def core_schema():
                                     },
                                 },
                                 "required": ["nx", "ny"],
-                                "additionalProperties": False,
                             },
                             "modules": {
                                 "description": "List of modules to be configured",
@@ -42,15 +41,12 @@ def core_schema():
                             },
                         },
                         "required": ["grid", "modules"],
-                        "additionalProperties": False,
                     }
                 },
                 "required": ["core"],
-                "additionalProperties": False,
             }
         },
         "required": ["config"],
-        "additionalProperties": False,
     }
 
     return config_schema

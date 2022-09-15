@@ -21,15 +21,12 @@ def core_schema():
                             }
                         },
                         "required": ["ftypes"],
-                        "additionalProperties": False,
                     }
                 },
                 "required": ["plants"],
-                "additionalProperties": False,
             }
         },
         "required": ["config"],
-        "additionalProperties": False,
     }
 
     return config_schema
