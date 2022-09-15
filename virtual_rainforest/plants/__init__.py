@@ -2,7 +2,7 @@ from virtual_rainforest.core.config import register_schema
 
 
 @register_schema("plants")
-def core_schema():
+def schema():
     """Defines the schema that the plant module configuration should conform to."""
 
     config_schema = {
