@@ -57,55 +57,83 @@ def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = [])
     return conflicts
 
 
-# TODO - LIST OF FILENAMES
-def validate_config(filepath: str, out_file_name: str = "complete_config"):
+def validate_config(
+    filepath: str, out_file_name: str = "complete_config", in_files: list[str] = []
+):
     """Validates the contents of user provided config files.
 
     TODO - Add more details here
     Args:
         filepath: Path to folder containing configuration files.
+        out_file_name: The name to save the outputted complete configuration file under.
+        in_files: List of input files to be read in, and empty list defaults to reading
+            all files in the specified folder.
     """
-
-    # Count number of toml files
-    c = len([f for f in os.listdir(filepath) if f.endswith(".toml")])
-
-    # Critical check if no toml files are found
-    if c == 0:
-        LOGGER.critical("No toml files found in the config folder provided!")
-        return None
 
     # Preallocate container for file names and corresponding dictionaries
     file_data: list[tuple[str, dict]] = []
     conflicts = []
 
-    # Find and load all toml files supplied config directory
+    # Throw critical error if combined output file already exists
     for file in os.listdir(filepath):
-        if file.endswith(".toml"):
-            # Throw critical error if combined output file already exists
-            if file == f"{out_file_name}.toml":
+        if file == f"{out_file_name}.toml":
+            LOGGER.critical(
+                f"A config file in the specified configuration folder already makes"
+                f" use of the specified output file name ({out_file_name}.toml), "
+                f"this file should either be renamed or deleted!"
+            )
+            return None
+
+    if in_files == []:
+        # Count number of toml files
+        c = len([f for f in os.listdir(filepath) if f.endswith(".toml")])
+
+        # Critical check if no toml files are found
+        if c == 0:
+            LOGGER.critical("No toml files found in the config folder provided!")
+            return None
+
+        # Track down all toml files in the config folder
+        files = []
+        for file in os.listdir(filepath):
+            if file.endswith(".toml"):
+                files.append(file)
+        print(files)
+    else:
+        # Loop to check that all specified files can be found
+        not_found = []
+        for file in in_files:
+            if not os.path.isfile(f"{filepath}/{file}"):
+                not_found.append(file)
+
+        if len(not_found) != 0:
+            LOGGER.critical(
+                f"The files the user specified to be read from are not all found in "
+                f"{filepath}. The following files are missing:\n{not_found}"
+            )
+            return None
+
+        files = in_files
+
+    # Load all toml files that we want to read from
+    for file in files:
+        # If not then read in the file data
+        with open(os.path.join(filepath, file), "rb") as f:
+            try:
+                toml_dict = tomllib.load(f)
+                # Check for repeated entries across previous nested dictionaries
+                for item in file_data:
+                    repeats = check_dict_leaves(item[1], toml_dict, [])
+                    for elem in repeats:
+                        conflicts.append((elem, file, item[0]))
+
+                file_data.append((file, toml_dict))
+            except tomllib.TOMLDecodeError as err:
                 LOGGER.critical(
-                    f"A config file in the specified configuration folder already makes"
-                    f" use of the specified output file name ({out_file_name}.toml), "
-                    f"this file should either be renamed or deleted!"
+                    f"Configuration file {file} is incorrectly formatted.\n"
+                    f"Failed with the following message:\n{err}"
                 )
                 return None
-            # If not then read in the file data
-            with open(os.path.join(filepath, file), "rb") as f:
-                try:
-                    toml_dict = tomllib.load(f)
-                    # Check for repeated entries across previous nested dictionaries
-                    for item in file_data:
-                        repeats = check_dict_leaves(item[1], toml_dict, [])
-                        for elem in repeats:
-                            conflicts.append((elem, file, item[0]))
-
-                    file_data.append((file, toml_dict))
-                except tomllib.TOMLDecodeError as err:
-                    LOGGER.critical(
-                        f"Configuration file {file} is incorrectly formatted.\n"
-                        f"Failed with the following message:\n{err}"
-                    )
-                    return None
 
     # Check if any tags are repeated across files
     if len(conflicts) != 0:
