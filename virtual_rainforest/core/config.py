@@ -235,7 +235,6 @@ def validate_config(
     # Output combined toml file, into the initial config folder
     LOGGER.info(f"Saving all configuration details to {filepath}/{out_file_name}.toml")
     with open(f"{filepath}/{out_file_name}.toml", "wb") as toml_file:
-        # TODO - TABLE OF TABLE WRITING OUT?
         tomli_w.dump(config_dict, toml_file)
 
     # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED

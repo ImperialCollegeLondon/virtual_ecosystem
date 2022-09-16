@@ -18,6 +18,16 @@ def schema():
                             "ftypes": {
                                 "description": "Details of the plant functional types",
                                 "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "pft_name": {"type": "string"},
+                                        "maxh": {
+                                            "type": "number",
+                                            "exclusiveMinimum": 0.0,
+                                        },
+                                    },
+                                },
                             }
                         },
                         "required": ["ftypes"],
@@ -30,3 +40,27 @@ def schema():
     }
 
     return config_schema
+
+
+# "items": {
+#                                     "prefixItems": [
+#                                         {
+#                                             "name": "name",
+#                                             "type": "string",
+#                                             "constraints": {
+#                                                 "required": True,
+#                                                 "unique": True,
+#                                             },
+#                                         },
+#                                         {
+#                                             "name": "maxh",
+#                                             "type": "number",
+#                                             "constraints": {
+#                                                 "required": True,
+#                                                 "minimum": 0.0,
+#                                             },
+#                                         },
+#                                     ],
+#                                     "items": False,
+#                                     "unevaluatedItems": False,
+#                                 }
