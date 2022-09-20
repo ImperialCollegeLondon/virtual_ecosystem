@@ -34,6 +34,10 @@ def register_schema(module_name: str) -> Callable:
     return wrap
 
 
+# Dictionary to store validated config
+COMPLETE_CONFIG: dict = {}
+
+
 def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = []):
     """Recursively checks if leaves are repeated between two nested dictionaries.
 
@@ -41,7 +45,7 @@ def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = [])
         d1: First nested dictionary to compare
         d2: Second nested dictionary to compare
         path: List describing recursive path through the nested dictionary
-        conflicts: List of variables that are defined in multiple places
+            conflicts: List of variables that are defined in multiple places
 
     Returns:
         conflicts: List of variables that are defined in multiple places
@@ -59,7 +63,7 @@ def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = [])
 
 def validate_config(
     filepath: str, out_file_name: str = "complete_config", in_files: list[str] = []
-):
+) -> None:
     """Validates the contents of user provided config files.
 
     TODO - Add more details here
@@ -237,6 +241,7 @@ def validate_config(
     with open(f"{filepath}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
-    # TODO - WORK OUT HOW THE CONFIG OBJECT SHOULD BE CONSTRUCTED
-    # STORE THIS AS SOME KIND OF GLOBALLY ACCESSIBLE CONFIG OBJECT
+    # Populate the global config dictionary with the complete validated config
+    COMPLETE_CONFIG["config"] = config_dict["config"]
+
     # TODO - ADD RELEVANT INFO TO THE DOCUMENTATION
