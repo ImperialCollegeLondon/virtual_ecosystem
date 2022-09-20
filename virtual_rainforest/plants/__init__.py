@@ -27,6 +27,7 @@ def schema():
                                             "exclusiveMinimum": 0.0,
                                         },
                                     },
+                                    "required": ["pft_name", "maxh"],
                                 },
                             }
                         },
@@ -40,27 +41,3 @@ def schema():
     }
 
     return config_schema
-
-
-# "items": {
-#                                     "prefixItems": [
-#                                         {
-#                                             "name": "name",
-#                                             "type": "string",
-#                                             "constraints": {
-#                                                 "required": True,
-#                                                 "unique": True,
-#                                             },
-#                                         },
-#                                         {
-#                                             "name": "maxh",
-#                                             "type": "number",
-#                                             "constraints": {
-#                                                 "required": True,
-#                                                 "minimum": 0.0,
-#                                             },
-#                                         },
-#                                     ],
-#                                     "items": False,
-#                                     "unevaluatedItems": False,
-#                                 }
