@@ -66,7 +66,17 @@ def validate_config(
 ) -> None:
     """Validates the contents of user provided config files.
 
-    TODO - Add more details here
+    This function first reads in a set of configuration files in `.toml` format. This
+    either consists of all `.toml` files in a specified folder, or a set of user
+    specified files within this folder. Checks are carried out to ensure that these
+    files are correctly formatted. The module validation schemas are extracted from
+    `SCHEMA_REGISTRY` for the modules the user has specified to configure (in
+    `config.core.modules`). These schemas are then consolidated into a single combined
+    JSON schema. This combined schema is then used to validate the combined contents of
+    the configuration files. If this validation passes the combined configuration is
+    saved in toml format in the specified configuration file folder. This configuration
+    is finally used to populate the global `COMPLETE_CONFIG` dictionary.
+
     Args:
         filepath: Path to folder containing configuration files.
         out_file_name: The name to save the outputted complete configuration file under.
