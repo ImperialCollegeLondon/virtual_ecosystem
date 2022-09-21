@@ -253,5 +253,3 @@ def validate_config(
 
     # Populate the global config dictionary with the complete validated config
     COMPLETE_CONFIG["config"] = config_dict["config"]
-
-    # TODO - ADD RELEVANT INFO TO THE DOCUMENTATION
