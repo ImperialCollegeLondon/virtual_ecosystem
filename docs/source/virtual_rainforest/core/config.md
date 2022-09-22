@@ -5,9 +5,9 @@ reads in a set of configuration files written using `toml`. It is setup in such 
 to allow a reduced set of modules to be configured (e.g. just `plants` and `soil`), and
 to allow specific module implementations to be configured (e.g. `plants_with_hydro`
 instead of `plants`). The resulting combined model configuration is validated against a
-set of [JSON schema](https://json-schema.org). If this passes, a combined output file is
+set of [`JSON Schema`](https://json-schema.org). If this passes, a combined output file is
 saved as a permanent record of the model configuration. This configuration is also saved
-as a dictionary accessible to other modules and submodules.
+as a dictionary accessible to other modules and scripts.
 
 ## Configuration files
 
@@ -51,8 +51,76 @@ names will cause configuration to critically fail.
 
 ## JSON schema
 
-WITH EXAMPLE, where are they defined, schema registry, BADLY FORMATTED JSON SCHEMA
+The contents of the config files are validated using [`JSON
+Schema`](https://json-schema.org), this is performed using the `python` package
+[`jsonschema`](https://pypi.org/project/jsonschema/). We use these schema to validate
+the most basic properties of the input data (e.g. that the path to a file is a string),
+with more complex validation being left to downstream functions. We check for missing
+expected tags, unexpected tags, that tags are of the correct type, and where relevant
+that input values are strictly positive. In `python` the schema takes the format of a
+nested dict, an example of which is shown below:
+
+```python
+config_schema = {
+    "type": "object",
+    "properties": {
+        "config": {
+            "type": "object",
+            "properties": {
+                "core": {
+                    "description": "Configuration settings for the core module",
+                    "type": "object",
+                    "properties": {
+                        "grid": {
+                            "description": "Details of the grid to configure",
+                            "type": "object",
+                            "properties": {
+                                "nx": {
+                                    "description": "Number of grid cells in x "
+                                    "direction",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                },
+                                "ny": {
+                                    "description": "Number of grid cells in y "
+                                    "direction",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                },
+                            },
+                            "required": ["nx", "ny"],
+                        },
+                        "modules": {
+                            "description": "List of modules to be configured",
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": ["grid", "modules"],
+                }
+            },
+            "required": ["core"],
+        }
+    },
+    "required": ["config"],
+}
+```
+
+The type of every single tag should be specified, with `object` as the type for tags
+that are mere containers for lower level tags (i.e. `config.core`). In cases where
+strictly positive values are required this is achieved by setting `exclusiveMinimum` to
+zero. For each `object`, the `required` key specifies the tags that must be included for
+validation to pass. We don't allow tags that are not included within a schema, therefore
+the config module automatically sets `additionalProperties` as false for every object in
+the schema.  The individual module schema are defined within the module `__init__.py`
+scripts, and are written to the schema registry using a decorator. The config module
+extracts the relevant schema from the registry and combines them into a single schema in
+order to carry out final validation. If any of these schema are incorrectly formatted
+the configuration will critically fail.
 
 ## Final output
 
-DESCRIBE COMPLETE_CONFIG object, also mention possible extension
+In addition to saving the configuration as an output file, it is also saved as an object
+accessible to the wider model. At present this is as a simple nested dictionary, but
+will possibly be refactored in future into something more specifically tailored to our
+model.
