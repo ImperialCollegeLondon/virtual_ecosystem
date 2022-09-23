@@ -112,7 +112,6 @@ def validate_config(
         for file in os.listdir(filepath):
             if file.endswith(".toml"):
                 files.append(file)
-        print(files)
     else:
         # Loop to check that all specified files can be found
         not_found = []
