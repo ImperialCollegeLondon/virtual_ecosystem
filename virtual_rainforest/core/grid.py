@@ -12,7 +12,6 @@ TODO - import of geojson grids? Way to link structured landscape into cells.  Ca
 
 import json
 import logging
-from functools import wraps
 from typing import Callable
 
 import numpy as np
@@ -30,7 +29,7 @@ decorator.
 """
 
 
-def register_grid(grid_type: str):
+def register_grid(grid_type: str) -> Callable:
     """Add a grid type and creator function to the grid registry.
 
     This decorator is used to add a function creating a grid layout to the registry of
@@ -44,7 +43,7 @@ def register_grid(grid_type: str):
         grid_type: A name to be used to identify the grid creation function.
     """
 
-    def decorator_register_grid(func: Callable):
+    def decorator_register_grid(func: Callable) -> Callable:
 
         # Add the grid type to the registry
         if grid_type in GRID_REGISTRY:
@@ -53,14 +52,7 @@ def register_grid(grid_type: str):
             )
         GRID_REGISTRY[grid_type] = func
 
-        # Pass the function through for use, using @wraps to expose the original
-        # function dunder attributes (__name__, __doc__ etc.)
-        @wraps(func)
-        def wrapper_register_grid(*args, **kwargs):
-
-            return func(*args, **kwargs)
-
-        return wrapper_register_grid
+        return func
 
     return decorator_register_grid
 
@@ -189,28 +181,6 @@ def make_triangular_grid(
     # Note shapely.affinity.rotate for inversion
 
     raise NotImplementedError()
-
-
-# @dataclass
-# class CoreGridConfig:
-#     """Configure the `core.grid` module.
-
-#     This data class is used to setup the arrangement of grid cells to be used in
-#     running a `virtual_rainforest` simulation.
-
-#     Attrs:
-#         grid_type:
-#         cell_contiguity:
-#         cell_area:
-#         cell_nx:
-#         cell_ny:
-#     """
-
-#     grid_type: Literal["hex", "square"] = "square"
-#     cell_contiguity: Literal["queen", "rook"] = "rook"
-#     cell_area: float = 100
-#     cell_nx: StrictInt = 10
-#     cell_ny: StrictInt = 10
 
 
 class Grid:
