@@ -21,6 +21,7 @@ tomli-w = "^1.0.0"
 Fiona = "^1.8.21"
 mdformat_tables = "^0.4.1"
 scipy = "^1.9.0"
+xarray = "^2022.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
