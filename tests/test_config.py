@@ -1,7 +1,9 @@
-"""A PLACEHOLDER DOCSTRING FOR THE TIME BEING.
+"""Check that the configuration system is working as expected.
 
-MORE DETAILS BELOW HERE IF NECESSARY
-TODO - EITHER FILL OUT DOC STRINGS OR CHANGE OPTIONS TO DELETE THEM
+At the moment the tests are generally check that the correct critical errors are thrown
+when configuration files or schema are missing or incorrectly formatted. There is also a
+test that a complete configuration file passes the test, which will have to be kept up
+to date.
 """
 
 import os
