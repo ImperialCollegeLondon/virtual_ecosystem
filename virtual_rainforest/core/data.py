@@ -156,8 +156,8 @@ def map_dataset_onto_square_grid(grid: Grid, dataset: Dataset) -> bool:
 
     elif "x" in data_names and "y" in data_names:
 
-        # Check the datasets have the same dimensions (identical labels guarantees
-        # identical shape)
+        # Check the datasets have the same dimensions (having identical dim name tuples
+        # guarantees that data has the same shape and order.)
         if dataset["x"].dims != dataset["y"].dims:
             raise ValueError("The x and y data have different dimensions")
 
@@ -184,9 +184,7 @@ def map_dataset_onto_square_grid(grid: Grid, dataset: Dataset) -> bool:
             set(grid.cell_dict) != set(dataset["cell_id"].values)
         ):
 
-            raise ValueError(
-                "The cell_id coordinates in the data do not match grid cell ids."
-            )
+            raise ValueError("The cell_ids in the data do not match grid cell ids.")
 
     return True
 
