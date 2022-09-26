@@ -4,7 +4,8 @@ MORE DETAILS BELOW HERE IF NECESSARY
 TODO - EITHER FILL OUT DOC STRINGS OR CHANGE OPTIONS TO DELETE THEM
 """
 
-from logging import CRITICAL
+import os
+from logging import CRITICAL, INFO
 
 import pytest
 
@@ -208,5 +209,36 @@ def test_bad_schema(caplog, mocker, files, content, expected_log_entries):
     log_check(caplog, expected_log_entries)
 
 
-# SUCCESSFUL VALIDATION => CHECK THAT LOGGING IS CORRECT, AND THAT THINGS GET OUTPUT
-# AS EXPECTED
+@pytest.mark.parametrize(
+    "expected_log_entries",
+    [
+        (
+            (
+                (
+                    INFO,
+                    "Configuration files successfully validated!",
+                ),
+                (
+                    INFO,
+                    "Saving all configuration details to tests/fixtures/"
+                    "complete_config.toml",
+                ),
+            )
+        ),
+    ],
+)
+def test_final_validation_log(caplog, expected_log_entries):
+    """Checks that validation passes as expected and produces the correct output."""
+
+    # Then check that the correct (critical error) log messages are emitted
+    config.validate_config(
+        "tests/fixtures", out_file_name="complete_config", in_files=["all_config.toml"]
+    )
+    log_check(caplog, expected_log_entries)
+
+    # Remove generated output file
+    # As a bonus tests that output file was generated correctly + to the right location
+    os.remove("tests/fixtures/complete_config.toml")
+
+    # Check that final config has been within nested dictionary
+    assert type(config.COMPLETE_CONFIG["config"]) == dict
