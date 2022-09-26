@@ -88,14 +88,12 @@ def test_missing_config_files(
     log_check(caplog, expected_log_entries)
 
 
-# TAGS REPEATED ACROSS MULTIPLE TOML FILES
-# mock_toml.side_effect == contents
 @pytest.mark.parametrize(
     "files,contents,expected_log_entries",
     [
         (
             ["core.toml"],
-            b"bshbsybdvshhd",
+            [b"bshbsybdvshhd"],
             (
                 (
                     CRITICAL,
@@ -105,7 +103,7 @@ def test_missing_config_files(
         ),
         (
             ["core.toml"],
-            b"[config.core.grid]\nnx = 10\nny = 10",
+            [b"[config.core.grid]\nnx = 10\nny = 10"],
             (
                 (
                     CRITICAL,
@@ -116,12 +114,23 @@ def test_missing_config_files(
         ),
         (
             ["core.toml"],
-            b"[config.core]\nmodules = ['soil','soil']",
+            [b"[config.core]\nmodules = ['soil','soil']"],
             (
                 (
                     CRITICAL,
                     "The list of modules to configure given in the core configuration "
                     "file repeats 1 names!",
+                ),
+            ),
+        ),
+        (
+            ["core1.toml", "core2.toml"],
+            [b"[config.core.grid]\nnx = 10", b"[config.core.grid]\nnx = 12"],
+            (
+                (
+                    CRITICAL,
+                    "The following tags are defined in multiple config files:\n"
+                    "config.core.grid.nx defined in both core2.toml and core1.toml",
                 ),
             ),
         ),
@@ -135,8 +144,10 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
     mock_get.return_value = files
 
     # Mock the toml that is sent to the builtin open function
-    mocked_toml = mocker.mock_open(read_data=contents)
-    mocker.patch("builtins.open", mocked_toml)
+    mocked_toml = []
+    for item in contents:
+        mocked_toml = mocker.mock_open(read_data=item)
+    mocker.patch("builtins.open", side_effect=mocked_toml)
 
     # Then check that the correct (critical error) log messages are emitted
     config.validate_config("tests")
