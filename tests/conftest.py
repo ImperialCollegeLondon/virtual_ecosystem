@@ -1,5 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
+from virtual_rainforest.core.config import register_schema
+
 
 def log_check(caplog, expected_log):
     """Helper function to check that the captured log is as expected.
@@ -18,3 +20,61 @@ def log_check(caplog, expected_log):
     assert all(
         [exp[1] in rec.message for exp, rec in zip(expected_log, caplog.records)]
     )
+
+
+# Register a bunch of schema so that schema validation can be appropriately tested
+@register_schema("bad_module_1")
+def test_schema1():
+    """Defines a (bad) test schema for unit testing."""
+
+    config_schema = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "type": "object",
+                "properties": {
+                    "bad_module_1": {
+                        "type": "object",
+                        "properties": {
+                            "an_integer": {
+                                "type": "integer",
+                            },
+                        },
+                        "required": ["an_integer"],
+                    }
+                },
+            }
+        },
+        "required": ["config"],
+    }
+
+    return config_schema
+
+
+@register_schema("bad_module_2")
+def test_schema2():
+    """Defines a (bad) test schema for unit testing."""
+
+    config_schema = {
+        "type": "object",
+        "properties": {
+            "configuration": {
+                "type": "object",
+                "properties": {
+                    "bad_module_2": {
+                        "type": "object",
+                        "properties": {
+                            "an_integer": {
+                                "type": "integer",
+                            },
+                        },
+                        "required": ["an_integer"],
+                    }
+                },
+                "required": ["bad_module2"],
+            }
+        },
+        "required": ["configuration"],
+    }
+
+    return config_schema

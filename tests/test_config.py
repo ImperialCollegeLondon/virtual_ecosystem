@@ -154,13 +154,59 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
     log_check(caplog, expected_log_entries)
 
 
-# THESE ERRORS NEED MORE THOUGHT
-# DEFINE A BUNCH OF BAD SCHEMA IN FIXTURES AND ADD THEM TO THE REGISTRY
-# THESE CAN GENERATE MOST OF THE SCHEMA
-# MODULE SCHEMA IN REGISTRY MISSING
-# MISSING REQUIRED MODULE KEY IN SCHEMA
-# MODULE NOT IN SCHEMA REGISTRY
+@pytest.mark.parametrize(
+    "files,content,expected_log_entries",
+    [
+        (
+            ["core.toml"],
+            b"[config.core]\nmodules = ['a_stupid_module_name']",
+            (
+                (
+                    CRITICAL,
+                    "Expected a schema for a_stupid_module_name module configuration, "
+                    "it was not provided!",
+                ),
+            ),
+        ),
+        (
+            ["core.toml"],
+            b"[config.core]\nmodules = ['bad_module_1']",
+            (
+                (
+                    CRITICAL,
+                    "The schema for bad_module_1 does not set the module as a required "
+                    "field, so validation cannot occur!",
+                ),
+            ),
+        ),
+        (
+            ["core.toml"],
+            b"[config.core]\nmodules = ['bad_module_2']",
+            (
+                (
+                    CRITICAL,
+                    "Schema for bad_module_2 module incorrectly structured, 'config' "
+                    "key missing!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_bad_schema(caplog, mocker, files, content, expected_log_entries):
+    """Checks errors for bad or missing json schema."""
+
+    # Use mock to override "no files found" error
+    mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
+    mock_get.return_value = files
+
+    # Mock toml content to look for specific modules
+    mocked_toml = mocker.mock_open(read_data=content)
+    mocker.patch("builtins.open", side_effect=mocked_toml)
+
+    # Then check that the correct (critical error) log messages are emitted
+    config.validate_config("tests")
+    log_check(caplog, expected_log_entries)
+
 
 # SUCCESSFUL VALIDATION => CHECK THAT LOGGING IS CORRECT, AND THAT THINGS GET OUTPUT
 # AS EXPECTED
-# => Could just go with good, bad, and incorrectly formatted
