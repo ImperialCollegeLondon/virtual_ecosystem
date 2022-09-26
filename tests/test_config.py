@@ -13,7 +13,6 @@ import virtual_rainforest.core.config as config
 from .conftest import log_check
 
 
-# test that function checking overlap of nested dictionaries works correctly
 @pytest.mark.parametrize(
     "d_a,d_b,overlap",
     [
@@ -30,12 +29,10 @@ from .conftest import log_check
     ],
 )
 def test_check_dict_leaves(d_a, d_b, overlap):
-    """EXAMPLE DOC STRING."""
+    """Checks overlapping dictionary search function."""
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
 
-# DOES CRITICAL ERROR ORDER MATTER PARTICUALRLY
-# test that errors relating to correct files not being found fire correctly
 @pytest.mark.parametrize(
     "contents,file_list,expected_log_entries",
     [
@@ -80,7 +77,7 @@ def test_check_dict_leaves(d_a, d_b, overlap):
 def test_missing_config_files(
     caplog, mocker, contents, file_list, expected_log_entries
 ):
-    """EXAMPLE DOC STRING."""
+    """Checks errors for missing config files."""
 
     # Configure the mock to return a specific list of files
     mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
@@ -91,16 +88,68 @@ def test_missing_config_files(
     log_check(caplog, expected_log_entries)
 
 
-# PROBABLY CAN SUPPLY SIMPLE STRINGS HERE AS TOML FILES
-
-# INCORRECTLY FORMATTED TOML
 # TAGS REPEATED ACROSS MULTIPLE TOML FILES
-# MODULE TOML MISSING FROM CORE
-# CORE.MODULE REPEATS NAMES
-# def test_bad_config_files():
+# mock_toml.side_effect == contents
+@pytest.mark.parametrize(
+    "files,contents,expected_log_entries",
+    [
+        (
+            ["core.toml"],
+            b"bshbsybdvshhd",
+            (
+                (
+                    CRITICAL,
+                    "Configuration file core.toml is incorrectly formatted.",
+                ),
+            ),
+        ),
+        (
+            ["core.toml"],
+            b"[config.core.grid]\nnx = 10\nny = 10",
+            (
+                (
+                    CRITICAL,
+                    "Core configuration does not specify which other modules should be "
+                    "configured!",
+                ),
+            ),
+        ),
+        (
+            ["core.toml"],
+            b"[config.core]\nmodules = ['soil','soil']",
+            (
+                (
+                    CRITICAL,
+                    "The list of modules to configure given in the core configuration "
+                    "file repeats 1 names!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries):
+    """Checks errors for incorrectly formatted config files."""
+
+    # Use mock to override "no files found" error
+    mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
+    mock_get.return_value = files
+
+    # Mock the toml that is sent to the builtin open function
+    mocked_toml = mocker.mock_open(read_data=contents)
+    mocker.patch("builtins.open", mocked_toml)
+
+    # Then check that the correct (critical error) log messages are emitted
+    config.validate_config("tests")
+    log_check(caplog, expected_log_entries)
+
 
 # THESE ERRORS NEED MORE THOUGHT
+# DEFINE A BUNCH OF BAD SCHEMA IN FIXTURES AND ADD THEM TO THE REGISTRY
+# THESE CAN GENERATE MOST OF THE SCHEMA
 # MODULE SCHEMA IN REGISTRY MISSING
 # MISSING REQUIRED MODULE KEY IN SCHEMA
 # MODULE NOT IN SCHEMA REGISTRY
-# FAILED VALIDATION
+
+# SUCCESSFUL VALIDATION => CHECK THAT LOGGING IS CORRECT, AND THAT THINGS GET OUTPUT
+# AS EXPECTED
+# => Could just go with good, bad, and incorrectly formatted
