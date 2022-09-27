@@ -23,45 +23,37 @@ def schema():
     config_schema = {
         "type": "object",
         "properties": {
-            "config": {
+            "core": {
+                "description": "Configuration settings for the core module",
                 "type": "object",
                 "properties": {
-                    "core": {
-                        "description": "Configuration settings for the core module",
+                    "grid": {
+                        "description": "Details of the grid to configure",
                         "type": "object",
                         "properties": {
-                            "grid": {
-                                "description": "Details of the grid to configure",
-                                "type": "object",
-                                "properties": {
-                                    "nx": {
-                                        "description": "Number of grid cells in x "
-                                        "direction",
-                                        "type": "integer",
-                                        "exclusiveMinimum": 0,
-                                    },
-                                    "ny": {
-                                        "description": "Number of grid cells in y "
-                                        "direction",
-                                        "type": "integer",
-                                        "exclusiveMinimum": 0,
-                                    },
-                                },
-                                "required": ["nx", "ny"],
+                            "nx": {
+                                "description": "Number of grid cells in x direction",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
                             },
-                            "modules": {
-                                "description": "List of modules to be configured",
-                                "type": "array",
-                                "items": {"type": "string"},
+                            "ny": {
+                                "description": "Number of grid cells in y direction",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
                             },
                         },
-                        "required": ["grid", "modules"],
-                    }
+                        "required": ["nx", "ny"],
+                    },
+                    "modules": {
+                        "description": "List of modules to be configured",
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
                 },
-                "required": ["core"],
+                "required": ["grid", "modules"],
             }
         },
-        "required": ["config"],
+        "required": ["core"],
     }
 
     return config_schema

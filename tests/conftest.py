@@ -30,51 +30,16 @@ def test_schema1():
     config_schema = {
         "type": "object",
         "properties": {
-            "config": {
+            "bad_module_1": {
                 "type": "object",
                 "properties": {
-                    "bad_module_1": {
-                        "type": "object",
-                        "properties": {
-                            "an_integer": {
-                                "type": "integer",
-                            },
-                        },
-                        "required": ["an_integer"],
-                    }
+                    "an_integer": {
+                        "type": "integer",
+                    },
                 },
+                "required": ["an_integer"],
             }
         },
-        "required": ["config"],
-    }
-
-    return config_schema
-
-
-@register_schema("bad_module_2")
-def test_schema2():
-    """Defines a (bad) test schema for unit testing."""
-
-    config_schema = {
-        "type": "object",
-        "properties": {
-            "configuration": {
-                "type": "object",
-                "properties": {
-                    "bad_module_2": {
-                        "type": "object",
-                        "properties": {
-                            "an_integer": {
-                                "type": "integer",
-                            },
-                        },
-                        "required": ["an_integer"],
-                    }
-                },
-                "required": ["bad_module2"],
-            }
-        },
-        "required": ["configuration"],
     }
 
     return config_schema

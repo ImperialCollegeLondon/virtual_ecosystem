@@ -106,7 +106,7 @@ def test_missing_config_files(
         ),
         (
             ["core.toml"],
-            [b"[config.core.grid]\nnx = 10\nny = 10"],
+            [b"[core.grid]\nnx = 10\nny = 10"],
             (
                 (
                     CRITICAL,
@@ -117,7 +117,7 @@ def test_missing_config_files(
         ),
         (
             ["core.toml"],
-            [b"[config.core]\nmodules = ['soil','soil']"],
+            [b"[core]\nmodules = ['soil','soil']"],
             (
                 (
                     CRITICAL,
@@ -128,12 +128,12 @@ def test_missing_config_files(
         ),
         (
             ["core1.toml", "core2.toml"],
-            [b"[config.core.grid]\nnx = 10", b"[config.core.grid]\nnx = 12"],
+            [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
             (
                 (
                     CRITICAL,
                     "The following tags are defined in multiple config files:\n"
-                    "config.core.grid.nx defined in both core2.toml and core1.toml",
+                    "core.grid.nx defined in both core2.toml and core1.toml",
                 ),
             ),
         ),
@@ -162,7 +162,7 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
     [
         (
             ["core.toml"],
-            b"[config.core]\nmodules = ['a_stupid_module_name']",
+            b"[core]\nmodules = ['a_stupid_module_name']",
             (
                 (
                     CRITICAL,
@@ -173,23 +173,12 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
         ),
         (
             ["core.toml"],
-            b"[config.core]\nmodules = ['bad_module_1']",
+            b"[core]\nmodules = ['bad_module_1']",
             (
                 (
                     CRITICAL,
                     "The schema for bad_module_1 does not set the module as a required "
                     "field, so validation cannot occur!",
-                ),
-            ),
-        ),
-        (
-            ["core.toml"],
-            b"[config.core]\nmodules = ['bad_module_2']",
-            (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_2 module incorrectly structured, 'config' "
-                    "key missing!",
                 ),
             ),
         ),

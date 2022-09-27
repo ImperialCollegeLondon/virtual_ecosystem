@@ -8,36 +8,30 @@ def schema():
     config_schema = {
         "type": "object",
         "properties": {
-            "config": {
+            "plants": {
+                "description": "Configuration settings for the plants module",
                 "type": "object",
                 "properties": {
-                    "plants": {
-                        "description": "Configuration settings for the plants module",
-                        "type": "object",
-                        "properties": {
-                            "ftypes": {
-                                "description": "Details of the plant functional types",
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "pft_name": {"type": "string"},
-                                        "maxh": {
-                                            "type": "number",
-                                            "exclusiveMinimum": 0.0,
-                                        },
-                                    },
-                                    "required": ["pft_name", "maxh"],
+                    "ftypes": {
+                        "description": "Details of the plant functional types",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "pft_name": {"type": "string"},
+                                "maxh": {
+                                    "type": "number",
+                                    "exclusiveMinimum": 0.0,
                                 },
-                            }
+                            },
+                            "required": ["pft_name", "maxh"],
                         },
-                        "required": ["ftypes"],
                     }
                 },
-                "required": ["plants"],
+                "required": ["ftypes"],
             }
         },
-        "required": ["config"],
+        "required": ["plants"],
     }
 
     return config_schema

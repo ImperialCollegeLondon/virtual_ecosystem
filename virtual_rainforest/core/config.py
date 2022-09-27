@@ -165,7 +165,7 @@ def validate_config(
 
     # Find which other schema should be searched for
     try:
-        modules = config_dict["config"]["core"]["modules"]
+        modules = config_dict["core"]["modules"]
     except KeyError:
         LOGGER.critical(
             "Core configuration does not specify which other modules should be "
@@ -191,9 +191,7 @@ def validate_config(
     for module in modules:
         if module in SCHEMA_REGISTRY:
             try:
-                m_schema = SCHEMA_REGISTRY[module]["properties"]["config"][
-                    "properties"
-                ][module]
+                m_schema = SCHEMA_REGISTRY[module]["properties"][module]
             except KeyError as err:
                 LOGGER.critical(
                     f"Schema for {module} module incorrectly structured, {err} key "
@@ -205,10 +203,10 @@ def validate_config(
                 comb_schema = SCHEMA_REGISTRY[module]
             # Otherwise only save truncated part of the schema
             else:
-                comb_schema["properties"]["config"]["properties"][module] = m_schema
+                comb_schema["properties"][module] = m_schema
                 # Add module name to list of required modules
                 try:
-                    comb_schema["properties"]["config"]["required"].append(module)
+                    comb_schema["required"].append(module)
                 except KeyError:
                     LOGGER.critical(
                         f"The schema for {modules[0]} does not set the module as a "
@@ -251,4 +249,4 @@ def validate_config(
         tomli_w.dump(config_dict, toml_file)
 
     # Populate the global config dictionary with the complete validated config
-    COMPLETE_CONFIG["config"] = config_dict["config"]
+    COMPLETE_CONFIG["config"] = config_dict

@@ -1,14 +1,14 @@
-[config.core]
+[core]
 modules = ["plants"]
 
-[config.core.grid]
+[core.grid]
 nx = 10
 ny = 10
 
-[[config.plants.ftypes]]
+[[plants.ftypes]]
 pft_name = "shrub"
 maxh = 1.0
 
-[[config.plants.ftypes]]
+[[plants.ftypes]]
 pft_name = "broadleaf"
 maxh = 50.0
