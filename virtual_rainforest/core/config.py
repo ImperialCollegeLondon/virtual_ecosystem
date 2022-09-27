@@ -14,7 +14,7 @@ import dpath.util
 import jsonschema
 import tomli_w
 
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -29,7 +29,27 @@ def register_schema(module_name: str) -> Callable:
     """Decorator function to add configuration schema to the registry."""
 
     def wrap(func: Callable):
-        SCHEMA_REGISTRY[module_name] = func()
+        if module_name in SCHEMA_REGISTRY:
+            # TODO - ADD A TEST OF THIS FAILURE CASE
+            log_and_raise(
+                f"The module schema {module_name} is used multiple times, this "
+                f"shouldn't be the case!",
+                ValueError,
+            )
+        else:
+            # Check that this is a valid schema
+            # TODO - ADD A TEST OF THIS FAILURE CASE
+            try:
+                jsonschema.Draft202012Validator.check_schema(func())
+            except jsonschema.exceptions.SchemaError:
+                log_and_raise(
+                    f"Module schema {module_name} not valid JSON!",
+                    OSError,
+                )
+            # If it is valid then add it to the registry
+            SCHEMA_REGISTRY[module_name] = func()
+
+        return func
 
     return wrap
 
