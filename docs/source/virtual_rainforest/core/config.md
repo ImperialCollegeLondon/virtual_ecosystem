@@ -18,36 +18,36 @@ readable (unlike `JSON`), allows nesting (unlike `ini`), not overly complex (unl
 configuration is shown below:
 
 ```toml
-[config.core]
+[core]
 modules = ["plants"]
 
-[config.core.grid]
+[core.grid]
 nx = 10
 ny = 10
 ```
 
-Here, the first tag indicates that this is a config file, the second the module in
-question (e.g. `core`), and subsequent tags indicate (potentially nested) module level
-configuration details (e.g. horizontal grid size `nx`).
+Here, the first tag indicates the module in question (e.g. `core`), and subsequent tags
+indicate (potentially nested) module level configuration details (e.g. horizontal grid
+size `nx`).
 
 The configuration system does not require a single input config file, instead the config
 input can be spread across an arbitrarily large number of config files. However,
 information cannot be repeated between files as there is no way to establish which of
-two values (of e.g. `config.core.grid.nx`) the user intended to provide. In this case,
-the module will throw critical error and the `virtual_rainforest` model will not
-configure. Config files are read from a folder that the user specifies, this can either
-be every `toml` file in the folder, or a user provided list of files. If a file exists
-in this folder that has the same name as the user provided output file name the
-configuration will critically fail, in order to minimise the chance of significant
-confusion downstream.
+two values (of e.g. `core.grid.nx`) the user intended to provide. In this case, the
+module will throw critical error and the `virtual_rainforest` model will not configure.
+Config files are read from a folder that the user specifies, this can either be every
+`toml` file in the folder, or a user provided list of files. If a file exists in this
+folder that has the same name as the user provided output file name the configuration
+will critically fail, in order to minimise the chance of significant confusion
+downstream.
 
 ## Optional module loading
 
 The config system allows for different module implementations and combinations to be
 configured. While the `core` module must always be configured, all other modules are
-optional. The list of modules to be configured must always included as
-`config.core.modules`. Failure to include this, or the inclusion of repeated module
-names will cause configuration to critically fail.
+optional. The list of modules to be configured must always included as `core.modules`.
+Failure to include this, or the inclusion of repeated module names will cause
+configuration to critically fail.
 
 ## JSON schema
 
@@ -57,66 +57,69 @@ Schema`](https://json-schema.org), this is performed using the `python` package
 the most basic properties of the input data (e.g. that the path to a file is a string),
 with more complex validation being left to downstream functions. We check for missing
 expected tags, unexpected tags, that tags are of the correct type, and where relevant
-that input values are strictly positive. In `python` the schema takes the format of a
-nested dict, an example of which is shown below:
+that input values are strictly positive. The schema is saved a `JSON` file, which
+follows the pattern below:
 
-```python
-config_schema = {
-    "type": "object",
-    "properties": {
-        "config": {
-            "type": "object",
-            "properties": {
-                "core": {
-                    "description": "Configuration settings for the core module",
-                    "type": "object",
-                    "properties": {
-                        "grid": {
-                            "description": "Details of the grid to configure",
-                            "type": "object",
-                            "properties": {
-                                "nx": {
-                                    "description": "Number of grid cells in x "
-                                    "direction",
-                                    "type": "integer",
-                                    "exclusiveMinimum": 0,
-                                },
-                                "ny": {
-                                    "description": "Number of grid cells in y "
-                                    "direction",
-                                    "type": "integer",
-                                    "exclusiveMinimum": 0,
-                                },
-                            },
-                            "required": ["nx", "ny"],
-                        },
-                        "modules": {
-                            "description": "List of modules to be configured",
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                    },
-                    "required": ["grid", "modules"],
-                }
+```json
+{
+   "type":"object",
+   "properties":{
+      "core":{
+         "description":"Configuration settings for the core module",
+         "type":"object",
+         "properties":{
+            "grid":{
+               "description":"Details of the grid to configure",
+               "type":"object",
+               "properties":{
+                  "nx":{
+                     "description":"Number of grid cells in x direction",
+                     "type":"integer",
+                     "exclusiveMinimum":0
+                  },
+                  "ny":{
+                     "description":"Number of grid cells in y direction",
+                     "type":"integer",
+                     "exclusiveMinimum":0
+                  }
+               },
+               "required":[
+                  "nx",
+                  "ny"
+               ]
             },
-            "required": ["core"],
-        }
-    },
-    "required": ["config"],
+            "modules":{
+               "description":"List of modules to be configured",
+               "type":"array",
+               "items":{
+                  "type":"string"
+               }
+            }
+         },
+         "required":[
+            "grid",
+            "modules"
+         ]
+      }
+   },
+   "required":[
+      "core"
+   ]
 }
 ```
 
 The type of every single tag should be specified, with `object` as the type for tags
-that are mere containers for lower level tags (i.e. `config.core`). In cases where
-strictly positive values are required this is achieved by setting `exclusiveMinimum` to
-zero. For each `object`, the `required` key specifies the tags that must be included for
+that are mere containers for lower level tags (i.e. `core`). In cases where strictly
+positive values are required this is achieved by setting `exclusiveMinimum` to zero. For
+each `object`, the `required` key specifies the tags that must be included for
 validation to pass. We don't allow tags that are not included within a schema, therefore
 the config module automatically sets `additionalProperties` as false for every object in
-the schema.  The individual module schema are defined within the module `__init__.py`
-scripts, and are written to the schema registry using a decorator. The config module
-extracts the relevant schema from the registry and combines them into a single schema in
-order to carry out final validation. If any of these schema are incorrectly formatted
-the configuration will critically fail.
+the schema.  The individual module schema are saved as `JSON` files within their
+respective module folders and then loaded by the module `__init__.py` scripts and
+written to the schema registry using a decorator. The config module extracts the
+relevant schema from the registry and combines them into a single schema in order to
+carry out final validation. If any of these schema are incorrectly formatted the
+configuration will critically fail.
 
 ## Final output
 
