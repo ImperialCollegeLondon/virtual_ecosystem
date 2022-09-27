@@ -1,3 +1,5 @@
+import json
+
 from virtual_rainforest.core.config import register_schema
 
 
@@ -20,40 +22,7 @@ load_plants_schema()
 def schema():
     """Defines the schema that the core module configuration should conform to."""
 
-    config_schema = {
-        "type": "object",
-        "properties": {
-            "core": {
-                "description": "Configuration settings for the core module",
-                "type": "object",
-                "properties": {
-                    "grid": {
-                        "description": "Details of the grid to configure",
-                        "type": "object",
-                        "properties": {
-                            "nx": {
-                                "description": "Number of grid cells in x direction",
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                            },
-                            "ny": {
-                                "description": "Number of grid cells in y direction",
-                                "type": "integer",
-                                "exclusiveMinimum": 0,
-                            },
-                        },
-                        "required": ["nx", "ny"],
-                    },
-                    "modules": {
-                        "description": "List of modules to be configured",
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                },
-                "required": ["grid", "modules"],
-            }
-        },
-        "required": ["core"],
-    }
+    with open("virtual_rainforest/core/core_schema.json") as f:
+        config_schema = json.load(f)
 
     return config_schema

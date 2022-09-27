@@ -1,3 +1,5 @@
+import json
+
 from virtual_rainforest.core.config import register_schema
 
 
@@ -5,33 +7,7 @@ from virtual_rainforest.core.config import register_schema
 def schema():
     """Defines the schema that the plant module configuration should conform to."""
 
-    config_schema = {
-        "type": "object",
-        "properties": {
-            "plants": {
-                "description": "Configuration settings for the plants module",
-                "type": "object",
-                "properties": {
-                    "ftypes": {
-                        "description": "Details of the plant functional types",
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "pft_name": {"type": "string"},
-                                "maxh": {
-                                    "type": "number",
-                                    "exclusiveMinimum": 0.0,
-                                },
-                            },
-                            "required": ["pft_name", "maxh"],
-                        },
-                    }
-                },
-                "required": ["ftypes"],
-            }
-        },
-        "required": ["plants"],
-    }
+    with open("virtual_rainforest/plants/plants_schema.json") as f:
+        config_schema = json.load(f)
 
     return config_schema
