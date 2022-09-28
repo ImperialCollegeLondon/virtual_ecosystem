@@ -137,14 +137,14 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
     # Check for items that are not found
     if len(not_found) != 0:
         log_and_raise(
-            f"The following user provided config paths do not exist:\n{not_found}",
+            f"The following (user provided) config paths do not exist:\n{not_found}",
             OSError,
         )
     # And for empty folders
     elif len(empty_fold) != 0:
         log_and_raise(
-            f"The following user provided config folders do not contain any toml files:"
-            f"\n{empty_fold}",
+            f"The following (user provided) config folders do not contain any toml "
+            f"files:\n{empty_fold}",
             OSError,
         )
     # Finally check that no files are pointed to twice
@@ -186,8 +186,8 @@ def load_in_config_files(files: list[Path]) -> dict:
                 file_data.append((file, toml_dict))
             except tomllib.TOMLDecodeError as err:
                 log_and_raise(
-                    f"Configuration file {file} is incorrectly formatted.\n"
-                    f"Failed with the following message:\n{err}",
+                    f"Configuration file {file} is incorrectly formatted. Failed with "
+                    f"the following message:\n{err}",
                     RuntimeError,
                 )
 

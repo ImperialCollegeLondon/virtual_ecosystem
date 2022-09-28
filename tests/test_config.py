@@ -71,64 +71,116 @@ def test_check_outfile(
 
 
 @pytest.mark.parametrize(
-    "contents,file_list,expected_log_entries",
+    "cfg_paths,contents,expected_exception,expected_log_entries",
     [
-        ([], [], ((CRITICAL, "No toml files found in the config folder provided!"),)),
         (
-            ["plants.toml", "core.toml"],
-            ["plant_with_hydro.toml"],
+            ["Nonsense/file/location"],
+            [],
+            OSError,
             (
                 (
                     CRITICAL,
-                    "The files the user specified to be read from are not all found in "
-                    "tests. The following files are missing:\n"
-                    "['plant_with_hydro.toml']",
+                    "The following (user provided) config paths do not exist:\n"
+                    "['Nonsense/file/location']",
                 ),
             ),
         ),
         (
+            ["."],
             [],
-            ["core.toml"],
+            OSError,
             (
                 (
                     CRITICAL,
-                    "The files the user specified to be read from are not all found in "
-                    "tests. The following files are missing:\n['core.toml']",
+                    "The following (user provided) config folders do not contain any "
+                    "toml files:\n['.']",
+                ),
+            ),
+        ),
+        (
+            ["tests/fixtures/", "tests/fixtures/all_config.toml"],
+            [Path("tests/fixtures/all_config.toml")],
+            RuntimeError,
+            (
+                (
+                    CRITICAL,
+                    "A total of 1 config files are specified more than once (possibly "
+                    "indirectly)",
                 ),
             ),
         ),
     ],
 )
-def test_missing_config_files(
-    caplog, mocker, contents, file_list, expected_log_entries
+def test_collect_files(
+    caplog, mocker, cfg_paths, contents, expected_exception, expected_log_entries
 ):
     """Checks errors for missing config files."""
 
     # Configure the mock to return a specific list of files
-    mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
+    mock_get = mocker.patch("virtual_rainforest.core.config.Path.glob")
     mock_get.return_value = contents
 
-    # Then check that the correct (critical error) log messages are emitted
-    config.validate_config("tests", in_files=file_list)
+    # Check that file collection fails as expected
+    with pytest.raises(expected_exception):
+        config.collect_files(cfg_paths)
+
     log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
-    "files,contents,expected_log_entries",
+    "files,contents,expected_exception,expected_log_entries",
     [
         (
-            ["core.toml"],
+            [Path("fake_file1.toml")],
             [b"bshbsybdvshhd"],
+            RuntimeError,
             (
                 (
                     CRITICAL,
-                    "Configuration file core.toml is incorrectly formatted.",
+                    "Configuration file fake_file1.toml is incorrectly formatted. "
+                    "Failed with the following message:\nExpected '=' after a key in "
+                    "a key/value pair (at end of document)",
                 ),
             ),
         ),
         (
-            ["core.toml"],
-            [b"[core.grid]\nnx = 10\nny = 10"],
+            ["fake_file1.toml", "fake_file2.toml"],
+            [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
+            RuntimeError,
+            (
+                (
+                    CRITICAL,
+                    "The following tags are defined in multiple config files:\n"
+                    "core.grid.nx defined in both fake_file2.toml and fake_file1.toml",
+                ),
+            ),
+        ),
+    ],
+)
+def test_load_in_config_files(
+    caplog, mocker, files, contents, expected_exception, expected_log_entries
+):
+    """Check errors for incorrectly formatted config files."""
+
+    # Mock the toml that is sent to the builtin open function
+    mocked_toml = []
+    for item in contents:
+        mocked_toml = mocker.mock_open(read_data=item)
+    mocker.patch("builtins.open", side_effect=mocked_toml)
+
+    # Check that load_in_config_file fails as expected
+    with pytest.raises(expected_exception):
+        config.load_in_config_files(files)
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config_dict,expected_exception,expected_log_entries",
+    [
+        (
+            {"core": {"grid": {"nx": 10, "ny": 10}}},
+            KeyError,
             (
                 (
                     CRITICAL,
@@ -138,8 +190,8 @@ def test_missing_config_files(
             ),
         ),
         (
-            ["core.toml"],
-            [b"[core]\nmodules = ['soil','soil']"],
+            {"core": {"modules": ["soil", "soil"]}},
+            RuntimeError,
             (
                 (
                     CRITICAL,
@@ -148,43 +200,24 @@ def test_missing_config_files(
                 ),
             ),
         ),
-        (
-            ["core1.toml", "core2.toml"],
-            [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-            (
-                (
-                    CRITICAL,
-                    "The following tags are defined in multiple config files:\n"
-                    "core.grid.nx defined in both core2.toml and core1.toml",
-                ),
-            ),
-        ),
     ],
 )
-def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries):
-    """Checks errors for incorrectly formatted config files."""
+def test_find_schema(caplog, config_dict, expected_exception, expected_log_entries):
+    """Check errors in finding module schema."""
 
-    # Use mock to override "no files found" error
-    mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
-    mock_get.return_value = files
+    # Check that find_schema fails as expected
+    with pytest.raises(expected_exception):
+        config.find_schema(config_dict)
 
-    # Mock the toml that is sent to the builtin open function
-    mocked_toml = []
-    for item in contents:
-        mocked_toml = mocker.mock_open(read_data=item)
-    mocker.patch("builtins.open", side_effect=mocked_toml)
-
-    # Then check that the correct (critical error) log messages are emitted
-    config.validate_config("tests")
     log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
-    "files,content,expected_log_entries",
+    "modules,expected_exception,expected_log_entries",
     [
         (
-            ["core.toml"],
-            b"[core]\nmodules = ['a_stupid_module_name']",
+            ["a_stupid_module_name"],
+            RuntimeError,
             (
                 (
                     CRITICAL,
@@ -194,8 +227,8 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
             ),
         ),
         (
-            ["core.toml"],
-            b"[core]\nmodules = ['bad_module_1']",
+            ["bad_module_1", "core"],
+            KeyError,
             (
                 (
                     CRITICAL,
@@ -204,21 +237,28 @@ def test_bad_config_files(caplog, mocker, files, contents, expected_log_entries)
                 ),
             ),
         ),
+        (
+            ["bad_module_2"],
+            KeyError,
+            (
+                (
+                    CRITICAL,
+                    "Schema for bad_module_2 module incorrectly structured, 'properties"
+                    "' key missing!",
+                ),
+            ),
+        ),
     ],
 )
-def test_bad_schema(caplog, mocker, files, content, expected_log_entries):
+def test_construct_combined_schema(
+    caplog, modules, expected_exception, expected_log_entries
+):
     """Checks errors for bad or missing json schema."""
 
-    # Use mock to override "no files found" error
-    mock_get = mocker.patch("virtual_rainforest.core.config.os.listdir")
-    mock_get.return_value = files
+    # Check that construct_combined_schema fails as expected
+    with pytest.raises(expected_exception):
+        config.construct_combined_schema(modules)
 
-    # Mock toml content to look for specific modules
-    mocked_toml = mocker.mock_open(read_data=content)
-    mocker.patch("builtins.open", side_effect=mocked_toml)
-
-    # Then check that the correct (critical error) log messages are emitted
-    config.validate_config("tests")
     log_check(caplog, expected_log_entries)
 
 
@@ -233,8 +273,7 @@ def test_bad_schema(caplog, mocker, files, content, expected_log_entries):
                 ),
                 (
                     INFO,
-                    "Saving all configuration details to tests/fixtures/"
-                    "complete_config.toml",
+                    "Saving all configuration details to ./complete_config.toml",
                 ),
             )
         ),
@@ -244,14 +283,13 @@ def test_final_validation_log(caplog, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
     # Then check that the correct (critical error) log messages are emitted
-    config.validate_config(
-        "tests/fixtures", out_file_name="complete_config", in_files=["all_config.toml"]
-    )
+    config.validate_config(["tests/fixtures"], out_file_name="complete_config")
     log_check(caplog, expected_log_entries)
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
-    os.remove("tests/fixtures/complete_config.toml")
+    # SWITCH THIS TO USE PATH
+    os.remove("./complete_config.toml")
 
     # Check that final config has been within nested dictionary
     assert type(config.COMPLETE_CONFIG["config"]) == dict
