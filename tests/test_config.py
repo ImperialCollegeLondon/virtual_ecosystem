@@ -6,13 +6,13 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
-import os
 from logging import CRITICAL, INFO
 from pathlib import Path
 
 import pytest
 
 import virtual_rainforest.core.config as config
+from virtual_rainforest.core.config import register_schema
 
 from .conftest import log_check
 
@@ -288,8 +288,30 @@ def test_final_validation_log(caplog, expected_log_entries):
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
-    # SWITCH THIS TO USE PATH
-    os.remove("./complete_config.toml")
+    Path("./complete_config.toml").unlink()
 
     # Check that final config has been within nested dictionary
     assert type(config.COMPLETE_CONFIG["config"]) == dict
+
+
+@pytest.mark.parametrize(
+    "schema_name,schema, expected_exception",
+    [
+        ("core", {}, ValueError),
+        (
+            "test",
+            "najsnjasnda",
+            OSError,
+        ),
+    ],
+)
+def test_register_schema_errors(schema_name, schema, expected_exception):
+    """Test that the schema registering decorator throws the correct errors."""
+    # Check that construct_combined_schema fails as expected
+    with pytest.raises(expected_exception):
+
+        @register_schema(schema_name)
+        def to_be_decorated():
+            return schema
+
+        to_be_decorated()
