@@ -6,9 +6,9 @@ model.
 """
 # TODO - find config folder based on command line argument
 
-import os
 import sys
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Union
 
 import dpath.util
 import jsonschema
@@ -81,77 +81,100 @@ def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = [])
     return conflicts
 
 
-def validate_config(
-    filepath: str, out_file_name: str = "complete_config", in_files: list[str] = []
-) -> None:
-    """Validates the contents of user provided config files.
-
-    This function first reads in a set of configuration files in `.toml` format. This
-    either consists of all `.toml` files in a specified folder, or a set of user
-    specified files within this folder. Checks are carried out to ensure that these
-    files are correctly formatted. The module validation schemas are extracted from
-    `SCHEMA_REGISTRY` for the modules the user has specified to configure (in
-    `config.core.modules`). These schemas are then consolidated into a single combined
-    JSON schema. This combined schema is then used to validate the combined contents of
-    the configuration files. If this validation passes the combined configuration is
-    saved in toml format in the specified configuration file folder. This configuration
-    is finally used to populate the global `COMPLETE_CONFIG` dictionary.
+def check_outfile(output_folder: str, out_file_name: str) -> None:
+    """Check that final output file is not already in the output folder.
 
     Args:
-        filepath: Path to folder containing configuration files.
-        out_file_name: The name to save the outputted complete configuration file under.
-        in_files: List of input files to be read in, and empty list defaults to reading
-            all files in the specified folder.
+        output_folder: Path to a folder to output the outputted complete configuration
+            file to
+        out_file_name: The name to save the outputted complete configuration file under
+    """
+
+    # Throw critical error if combined output file already exists
+    for file in Path(output_folder).iterdir():
+        if file.name == f"{out_file_name}.toml":
+            log_and_raise(
+                f"A config file in the specified configuration folder already makes use"
+                f" of the specified output file name ({out_file_name}.toml), this file "
+                f"should either be renamed or deleted!",
+                OSError,
+            )
+
+    return None
+
+
+def collect_files(cfg_paths: list[str]) -> list[Path]:
+    """Collect all toml files from a user specified list of files and directories.
+
+    Args:
+        cfg_paths: A path or a set of paths that point to either configuration files, or
+            folders containing configuration files
+    """
+
+    # Preallocate file list
+    files = []
+    not_found = []  # Stores all invalid paths
+    empty_fold = []  # Stores all empty toml folders
+
+    for path in cfg_paths:
+        p = Path(path)
+        # First check that each file is valid
+        if p.exists():
+            # Check if each path is to a file or a directory
+            if p.is_dir():
+                toml_files = list([f for f in p.glob("*.toml")])
+                if len(toml_files) != 0:
+                    files.extend(toml_files)
+                else:
+                    empty_fold.append(path)
+            else:
+                files.append(Path(path))
+
+        else:
+            # Add missing path to list of missing paths
+            not_found.append(path)
+
+    # Check for items that are not found
+    if len(not_found) != 0:
+        log_and_raise(
+            f"The following user provided config paths do not exist:\n{not_found}",
+            OSError,
+        )
+    # And for empty folders
+    elif len(empty_fold) != 0:
+        log_and_raise(
+            f"The following user provided config folders do not contain any toml files:"
+            f"\n{empty_fold}",
+            OSError,
+        )
+    # Finally check that no files are pointed to twice
+    elif len(files) != len(set(files)):
+        log_and_raise(
+            f"A total of {len(files) - len(set(files))} config files are specified more"
+            f" than once (possibly indirectly)",
+            RuntimeError,
+        )
+
+    return files
+
+
+def load_in_config_files(files: list[Path]) -> dict:
+    """Load in a set of toml files checking that no tags are repeated.
+
+    This function also ensure that no tags are repeated across different toml files.
+
+    Args:
+        files: List of files to be read in and checked for overlapping tags
     """
 
     # Preallocate container for file names and corresponding dictionaries
-    file_data: list[tuple[str, dict]] = []
+    file_data: list[tuple[Path, dict]] = []
     conflicts = []
-
-    # Throw critical error if combined output file already exists
-    for file in os.listdir(filepath):
-        if file == f"{out_file_name}.toml":
-            LOGGER.critical(
-                f"A config file in the specified configuration folder already makes"
-                f" use of the specified output file name ({out_file_name}.toml), "
-                f"this file should either be renamed or deleted!"
-            )
-            return None
-
-    if in_files == []:
-        # Count number of toml files
-        c = len([f for f in os.listdir(filepath) if f.endswith(".toml")])
-
-        # Critical check if no toml files are found
-        if c == 0:
-            LOGGER.critical("No toml files found in the config folder provided!")
-            return None
-
-        # Track down all toml files in the config folder
-        files = []
-        for file in os.listdir(filepath):
-            if file.endswith(".toml"):
-                files.append(file)
-    else:
-        # Loop to check that all specified files can be found
-        not_found = []
-        for file in in_files:
-            if not os.path.isfile(f"{filepath}/{file}"):
-                not_found.append(file)
-
-        if len(not_found) != 0:
-            LOGGER.critical(
-                f"The files the user specified to be read from are not all found in "
-                f"{filepath}. The following files are missing:\n{not_found}"
-            )
-            return None
-
-        files = in_files
 
     # Load all toml files that we want to read from
     for file in files:
         # If not then read in the file data
-        with open(os.path.join(filepath, file), "rb") as f:
+        with open(file, "rb") as f:
             try:
                 toml_dict = tomllib.load(f)
                 # Check for repeated entries across previous nested dictionaries
@@ -162,11 +185,11 @@ def validate_config(
 
                 file_data.append((file, toml_dict))
             except tomllib.TOMLDecodeError as err:
-                LOGGER.critical(
+                log_and_raise(
                     f"Configuration file {file} is incorrectly formatted.\n"
-                    f"Failed with the following message:\n{err}"
+                    f"Failed with the following message:\n{err}",
+                    RuntimeError,
                 )
-                return None
 
     # Check if any tags are repeated across files
     if len(conflicts) != 0:
@@ -175,34 +198,54 @@ def validate_config(
         for conf in conflicts:
             msg += f"{conf[0]} defined in both {conf[1]} and {conf[2]}\n"
         msg = msg[:-1]
-        LOGGER.critical(msg)
-        return None
+        log_and_raise(msg, RuntimeError)
 
     # Merge everything into a single dictionary
     config_dict: dict = {}
     for item in file_data:
         dpath.util.merge(config_dict, item[1])
 
+    return config_dict
+
+
+def find_schema(config_dict: dict) -> list[str]:
+    """Find which schema the configuration requires to be loaded.
+
+    Args:
+        config_dict: The complete configuration settings for the particular model
+            instance
+    """
+
     # Find which other schema should be searched for
     try:
         modules = config_dict["core"]["modules"]
     except KeyError:
-        LOGGER.critical(
+        log_and_raise(
             "Core configuration does not specify which other modules should be "
-            "configured!"
+            "configured!",
+            KeyError,
         )
-        return None
 
     # Add core to list of modules if its not already included
     if "core" not in modules:
         modules.append("core")
 
     if len(modules) != len(set(modules)):
-        LOGGER.critical(
+        log_and_raise(
             f"The list of modules to configure given in the core configuration file "
-            f"repeats {len(modules) - len(set(modules))} names!"
+            f"repeats {len(modules) - len(set(modules))} names!",
+            RuntimeError,
         )
-        return None
+
+    return modules
+
+
+def construct_combined_schema(modules: list[str]) -> dict:
+    """Load validation schema for desired modules, and combine into a single schema.
+
+    Args:
+        modules: List of modules to load schema for
+    """
 
     # Construct combined schema for all relevant modules
     comb_schema: dict = {}
@@ -213,11 +256,11 @@ def validate_config(
             try:
                 m_schema = SCHEMA_REGISTRY[module]["properties"][module]
             except KeyError as err:
-                LOGGER.critical(
+                log_and_raise(
                     f"Schema for {module} module incorrectly structured, {err} key "
-                    f"missing!"
+                    f"missing!",
+                    KeyError,
                 )
-                return None
             # Store complete schema if no previous schema has been added
             if comb_schema == {}:
                 comb_schema = SCHEMA_REGISTRY[module]
@@ -228,17 +271,17 @@ def validate_config(
                 try:
                     comb_schema["required"].append(module)
                 except KeyError:
-                    LOGGER.critical(
+                    log_and_raise(
                         f"The schema for {modules[0]} does not set the module as a "
-                        f"required field, so validation cannot occur!"
+                        f"required field, so validation cannot occur!",
+                        KeyError,
                     )
-                    return None
         else:
-            LOGGER.critical(
+            log_and_raise(
                 f"Expected a schema for {module} module configuration, it was not "
-                f"provided!"
+                f"provided!",
+                RuntimeError,
             )
-            return None
 
     p_paths = []
     p_len = len("/properties")
@@ -254,18 +297,67 @@ def validate_config(
     for path in p_paths:
         dpath.util.new(comb_schema, f"{path}/additionalProperties", False)
 
+    return comb_schema
+
+
+def validate_config(
+    cfg_paths: Union[str, list[str]],
+    output_folder: str = ".",
+    out_file_name: str = "complete_config",
+) -> None:
+    """Validates the contents of user provided config files.
+
+    This function first reads in a set of configuration files in `.toml` format. This
+    either consists of all `.toml` files in a specified folder, or a set of user
+    specified files within this folder. Checks are carried out to ensure that these
+    files are correctly formatted. The module validation schemas are extracted from
+    `SCHEMA_REGISTRY` for the modules the user has specified to configure (in
+    `config.core.modules`). These schemas are then consolidated into a single combined
+    JSON schema. This combined schema is then used to validate the combined contents of
+    the configuration files. If this validation passes the combined configuration is
+    saved in toml format in the specified configuration file folder. This configuration
+    is finally used to populate the global `COMPLETE_CONFIG` dictionary.
+
+    Args:
+        cfg_paths: A path or a set of paths that point to either configuration files, or
+            folders containing configuration files
+        output_folder: Path to a folder to output the outputted complete configuration
+            file to
+        out_file_name: The name to save the outputted complete configuration file under.
+    """
+
+    # Check that there isn't a final output file saved in the final output folder
+    check_outfile(output_folder, out_file_name)
+    # If this passes collect the files
+    if isinstance(cfg_paths, str):
+        files = collect_files([cfg_paths])
+    else:
+        files = collect_files(cfg_paths)
+
+    # Then load all config files to a combined config dict
+    config_dict = load_in_config_files(files)
+
+    # Find schema to load in
+    modules = find_schema(config_dict)
+
+    # Construct combined schema for all relevant modules
+    comb_schema = construct_combined_schema(modules)
+
     # Validate the input configuration settings against the combined schema
     try:
         jsonschema.validate(instance=config_dict, schema=comb_schema)
     except jsonschema.exceptions.ValidationError as err:
-        LOGGER.critical(f"Validation of configuration files failed: {err.message}")
-        return None
+        log_and_raise(
+            f"Validation of configuration files failed: {err.message}", RuntimeError
+        )
 
     LOGGER.info("Configuration files successfully validated!")
 
     # Output combined toml file, into the initial config folder
-    LOGGER.info(f"Saving all configuration details to {filepath}/{out_file_name}.toml")
-    with open(f"{filepath}/{out_file_name}.toml", "wb") as toml_file:
+    LOGGER.info(
+        f"Saving all configuration details to {output_folder}/{out_file_name}.toml"
+    )
+    with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
     # Populate the global config dictionary with the complete validated config
