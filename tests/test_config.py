@@ -8,6 +8,7 @@ to date.
 
 import os
 from logging import CRITICAL, INFO
+from pathlib import Path
 
 import pytest
 
@@ -37,12 +38,11 @@ def test_check_dict_leaves(d_a, d_b, overlap):
 
 
 @pytest.mark.parametrize(
-    "contents,file_list,expected_log_entries",
+    "file_name,expected_exception,expected_log_entries",
     [
-        ([], [], ((CRITICAL, "No toml files found in the config folder provided!"),)),
         (
-            ["complete_config.toml"],
-            [],
+            "complete_config",
+            OSError,
             (
                 (
                     CRITICAL,
@@ -52,6 +52,28 @@ def test_check_dict_leaves(d_a, d_b, overlap):
                 ),
             ),
         ),
+    ],
+)
+def test_check_outfile(
+    caplog, mocker, file_name, expected_exception, expected_log_entries
+):
+    """Check that an error is logged if an output file is already saved."""
+
+    # Configure the mock to return a specific list of files
+    mock_content = mocker.patch("virtual_rainforest.core.config.Path.iterdir")
+    mock_content.return_value = [Path(f"{file_name}.toml")]
+
+    # Check that check_outfile fails as expected
+    with pytest.raises(expected_exception):
+        config.check_outfile(".", file_name)
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "contents,file_list,expected_log_entries",
+    [
+        ([], [], ((CRITICAL, "No toml files found in the config folder provided!"),)),
         (
             ["plants.toml", "core.toml"],
             ["plant_with_hydro.toml"],
