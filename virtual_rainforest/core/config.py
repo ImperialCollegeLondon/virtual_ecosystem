@@ -167,6 +167,8 @@ def load_in_config_files(files: list[Path]) -> dict:
 
     Args:
         files: List of files to be read in and checked for overlapping tags
+    Raises:
+        RuntimeError: If files are poorly formatted or tags are repeated between files
     """
 
     # Preallocate container for file names and corresponding dictionaries
@@ -214,6 +216,9 @@ def find_schema(config_dict: dict) -> list[str]:
     Args:
         config_dict: The complete configuration settings for the particular model
             instance
+    Raises:
+        KeyError: If core configuration does not list the other modules to configure
+        RuntimeError: If any module is specified to be configured twice
     """
 
     # Find which other schema should be searched for
@@ -245,6 +250,9 @@ def construct_combined_schema(modules: list[str]) -> dict:
 
     Args:
         modules: List of modules to load schema for
+    Raises:
+        KeyError: If a module schema is missing one of the required keys
+        RuntimeError: If a particular module schema can't be found
     """
 
     # Construct combined schema for all relevant modules
@@ -324,6 +332,10 @@ def validate_config(
         output_folder: Path to a folder to output the outputted complete configuration
             file to
         out_file_name: The name to save the outputted complete configuration file under.
+
+    Raises:
+        RuntimeError: If the configuration files fail to validate against the JSON
+            schema
     """
 
     # Check that there isn't a final output file saved in the final output folder
