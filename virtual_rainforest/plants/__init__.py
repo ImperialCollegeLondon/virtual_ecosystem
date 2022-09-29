@@ -10,7 +10,7 @@ def schema():
 
     schema_file = Path(__file__).parent.resolve() / "plants_schema.json"
 
-    with open(schema_file) as f:
+    with schema_file.open() as f:
         config_schema = json.load(f)
 
     return config_schema

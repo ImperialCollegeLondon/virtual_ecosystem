@@ -144,7 +144,7 @@ def test_collect_files(
             ),
         ),
         (
-            ["fake_file1.toml", "fake_file2.toml"],
+            [Path("fake_file1.toml"), Path("fake_file2.toml")],
             [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
             RuntimeError,
             (
@@ -166,7 +166,7 @@ def test_load_in_config_files(
     mocked_toml = []
     for item in contents:
         mocked_toml = mocker.mock_open(read_data=item)
-    mocker.patch("builtins.open", side_effect=mocked_toml)
+    mocker.patch("virtual_rainforest.core.config.Path.open", side_effect=mocked_toml)
 
     # Check that load_in_config_file fails as expected
     with pytest.raises(expected_exception):

@@ -7,6 +7,7 @@ model.
 # TODO - find config folder based on command line argument
 
 import sys
+from collections import ChainMap
 from pathlib import Path
 from typing import Callable, Union
 
@@ -86,6 +87,8 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
         output_folder: Path to a folder to output the outputted complete configuration
             file to
         out_file_name: The name to save the outputted complete configuration file under
+    Raises:
+        OSError: If the final output file already exist.
     """
 
     # Throw critical error if combined output file already exists
@@ -107,27 +110,28 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
+    Raises:
+        OSError: If toml configuration files cannot be found at the specified locations
+        RuntimeError: If configuration files are specified more than once (this is
+            likely to be through both direct and indirect specification)
     """
 
     # Preallocate file list
-    files = []
-    not_found = []  # Stores all invalid paths
-    empty_fold = []  # Stores all empty toml folders
+    files: list[Path] = []
+    not_found: list[str] = []  # Stores all invalid paths
+    empty_fold: list[str] = []  # Stores all empty toml folders
 
     for path in cfg_paths:
         p = Path(path)
-        # First check that each file is valid
-        if p.exists():
-            # Check if each path is to a file or a directory
-            if p.is_dir():
-                toml_files = list([f for f in p.glob("*.toml")])
-                if len(toml_files) != 0:
-                    files.extend(toml_files)
-                else:
-                    empty_fold.append(path)
+        # Check if each path is to a file or a directory
+        if p.is_dir():
+            toml_files = list([f for f in p.glob("*.toml")])
+            if len(toml_files) != 0:
+                files.extend(toml_files)
             else:
-                files.append(Path(path))
-
+                empty_fold.append(path)
+        elif p.is_file():
+            files.append(p)
         else:
             # Add missing path to list of missing paths
             not_found.append(path)
@@ -166,22 +170,22 @@ def load_in_config_files(files: list[Path]) -> dict:
     """
 
     # Preallocate container for file names and corresponding dictionaries
-    file_data: list[tuple[Path, dict]] = []
+    file_data: dict[Path, dict] = {}
     conflicts = []
 
     # Load all toml files that we want to read from
     for file in files:
         # If not then read in the file data
-        with open(file, "rb") as f:
+        with file.open("rb") as f:
             try:
                 toml_dict = tomllib.load(f)
                 # Check for repeated entries across previous nested dictionaries
-                for item in file_data:
-                    repeats = check_dict_leaves(item[1], toml_dict, [])
+                for existing_file, existing_dict in file_data.items():
+                    repeats = check_dict_leaves(existing_dict, toml_dict, [])
                     for elem in repeats:
-                        conflicts.append((elem, file, item[0]))
+                        conflicts.append((elem, file, existing_file))
 
-                file_data.append((file, toml_dict))
+                file_data[file] = toml_dict
             except tomllib.TOMLDecodeError as err:
                 log_and_raise(
                     f"Configuration file {file} is incorrectly formatted. Failed with "
@@ -199,9 +203,7 @@ def load_in_config_files(files: list[Path]) -> dict:
         log_and_raise(msg, RuntimeError)
 
     # Merge everything into a single dictionary
-    config_dict: dict = {}
-    for item in file_data:
-        dpath.util.merge(config_dict, item[1])
+    config_dict = dict(ChainMap(*file_data.values()))
 
     return config_dict
 
