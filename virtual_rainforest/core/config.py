@@ -45,6 +45,15 @@ def register_schema(module_name: str) -> Callable:
                     f"Module schema {module_name} not valid JSON!",
                     OSError,
                 )
+            try:
+                func()["properties"][module_name]
+            except KeyError as err:
+                log_and_raise(
+                    f"Schema for {module_name} module incorrectly structured, {err} key"
+                    f" missing!",
+                    KeyError,
+                )
+            # Check that relevant keys are included
             # If it is valid then add it to the registry
             SCHEMA_REGISTRY[module_name] = func()
 
@@ -261,20 +270,14 @@ def construct_combined_schema(modules: list[str]) -> dict:
     # Loop over expected modules and add them to the registry
     for module in modules:
         if module in SCHEMA_REGISTRY:
-            try:
-                m_schema = SCHEMA_REGISTRY[module]["properties"][module]
-            except KeyError as err:
-                log_and_raise(
-                    f"Schema for {module} module incorrectly structured, {err} key "
-                    f"missing!",
-                    KeyError,
-                )
             # Store complete schema if no previous schema has been added
             if comb_schema == {}:
                 comb_schema = SCHEMA_REGISTRY[module]
             # Otherwise only save truncated part of the schema
             else:
-                comb_schema["properties"][module] = m_schema
+                comb_schema["properties"][module] = SCHEMA_REGISTRY[module][
+                    "properties"
+                ][module]
                 # Add module name to list of required modules
                 try:
                     comb_schema["required"].append(module)

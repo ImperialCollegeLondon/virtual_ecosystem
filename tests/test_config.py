@@ -237,17 +237,6 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
                 ),
             ),
         ),
-        (
-            ["bad_module_2"],
-            KeyError,
-            (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_2 module incorrectly structured, 'properties"
-                    "' key missing!",
-                ),
-            ),
-        ),
     ],
 )
 def test_construct_combined_schema(
@@ -294,6 +283,8 @@ def test_final_validation_log(caplog, expected_log_entries):
     assert type(config.COMPLETE_CONFIG["config"]) == dict
 
 
+# NOT SURE HOW TO CATCH LOGGED OUTPUT IN THIS CASE
+# TODO - EXTEND THIS TO ALSO CHECK LOGGER OUTPUT
 @pytest.mark.parametrize(
     "schema_name,schema, expected_exception",
     [
@@ -302,6 +293,11 @@ def test_final_validation_log(caplog, expected_log_entries):
             "test",
             "najsnjasnda",
             OSError,
+        ),
+        (
+            "bad_module_2",
+            {"type": "object", "propertie": {"bad_module_2": {}}},
+            KeyError,
         ),
     ],
 )
