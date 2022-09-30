@@ -226,17 +226,6 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
                 ),
             ),
         ),
-        (
-            ["bad_module_1", "core"],
-            KeyError,
-            (
-                (
-                    CRITICAL,
-                    "The schema for bad_module_1 does not set the module as a required "
-                    "field, so validation cannot occur!",
-                ),
-            ),
-        ),
     ],
 )
 def test_construct_combined_schema(
@@ -271,13 +260,15 @@ def test_construct_combined_schema(
 def test_final_validation_log(caplog, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    # Then check that the correct (critical error) log messages are emitted
     config.validate_config(["tests/fixtures"], out_file_name="complete_config")
-    log_check(caplog, expected_log_entries)
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
     Path("./complete_config.toml").unlink()
+
+    print(caplog)
+    # Then check that the correct (critical error) log messages are emitted
+    log_check(caplog, expected_log_entries)
 
     # Check that final config has been within nested dictionary
     assert type(config.COMPLETE_CONFIG["config"]) == dict
@@ -295,8 +286,18 @@ def test_final_validation_log(caplog, expected_log_entries):
             OSError,
         ),
         (
+            "bad_module_1",
+            {"type": "object", "propertie": {"bad_module_1": {}}},
+            KeyError,
+        ),
+        (
             "bad_module_2",
-            {"type": "object", "propertie": {"bad_module_2": {}}},
+            {"type": "object", "properties": {"bad_module_1": {}}},
+            KeyError,
+        ),
+        (
+            "bad_module_3",
+            {"type": "object", "properties": {"bad_module_3": {}}},
             KeyError,
         ),
     ],

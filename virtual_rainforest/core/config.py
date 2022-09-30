@@ -27,7 +27,15 @@ SCHEMA_REGISTRY: dict = {}
 
 
 def register_schema(module_name: str) -> Callable:
-    """Decorator function to add configuration schema to the registry."""
+    """Decorator function to add configuration schema to the registry.
+
+    Args:
+        module_name: The name to register the schema under
+    Raises:
+        ValueError: If the schema name has already been used
+        OSError: If the module schema is not valid JSON
+        KeyError: If a module schema is missing one of the required keys
+    """
 
     def wrap(func: Callable):
         if module_name in SCHEMA_REGISTRY:
@@ -45,15 +53,16 @@ def register_schema(module_name: str) -> Callable:
                     f"Module schema {module_name} not valid JSON!",
                     OSError,
                 )
+            # Check that relevant keys are included
             try:
                 func()["properties"][module_name]
+                func()["required"]
             except KeyError as err:
                 log_and_raise(
                     f"Schema for {module_name} module incorrectly structured, {err} key"
                     f" missing!",
                     KeyError,
                 )
-            # Check that relevant keys are included
             # If it is valid then add it to the registry
             SCHEMA_REGISTRY[module_name] = func()
 
@@ -260,7 +269,6 @@ def construct_combined_schema(modules: list[str]) -> dict:
     Args:
         modules: List of modules to load schema for
     Raises:
-        KeyError: If a module schema is missing one of the required keys
         RuntimeError: If a particular module schema can't be found
     """
 
@@ -279,14 +287,7 @@ def construct_combined_schema(modules: list[str]) -> dict:
                     "properties"
                 ][module]
                 # Add module name to list of required modules
-                try:
-                    comb_schema["required"].append(module)
-                except KeyError:
-                    log_and_raise(
-                        f"The schema for {modules[0]} does not set the module as a "
-                        f"required field, so validation cannot occur!",
-                        KeyError,
-                    )
+                comb_schema["required"].append(module)
         else:
             log_and_raise(
                 f"Expected a schema for {module} module configuration, it was not "

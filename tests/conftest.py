@@ -1,6 +1,8 @@
 """Collection of fixtures to assist the testing scripts."""
 
-from virtual_rainforest.core.config import register_schema
+# An import of LOGGER is required for INFO logging events to be visible to tests
+# This can be removed as soon as a script that imports logger is imported
+import virtual_rainforest.core.logger  # noqa
 
 
 def log_check(caplog, expected_log):
@@ -20,26 +22,3 @@ def log_check(caplog, expected_log):
     assert all(
         [exp[1] in rec.message for exp, rec in zip(expected_log, caplog.records)]
     )
-
-
-# Register a bunch of schema so that schema validation can be appropriately tested
-@register_schema("bad_module_1")
-def test_schema1():
-    """Defines a (bad) test schema for unit testing."""
-
-    config_schema = {
-        "type": "object",
-        "properties": {
-            "bad_module_1": {
-                "type": "object",
-                "properties": {
-                    "an_integer": {
-                        "type": "integer",
-                    },
-                },
-                "required": ["an_integer"],
-            }
-        },
-    }
-
-    return config_schema
