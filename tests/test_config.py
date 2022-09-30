@@ -37,35 +37,26 @@ def test_check_dict_leaves(d_a, d_b, overlap):
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
 
-@pytest.mark.parametrize(
-    "file_name,expected_exception,expected_log_entries",
-    [
-        (
-            "complete_config",
-            OSError,
-            (
-                (
-                    CRITICAL,
-                    "A config file in the specified configuration folder already makes "
-                    "use of the specified output file name (complete_config.toml), this"
-                    " file should either be renamed or deleted!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_check_outfile(
-    caplog, mocker, file_name, expected_exception, expected_log_entries
-):
+def test_check_outfile(caplog, mocker):
     """Check that an error is logged if an output file is already saved."""
+    file_name = "complete_config"
 
     # Configure the mock to return a specific list of files
     mock_content = mocker.patch("virtual_rainforest.core.config.Path.iterdir")
     mock_content.return_value = [Path(f"{file_name}.toml")]
 
     # Check that check_outfile fails as expected
-    with pytest.raises(expected_exception):
+    with pytest.raises(OSError):
         config.check_outfile(".", file_name)
+
+    expected_log_entries = (
+        (
+            CRITICAL,
+            "A config file in the specified configuration folder already makes "
+            "use of the specified output file name (complete_config.toml), this"
+            " file should either be renamed or deleted!",
+        ),
+    )
 
     log_check(caplog, expected_log_entries)
 
@@ -212,30 +203,20 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
     log_check(caplog, expected_log_entries)
 
 
-@pytest.mark.parametrize(
-    "modules,expected_exception,expected_log_entries",
-    [
-        (
-            ["a_stupid_module_name"],
-            RuntimeError,
-            (
-                (
-                    CRITICAL,
-                    "Expected a schema for a_stupid_module_name module configuration, "
-                    "it was not provided!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_construct_combined_schema(
-    caplog, modules, expected_exception, expected_log_entries
-):
+def test_construct_combined_schema(caplog):
     """Checks errors for bad or missing json schema."""
 
     # Check that construct_combined_schema fails as expected
-    with pytest.raises(expected_exception):
-        config.construct_combined_schema(modules)
+    with pytest.raises(RuntimeError):
+        config.construct_combined_schema(["a_stupid_module_name"])
+
+    expected_log_entries = (
+        (
+            CRITICAL,
+            "Expected a schema for a_stupid_module_name module configuration, "
+            "it was not provided!",
+        ),
+    )
 
     log_check(caplog, expected_log_entries)
 
@@ -266,7 +247,6 @@ def test_final_validation_log(caplog, expected_log_entries):
     # As a bonus tests that output file was generated correctly + to the right location
     Path("./complete_config.toml").unlink()
 
-    print(caplog)
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
 
@@ -274,35 +254,68 @@ def test_final_validation_log(caplog, expected_log_entries):
     assert type(config.COMPLETE_CONFIG["config"]) == dict
 
 
-# NOT SURE HOW TO CATCH LOGGED OUTPUT IN THIS CASE
-# TODO - EXTEND THIS TO ALSO CHECK LOGGER OUTPUT
 @pytest.mark.parametrize(
-    "schema_name,schema, expected_exception",
+    "schema_name,schema,expected_exception,expected_log_entries",
     [
-        ("core", {}, ValueError),
+        (
+            "core",
+            {},
+            ValueError,
+            (
+                (
+                    CRITICAL,
+                    "The module schema core is used multiple times, this shouldn't"
+                    " be the case!",
+                ),
+            ),
+        ),
         (
             "test",
             "najsnjasnda",
             OSError,
+            ((CRITICAL, "Module schema test not valid JSON!"),),
         ),
         (
             "bad_module_1",
             {"type": "object", "propertie": {"bad_module_1": {}}},
             KeyError,
+            (
+                (
+                    CRITICAL,
+                    "Schema for bad_module_1 module incorrectly structured, "
+                    "'properties' key missing!",
+                ),
+            ),
         ),
         (
             "bad_module_2",
             {"type": "object", "properties": {"bad_module_1": {}}},
             KeyError,
+            (
+                (
+                    CRITICAL,
+                    "Schema for bad_module_2 module incorrectly structured, "
+                    "'bad_module_2' key missing!",
+                ),
+            ),
         ),
         (
             "bad_module_3",
             {"type": "object", "properties": {"bad_module_3": {}}},
             KeyError,
+            (
+                (
+                    CRITICAL,
+                    "Schema for bad_module_3 module incorrectly structured, 'required'"
+                    " key missing!",
+                ),
+            ),
         ),
     ],
 )
-def test_register_schema_errors(schema_name, schema, expected_exception):
+def test_register_schema_errors(
+    caplog, schema_name, schema, expected_exception, expected_log_entries
+):
     """Test that the schema registering decorator throws the correct errors."""
     # Check that construct_combined_schema fails as expected
     with pytest.raises(expected_exception):
@@ -312,3 +325,6 @@ def test_register_schema_errors(schema_name, schema, expected_exception):
             return schema
 
         to_be_decorated()
+
+    # Then check that the correct (critical error) log messages are emitted
+    log_check(caplog, expected_log_entries)
