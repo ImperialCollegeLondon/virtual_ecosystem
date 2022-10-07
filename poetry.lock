@@ -213,7 +213,7 @@ bokeh = ["selenium", "bokeh"]
 
 [[package]]
 name = "coverage"
-version = "6.4.4"
+version = "6.5.0"
 description = "Code coverage measurement for Python"
 category = "dev"
 optional = false
@@ -856,6 +856,18 @@ markdown-it-py = ">=1.0.0,<3.0.0"
 tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "mdformat-black"
+version = "0.1.1"
+description = "Mdformat plugin to Blacken Python code blocks"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+black = "*"
+mdformat = ">=0.3.0"
+
+[[package]]
 name = "mdformat-frontmatter"
 version = "0.4.1"
 description = "An mdformat plugin for parsing / ignoring frontmatter."
@@ -871,6 +883,25 @@ mdit-py-plugins = "*"
 [package.extras]
 dev = ["pre-commit"]
 test = ["pytest (>=6.0,<7.0)", "coverage", "pytest-cov"]
+
+[[package]]
+name = "mdformat-myst"
+version = "0.1.5"
+description = "Mdformat plugin for MyST compatibility."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+mdformat = ">=0.7.0,<0.8.0"
+mdformat-frontmatter = ">=0.3.2"
+mdformat-tables = ">=0.4.0"
+mdit-py-plugins = ">=0.3.0,<0.4.0"
+"ruamel.yaml" = ">=0.16.0"
+
+[package.extras]
+test = ["pytest-cov", "coverage", "pytest"]
+dev = ["pre-commit"]
 
 [[package]]
 name = "mdformat-tables"
@@ -1449,7 +1480,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 
 [[package]]
 name = "pytest-datadir"
-version = "1.3.2.dev28+g4c3a8c9"
+version = "1.3.2.dev30+g45ed048"
 description = "pytest plugin for test data directories and files"
 category = "dev"
 optional = false
@@ -1463,7 +1494,7 @@ pytest = ">=5.0"
 type = "git"
 url = "https://github.com/gabrielcnr/pytest-datadir"
 reference = "master"
-resolved_reference = "4c3a8c91f0856baacd01192a8773a253b815a154"
+resolved_reference = "45ed048c9608cb3e6d53d77860b877e43e943218"
 
 [[package]]
 name = "pytest-flake8"
@@ -2059,7 +2090,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "7ac22a11fd2f62196e05b97f69d7e15ad78073cd07152195cfa3730f644feda1"
+content-hash = "fe928d35f3998d2c786707ebd3df9427d12960ff80565cdcab71e9335eb6fb9c"
 
 [metadata.files]
 alabaster = [
@@ -2305,10 +2336,12 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 mdformat = []
+mdformat-black = []
 mdformat-frontmatter = [
     {file = "mdformat_frontmatter-0.4.1-py3-none-any.whl", hash = "sha256:9c13f6b7a53de7b401af3c95e66735237545bd174e6619392153b296135ffd49"},
     {file = "mdformat_frontmatter-0.4.1.tar.gz", hash = "sha256:15d3eed1543849d4fe72b1f75b8dffd8b49750c5149186591a1b9617178e2aa2"},
 ]
+mdformat-myst = []
 mdformat-tables = []
 mdit-py-plugins = [
     {file = "mdit-py-plugins-0.3.0.tar.gz", hash = "sha256:ecc24f51eeec6ab7eecc2f9724e8272c2fb191c2e93cf98109120c2cace69750"},

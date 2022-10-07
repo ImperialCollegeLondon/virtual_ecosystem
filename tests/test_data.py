@@ -98,54 +98,56 @@ def test_check_coordinates_in_grid(
 @pytest.mark.parametrize(
     argnames=["filename", "expected_outcome", "expected_outcome_msg"],
     argvalues=[
-        ("two_dim_xy.nc", does_not_raise(), "None"),
-        (
+        pytest.param("two_dim_xy.nc", does_not_raise(), "None", id="two_dim_xy"),
+        pytest.param(
             "two_dim_xy_6by10.nc",
             pytest.raises(ValueError),
             "Data xy dimensions do not match grid",
+            id="two_dim_xy_6by10",
         ),
-        (
+        pytest.param(
             "two_dim_xy_lowx.nc",
             pytest.raises(ValueError),
             "Data coordinates do not align with grid coordinates.",
+            id="two_dim_xy_lowx",
         ),
-        ("two_dim_idx.nc", does_not_raise(), "None"),
-        (
+        pytest.param("two_dim_idx.nc", does_not_raise(), "None", id="two_dim_idx"),
+        pytest.param(
             "two_dim_idx_6by10.nc",
             pytest.raises(ValueError),
             "Data xy dimensions do not match grid",
+            id="two_dim_idx_6by10",
         ),
-        ("one_dim_cellid.nc", does_not_raise(), "None"),
-        (
+        pytest.param(
+            "one_dim_cellid.nc", does_not_raise(), "None", id="one_dim_cellid"
+        ),
+        pytest.param(
             "one_dim_cellid_lown.nc",
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 60",
+            id="one_dim_cellid_lown",
         ),
-        ("one_dim_points_xy.nc", does_not_raise(), "None"),
-        (
+        pytest.param(
+            "one_dim_points_xy.nc", does_not_raise(), "None", id="one_dim_points_xy"
+        ),
+        pytest.param(
             "one_dim_points_xy_xney.nc",
             pytest.raises(ValueError),
             "The cell_ids in the data do not match grid cell ids.",
+            id="one_dim_points_xy_xney",
         ),
-        (
+        pytest.param(
             "one_dim_cellid_badid.nc",
             pytest.raises(ValueError),
             "The x and y data have different dimensions",
+            id="one_dim_cellid_badid",
         ),
-        ("one_dim_points_order_only.nc", does_not_raise(), "None"),
-    ],
-    ids=[
-        "two_dim_xy",
-        "two_dim_xy_6by10",
-        "two_dim_xy_lowx",
-        "two_dim_idx",
-        "two_dim_idx_6by10",
-        "one_dim_cellid",
-        "one_dim_cellid_lown",
-        "one_dim_cellid_badid",
-        "one_dim_points_xy",
-        "one_dim_points_xy_xney",
-        "one_dim_points_order_only",
+        pytest.param(
+            "one_dim_points_order_only.nc",
+            does_not_raise(),
+            "None",
+            id="one_dim_points_order_only",
+        ),
     ],
 )
 def test_map_dataset_onto_square_grid(

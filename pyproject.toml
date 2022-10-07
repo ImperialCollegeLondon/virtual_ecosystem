@@ -40,16 +40,18 @@ matplotlib = "^3.5.2"
 mdformat = "^0.7.14"
 mdformat_frontmatter = "^0.4.1"
 mdformat_tables = "^0.4.1"
+mdformat_myst = "^0.1.5"
 pydocstyle = "^6.1.1"
 sphinx = "< 5.0.0"
 autodocsumm = "^0.2.8"
 sphinxcontrib-bibtex = "^2.4.2"
 myst-nb = "^0.16.0"
 sphinx-rtd-theme = "^1.0.0"
-doctestfn = "^1.0.3"            # Used to execute single doctests
+doctestfn = "^1.0.3"                                                      # Used to execute single doctests
 flake8-docstrings = "^1.6.0"
 hypothesis = "^6.54.2"
-pytest-datadir = {git = "https://github.com/gabrielcnr/pytest-datadir"}
+pytest-datadir = { git = "https://github.com/gabrielcnr/pytest-datadir" }
+mdformat-black = "^0.1.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

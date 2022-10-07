@@ -7,7 +7,7 @@ TODO - set up neighbourhoods. ? store as graph (networkx - might only need a rea
        lightweight graph description).
 TODO - import of geojson grids? Way to link structured landscape into cells.  Can use
        data loading methods to assign values to grids? This would be a useful way of
-       defining mappings though.
+       defining mappings though. Can add grid_type property to geoJSON.
 """
 
 import json
