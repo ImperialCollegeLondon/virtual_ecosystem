@@ -28,7 +28,7 @@ from scipy.spatial.distance import euclidean  # type: ignore
 
 @settings(deadline=None)
 @given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
-def test_make_square_grid(x: int, y: int) -> None:
+def test_make_square_grid(x, y):
     """Test make_square_grid()."""
 
     from virtual_rainforest.core.grid import make_square_grid
@@ -57,7 +57,7 @@ def test_make_square_grid(x: int, y: int) -> None:
 
 
 @given(integers(min_value=0, max_value=9), integers(min_value=0, max_value=9))
-def test_make_hex_grid(x: int, y: int) -> None:
+def test_make_hex_grid(x, y):
     """Test make_hex_grid()."""
 
     from virtual_rainforest.core.grid import make_hex_grid

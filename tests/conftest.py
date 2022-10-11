@@ -7,6 +7,14 @@ import pytest
 import virtual_rainforest.core.logger  # noqa
 
 
+def pytest_configure(config):
+    """Turns off requirement for type hints for testing scripts."""
+    plugin = config.pluginmanager.getplugin("mypy")
+    plugin.mypy_argv.append("--allow-untyped-calls")
+    plugin.mypy_argv.append("--allow-untyped-defs")
+    plugin.mypy_argv.append("--allow-incomplete-defs")
+
+
 def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> None:
     """Helper function to check that the captured log is as expected.
 
