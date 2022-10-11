@@ -8,17 +8,21 @@ TODO - set up neighbourhoods. ? store as graph (networkx - might only need a rea
 TODO - import of geojson grids? Way to link structured landscape into cells.  Can use
        data loading methods to assign values to grids? This would be a useful way of
        defining mappings though.
+
+TODO - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
+       https://pysal.org/libpysal/
 """
 
 import json
-import logging
-from typing import Callable
+from typing import Callable, NamedTuple, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
+from scipy.spatial.distance import cdist, pdist, squareform
 from shapely.affinity import scale, translate
 from shapely.geometry import Polygon
 
-LOGGER = logging.getLogger("virtual_rainforest.core")
+from virtual_rainforest.core.logger import LOGGER
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -29,12 +33,22 @@ decorator.
 """
 
 
+class GridStructure(NamedTuple):
+    """Data structure to be returned from grid creator functions.
+
+    The contents should be two equal length lists giving unique integer ID values
+    and corresponding shapely.geometry.Polygon objects.
+    """
+
+    ids: list[int]
+    polygons: list[Polygon]
+
+
 def register_grid(grid_type: str) -> Callable:
     """Add a grid type and creator function to the grid registry.
 
     This decorator is used to add a function creating a grid layout to the registry of
-    accepted grids. The function should return a dictionary of shapely.geometry.Polygon
-    objects, keyed by a cell id str.
+    accepted grids and returning an object of class GridStructure.
 
     The grid_type argument is used to identify the grid creation function to be used by
     the Grid class and in configuration files.
@@ -64,7 +78,7 @@ def make_square_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> dict:
+) -> GridStructure:
     """Create a square grid.
 
     Args:
@@ -73,6 +87,9 @@ def make_square_grid(
         cell_ny: The number of grid cells in the Y direction.
         xoff: An offset to use for the grid origin in the X direction.
         yoff: An offset to use for the grid origin in the Y direction.
+
+    Returns:
+        A GridStructure instance
     """
 
     # Create the polygon prototype object, with origin at 0,0 and area 1
@@ -85,19 +102,19 @@ def make_square_grid(
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
     # Tile the prototypes to create the grid
-    cell_dict = {}
+    cell_list = [None] * (cell_nx * cell_ny)
 
     # Loop over columns and rows of cells, incrementing the base coordinates
-    for y_idx in range(cell_ny):
-        for x_idx in range(cell_nx):
-            # Define the cell id as "row_col"
-            cell_id = f"{x_idx}-{y_idx}"
+    for y_idx in range(cell_nx):
+        for x_idx in range(cell_ny):
+            # Define the cell id as integer count starting lower left by row
+            cell_id = x_idx + (y_idx) * cell_nx
             # Store shifted geometry under cell id
-            cell_dict[cell_id] = translate(
+            cell_list[cell_id] = translate(
                 prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
             )
 
-    return cell_dict
+    return GridStructure(ids=list(range(len(cell_list))), polygons=cell_list)
 
 
 @register_grid(grid_type="hexagon")
@@ -107,7 +124,7 @@ def make_hex_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> dict:
+) -> GridStructure:
     """Create a hexagonal grid.
 
     Args:
@@ -116,7 +133,13 @@ def make_hex_grid(
         cell_ny: The number of grid cells in the Y direction.
         xoff: An offset to use for the grid origin in the X direction.
         yoff: An offset to use for the grid origin in the Y direction.
+
+    Returns:
+        A GridStructure instance
     """
+
+    # TODO - implement grid orientation and kwargs passing
+    #        https://www.redblobgames.com/grids/hexagons/
 
     # Create the polygon prototype object, with origin at 0,0 and area 1
     # Note coordinate order is anti-clockwise - right hand rule
@@ -143,21 +166,21 @@ def make_hex_grid(
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
     # Tile the prototypes to create the grid
-    cell_dict = {}
+    cell_list = [None] * (cell_nx * cell_ny)
 
     # Loop over columns and rows of cells, incrementing the base coordinates
     for y_idx in range(cell_ny):
         for x_idx in range(cell_nx):
-            # Define the cell id as "row_col"
-            cell_id = f"{x_idx}-{y_idx}"
+            # Define the cell id as integer count starting lower left by row
+            cell_id = x_idx + (y_idx) * cell_nx
             # Store shifted geometry under cell id
-            cell_dict[cell_id] = translate(
+            cell_list[cell_id] = translate(
                 prototype,
                 xoff=2 * apothem * x_idx + apothem * (y_idx % 2),
                 yoff=1.5 * side_length * y_idx,
             )
 
-    return cell_dict
+    return GridStructure(ids=list(range(len(cell_list))), polygons=cell_list)
 
 
 @register_grid(grid_type="triangle")
@@ -167,7 +190,7 @@ def make_triangular_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> dict:
+) -> GridStructure:
     """Create a equilateral triangular grid.
 
     Args:
@@ -205,7 +228,13 @@ class Grid:
     Attrs:
         In addition to the arguments above:
 
-        cell_dict: A dictionary, keyed by cell id, of shapely.geometry.Polygon objects.
+        cell_id: A list of unique integer ids for each cell.
+        polygons: A list of the polygons for each cell as shapely.geometry.Polygon
+            objects, in cell_id order.
+        centroids: A list of the centroid of each cell as shapely.geometry.Point
+            objects, in cell_id order.
+        n_cells: The number of cells in the grid
+        neighbours: A list giving the cell ids of the neighbours for each cell id.
     """
 
     def __init__(
@@ -232,13 +261,38 @@ class Grid:
             raise ValueError(f"The grid_type {self.grid_type} is not defined.")
 
         # Run the grid creation
-        self.cell_dict = creator(
+        grid_structure = creator(
             cell_area=self.cell_area,
             cell_nx=self.cell_nx,
             cell_ny=self.cell_ny,
             xoff=self.xoff,
             yoff=self.yoff,
         )
+
+        self.cell_id = grid_structure.ids
+        self.polygons = grid_structure.polygons
+        self.n_cells = len(self.cell_id)
+
+        # Get the centroids as a numpy array
+        centroids = [cell.centroid for cell in self.polygons]
+        self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
+        [cell.centroid for cell in self.polygons]
+
+        # Define other attributes set by methods
+        # TODO - this might become a networkx graph
+        self._neighbours: Optional[list[npt.NDArray[np.int_]]] = None
+
+        # Do not by default store the full distance matrix
+        self._distances: Optional[npt.NDArray] = None
+
+    @property
+    def neighbours(self):
+        """Return the neighbours property."""
+
+        if self._neighbours is None:
+            raise AttributeError("Neighbours not yet defined: use set_neighbours.")
+
+        return self._neighbours
 
     def __repr__(self) -> str:
         """Represent a CoreGrid as a string."""
@@ -297,11 +351,11 @@ class Grid:
         # Create the output feature list
         features = []
 
-        for key, poly in self.cell_dict.items():
+        for idx, poly in zip(self.cell_id, self.polygons):
 
             # Get the coordinates of the outer ring - we are not expecting any holes in
             # grid cell polygons - and wrap in a list to provide Polygon structure.
-            coords = [np.round(list(poly.exterior.coords), decimals=dp).tolist()]
+            coords = [np.round(poly.exterior.coords, decimals=dp).tolist()]
 
             feature = {
                 "type": "Feature",
@@ -310,9 +364,9 @@ class Grid:
                     "coordinates": coords,
                 },
                 "properties": {
-                    "cell_id": key,
-                    "cell_cx": np.round(poly.centroid.x, decimals=dp),
-                    "cell_cy": np.round(poly.centroid.y, decimals=dp),
+                    "cell_id": idx,
+                    "cell_cx": np.round(self.centroids[idx][0], decimals=dp),
+                    "cell_cy": np.round(self.centroids[idx][1], decimals=dp),
                 },
             }
 
@@ -320,15 +374,15 @@ class Grid:
 
         return {"type": "FeatureCollection", "features": features}
 
-    def find_neighbours(
+    def set_neighbours(
         self, edges: bool = True, vertices: bool = False, distance: float = None
-    ) -> dict:
-        """Find the network of neighbours for a Grid object.
+    ) -> None:
+        """Populate the neighbour list for a Grid object.
 
-        This method generates a dictionary giving the neighbours of each cell in the
-        grid.  The edges and vertices arguments are used to include neighbouring cells
-        that share edges or vertices with a focal cell. Alternatively, a distance in
-        metres from the focal cell centroid can be used to include neighbouring cells
+        This method generates a list giving the neighbours of each cell in the grid.
+        The edges and vertices arguments are used to include neighbouring cells that
+        share edges or vertices with a focal cell. Alternatively, a distance in metres
+        from the focal cell centroid can be used to include neighbouring cells
         within that distance.
 
         Args:
@@ -337,4 +391,51 @@ class Grid:
             distance: A distance in metres.
         """
 
-        raise NotImplementedError()
+        # This is a lot more irritating to implement than expected. Using geometry
+        # operations (as in Shapely.touches and pysal.weights.Queen/etc) turns out to be
+        # unreliable for hexagon grids simply due to floating point differences. For the
+        # moment, just implementing distance.
+
+        self._neighbours = [
+            np.where(self.get_distances(idx, self.cell_id) <= distance)[1]
+            for idx in self.cell_id
+        ]
+
+    def get_distances(
+        self,
+        cell_from: Optional[Union[int, list[int]]],
+        cell_to: Optional[Union[int, list[int]]],
+    ) -> np.ndarray:
+        """Calculate euclidean distances between cell centroids.
+
+        This method returns a two dimensional np.array containing the Euclidean
+        distances between two sets of cell ids.
+
+        Args:
+            cell_from: Either a single integer cell_id or a list of ids.
+            cell_to: Either a single integer cell_id or a list of ids.
+
+        Returns:
+            A 2D np.array of Euclidean distances
+        """
+
+        cell_from = [cell_from] if isinstance(cell_from, int) else cell_from
+        cell_to = [cell_to] if isinstance(cell_to, int) else cell_to
+
+        if self._distances is None:
+            return cdist(self.centroids[cell_from], self.centroids[cell_to])
+
+        return self._distances[np.ix_(cell_from, cell_to)]
+
+    def set_distances(
+        self,
+    ) -> None:
+        """Populate the complete cell distance matrix for the grid.
+
+        This stores the full distance matrix in the Grid instance, which is then used
+        for quick lookup by the get_distance method. However for large grids, this
+        requires a lot of memory, and so calculating distances on demand may be more
+        reasonable.
+        """
+
+        self._distances = squareform(pdist(self.centroids))
