@@ -5,7 +5,7 @@ from virtual_rainforest.core.config import register_schema
 
 
 @register_schema("plants")
-def schema():
+def schema() -> dict:
     """Defines the schema that the plant module configuration should conform to."""
 
     schema_file = Path(__file__).parent.resolve() / "plants_schema.json"

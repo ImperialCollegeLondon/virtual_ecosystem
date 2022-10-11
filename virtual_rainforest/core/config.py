@@ -11,7 +11,7 @@ from collections import ChainMap
 from pathlib import Path
 from typing import Callable, Union
 
-import dpath.util
+import dpath.util  # type: ignore
 import jsonschema
 import tomli_w
 
@@ -37,7 +37,7 @@ def register_schema(module_name: str) -> Callable:
         KeyError: If a module schema is missing one of the required keys
     """
 
-    def wrap(func: Callable):
+    def wrap(func: Callable) -> Callable:
         if module_name in SCHEMA_REGISTRY:
             log_and_raise(
                 f"The module schema {module_name} is used multiple times, this "
@@ -75,7 +75,9 @@ def register_schema(module_name: str) -> Callable:
 COMPLETE_CONFIG: dict = {}
 
 
-def check_dict_leaves(d1: dict, d2: dict, conflicts: list = [], path: list = []):
+def check_dict_leaves(
+    d1: dict, d2: dict, conflicts: list = [], path: list = []
+) -> list:
     """Recursively checks if leaves are repeated between two nested dictionaries.
 
     Args:
