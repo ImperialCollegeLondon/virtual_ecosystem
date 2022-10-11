@@ -32,7 +32,7 @@ from .conftest import log_check
         ),
     ],
 )
-def test_check_dict_leaves(d_a, d_b, overlap):
+def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
     """Checks overlapping dictionary search function."""
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
@@ -203,7 +203,7 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
     log_check(caplog, expected_log_entries)
 
 
-def test_construct_combined_schema(caplog):
+def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     """Checks errors for bad or missing json schema."""
 
     # Check that construct_combined_schema fails as expected
@@ -240,6 +240,8 @@ def test_construct_combined_schema(caplog):
 )
 def test_final_validation_log(caplog, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
+
+    print(type(expected_log_entries))
 
     config.validate_config(["tests/fixtures"], out_file_name="complete_config")
 
@@ -321,7 +323,7 @@ def test_register_schema_errors(
     with pytest.raises(expected_exception):
 
         @register_schema(schema_name)
-        def to_be_decorated():
+        def to_be_decorated() -> dict:
             return schema
 
         to_be_decorated()

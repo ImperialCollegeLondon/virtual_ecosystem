@@ -4,12 +4,12 @@ import pytest
 from mfm import TimesTable, my_float_multiplier, my_picky_float_multiplier
 
 
-def test_fm():
+def test_fm() -> None:
 
     assert 10 == my_float_multiplier(2, 5)
 
 
-def test_pfm():
+def test_pfm() -> None:
 
     with pytest.raises(ValueError) as err_hndlr:
 
@@ -18,7 +18,7 @@ def test_pfm():
     assert str(err_hndlr.value) == "Both x and y must be of type float"
 
 
-def test_pfm_fail():
+def test_pfm_fail() -> None:
 
     with pytest.raises(ValueError) as err_hndlr:
 
@@ -36,7 +36,7 @@ def test_pfm_fail():
         (-1.5, -3.0, 4.5),
     ],
 )
-def test_pfm_param_noid(x, y, expected):
+def test_pfm_param_noid(x: float, y: float, expected: float) -> None:
 
     assert expected == my_picky_float_multiplier(x, y)
 
@@ -51,7 +51,7 @@ def test_pfm_param_noid(x, y, expected):
     ],
     ids=["++", "-+", "+-", "--"],
 )
-def test_pfm_param_ids(x, y, expected):
+def test_pfm_param_ids(x: float, y: float, expected: float) -> None:
 
     assert expected == my_picky_float_multiplier(x, y)
 
@@ -66,13 +66,13 @@ def test_pfm_param_ids(x, y, expected):
     argvalues=[(3.0,), (-3.0,)],
     ids=["+", "-"],
 )
-def test_pfm_twoparam(x, y):
+def test_pfm_twoparam(x: float, y: float) -> None:
 
     assert 4.5 == abs(my_picky_float_multiplier(x, y))
 
 
 @pytest.fixture
-def twoparam_expected():
+def twoparam_expected() -> dict[str, float]:
 
     expected = {"+-+": 4.5, "---": 4.5, "--+": -4.5, "+--": -4.5}
     return expected
@@ -88,7 +88,12 @@ def twoparam_expected():
     argvalues=[(3.0,), (-3.0,)],
     ids=["+", "-"],
 )
-def test_pfm_twoparam_fixture(request, twoparam_expected, x, y):
+def test_pfm_twoparam_fixture(
+    request: pytest.FixtureRequest,
+    twoparam_expected: dict[str, float],
+    x: float,
+    y: float,
+) -> None:
 
     expected = twoparam_expected[request.node.callspec.id]
 
@@ -96,19 +101,19 @@ def test_pfm_twoparam_fixture(request, twoparam_expected, x, y):
 
 
 @pytest.fixture()
-def times_table_instance():
+def times_table_instance() -> TimesTable:
     return TimesTable(num=7)
 
 
-def test_times_table_errors(times_table_instance):
+def test_times_table_errors(times_table_instance: TimesTable) -> None:
 
     with pytest.raises(TypeError) as err_hndlr:
-        times_table_instance.table(1.6, 23.9)
+        times_table_instance.table(1.6, 23.9)  # type: ignore
 
     assert str(err_hndlr.value) == "'float' object cannot be interpreted as an integer"
 
 
-def test_times_table_values(times_table_instance):
+def test_times_table_values(times_table_instance: TimesTable) -> None:
 
     value = times_table_instance.table(2, 7)
     assert value == [14, 21, 28, 35, 42, 49]
