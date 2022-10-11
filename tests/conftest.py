@@ -1,11 +1,13 @@
 """Collection of fixtures to assist the testing scripts."""
 
+import pytest
+
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
 import virtual_rainforest.core.logger  # noqa
 
 
-def log_check(caplog, expected_log):
+def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> None:
     """Helper function to check that the captured log is as expected.
 
     Arguments:

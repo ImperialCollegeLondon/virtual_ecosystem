@@ -171,7 +171,7 @@ bokeh = ["selenium", "bokeh"]
 
 [[package]]
 name = "coverage"
-version = "6.4.4"
+version = "6.5.0"
 description = "Code coverage measurement for Python"
 category = "dev"
 optional = false
@@ -1641,6 +1641,14 @@ python-versions = ">=3.7"
 test = ["pre-commit", "pytest"]
 
 [[package]]
+name = "types-jsonschema"
+version = "4.16.1"
+description = "Typing stubs for jsonschema"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "typing-extensions"
 version = "4.3.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
@@ -1701,7 +1709,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "5b6f520f654421c8abd829e8668c7a6ae21244861cc6779afca39ac75c95eb39"
+content-hash = "7241ad7e834e3724472de6c14761a2d3357eba974e0111361f6565cb0520fd16"
 
 [metadata.files]
 alabaster = []
@@ -1972,6 +1980,7 @@ tomli = [
 tomli-w = []
 tornado = []
 traitlets = []
+types-jsonschema = []
 typing-extensions = [
     {file = "typing_extensions-4.3.0-py3-none-any.whl", hash = "sha256:25642c956049920a5aa49edcdd6ab1e06d7e5d467fc00e0506c44ac86fbfca02"},
     {file = "typing_extensions-4.3.0.tar.gz", hash = "sha256:e6d2677a32f47fc7eb2795db1dd15c1f34eff616bcaf2cfb5e997f854fa1c4a6"},

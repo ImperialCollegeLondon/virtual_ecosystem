@@ -14,13 +14,13 @@ TODO - maybe look at libpysal if we end up needing more weights/spatial analysis
 """
 
 import json
-from typing import Callable, NamedTuple, Optional, Union
+from typing import Any, Callable, NamedTuple, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
 from scipy.spatial.distance import cdist, pdist, squareform
-from shapely.affinity import scale, translate
-from shapely.geometry import Polygon
+from shapely.affinity import scale, translate  # type: ignore
+from shapely.geometry import Polygon  # type: ignore
 
 from virtual_rainforest.core.logger import LOGGER
 
@@ -286,7 +286,7 @@ class Grid:
         self._distances: Optional[npt.NDArray] = None
 
     @property
-    def neighbours(self):
+    def neighbours(self) -> list[npt.NDArray[np.int_]]:
         """Return the neighbours property."""
 
         if self._neighbours is None:
@@ -304,7 +304,7 @@ class Grid:
             f"cell_ny={self.cell_ny})"
         )
 
-    def dumps(self, dp: int = 2, **kwargs) -> str:
+    def dumps(self, dp: int = 2, **kwargs: Any) -> str:
         """Export a grid as a GeoJSON string.
 
         The virtual_rainforest.core.Grid object assumes an unspecified projected
@@ -321,7 +321,7 @@ class Grid:
         content = self._get_geojson(dp=dp)
         return json.dumps(obj=content, **kwargs)
 
-    def dump(self, outfile: str, dp: int = 2, **kwargs) -> None:
+    def dump(self, outfile: str, dp: int = 2, **kwargs: Any) -> None:
         """Export a grid as a GeoJSON file.
 
         The virtual_rainforest.core.Grid object assumes an unspecified projected
@@ -341,7 +341,7 @@ class Grid:
         with open(outfile, "w") as outf:
             json.dump(obj=content, fp=outf, **kwargs)
 
-    def _get_geojson(self, dp):
+    def _get_geojson(self, dp: int) -> dict:
         """Convert the grid to a GeoJSON structured dictionary.
 
         Args:
