@@ -12,11 +12,11 @@ TODO - import of geojson grids? Way to link structured landscape into cells.  Ca
 
 import json
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
-from shapely.affinity import scale, translate
-from shapely.geometry import Polygon
+from shapely.affinity import scale, translate  # type: ignore
+from shapely.geometry import Polygon  # type: ignore
 
 LOGGER = logging.getLogger("virtual_rainforest.core")
 
@@ -250,7 +250,7 @@ class Grid:
             f"cell_ny={self.cell_ny})"
         )
 
-    def dumps(self, dp: int = 2, **kwargs) -> str:
+    def dumps(self, dp: int = 2, **kwargs: Any) -> str:
         """Export a grid as a GeoJSON string.
 
         The virtual_rainforest.core.Grid object assumes an unspecified projected
@@ -267,7 +267,7 @@ class Grid:
         content = self._get_geojson(dp=dp)
         return json.dumps(obj=content, **kwargs)
 
-    def dump(self, outfile: str, dp: int = 2, **kwargs) -> None:
+    def dump(self, outfile: str, dp: int = 2, **kwargs: Any) -> None:
         """Export a grid as a GeoJSON file.
 
         The virtual_rainforest.core.Grid object assumes an unspecified projected
@@ -287,7 +287,7 @@ class Grid:
         with open(outfile, "w") as outf:
             json.dump(obj=content, fp=outf, **kwargs)
 
-    def _get_geojson(self, dp):
+    def _get_geojson(self, dp: int) -> dict:
         """Convert the grid to a GeoJSON structured dictionary.
 
         Args:

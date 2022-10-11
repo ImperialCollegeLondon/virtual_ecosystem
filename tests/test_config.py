@@ -8,8 +8,10 @@ to date.
 
 from logging import CRITICAL, INFO
 from pathlib import Path
+from typing import Type
 
 import pytest
+import pytest_mock
 
 import virtual_rainforest.core.config as config
 from virtual_rainforest.core.config import register_schema
@@ -32,12 +34,14 @@ from .conftest import log_check
         ),
     ],
 )
-def test_check_dict_leaves(d_a, d_b, overlap):
+def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
     """Checks overlapping dictionary search function."""
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
 
-def test_check_outfile(caplog, mocker):
+def test_check_outfile(
+    caplog: pytest.LogCaptureFixture, mocker: pytest_mock.MockerFixture
+) -> None:
     """Check that an error is logged if an output file is already saved."""
     file_name = "complete_config"
 
@@ -103,8 +107,13 @@ def test_check_outfile(caplog, mocker):
     ],
 )
 def test_collect_files(
-    caplog, mocker, cfg_paths, contents, expected_exception, expected_log_entries
-):
+    caplog: pytest.LogCaptureFixture,
+    mocker: pytest_mock.MockerFixture,
+    cfg_paths: list[str],
+    contents: list[Path],
+    expected_exception: Type[Exception],
+    expected_log_entries: tuple[tuple],
+) -> None:
     """Checks errors for missing config files."""
 
     # Configure the mock to return a specific list of files
@@ -149,8 +158,13 @@ def test_collect_files(
     ],
 )
 def test_load_in_config_files(
-    caplog, mocker, files, contents, expected_exception, expected_log_entries
-):
+    caplog: pytest.LogCaptureFixture,
+    mocker: pytest_mock.MockerFixture,
+    files: list[Path],
+    contents: list[bytes],
+    expected_exception: Type[Exception],
+    expected_log_entries: tuple[tuple],
+) -> None:
     """Check errors for incorrectly formatted config files."""
 
     # Mock the toml that is sent to the builtin open function
@@ -193,7 +207,12 @@ def test_load_in_config_files(
         ),
     ],
 )
-def test_find_schema(caplog, config_dict, expected_exception, expected_log_entries):
+def test_find_schema(
+    caplog: pytest.LogCaptureFixture,
+    config_dict: dict,
+    expected_exception: Type[Exception],
+    expected_log_entries: tuple[tuple],
+) -> None:
     """Check errors in finding module schema."""
 
     # Check that find_schema fails as expected
@@ -203,7 +222,7 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
     log_check(caplog, expected_log_entries)
 
 
-def test_construct_combined_schema(caplog):
+def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     """Checks errors for bad or missing json schema."""
 
     # Check that construct_combined_schema fails as expected
@@ -238,8 +257,12 @@ def test_construct_combined_schema(caplog):
         ),
     ],
 )
-def test_final_validation_log(caplog, expected_log_entries):
+def test_final_validation_log(
+    caplog: pytest.LogCaptureFixture, expected_log_entries: tuple[tuple]
+) -> None:
     """Checks that validation passes as expected and produces the correct output."""
+
+    print(type(expected_log_entries))
 
     config.validate_config(["tests/fixtures"], out_file_name="complete_config")
 
@@ -314,14 +337,18 @@ def test_final_validation_log(caplog, expected_log_entries):
     ],
 )
 def test_register_schema_errors(
-    caplog, schema_name, schema, expected_exception, expected_log_entries
-):
+    caplog: pytest.LogCaptureFixture,
+    schema_name: str,
+    schema: dict,
+    expected_exception: Type[Exception],
+    expected_log_entries: tuple[tuple],
+) -> None:
     """Test that the schema registering decorator throws the correct errors."""
     # Check that construct_combined_schema fails as expected
     with pytest.raises(expected_exception):
 
         @register_schema(schema_name)
-        def to_be_decorated():
+        def to_be_decorated() -> dict:
             return schema
 
         to_be_decorated()
