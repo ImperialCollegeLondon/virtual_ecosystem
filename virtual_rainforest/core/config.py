@@ -76,7 +76,7 @@ COMPLETE_CONFIG: dict = {}
 
 
 def check_dict_leaves(
-    d1: dict, d2: dict, conflicts: list = [], path: list = []
+    d1: dict, d2: dict, conflicts: list = None, path: list = None
 ) -> list:
     """Recursively checks if leaves are repeated between two nested dictionaries.
 
@@ -89,6 +89,12 @@ def check_dict_leaves(
     Returns:
         conflicts: List of variables that are defined in multiple places
     """
+
+    if conflicts is None:
+        conflicts = []
+
+    if path is None:
+        path = []
 
     for key in d2:
         if key in d1:
