@@ -10,6 +10,11 @@ It is very likely to be further extended in future.
 import logging
 from typing import Type
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(levelname)s] - %(module)s - %(funcName)s(%(lineno)d) - %(message)s",
+)
+
 LOGGER = logging.getLogger("virtual_rainforest")
 
 
