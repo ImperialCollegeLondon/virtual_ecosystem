@@ -12,7 +12,7 @@ TODO - import of geojson grids? Way to link structured landscape into cells.  Ca
 
 import json
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import numpy as np
 from shapely.affinity import scale, translate  # type: ignore
@@ -321,7 +321,10 @@ class Grid:
         return {"type": "FeatureCollection", "features": features}
 
     def find_neighbours(
-        self, edges: bool = True, vertices: bool = False, distance: float = None
+        self,
+        edges: bool = True,
+        vertices: bool = False,
+        distance: Optional[float] = None,
     ) -> dict:
         """Find the network of neighbours for a Grid object.
 
