@@ -283,7 +283,8 @@ def add_core_defaults(config_dict: dict) -> dict:
         config_dict: The complete configuration settings for the particular model
             instance
     Raises:
-        RuntimeError: If the core module schema can't be found
+        RuntimeError: If the core module schema can't be found, or if it cannot be
+            validated
     """
 
     # Make a new validator that allows the addition of defaults
@@ -298,8 +299,13 @@ def add_core_defaults(config_dict: dict) -> dict:
             RuntimeError,
         )
 
-    # TODO - TRY AND CATCH HERE????
-    ValidatorWithDefaults(core_schema).validate(config_dict)
+    try:
+        ValidatorWithDefaults(core_schema).validate(config_dict)
+    except exceptions.ValidationError as err:
+        log_and_raise(
+            f"Validation of core configuration files failed: {err.message}",
+            RuntimeError,
+        )
 
     return config_dict
 
