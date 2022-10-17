@@ -13,9 +13,8 @@ from pathlib import Path
 from typing import Callable, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
-import jsonschema  # DELETE THIS WHEN I CAN
 import tomli_w
-from jsonschema import Draft202012Validator, validators
+from jsonschema import Draft202012Validator, exceptions, validators
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
@@ -49,8 +48,8 @@ def register_schema(module_name: str) -> Callable:
         else:
             # Check that this is a valid schema
             try:
-                jsonschema.Draft202012Validator.check_schema(func())
-            except jsonschema.exceptions.SchemaError:
+                Draft202012Validator.check_schema(func())
+            except exceptions.SchemaError:
                 log_and_raise(
                     f"Module schema {module_name} not valid JSON!",
                     OSError,
@@ -299,6 +298,7 @@ def add_core_defaults(config_dict: dict) -> dict:
             RuntimeError,
         )
 
+    # TODO - TRY AND CATCH HERE????
     ValidatorWithDefaults(core_schema).validate(config_dict)
 
     return config_dict
@@ -383,6 +383,38 @@ def construct_combined_schema(modules: list[str]) -> dict:
     return comb_schema
 
 
+# TODO - TEST
+def validate_with_defaults(config_dict: dict, comb_schema: dict) -> dict:
+    """Validate the configuration settings against the combined schema.
+
+    This function also adds default values into the configuration dictionary where it is
+    appropriate.
+
+     Args:
+        config_dict: The complete configuration settings for the particular model
+            instance
+        comb_schema: Combined schema for all modules that are being configured
+
+    Raises:
+        RuntimeError: If the configuration files fail to validate against the JSON
+            schema
+    """
+
+    # Make a new validator that allows the addition of defaults
+    ValidatorWithDefaults = extend_with_default(Draft202012Validator)
+
+    # Validate the input configuration settings against the combined schema
+    # This step also adds in all default module configuration details
+    try:
+        ValidatorWithDefaults(comb_schema).validate(config_dict)
+    except exceptions.ValidationError as err:
+        log_and_raise(
+            f"Validation of configuration files failed: {err.message}", RuntimeError
+        )
+
+    return config_dict
+
+
 def validate_config(
     cfg_paths: Union[str, list[str]],
     output_folder: str = ".",
@@ -407,10 +439,6 @@ def validate_config(
         output_folder: Path to a folder to output the outputted complete configuration
             file to
         out_file_name: The name to save the outputted complete configuration file under.
-
-    Raises:
-        RuntimeError: If the configuration files fail to validate against the JSON
-            schema
     """
 
     # Check that there isn't a final output file saved in the final output folder
@@ -433,15 +461,8 @@ def validate_config(
     # Construct combined schema for all relevant modules
     comb_schema = construct_combined_schema(modules)
 
-    # TODO - LOAD IN DEFAULTS FOR ALL LOADED SCHEMA HERE
-
-    # Validate the input configuration settings against the combined schema
-    try:
-        jsonschema.validate(instance=config_dict, schema=comb_schema)
-    except jsonschema.exceptions.ValidationError as err:
-        log_and_raise(
-            f"Validation of configuration files failed: {err.message}", RuntimeError
-        )
+    # Validate all the complete configuration, adding in module defaults where required
+    config_dict = validate_with_defaults(config_dict, comb_schema)
 
     LOGGER.info("Configuration files successfully validated!")
 
