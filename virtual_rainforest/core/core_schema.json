@@ -1,45 +1,52 @@
 {
-   "type":"object",
-   "properties":{
-      "core":{
-         "description":"Configuration settings for the core module",
-         "type":"object",
-         "properties":{
-            "grid":{
-               "description":"Details of the grid to configure",
-               "type":"object",
-               "properties":{
-                  "nx":{
-                     "description":"Number of grid cells in x direction",
-                     "type":"integer",
-                     "exclusiveMinimum":0
+   "type": "object",
+   "properties": {
+      "core": {
+         "description": "Configuration settings for the core module",
+         "type": "object",
+         "properties": {
+            "grid": {
+               "description": "Details of the grid to configure",
+               "type": "object",
+               "properties": {
+                  "nx": {
+                     "description": "Number of grid cells in x direction",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 100
                   },
-                  "ny":{
-                     "description":"Number of grid cells in y direction",
-                     "type":"integer",
-                     "exclusiveMinimum":0
+                  "ny": {
+                     "description": "Number of grid cells in y direction",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 100
                   }
                },
-               "required":[
+               "default": {},
+               "required": [
                   "nx",
                   "ny"
                ]
             },
-            "modules":{
-               "description":"List of modules to be configured",
-               "type":"array",
-               "items":{
-                  "type":"string"
-               }
+            "modules": {
+               "description": "List of modules to be configured",
+               "type": "array",
+               "items": {
+                  "type": "string"
+               },
+               "default": [
+                  "plants"
+               ]
             }
          },
-         "required":[
+         "default": {},
+         "required": [
             "grid",
             "modules"
          ]
       }
    },
-   "required":[
+   "required": [
       "core"
    ]
 }

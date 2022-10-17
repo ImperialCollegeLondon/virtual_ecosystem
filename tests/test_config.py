@@ -222,9 +222,10 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "expected_log_entries",
+    "file_path,expected_log_entries",
     [
         (
+            "tests/fixtures/default_config.toml",  # File entirely of defaults
             (
                 (
                     INFO,
@@ -234,16 +235,27 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
                     INFO,
                     "Saving all configuration details to ./complete_config.toml",
                 ),
-            )
+            ),
+        ),
+        (
+            "tests/fixtures/all_config.toml",  # File with no defaults
+            (
+                (
+                    INFO,
+                    "Configuration files successfully validated!",
+                ),
+                (
+                    INFO,
+                    "Saving all configuration details to ./complete_config.toml",
+                ),
+            ),
         ),
     ],
 )
-def test_final_validation_log(caplog, expected_log_entries):
+def test_final_validation_log(caplog, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    print(type(expected_log_entries))
-
-    config.validate_config(["tests/fixtures"], out_file_name="complete_config")
+    config.validate_config([file_path], out_file_name="complete_config")
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
@@ -251,9 +263,6 @@ def test_final_validation_log(caplog, expected_log_entries):
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
-
-    # Check that final config has been within nested dictionary
-    assert type(config.COMPLETE_CONFIG["config"]) == dict
 
 
 @pytest.mark.parametrize(

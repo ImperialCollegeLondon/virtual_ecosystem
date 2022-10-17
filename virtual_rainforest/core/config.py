@@ -8,12 +8,14 @@ model.
 
 import sys
 from collections import ChainMap
+from copy import deepcopy
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
-import jsonschema
+import jsonschema  # DELETE THIS WHEN I CAN
 import tomli_w
+from jsonschema import Draft202012Validator, validators
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
@@ -232,6 +234,76 @@ def load_in_config_files(files: list[Path]) -> dict:
     return config_dict
 
 
+# TODO - TEST!
+def extend_with_default(
+    validator_class: type[Draft202012Validator],
+) -> type[Draft202012Validator]:
+    """Extend validator so that it can populate default values from the schema.
+
+    Args:
+        validator_class: Validator to be extended
+    """
+
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    # TODO - TEST
+    def set_defaults(
+        validator: type[Draft202012Validator],
+        properties: dict,
+        instance: dict,
+        schema: dict,
+    ) -> Iterator:
+        """Generate an iterator to populate defaults."""
+        for property, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(property, subschema["default"])
+
+        for error in validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        ):
+            yield error
+
+    return validators.extend(
+        validator_class,
+        {"properties": set_defaults},
+    )
+
+
+# TODO - TEST
+def add_core_defaults(config_dict: dict) -> dict:
+    """Add default config options for the core module to the config dictionary.
+
+    This is a separate function because the default modules to load are specified in the
+    core schema. So, these defaults must be populated before the complete schema can be
+    constructed.
+
+    Args:
+        config_dict: The complete configuration settings for the particular model
+            instance
+    Raises:
+        RuntimeError: If the core module schema can't be found
+    """
+
+    # Make a new validator that allows the addition of defaults
+    ValidatorWithDefaults = extend_with_default(Draft202012Validator)
+
+    # Look for core config in schema registry
+    if "core" in SCHEMA_REGISTRY:
+        core_schema = SCHEMA_REGISTRY["core"]
+    else:
+        log_and_raise(
+            "Expected a schema for core module configuration, it was not provided!",
+            RuntimeError,
+        )
+
+    ValidatorWithDefaults(core_schema).validate(config_dict)
+
+    return config_dict
+
+
 def find_schema(config_dict: dict) -> list[str]:
     """Find which schema the configuration requires to be loaded.
 
@@ -284,12 +356,12 @@ def construct_combined_schema(modules: list[str]) -> dict:
         if module in SCHEMA_REGISTRY:
             # Store complete schema if no previous schema has been added
             if comb_schema == {}:
-                comb_schema = SCHEMA_REGISTRY[module]
+                comb_schema = deepcopy(SCHEMA_REGISTRY[module])
             # Otherwise only save truncated part of the schema
             else:
-                comb_schema["properties"][module] = SCHEMA_REGISTRY[module][
-                    "properties"
-                ][module]
+                comb_schema["properties"][module] = deepcopy(
+                    SCHEMA_REGISTRY[module]["properties"][module]
+                )
                 # Add module name to list of required modules
                 comb_schema["required"].append(module)
         else:
@@ -327,7 +399,7 @@ def validate_config(
     JSON schema. This combined schema is then used to validate the combined contents of
     the configuration files. If this validation passes the combined configuration is
     saved in toml format in the specified configuration file folder. This configuration
-    is finally used to populate the global `COMPLETE_CONFIG` dictionary.
+    is then returned for use in downstream simulation setup.
 
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
@@ -352,11 +424,16 @@ def validate_config(
     # Then load all config files to a combined config dict
     config_dict = load_in_config_files(files)
 
+    # Add in core configuration defaults
+    config_dict = add_core_defaults(config_dict)
+
     # Find schema to load in
     modules = find_schema(config_dict)
 
     # Construct combined schema for all relevant modules
     comb_schema = construct_combined_schema(modules)
+
+    # TODO - LOAD IN DEFAULTS FOR ALL LOADED SCHEMA HERE
 
     # Validate the input configuration settings against the combined schema
     try:
