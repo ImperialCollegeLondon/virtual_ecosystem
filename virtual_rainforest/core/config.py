@@ -71,10 +71,6 @@ def register_schema(module_name: str) -> Callable:
     return wrap
 
 
-# Dictionary to store validated config
-COMPLETE_CONFIG: dict = {}
-
-
 def check_dict_leaves(
     d1: dict, d2: dict, conflicts: Optional[list] = None, path: Optional[list] = None
 ) -> list:
@@ -319,7 +315,7 @@ def validate_config(
     cfg_paths: Union[str, list[str]],
     output_folder: str = ".",
     out_file_name: str = "complete_config",
-) -> None:
+) -> dict:
     """Validates the contents of user provided config files.
 
     This function first reads in a set of configuration files in `.toml` format. This
@@ -379,5 +375,5 @@ def validate_config(
     with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
-    # Populate the global config dictionary with the complete validated config
-    COMPLETE_CONFIG["config"] = config_dict
+    # Return the complete validated config
+    return config_dict
