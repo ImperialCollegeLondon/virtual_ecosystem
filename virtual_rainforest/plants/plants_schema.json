@@ -26,7 +26,7 @@
                }
             },
             "a_plant_integer": {
-               "description": "An integer relevant to the plant module",
+               "description": "Integer relevant to the plant module",
                "type": "integer",
                "default": 1
             }
