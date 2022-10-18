@@ -269,7 +269,6 @@ def extend_with_default(
     )
 
 
-# TODO - TEST
 def add_core_defaults(config_dict: dict) -> dict:
     """Add default config options for the core module to the config dictionary.
 
@@ -387,7 +386,6 @@ def construct_combined_schema(modules: list[str]) -> dict:
     return comb_schema
 
 
-# TODO - TEST
 def validate_with_defaults(config_dict: dict, comb_schema: dict) -> dict:
     """Validate the configuration settings against the combined schema.
 

@@ -31,8 +31,10 @@
                "default": 1
             }
          },
+         "default": {},
          "required": [
-            "ftypes"
+            "ftypes",
+            "a_plant_integer"
          ]
       }
    },

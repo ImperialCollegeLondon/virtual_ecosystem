@@ -411,3 +411,50 @@ def test_missing_core_schema(caplog, mocker):
     )
 
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config_dict,plant_int,raises,expected_log_entries",
+    [
+        (
+            {"plants": {"ftypes": []}},
+            1,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"plants": {"ftypes": [], "a_plant_integer": 333}},
+            333,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"basybuedb"},
+            None,
+            pytest.raises(RuntimeError),
+            (
+                (
+                    CRITICAL,
+                    "Validation of configuration files failed: {'basybuedb'} is not of"
+                    " type 'object'",
+                ),
+            ),
+        ),
+    ],
+)
+def test_validate_with_defaults(
+    caplog, config_dict, plant_int, raises, expected_log_entries
+):
+    """Test that addition of defaults values during configuration works as desired."""
+
+    comb_schema = config.construct_combined_schema(["core", "plants"])
+
+    # Check that find_schema fails as expected
+    with raises:
+        config_dict = config.validate_with_defaults(config_dict, comb_schema)
+
+    log_check(caplog, expected_log_entries)
+
+    # If configuration occurs check that plant integer has the right value
+    if plant_int is not None:
+        assert config_dict["plants"]["a_plant_integer"] == plant_int
