@@ -6,10 +6,12 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
+from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 import virtual_rainforest.core.config as config
 from virtual_rainforest.core.config import register_schema
@@ -338,4 +340,74 @@ def test_register_schema_errors(
         to_be_decorated()
 
     # Then check that the correct (critical error) log messages are emitted
+    log_check(caplog, expected_log_entries)
+
+
+def test_extend_with_default():
+    """Test that validator has been properly extended to allow addition of defaults."""
+
+    # Check that function adds a function with the right name in the right location
+    ValidatorWithDefaults = config.extend_with_default(Draft202012Validator)
+    assert ValidatorWithDefaults.VALIDATORS["properties"].__name__ == "set_defaults"
+
+
+@pytest.mark.parametrize(
+    "config_dict,nx,raises,expected_log_entries",
+    [
+        (
+            {},
+            100,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"core": {"grid": {"nx": 125}}},
+            125,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"basybuedb"},
+            None,
+            pytest.raises(RuntimeError),
+            (
+                (
+                    CRITICAL,
+                    "Validation of core configuration files failed: {'basybuedb'} is "
+                    "not of type 'object'",
+                ),
+            ),
+        ),
+    ],
+)
+def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries):
+    """Test that default values are properly added to the core configuration."""
+
+    # Check that find_schema fails as expected
+    with raises:
+        config_dict = config.add_core_defaults(config_dict)
+
+    log_check(caplog, expected_log_entries)
+
+    # If configuration occurs check that nx has the right value
+    if nx is not None:
+        assert config_dict["core"]["grid"]["nx"] == nx
+
+
+def test_missing_core_schema(caplog, mocker):
+    """Test that core schema not being in the registry is handled properly."""
+
+    mocker.patch("virtual_rainforest.core.config.SCHEMA_REGISTRY", {})
+
+    # Check that find_schema fails as expected
+    with pytest.raises(RuntimeError):
+        config.add_core_defaults({})
+
+    expected_log_entries = (
+        (
+            CRITICAL,
+            "Expected a schema for core module configuration, it was not provided!",
+        ),
+    )
+
     log_check(caplog, expected_log_entries)

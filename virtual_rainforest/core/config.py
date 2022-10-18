@@ -233,7 +233,6 @@ def load_in_config_files(files: list[Path]) -> dict:
     return config_dict
 
 
-# TODO - TEST!
 def extend_with_default(
     validator_class: type[Draft202012Validator],
 ) -> type[Draft202012Validator]:
@@ -245,7 +244,6 @@ def extend_with_default(
 
     validate_properties = validator_class.VALIDATORS["properties"]
 
-    # TODO - TEST
     def set_defaults(
         validator: type[Draft202012Validator],
         properties: dict,
