@@ -15,9 +15,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../"))
 
-from virtual_rainforest import version as vr_version  # noqa: E402
+import virtual_rainforest as vr  # noqa: E402
 
-version = vr_version.__version__
+version = vr.__version__
 release = version
 
 # -- Project information -----------------------------------------------------

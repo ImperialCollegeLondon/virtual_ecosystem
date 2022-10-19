@@ -8,12 +8,19 @@ It is very likely to be further extended in future.
 """
 
 import logging
-from typing import Type
+from typing import Optional, Type
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(levelname)s] - %(module)s - %(funcName)s(%(lineno)d) - %(message)s",
+)
 
 LOGGER = logging.getLogger("virtual_rainforest")
 
 
-def log_and_raise(msg: str, exception: Type[Exception], extra: dict = None) -> None:
+def log_and_raise(
+    msg: str, exception: Type[Exception], extra: Optional[dict] = None
+) -> None:
     """Emit a critical error message and raise an Exception.
 
     This convenience function adds a critical level message to the logger and
