@@ -115,7 +115,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
     grid = Grid(grid_type=grid_type, cell_area=100)
 
     if preset_distances:
-        grid.set_distances()
+        grid.populate_distances()
 
     res = grid.get_distances(cfrom, cto)
 
