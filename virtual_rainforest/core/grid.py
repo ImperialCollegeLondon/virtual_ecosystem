@@ -427,7 +427,7 @@ class Grid:
 
         return self._distances[np.ix_(cell_from, cell_to)]
 
-    def set_distances(
+    def populate_distances(
         self,
     ) -> None:
         """Populate the complete cell distance matrix for the grid.

@@ -117,8 +117,13 @@ square_grid.get_distances(45, square_grid.neighbours[45])
 hex_grid.get_distances([1, 40], hex_grid.neighbours[40])
 ```
 
+By default, cell-to-cell distances are calculated on demand, because the size of the
+complete pairwise distance matrix scales as the square of the grid size. However, the
+`populate_distances` method can be used to populate that matrix, and it is then used by
+`get_distance` for faster lookup of distances.
+
 ```{code-cell} ipython3
-square_grid.set_distances()
+square_grid.populate_distances()
 square_grid.get_distances(45, square_grid.neighbours[45])
 ```
 
