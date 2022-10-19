@@ -14,11 +14,11 @@ TODO - maybe look at libpysal if we end up needing more weights/spatial analysis
 """
 
 import json
-from typing import Any, Callable, NamedTuple, Optional, Union
+from typing import Any, Callable, NamedTuple, Optional, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
-from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import Polygon  # type: ignore
 
@@ -375,7 +375,10 @@ class Grid:
         return {"type": "FeatureCollection", "features": features}
 
     def set_neighbours(
-        self, edges: bool = True, vertices: bool = False, distance: float = None
+        self,
+        edges: bool = True,
+        vertices: bool = False,
+        distance: Optional[float] = None,
     ) -> None:
         """Populate the neighbour list for a Grid object.
 
@@ -403,8 +406,8 @@ class Grid:
 
     def get_distances(
         self,
-        cell_from: Optional[Union[int, list[int]]],
-        cell_to: Optional[Union[int, list[int]]],
+        cell_from: Optional[Union[int, Sequence[int]]],
+        cell_to: Optional[Union[int, Sequence[int]]],
     ) -> np.ndarray:
         """Calculate euclidean distances between cell centroids.
 
@@ -419,13 +422,22 @@ class Grid:
             A 2D np.array of Euclidean distances
         """
 
-        cell_from = [cell_from] if isinstance(cell_from, int) else cell_from
-        cell_to = [cell_to] if isinstance(cell_to, int) else cell_to
+        if cell_from is None:
+            _cell_from = np.arange(self.n_cells)
+        else:
+            _cell_from = np.array(
+                [cell_from] if isinstance(cell_from, int) else cell_from
+            )
+
+        if cell_to is None:
+            _cell_to = np.arange(self.n_cells)
+        else:
+            _cell_to = np.array([cell_to] if isinstance(cell_to, int) else cell_to)
 
         if self._distances is None:
-            return cdist(self.centroids[cell_from], self.centroids[cell_to])
+            return cdist(self.centroids[_cell_from], self.centroids[_cell_to])
 
-        return self._distances[np.ix_(cell_from, cell_to)]
+        return self._distances[np.ix_(_cell_from, _cell_to)]
 
     def populate_distances(
         self,

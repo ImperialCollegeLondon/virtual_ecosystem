@@ -92,10 +92,20 @@ def test_make_hex_grid(cell_id):
 @pytest.mark.parametrize(
     argnames=["grid_type", "cfrom", "cto"],
     argvalues=[
+        ("square", None, None),
+        ("square", None, 99),
+        ("square", None, [0, 9, 90, 99]),
+        ("square", 99, None),
+        ("square", [0, 9, 90, 99], None),
         ("square", 0, 99),
         ("square", [0, 9, 90, 99], 99),
         ("square", 0, [44, 45, 54, 55]),
         ("square", [0, 9, 90, 99], [44, 45, 54, 55]),
+        ("hexagon", None, None),
+        ("hexagon", None, 99),
+        ("hexagon", None, [0, 9, 90, 99]),
+        ("hexagon", 99, None),
+        ("hexagon", [0, 9, 90, 99], None),
         ("hexagon", 0, 99),
         ("hexagon", [0, 9, 90, 99], 99),
         ("hexagon", 0, [44, 45, 54, 55]),
@@ -119,9 +129,17 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
 
     res = grid.get_distances(cfrom, cto)
 
-    # calculate expected naively and slowly
+    # Handle cfrom and cto argument types
+    if cfrom is None:
+        cfrom = np.arange(grid.n_cells)
+
+    if cto is None:
+        cto = np.arange(grid.n_cells)
+
     cfrom = [cfrom] if isinstance(cfrom, int) else cfrom
     cto = [cto] if isinstance(cto, int) else cto
+
+    # calculate expected naively and slowly
     expected = np.ndarray((len(cfrom), len(cto)))
 
     assert res.shape == expected.shape
