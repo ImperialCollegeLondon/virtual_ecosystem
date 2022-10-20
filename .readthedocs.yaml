@@ -20,14 +20,8 @@ build:
       - $HOME/.poetry/bin/poetry config virtualenvs.create false
       # Install project's dependencies
       - $HOME/.poetry/bin/poetry install
-    # pre_create_environment:
-    #   - asdf plugin add poetry
-    #   - asdf install poetry 1.1.15
-    #   - asdf global poetry 1.1.15
-    #   - poetry config virtualenvs.create false
-    # post_install:
-    #   - poetry install
-    #   # - poetry run python -m ipykernel install --user --name=vr_python3
+      # Install the project ipykernel under the fixed name
+      - $HOME/.poetry/bin/poetry run python -m ipykernel install --user --name=vr_python3
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
