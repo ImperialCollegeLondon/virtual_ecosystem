@@ -10,7 +10,7 @@ import sys
 from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable, Iterator, Optional, Union
+from typing import Any, Callable, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -73,8 +73,11 @@ def register_schema(module_name: str) -> Callable:
 
 
 def check_dict_leaves(
-    d1: dict, d2: dict, conflicts: Optional[list] = None, path: Optional[list] = None
-) -> list:
+    d1: dict[str, Any],
+    d2: dict[str, Any],
+    conflicts: Optional[list] = None,
+    path: Optional[list] = None,
+) -> list[str]:
     """Recursively checks if leaves are repeated between two nested dictionaries.
 
     Args:
@@ -183,7 +186,7 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
     return files
 
 
-def load_in_config_files(files: list[Path]) -> dict:
+def load_in_config_files(files: list[Path]) -> dict[str, Any]:
     """Load in a set of toml files checking that no tags are repeated.
 
     This function also ensure that no tags are repeated across different toml files.
@@ -246,9 +249,9 @@ def extend_with_default(
 
     def set_defaults(
         validator: type[Draft202012Validator],
-        properties: dict,
-        instance: dict,
-        schema: dict,
+        properties: dict[str, Any],
+        instance: dict[str, Any],
+        schema: dict[str, Any],
     ) -> Iterator:
         """Generate an iterator to populate defaults."""
         for property, subschema in properties.items():
@@ -269,7 +272,7 @@ def extend_with_default(
     )
 
 
-def add_core_defaults(config_dict: dict) -> dict:
+def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
     """Add default config options for the core module to the config dictionary.
 
     This is a separate function because the default modules to load are specified in the
@@ -307,7 +310,7 @@ def add_core_defaults(config_dict: dict) -> dict:
     return config_dict
 
 
-def find_schema(config_dict: dict) -> list[str]:
+def find_schema(config_dict: dict[str, Any]) -> list[str]:
     """Find which schema the configuration requires to be loaded.
 
     Args:
@@ -342,7 +345,7 @@ def find_schema(config_dict: dict) -> list[str]:
     return modules
 
 
-def construct_combined_schema(modules: list[str]) -> dict:
+def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
     """Load validation schema for desired modules, and combine into a single schema.
 
     Args:
@@ -386,7 +389,9 @@ def construct_combined_schema(modules: list[str]) -> dict:
     return comb_schema
 
 
-def validate_with_defaults(config_dict: dict, comb_schema: dict) -> dict:
+def validate_with_defaults(
+    config_dict: dict[str, Any], comb_schema: dict[str, Any]
+) -> dict[str, Any]:
     """Validate the configuration settings against the combined schema.
 
     This function also adds default values into the configuration dictionary where it is
@@ -421,7 +426,7 @@ def validate_config(
     cfg_paths: Union[str, list[str]],
     output_folder: str = ".",
     out_file_name: str = "complete_config",
-) -> dict:
+) -> dict[str, Any]:
     """Validates the contents of user provided config files.
 
     This function first reads in a set of configuration files in `.toml` format. This
