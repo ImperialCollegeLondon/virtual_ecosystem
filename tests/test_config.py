@@ -385,7 +385,7 @@ def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries
 
     # Check that find_schema fails as expected
     with raises:
-        config_dict = config.add_core_defaults(config_dict)
+        config.add_core_defaults(config_dict)
 
     log_check(caplog, expected_log_entries)
 
@@ -451,7 +451,7 @@ def test_validate_with_defaults(
 
     # Check that find_schema fails as expected
     with raises:
-        config_dict = config.validate_with_defaults(config_dict, comb_schema)
+        config.validate_with_defaults(config_dict, comb_schema)
 
     log_check(caplog, expected_log_entries)
 

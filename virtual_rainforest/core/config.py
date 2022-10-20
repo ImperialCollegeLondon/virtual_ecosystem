@@ -279,7 +279,7 @@ def extend_with_default(
     )
 
 
-def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
+def add_core_defaults(config_dict: dict[str, Any]) -> None:
     """Add default config options for the core module to the config dictionary.
 
     This is a separate function because the default modules to load are specified in the
@@ -314,7 +314,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
             ConfigurationError,
         )
 
-    return config_dict
+    return None
 
 
 def find_schema(config_dict: dict[str, Any]) -> list[str]:
@@ -398,7 +398,7 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
 
 def validate_with_defaults(
     config_dict: dict[str, Any], comb_schema: dict[str, Any]
-) -> dict[str, Any]:
+) -> None:
     """Validate the configuration settings against the combined schema.
 
     This function also adds default values into the configuration dictionary where it is
@@ -427,7 +427,7 @@ def validate_with_defaults(
             ConfigurationError,
         )
 
-    return config_dict
+    return None
 
 
 def validate_config(
@@ -468,7 +468,7 @@ def validate_config(
     config_dict = load_in_config_files(files)
 
     # Add in core configuration defaults
-    config_dict = add_core_defaults(config_dict)
+    add_core_defaults(config_dict)
 
     # Find schema to load in
     modules = find_schema(config_dict)
@@ -477,7 +477,7 @@ def validate_config(
     comb_schema = construct_combined_schema(modules)
 
     # Validate all the complete configuration, adding in module defaults where required
-    config_dict = validate_with_defaults(config_dict, comb_schema)
+    validate_with_defaults(config_dict, comb_schema)
 
     LOGGER.info("Configuration files successfully validated!")
 
