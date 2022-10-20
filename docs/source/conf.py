@@ -15,9 +15,9 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 
 # sys.path.insert(0, os.path.abspath("../"))
 
-import virtual_rainforest as vr  # noqa: E402
+# import virtual_rainforest as vr  # noqa: E402
 
-version = vr.__version__
+version = "0.0.0-doctest"  # vr.__version__
 release = version
 
 # -- Project information -----------------------------------------------------
