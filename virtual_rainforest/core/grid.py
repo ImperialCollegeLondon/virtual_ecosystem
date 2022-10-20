@@ -3,7 +3,6 @@
 The `core.grid` module is used to create the grid of cells underlying the simulation and
 to identify the neighbourhood connections of cells.
 
-Todo:
 - set up neighbourhoods. ? store as graph (networkx - might only need a really
   lightweight graph description).
 - import of geojson grids? Way to link structured landscape into cells.  Can use
