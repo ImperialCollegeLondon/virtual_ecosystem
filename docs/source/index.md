@@ -73,6 +73,15 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
+  :caption: API
+  :hidden:
+
+  api/core.md
+```
+
+```{eval-rst}
+.. toctree::
+  :maxdepth: 4
   :caption: Development
   :hidden:
 

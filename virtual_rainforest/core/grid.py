@@ -3,14 +3,14 @@
 The `core.grid` module is used to create the grid of cells underlying the simulation and
 to identify the neighbourhood connections of cells.
 
-TODO - set up neighbourhoods. ? store as graph (networkx - might only need a really
-       lightweight graph description).
-TODO - import of geojson grids? Way to link structured landscape into cells.  Can use
-       data loading methods to assign values to grids? This would be a useful way of
-       defining mappings though.
-
-TODO - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
-       https://pysal.org/libpysal/
+Todo:
+- set up neighbourhoods. ? store as graph (networkx - might only need a really
+  lightweight graph description).
+- import of geojson grids? Way to link structured landscape into cells.  Can use
+  data loading methods to assign values to grids? This would be a useful way of
+  defining mappings though.
+- maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
+  https://pysal.org/libpysal/
 """
 
 import json
@@ -225,9 +225,7 @@ class Grid:
         xoff: An offset for the grid x origin
         yoff: An offset for the grid y origin
 
-    Attrs:
-        In addition to the arguments above:
-
+    Attributes:
         cell_id: A list of unique integer ids for each cell.
         polygons: A list of the polygons for each cell as shapely.geometry.Polygon
             objects, in cell_id order.
