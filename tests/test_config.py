@@ -93,7 +93,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["tests/fixtures/", "tests/fixtures/all_config.toml"],
             [Path("tests/fixtures/all_config.toml")],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -126,7 +126,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml")],
             [b"bshbsybdvshhd"],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -139,7 +139,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml"), Path("fake_file2.toml")],
             [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -173,7 +173,7 @@ def test_load_in_config_files(
     [
         (
             {"core": {"grid": {"nx": 10, "ny": 10}}},
-            KeyError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -184,7 +184,7 @@ def test_load_in_config_files(
         ),
         (
             {"core": {"modules": ["soil", "soil"]}},
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -209,7 +209,7 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     """Checks errors for bad or missing json schema."""
 
     # Check that construct_combined_schema fails as expected
-    with pytest.raises(RuntimeError):
+    with pytest.raises(config.ConfigurationError):
         config.construct_combined_schema(["a_stupid_module_name"])
 
     expected_log_entries = (
@@ -369,7 +369,7 @@ def test_extend_with_default():
         (
             {"basybuedb"},
             None,
-            pytest.raises(RuntimeError),
+            pytest.raises(config.ConfigurationError),
             (
                 (
                     CRITICAL,
@@ -400,7 +400,7 @@ def test_missing_core_schema(caplog, mocker):
     mocker.patch("virtual_rainforest.core.config.SCHEMA_REGISTRY", {})
 
     # Check that find_schema fails as expected
-    with pytest.raises(RuntimeError):
+    with pytest.raises(config.ConfigurationError):
         config.add_core_defaults({})
 
     expected_log_entries = (
@@ -431,7 +431,7 @@ def test_missing_core_schema(caplog, mocker):
         (
             {"basybuedb"},
             None,
-            pytest.raises(RuntimeError),
+            pytest.raises(config.ConfigurationError),
             (
                 (
                     CRITICAL,

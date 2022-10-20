@@ -27,6 +27,12 @@ else:
 SCHEMA_REGISTRY: dict = {}
 
 
+class ConfigurationError(Exception):
+    """Custom exception class for configuration failures."""
+
+    pass
+
+
 def register_schema(module_name: str) -> Callable:
     """Decorator function to add configuration schema to the registry.
 
@@ -138,7 +144,7 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
             folders containing configuration files
     Raises:
         OSError: If toml configuration files cannot be found at the specified locations
-        RuntimeError: If configuration files are specified more than once (this is
+        ConfigurationError: If configuration files are specified more than once (this is
             likely to be through both direct and indirect specification)
     """
 
@@ -180,7 +186,7 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
         log_and_raise(
             f"A total of {len(files) - len(set(files))} config files are specified more"
             f" than once (possibly indirectly)",
-            RuntimeError,
+            ConfigurationError,
         )
 
     return files
@@ -194,7 +200,8 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
     Args:
         files: List of files to be read in and checked for overlapping tags
     Raises:
-        RuntimeError: If files are poorly formatted or tags are repeated between files
+        ConfigurationError: If files are poorly formatted or tags are repeated between
+            files
     """
 
     # Preallocate container for file names and corresponding dictionaries
@@ -218,7 +225,7 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
                 log_and_raise(
                     f"Configuration file {file} is incorrectly formatted. Failed with "
                     f"the following message:\n{err}",
-                    RuntimeError,
+                    ConfigurationError,
                 )
 
     # Check if any tags are repeated across files
@@ -228,7 +235,7 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
         for conf in conflicts:
             msg += f"{conf[0]} defined in both {conf[1]} and {conf[2]}\n"
         msg = msg[:-1]
-        log_and_raise(msg, RuntimeError)
+        log_and_raise(msg, ConfigurationError)
 
     # Merge everything into a single dictionary
     config_dict = dict(ChainMap(*file_data.values()))
@@ -283,7 +290,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
         config_dict: The complete configuration settings for the particular model
             instance
     Raises:
-        RuntimeError: If the core module schema can't be found, or if it cannot be
+        ConfigurationError: If the core module schema can't be found, or if it cannot be
             validated
     """
 
@@ -296,7 +303,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
     else:
         log_and_raise(
             "Expected a schema for core module configuration, it was not provided!",
-            RuntimeError,
+            ConfigurationError,
         )
 
     try:
@@ -304,7 +311,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> dict[str, Any]:
     except exceptions.ValidationError as err:
         log_and_raise(
             f"Validation of core configuration files failed: {err.message}",
-            RuntimeError,
+            ConfigurationError,
         )
 
     return config_dict
@@ -317,8 +324,8 @@ def find_schema(config_dict: dict[str, Any]) -> list[str]:
         config_dict: The complete configuration settings for the particular model
             instance
     Raises:
-        KeyError: If core configuration does not list the other modules to configure
-        RuntimeError: If any module is specified to be configured twice
+        ConfigurationError: If core configuration does not list the other modules to
+            configure, or any module is specified to be configured twice
     """
 
     # Find which other schema should be searched for
@@ -328,7 +335,7 @@ def find_schema(config_dict: dict[str, Any]) -> list[str]:
         log_and_raise(
             "Core configuration does not specify which other modules should be "
             "configured!",
-            KeyError,
+            ConfigurationError,
         )
 
     # Add core to list of modules if its not already included
@@ -339,7 +346,7 @@ def find_schema(config_dict: dict[str, Any]) -> list[str]:
         log_and_raise(
             f"The list of modules to configure given in the core configuration file "
             f"repeats {len(modules) - len(set(modules))} names!",
-            RuntimeError,
+            ConfigurationError,
         )
 
     return modules
@@ -351,7 +358,7 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
     Args:
         modules: List of modules to load schema for
     Raises:
-        RuntimeError: If a particular module schema can't be found
+        ConfigurationError: If a particular module schema can't be found
     """
 
     # Construct combined schema for all relevant modules
@@ -374,7 +381,7 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
             log_and_raise(
                 f"Expected a schema for {module} module configuration, it was not "
                 f"provided!",
-                RuntimeError,
+                ConfigurationError,
             )
 
     p_paths = []
@@ -403,7 +410,7 @@ def validate_with_defaults(
         comb_schema: Combined schema for all modules that are being configured
 
     Raises:
-        RuntimeError: If the configuration files fail to validate against the JSON
+        ConfigurationError: If the configuration files fail to validate against the JSON
             schema
     """
 
@@ -416,7 +423,8 @@ def validate_with_defaults(
         ValidatorWithDefaults(comb_schema).validate(config_dict)
     except exceptions.ValidationError as err:
         log_and_raise(
-            f"Validation of configuration files failed: {err.message}", RuntimeError
+            f"Validation of configuration files failed: {err.message}",
+            ConfigurationError,
         )
 
     return config_dict
