@@ -40,7 +40,8 @@ def register_grid(grid_type: str) -> Callable:
     """Add a grid type and creator function to the grid registry.
 
     This decorator is used to add a function creating a grid layout to the registry of
-    accepted grids and returning an object of class GridStructure.
+    accepted grids. The function must return equal-length tuples of integer polygon ids
+    and Polygon objects, following the GRID_STRUCTURE_SIG signature.
 
     The grid_type argument is used to identify the grid creation function to be used by
     the Grid class and in configuration files.
@@ -81,7 +82,7 @@ def make_square_grid(
         yoff: An offset to use for the grid origin in the Y direction.
 
     Returns:
-        A GridStructure instance
+        Equal-length tuples of integer polygon ids and Polygon objects
     """
 
     # Create the polygon prototype object, with origin at 0,0 and area 1
@@ -127,7 +128,7 @@ def make_hex_grid(
         yoff: An offset to use for the grid origin in the Y direction.
 
     Returns:
-        A GridStructure instance
+        Equal-length tuples of integer polygon ids and Polygon objects
     """
 
     # TODO - implement grid orientation and kwargs passing
