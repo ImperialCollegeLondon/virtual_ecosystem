@@ -33,6 +33,46 @@ class ConfigurationError(Exception):
     pass
 
 
+def validate_and_add_defaults(
+    validator_class: type[Draft202012Validator],
+) -> type[Draft202012Validator]:
+    """Extend validator so that it can populate default values from the schema.
+
+    Args:
+        validator_class: Validator to be extended
+    """
+
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    def set_defaults(
+        validator: type[Draft202012Validator],
+        properties: dict[str, Any],
+        instance: dict[str, Any],
+        schema: dict[str, Any],
+    ) -> Iterator:
+        """Generate an iterator to populate defaults."""
+        for property, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(property, subschema["default"])
+
+        for error in validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        ):
+            yield error
+
+    return validators.extend(
+        validator_class,
+        {"properties": set_defaults},
+    )
+
+
+# Make a global validator using the above function to allow for the adding of defaults
+ValidatorWithDefaults = validate_and_add_defaults(Draft202012Validator)
+
+
 def register_schema(module_name: str) -> Callable:
     """Decorator function to add configuration schema to the registry.
 
@@ -243,42 +283,6 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
     return config_dict
 
 
-def extend_with_default(
-    validator_class: type[Draft202012Validator],
-) -> type[Draft202012Validator]:
-    """Extend validator so that it can populate default values from the schema.
-
-    Args:
-        validator_class: Validator to be extended
-    """
-
-    validate_properties = validator_class.VALIDATORS["properties"]
-
-    def set_defaults(
-        validator: type[Draft202012Validator],
-        properties: dict[str, Any],
-        instance: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> Iterator:
-        """Generate an iterator to populate defaults."""
-        for property, subschema in properties.items():
-            if "default" in subschema:
-                instance.setdefault(property, subschema["default"])
-
-        for error in validate_properties(
-            validator,
-            properties,
-            instance,
-            schema,
-        ):
-            yield error
-
-    return validators.extend(
-        validator_class,
-        {"properties": set_defaults},
-    )
-
-
 def add_core_defaults(config_dict: dict[str, Any]) -> None:
     """Add default config options for the core module to the config dictionary.
 
@@ -293,9 +297,6 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
         ConfigurationError: If the core module schema can't be found, or if it cannot be
             validated
     """
-
-    # Make a new validator that allows the addition of defaults
-    ValidatorWithDefaults = extend_with_default(Draft202012Validator)
 
     # Look for core config in schema registry
     if "core" in SCHEMA_REGISTRY:
@@ -413,9 +414,6 @@ def validate_with_defaults(
         ConfigurationError: If the configuration files fail to validate against the JSON
             schema
     """
-
-    # Make a new validator that allows the addition of defaults
-    ValidatorWithDefaults = extend_with_default(Draft202012Validator)
 
     # Validate the input configuration settings against the combined schema
     # This step also adds in all default module configuration details

@@ -11,7 +11,6 @@ from logging import CRITICAL, INFO
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator
 
 import virtual_rainforest.core.config as config
 from virtual_rainforest.core.config import register_schema
@@ -343,12 +342,13 @@ def test_register_schema_errors(
     log_check(caplog, expected_log_entries)
 
 
+# TODO - THIS TEST ABSOLUTELY NEEDS TO CHANGE
 def test_extend_with_default():
     """Test that validator has been properly extended to allow addition of defaults."""
 
     # Check that function adds a function with the right name in the right location
-    ValidatorWithDefaults = config.extend_with_default(Draft202012Validator)
-    assert ValidatorWithDefaults.VALIDATORS["properties"].__name__ == "set_defaults"
+    TestValidator = config.ValidatorWithDefaults({"str": {}})
+    assert TestValidator.VALIDATORS["properties"].__name__ == "set_defaults"
 
 
 @pytest.mark.parametrize(
