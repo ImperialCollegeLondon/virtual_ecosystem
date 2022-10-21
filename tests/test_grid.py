@@ -1,21 +1,6 @@
 """Test module for grid.py.
 
-NAME
-test_grid.py
-
-DESCRIPTION
-This module tests the following functions from grid.py:
-
-- grid.make_square_grid
-    Create a square grid.
-
-- grid.make_hex_grid
-    Create a hexagonal grid.
-
-- TODO The grid.Grid class.
-
-- TODO grid.Grid.dump and grid.Grid.dumps for0 geojson
-
+This module tests the functionality of grid.py
 """
 
 import json
@@ -86,6 +71,36 @@ def test_make_hex_grid(cell_id):
     cos = inner / norms
     rad = np.arccos(np.clip(cos, -1.0, 1.0))
     assert np.rad2deg(rad) == pytest.approx(60)
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_type", "excep_type", "message"],
+    argvalues=[
+        ("penrose", ValueError, "The grid_type penrose is not defined."),
+        (
+            "square",
+            ValueError,
+            "The square creator function generated ids and polygons of unequal length.",
+        ),
+    ],
+)
+def test_grid_exceptions(mocker, grid_type, excep_type, message):
+    """Test Grid init exceptions."""
+
+    from virtual_rainforest.core.grid import Grid
+
+    # Mock the registered 'square' creator with something that returns unequal length
+    # ids and polygons tuples.
+    mocker.patch.dict(
+        "virtual_rainforest.core.grid.GRID_REGISTRY",
+        {"square": lambda *args, **kwargs: ((1, 2, 3, 4), ("poly", "poly", "poly"))},
+    )
+
+    with pytest.raises(excep_type) as err:
+
+        Grid(grid_type=grid_type)
+
+    assert str(err.value) == message
 
 
 @pytest.mark.parametrize(argnames=["preset_distances"], argvalues=[(True,), (False,)])
