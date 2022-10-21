@@ -14,7 +14,7 @@ TODO - maybe look at libpysal if we end up needing more weights/spatial analysis
 """
 
 import json
-from typing import Any, Callable, NamedTuple, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -32,16 +32,8 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-
-class GridStructure(NamedTuple):
-    """Data structure to be returned from grid creator functions.
-
-    The contents should be two equal length lists giving unique integer ID values
-    and corresponding shapely.geometry.Polygon objects.
-    """
-
-    ids: list[int]
-    polygons: list[Polygon]
+GRID_STRUCTURE_SIG = tuple[tuple[int, ...], tuple[Polygon, ...]]
+"""Signature of the data structure to be returned from grid creator functions."""
 
 
 def register_grid(grid_type: str) -> Callable:
@@ -78,7 +70,7 @@ def make_square_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> GridStructure:
+) -> GRID_STRUCTURE_SIG:
     """Create a square grid.
 
     Args:
@@ -114,7 +106,7 @@ def make_square_grid(
                 prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
             )
 
-    return GridStructure(ids=list(range(len(cell_list))), polygons=cell_list)
+    return (tuple(range(len(cell_list))), tuple(cell_list))
 
 
 @register_grid(grid_type="hexagon")
@@ -124,7 +116,7 @@ def make_hex_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> GridStructure:
+) -> GRID_STRUCTURE_SIG:
     """Create a hexagonal grid.
 
     Args:
@@ -180,7 +172,7 @@ def make_hex_grid(
                 yoff=1.5 * side_length * y_idx,
             )
 
-    return GridStructure(ids=list(range(len(cell_list))), polygons=cell_list)
+    return (tuple(range(len(cell_list))), tuple(cell_list))
 
 
 @register_grid(grid_type="triangle")
@@ -190,7 +182,7 @@ def make_triangular_grid(
     cell_ny: int,
     xoff: float = 0,
     yoff: float = 0,
-) -> GridStructure:
+) -> GRID_STRUCTURE_SIG:
     """Create a equilateral triangular grid.
 
     Args:
@@ -261,7 +253,7 @@ class Grid:
             raise ValueError(f"The grid_type {self.grid_type} is not defined.")
 
         # Run the grid creation
-        grid_structure = creator(
+        self.cell_id, self.polygons = creator(
             cell_area=self.cell_area,
             cell_nx=self.cell_nx,
             cell_ny=self.cell_ny,
@@ -269,8 +261,12 @@ class Grid:
             yoff=self.yoff,
         )
 
-        self.cell_id = grid_structure.ids
-        self.polygons = grid_structure.polygons
+        if len(self.cell_id) != len(self.polygons):
+            raise ValueError(
+                f"The {self.grid_type} creator function generated ids and polygons of "
+                "unequal length."
+            )
+
         self.n_cells = len(self.cell_id)
 
         # Get the centroids as a numpy array
