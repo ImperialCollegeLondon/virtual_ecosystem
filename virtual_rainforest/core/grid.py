@@ -106,7 +106,7 @@ def make_square_grid(
                 prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
             )
 
-    return (tuple(range(len(cell_list))), tuple(cell_list))
+    return tuple(range(len(cell_list))), tuple(cell_list)
 
 
 @register_grid(grid_type="hexagon")
@@ -172,7 +172,7 @@ def make_hex_grid(
                 yoff=1.5 * side_length * y_idx,
             )
 
-    return (tuple(range(len(cell_list))), tuple(cell_list))
+    return tuple(range(len(cell_list))), tuple(cell_list)
 
 
 @register_grid(grid_type="triangle")
