@@ -65,7 +65,18 @@ team.
   :hidden:
 
   virtual_rainforest/module_overview.md
+  virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
+  virtual_rainforest/core/config.md
+```
+
+```{eval-rst}
+.. toctree::
+  :maxdepth: 4
+  :caption: API
+  :hidden:
+
+  api/core.md
 ```
 
 ```{eval-rst}
@@ -78,11 +89,6 @@ team.
   development/jupyter_notebooks.md
   development/developer_setup.md
   development/design/core.md
-  development/training/building_slides.md
-  development/training/development_toolchain.md
-  development/training/git_and_gitflow.md
-  development/training/doctest_and_pytest_pre_session.md
-  development/training/doctest_and_pytest.md
 ```
 
 ```{eval-rst}
