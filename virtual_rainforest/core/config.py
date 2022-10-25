@@ -183,8 +183,8 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
     Raises:
-        OSError: If toml configuration files cannot be found at the specified locations
-        ConfigurationError: If configuration files are specified more than once (this is
+        ConfigurationError: If toml configuration files cannot be found at the specified
+            locations, or if configuration files are specified more than once (this is
             likely to be through both direct and indirect specification)
     """
 
@@ -212,14 +212,14 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
     if len(not_found) != 0:
         log_and_raise(
             f"The following (user provided) config paths do not exist:\n{not_found}",
-            OSError,
+            ConfigurationError,
         )
     # And for empty folders
     elif len(empty_fold) != 0:
         log_and_raise(
             f"The following (user provided) config folders do not contain any toml "
             f"files:\n{empty_fold}",
-            OSError,
+            ConfigurationError,
         )
     # Finally check that no files are pointed to twice
     elif len(files) != len(set(files)):
@@ -314,8 +314,6 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
             f"Validation of core configuration files failed: {err.message}",
             ConfigurationError,
         )
-
-    return None
 
 
 def find_schema(config_dict: dict[str, Any]) -> list[str]:
@@ -424,8 +422,6 @@ def validate_with_defaults(
             f"Validation of configuration files failed: {err.message}",
             ConfigurationError,
         )
-
-    return None
 
 
 def validate_config(

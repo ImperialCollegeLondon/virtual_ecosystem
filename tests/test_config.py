@@ -68,7 +68,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["Nonsense/file/location"],
             [],
-            OSError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -80,7 +80,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["."],
             [],
-            OSError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
