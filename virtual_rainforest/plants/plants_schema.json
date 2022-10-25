@@ -1,37 +1,44 @@
 {
-   "type":"object",
-   "properties":{
-      "plants":{
-         "description":"Configuration settings for the plants module",
-         "type":"object",
-         "properties":{
-            "ftypes":{
-               "description":"Details of the plant functional types",
-               "type":"array",
-               "items":{
-                  "type":"object",
-                  "properties":{
-                     "pft_name":{
-                        "type":"string"
+   "type": "object",
+   "properties": {
+      "plants": {
+         "description": "Configuration settings for the plants module",
+         "type": "object",
+         "properties": {
+            "ftypes": {
+               "description": "Details of the plant functional types",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "pft_name": {
+                        "type": "string"
                      },
-                     "maxh":{
-                        "type":"number",
-                        "exclusiveMinimum":0.0
+                     "maxh": {
+                        "type": "number",
+                        "exclusiveMinimum": 0.0
                      }
                   },
-                  "required":[
+                  "required": [
                      "pft_name",
                      "maxh"
                   ]
                }
+            },
+            "a_plant_integer": {
+               "description": "Integer relevant to the plant module",
+               "type": "integer",
+               "default": 1
             }
          },
-         "required":[
-            "ftypes"
+         "default": {},
+         "required": [
+            "ftypes",
+            "a_plant_integer"
          ]
       }
    },
-   "required":[
+   "required": [
       "plants"
    ]
 }

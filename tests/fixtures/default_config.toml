@@ -1,13 +1,3 @@
-[core]
-modules = ["plants"]
-
-[core.grid]
-nx = 10
-ny = 10
-
-[plants]
-a_plant_integer = 12
-
 [[plants.ftypes]]
 pft_name = "shrub"
 maxh = 1.0
