@@ -67,9 +67,9 @@ class Model:
     def __init__(
         self, start_time: datetime64, end_time: datetime64, update_interval: timedelta64
     ):
-        if self.start_time > self.end_time:
+        if start_time > end_time:
             log_and_raise(
-                "Model cannot end at an earlier time than it starts", ValueError
+                "Model cannot end at an earlier time than it starts!", ValueError
             )
 
         self.start_time: datetime64 = start_time
