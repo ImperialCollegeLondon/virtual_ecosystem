@@ -5,6 +5,11 @@ modules = ["plants"]
 nx = 10
 ny = 10
 
+[core.timing]
+start_date = "2020-01-01"
+end_date = "2120-01-01"
+min_time_step = 0.5
+
 [plants]
 a_plant_integer = 12
 

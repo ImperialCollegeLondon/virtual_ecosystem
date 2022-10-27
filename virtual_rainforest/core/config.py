@@ -14,7 +14,7 @@ from typing import Any, Callable, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
-from jsonschema import Draft202012Validator, exceptions, validators
+from jsonschema import Draft202012Validator, FormatChecker, exceptions, validators
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
@@ -308,7 +308,9 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
         )
 
     try:
-        ValidatorWithDefaults(core_schema).validate(config_dict)
+        ValidatorWithDefaults(core_schema, format_checker=FormatChecker()).validate(
+            config_dict
+        )
     except exceptions.ValidationError as err:
         log_and_raise(
             f"Validation of core configuration files failed: {err.message}",
@@ -422,7 +424,9 @@ def validate_with_defaults(
     # Validate the input configuration settings against the combined schema
     # This step also adds in all default module configuration details
     try:
-        ValidatorWithDefaults(comb_schema).validate(config_dict)
+        ValidatorWithDefaults(comb_schema, format_checker=FormatChecker()).validate(
+            config_dict
+        )
     except exceptions.ValidationError as err:
         log_and_raise(
             f"Validation of configuration files failed: {err.message}",

@@ -28,6 +28,36 @@
                   "ny"
                ]
             },
+            "timing": {
+               "description": "Overall timing settings for the model",
+               "type": "object",
+               "properties": {
+                  "start_date": {
+                     "description": "Simulation start date",
+                     "type": "string",
+                     "format": "date",
+                     "default": "2015-01-01"
+                  },
+                  "end_date": {
+                     "description": "Simulation end date",
+                     "type": "string",
+                     "format": "date",
+                     "default": "2065-01-01"
+                  },
+                  "min_time_step": {
+                     "description": "Minimum time step between model updates (in days)",
+                     "type": "number",
+                     "exclusiveMinimum": 0.0,
+                     "default": 7.0
+                  }
+               },
+               "default": {},
+               "required": [
+                  "start_date",
+                  "end_date",
+                  "min_time_step"
+               ]
+            },
             "modules": {
                "description": "List of modules to be configured",
                "type": "array",
@@ -42,6 +72,7 @@
          "default": {},
          "required": [
             "grid",
+            "timing",
             "modules"
          ]
       }
