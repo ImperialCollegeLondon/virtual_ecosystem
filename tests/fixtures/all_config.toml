@@ -1,5 +1,5 @@
 [core]
-modules = ["plants"]
+modules = ["plants", "soil"]
 
 [core.grid]
 nx = 10
@@ -20,3 +20,6 @@ maxh = 1.0
 [[plants.ftypes]]
 pft_name = "broadleaf"
 maxh = 50.0
+
+[soil]
+no_layers = 1
