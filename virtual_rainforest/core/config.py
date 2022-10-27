@@ -386,7 +386,13 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
     p_paths = []
     # Recursively search for all instances of properties in the schema
     for (path, value) in dpath.util.search(comb_schema, "**/properties", yielded=True):
-        p_paths.append("" if path == "properties" else path.replace("/properties", ""))
+        # Remove final properties instance from path so that additionalProperties ends
+        # up in the right place
+        p_paths.append(
+            ""
+            if path == "properties"
+            else path[::-1].replace("seitreporp/", "", 1)[::-1]
+        )
 
     # Set additional properties to false everywhere that properties are defined
     for path in p_paths:
