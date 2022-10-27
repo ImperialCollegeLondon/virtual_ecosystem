@@ -1,12 +1,18 @@
-"""The `soil.model` module.."""
+"""The `soil.model` module.
+
+The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
+class to be usable to simulate the soil. TODO - SOMETHING ABOUT ADDING TO THE REGISTRY
+"""
 
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel  # , register_model
+from virtual_rainforest.core.model import BaseModel, register_model
 
 
-# TODO - EXTEND THIS TO SOMETHING THAT CAN ACTUALLY SETUP AND RUN A BASIC SOIL MODEL
+# TODO - Change registry system to run in the init and created an instance rather than a
+# class.
+@register_model("soil")
 class SoilModel(BaseModel):
     """A class describing the soil model.
 

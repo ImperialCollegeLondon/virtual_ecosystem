@@ -13,10 +13,43 @@ from typing import Callable
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 MODEL_REGISTRY: dict[str, Callable] = {}
 """A registry for different models."""
+
+
+# TODO - Add a decorator here, once an inherited class has been defined. This should
+# allow newly defined models to be added to a module registry
+# THIS ONLY WORKS AS A SKETCH AS MY FUNCTIONALITY IS GOING TO BE PRETTY DIFFERENT
+def register_model(model_type: str) -> Callable:
+    """Add a model type and creator function to the grid registry.
+
+    TODO - This doesn't make sense at the moment, should instead rewrite this when I've
+    made the move to doing everything in the init
+    This decorator is used to add a function creating a grid layout to the registry of
+    models. The function must return equal-length tuples of integer polygon ids
+    and Polygon objects, following the GRID_STRUCTURE_SIG signature.
+
+    The grid_type argument is used to identify the grid creation function to be used by
+    the Grid class and in configuration files.
+
+    Args:
+        model_type: A name to be used to identify the model creation function.
+    """
+
+    def decorator_register_model(func: Callable) -> Callable:
+
+        # Add the grid type to the registry
+        if model_type in MODEL_REGISTRY:
+            LOGGER.warning(
+                "Model type %s already exists and is being replaced", model_type
+            )
+        MODEL_REGISTRY[model_type] = func
+
+        return func
+
+    return decorator_register_model
 
 
 class BaseModel:
