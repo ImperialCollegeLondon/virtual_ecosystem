@@ -10,7 +10,7 @@ from logging import CRITICAL
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import Model
+from virtual_rainforest.core.model import BaseModel
 
 from .conftest import log_check
 
@@ -46,7 +46,7 @@ def test_model_initialization(
 
     # Check whether initialising the model fails as expected
     with raises:
-        model = Model(start_time, end_time, update_interval)
+        model = BaseModel(start_time, end_time, update_interval)
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))

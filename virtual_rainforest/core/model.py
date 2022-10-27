@@ -9,15 +9,17 @@ between models. It also establishes a model registry that allows models to becom
 accessible across scripts without individual loading in.
 """
 
+from typing import Callable
+
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import log_and_raise
 
-# TODO - Add a decorator here, once an inherited class has been defined. This should
-# allow newly defined models to be added to a module registry
+MODEL_REGISTRY: dict[str, Callable] = {}
+"""A registry for different models."""
 
 
-class Model:
+class BaseModel:
     """A superclass for all `vr` models.
 
     Describes the common functions and attributes that all `vr` models should have. This

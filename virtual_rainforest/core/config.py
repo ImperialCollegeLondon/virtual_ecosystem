@@ -23,8 +23,8 @@ if sys.version_info[:2] >= (3, 11):
 else:
     import tomli as tomllib
 
-# Dictionary to store schema registry
 SCHEMA_REGISTRY: dict = {}
+"""A registry for different module schema."""
 
 
 class ConfigurationError(Exception):
