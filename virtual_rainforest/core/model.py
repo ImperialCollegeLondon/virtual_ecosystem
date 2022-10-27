@@ -91,7 +91,7 @@ class BaseModel:
     def __repr__(self) -> str:
         """Represent a Model as a string."""
         return (
-            f"Model(start_time={self.start_time}, end_time={self.end_time}, "
+            f"BaseModel(start_time={self.start_time}, end_time={self.end_time}, "
             f"update_interval={self.update_interval})"
         )
 

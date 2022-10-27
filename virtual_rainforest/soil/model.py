@@ -6,7 +6,7 @@ class to be usable to simulate the soil. TODO - SOMETHING ABOUT ADDING TO THE RE
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, register_model
 
 
@@ -39,6 +39,13 @@ class SoilModel(BaseModel):
         for layer in range(0, self.no_layers):
             LOGGER.info(f"Setting up soil layer {layer}")
 
+    def __repr__(self) -> str:
+        """Represent a Model as a string."""
+        return (
+            f"SoilModel(start_time={self.start_time}, end_time={self.end_time}, "
+            f"update_interval={self.update_interval}, no_layers={self.no_layers})"
+        )
+
     def __init__(
         self,
         start_time: datetime64,
@@ -46,5 +53,9 @@ class SoilModel(BaseModel):
         update_interval: timedelta64,
         no_layers: int,
     ):
+        if no_layers < 1:
+            log_and_raise(
+                "There has to be at least one soil layer in the soil model!", ValueError
+            )
         super(SoilModel, self).__init__(start_time, end_time, update_interval)
         self.no_layers = no_layers
