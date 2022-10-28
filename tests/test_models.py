@@ -5,12 +5,12 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL
+from logging import CRITICAL, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel
+from virtual_rainforest.core.model import BaseModel, register_model
 from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
@@ -118,3 +118,30 @@ def test_soil_model_initialization(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_register_model_errors(caplog):
+    """Test that the schema registering models generates correct errors/warnings."""
+
+    @register_model("soil")
+    def to_be_decorated() -> SoilModel:
+        return SoilModel(
+            datetime64("2022-10-26"),
+            datetime64("2052-10-26"),
+            timedelta64(1, "W"),
+            2,
+        )
+
+    to_be_decorated()
+
+    # Then check that the correct (critical error) log messages are emitted
+    expected_log_entries = (
+        (
+            WARNING,
+            "Model type soil already exists and is being replaced",
+        ),
+    )
+    log_check(caplog, expected_log_entries)
+
+
+# TODO - TEST INITIALISATION FUNCTION
