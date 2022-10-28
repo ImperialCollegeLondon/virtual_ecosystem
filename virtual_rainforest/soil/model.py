@@ -1,18 +1,21 @@
 """The `soil.model` module.
 
 The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
-class to be usable to simulate the soil. TODO - SOMETHING ABOUT ADDING TO THE REGISTRY
+class to be usable to simulate the soil.
 """
 
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import BaseModel, register_model
+from virtual_rainforest.core.model import BaseModel
 
 
-# TODO - Change registry system to run in the init and created an instance rather than a
-# class.
-@register_model("soil")
+class InitialisationError(Exception):
+    """Custom exception class for model initialisation failures."""
+
+    pass
+
+
 class SoilModel(BaseModel):
     """A class describing the soil model.
 
