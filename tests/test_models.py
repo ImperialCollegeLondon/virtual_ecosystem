@@ -5,13 +5,14 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, WARNING
+from logging import CRITICAL, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, register_model
-from virtual_rainforest.soil.model import SoilModel
+from virtual_rainforest.soil import generate_soil_model
+from virtual_rainforest.soil.model import InitialisationError, SoilModel
 
 from .conftest import log_check
 
@@ -96,6 +97,18 @@ def test_base_model_initialization(
                 ),
             ),
         ),
+        (
+            datetime64("2022-10-26"),
+            datetime64("2052-10-26"),
+            2.5,
+            pytest.raises(TypeError),
+            (
+                (
+                    CRITICAL,
+                    "The number of soil layers must be an integer!",
+                ),
+            ),
+        ),
     ],
 )
 def test_soil_model_initialization(
@@ -144,4 +157,70 @@ def test_register_model_errors(caplog):
     log_check(caplog, expected_log_entries)
 
 
-# TODO - TEST INITIALISATION FUNCTION
+@pytest.mark.parametrize(
+    "config,raises,expected_log_entries",
+    [
+        (
+            {},
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Configuration is missing information required to initialise the "
+                    "soil model. The first missing key is 'core'",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_time": "2022-01-01",
+                        "end_time": "20H2-01-01",
+                        "update_interval": 0.5,
+                    }
+                },
+                "soil": {"no_layers": 2},
+            },
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Configuration types appear not to have been properly validated. "
+                    "This problem prevents initialisation of the soil model. The first "
+                    "instance of this problem is as follows: Error parsing datetime "
+                    'string "20H2-01-01" at position 2',
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_time": "2022-01-01",
+                        "end_time": "2052-01-01",
+                        "update_interval": 0.5,
+                    }
+                },
+                "soil": {"no_layers": 2},
+            },
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+            ),
+        ),
+    ],
+)
+def test_generate_soil_model(caplog, config, raises, expected_log_entries):
+    """Test that the function to initialise the soil model behaves as expected."""
+    # Check whether initialising the model fails as expected
+    with raises:
+        model = generate_soil_model(config)
+        assert model.no_layers == config["soil"]["no_layers"]
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)

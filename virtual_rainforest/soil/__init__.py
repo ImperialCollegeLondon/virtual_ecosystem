@@ -5,7 +5,7 @@ from typing import Any
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import register_model
 from virtual_rainforest.soil.model import InitialisationError, SoilModel
 
@@ -61,5 +61,9 @@ def generate_soil_model(
         )
 
     # TODO - Add further relevant checks on input here as they become relevant
+
+    LOGGER.info(
+        "Information required to initialise the soil model successfully extracted."
+    )
 
     return SoilModel(start_time, end_time, update_interval, no_layers)

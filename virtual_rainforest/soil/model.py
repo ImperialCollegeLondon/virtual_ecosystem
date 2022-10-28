@@ -60,5 +60,8 @@ class SoilModel(BaseModel):
             log_and_raise(
                 "There has to be at least one soil layer in the soil model!", ValueError
             )
+        elif not isinstance(no_layers, int):
+            log_and_raise("The number of soil layers must be an integer!", TypeError)
+
         super(SoilModel, self).__init__(start_time, end_time, update_interval)
         self.no_layers = no_layers
