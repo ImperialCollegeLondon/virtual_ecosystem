@@ -19,20 +19,11 @@ MODEL_REGISTRY: dict[str, Callable] = {}
 """A registry for different models."""
 
 
-# TODO - Add a decorator here, once an inherited class has been defined. This should
-# allow newly defined models to be added to a module registry
-# THIS ONLY WORKS AS A SKETCH AS MY FUNCTIONALITY IS GOING TO BE PRETTY DIFFERENT
 def register_model(model_type: str) -> Callable:
     """Add a model type and creator function to the grid registry.
 
-    TODO - This doesn't make sense at the moment, should instead rewrite this when I've
-    made the move to doing everything in the init
-    This decorator is used to add a function creating a grid layout to the registry of
-    models. The function must return equal-length tuples of integer polygon ids
-    and Polygon objects, following the GRID_STRUCTURE_SIG signature.
-
-    The grid_type argument is used to identify the grid creation function to be used by
-    the Grid class and in configuration files.
+    This decorator is used to add a function initialising a specific model to the
+    registry of models. The function must return an initialised model object.
 
     Args:
         model_type: A name to be used to identify the model creation function.
