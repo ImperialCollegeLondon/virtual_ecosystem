@@ -42,9 +42,12 @@ from .conftest import log_check
     ],
 )
 def test_base_model_initialization(
-    caplog, start_time, end_time, update_interval, raises, expected_log_entries
+    caplog, mocker, start_time, end_time, update_interval, raises, expected_log_entries
 ):
     """Test `BaseModel` initialization."""
+
+    # Patch abstract methods so that BaseModel can be instantiated for testing
+    mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
     # Check whether initialising the model fails as expected
     with raises:
