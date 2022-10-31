@@ -11,7 +11,6 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, register_model
-from virtual_rainforest.soil import generate_soil_model
 from virtual_rainforest.soil.model import InitialisationError, SoilModel
 
 from .conftest import log_check
@@ -224,7 +223,7 @@ def test_generate_soil_model(caplog, config, raises, expected_log_entries):
     """Test that the function to initialise the soil model behaves as expected."""
     # Check whether initialising the model fails as expected
     with raises:
-        model = generate_soil_model(config)
+        model = SoilModel.factory(config)
         assert model.no_layers == config["soil"]["no_layers"]
 
     # Final check that expected logging entries are produced

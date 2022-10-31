@@ -9,9 +9,11 @@ between models. It also establishes a model registry that allows models to becom
 accessible across scripts without individual loading in.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from inspect import signature
-from typing import Callable
+from typing import Any, Callable
 
 from numpy import datetime64, timedelta64
 
@@ -93,6 +95,11 @@ class BaseModel(ABC):
     @abstractmethod
     def cleanup(self) -> None:
         """Function to delete objects within the class that are no longer needed."""
+
+    @classmethod
+    @abstractmethod
+    def factory(cls, config: dict[str, Any]) -> Any:
+        """Factory function to unpack config and initialise a model instance."""
 
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""
