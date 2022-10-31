@@ -9,6 +9,7 @@ between models. It also establishes a model registry that allows models to becom
 accessible across scripts without individual loading in.
 """
 
+from abc import ABC, abstractmethod
 from typing import Callable
 
 from numpy import datetime64, timedelta64
@@ -43,7 +44,7 @@ def register_model(model_type: str) -> Callable:
     return decorator_register_model
 
 
-class BaseModel:
+class BaseModel(ABC):
     """A superclass for all `vr` models.
 
     Describes the common functions and attributes that all `vr` models should have. This
@@ -75,18 +76,23 @@ class BaseModel:
         self.end_time: datetime64 = end_time
         self.update_interval: timedelta64 = update_interval
 
+    @abstractmethod
     def setup(self) -> None:
         """Function to use input data to set up the model."""
 
+    @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""
 
+    @abstractmethod
     def solve(self) -> None:
         """Function to solve the model."""
 
+    @abstractmethod
     def cleanup(self) -> None:
         """Function to delete objects within the class that are no longer needed."""
 
+    @abstractmethod
     def __repr__(self) -> str:
         """Represent a Model as a string."""
         return (
