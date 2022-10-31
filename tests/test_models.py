@@ -61,6 +61,8 @@ def test_base_model_initialization(
             repr(model) == "BaseModel(start_time=2022-10-26, end_time=2052-10-26,"
             " update_interval=1 weeks)"
         )
+        assert model.should_update(datetime64("2023-10-26"))
+        assert not model.should_update(datetime64("2022-10-28"))
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

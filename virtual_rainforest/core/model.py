@@ -76,6 +76,7 @@ class BaseModel(ABC):
         self.start_time: datetime64 = start_time
         self.end_time: datetime64 = end_time
         self.update_interval: timedelta64 = update_interval
+        self.last_update: datetime64 = start_time
 
     @abstractmethod
     def setup(self) -> None:
@@ -92,6 +93,14 @@ class BaseModel(ABC):
     @abstractmethod
     def cleanup(self) -> None:
         """Function to delete objects within the class that are no longer needed."""
+
+    def should_update(self, current_time: datetime64) -> bool:
+        """Determines whether a model should be updated for a specific time step."""
+
+        if current_time > self.last_update + self.update_interval:
+            self.last_update = current_time
+            return True
+        return False
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""
