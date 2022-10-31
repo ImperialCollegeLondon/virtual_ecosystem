@@ -10,6 +10,7 @@ accessible across scripts without individual loading in.
 """
 
 from abc import ABC, abstractmethod
+from inspect import signature
 from typing import Callable
 
 from numpy import datetime64, timedelta64
@@ -92,13 +93,25 @@ class BaseModel(ABC):
     def cleanup(self) -> None:
         """Function to delete objects within the class that are no longer needed."""
 
-    @abstractmethod
     def __repr__(self) -> str:
         """Represent a Model as a string."""
-        return (
-            f"BaseModel(start_time={self.start_time}, end_time={self.end_time}, "
-            f"update_interval={self.update_interval})"
-        )
+
+        # Extract names from class signature
+        names = list(signature(self.__class__).parameters.keys())
+        # And use to find corresponding values
+        values = [getattr(self, para_name) for para_name in names]
+
+        # Then construct the function signature
+        func_sig = ""
+        for idx, name in enumerate(names):
+            if idx == 0:
+                func_sig += f"{name}={values[idx]},"
+            elif idx < len(names) - 1:
+                func_sig += f" {name}={values[idx]},"
+            else:
+                func_sig += f" {name}={values[idx]}"
+
+        return f"{self.__class__.__name__}({func_sig})"
 
     def __str__(self) -> str:
         """Inform user what the model type is."""

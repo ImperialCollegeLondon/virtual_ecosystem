@@ -33,29 +33,6 @@ class SoilModel(BaseModel):
 
     name = "soil"
 
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
-    def setup(self) -> None:
-        """Function to set up the soil model."""
-        for layer in range(0, self.no_layers):
-            LOGGER.info(f"Setting up soil layer {layer}")
-
-    def spinup(self) -> None:
-        """Placeholder function to spin up the soil model."""
-
-    def solve(self) -> None:
-        """Placeholder function to solve the soil model."""
-
-    def cleanup(self) -> None:
-        """Placeholder function for soil model cleanup."""
-
-    def __repr__(self) -> str:
-        """Represent a Model as a string."""
-        return (
-            f"SoilModel(start_time={self.start_time}, end_time={self.end_time}, "
-            f"update_interval={self.update_interval}, no_layers={self.no_layers})"
-        )
-
     def __init__(
         self,
         start_time: datetime64,
@@ -72,3 +49,19 @@ class SoilModel(BaseModel):
 
         super(SoilModel, self).__init__(start_time, end_time, update_interval)
         self.no_layers = no_layers
+
+    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
+    # SHOULD WORK
+    def setup(self) -> None:
+        """Function to set up the soil model."""
+        for layer in range(0, self.no_layers):
+            LOGGER.info(f"Setting up soil layer {layer}")
+
+    def spinup(self) -> None:
+        """Placeholder function to spin up the soil model."""
+
+    def solve(self) -> None:
+        """Placeholder function to solve the soil model."""
+
+    def cleanup(self) -> None:
+        """Placeholder function for soil model cleanup."""
