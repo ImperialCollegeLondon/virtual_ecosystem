@@ -52,7 +52,7 @@ def test_base_model_initialization(
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-        assert model.name == "base model"
+        assert model.name == "base"
         assert str(model) == "A base model instance"
         assert (
             repr(model) == "BaseModel(start_time=2022-10-26, end_time=2052-10-26,"
@@ -122,7 +122,7 @@ def test_soil_model_initialization(
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-        assert model.name == "soil model"
+        assert model.name == "soil"
         assert str(model) == "A soil model instance"
         assert (
             repr(model) == "SoilModel(start_time=2022-10-26, end_time=2052-10-26,"
