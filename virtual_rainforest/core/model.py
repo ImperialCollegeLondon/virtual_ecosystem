@@ -20,7 +20,7 @@ MODEL_REGISTRY: dict[str, Callable] = {}
 
 
 def register_model(model_type: str) -> Callable:
-    """Add a model type and creator function to the grid registry.
+    """Add a model type and creator function to the model registry.
 
     This decorator is used to add a function initialising a specific model to the
     registry of models. The function must return an initialised model object.
@@ -61,34 +61,7 @@ class BaseModel:
         name: Names the model that is described
     """
 
-    name = "base model"
-
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
-        pass
-
-    def spinup(self) -> None:
-        """Function to spin up the model."""
-        pass
-
-    def solve(self) -> None:
-        """Function to solve the model."""
-        pass
-
-    def cleanup(self) -> None:
-        """Function to delete objects within the class that are no longer needed."""
-        pass
-
-    def __repr__(self) -> str:
-        """Represent a Model as a string."""
-        return (
-            f"BaseModel(start_time={self.start_time}, end_time={self.end_time}, "
-            f"update_interval={self.update_interval})"
-        )
-
-    def __str__(self) -> str:
-        """Inform user what the model type is."""
-        return f"A {self.name} instance"
+    name = "base"
 
     def __init__(
         self, start_time: datetime64, end_time: datetime64, update_interval: timedelta64
@@ -101,3 +74,26 @@ class BaseModel:
         self.start_time: datetime64 = start_time
         self.end_time: datetime64 = end_time
         self.update_interval: timedelta64 = update_interval
+
+    def setup(self) -> None:
+        """Function to use input data to set up the model."""
+
+    def spinup(self) -> None:
+        """Function to spin up the model."""
+
+    def solve(self) -> None:
+        """Function to solve the model."""
+
+    def cleanup(self) -> None:
+        """Function to delete objects within the class that are no longer needed."""
+
+    def __repr__(self) -> str:
+        """Represent a Model as a string."""
+        return (
+            f"BaseModel(start_time={self.start_time}, end_time={self.end_time}, "
+            f"update_interval={self.update_interval})"
+        )
+
+    def __str__(self) -> str:
+        """Inform user what the model type is."""
+        return f"A {self.name} model instance"

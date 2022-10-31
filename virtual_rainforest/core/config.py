@@ -30,8 +30,6 @@ SCHEMA_REGISTRY: dict = {}
 class ConfigurationError(Exception):
     """Custom exception class for configuration failures."""
 
-    pass
-
 
 def validate_and_add_defaults(
     validator_class: type[Draft202012Validator],

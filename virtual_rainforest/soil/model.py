@@ -13,8 +13,6 @@ from virtual_rainforest.core.model import BaseModel
 class InitialisationError(Exception):
     """Custom exception class for model initialisation failures."""
 
-    pass
-
 
 class SoilModel(BaseModel):
     """A class describing the soil model.
@@ -33,7 +31,7 @@ class SoilModel(BaseModel):
         name: Names the model that is described
     """
 
-    name = "soil model"
+    name = "soil"
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK
