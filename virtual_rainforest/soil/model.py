@@ -18,7 +18,7 @@ class InitialisationError(Exception):
     """Custom exception class for model initialisation failures."""
 
 
-class SoilModel(BaseModel):
+class SoilModel(BaseModel, model_name="soil"):
     """A class describing the soil model.
 
     Describes the specific functions and attributes that the soil module should possess.

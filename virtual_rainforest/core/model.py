@@ -23,30 +23,6 @@ MODEL_REGISTRY: dict[str, Callable] = {}
 """A registry for different models."""
 
 
-def register_model(model_type: str) -> Callable:
-    """Add a model type and creator function to the model registry.
-
-    This decorator is used to add a function initialising a specific model to the
-    registry of models. The function must return an initialised model object.
-
-    Args:
-        model_type: A name to be used to identify the model creation function.
-    """
-
-    def decorator_register_model(func: Callable) -> Callable:
-
-        # Add the grid type to the registry
-        if model_type in MODEL_REGISTRY:
-            LOGGER.warning(
-                "Model type %s already exists and is being replaced", model_type
-            )
-        MODEL_REGISTRY[model_type] = func
-
-        return func
-
-    return decorator_register_model
-
-
 class BaseModel(ABC):
     """A superclass for all `vr` models.
 
@@ -100,6 +76,17 @@ class BaseModel(ABC):
     @abstractmethod
     def factory(cls, config: dict[str, Any]) -> Any:
         """Factory function to unpack config and initialise a model instance."""
+
+    @classmethod
+    def __init_subclass__(cls, model_name: str):
+        """Method that adds new model classes to the model registry."""
+
+        # Add the grid type to the registry
+        if model_name in MODEL_REGISTRY:
+            LOGGER.warning(
+                "Model with name %s already exists and is being replaced", model_name
+            )
+        MODEL_REGISTRY[model_name] = cls
 
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""

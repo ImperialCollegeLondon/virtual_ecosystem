@@ -10,7 +10,7 @@ from logging import CRITICAL, INFO, WARNING
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, register_model
+from virtual_rainforest.core.model import BaseModel
 from virtual_rainforest.soil.model import InitialisationError, SoilModel
 
 from .conftest import log_check
@@ -140,22 +140,14 @@ def test_soil_model_initialization(
 def test_register_model_errors(caplog):
     """Test that the schema registering models generates correct errors/warnings."""
 
-    @register_model("soil")
-    def to_be_decorated() -> SoilModel:
-        return SoilModel(
-            datetime64("2022-10-26"),
-            datetime64("2052-10-26"),
-            timedelta64(1, "W"),
-            2,
-        )
+    class NewSoilModel(BaseModel, model_name="soil"):
+        """Test class for use in testing __init_subclass__."""
 
-    to_be_decorated()
-
-    # Then check that the correct (critical error) log messages are emitted
+    # Then check that the correct (warning) log messages are emitted
     expected_log_entries = (
         (
             WARNING,
-            "Model type soil already exists and is being replaced",
+            "Model with name soil already exists and is being replaced",
         ),
     )
     log_check(caplog, expected_log_entries)
