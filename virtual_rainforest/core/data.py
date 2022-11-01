@@ -190,6 +190,7 @@ def setup_data(data_config: dict, grid: Grid) -> None:
         for data_src, data_vars in var_groups:
 
             # Detect file type
+            LOGGER.info("Loading data from file: %s", data_src)
             file_type = data_src.suffix
 
             # Can the data mapper handle this grid and file type combination?
@@ -215,7 +216,7 @@ def setup_data(data_config: dict, grid: Grid) -> None:
 
 
 @register_data_loader(grid_type="square", file_type=".nc")
-def map_netcdf_to_square_grid(grid: Grid, file: Path, vars: list) -> None:
+def load_netcdf_to_square_grid(grid: Grid, file: Path, vars: list) -> None:
     """Loads data from a NetCDF file onto a square grid.
 
     This function loads data from a NetCDF file, checks that the data are congruent with
@@ -355,9 +356,13 @@ def check_coordinates_in_grid(
     The function returns
 
     Args:
-        grid: The simulation grid.
+        grid: A core Grid instance.
         x_coords: The x coordinates of points that should occur within grid cells.
         y_coords: The same for y coordinates.
+
+    Raises:
+        If the x and y coordinates are not compatible with the grid, a ValueError is
+        raised.
     """
 
     if len(x_coords) != len(y_coords):

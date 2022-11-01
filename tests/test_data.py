@@ -1,31 +1,10 @@
 """Test data loading and validation."""
 
 import os
-from contextlib import contextmanager
-from typing import Generator
+from contextlib import nullcontext as does_not_raise
 
 import pytest
 from xarray import load_dataset
-
-
-@contextmanager
-def does_not_raise() -> Generator:
-    """Handle inputs that do not raise exceptions in context managers.
-
-    The pytest structure of `with pytest.raises(ErrorType) as excep:` is a standard way
-    of testing for expected errors. With parameterised tests, the expected error (e.g.
-    `pytest.raises(ValueError)`) can be passed in as a parameter. _This_ function
-    provides a parameter value that behaves as a similar context manager for inputs
-    that do _not_ raise an exception, so that passing and failing inputs can be used in
-    the same test.
-
-    Note that the output of str(does_not_raise) is 'None'.
-    """
-
-    # TODO - look at sharing does_not_raise() - and probably other helpers - across test
-    #        files: see https://stackoverflow.com/questions/33508060/
-
-    yield
 
 
 @pytest.fixture
@@ -93,6 +72,23 @@ def test_check_coordinates_in_grid(
         check_coordinates_in_grid(fixture_square_grid, x_coord, y_coord)
 
         assert str(excep) == exp_message
+
+
+@pytest.mark.parametrize(
+    argnames=["data_cfg", "expected_log"],
+    argvalues=[
+        (
+            {"variable": [{"file_var": "x", "file": "/path/to/unknown/format.xyz"}]},
+            "blah",
+        ),
+    ],
+)
+def test_setup_data(caplog, fixture_square_grid, data_cfg, expected_log):
+    """Tests the setup_data high level function."""
+    from virtual_rainforest.core.data import setup_data
+
+    setup_data(data_config=data_cfg, grid=fixture_square_grid)
+    print(caplog.entries)
 
 
 @pytest.mark.parametrize(
