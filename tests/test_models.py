@@ -16,79 +16,41 @@ from virtual_rainforest.soil.model import InitialisationError, SoilModel
 from .conftest import log_check
 
 
-@pytest.mark.parametrize(
-    "start_time,end_time,update_interval,raises,expected_log_entries",
-    [
-        (
-            datetime64("2022-10-26"),
-            datetime64("2052-10-26"),
-            timedelta64(1, "W"),
-            does_not_raise(),
-            (),
-        ),
-        (
-            datetime64("2052-10-26"),
-            datetime64("2022-10-26"),
-            timedelta64(1, "W"),
-            pytest.raises(ValueError),
-            (
-                (
-                    CRITICAL,
-                    "Model cannot end at an earlier time than it starts!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_base_model_initialization(
-    caplog, mocker, start_time, end_time, update_interval, raises, expected_log_entries
-):
+def test_base_model_initialization(caplog, mocker):
     """Test `BaseModel` initialization."""
 
     # Patch abstract methods so that BaseModel can be instantiated for testing
     mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
-    # Check whether initialising the model fails as expected
-    with raises:
-        model = BaseModel(start_time, end_time, update_interval)
+    # Initialise model
+    model = BaseModel(datetime64("2022-10-26"), timedelta64(1, "W"))
 
-        # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-        assert model.name == "base"
-        assert str(model) == "A base model instance"
-        assert repr(model) == "BaseModel(2022-10-26, 2052-10-26, 1 weeks)"
-        assert model.should_update(datetime64("2023-10-26"))
-        assert not model.should_update(datetime64("2022-10-28"))
+    # In cases where it passes then checks that the object has the right properties
+    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+    assert model.name == "base"
+    assert str(model) == "A base model instance"
+    assert repr(model) == "BaseModel(2022-10-26, 1 weeks)"
+    assert model.should_update(datetime64("2023-10-26"))
+    assert not model.should_update(datetime64("2022-10-28"))
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    # Final check that expected (i.e. no) logging entries are produced
+    log_check(
+        caplog,
+        (),
+    )
 
 
 @pytest.mark.parametrize(
-    "start_time,end_time,no_layers,raises,expected_log_entries",
+    "start_time,no_layers,raises,expected_log_entries",
     [
         (
             datetime64("2022-10-26"),
-            datetime64("2052-10-26"),
             2,
             does_not_raise(),
             (),
         ),
         (
-            datetime64("2052-10-26"),
             datetime64("2022-10-26"),
-            2,
-            pytest.raises(ValueError),
-            (
-                (
-                    CRITICAL,
-                    "Model cannot end at an earlier time than it starts!",
-                ),
-            ),
-        ),
-        (
-            datetime64("2022-10-26"),
-            datetime64("2052-10-26"),
             -2,
             pytest.raises(ValueError),
             (
@@ -100,7 +62,6 @@ def test_base_model_initialization(
         ),
         (
             datetime64("2022-10-26"),
-            datetime64("2052-10-26"),
             2.5,
             pytest.raises(TypeError),
             (
@@ -113,19 +74,19 @@ def test_base_model_initialization(
     ],
 )
 def test_soil_model_initialization(
-    caplog, start_time, end_time, no_layers, raises, expected_log_entries
+    caplog, start_time, no_layers, raises, expected_log_entries
 ):
     """Test `SoilModel` initialization."""
 
     # Check whether initialising the model fails as expected
     with raises:
-        model = SoilModel(start_time, end_time, timedelta64(1, "W"), no_layers)
+        model = SoilModel(start_time, timedelta64(1, "W"), no_layers)
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
         assert model.name == "soil"
         assert str(model) == "A soil model instance"
-        assert repr(model) == "SoilModel(2022-10-26, 2052-10-26, 1 weeks, 2)"
+        assert repr(model) == "SoilModel(2022-10-26, 1 weeks, 2)"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -165,8 +126,7 @@ def test_register_model_errors(caplog):
             {
                 "core": {
                     "timing": {
-                        "start_time": "2022-01-01",
-                        "end_time": "20H2-01-01",
+                        "start_time": "20H2-01-01",
                         "update_interval": 0.5,
                     }
                 },
@@ -188,7 +148,6 @@ def test_register_model_errors(caplog):
                 "core": {
                     "timing": {
                         "start_time": "2022-01-01",
-                        "end_time": "2052-01-01",
                         "update_interval": 0.5,
                     }
                 },

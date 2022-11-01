@@ -40,15 +40,15 @@ class SoilModel(BaseModel, model_name="soil"):
 
     def __init__(self, *args: Any, **kwargs: Any):
 
-        if args[3] < 1:
+        if args[2] < 1:
             log_and_raise(
                 "There has to be at least one soil layer in the soil model!", ValueError
             )
-        elif not isinstance(args[3], int):
+        elif not isinstance(args[2], int):
             log_and_raise("The number of soil layers must be an integer!", TypeError)
 
         super(SoilModel, self).__init__(*args)
-        self.no_layers = args[3]
+        self.no_layers = args[2]
 
     @classmethod
     def factory(cls, config: dict[str, Any]) -> SoilModel:
@@ -66,7 +66,6 @@ class SoilModel(BaseModel, model_name="soil"):
         """
         try:
             start_time = datetime64(config["core"]["timing"]["start_time"])
-            end_time = datetime64(config["core"]["timing"]["end_time"])
             raw_interval = config["core"]["timing"]["update_interval"]
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(raw_interval * 24 * 60), "m")
@@ -91,7 +90,7 @@ class SoilModel(BaseModel, model_name="soil"):
             "Information required to initialise the soil model successfully extracted."
         )
 
-        return cls(start_time, end_time, update_interval, no_layers)
+        return cls(start_time, update_interval, no_layers)
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK

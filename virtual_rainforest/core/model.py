@@ -16,7 +16,7 @@ from typing import Any, Callable
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 
 MODEL_REGISTRY: dict[str, Callable] = {}
 """A registry for different models."""
@@ -47,14 +47,8 @@ class BaseModel(ABC):
         self._args = args
         self._kwargs = kwargs
 
-        if args[0] > args[1]:
-            log_and_raise(
-                "Model cannot end at an earlier time than it starts!", ValueError
-            )
-
         self.start_time: datetime64 = args[0]
-        self.end_time: datetime64 = args[1]
-        self.update_interval: timedelta64 = args[2]
+        self.update_interval: timedelta64 = args[1]
         self.last_update: datetime64 = args[0]
 
     @abstractmethod
