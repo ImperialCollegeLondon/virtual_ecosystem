@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel
@@ -40,15 +40,15 @@ class SoilModel(BaseModel, model_name="soil"):
 
     def __init__(self, *args: Any, **kwargs: Any):
 
-        if args[2] < 1:
+        if args[1] < 1:
             log_and_raise(
                 "There has to be at least one soil layer in the soil model!", ValueError
             )
-        elif not isinstance(args[2], int):
+        elif not isinstance(args[1], int):
             log_and_raise("The number of soil layers must be an integer!", TypeError)
 
         super(SoilModel, self).__init__(*args)
-        self.no_layers = args[2]
+        self.no_layers = args[1]
 
     @classmethod
     def factory(cls, config: dict[str, Any]) -> SoilModel:
@@ -65,7 +65,6 @@ class SoilModel(BaseModel, model_name="soil"):
                 either isn't found, or isn't of the correct type.
         """
         try:
-            start_time = datetime64(config["core"]["timing"]["start_time"])
             raw_interval = config["core"]["timing"]["update_interval"]
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(raw_interval * 24 * 60), "m")
@@ -90,7 +89,7 @@ class SoilModel(BaseModel, model_name="soil"):
             "Information required to initialise the soil model successfully extracted."
         )
 
-        return cls(start_time, update_interval, no_layers)
+        return cls(update_interval, no_layers)
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK

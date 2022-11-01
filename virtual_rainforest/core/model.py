@@ -41,15 +41,15 @@ class BaseModel(ABC):
     """
 
     name = "base"
+    # TODO - Once higher level timing function is written use it to set this
+    last_update = datetime64("2000-01-01")
 
     def __init__(self, *args: Any, **kwargs: Any):
         # Save args and kwargs, so that they can be found by the __repr__
         self._args = args
         self._kwargs = kwargs
 
-        self.start_time: datetime64 = args[0]
-        self.update_interval: timedelta64 = args[1]
-        self.last_update: datetime64 = args[0]
+        self.update_interval: timedelta64 = args[0]
 
     @abstractmethod
     def setup(self) -> None:
