@@ -56,10 +56,7 @@ def test_base_model_initialization(
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
         assert model.name == "base"
         assert str(model) == "A base model instance"
-        assert (
-            repr(model) == "BaseModel(start_time=2022-10-26, end_time=2052-10-26,"
-            " update_interval=1 weeks)"
-        )
+        assert repr(model) == "BaseModel(2022-10-26, 2052-10-26, 1 weeks)"
         assert model.should_update(datetime64("2023-10-26"))
         assert not model.should_update(datetime64("2022-10-28"))
 
@@ -128,10 +125,7 @@ def test_soil_model_initialization(
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
         assert model.name == "soil"
         assert str(model) == "A soil model instance"
-        assert (
-            repr(model) == "SoilModel(start_time=2022-10-26, end_time=2052-10-26,"
-            " update_interval=1 weeks, no_layers=2)"
-        )
+        assert repr(model) == "SoilModel(2022-10-26, 2052-10-26, 1 weeks, 2)"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

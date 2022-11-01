@@ -12,7 +12,6 @@ accessible across scripts without individual loading in.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from inspect import signature
 from typing import Any, Callable
 
 from numpy import datetime64, timedelta64
@@ -43,18 +42,20 @@ class BaseModel(ABC):
 
     name = "base"
 
-    def __init__(
-        self, start_time: datetime64, end_time: datetime64, update_interval: timedelta64
-    ):
-        if start_time > end_time:
+    def __init__(self, *args: Any, **kwargs: Any):
+        # Save args and kwargs, so that they can be found by the __repr__
+        self._args = args
+        self._kwargs = kwargs
+
+        if args[0] > args[1]:
             log_and_raise(
                 "Model cannot end at an earlier time than it starts!", ValueError
             )
 
-        self.start_time: datetime64 = start_time
-        self.end_time: datetime64 = end_time
-        self.update_interval: timedelta64 = update_interval
-        self.last_update: datetime64 = start_time
+        self.start_time: datetime64 = args[0]
+        self.end_time: datetime64 = args[1]
+        self.update_interval: timedelta64 = args[2]
+        self.last_update: datetime64 = args[0]
 
     @abstractmethod
     def setup(self) -> None:
@@ -99,20 +100,20 @@ class BaseModel(ABC):
     def __repr__(self) -> str:
         """Represent a Model as a string."""
 
-        # Extract names from class signature
-        names = list(signature(self.__class__).parameters.keys())
-        # And use to find corresponding values
-        values = [getattr(self, para_name) for para_name in names]
-
-        # Then construct the function signature
+        # Add all args to the function signature
         func_sig = ""
-        for idx, name in enumerate(names):
+        for idx, arg in enumerate(self._args):
             if idx == 0:
-                func_sig += f"{name}={values[idx]},"
-            elif idx < len(names) - 1:
-                func_sig += f" {name}={values[idx]},"
+                func_sig += f"{arg},"
             else:
-                func_sig += f" {name}={values[idx]}"
+                func_sig += f" {arg},"
+
+        if len(self._kwargs) > 0:
+            # TODO - Work out how to print kwargs nicely, (once we have some)
+            func_sig += f" {self._kwargs}"
+        else:
+            # Remove final comma
+            func_sig = func_sig[:-1]
 
         return f"{self.__class__.__name__}({func_sig})"
 

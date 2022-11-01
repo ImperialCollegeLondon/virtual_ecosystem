@@ -30,6 +30,7 @@ class SoilModel(BaseModel, model_name="soil"):
         start_time: Point in time that the model simulation should be started.
         end_time: Time that the model simulation should end
         update_interval: Time to wait between updates of the model state.
+        no_layers: The number of soil layers to be modelled.
 
     Attributes:
         name: Names the model that is described
@@ -37,22 +38,17 @@ class SoilModel(BaseModel, model_name="soil"):
 
     name = "soil"
 
-    def __init__(
-        self,
-        start_time: datetime64,
-        end_time: datetime64,
-        update_interval: timedelta64,
-        no_layers: int,
-    ):
-        if no_layers < 1:
+    def __init__(self, *args: Any, **kwargs: Any):
+
+        if args[3] < 1:
             log_and_raise(
                 "There has to be at least one soil layer in the soil model!", ValueError
             )
-        elif not isinstance(no_layers, int):
+        elif not isinstance(args[3], int):
             log_and_raise("The number of soil layers must be an integer!", TypeError)
 
-        super(SoilModel, self).__init__(start_time, end_time, update_interval)
-        self.no_layers = no_layers
+        super(SoilModel, self).__init__(*args)
+        self.no_layers = args[3]
 
     @classmethod
     def factory(cls, config: dict[str, Any]) -> SoilModel:
