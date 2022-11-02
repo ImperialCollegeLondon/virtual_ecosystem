@@ -81,7 +81,7 @@ variable?
 import copy
 from itertools import groupby
 from pathlib import Path
-from typing import Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 from shapely.geometry import Point
@@ -128,7 +128,7 @@ def register_data_loader(grid_type: str, file_type: Union[str, tuple[str]]) -> C
 
         # Ensure file_type is an iterable
         if isinstance(file_type, str):
-            _file_type = tuple(file_type)
+            _file_type = (file_type,)
         else:
             _file_type = file_type
 
@@ -197,8 +197,8 @@ def setup_data(data_config: dict, grid: Grid) -> None:
             if (grid.grid_type, file_type) not in DATA_LOADER_REGISTRY:
                 LOGGER.error(
                     "No data loader provided for %s files and %s grids",
-                    grid.grid_type,
                     file_type,
+                    grid.grid_type,
                 )
                 continue
 
@@ -309,7 +309,7 @@ def load_netcdf_to_square_grid(grid: Grid, file: Path, vars: list) -> None:
             )
 
         if "cell_id" in coord_names and (
-            set(grid.cell_dict) != set(dataset["cell_id"].values)
+            set(grid.cell_id) != set(dataset["cell_id"].values)
         ):
 
             raise ValueError("The cell_ids in the data do not match grid cell ids.")
@@ -372,7 +372,7 @@ def check_coordinates_in_grid(
     xyp = [Point(x, y) for x, y in zip(x_coords, y_coords)]
 
     # Count how many cells each point intersects.
-    cell_counts = [sum([c.intersects(p) for c in grid.cell_dict.values()]) for p in xyp]
+    cell_counts = [sum([cl.intersects(pt) for cl in grid.polygons]) for pt in xyp]
 
     # Not all coords in a grid cell
     if 0 in cell_counts:
@@ -398,7 +398,7 @@ class DataGenerator:
         temporal_interpolation: np.timedelta64,
         seed: Optional[int],
         method: str,  # one of the numpy.random.Generator methods
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
 
         pass

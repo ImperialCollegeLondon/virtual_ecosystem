@@ -1,10 +1,12 @@
 """Test data loading and validation."""
-
 import os
 from contextlib import nullcontext as does_not_raise
+from logging import CRITICAL, ERROR, INFO, WARNING
 
 import pytest
 from xarray import load_dataset
+
+from .conftest import log_check
 
 
 @pytest.fixture
@@ -30,48 +32,39 @@ def fixture_square_grid():
 
 
 @pytest.mark.parametrize(
-    argnames=["x_coord", "y_coord", "exp_exception", "exp_message"],
+    argnames=["grid_type", "file_type", "expected_log"],
     argvalues=[
         (
-            [0, 1, 2],
-            [0, 1],
-            pytest.raises(ValueError),
-            "The x and y coordinates are of unequal length.",
+            "penrose",
+            ".csv",
+            ((CRITICAL, "Unknown grid type penrose used with register_data_mapper"),),
         ),
         (
-            [0, 1, 2],
-            [0, 1, 2],
-            pytest.raises(ValueError),
-            "Data coordinates do not align with grid coordinates.",
-        ),
-        (
-            [500000, 500100, 500200],
-            [200000, 200100, 200200],
-            pytest.raises(ValueError),
-            "Data coordinates fall on cell edges: use cell centre coordinates in data.",
-        ),
-        (
-            [500050, 500150, 500250],
-            [200050, 200150, 200250],
-            does_not_raise(),
-            "None",
+            "square",
+            ".nc",
+            (
+                (
+                    WARNING,
+                    "The data mapper for (square, .nc) already exists and is "
+                    "being replaced",
+                ),
+            ),
         ),
     ],
 )
-def test_check_coordinates_in_grid(
-    fixture_square_grid, x_coord, y_coord, exp_exception, exp_message
-):
-    """Test coordinate checking.
+def test_register_data_loader(caplog, grid_type, file_type, expected_log):
+    """Tests the register data loader decorator."""
 
-    Tests the failure modes of coordinate checking, along with return value on success.
-    """
-    from virtual_rainforest.core.data import check_coordinates_in_grid
+    from virtual_rainforest.core.data import register_data_loader
 
-    with exp_exception as excep:
+    # Decorate a mock function to test the failure modes
+    @register_data_loader(grid_type=grid_type, file_type=file_type)
+    def mock_function():
+        return
 
-        check_coordinates_in_grid(fixture_square_grid, x_coord, y_coord)
+    mock_function()
 
-        assert str(excep) == exp_message
+    log_check(caplog, expected_log)
 
 
 @pytest.mark.parametrize(
@@ -79,7 +72,10 @@ def test_check_coordinates_in_grid(
     argvalues=[
         (
             {"variable": [{"file_var": "x", "file": "/path/to/unknown/format.xyz"}]},
-            "blah",
+            (
+                (INFO, "Loading data from file: /path/to/unknown/format.xyz"),
+                (ERROR, "No data loader provided for .xyz files and square grids"),
+            ),
         ),
     ],
 )
@@ -88,7 +84,8 @@ def test_setup_data(caplog, fixture_square_grid, data_cfg, expected_log):
     from virtual_rainforest.core.data import setup_data
 
     setup_data(data_config=data_cfg, grid=fixture_square_grid)
-    print(caplog.entries)
+
+    log_check(caplog, expected_log)
 
 
 @pytest.mark.parametrize(
@@ -163,3 +160,48 @@ def test_map_dataset_onto_square_grid(
         map_dataset_onto_square_grid(fixture_square_grid, dataset)
 
         assert str(outcome) == expected_outcome_msg
+
+
+@pytest.mark.parametrize(
+    argnames=["x_coord", "y_coord", "exp_exception", "exp_message"],
+    argvalues=[
+        (
+            [0, 1, 2],
+            [0, 1],
+            pytest.raises(ValueError),
+            "The x and y coordinates are of unequal length.",
+        ),
+        (
+            [0, 1, 2],
+            [0, 1, 2],
+            pytest.raises(ValueError),
+            "Data coordinates do not align with grid coordinates.",
+        ),
+        (
+            [500000, 500100, 500200],
+            [200000, 200100, 200200],
+            pytest.raises(ValueError),
+            "Data coordinates fall on cell edges: use cell centre coordinates in data.",
+        ),
+        (
+            [500050, 500150, 500250],
+            [200050, 200150, 200250],
+            does_not_raise(),
+            "None",
+        ),
+    ],
+)
+def test_check_coordinates_in_grid(
+    fixture_square_grid, x_coord, y_coord, exp_exception, exp_message
+):
+    """Test coordinate checking.
+
+    Tests the failure modes of coordinate checking, along with return value on success.
+    """
+    from virtual_rainforest.core.data import check_coordinates_in_grid
+
+    with exp_exception as excep:
+
+        check_coordinates_in_grid(fixture_square_grid, x_coord, y_coord)
+
+        assert str(excep) == exp_message
