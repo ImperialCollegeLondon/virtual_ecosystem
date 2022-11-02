@@ -44,12 +44,10 @@ class BaseModel(ABC):
     # TODO - Once higher level timing function is written use it to set this
     last_update = datetime64("2000-01-01")
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        # Save args and kwargs, so that they can be found by the __repr__
-        self._args = args
-        self._kwargs = kwargs
-
-        self.update_interval: timedelta64 = args[0]
+    def __init__(self, update_interval: timedelta64, **kwargs: Any):
+        self.update_interval = update_interval
+        # Save variables names to be used by the __repr__
+        self._repr = ["update_interval"]
 
     @abstractmethod
     def setup(self) -> None:
@@ -95,10 +93,7 @@ class BaseModel(ABC):
         """Represent a Model as a string."""
 
         # Add all args to the function signature
-        func_sig = ", ".join(
-            [f"{a}" for a in self._args]
-            + [f"{k} = {v}" for k, v in self._kwargs.items()]
-        )
+        func_sig = ", ".join([f"{k} = {getattr(self, k)}" for k in self._repr])
 
         return f"{self.__class__.__name__}({func_sig})"
 

@@ -38,17 +38,19 @@ class SoilModel(BaseModel, model_name="soil"):
 
     name = "soil"
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
 
-        if args[1] < 1:
+        if no_layers < 1:
             log_and_raise(
                 "There has to be at least one soil layer in the soil model!", ValueError
             )
-        elif not isinstance(args[1], int):
+        elif no_layers != int(no_layers):
             log_and_raise("The number of soil layers must be an integer!", TypeError)
 
-        super(SoilModel, self).__init__(*args)
-        self.no_layers = args[1]
+        super(SoilModel, self).__init__(update_interval, **kwargs)
+        self.no_layers = int(no_layers)
+        # Save variables names to be used by the __repr__
+        self._repr.append("no_layers")
 
     @classmethod
     def factory(cls, config: dict[str, Any]) -> SoilModel:

@@ -29,7 +29,7 @@ def test_base_model_initialization(caplog, mocker):
     assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
     assert model.name == "base"
     assert str(model) == "A base model instance"
-    assert repr(model) == "BaseModel(1 weeks)"
+    assert repr(model) == "BaseModel(update_interval = 1 weeks)"
     assert model.should_update(datetime64("2023-10-26"))
     assert not model.should_update(datetime64("2022-10-28"))
 
@@ -81,7 +81,7 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
         assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
         assert model.name == "soil"
         assert str(model) == "A soil model instance"
-        assert repr(model) == "SoilModel(1 weeks, 2)"
+        assert repr(model) == "SoilModel(update_interval = 1 weeks, no_layers = 2)"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
