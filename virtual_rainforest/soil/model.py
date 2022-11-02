@@ -27,8 +27,6 @@ class SoilModel(BaseModel, model_name="soil"):
     inheritance should be handled for the model classes.
 
     Args:
-        start_time: Point in time that the model simulation should be started.
-        end_time: Time that the model simulation should end
         update_interval: Time to wait between updates of the model state.
         no_layers: The number of soil layers to be modelled.
 
@@ -41,11 +39,9 @@ class SoilModel(BaseModel, model_name="soil"):
     def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
 
         if no_layers < 1:
-            log_and_raise(
-                "There has to be at least one soil layer in the soil model!", ValueError
-            )
+            LOGGER.error("There has to be at least one soil layer in the soil model!")
         elif no_layers != int(no_layers):
-            log_and_raise("The number of soil layers must be an integer!", TypeError)
+            LOGGER.error("The number of soil layers must be an integer!")
 
         super(SoilModel, self).__init__(update_interval, **kwargs)
         self.no_layers = int(no_layers)

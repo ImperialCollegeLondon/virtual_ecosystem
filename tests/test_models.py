@@ -5,7 +5,7 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO, WARNING
+from logging import CRITICAL, ERROR, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
@@ -41,47 +41,46 @@ def test_base_model_initialization(caplog, mocker):
 
 
 @pytest.mark.parametrize(
-    "no_layers,raises,expected_log_entries",
+    "no_layers,expected_log_entries",
     [
         (
             2,
-            does_not_raise(),
             (),
         ),
         (
             -2,
-            pytest.raises(ValueError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the soil model!",
                 ),
             ),
         ),
         (
             2.5,
-            pytest.raises(TypeError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "The number of soil layers must be an integer!",
                 ),
             ),
         ),
     ],
 )
-def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entries):
+def test_soil_model_initialization(caplog, no_layers, expected_log_entries):
     """Test `SoilModel` initialization."""
 
-    # Check whether initialising the model fails as expected
-    with raises:
-        model = SoilModel(timedelta64(1, "W"), no_layers)
+    # Initialize model
+    model = SoilModel(timedelta64(1, "W"), no_layers)
 
-        # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-        assert model.name == "soil"
-        assert str(model) == "A soil model instance"
-        assert repr(model) == "SoilModel(update_interval = 1 weeks, no_layers = 2)"
+    # In cases where it passes then checks that the object has the right properties
+    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+    assert model.name == "soil"
+    assert str(model) == "A soil model instance"
+    assert (
+        repr(model)
+        == f"SoilModel(update_interval = 1 weeks, no_layers = {int(no_layers)})"
+    )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
