@@ -95,19 +95,10 @@ class BaseModel(ABC):
         """Represent a Model as a string."""
 
         # Add all args to the function signature
-        func_sig = ""
-        for idx, arg in enumerate(self._args):
-            if idx == 0:
-                func_sig += f"{arg},"
-            else:
-                func_sig += f" {arg},"
-
-        if len(self._kwargs) > 0:
-            # TODO - Work out how to print kwargs nicely, (once we have some)
-            func_sig += f" {self._kwargs}"
-        else:
-            # Remove final comma
-            func_sig = func_sig[:-1]
+        func_sig = ", ".join(
+            [f"{a}" for a in self._args]
+            + [f"{k} = {v}" for k, v in self._kwargs.items()]
+        )
 
         return f"{self.__class__.__name__}({func_sig})"
 
