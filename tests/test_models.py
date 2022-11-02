@@ -120,7 +120,7 @@ def test_register_model_errors(caplog):
             {
                 "core": {
                     "timing": {
-                        "update_interval": 0.5,
+                        "min_time_step": "0.5 days",
                     }
                 },
                 "soil": {"no_layers": 2},

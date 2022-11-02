@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from numpy import timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel
@@ -63,9 +64,11 @@ class SoilModel(BaseModel, model_name="soil"):
                 either isn't found, or isn't of the correct type.
         """
         try:
-            raw_interval = config["core"]["timing"]["update_interval"]
+            raw_interval = Quantity(config["core"]["timing"]["min_time_step"]).to(
+                "minutes"
+            )
             # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(raw_interval * 24 * 60), "m")
+            update_interval = timedelta64(int(raw_interval.magnitude), "m")
             no_layers = config["soil"]["no_layers"]
         except KeyError as e:
             log_and_raise(
