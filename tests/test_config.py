@@ -342,7 +342,6 @@ def test_register_schema_errors(
     log_check(caplog, expected_log_entries)
 
 
-# TODO - THIS TEST ABSOLUTELY NEEDS TO CHANGE
 def test_extend_with_default():
     """Test that validator has been properly extended to allow addition of defaults."""
 

@@ -1,0 +1,24 @@
+{
+   "type": "object",
+   "properties": {
+      "soil": {
+         "description": "Configuration settings for the soil module",
+         "type": "object",
+         "properties": {
+            "no_layers": {
+               "description": "Number of soil layers to simulate",
+               "type": "integer",
+               "exclusiveMinimum": 0,
+               "default": 2
+            }
+         },
+         "default": {},
+         "required": [
+            "no_layers"
+         ]
+      }
+   },
+   "required": [
+      "soil"
+   ]
+}
