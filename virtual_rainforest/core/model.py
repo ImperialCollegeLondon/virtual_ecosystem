@@ -50,10 +50,6 @@ class BaseModel(ABC):
         self._repr = ["update_interval"]
 
     @abstractmethod
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
-
-    @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""
 
@@ -80,6 +76,9 @@ class BaseModel(ABC):
                 "Model with name %s already exists and is being replaced", model_name
             )
         MODEL_REGISTRY[model_name] = cls
+
+    def setup(self) -> None:
+        """Function to use input data to set up the model."""
 
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""
