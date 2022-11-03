@@ -94,6 +94,8 @@ class SoilModel(BaseModel, model_name="soil"):
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK
+    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
+    # STATE
     def setup(self) -> None:
         """Function to set up the soil model."""
         for layer in range(0, self.no_layers):
