@@ -28,6 +28,35 @@
                   "ny"
                ]
             },
+            "timing": {
+               "description": "Overall timing settings for the model",
+               "type": "object",
+               "properties": {
+                  "start_date": {
+                     "description": "Simulation start date",
+                     "type": "string",
+                     "format": "date",
+                     "default": "2015-01-01"
+                  },
+                  "end_date": {
+                     "description": "Simulation end date",
+                     "type": "string",
+                     "format": "date",
+                     "default": "2065-01-01"
+                  },
+                  "min_time_step": {
+                     "description": "Minimum time step, units must be provided!",
+                     "type": "string",
+                     "default": "7.0 days"
+                  }
+               },
+               "default": {},
+               "required": [
+                  "start_date",
+                  "end_date",
+                  "min_time_step"
+               ]
+            },
             "modules": {
                "description": "List of modules to be configured",
                "type": "array",
@@ -35,13 +64,15 @@
                   "type": "string"
                },
                "default": [
-                  "plants"
+                  "plants",
+                  "soil"
                ]
             }
          },
          "default": {},
          "required": [
             "grid",
+            "timing",
             "modules"
          ]
       }
