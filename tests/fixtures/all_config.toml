@@ -1,9 +1,17 @@
 [core]
-modules = ["plants"]
+modules = ["plants", "soil"]
 
 [core.grid]
 nx = 10
 ny = 10
+
+[core.timing]
+start_date = "2020-01-01"
+end_date = "2120-01-01"
+min_time_step = "0.5 days"
+
+[plants]
+a_plant_integer = 12
 
 [[plants.ftypes]]
 pft_name = "shrub"
@@ -12,3 +20,6 @@ maxh = 1.0
 [[plants.ftypes]]
 pft_name = "broadleaf"
 maxh = 50.0
+
+[soil]
+no_layers = 1

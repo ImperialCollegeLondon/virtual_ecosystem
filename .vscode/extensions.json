@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "Gruntfuggly.todo-tree",
-        "kevinglasson.cornflakes-linter",
         "ms-python.python",
         "ms-python.vscode-pylance",
         "ms-toolsai.jupyter",

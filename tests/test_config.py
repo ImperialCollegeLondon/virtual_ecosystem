@@ -6,6 +6,7 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
+from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
 from pathlib import Path
 
@@ -67,7 +68,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["Nonsense/file/location"],
             [],
-            OSError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -79,7 +80,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["."],
             [],
-            OSError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -91,7 +92,7 @@ def test_check_outfile(caplog, mocker):
         (
             ["tests/fixtures/", "tests/fixtures/all_config.toml"],
             [Path("tests/fixtures/all_config.toml")],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -124,7 +125,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml")],
             [b"bshbsybdvshhd"],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -137,7 +138,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml"), Path("fake_file2.toml")],
             [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -171,7 +172,7 @@ def test_load_in_config_files(
     [
         (
             {"core": {"grid": {"nx": 10, "ny": 10}}},
-            KeyError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -182,7 +183,7 @@ def test_load_in_config_files(
         ),
         (
             {"core": {"modules": ["soil", "soil"]}},
-            RuntimeError,
+            config.ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -207,7 +208,7 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     """Checks errors for bad or missing json schema."""
 
     # Check that construct_combined_schema fails as expected
-    with pytest.raises(RuntimeError):
+    with pytest.raises(config.ConfigurationError):
         config.construct_combined_schema(["a_stupid_module_name"])
 
     expected_log_entries = (
@@ -222,9 +223,10 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "expected_log_entries",
+    "file_path,expected_log_entries",
     [
         (
+            "tests/fixtures/default_config.toml",  # File entirely of defaults
             (
                 (
                     INFO,
@@ -234,16 +236,27 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
                     INFO,
                     "Saving all configuration details to ./complete_config.toml",
                 ),
-            )
+            ),
+        ),
+        (
+            "tests/fixtures/all_config.toml",  # File with no defaults
+            (
+                (
+                    INFO,
+                    "Configuration files successfully validated!",
+                ),
+                (
+                    INFO,
+                    "Saving all configuration details to ./complete_config.toml",
+                ),
+            ),
         ),
     ],
 )
-def test_final_validation_log(caplog, expected_log_entries):
+def test_final_validation_log(caplog, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    print(type(expected_log_entries))
-
-    config.validate_config(["tests/fixtures"], out_file_name="complete_config")
+    config.validate_config([file_path], out_file_name="complete_config")
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
@@ -251,9 +264,6 @@ def test_final_validation_log(caplog, expected_log_entries):
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
-
-    # Check that final config has been within nested dictionary
-    assert type(config.COMPLETE_CONFIG["config"]) == dict
 
 
 @pytest.mark.parametrize(
@@ -330,3 +340,120 @@ def test_register_schema_errors(
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
+
+
+def test_extend_with_default():
+    """Test that validator has been properly extended to allow addition of defaults."""
+
+    # Check that function adds a function with the right name in the right location
+    TestValidator = config.ValidatorWithDefaults({"str": {}})
+    assert TestValidator.VALIDATORS["properties"].__name__ == "set_defaults"
+
+
+@pytest.mark.parametrize(
+    "config_dict,nx,raises,expected_log_entries",
+    [
+        (
+            {},
+            100,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"core": {"grid": {"nx": 125}}},
+            125,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"basybuedb"},
+            None,
+            pytest.raises(config.ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "Validation of core configuration files failed: {'basybuedb'} is "
+                    "not of type 'object'",
+                ),
+            ),
+        ),
+    ],
+)
+def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries):
+    """Test that default values are properly added to the core configuration."""
+
+    # Check that find_schema fails as expected
+    with raises:
+        config.add_core_defaults(config_dict)
+
+    log_check(caplog, expected_log_entries)
+
+    # If configuration occurs check that nx has the right value
+    if nx is not None:
+        assert config_dict["core"]["grid"]["nx"] == nx
+
+
+def test_missing_core_schema(caplog, mocker):
+    """Test that core schema not being in the registry is handled properly."""
+
+    mocker.patch("virtual_rainforest.core.config.SCHEMA_REGISTRY", {})
+
+    # Check that find_schema fails as expected
+    with pytest.raises(config.ConfigurationError):
+        config.add_core_defaults({})
+
+    expected_log_entries = (
+        (
+            CRITICAL,
+            "Expected a schema for core module configuration, it was not provided!",
+        ),
+    )
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config_dict,plant_int,raises,expected_log_entries",
+    [
+        (
+            {"plants": {"ftypes": []}},
+            1,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"plants": {"ftypes": [], "a_plant_integer": 333}},
+            333,
+            does_not_raise(),
+            (),
+        ),
+        (
+            {"basybuedb"},
+            None,
+            pytest.raises(config.ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "Validation of configuration files failed: {'basybuedb'} is not of"
+                    " type 'object'",
+                ),
+            ),
+        ),
+    ],
+)
+def test_validate_with_defaults(
+    caplog, config_dict, plant_int, raises, expected_log_entries
+):
+    """Test that addition of defaults values during configuration works as desired."""
+
+    comb_schema = config.construct_combined_schema(["core", "plants"])
+
+    # Check that find_schema fails as expected
+    with raises:
+        config.validate_with_defaults(config_dict, comb_schema)
+
+    log_check(caplog, expected_log_entries)
+
+    # If configuration occurs check that plant integer has the right value
+    if plant_int is not None:
+        assert config_dict["plants"]["a_plant_integer"] == plant_int
