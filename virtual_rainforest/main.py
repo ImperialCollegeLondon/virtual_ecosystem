@@ -10,6 +10,7 @@ from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER
 
 
+# TODO - Add tests for this function
 def vr_run(
     cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
 ) -> None:
@@ -27,9 +28,19 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    print(config)
+    # TODO - Add in additional model details
+
+    # TODO -  SELECT MODELS TO BE RUN
+
+    # TODO - Save model state
+
+    # TODO - Add timing loop
+    # TODO - Find models to update
+    # TODO - Solve models to steady state
+    # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")
+    print(config)
 
 
-# def _vr_run_cli
+# TODO - Define command line entry point
