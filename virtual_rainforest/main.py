@@ -4,10 +4,28 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
+from copy import deepcopy
 from typing import Union
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.model import MODEL_REGISTRY
+
+
+# TODO - WORK OUT WHAT THIS FUNCTION SHOULD ACTUALLY RETURN
+def select_models(model_list: list[str]) -> None:
+    """TODO - WRITE A SENSIBLE DOCSTRING!"""
+
+    # Remove "core" from model list as it is not a model
+    if "core" in model_list:
+        model_list.remove("core")
+
+    # Then look for each model in the registry
+    for model in model_list:
+        print(MODEL_REGISTRY[model])
+
+    # SOME KIND OF ERROR FOR MODEL NOT FOUND
+    # IDEALLY CATCH THEM ALL IN ONE
 
 
 # TODO - Add tests for this function
@@ -31,6 +49,7 @@ def vr_run(
     # TODO - Add in additional model details
 
     # TODO -  SELECT MODELS TO BE RUN
+    select_models(deepcopy(config["core"]["modules"]))
 
     # TODO - Save model state
 
