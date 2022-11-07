@@ -158,7 +158,7 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
             file to
         out_file_name: The name to save the outputted complete configuration file under
     Raises:
-        OSError: If the final output file already exist.
+        ConfigurationError: If the final output file already exist.
     """
 
     # Throw critical error if combined output file already exists
@@ -168,7 +168,7 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
                 f"A config file in the specified configuration folder already makes use"
                 f" of the specified output file name ({out_file_name}.toml), this file "
                 f"should either be renamed or deleted!",
-                OSError,
+                ConfigurationError,
             )
 
     return None

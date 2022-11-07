@@ -47,7 +47,7 @@ def test_check_outfile(caplog, mocker):
     mock_content.return_value = [Path(f"{file_name}.toml")]
 
     # Check that check_outfile fails as expected
-    with pytest.raises(OSError):
+    with pytest.raises(config.ConfigurationError):
         config.check_outfile(".", file_name)
 
     expected_log_entries = (
