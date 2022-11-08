@@ -19,7 +19,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
-from shapely.geometry import Polygon  # type: ignore
+from shapely.geometry import GeometryCollection, Polygon  # type: ignore
 
 from virtual_rainforest.core.logger import LOGGER
 
@@ -271,6 +271,9 @@ class Grid:
         centroids = [cell.centroid for cell in self.polygons]
         self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
         [cell.centroid for cell in self.polygons]
+
+        # Get the bounds as a 4 tuple
+        self.bounds = GeometryCollection(self.polygons).bounds
 
         # Define other attributes set by methods
         # TODO - this might become a networkx graph

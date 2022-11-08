@@ -12,6 +12,12 @@ from hypothesis import given, settings
 from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
 
+# Local constants
+# 100m2 hex: apothem = 5.373 m, side = 6.204 m
+hxA = 100
+hxs = np.sqrt(hxA / (1.5 * np.sqrt(3)))
+hxa = hxA / (3 * hxs)
+
 
 @settings(deadline=None)
 @given(integers(min_value=0, max_value=99))
@@ -101,6 +107,63 @@ def test_grid_exceptions(mocker, grid_type, excep_type, message):
         Grid(grid_type=grid_type)
 
     assert str(err.value) == message
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_type", "exp_centroids", "exp_n_cells", "exp_bounds"],
+    argvalues=[
+        (
+            "square",
+            [
+                [
+                    [5, 5],
+                    [15, 5],
+                    [25, 5],
+                    [5, 15],
+                    [15, 15],
+                    [25, 15],
+                    [5, 25],
+                    [15, 25],
+                    [25, 25],
+                ],
+            ],
+            9,
+            (0, 0, 30, 30),
+        ),
+        (
+            "hexagon",
+            [
+                [
+                    [hxa, hxs],
+                    [hxa * 3, hxs],
+                    [hxa * 5, hxs],
+                    [hxa * 2, hxs * 2.5],
+                    [hxa * 4, hxs * 2.5],
+                    [hxa * 6, hxs * 2.5],
+                    [hxa, hxs * 4],
+                    [hxa * 3, hxs * 4],
+                    [hxa * 5, hxs * 4],
+                ],
+            ],
+            9,
+            (0, 0, hxa * 7, hxs * 5),
+        ),
+    ],
+)
+def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
+    """Test properties calculated within Grid.__init__.
+
+    Most properties are calculated by the individual grid type creator, not by the Grid
+    __init__ argument itself. Those few ones are tested here.
+    """
+
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(grid_type=grid_type, cell_nx=3, cell_ny=3)
+
+    assert np.allclose(grid.centroids, exp_centroids)
+    assert grid.n_cells == exp_n_cells
+    assert np.allclose(grid.bounds, exp_bounds)
 
 
 @pytest.mark.parametrize(argnames=["preset_distances"], argvalues=[(True,), (False,)])
