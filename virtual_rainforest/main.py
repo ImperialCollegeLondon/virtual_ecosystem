@@ -9,20 +9,24 @@ from typing import Any, Optional, Union
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import MODEL_REGISTRY
+from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel
 
 
-# TODO - WORK OUT WHAT THIS FUNCTION SHOULD ACTUALLY RETURN
-# SHOULD BE A LIST But question is what type the list should contain
 # TODO - ADD TESTS FOR THIS FUNCTION
-def select_models(config: dict[str, Any]) -> Optional[list]:
-    """TODO - WRITE A SENSIBLE DOCSTRING!"""
+def select_models(config: dict[str, Any]) -> Optional[list[BaseModel]]:
+    """TODO - WRITE A SENSIBLE DOCSTRING!
+
+    EXPLAIN BASIC IDEA, THEN WHAT HAPPENS IF IT SUCCEEDS, AND WHAT HAPPENS IF IT FAILS
+    EXPLAIN ARGS AND RETURNS.
+    """
 
     model_list = deepcopy(config["core"]["modules"])
 
     # Remove "core" from model list as it is not a model
     if "core" in model_list:
         model_list.remove("core")
+
+    LOGGER.info(f"Attempting to configure the following models: {model_list}")
 
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list if model not in MODEL_REGISTRY.keys()]
@@ -31,13 +35,15 @@ def select_models(config: dict[str, Any]) -> Optional[list]:
             f"The following models cannot be configured as they are not found in the "
             f"registry: {miss_model}"
         )
-    return None
+        return None
 
     # Then look for each model in the registry
-    for model in model_list:
-        # CAN ALL OF THESE BE DONE IN ONE STEP???
-        # OR DOES FACTORY HAVE TO BE DONE ONE BY ONE??
-        print(MODEL_REGISTRY[model])
+    temp_models = [MODEL_REGISTRY[model] for model in model_list]
+
+    # Use factory methods to configure the following models
+    confd_models = [model.factory(config) for model in temp_models]
+
+    return confd_models
 
 
 # TODO - Add tests for this function
@@ -59,10 +65,12 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    # TODO - Extract input data required to initialise the models
-
     # TODO -  SELECT MODELS TO BE RUN
-    select_models(config)
+    models = select_models(config)
+    # LOG INFO ON SUCCESS, OR OTHERWISE END THIS PROGRAM
+    print(models)
+
+    # TODO - Extract input data required to initialise the models
 
     # TODO - Initialise the set of configured models
 
