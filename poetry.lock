@@ -1688,7 +1688,7 @@ test = ["pre-commit", "pytest"]
 name = "types-jsonschema"
 version = "4.17.0.0"
 description = "Typing stubs for jsonschema"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -1764,7 +1764,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "b098258f64d800225f4da91f5c20754f8288bac503f5d2b98cab0b5b7244226d"
+content-hash = "938ab909c3d78e7f33351ef8254f83dcd361f3b78da29b5beddf149a78f17980"
 
 [metadata.files]
 alabaster = [
