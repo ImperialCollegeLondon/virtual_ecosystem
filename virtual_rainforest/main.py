@@ -14,10 +14,18 @@ from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel
 
 # TODO - ADD TESTS FOR THIS FUNCTION
 def select_models(config: dict[str, Any]) -> Optional[list[BaseModel]]:
-    """TODO - WRITE A SENSIBLE DOCSTRING!
+    """Select the models to be run for a specific virtual rainforest simulation.
 
-    EXPLAIN BASIC IDEA, THEN WHAT HAPPENS IF IT SUCCEEDS, AND WHAT HAPPENS IF IT FAILS
-    EXPLAIN ARGS AND RETURNS.
+    Based on the configuration this function selects a number of models to configure.
+    If these models all exist in the model registry and can be configured then this
+    function returns a list of configured models. Otherwise errors are logged, which
+    should be handled appropriately downstream.
+
+    Args:
+        config: The virtual rainforest configuration
+
+    Returns:
+        confd_models: A set of configured (but not initialised) models
     """
 
     model_list = deepcopy(config["core"]["modules"])
@@ -65,7 +73,6 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    # TODO -  SELECT MODELS TO BE RUN
     models = select_models(config)
     # LOG INFO ON SUCCESS, OR OTHERWISE END THIS PROGRAM
     print(models)
