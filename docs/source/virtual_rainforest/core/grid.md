@@ -21,6 +21,7 @@ simulation. Square and hexagon grids are currently supported.
 
 ```{code-cell} ipython3
 import matplotlib.pyplot as plt
+import numpy as np
 
 from virtual_rainforest.core.grid import Grid
 ```
@@ -84,7 +85,35 @@ for this_ax, this_grid in zip(axes, [square_grid, hex_grid]):
 
     # 1:1 aspect ratio
     this_ax.set_aspect("equal")
+```
 
+## Grid centroids
+
+The centroids of the grid cell polygons are available via the `centroids` attribute as a
+`numpy` array of ($x$, $y$) pairs: these can be indexed by cell id:
+
+```{code-cell} ipython3
+square_grid.centroids[0:5]
+```
+
+## Grid origin
+
+Grid types can take optional offset arguments (`offx` and `offy`) to set the origin of
+the grid. This can be useful for aligning a simulation grid with data in real projected
+coordinate systems, rather than having to move the origin in multiple existing data
+files.
+
+```{code-cell} ipython3
+offset_grid = Grid(
+  grid_type="square",
+  cell_area=100,
+  cell_nx=10,
+  cell_ny=10,
+  xoff=500000,
+  yoff=200000
+)
+
+offset_grid
 ```
 
 ## Neighbours
@@ -127,11 +156,100 @@ square_grid.populate_distances()
 square_grid.get_distances(45, square_grid.neighbours[45])
 ```
 
+## Mapping points to grid cells
+
+The `Grid` class also provides methods to map coordinates onto grid cells.
+
+### Mapping coordinates
+
+The `map_coordinates` method is more general and simply returns the cell ids (if any)
+of the grid cells that intersect pairs of coordinates. Note that points that lie on
+cell boundaries will intersect **all** of the cells sharing a boundary.
+
+The method returns a list of lists, giving the cell_ids for each pair of points in turn.
+
+```{code-cell} ipython3
+# A simple small grid
+simple = Grid('square', cell_nx=2, cell_ny=2, cell_area=1, xoff=1, yoff=1)
+
+# Points that lie outside, within and on cell boundaries
+points_x = [0.75, 1.25, 1.5, 2, 2.25, 3.25]
+points_y = [0.75, 1.25, 2, 2, 2.25, 3.25]
+
+# Plot the data
+for cell_id in simple.cell_id:
+
+    poly = simple.polygons[cell_id]
+    centroid = simple.centroids[cell_id]
+
+    cx, cy = poly.exterior.coords.xy
+    plt.plot(cx, cy, color="k", linewidth=0.5)
+    plt.text(
+        x=centroid[0],
+        y=centroid[1],
+        s=cell_id,
+        ha="center",
+        va="center",
+    )
+
+plt.plot(points_x, points_y, 'rx')
+
+# 1:1 aspect ratio
+plt.gca().set_aspect('equal')
+```
+
+```{code-cell} ipython3
+# Recover the cells under each pair of points.
+simple.map_coordinates(points_x, points_y)
+```
+
+### Mapping point coverage of grid
+
+The `map_coverage` method does the same thing but then additionally checks that the
+points provide a one-to-one mapping to the grid cells. This is primarily used to check
+that a provided dataset completely covers the grid.
+
+The function will raise `ValueError` exceptions if:
+
+* any points ambiguously lie on cell boundaries,
+* if more than one point falls in any cell,
+* if no points fall in any cell, or
+* any points fall outside all the grid cell. This check can be turned off using
+  `strict=False` to provide mappings where a grid lies entirely within a dataset.
+
+The method returns a list of cell ids for the points. Where `strict=False`, points
+falling outside the grid get `None` within the list.
+
+```{code-cell} ipython3
+# A set of four points that covers the grid
+points_x = [1.5, 2.5, 1.5, 2.5]
+points_y = [1.5, 1.5, 2.5, 2.5]
+
+# Validate and recover the mapping 
+simple.map_coverage(points_x, points_y)
+```
+
+```{code-cell} ipython3
+:tags: ["raises-exception"]
+# A set of points that extend beyond the grid
+points_x = np.tile([0.5, 1.5, 2.5, 3.5], 4)
+points_y = np.repeat([0.5, 1.5, 2.5, 3.5], 4)
+
+# Fails because points extend outside the grid
+simple.map_coverage(points_x, points_y)
+```
+
+```{code-cell} ipython3
+# Allow point coverage to extend beyond grid
+simple.map_coverage(points_x, points_y, strict=False)
+```
+
 ## Export grid to GeoJSON
 
 A created grid can also be exported as GeoJSON using the `dumps` and `dump` methods:
 
 ```{code-cell} ipython3
 simple = Grid('square', cell_nx=2, cell_ny=2, cell_area=1)
+
 simple.dumps()
 ```

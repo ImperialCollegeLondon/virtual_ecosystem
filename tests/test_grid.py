@@ -417,6 +417,14 @@ def test_map_coordinates(
             None,
             list(np.arange(100)),
         ),
+        (
+            np.concatenate([np.tile(np.arange(500050, 501000, 100), 10), [500050]]),
+            np.concatenate([np.repeat(np.arange(200050, 201000, 100), 10), [200050]]),
+            True,
+            pytest.raises(ValueError),
+            "Some cells contain more than one point.",
+            None,
+        ),
         (  # Grid covers but extends outside cells and strict = True
             np.tile(np.arange(500050, 501000, 100), 20),
             np.repeat(np.arange(200050, 202000, 100), 10),

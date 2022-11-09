@@ -295,10 +295,12 @@ class Grid:
         """Represent a CoreGrid as a string."""
         return (
             "CoreGrid("
-            f"grid_type={self.grid_type}, "
-            f"cell_area={self.cell_area}, "
-            f"cell_nx={self.cell_nx}, "
-            f"cell_ny={self.cell_ny})"
+            f"{self.grid_type}, "
+            f"A={self.cell_area}, "
+            f"nx={self.cell_nx}, "
+            f"ny={self.cell_ny}, "
+            f"n={self.n_cells}, "
+            f"bounds={self.bounds})"
         )
 
     def dumps(self, dp: int = 2, **kwargs: Any) -> str:
@@ -527,14 +529,16 @@ class Grid:
             raise ValueError("Mapped points fall on cell boundaries.")
 
         # Now all points are 1 to 1 with cells, or missing if strict = False
-        cell_one_to_one = [c[0] if len(c) else None for c in cell_map]
+        ret_list = [c[0] if len(c) else None for c in cell_map]
 
-        # Get the set of all non-None ids.
-        found_ids = set(cell_one_to_one)
-        if None in found_ids:
-            found_ids.remove(None)
+        # Get a list of all non-None ids.
+        ret_cells = [v for v in ret_list if v is not None]
 
-        if not found_ids == set(self.cell_id):
+        # Now check for cells with more than one point and cells with no points.
+        if set(ret_cells) != set(self.cell_id):
             raise ValueError("Mapped points do not cover all cells.")
 
-        return cell_one_to_one
+        if len(ret_cells) != self.n_cells:
+            raise ValueError("Some cells contain more than one point.")
+
+        return ret_list
