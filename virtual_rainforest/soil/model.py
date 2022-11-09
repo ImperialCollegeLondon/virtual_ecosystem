@@ -12,11 +12,7 @@ from numpy import timedelta64
 from pint import Quantity
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import BaseModel
-
-
-class InitialisationError(Exception):
-    """Custom exception class for model initialisation failures."""
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class SoilModel(BaseModel, model_name="soil"):

@@ -8,8 +8,8 @@ from copy import deepcopy
 from typing import Any, Optional, Type, Union
 
 from virtual_rainforest.core.config import validate_config
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
 
 
 # TODO - ADD TESTS FOR THIS FUNCTION
@@ -89,7 +89,10 @@ def vr_run(
     modules = select_models(deepcopy(config["core"]["modules"]))
 
     if modules is None:
-        LOGGER.error("Could not find all the desired models, ending the simulation.")
+        log_and_raise(
+            "Could not find all the desired models, ending the simulation.",
+            InitialisationError,
+        )
         return
     else:
         LOGGER.info(
