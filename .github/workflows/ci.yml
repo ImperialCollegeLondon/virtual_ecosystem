@@ -6,11 +6,11 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
-      - uses: pre-commit/action@v2.0.2
+      - uses: pre-commit/action@v3.0.0
 
   test:
     needs: qa
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.9" , "3.10.6" ]
+        python-version: [ "3.9" , "3.10", "3.11" ]
 
     steps:
     - uses: actions/checkout@v3
@@ -29,9 +29,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Poetry
-      uses: abatilo/actions-poetry@v2.0.0
+      uses: abatilo/actions-poetry@v2.1.6
       with:
-        poetry-version: 1.1.14
+        poetry-version: 1.2.2
 
     - name: Install dependencies
       run: poetry install
