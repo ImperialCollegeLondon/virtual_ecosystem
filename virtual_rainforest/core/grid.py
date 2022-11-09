@@ -19,7 +19,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
-from shapely.geometry import GeometryCollection, Polygon  # type: ignore
+from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
 from virtual_rainforest.core.logger import LOGGER
 
@@ -448,3 +448,54 @@ class Grid:
         """
 
         self._distances = squareform(pdist(self.centroids))
+
+    def map_coordinates(
+        self,
+        x_coords: Union[Sequence, np.ndarray],
+        y_coords: Union[Sequence, np.ndarray],
+    ) -> list[int]:
+        """Map a set of coordinates onto grid cells.
+
+        This function loops over points defined by pairs of x and y coordinates and maps
+        the coordinates onto the cell_ids of the grid. The method also checks to see
+        that each point intersects one and only one of the cell polygons defined in the
+        grid. Points that intersect no cells fall outside the grid polygons and points
+        that intersect more than one cell fall ambiguously on cell borders.
+
+        Args:
+            grid: A core Grid instance.
+            x_coords: The x coordinates of points that should occur within grid cells.
+            y_coords: The same for y coordinates.
+
+        Raises:
+            If the x and y coordinates are not compatible with the grid, a ValueError is
+            raised.
+        """
+
+        if len(x_coords) != len(y_coords):
+            raise ValueError("The x and y coordinates are of unequal length.")
+
+        # Get shapely points for the coordinates
+        xyp = [Point(x, y) for x, y in zip(x_coords, y_coords)]
+
+        # Map the Cell ID of each point - this is doing all pairs of points and cells,
+        # which is a computational choke point. Might be able to use a spatial search
+        # option, if this gets problematic, possibly including an STRTree in the grid
+        #    object https://shapely.readthedocs.io/en/latest/strtree.html
+
+        cell_map = [
+            [id for id, ply in zip(self.cell_id, self.polygons) if ply.intersects(pt)]
+            for pt in xyp
+        ]
+
+        cell_counts = set([len(mp) for mp in cell_map])
+
+        # Not all coords in a grid cell
+        if 0 in cell_counts:
+            raise ValueError("Data coordinates fall outside grid.")
+
+        # Values greater than 1 indicate coordinates on cell edges
+        if not cell_counts == {1}:
+            raise ValueError("Data coordinates fall on cell boundaries.")
+
+        return [c[0] for c in cell_map]

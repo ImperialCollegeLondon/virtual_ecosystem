@@ -42,10 +42,9 @@ file_var="elev"
 import copy
 from itertools import groupby
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
-from shapely.geometry import Point
 from xarray import DataArray, load_dataset
 
 from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
@@ -206,177 +205,6 @@ def setup_data(data_config: dict, grid: Grid) -> None:
 #     loader(grid=grid, file=source, vars=vars)
 
 
-def check_coordinates_in_grid(
-    grid: Grid,
-    x_coords: Union[Sequence, np.ndarray],
-    y_coords: Union[Sequence, np.ndarray],
-) -> None:
-    """Check a set of coordinates occur in a Grid.
-
-    This function loops over points defined by pairs of x and y coordinates and checks
-    to see that each point intersects only one of the cell polygons defined in the grid.
-    Points that intersect no cells falls outside the grid and points that intersect more
-    than one cell fall ambiguously on cell borders.
-
-    The function returns
-
-    Args:
-        grid: A core Grid instance.
-        x_coords: The x coordinates of points that should occur within grid cells.
-        y_coords: The same for y coordinates.
-
-    Raises:
-        If the x and y coordinates are not compatible with the grid, a ValueError is
-        raised.
-    """
-
-    if len(x_coords) != len(y_coords):
-        raise ValueError("The x and y coordinates are of unequal length.")
-
-    # Get shapely points for the coordinates
-    xyp = [Point(x, y) for x, y in zip(x_coords, y_coords)]
-
-    # Count how many cells each point intersects.
-    cell_counts = [sum([cl.intersects(pt) for cl in grid.polygons]) for pt in xyp]
-
-    # Not all coords in a grid cell
-    if 0 in cell_counts:
-        raise ValueError("Data coordinates do not align with grid coordinates.")
-
-    # Values greater than 1 indicate coordinates on cell edges
-    if any(c > 1 for c in cell_counts):
-        raise ValueError(
-            "Data coordinates fall on cell edges: use cell centre coordinates in data."
-        )
-
-    return
-
-
-@register_data_loader(grid_type="square", file_type=".nc")
-def load_netcdf_to_square_grid(grid: Grid, file: Path, vars: list) -> None:
-    """Loads data from a NetCDF file onto a square grid.
-
-    This function loads data from a NetCDF file, checks that the data are congruent with
-    an existing grid definition and then stores requested variables in the model global
-    data.
-
-    Args:
-        grid: A Grid instance that the data should map on to.
-        file: A Path for a NetCDF file containing variables to be used.
-        vars: A list of dictionaries specifying which variables to load.
-    """
-
-    # Try and load the provided file
-    try:
-        dataset = load_dataset(file)
-    except FileNotFoundError:
-        LOGGER.error("The %s data file is not found", file)
-        return
-    except ValueError:
-        LOGGER.error("Could not load %s: possible format issue", file)
-        return
-
-    # Get the dimensions, coords and variables
-    # - dim gives the dimension names and lengths
-    dim_names = list(dataset.dims)
-    # - dimensions can have associated coordinates, where coord_names _must_ be a
-    #   subset of dim_names
-    coord_names = list(dataset.coords)
-    # - coordinates and 'data' are _both_ variables
-    variable_names = list(dataset.variables)
-    # - So variables containing data are the difference between the two
-    data_names = set(variable_names) - set(coord_names)
-
-    # Use dimension names to identify spatial layout
-    # - look for xy in dimensions first (+- coords on those dimensions),
-    # - then xy in variables (dataframe style)
-    # - then cell_id in dimensions (+- coords on those dimensions).
-    expected_n_cells = grid.cell_nx * grid.cell_ny
-
-    if "x" in dim_names and "y" in dim_names:
-
-        # Should be the same shape as the grid
-        if grid.cell_nx != dataset.dims["x"] or grid.cell_ny != dataset.dims["y"]:
-            LOGGER.error("Data XY dimensions do not match grid in: %s", file)
-            return
-
-        # If x and y have coordinates, they should match the data grid.
-        if "x" in coord_names and "y" in coord_names:
-
-            # Get x and y coords for an L of grid cells along two edges to check the
-            # extents and cell coverage.
-            x_check = np.concatenate(
-                [np.repeat(dataset["x"].values[0], grid.cell_nx), dataset["x"].values]
-            )
-            y_check = np.concatenate(
-                [dataset["y"].values, np.repeat(dataset["y"].values[0], grid.cell_nx)]
-            )
-            check_coordinates_in_grid(grid, x_check, y_check)
-
-    elif "x" in data_names and "y" in data_names:
-
-        # Check the datasets have the same dimensions (having identical dim name tuples
-        # guarantees that data has the same shape and order.)
-        if dataset["x"].dims != dataset["y"].dims:
-            LOGGER.error("X and Y data have different dimensions in: %s", file)
-            return
-
-        # Check the expected number of cells are provided
-        n_found = dataset["x"].size
-        if expected_n_cells != n_found:
-            LOGGER.error(
-                "Grid defines %s cells, data provides %s in: %s",
-                expected_n_cells,
-                n_found,
-                file,
-            )
-            return
-
-        # Now check they are actually in the cells
-        check_coordinates_in_grid(grid, dataset["x"].values, dataset["y"].values)
-
-    elif "cell_id" in dim_names:
-
-        # Check the right number of cells are found
-        n_found = dataset["cell_id"].size
-        if expected_n_cells != n_found:
-            raise ValueError(
-                f"Grid defines {expected_n_cells} cells, data provides {n_found}"
-            )
-
-        if "cell_id" in coord_names and (
-            set(grid.cell_id) != set(dataset["cell_id"].values)
-        ):
-
-            raise ValueError("The cell_ids in the data do not match grid cell ids.")
-
-    # data_names, permute = mapper(grid, dataset)
-
-    # Now loop over the variables from this file
-    for this_var in vars:
-
-        file_var = this_var["file_var"]
-        model_var = this_var.get("model_var") or file_var
-
-        # Look for the data variable
-        if file_var not in data_names:
-            LOGGER.error("Variable %s not found in file %s", file_var, file)
-            continue
-
-        # Get the internal name that the variable references
-        if model_var in DATA:
-            LOGGER.error("Variable %s already defined in model %s", model_var)
-            continue
-
-        # Store the permuted DataArray in the global DATA object
-        # TODO - think about what format to store here. Need to retain axis dimension
-        #        information for indexing, time in particular. How about interpolation?
-
-        DATA[model_var] = dataset[file_var]
-
-    return
-
-
 class Data:
     """The Virtual Rainforest data object.
 
@@ -431,6 +259,140 @@ class Data:
         #         [dataset["y"].values, np.repeat(dataset["y"].values[0], grid.cell_nx)]
         #     )
         #     check_coordinates_in_grid(grid, x_check, y_check)
+
+
+@register_data_loader(grid_type="square", file_type=".nc")
+def load_netcdf_to_square_grid(data: Data, file: Path, vars: list) -> None:
+    """Loads data from a NetCDF file onto a square grid.
+
+    This function loads data from a NetCDF file, checks that the data are congruent with
+    an existing grid definition and then stores requested variables in the model global
+    data.
+
+    Args:
+        data: A Data instance to add the data into.
+        file: A Path for a NetCDF file containing variables to be used.
+        vars: A list of dictionaries specifying which variables to load.
+    """
+
+    # Try and load the provided file
+    try:
+        dataset = load_dataset(file)
+    except FileNotFoundError:
+        LOGGER.error("The %s data file is not found", file)
+        return
+    except ValueError:
+        LOGGER.error("Could not load %s: possible format issue", file)
+        return
+
+    # Get the dimensions, coords and variables
+    # - dim gives the dimension names and lengths
+    dim_names = list(dataset.dims)
+    # - dimensions can have associated coordinates, where coord_names _must_ be a
+    #   subset of dim_names
+    coord_names = list(dataset.coords)
+    # - coordinates and 'data' are _both_ variables
+    variable_names = list(dataset.variables)
+    # - So variables containing data are the difference between the two
+    data_names = set(variable_names) - set(coord_names)
+
+    # Use dimension names to identify spatial layout
+    # - look for xy in dimensions first (+- coords on those dimensions),
+    # - then xy in variables (dataframe style)
+    # - then cell_id in dimensions (+- coords on those dimensions).
+    expected_n_cells = data.grid.cell_nx * data.grid.cell_ny
+
+    if "x" in dim_names and "y" in dim_names:
+
+        # Should be the same shape as the grid
+        if (
+            data.grid.cell_nx != dataset.dims["x"]
+            or data.grid.cell_ny != dataset.dims["y"]
+        ):
+            LOGGER.error("Data XY dimensions do not match grid in: %s", file)
+            return
+
+        # If x and y have coordinates, they should match the data grid.
+        if "x" in coord_names and "y" in coord_names:
+
+            # Get x and y coords for an L of grid cells along two edges to check the
+            # extents and cell coverage.
+            x_check = np.concatenate(
+                [
+                    np.repeat(dataset["x"].values[0], data.grid.cell_nx),
+                    dataset["x"].values,
+                ]
+            )
+            y_check = np.concatenate(
+                [
+                    dataset["y"].values,
+                    np.repeat(dataset["y"].values[0], data.grid.cell_nx),
+                ]
+            )
+            cell_id_map = data.grid.map_coordinates(x_check, y_check)
+
+    elif "x" in data_names and "y" in data_names:
+
+        # Check the datasets have the same dimensions (having identical dim name tuples
+        # guarantees that data has the same shape and order.)
+        if dataset["x"].dims != dataset["y"].dims:
+            LOGGER.error("X and Y data have different dimensions in: %s", file)
+            return
+
+        # Check the expected number of cells are provided
+        n_found = dataset["x"].size
+        if expected_n_cells != n_found:
+            LOGGER.error(
+                "Grid defines %s cells, data provides %s in: %s",
+                expected_n_cells,
+                n_found,
+                file,
+            )
+            return
+
+        # Now check they are actually in the cells
+        cell_id_map = data.grid.map_coordinates(
+            dataset["x"].values, dataset["y"].values
+        )
+
+    elif "cell_id" in dim_names:
+
+        # Check the right number of cells are found
+        n_found = dataset["cell_id"].size
+        if expected_n_cells != n_found:
+            raise ValueError(
+                f"Grid defines {expected_n_cells} cells, data provides {n_found}"
+            )
+
+        if "cell_id" in coord_names and (
+            set(data.grid.cell_id) != set(dataset["cell_id"].values)
+        ):
+
+            raise ValueError("The cell_ids in the data do not match grid cell ids.")
+
+    # Now loop over the variables from this file
+    for this_var in vars:
+
+        file_var = this_var["file_var"]
+        model_var = this_var.get("model_var") or file_var
+
+        # Look for the data variable
+        if file_var not in data_names:
+            LOGGER.error("Variable %s not found in file %s", file_var, file)
+            continue
+
+        # Get the internal name that the variable references
+        if model_var in DATA:
+            LOGGER.error("Variable %s already defined in model %s", model_var)
+            continue
+
+        # Store the permuted DataArray in the global DATA object
+        # TODO - think about what format to store here. Need to retain axis dimension
+        #        information for indexing, time in particular. How about interpolation?
+
+        DATA[model_var] = dataset[file_var, cell_id_map]
+
+    return
 
 
 class DataGenerator:

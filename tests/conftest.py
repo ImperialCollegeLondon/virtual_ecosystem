@@ -24,3 +24,28 @@ def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> N
     assert all(
         [exp[1] in rec.message for exp, rec in zip(expected_log, caplog.records)]
     )
+
+
+# Shared fixtures
+
+
+@pytest.fixture
+def fixture_square_grid():
+    """Create a square grid fixture.
+
+    A 10 x 10 grid of 1 hectare cells, with non-zero origin.
+    """
+
+    # TODO - can't type the return  value without a top level import of Grid
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(
+        grid_type="square",
+        cell_area=10000,
+        cell_nx=10,
+        cell_ny=10,
+        xoff=500000,
+        yoff=200000,
+    )
+
+    return grid

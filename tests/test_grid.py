@@ -2,8 +2,8 @@
 
 This module tests the functionality of grid.py
 """
-
 import json
+from contextlib import nullcontext as does_not_raise
 
 import numpy as np
 import numpy.linalg as LA
@@ -313,3 +313,55 @@ def test_grid_dumps():
 
     features = parsed.get("features")
     assert features is not None and len(features) == 100
+
+
+@pytest.mark.parametrize(
+    argnames=["x_coord", "y_coord", "exp_exception", "exp_message", "exp_map"],
+    argvalues=[
+        (
+            [0, 1, 2],
+            [0, 1],
+            pytest.raises(ValueError),
+            "The x and y coordinates are of unequal length.",
+            None,
+        ),
+        (
+            [0, 1, 2],
+            [0, 1, 2],
+            pytest.raises(ValueError),
+            "Data coordinates fall outside grid.",
+            None,
+        ),
+        (
+            [500000, 500100, 500200],
+            [200000, 200100, 200200],
+            pytest.raises(ValueError),
+            "Data coordinates fall on cell boundaries.",
+            None,
+        ),
+        (
+            [500050, 500150, 500250],
+            [200050, 200150, 200250],
+            does_not_raise(),
+            None,
+            [0, 11, 22],
+        ),
+    ],
+)
+def test_map_coordinates(
+    fixture_square_grid, x_coord, y_coord, exp_exception, exp_message, exp_map
+):
+    """Test coordinate checking.
+
+    Tests the failure modes of coordinate mapping, along with return value on success.
+    """
+
+    with exp_exception as excep:
+
+        map = fixture_square_grid.map_coordinates(x_coord, y_coord)
+
+    if exp_message is not None:
+        assert str(excep.value) == exp_message
+
+    if exp_map is not None:
+        assert map == exp_map
