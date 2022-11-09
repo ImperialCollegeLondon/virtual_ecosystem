@@ -5,7 +5,7 @@ this script also defines the command line entry points for the model.
 """
 
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type, Union
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER
@@ -13,22 +13,19 @@ from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel
 
 
 # TODO - ADD TESTS FOR THIS FUNCTION
-def select_models(config: dict[str, Any]) -> Optional[list[BaseModel]]:
+def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     """Select the models to be run for a specific virtual rainforest simulation.
 
-    Based on the configuration this function selects a number of models to configure.
-    If these models all exist in the model registry and can be configured then this
-    function returns a list of configured models. Otherwise errors are logged, which
+    This function looks for models from a list of models, if these models can all be
+    found in the registry then they are returned. Otherwise an error is logged, which
     should be handled appropriately downstream.
 
     Args:
-        config: The virtual rainforest configuration
+        model_list: A list of models to select
 
     Returns:
-        confd_models: A set of configured (but not initialised) models
+        modules: A set of models to be configured
     """
-
-    model_list = deepcopy(config["core"]["modules"])
 
     # Remove "core" from model list as it is not a model
     if "core" in model_list:
@@ -46,12 +43,20 @@ def select_models(config: dict[str, Any]) -> Optional[list[BaseModel]]:
         return None
 
     # Then look for each model in the registry
-    temp_models = [MODEL_REGISTRY[model] for model in model_list]
+    modules = [MODEL_REGISTRY[model] for model in model_list]
 
-    # Use factory methods to configure the following models
-    confd_models = [model.factory(config) for model in temp_models]
+    return modules
 
-    return confd_models
+
+# TODO - ADD TESTS FOR THIS MODULE
+def configure_models(
+    config: dict[str, Any], modules: list[Type[BaseModel]]
+) -> Optional[list[BaseModel]]:
+    """This docstring is wrong?"""
+
+    # Use factory methods to configure the desired models
+    models_cfd = [model.factory(config) for model in modules]
+    return models_cfd
 
 
 # TODO - Add tests for this function
@@ -73,9 +78,19 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    models = select_models(config)
-    # LOG INFO ON SUCCESS, OR OTHERWISE END THIS PROGRAM
-    print(models)
+    modules = select_models(deepcopy(config["core"]["modules"]))
+
+    if modules is None:
+        LOGGER.error("Could not find all the desired models, ending the simulation.")
+        return
+    else:
+        LOGGER.info(
+            "All models found in the registry, now attempting to configure them."
+        )
+
+    models_cfd = configure_models(config, modules)
+
+    print(models_cfd)
 
     # TODO - Extract input data required to initialise the models
 
