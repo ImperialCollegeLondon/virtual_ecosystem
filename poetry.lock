@@ -216,14 +216,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "doctestfn"
-version = "1.0.3"
-description = "Run doctests for a single function"
-category = "dev"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
 name = "docutils"
 version = "0.17.1"
 description = "Docutils -- Python Documentation Utilities"
@@ -1764,7 +1756,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "938ab909c3d78e7f33351ef8254f83dcd361f3b78da29b5beddf149a78f17980"
+content-hash = "10a047110b22f122cabbe022d6e18184405fecd0c01f20811e3dcdaa33cc2e58"
 
 [metadata.files]
 alabaster = [
@@ -2058,10 +2050,6 @@ decorator = [
 distlib = [
     {file = "distlib-0.3.6-py2.py3-none-any.whl", hash = "sha256:f35c4b692542ca110de7ef0bea44d73981caeb34ca0b9b6b2e6d7790dda8f80e"},
     {file = "distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
-]
-doctestfn = [
-    {file = "doctestfn-1.0.3-py3-none-any.whl", hash = "sha256:bfac02b7912ce0c77e34f329bdf9ac71caea4d274056abcd03328a22d6bbf1df"},
-    {file = "doctestfn-1.0.3.tar.gz", hash = "sha256:baca4d0fde8b79e1c32e10425f20773b796ffb9226a313c4fa31761feb95b8a1"},
 ]
 docutils = [
     {file = "docutils-0.17.1-py2.py3-none-any.whl", hash = "sha256:cf316c8370a737a022b72b56874f6602acf974a37a9fba42ec2876387549fc61"},

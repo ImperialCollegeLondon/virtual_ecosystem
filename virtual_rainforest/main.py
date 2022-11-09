@@ -12,7 +12,6 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
 
 
-# TODO - ADD TESTS FOR THIS FUNCTION
 def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     """Select the models to be run for a specific virtual rainforest simulation.
 
@@ -102,6 +101,8 @@ def vr_run(
     models_cfd = configure_models(config, modules)
 
     # TODO - DECIDE WHETHER TO CONTINUE HERE
+    # IS THIS A POINT FOR A TRY, EXPECT, FINALLY?
+    # NEED TO CHECK AT A LOWER LEVEL TO SEE IF ERRORS CAN BE BETTER HANDLED
 
     print(models_cfd)
 
