@@ -328,23 +328,23 @@ def test_grid_dumps():
         (
             [0, 1, 2],
             [0, 1, 2],
-            pytest.raises(ValueError),
-            "Data coordinates fall outside grid.",
+            does_not_raise(),
             None,
+            [[], [], []],
         ),
         (
             [500000, 500100, 500200],
             [200000, 200100, 200200],
-            pytest.raises(ValueError),
-            "Data coordinates fall on cell boundaries.",
+            does_not_raise(),
             None,
+            [[0], [0, 1, 10, 11], [11, 12, 21, 22]],
         ),
         (
             [500050, 500150, 500250],
             [200050, 200150, 200250],
             does_not_raise(),
             None,
-            [0, 11, 22],
+            [[0], [11], [22]],
         ),
     ],
 )
@@ -358,10 +358,97 @@ def test_map_coordinates(
 
     with exp_exception as excep:
 
-        map = fixture_square_grid.map_coordinates(x_coord, y_coord)
+        cell_map = fixture_square_grid.map_coordinates(x_coord, y_coord)
 
     if exp_message is not None:
         assert str(excep.value) == exp_message
 
     if exp_map is not None:
-        assert map == exp_map
+        assert cell_map == exp_map
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "x_coord",
+        "y_coord",
+        "strict",
+        "exp_exception",
+        "exp_message",
+        "exp_map",
+    ],
+    argvalues=[
+        (
+            [0, 1, 2],
+            [0, 1, 2],
+            True,
+            pytest.raises(ValueError),
+            "Mapped points fall outside grid.",
+            None,
+        ),
+        (
+            [0, 1, 2],
+            [0, 1, 2],
+            False,  # strict changes error type
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            None,
+        ),
+        (
+            [500000, 500100, 500200],
+            [200000, 200100, 200200],
+            True,
+            pytest.raises(ValueError),
+            "Mapped points fall on cell boundaries.",
+            None,
+        ),
+        (
+            [500050, 500150, 500250],
+            [200050, 200150, 200250],
+            True,
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            None,
+        ),
+        (
+            np.tile(np.arange(500050, 501000, 100), 10),
+            np.repeat(np.arange(200050, 201000, 100), 10),
+            True,
+            does_not_raise(),
+            None,
+            list(np.arange(100)),
+        ),
+        (  # Grid covers but extends outside cells and strict = True
+            np.tile(np.arange(500050, 501000, 100), 20),
+            np.repeat(np.arange(200050, 202000, 100), 10),
+            True,
+            pytest.raises(ValueError),
+            "Mapped points fall outside grid.",
+            None,
+        ),
+        (  # Grid covers but extends outside cells and strict = False
+            np.tile(np.arange(500050, 501000, 100), 20),
+            np.repeat(np.arange(200050, 202000, 100), 10),
+            False,
+            does_not_raise(),
+            None,
+            list(np.arange(100)) + [None] * 100,
+        ),
+    ],
+)
+def test_check_map_coverage(
+    fixture_square_grid, x_coord, y_coord, exp_exception, exp_message, exp_map, strict
+):
+    """Test coordinate checking.
+
+    Tests the failure modes of coordinate mapping, along with return value on success.
+    """
+
+    with exp_exception as excep:
+
+        cell_map = fixture_square_grid.map_coverage(x_coord, y_coord, strict=strict)
+
+    if exp_message is not None:
+        assert str(excep.value) == exp_message
+
+    if exp_map is not None:
+        assert exp_map == cell_map

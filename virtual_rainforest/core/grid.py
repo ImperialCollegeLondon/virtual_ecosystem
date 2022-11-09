@@ -453,7 +453,7 @@ class Grid:
         self,
         x_coords: Union[Sequence, np.ndarray],
         y_coords: Union[Sequence, np.ndarray],
-    ) -> list[int]:
+    ) -> list[list[int]]:
         """Map a set of coordinates onto grid cells.
 
         This function loops over points defined by pairs of x and y coordinates and maps
@@ -463,13 +463,13 @@ class Grid:
         that intersect more than one cell fall ambiguously on cell borders.
 
         Args:
-            grid: A core Grid instance.
             x_coords: The x coordinates of points that should occur within grid cells.
-            y_coords: The same for y coordinates.
+            y_coords: A similar and equal-length list providing y coordinates.
 
-        Raises:
-            If the x and y coordinates are not compatible with the grid, a ValueError is
-            raised.
+        Returns:
+            A list of lists showing the cell ids that map onto each point. The list for
+            a given point can be empty - when the point falls in no cell - or of length
+            > 1 when a point falls on adjoining cell boundaries.
         """
 
         if len(x_coords) != len(y_coords):
@@ -488,14 +488,53 @@ class Grid:
             for pt in xyp
         ]
 
+        return cell_map
+
+    def map_coverage(
+        self,
+        x_coords: Union[Sequence, np.ndarray],
+        y_coords: Union[Sequence, np.ndarray],
+        strict: bool = True,
+    ) -> list[Optional[int]]:
+        """Check the cell coverage of points.
+
+        This function maps the provided set of points onto  the grid (using
+        `~virtual_rainforest.core.grid.Grid.map_coordinates`) and then checks that the
+        mapped points uniquely identify all of the grid cells. If `strict` is set to
+        False, then extra points outside the grid are permitted.
+
+        Args:
+            cell_map: An existing mapping from points onto cell ids.
+            strict: Should points outside the grid be allowed
+
+        Returns:
+            A list showing the integer cell id for each pair of points. If strict is
+            False, the list element for points outside the grid is None.
+        """
+
+        # Get the coordinate mapping to cell ids
+        cell_map = self.map_coordinates(x_coords=x_coords, y_coords=y_coords)
+
+        # Find the set of total number of cell mappings per point
         cell_counts = set([len(mp) for mp in cell_map])
 
-        # Not all coords in a grid cell
-        if 0 in cell_counts:
-            raise ValueError("Data coordinates fall outside grid.")
+        # If strict, raise an exception where not all coords fall in a grid cell
+        if strict and (0 in cell_counts):
+            raise ValueError("Mapped points fall outside grid.")
 
         # Values greater than 1 indicate coordinates on cell edges
-        if not cell_counts == {1}:
-            raise ValueError("Data coordinates fall on cell boundaries.")
+        if any([c > 1 for c in cell_counts]):
+            raise ValueError("Mapped points fall on cell boundaries.")
 
-        return [c[0] for c in cell_map]
+        # Now all points are 1 to 1 with cells, or missing if strict = False
+        cell_one_to_one = [c[0] if len(c) else None for c in cell_map]
+
+        # Get the set of all non-None ids.
+        found_ids = set(cell_one_to_one)
+        if None in found_ids:
+            found_ids.remove(None)
+
+        if not found_ids == set(self.cell_id):
+            raise ValueError("Mapped points do not cover all cells.")
+
+        return cell_one_to_one
