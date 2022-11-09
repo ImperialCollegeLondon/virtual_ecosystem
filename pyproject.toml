@@ -32,10 +32,9 @@ pytest-cov = "^3.0.0"
 pytest-flake8 = "^1.1.1"
 pytest-mypy = "^0.9.1"
 pytest-mock = "^3.8.1"
-doctestfn = "^1.0.3"            # Used to execute single doctests
 hypothesis = "^6.54.2"
 
-[tool.poetry.group.precommit.dependencies]
+[tool.poetry.group.devenv.dependencies]
 black = "^22.6.0"
 flake8 = "^4.0.1"
 mypy = "^0.981"
@@ -45,6 +44,9 @@ mdformat = "^0.7.14"
 mdformat_frontmatter = "^0.4.1"
 mdformat_tables = "^0.4.1"
 flake8-docstrings = "^1.6.0"
+ipython = "^8.4.0"
+ipykernel = "^6.15.0"
+matplotlib = "^3.5.2"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^5.0.0"
@@ -53,11 +55,6 @@ myst-nb = "^0.16.0"
 sphinx-rtd-theme = "^1.0.0"
 autodocsumm = "^0.2.8"
 pydocstyle = "^6.1.1"
-
-[tool.poetry.dev-dependencies]
-ipython = "^8.4.0"
-ipykernel = "^6.15.0"
-matplotlib = "^3.5.2"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]
