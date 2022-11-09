@@ -48,11 +48,19 @@ def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     return modules
 
 
-# TODO - ADD TESTS FOR THIS MODULE
+# TODO - ADD TESTS FOR THIS FUNCTION
 def configure_models(
     config: dict[str, Any], modules: list[Type[BaseModel]]
 ) -> Optional[list[BaseModel]]:
-    """This docstring is wrong?"""
+    """Configure a set of models for use in a `virtual_rainforest` simulation.
+
+    Args:
+        config: The full virtual rainforest configuration
+        modules: A set of models to be configured
+
+    Returns:
+        models_cfd: A set of configured models
+    """
 
     # Use factory methods to configure the desired models
     models_cfd = [model.factory(config) for model in modules]
@@ -89,6 +97,8 @@ def vr_run(
         )
 
     models_cfd = configure_models(config, modules)
+
+    # TODO - DECIDE WHETHER TO CONTINUE HERE
 
     print(models_cfd)
 
