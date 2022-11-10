@@ -7,7 +7,7 @@ to date.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO
+from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
 import pytest
@@ -366,14 +366,21 @@ def test_extend_with_default():
             (),
         ),
         (
-            {"basybuedb"},
+            {"core": {"grid": {"nx": -125, "ny": -10}}},
             None,
             pytest.raises(config.ConfigurationError),
             (
                 (
+                    ERROR,
+                    "[core][grid][nx]: -125 is less than or equal to the minimum of 0",
+                ),
+                (
+                    ERROR,
+                    "[core][grid][ny]: -10 is less than or equal to the minimum of 0",
+                ),
+                (
                     CRITICAL,
-                    "Validation of core configuration files failed: {'basybuedb'} is "
-                    "not of type 'object'",
+                    "Validation of core configuration files failed see above errors",
                 ),
             ),
         ),
