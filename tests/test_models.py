@@ -4,14 +4,13 @@ This module tests the functionality of model.py, as well as other bits of code t
 define models based on the class defined in model.py
 """
 
-from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO, WARNING
+from logging import ERROR, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel
-from virtual_rainforest.soil.model import InitialisationError, SoilModel
+from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
 
@@ -103,14 +102,14 @@ def test_register_model_errors(caplog):
 
 
 @pytest.mark.parametrize(
-    "config,raises,expected_log_entries",
+    "config,valid,expected_log_entries",
     [
         (
             {},
-            pytest.raises(InitialisationError),
+            False,
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "Configuration is missing information required to initialise the "
                     "soil model. The first missing key is 'core'",
                 ),
@@ -125,7 +124,7 @@ def test_register_model_errors(caplog):
                 },
                 "soil": {"no_layers": 2},
             },
-            does_not_raise(),
+            True,
             (
                 (
                     INFO,
@@ -136,11 +135,14 @@ def test_register_model_errors(caplog):
         ),
     ],
 )
-def test_generate_soil_model(caplog, config, raises, expected_log_entries):
+def test_generate_soil_model(caplog, config, valid, expected_log_entries):
     """Test that the function to initialise the soil model behaves as expected."""
-    # Check whether initialising the model fails as expected
-    with raises:
-        model = SoilModel.factory(config)
+
+    # Check whether model is initialised (or not) as expected
+    model = SoilModel.factory(config)
+    if valid is False:
+        assert model is None
+    else:
         assert model.no_layers == config["soil"]["no_layers"]
 
     # Final check that expected logging entries are produced

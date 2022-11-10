@@ -6,13 +6,13 @@ class to be usable to simulate the soil.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from numpy import timedelta64
 from pint import Quantity
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.model import BaseModel
 
 
 class SoilModel(BaseModel, model_name="soil"):
@@ -46,19 +46,20 @@ class SoilModel(BaseModel, model_name="soil"):
         self._repr.append("no_layers")
 
     @classmethod
-    def factory(cls, config: dict[str, Any]) -> SoilModel:
+    def factory(cls, config: dict[str, Any]) -> Optional[SoilModel]:
         """Factory function to initialise the soil model.
 
         This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model.
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance None is returned.
 
         Args:
             config: The complete (and validated) virtual rainforest configuration.
 
-        Raises:
-            InitialisationError: If the information required to initialise the model
-                either isn't found, or isn't of the correct type.
         """
+
+        # Assume input is valid until we learn otherwise
+        valid_input = True
         try:
             raw_interval = Quantity(config["core"]["timing"]["min_time_step"]).to(
                 "minutes"
@@ -67,26 +68,29 @@ class SoilModel(BaseModel, model_name="soil"):
             update_interval = timedelta64(int(raw_interval.magnitude), "m")
             no_layers = config["soil"]["no_layers"]
         except KeyError as e:
-            log_and_raise(
+            valid_input = False
+            LOGGER.error(
                 f"Configuration is missing information required to initialise the soil "
-                f"model. The first missing key is {str(e)}.",
-                InitialisationError,
+                f"model. The first missing key is {str(e)}."
             )
         except ValueError as e:
-            log_and_raise(
+            valid_input = False
+            LOGGER.error(
                 f"Configuration types appear not to have been properly validated. This "
                 f"problem prevents initialisation of the soil model. The first instance"
-                f" of this problem is as follows: {str(e)}",
-                InitialisationError,
+                f" of this problem is as follows: {str(e)}"
             )
 
-        # TODO - Add further relevant checks on input here as they become relevant
+        # TODO - Add further relevant checks on input here as they become necessary
 
-        LOGGER.info(
-            "Information required to initialise the soil model successfully extracted."
-        )
-
-        return cls(update_interval, no_layers)
+        if valid_input:
+            LOGGER.info(
+                "Information required to initialise the soil model successfully "
+                "extracted."
+            )
+            return cls(update_interval, no_layers)
+        else:
+            return None
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK

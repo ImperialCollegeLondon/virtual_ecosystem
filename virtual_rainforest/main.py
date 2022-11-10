@@ -49,8 +49,8 @@ def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
 
 # TODO - ADD TESTS FOR THIS FUNCTION
 def configure_models(
-    config: dict[str, Any], modules: list[Type[BaseModel]]
-) -> Optional[list[BaseModel]]:
+    config: dict[str, Any], model_list: list[Type[BaseModel]]
+) -> list[BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
@@ -62,7 +62,7 @@ def configure_models(
     """
 
     # Use factory methods to configure the desired models
-    models_cfd = [model.factory(config) for model in modules]
+    models_cfd = [model.factory(config) for model in model_list]
     return models_cfd
 
 
@@ -85,9 +85,9 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    modules = select_models(deepcopy(config["core"]["modules"]))
+    model_list = select_models(deepcopy(config["core"]["modules"]))
 
-    if modules is None:
+    if model_list is None:
         log_and_raise(
             "Could not find all the desired models, ending the simulation.",
             InitialisationError,
@@ -98,7 +98,7 @@ def vr_run(
             "All models found in the registry, now attempting to configure them."
         )
 
-    models_cfd = configure_models(config, modules)
+    models_cfd = configure_models(config, model_list)
 
     # TODO - DECIDE WHETHER TO CONTINUE HERE
     # IS THIS A POINT FOR A TRY, EXPECT, FINALLY?
