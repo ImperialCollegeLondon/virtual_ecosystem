@@ -435,14 +435,21 @@ def test_missing_core_schema(caplog, mocker):
             (),
         ),
         (
-            {"basybuedb"},
+            {"soil": {"no_layers": -1}},
             None,
             pytest.raises(config.ConfigurationError),
             (
                 (
+                    ERROR,
+                    "[plants]: 'ftypes' is a required property",
+                ),
+                (
+                    ERROR,
+                    "[soil][no_layers]: -1 is less than or equal to the minimum of 0",
+                ),
+                (
                     CRITICAL,
-                    "Validation of configuration files failed: {'basybuedb'} is not of"
-                    " type 'object'",
+                    "Validation of configuration files failed see above errors",
                 ),
             ),
         ),
@@ -453,7 +460,7 @@ def test_validate_with_defaults(
 ):
     """Test that addition of defaults values during configuration works as desired."""
 
-    comb_schema = config.construct_combined_schema(["core", "plants"])
+    comb_schema = config.construct_combined_schema(["core", "plants", "soil"])
 
     # Check that find_schema fails as expected
     with raises:

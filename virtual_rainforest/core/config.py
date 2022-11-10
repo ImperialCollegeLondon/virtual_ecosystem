@@ -436,9 +436,20 @@ def validate_with_defaults(
         ValidatorWithDefaults(comb_schema, format_checker=FormatChecker()).validate(
             config_dict
         )
-    except exceptions.ValidationError as err:
+    except exceptions.ValidationError:
+        # Find full set of errors
+        errors = ValidatorWithDefaults(
+            comb_schema, format_checker=FormatChecker()
+        ).iter_errors(config_dict)
+        # Then log all errors in validating core config
+        for error in errors:
+            # Construct details of the tag associated with the error
+            tag = ""
+            for k in error.path:
+                tag += f"[{k}]"
+            LOGGER.error(f"{tag}: {error.message}")
         log_and_raise(
-            f"Validation of configuration files failed: {err.message}",
+            "Validation of configuration files failed see above errors",
             ConfigurationError,
         )
 
