@@ -4,12 +4,12 @@ This module tests both the main simulation function `vr_run` and the other funct
 defined in main.py that it calls.
 """
 
-from logging import ERROR, INFO
+from logging import CRITICAL, ERROR, INFO
 
 import pytest
 
 from virtual_rainforest.core.model import BaseModel
-from virtual_rainforest.main import select_models
+from virtual_rainforest.main import configure_models, select_models
 
 from .conftest import log_check
 
@@ -68,3 +68,89 @@ def test_select_models(caplog, model_list, no_models, expected_log_entries):
         assert all([type(model) == type(BaseModel) for model in models])
     else:
         assert models is None
+
+
+@pytest.mark.parametrize(
+    "config,output,expected_log_entries",
+    [
+        (
+            {  # valid config
+                "soil": {"no_layers": 1},
+                "core": {"timing": {"min_time_step": "7 days"}},
+            },
+            "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+            ),
+        ),
+        (
+            {  # missing soil config tag
+                "soil": {},
+                "core": {"timing": {"min_time_step": "7 days"}},
+            },
+            None,
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    ERROR,
+                    "Configuration is missing information required to initialise the "
+                    "soil model. The first missing key is 'no_layers'.",
+                ),
+            ),
+        ),
+        (
+            {  # invalid soil config tag
+                "soil": {"no_layers": -1},
+                "core": {"timing": {"min_time_step": "7 days"}},
+            },
+            None,
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+                (
+                    CRITICAL,
+                    "There has to be at least one soil layer in the soil model!",
+                ),
+            ),
+        ),
+        (
+            {  # min_time_step missing units
+                "soil": {"no_layers": 1},
+                "core": {"timing": {"min_time_step": "7"}},
+            },
+            None,
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    ERROR,
+                    "Configuration types appear not to have been properly validated. "
+                    "This problem prevents initialisation of the soil model. The first "
+                    "instance of this problem is as follows: Cannot convert from "
+                    "'dimensionless' (dimensionless) to 'minute' ([time])",
+                ),
+            ),
+        ),
+    ],
+)
+def test_configure_models(caplog, config, output, expected_log_entries):
+    """Test the function that configures the models."""
+
+    model_list = select_models(["soil"])
+
+    models = configure_models(config, model_list)
+
+    if output is None:
+        assert models == [None]
+    else:
+        assert repr(models[0]) == output
+
+    log_check(caplog, expected_log_entries)

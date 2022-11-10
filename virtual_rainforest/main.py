@@ -47,7 +47,6 @@ def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     return modules
 
 
-# TODO - ADD TESTS FOR THIS FUNCTION
 def configure_models(
     config: dict[str, Any], model_list: list[Type[BaseModel]]
 ) -> list[BaseModel]:

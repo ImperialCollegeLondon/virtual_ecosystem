@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+import pint
 from numpy import timedelta64
-from pint import Quantity
 
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class SoilModel(BaseModel, model_name="soil"):
@@ -36,9 +36,14 @@ class SoilModel(BaseModel, model_name="soil"):
     def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
 
         if no_layers < 1:
-            LOGGER.error("There has to be at least one soil layer in the soil model!")
+            log_and_raise(
+                "There has to be at least one soil layer in the soil model!",
+                InitialisationError,
+            )
         elif no_layers != int(no_layers):
-            LOGGER.error("The number of soil layers must be an integer!")
+            log_and_raise(
+                "The number of soil layers must be an integer!", InitialisationError
+            )
 
         super(SoilModel, self).__init__(update_interval, **kwargs)
         self.no_layers = int(no_layers)
@@ -61,7 +66,7 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = Quantity(config["core"]["timing"]["min_time_step"]).to(
+            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
@@ -73,7 +78,7 @@ class SoilModel(BaseModel, model_name="soil"):
                 f"Configuration is missing information required to initialise the soil "
                 f"model. The first missing key is {str(e)}."
             )
-        except ValueError as e:
+        except (ValueError, pint.errors.DimensionalityError) as e:
             valid_input = False
             LOGGER.error(
                 f"Configuration types appear not to have been properly validated. This "
@@ -81,14 +86,15 @@ class SoilModel(BaseModel, model_name="soil"):
                 f" of this problem is as follows: {str(e)}"
             )
 
-        # TODO - Add further relevant checks on input here as they become necessary
-
         if valid_input:
-            LOGGER.info(
-                "Information required to initialise the soil model successfully "
-                "extracted."
-            )
-            return cls(update_interval, no_layers)
+            try:
+                LOGGER.info(
+                    "Information required to initialise the soil model successfully "
+                    "extracted."
+                )
+                return cls(update_interval, no_layers)
+            except InitialisationError:
+                return None
         else:
             return None
 
