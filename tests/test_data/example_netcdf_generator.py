@@ -1,7 +1,7 @@
 """Generate NetCDF datasets for testing."""
 
 
-def generate_files():
+def generate_files() -> None:
     """Generates a set of test files for test_data."""
 
     from itertools import product
