@@ -152,3 +152,38 @@ def test_generate_soil_model(caplog, config, valid, expected_log_entries):
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+# WHAT ELSE TO CHECK
+# THAT EACH FUNCTION WARNS THE USER APPROPRIATELY
+# CATCH THIS WITH CAPLOG I GUESS
+def test_failed_model(caplog):
+    """Test `FailedModel` initialization and usage."""
+
+    # Initialise model
+    model = FailedModel()
+
+    # In cases where it passes then checks that the object has the right properties
+    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+    assert model.name == "failed"
+    assert str(model) == "A failed model instance"
+    assert repr(model) == "FailedModel(update_interval = 320000000000 minutes)"
+    assert not model.should_update(datetime64("2050-10-28"))
+
+    # Run model functions and check the logging output
+    model.factory({})
+    model.setup()
+    model.spinup()
+    model.solve()
+    model.cleanup()
+
+    expected_log = (
+        (WARNING, "Cannot configure a failed model!"),
+        (WARNING, "Failed model cannot be setup!"),
+        (WARNING, "Failed model cannot be spun up!"),
+        (WARNING, "Failed model cannot be solved!"),
+        (WARNING, "Cleanup doesn't work for failed model!"),
+    )
+
+    # Final check that expected (i.e. no) logging entries are produced
+    log_check(caplog, expected_log)
