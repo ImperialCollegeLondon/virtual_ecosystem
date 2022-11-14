@@ -36,7 +36,6 @@ def fixture_square_grid():
     A 10 x 10 grid of 1 hectare cells, with non-zero origin.
     """
 
-    # TODO - can't type the return  value without a top level import of Grid
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(
@@ -46,6 +45,27 @@ def fixture_square_grid():
         cell_ny=10,
         xoff=500000,
         yoff=200000,
+    )
+
+    return grid
+
+
+@pytest.fixture
+def fixture_square_grid_simple():
+    """Create a square grid fixture.
+
+    A 2 x 2 grid centred on x=1,1,2,2 y=1,2,1,2
+    """
+
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(
+        grid_type="square",
+        cell_area=1,
+        cell_nx=2,
+        cell_ny=2,
+        xoff=0.5,
+        yoff=0.5,
     )
 
     return grid

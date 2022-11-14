@@ -451,11 +451,11 @@ class Grid:
 
         self._distances = squareform(pdist(self.centroids))
 
-    def map_coordinates(
+    def map_xy_to_cell_id(
         self,
-        x_coords: Union[Sequence, np.ndarray],
-        y_coords: Union[Sequence, np.ndarray],
-    ) -> list[list[int]]:
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+    ) -> list[list[Optional[int]]]:
         """Map a set of coordinates onto grid cells.
 
         This function loops over points defined by pairs of x and y coordinates and maps
@@ -465,8 +465,9 @@ class Grid:
         that intersect more than one cell fall ambiguously on cell borders.
 
         Args:
-            x_coords: The x coordinates of points that should occur within grid cells.
-            y_coords: A similar and equal-length list providing y coordinates.
+            x_coords: A numpy array of x coordinates of points that should occur within
+                grid cells.
+            y_coords: A similar and equal-length array providing y coordinates.
 
         Returns:
             A list of lists showing the cell ids that map onto each point. The list for
@@ -474,8 +475,11 @@ class Grid:
             > 1 when a point falls on adjoining cell boundaries.
         """
 
-        if len(x_coords) != len(y_coords):
-            raise ValueError("The x and y coordinates are of unequal length.")
+        if (x_coords.ndim != 1) or (y_coords.ndim != 1):
+            raise ValueError("The x/y coordinate arrays are not 1 dimensional")
+
+        if x_coords.shape != y_coords.shape:
+            raise ValueError("The x/y coordinates are of unequal length")
 
         # Get shapely points for the coordinates
         xyp = [Point(x, y) for x, y in zip(x_coords, y_coords)]
@@ -492,18 +496,25 @@ class Grid:
 
         return cell_map
 
-    def map_coverage(
+    def map_xy_to_cell_indexing(
         self,
-        x_coords: Union[Sequence, np.ndarray],
-        y_coords: Union[Sequence, np.ndarray],
-        strict: bool = True,
-    ) -> list[Optional[int]]:
-        """Check the cell coverage of points.
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+        x_idx: Optional[np.ndarray],
+        y_idx: Optional[np.ndarray],
+        strict: Optional[bool] = True,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Returns indexing to map xy coordinates a single cell_id axis.
 
-        This function maps the provided set of points onto  the grid (using
-        `~virtual_rainforest.core.grid.Grid.map_coordinates`) and then checks that the
-        mapped points uniquely identify all of the grid cells. If `strict` is set to
-        False, then extra points outside the grid are permitted.
+        This function maps the provided one-dimensional set of x and y points onto the
+        grid (using `~virtual_rainforest.core.grid.Grid.map_xy_to_cell_id`) and then
+        checks that the mapped points uniquely identify all of the grid cells. If
+        `strict` is set to False, then extra points outside the grid are permitted.
+
+        The function then returns a pair of arrays that give indices on the original
+        x and y data to extract data along a single cell id axis. If specific x and y
+        indexing data is not provided, they are assumed to be simple sequences along
+        `x_coords` and `y_coords`.
 
         Args:
             cell_map: An existing mapping from points onto cell ids.
@@ -515,7 +526,23 @@ class Grid:
         """
 
         # Get the coordinate mapping to cell ids
-        cell_map = self.map_coordinates(x_coords=x_coords, y_coords=y_coords)
+        cell_map = self.map_xy_to_cell_id(x_coords=x_coords, y_coords=y_coords)
+
+        # Set indexing to sequence along coords if missing
+        if (x_idx is None) and (y_idx is None):
+            _x_idx = np.arange(x_coords.shape[0])
+            _y_idx = np.arange(y_coords.shape[0])
+        elif (x_idx is None) ^ (y_idx is None):  # xor
+            raise ValueError("Only one of x/y indices provided.")
+        else:
+            _x_idx = x_idx  # type: ignore
+            _y_idx = y_idx  # type: ignore
+
+        # Check provided
+        if (_x_idx.shape != x_coords.shape) or (  # type: ignore
+            _y_idx.shape != y_coords.shape  # type: ignore
+        ):  # type: ignore
+            raise ValueError("Dimensions of x/y indices do not match coordinates")
 
         # Find the set of total number of cell mappings per point
         cell_counts = set([len(mp) for mp in cell_map])
@@ -528,17 +555,27 @@ class Grid:
         if any([c > 1 for c in cell_counts]):
             raise ValueError("Mapped points fall on cell boundaries.")
 
-        # Now all points are 1 to 1 with cells, or missing if strict = False
-        ret_list = [c[0] if len(c) else None for c in cell_map]
+        # Now all points are 1 to 1 with cells, or missing if strict = False, so
+        # collapse down to list of ints/None.
+        cell_id_map = [c[0] if len(c) else None for c in cell_map]
 
         # Get a list of all non-None ids.
-        ret_cells = [v for v in ret_list if v is not None]
+        cells_found = [v for v in cell_id_map if v is not None]
 
         # Now check for cells with more than one point and cells with no points.
-        if set(ret_cells) != set(self.cell_id):
+        if set(cells_found) != set(self.cell_id):
             raise ValueError("Mapped points do not cover all cells.")
 
-        if len(ret_cells) != self.n_cells:
+        if len(cells_found) != self.n_cells:
             raise ValueError("Some cells contain more than one point.")
 
-        return ret_list
+        # Reduce to matching cells in cell_id order
+        cells = [
+            (mp, x, y)
+            for (mp, x, y) in zip(cell_id_map, _x_idx, _y_idx)
+            if mp is not None
+        ]
+        cells.sort()
+        _, x_idx, y_idx = zip(*cells)
+
+        return np.array(x_idx), np.array(y_idx)
