@@ -1,7 +1,0 @@
-# This toml files is used to test the model initialisation. It needs to exist as a
-# separate file because the other files (and the default) are setup to configure the
-# plants module, which does not have a Model class defined. Once plants has a Model
-# class defined this file should be deleted.
-
-[core]
-modules = ["soil"]

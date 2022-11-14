@@ -65,7 +65,6 @@ def configure_models(
     return models_cfd
 
 
-# TODO - Add tests for this function
 def vr_run(
     cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
 ) -> None:
@@ -99,11 +98,16 @@ def vr_run(
 
     models_cfd = configure_models(config, model_list)
 
-    # TODO - DECIDE WHETHER TO CONTINUE HERE
-    # IS THIS A POINT FOR A TRY, EXPECT, FINALLY?
-    # NEED TO CHECK AT A LOWER LEVEL TO SEE IF ERRORS CAN BE BETTER HANDLED
-
-    print(models_cfd)
+    if any(model is None for model in models_cfd):
+        log_and_raise(
+            "Could not configure all the desired models, ending the simulation.",
+            InitialisationError,
+        )
+        return
+    else:
+        LOGGER.info(
+            "All models successfully configured, now attempting to initialise them."
+        )
 
     # TODO - Extract input data required to initialise the models
 

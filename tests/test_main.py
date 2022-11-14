@@ -8,8 +8,8 @@ from logging import CRITICAL, ERROR, INFO
 
 import pytest
 
-from virtual_rainforest.core.model import BaseModel
-from virtual_rainforest.main import configure_models, select_models
+from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.main import configure_models, select_models, vr_run
 
 from .conftest import log_check
 
@@ -152,5 +152,53 @@ def test_configure_models(caplog, config, output, expected_log_entries):
         assert models == [None]
     else:
         assert repr(models[0]) == output
+
+    log_check(caplog, expected_log_entries)
+
+
+def test_vr_run_miss_model(mocker, caplog):
+    """Test the main `vr_run` function handles missing models correctly."""
+
+    mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
+    mock_conf.return_value = {"core": {"modules": ["topsoil"]}}
+
+    with pytest.raises(InitialisationError):
+        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+
+    expected_log_entries = (
+        (INFO, "Attempting to configure the following models: ['topsoil']"),
+        (
+            ERROR,
+            "The following models cannot be configured as they are not found in the "
+            "registry: ['topsoil']",
+        ),
+        (CRITICAL, "Could not find all the desired models, ending the simulation."),
+    )
+
+    log_check(caplog, expected_log_entries)
+
+
+def test_vr_run_bad_model(mocker, caplog):
+    """Test the main `vr_run` function handles bad model configuration correctly."""
+
+    mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
+    mock_conf.return_value = {"core": {"modules": ["soil"]}}
+    mock_cf_mod = mocker.patch("virtual_rainforest.main.configure_models")
+    mock_cf_mod.return_value = [None]
+
+    with pytest.raises(InitialisationError):
+        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+
+    expected_log_entries = (
+        (INFO, "Attempting to configure the following models: ['soil']"),
+        (
+            INFO,
+            "All models found in the registry, now attempting to configure them.",
+        ),
+        (
+            CRITICAL,
+            "Could not configure all the desired models, ending the simulation.",
+        ),
+    )
 
     log_check(caplog, expected_log_entries)
