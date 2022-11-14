@@ -71,7 +71,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
 
 
 @pytest.mark.parametrize(
-    "config,output,expected_log_entries",
+    "config,output,raises,expected_log_entries",
     [
         (
             {  # valid config
@@ -79,6 +79,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "core": {"timing": {"min_time_step": "7 days"}},
             },
             "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
+            does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
@@ -94,12 +95,18 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "core": {"timing": {"min_time_step": "7 days"}},
             },
             None,
+            pytest.raises(InitialisationError),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     ERROR,
                     "Configuration is missing information required to initialise the "
                     "soil model. The first missing key is 'no_layers'.",
+                ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
                 ),
             ),
         ),
@@ -109,6 +116,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "core": {"timing": {"min_time_step": "7 days"}},
             },
             None,
+            pytest.raises(InitialisationError),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
@@ -120,6 +128,11 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     CRITICAL,
                     "There has to be at least one soil layer in the soil model!",
                 ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
+                ),
             ),
         ),
         (
@@ -128,6 +141,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "core": {"timing": {"min_time_step": "7"}},
             },
             None,
+            pytest.raises(InitialisationError),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
@@ -137,21 +151,27 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "instance of this problem is as follows: Cannot convert from "
                     "'dimensionless' (dimensionless) to 'minute' ([time])",
                 ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
+                ),
             ),
         ),
     ],
 )
-def test_configure_models(caplog, config, output, expected_log_entries):
+def test_configure_models(caplog, config, output, raises, expected_log_entries):
     """Test the function that configures the models."""
 
-    model_list = select_models(["soil"])
+    with raises:
+        model_list = select_models(["soil"])
 
-    models = configure_models(config, model_list)
+        models = configure_models(config, model_list)
 
-    if output is None:
-        assert models == [None]
-    else:
-        assert repr(models[0]) == output
+        if output is None:
+            assert models == [None]
+        else:
+            assert repr(models[0]) == output
 
     log_check(caplog, expected_log_entries)
 
@@ -181,9 +201,7 @@ def test_vr_run_bad_model(mocker, caplog):
     """Test the main `vr_run` function handles bad model configuration correctly."""
 
     mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
-    mock_conf.return_value = {"core": {"modules": ["soil"]}}
-    mock_cf_mod = mocker.patch("virtual_rainforest.main.configure_models")
-    mock_cf_mod.return_value = [None]
+    mock_conf.return_value = {"core": {"modules": ["soil"]}, "soil": {}}
 
     with pytest.raises(InitialisationError):
         vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
@@ -193,6 +211,11 @@ def test_vr_run_bad_model(mocker, caplog):
         (
             INFO,
             "All models found in the registry, now attempting to configure them.",
+        ),
+        (
+            ERROR,
+            "Configuration is missing information required to initialise the soil "
+            "model. The first missing key is 'timing'.",
         ),
         (
             CRITICAL,

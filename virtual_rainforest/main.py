@@ -23,7 +23,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         model_list: A list of models to select
 
     Raises:
-        modules: A set of models to be configured
+        InitialisationError: If one or more models cannot be found in the registry
     """
 
     # Remove "core" from model list as it is not a model
@@ -56,12 +56,19 @@ def configure_models(
         config: The full virtual rainforest configuration
         modules: A set of models to be configured
 
-    Returns:
-        models_cfd: A set of configured models
+    Raises:
+        InitialisationError: If one or more models cannot be properly configured
     """
 
     # Use factory methods to configure the desired models
     models_cfd = [model.factory(config) for model in model_list]
+
+    if any(model is None for model in models_cfd):
+        log_and_raise(
+            "Could not configure all the desired models, ending the simulation.",
+            InitialisationError,
+        )
+
     return models_cfd
 
 
@@ -89,16 +96,12 @@ def vr_run(
 
     models_cfd = configure_models(config, model_list)
 
-    if any(model is None for model in models_cfd):
-        log_and_raise(
-            "Could not configure all the desired models, ending the simulation.",
-            InitialisationError,
-        )
-        return
-    else:
-        LOGGER.info(
-            "All models successfully configured, now attempting to initialise them."
-        )
+    LOGGER.info(
+        "All models successfully configured, now attempting to initialise them."
+    )
+
+    # This is just a step to pass flake8 checks (DELETE LATER)
+    print(models_cfd)
 
     # TODO - Extract input data required to initialise the models
 
