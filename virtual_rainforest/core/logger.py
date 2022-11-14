@@ -6,6 +6,7 @@ provide additional functionality relevant to the virtual rainforest model.
 At the moment the module simply sets up the logger so that other modules can access it.
 It is very likely to be further extended in future.
 """
+# TODO - EXPLAIN LOGGING LEVELS, HOW THEY SHOULD BE USED, HOW LOG AND RAISE IS USED
 
 import logging
 from typing import Optional, Type

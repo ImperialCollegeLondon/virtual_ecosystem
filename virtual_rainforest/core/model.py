@@ -8,6 +8,8 @@ functions defined in the base class, which are defined mainly to force a consist
 between models. It also establishes a model registry that allows models to become
 accessible across scripts without individual loading in.
 """
+# TODO - EXPLAIN USAGE OF THIS, AND IDEA BEHIND IT
+# PROBABLY LINK TO SOIL MODULE EXAMPLE AS THIS IS AN EASIER EXAMPLE TO FOLLOW
 
 from __future__ import annotations
 

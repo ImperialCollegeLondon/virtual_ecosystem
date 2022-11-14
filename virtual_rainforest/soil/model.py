@@ -3,6 +3,8 @@
 The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
 class to be usable to simulate the soil.
 """
+# TODO - Extend this docstring to explain the module properly
+# Should give this a fair deal of detail, as others will have to copy this over
 
 from __future__ import annotations
 
