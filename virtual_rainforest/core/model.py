@@ -103,3 +103,42 @@ class BaseModel(ABC):
     def __str__(self) -> str:
         """Inform user what the model type is."""
         return f"A {self.name} model instance"
+
+
+# TODO - TEST THIS
+class FailedModel(BaseModel, model_name="failed"):
+    """A class to be returned when a `vr` model fails to be properly constructed."""
+
+    name = "failed"
+
+    def __init__(self, **kwargs: Any):
+        # Set to 10000 years to turn update off
+        update_interval = timedelta64(10000, "Y")
+        super(FailedModel, self).__init__(update_interval, **kwargs)
+
+    @classmethod
+    def factory(cls, config: dict[str, Any]) -> FailedModel:
+        """Factory function informs user that a failed model cannot be configured."""
+
+        LOGGER.error("Cannot configure a failed model!")
+        return cls()
+
+    def setup(self) -> None:
+        """Function to inform user that a failed model cannot be setup."""
+
+        LOGGER.error("Failed model cannot be setup!")
+
+    def spinup(self) -> None:
+        """Function to inform user that a failed model cannot be spun up."""
+
+        LOGGER.error("Failed model cannot be spun up!")
+
+    def solve(self) -> None:
+        """Function to inform user that a failed model cannot be solved."""
+
+        LOGGER.error("Failed model cannot be solved!")
+
+    def cleanup(self) -> None:
+        """Function to inform user that cleanup doesn't work on a failed model."""
+
+        LOGGER.error("Cleanup doesn't work for failed model!")

@@ -9,7 +9,12 @@ from typing import Any, Type, Union
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
+from virtual_rainforest.core.model import (
+    MODEL_REGISTRY,
+    BaseModel,
+    FailedModel,
+    InitialisationError,
+)
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -63,7 +68,7 @@ def configure_models(
     # Use factory methods to configure the desired models
     models_cfd = [model.factory(config) for model in model_list]
 
-    if any(model is None for model in models_cfd):
+    if any([isinstance(model, FailedModel) for model in models_cfd]):
         log_and_raise(
             "Could not configure all the desired models, ending the simulation.",
             InitialisationError,
