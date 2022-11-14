@@ -5,14 +5,14 @@ this script also defines the command line entry points for the model.
 """
 
 from copy import deepcopy
-from typing import Any, Optional, Type, Union
+from typing import Any, Type, Union
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
 
 
-def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
+def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     """Select the models to be run for a specific virtual rainforest simulation.
 
     This function looks for models from a list of models, if these models can all be
@@ -22,7 +22,7 @@ def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     Args:
         model_list: A list of models to select
 
-    Returns:
+    Raises:
         modules: A set of models to be configured
     """
 
@@ -35,13 +35,13 @@ def select_models(model_list: list[str]) -> Optional[list[Type[BaseModel]]]:
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list if model not in MODEL_REGISTRY.keys()]
     if miss_model != []:
-        LOGGER.error(
+        log_and_raise(
             f"The following models cannot be configured as they are not found in the "
-            f"registry: {miss_model}"
+            f"registry: {miss_model}",
+            InitialisationError,
         )
-        return None
 
-    # Then look for each model in the registry
+    # Then extract each model from the registry
     modules = [MODEL_REGISTRY[model] for model in model_list]
 
     return modules
@@ -85,16 +85,7 @@ def vr_run(
 
     model_list = select_models(deepcopy(config["core"]["modules"]))
 
-    if model_list is None:
-        log_and_raise(
-            "Could not find all the desired models, ending the simulation.",
-            InitialisationError,
-        )
-        return
-    else:
-        LOGGER.info(
-            "All models found in the registry, now attempting to configure them."
-        )
+    LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     models_cfd = configure_models(config, model_list)
 

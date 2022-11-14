@@ -4,6 +4,7 @@ This module tests both the main simulation function `vr_run` and the other funct
 defined in main.py that it calls.
 """
 
+from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 
 import pytest
@@ -15,11 +16,12 @@ from .conftest import log_check
 
 
 @pytest.mark.parametrize(
-    "model_list,no_models,expected_log_entries",
+    "model_list,no_models,raises,expected_log_entries",
     [
         (
             ["soil"],  # valid input
             1,
+            does_not_raise(),
             (
                 (
                     INFO,
@@ -30,6 +32,7 @@ from .conftest import log_check
         (
             ["soil", "core"],
             1,
+            does_not_raise(),
             (
                 (
                     INFO,
@@ -40,6 +43,7 @@ from .conftest import log_check
         (
             ["soil", "freshwater"],  # Model that hasn't been defined
             0,
+            pytest.raises(InitialisationError),
             (
                 (
                     INFO,
@@ -47,7 +51,7 @@ from .conftest import log_check
                     "'freshwater']",
                 ),
                 (
-                    ERROR,
+                    CRITICAL,
                     "The following models cannot be configured as they are not found in"
                     " the registry: ['freshwater']",
                 ),
@@ -55,19 +59,15 @@ from .conftest import log_check
         ),
     ],
 )
-def test_select_models(caplog, model_list, no_models, expected_log_entries):
+def test_select_models(caplog, model_list, no_models, raises, expected_log_entries):
     """Test the model selecting function."""
 
-    models = select_models(model_list)
-
-    log_check(caplog, expected_log_entries)
-
-    # Finally check that output is as expected
-    if no_models > 0:
+    with raises:
+        models = select_models(model_list)
         assert len(models) == no_models
         assert all([type(model) == type(BaseModel) for model in models])
-    else:
-        assert models is None
+
+    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -168,11 +168,10 @@ def test_vr_run_miss_model(mocker, caplog):
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['topsoil']"),
         (
-            ERROR,
+            CRITICAL,
             "The following models cannot be configured as they are not found in the "
             "registry: ['topsoil']",
         ),
-        (CRITICAL, "Could not find all the desired models, ending the simulation."),
     )
 
     log_check(caplog, expected_log_entries)
