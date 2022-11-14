@@ -35,7 +35,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     if "core" in model_list:
         model_list.remove("core")
 
-    LOGGER.info(f"Attempting to configure the following models: {model_list}")
+    LOGGER.info("Attempting to configure the following models: %s" % model_list)
 
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list if model not in MODEL_REGISTRY.keys()]

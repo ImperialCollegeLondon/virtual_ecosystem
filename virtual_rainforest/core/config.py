@@ -320,7 +320,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
             tag = ""
             for k in error.path:
                 tag += f"[{k}]"
-            LOGGER.error(f"{tag}: {error.message}")
+            LOGGER.error("%s: %s" % (tag, error.message))
         log_and_raise(
             "Validation of core configuration files failed see above errors",
             ConfigurationError,
@@ -447,7 +447,7 @@ def validate_with_defaults(
             tag = ""
             for k in error.path:
                 tag += f"[{k}]"
-            LOGGER.error(f"{tag}: {error.message}")
+            LOGGER.error("%s: %s" % (tag, error.message))
         log_and_raise(
             "Validation of configuration files failed see above errors",
             ConfigurationError,
@@ -507,7 +507,8 @@ def validate_config(
 
     # Output combined toml file, into the initial config folder
     LOGGER.info(
-        f"Saving all configuration details to {output_folder}/{out_file_name}.toml"
+        "Saving all configuration details to %s/%s.toml"
+        % (output_folder, out_file_name)
     )
     with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)

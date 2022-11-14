@@ -75,15 +75,15 @@ class SoilModel(BaseModel, model_name="soil"):
         except KeyError as e:
             valid_input = False
             LOGGER.error(
-                f"Configuration is missing information required to initialise the soil "
-                f"model. The first missing key is {str(e)}."
+                "Configuration is missing information required to initialise the soil "
+                "model. The first missing key is %s." % str(e)
             )
         except (ValueError, pint.errors.DimensionalityError) as e:
             valid_input = False
             LOGGER.error(
-                f"Configuration types appear not to have been properly validated. This "
-                f"problem prevents initialisation of the soil model. The first instance"
-                f" of this problem is as follows: {str(e)}"
+                "Configuration types appear not to have been properly validated. This "
+                "problem prevents initialisation of the soil model. The first instance"
+                " of this problem is as follows: %s" % str(e)
             )
 
         if valid_input:
@@ -105,7 +105,7 @@ class SoilModel(BaseModel, model_name="soil"):
     def setup(self) -> None:
         """Function to set up the soil model."""
         for layer in range(0, self.no_layers):
-            LOGGER.info(f"Setting up soil layer {layer}")
+            LOGGER.info("Setting up soil layer %s" % layer)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
