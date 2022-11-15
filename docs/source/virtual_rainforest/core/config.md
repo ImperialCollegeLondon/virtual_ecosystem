@@ -35,11 +35,11 @@ input can be spread across an arbitrarily large number of config files. However,
 information cannot be repeated between files as there is no way to establish which of
 two values (of e.g. `core.grid.nx`) the user intended to provide. In this case, the
 module will throw critical error and the `virtual_rainforest` model will not configure.
-Config files are read from a folder that the user specifies, this can either be every
-`toml` file in the folder, or a user provided list of files. If a file exists in this
-folder that has the same name as the user provided output file name the configuration
-will critically fail, in order to minimise the chance of significant confusion
-downstream.
+The user supplies a list of config files and/or folders to look for config files, within
+the supplied folders every `toml` file will be read in. An output folder and file name
+should also be provided, if a file already exists in the output folder that has the same
+name as the user provided output file name the configuration will critically fail. This
+happens in order to minimise the chance of significant confusion downstream.
 
 ## Optional module loading
 
