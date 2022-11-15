@@ -28,7 +28,9 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     # Remove "core" from model list as it is not a model
     model_list_ = set(model_list) - {"core"}
 
-    LOGGER.info("Attempting to configure the following models: %s" % model_list_)
+    LOGGER.info(
+        "Attempting to configure the following models: %s" % sorted(model_list_)
+    )
 
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list_ if model not in MODEL_REGISTRY.keys()]

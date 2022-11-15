@@ -25,7 +25,7 @@ from .conftest import log_check
             (
                 (
                     INFO,
-                    "Attempting to configure the following models: {'soil'}",
+                    "Attempting to configure the following models: ['soil']",
                 ),
             ),
         ),
@@ -36,7 +36,7 @@ from .conftest import log_check
             (
                 (
                     INFO,
-                    "Attempting to configure the following models: {'soil'}",
+                    "Attempting to configure the following models: ['soil']",
                 ),
             ),
         ),
@@ -47,8 +47,8 @@ from .conftest import log_check
             (
                 (
                     INFO,
-                    "Attempting to configure the following models: {'freshwater', "
-                    "'soil'}",
+                    "Attempting to configure the following models: ['freshwater', "
+                    "'soil']",
                 ),
                 (
                     CRITICAL,
@@ -81,7 +81,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
             does_not_raise(),
             (
-                (INFO, "Attempting to configure the following models: {'soil'}"),
+                (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -97,7 +97,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: {'soil'}"),
+                (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     ERROR,
                     "Configuration is missing information required to initialise the "
@@ -118,7 +118,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: {'soil'}"),
+                (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -143,7 +143,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: {'soil'}"),
+                (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     ERROR,
                     "Configuration types appear not to have been properly validated. "
@@ -186,7 +186,7 @@ def test_vr_run_miss_model(mocker, caplog):
         vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
 
     expected_log_entries = (
-        (INFO, "Attempting to configure the following models: {'topsoil'}"),
+        (INFO, "Attempting to configure the following models: ['topsoil']"),
         (
             CRITICAL,
             "The following models cannot be configured as they are not found in the "
@@ -207,7 +207,7 @@ def test_vr_run_bad_model(mocker, caplog):
         vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
 
     expected_log_entries = (
-        (INFO, "Attempting to configure the following models: {'soil'}"),
+        (INFO, "Attempting to configure the following models: ['soil']"),
         (
             INFO,
             "All models found in the registry, now attempting to configure them.",
@@ -219,7 +219,8 @@ def test_vr_run_bad_model(mocker, caplog):
         ),
         (
             CRITICAL,
-            "Could not configure all the desired models, ending the simulation.",
+            "Could not configure all the desired models, ending the simulation. The "
+            "following models failed: ['soil'].",
         ),
     )
 
