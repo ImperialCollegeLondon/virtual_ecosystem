@@ -5,7 +5,7 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO, WARNING
+from logging import CRITICAL, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
@@ -111,14 +111,8 @@ def test_register_model_errors(caplog):
     [
         (
             {},
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Configuration is missing information required to initialise the "
-                    "soil model. The first missing key is 'core'",
-                ),
-            ),
+            pytest.raises(KeyError),
+            (),  # This error isn't handled so doesn't generate logging
         ),
         (
             {
@@ -145,7 +139,7 @@ def test_generate_soil_model(caplog, config, raises, expected_log_entries):
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = SoilModel.factory(config)
+        model = SoilModel.from_config(config)
         assert model.no_layers == config["soil"]["no_layers"]
 
     # Final check that expected logging entries are produced

@@ -90,27 +90,6 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             ),
         ),
         (
-            {  # missing soil config tag
-                "soil": {},
-                "core": {"timing": {"min_time_step": "7 days"}},
-            },
-            None,
-            pytest.raises(InitialisationError),
-            (
-                (INFO, "Attempting to configure the following models: ['soil']"),
-                (
-                    ERROR,
-                    "Configuration is missing information required to initialise the "
-                    "soil model. The first missing key is 'no_layers'.",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
-            ),
-        ),
-        (
             {  # invalid soil config tag
                 "soil": {"no_layers": -1},
                 "core": {"timing": {"min_time_step": "7 days"}},
@@ -201,7 +180,17 @@ def test_vr_run_bad_model(mocker, caplog):
     """Test the main `vr_run` function handles bad model configuration correctly."""
 
     mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
-    mock_conf.return_value = {"core": {"modules": ["soil"]}, "soil": {}}
+    mock_conf.return_value = {
+        "core": {
+            "modules": ["soil"],
+            "timing": {
+                "start_date": "2020-01-01",
+                "end_date": "2120-01-01",
+                "min_time_step": "0.5 martian days",
+            },
+        },
+        "soil": {},
+    }
 
     with pytest.raises(InitialisationError):
         vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
@@ -214,8 +203,9 @@ def test_vr_run_bad_model(mocker, caplog):
         ),
         (
             ERROR,
-            "Configuration is missing information required to initialise the soil "
-            "model. The first missing key is 'timing'.",
+            "Configuration types appear not to have been properly validated. This "
+            "problem prevents initialisation of the soil model. The first instance of "
+            "this problem is as follows: 'martian' is not defined in the unit registry",
         ),
         (
             CRITICAL,

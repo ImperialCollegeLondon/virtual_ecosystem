@@ -67,7 +67,7 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def factory(cls, config: dict[str, Any]) -> Any:
+    def from_config(cls, config: dict[str, Any]) -> Any:
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod

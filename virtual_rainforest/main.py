@@ -65,7 +65,7 @@ def configure_models(
     models_cfd = []
     for model in model_list:
         try:
-            models_cfd.append(model.factory(config))
+            models_cfd.append(model.from_config(config))
         except InitialisationError:
             failed_models.append(model.name)
 

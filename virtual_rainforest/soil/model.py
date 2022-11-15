@@ -51,8 +51,8 @@ class SoilModel(BaseModel, model_name="soil"):
         self._repr.append("no_layers")
 
     @classmethod
-    def factory(cls, config: dict[str, Any]) -> SoilModel:
-        """Factory function to initialise the soil model.
+    def from_config(cls, config: dict[str, Any]) -> SoilModel:
+        """Factory function to initialise the soil model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
         then uses it to initialise the model. If any information from the config is
@@ -61,6 +61,8 @@ class SoilModel(BaseModel, model_name="soil"):
         Args:
             config: The complete (and validated) virtual rainforest configuration.
 
+        Raises:
+            InitialisationError: If configuration data can't be properly converted
         """
 
         # Assume input is valid until we learn otherwise
@@ -72,13 +74,11 @@ class SoilModel(BaseModel, model_name="soil"):
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(raw_interval.magnitude), "m")
             no_layers = config["soil"]["no_layers"]
-        except KeyError as e:
-            valid_input = False
-            LOGGER.error(
-                "Configuration is missing information required to initialise the soil "
-                "model. The first missing key is %s." % str(e)
-            )
-        except (ValueError, pint.errors.DimensionalityError) as e:
+        except (
+            ValueError,
+            pint.errors.DimensionalityError,
+            pint.errors.UndefinedUnitError,
+        ) as e:
             valid_input = False
             LOGGER.error(
                 "Configuration types appear not to have been properly validated. This "
