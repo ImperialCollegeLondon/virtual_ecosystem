@@ -6,13 +6,13 @@ class to be usable to simulate the soil.
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 import pint
 from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import BaseModel, FailedModel, InitialisationError
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class SoilModel(BaseModel, model_name="soil"):
@@ -51,7 +51,7 @@ class SoilModel(BaseModel, model_name="soil"):
         self._repr.append("no_layers")
 
     @classmethod
-    def factory(cls, config: dict[str, Any]) -> Union[SoilModel, FailedModel]:
+    def factory(cls, config: dict[str, Any]) -> SoilModel:
         """Factory function to initialise the soil model.
 
         This function unpacks the relevant information from the configuration file, and
@@ -87,16 +87,13 @@ class SoilModel(BaseModel, model_name="soil"):
             )
 
         if valid_input:
-            try:
-                LOGGER.info(
-                    "Information required to initialise the soil model successfully "
-                    "extracted."
-                )
-                return cls(update_interval, no_layers)
-            except InitialisationError:
-                return FailedModel()
+            LOGGER.info(
+                "Information required to initialise the soil model successfully "
+                "extracted."
+            )
+            return cls(update_interval, no_layers)
         else:
-            return FailedModel()
+            raise InitialisationError()
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK

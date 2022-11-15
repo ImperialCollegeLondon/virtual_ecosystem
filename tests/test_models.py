@@ -10,7 +10,7 @@ from logging import CRITICAL, ERROR, INFO, WARNING
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, FailedModel, InitialisationError
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
@@ -107,11 +107,11 @@ def test_register_model_errors(caplog):
 
 
 @pytest.mark.parametrize(
-    "config,valid,expected_log_entries",
+    "config,raises,expected_log_entries",
     [
         (
             {},
-            False,
+            pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
@@ -129,7 +129,7 @@ def test_register_model_errors(caplog):
                 },
                 "soil": {"no_layers": 2},
             },
-            True,
+            does_not_raise(),
             (
                 (
                     INFO,
@@ -140,50 +140,13 @@ def test_register_model_errors(caplog):
         ),
     ],
 )
-def test_generate_soil_model(caplog, config, valid, expected_log_entries):
+def test_generate_soil_model(caplog, config, raises, expected_log_entries):
     """Test that the function to initialise the soil model behaves as expected."""
 
     # Check whether model is initialised (or not) as expected
-    model = SoilModel.factory(config)
-    if valid is False:
-        assert isinstance(model, FailedModel)
-    else:
+    with raises:
+        model = SoilModel.factory(config)
         assert model.no_layers == config["soil"]["no_layers"]
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
-
-
-# WHAT ELSE TO CHECK
-# THAT EACH FUNCTION WARNS THE USER APPROPRIATELY
-# CATCH THIS WITH CAPLOG I GUESS
-def test_failed_model(caplog):
-    """Test `FailedModel` initialization and usage."""
-
-    # Initialise model
-    model = FailedModel()
-
-    # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-    assert model.name == "failed"
-    assert str(model) == "A failed model instance"
-    assert repr(model) == "FailedModel(update_interval = 320000000000 minutes)"
-    assert not model.should_update(datetime64("2050-10-28"))
-
-    # Run model functions and check the logging output
-    model.factory({})
-    model.setup()
-    model.spinup()
-    model.solve()
-    model.cleanup()
-
-    expected_log = (
-        (WARNING, "Cannot configure a failed model!"),
-        (WARNING, "Failed model cannot be setup!"),
-        (WARNING, "Failed model cannot be spun up!"),
-        (WARNING, "Failed model cannot be solved!"),
-        (WARNING, "Cleanup doesn't work for failed model!"),
-    )
-
-    # Final check that expected (i.e. no) logging entries are produced
-    log_check(caplog, expected_log)
