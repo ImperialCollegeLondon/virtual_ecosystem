@@ -449,7 +449,8 @@ def test_missing_core_schema(caplog, mocker):
                 ),
                 (
                     CRITICAL,
-                    "Validation of configuration files failed see above errors",
+                    "Validation of complete configuration files failed see above "
+                    "errors",
                 ),
             ),
         ),

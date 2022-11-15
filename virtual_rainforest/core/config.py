@@ -31,6 +31,35 @@ class ConfigurationError(Exception):
     """Custom exception class for configuration failures."""
 
 
+def log_all_validation_errors(
+    errors: list[exceptions.ValidationError], complete: bool
+) -> None:
+    """Logs all validation errors and raises an exception.
+
+    A tag is constructed to allow the location of each error to be better determined.
+    For each error this is then printed along with the error message.
+
+    Raises:
+        ConfigurationError: As at least one validation error has occurred.
+    """
+    if complete:
+        conf = "complete"
+    else:
+        conf = "core"
+
+    for error in errors:
+        # Construct details of the tag associated with the error
+        tag = ""
+        for k in error.path:
+            tag += f"[{k}]"
+        LOGGER.error("%s: %s" % (tag, error.message))
+
+    log_and_raise(
+        f"Validation of {conf} configuration files failed see above errors",
+        ConfigurationError,
+    )
+
+
 def validate_and_add_defaults(
     validator_class: type[Draft202012Validator],
 ) -> type[Draft202012Validator]:
@@ -315,16 +344,7 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
             core_schema, format_checker=FormatChecker()
         ).iter_errors(config_dict)
         # Then log all errors in validating core config
-        for error in errors:
-            # Construct details of the tag associated with the error
-            tag = ""
-            for k in error.path:
-                tag += f"[{k}]"
-            LOGGER.error("%s: %s" % (tag, error.message))
-        log_and_raise(
-            "Validation of core configuration files failed see above errors",
-            ConfigurationError,
-        )
+        log_all_validation_errors(errors, False)
 
 
 def find_schema(config_dict: dict[str, Any]) -> list[str]:
@@ -441,17 +461,8 @@ def validate_with_defaults(
         errors = ValidatorWithDefaults(
             comb_schema, format_checker=FormatChecker()
         ).iter_errors(config_dict)
-        # Then log all errors in validating core config
-        for error in errors:
-            # Construct details of the tag associated with the error
-            tag = ""
-            for k in error.path:
-                tag += f"[{k}]"
-            LOGGER.error("%s: %s" % (tag, error.message))
-        log_and_raise(
-            "Validation of configuration files failed see above errors",
-            ConfigurationError,
-        )
+        # Then log all errors in validating complete config
+        log_all_validation_errors(errors, True)
 
 
 def validate_config(
