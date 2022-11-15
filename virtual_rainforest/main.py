@@ -4,7 +4,6 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
-from copy import deepcopy
 from typing import Any, Type, Union
 
 from virtual_rainforest.core.config import validate_config
@@ -32,14 +31,13 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     """
 
     # Remove "core" from model list as it is not a model
-    if "core" in model_list:
-        model_list.remove("core")
+    model_list_ = set(model_list) - {"core"}
 
-    LOGGER.info("Attempting to configure the following models: %s" % model_list)
+    LOGGER.info("Attempting to configure the following models: %s" % model_list_)
 
     # Make list of missing models, and return an error if necessary
-    miss_model = [model for model in model_list if model not in MODEL_REGISTRY.keys()]
-    if miss_model != []:
+    miss_model = [model for model in model_list_ if model not in MODEL_REGISTRY.keys()]
+    if len(miss_model):
         log_and_raise(
             f"The following models cannot be configured as they are not found in the "
             f"registry: {miss_model}",
@@ -47,7 +45,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         )
 
     # Then extract each model from the registry
-    modules = [MODEL_REGISTRY[model] for model in model_list]
+    modules = [MODEL_REGISTRY[model] for model in model_list_]
 
     return modules
 
@@ -95,7 +93,7 @@ def vr_run(
 
     config = validate_config(cfg_paths, output_folder, out_file_name)
 
-    model_list = select_models(deepcopy(config["core"]["modules"]))
+    model_list = select_models(config["core"]["modules"])
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
