@@ -55,7 +55,10 @@ else:
     import tomli as tomllib
 
 SCHEMA_REGISTRY: dict = {}
-"""A registry for different module schema."""
+"""A registry for different module schema.
+
+:meta hide-value:
+"""
 
 
 class ConfigurationError(Exception):
