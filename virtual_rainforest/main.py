@@ -34,7 +34,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list_ if model not in MODEL_REGISTRY.keys()]
-    if len(miss_model):
+    if miss_model:
         log_and_raise(
             f"The following models cannot be configured as they are not found in the "
             f"registry: {miss_model}",
@@ -70,7 +70,7 @@ def configure_models(
             failed_models.append(model.name)
 
     # If any models fail to configure inform the user about it
-    if len(failed_models):
+    if failed_models:
         log_and_raise(
             f"Could not configure all the desired models, ending the simulation. The "
             f"following models failed: {failed_models}.",
