@@ -1,4 +1,4 @@
-# The `core.config` module
+# The configuration module
 
 This module is used to configure a `virtual_rainforest` simulation run. This module
 reads in a set of configuration files written using `toml`. It is setup in such a way as

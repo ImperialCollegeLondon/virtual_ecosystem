@@ -2,10 +2,10 @@
 
 The `core.config` module is used to read in the various configuration files, validate
 their contents, and then configure a ready to run instance of the virtual rainforest
-model.
+model. The basic details of how this system functions can be found
+:ref:`here<virtual_rainforest/core/config:the configuration module>`.
 """
-# TODO - Think about how to expand the above docstring
-# Maybe just link the user to the already written config docs?
+# OKAY DECORATOR USAGE SHOULD BE DEMONSTRATED
 
 import sys
 from collections import ChainMap
