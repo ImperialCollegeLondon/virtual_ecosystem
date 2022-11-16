@@ -30,13 +30,19 @@ def generate_files() -> None:
     # Cell IDs
     cell_id = np.array([f"{x}-{y}" for x, y in product(x_idx, y_idx)])
 
-    # Some data
-    rng = np.random.default_rng()
+    # Some data with a fixed seed to avoid random changes in files
+    rng = np.random.default_rng(12345)
 
     grid_size = (x_n, y_n)
 
     temp = rng.normal(loc=20, scale=3, size=grid_size)
     prec = rng.lognormal(mean=5, sigma=1, size=grid_size)
+
+    # ----------------------------------------------------------------------
+    # Generate garbage netcdf file
+    # ----------------------------------------------------------------------
+    with open("garbage.nc", "w") as outf:
+        outf.write("This is not the NetCDF file you are looking for")
 
     # ----------------------------------------------------------------------
     # Generate NetCDF with 2D grid with actual coordinates on dimensions
