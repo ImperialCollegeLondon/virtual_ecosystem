@@ -1,10 +1,16 @@
 """The `soil.model` module.
 
-The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
-class to be usable to simulate the soil.
+The `soil.model` module creates a `SoilModel` class as a child of the `BaseModel` class.
+At present a lot of the abstract methods of the parent class (e.g. `setup` and `spinup`)
+are overwritten using placeholder functions that don't do anything. This will change as
+the `virtual_rainforest` model develops. The factory method `from_config` exists in a
+more complete state, and unpacks a small number of parameters from our currently pretty
+minimal configuration dictionary. These parameters are then used to generate a class
+instance. If errors crop here when converting the information from the config dictionary
+to the required types (e.g. `timedelat64`)  they are caught and then logged, and at the
+end of the unpacking an error is thrown. This error should be caught and handled by
+downstream functions so that all model configuration failures can be reported as one.
 """
-# TODO - Extend this docstring to explain the module properly
-# Should give this a fair deal of detail, as others will have to copy this over
 
 from __future__ import annotations
 
