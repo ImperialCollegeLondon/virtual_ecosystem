@@ -32,13 +32,20 @@ DEBUG          | Something has happened that is generally of minimal interest, b
                  be relevant when
                | attempting to debug issues.
 =============  =========================================================================
+
+These logging levels can then be used to filter the messages the user receives, by
+setting the logging level such that only messages above a certain level (of importance)
+are displayed. In practice, we are likely to generally set the logging level to INFO so
+that DEBUG messages are suppressed, except when we are actively trying to debug the
+model.
+
+The logging module also defines a function that we should generally make use of to kill
+the simulation when something goes wrong. This function `log_and_raise()` raises an
+exception (of the developers choice) and adds a developer specified CRITICAL message to
+the log. This function is useful as it ensures that CRITICAL logging events are
+accompanied by a simulation ending exception. As such, this is probably the only means
+by which you should log a CRITICAL message.
 """
-# MAJOR PROBLEM WITH THE ABOVE IS THAT LINE BLOCKS CREATE AUTOMATIC NEWLINES, WHICH
-# CAUSES WEIRD TABLE FORMATTING. NEED TO FIGURE OUT HOW TO STOP THIS
-# https://stackoverflow.com/questions/54001054/force-a-new-line-in-sphinx-text
-# TODO - HOW THEY SHOULD BE USED, HOW LOG AND RAISE IS USED
-# So probably should mention that our main use case is probably turning off debug logs,
-# other use cases are a bit more advanced
 
 import logging
 from typing import Optional, Type
