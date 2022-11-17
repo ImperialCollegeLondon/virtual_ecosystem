@@ -5,8 +5,53 @@ provide additional functionality relevant to the virtual rainforest model.
 
 At the moment the module simply sets up the logger so that other modules can access it.
 It is very likely to be further extended in future.
+
+All logging messages are emitted with a specified logging level, which essentially
+indicates the importance of the logging message. At the moment we use the 5 standard
+logging levels, though we might extend this by using custom logging levels at some
+point. The five logging levels we use are as follows:
+
+.. csv-table::
+    :header: Logging level, Use case
+
+    CRITICAL, "Something has gone so wrong that the model run has to stop immediately."
+    ERROR, "| Something has definitely gone wrong, but there is still a value in
+      continuing the execution
+    | of the model. This is mainly to check if other errors crop up, so that all
+    | relevant errors can be reported at once."
+    WARNING, "| Something seems a bit off, so the user should be warned, but the model
+      might actually be
+    | fine."
+
+
+=============  =========================================================================
+Logging level  Use case
+=============  =========================================================================
+CRITICAL       Something has gone so wrong that the model run has to stop immediately.
+ERROR          | Something has definitely gone wrong, but there is still a value in
+                 continuing the execution
+               | of the model. This is mainly to check if other errors crop
+                 up, so that all
+               | relevant errors can be reported at once.
+WARNING        | Something seems a bit off, so the user should be warned, but the model
+                 might actually be
+               | fine.
+INFO           | Something expected has happened, and it's useful to give the user
+                 information about it,
+               | e.g. configuration has been validated, or an output
+                 file is being saved to a specific
+               | location.
+DEBUG          | Something has happened that is generally of minimal interest, but might
+                 be relevant when
+               | attempting to debug issues.
+=============  =========================================================================
 """
-# TODO - EXPLAIN LOGGING LEVELS, HOW THEY SHOULD BE USED, HOW LOG AND RAISE IS USED
+# MAJOR PROBLEM WITH THE ABOVE IS THAT LINE BLOCKS CREATE AUTOMATIC NEWLINES, WHICH
+# CAUSES WEIRD TABLE FORMATTING. NEED TO FIGURE OUT HOW TO STOP THIS
+# https://stackoverflow.com/questions/54001054/force-a-new-line-in-sphinx-text
+# TODO - HOW THEY SHOULD BE USED, HOW LOG AND RAISE IS USED
+# So probably should mention that our main use case is probably turning off debug logs,
+# other use cases are a bit more advanced
 
 import logging
 from typing import Optional, Type
