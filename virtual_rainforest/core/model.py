@@ -1,15 +1,42 @@
 """The `core.model` module.
 
-The `core.model` module defines the api that all individual models (e.g. the soil
-model) should conform to. This consists of a class (`Model`), which defines the expected
-functions. The relevant modules will create classes to represent specific models, which
-will inherit from the `Model` base class. These subclasses will generally overwrite the
-functions defined in the base class, which are defined mainly to force a consistent api
-between models. It also establishes a model registry that allows models to become
-accessible across scripts without individual loading in.
+The `core.model` module defines the api that all individual models (e.g. the soil model)
+should conform to. This consists of a class (`BaseModel`), which defines the expected
+functions. This class is an abstract base class, which is a class that is never intended
+to be instantiated itself but instead serves as a blueprint for inheriting classes. Some
+of its functions will be inherited and used by its child classes (e.g. `__repr__` and
+`__str__`), unless they are explicitly overwritten in the child class. However, it also
+possesses abstract methods (denoted by `@abstractmethod`), which are merely
+placeholders. For these abstract methods child classes have to overwrite the methods
+with new functions, otherwise class inheritance fails. This ensures that a consistent
+api (set of functions) is used across models, while also ensuring that functions don't
+default to an inappropriate generic behaviour due to a function not being defined for a
+particular model. Abstract classes should thus be used for functions that are always
+required, and are near certain to follow a different process for each model. At the
+moment we expect every model should have a setup, spinup, solve and cleanup process,
+though this might well change in the future.
+
+We also define an abstract class method to perform model initialisation. This method
+(`from_config`) is a factory method which unpacks the configuration dictionary, extracts
+the relevant tags and attempts to convert them into the form needed to initialise a
+class instance. As this method is a class method it must be defined for every child
+class of `BaseModel`. This is because unpacking of our complex configuration dictionary
+is a necessary before a class instance can be initialised, so this function is vital.
+
+As in the case of configuration schema, we make `Model` classes generally accessible by
+adding them to a registry. However, in this case the function to add to the registry
+isn't a decorator but rather a member function of `BaseModel`. The existence of this
+`__init_subclass__` function means that every child class is automatically added to the
+model registry (called `MODEL_REGISTRY`), but that in every case a `model_name` has to
+be provided to register it under. This model name should be unique. Although
+registration is automatic, it only happens when class definition happens, which requires
+the module which defines the child class to be imported somewhere. At the moment, we
+import all child models in the top level `__init__.py` to ensure that they are added to
+the registry.
+
+An example of `Model` inheritance from `BaseModel` can been seen in the `soil.model`
+module.
 """
-# TODO - EXPLAIN USAGE OF THIS, AND IDEA BEHIND IT
-# PROBABLY LINK TO SOIL MODULE EXAMPLE AS THIS IS AN EASIER EXAMPLE TO FOLLOW
 
 from __future__ import annotations
 
