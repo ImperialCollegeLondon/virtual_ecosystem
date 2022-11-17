@@ -13,7 +13,7 @@ build:
   jobs:
     post_create_environment:
       # Install poetry
-      curl -sSL https://install.python-poetry.org | python3 -
+      - curl -sSL https://install.python-poetry.org | python3 -
       # Tell poetry to not use a virtual environment
       - $HOME/.poetry/bin/poetry config virtualenvs.create false
       # Install project's dependencies
