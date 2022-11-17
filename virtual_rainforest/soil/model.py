@@ -10,15 +10,11 @@ from __future__ import annotations
 
 from typing import Any
 
+import pint
 from numpy import timedelta64
-from pint import Quantity
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.model import BaseModel
-
-
-class InitialisationError(Exception):
-    """Custom exception class for model initialisation failures."""
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class SoilModel(BaseModel, model_name="soil"):
@@ -42,9 +38,14 @@ class SoilModel(BaseModel, model_name="soil"):
     def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
 
         if no_layers < 1:
-            LOGGER.error("There has to be at least one soil layer in the soil model!")
+            log_and_raise(
+                "There has to be at least one soil layer in the soil model!",
+                InitialisationError,
+            )
         elif no_layers != int(no_layers):
-            LOGGER.error("The number of soil layers must be an integer!")
+            log_and_raise(
+                "The number of soil layers must be an integer!", InitialisationError
+            )
 
         super(SoilModel, self).__init__(update_interval, **kwargs)
         self.no_layers = int(no_layers)
@@ -52,47 +53,49 @@ class SoilModel(BaseModel, model_name="soil"):
         self._repr.append("no_layers")
 
     @classmethod
-    def factory(cls, config: dict[str, Any]) -> SoilModel:
-        """Factory function to initialise the soil model.
+    def from_config(cls, config: dict[str, Any]) -> SoilModel:
+        """Factory function to initialise the soil model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model.
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance None is returned.
 
         Args:
             config: The complete (and validated) virtual rainforest configuration.
 
         Raises:
-            InitialisationError: If the information required to initialise the model
-                either isn't found, or isn't of the correct type.
+            InitialisationError: If configuration data can't be properly converted
         """
+
+        # Assume input is valid until we learn otherwise
+        valid_input = True
         try:
-            raw_interval = Quantity(config["core"]["timing"]["min_time_step"]).to(
+            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(raw_interval.magnitude), "m")
             no_layers = config["soil"]["no_layers"]
-        except KeyError as e:
-            log_and_raise(
-                f"Configuration is missing information required to initialise the soil "
-                f"model. The first missing key is {str(e)}.",
-                InitialisationError,
-            )
-        except ValueError as e:
-            log_and_raise(
-                f"Configuration types appear not to have been properly validated. This "
-                f"problem prevents initialisation of the soil model. The first instance"
-                f" of this problem is as follows: {str(e)}",
-                InitialisationError,
+        except (
+            ValueError,
+            pint.errors.DimensionalityError,
+            pint.errors.UndefinedUnitError,
+        ) as e:
+            valid_input = False
+            LOGGER.error(
+                "Configuration types appear not to have been properly validated. This "
+                "problem prevents initialisation of the soil model. The first instance"
+                " of this problem is as follows: %s" % str(e)
             )
 
-        # TODO - Add further relevant checks on input here as they become relevant
-
-        LOGGER.info(
-            "Information required to initialise the soil model successfully extracted."
-        )
-
-        return cls(update_interval, no_layers)
+        if valid_input:
+            LOGGER.info(
+                "Information required to initialise the soil model successfully "
+                "extracted."
+            )
+            return cls(update_interval, no_layers)
+        else:
+            raise InitialisationError()
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK
@@ -101,7 +104,7 @@ class SoilModel(BaseModel, model_name="soil"):
     def setup(self) -> None:
         """Function to set up the soil model."""
         for layer in range(0, self.no_layers):
-            LOGGER.info(f"Setting up soil layer {layer}")
+            LOGGER.info("Setting up soil layer %s" % layer)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""

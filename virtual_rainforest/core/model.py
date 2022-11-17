@@ -14,14 +14,18 @@ accessible across scripts without individual loading in.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any, Type
 
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 
-MODEL_REGISTRY: dict[str, Callable] = {}
+MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
 """A registry for different models."""
+
+
+class InitialisationError(Exception):
+    """Custom exception class for model initialisation failures."""
 
 
 class BaseModel(ABC):
@@ -65,7 +69,7 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def factory(cls, config: dict[str, Any]) -> Any:
+    def from_config(cls, config: dict[str, Any]) -> Any:
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod

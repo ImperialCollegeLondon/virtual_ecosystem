@@ -37,7 +37,7 @@ hypothesis = "^6.54.2"
 [tool.poetry.group.devenv.dependencies]
 black = "^22.6.0"
 flake8 = "^4.0.1"
-mypy = "^0.981"
+mypy = "^0.991"
 pre-commit = "^2.19.0"
 isort = "^5.10.1"
 mdformat = "^0.7.14"
