@@ -13,9 +13,7 @@ build:
   jobs:
     post_create_environment:
       # Install poetry
-      # https://python-poetry.org/docs/#osx--linux--bashonwindows-install-instructions
-      # Noting that this is the old deprecated interface (pre 1.2)
-      - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - --version 1.1.13
+      curl -sSL https://install.python-poetry.org | python3 -
       # Tell poetry to not use a virtual environment
       - $HOME/.poetry/bin/poetry config virtualenvs.create false
       # Install project's dependencies
