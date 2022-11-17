@@ -386,11 +386,23 @@ def any_cellid_coord_array(self: Data, darray: DataArray) -> DataArray:
     setup.
     """
 
-    if set(self.grid.cell_id).issubset(darray["cell_id"].values):
-        raise ValueError("The data cell ids are not a superset of grid cell ids.")
+    da_cell_ids = darray["cell_id"].values
 
-    # TODO - Reorder and subset
-    return darray
+    if len(np.unique(da_cell_ids)) != len(da_cell_ids):
+        log_and_raise("The data cell ids contain duplicate values.", ValueError)
+
+    if not set(self.grid.cell_id).issubset(da_cell_ids):
+        log_and_raise(
+            "The data cell ids are not a superset of grid cell ids.", ValueError
+        )
+
+    # Now ensure sorting and any subsetting:
+    # https://stackoverflow.com/questions/8251541
+    da_sortorder = np.argsort(da_cell_ids)
+    gridid_pos = np.searchsorted(da_cell_ids[da_sortorder], self.grid.cell_id)
+    da_indices = da_sortorder[gridid_pos]
+
+    return darray.isel(cell_id=da_indices)
 
 
 @add_spatial_loader((("cell_id",), (), ("__any__",)))
@@ -407,8 +419,9 @@ def any_cellid_dim_array(self: Data, darray: DataArray) -> DataArray:
     # and check the right number of cells found
     n_found = darray["cell_id"].size
     if self.grid.n_cells != n_found:
-        raise ValueError(
-            f"Grid defines {self.grid.n_cells} cells, data provides {n_found}"
+        log_and_raise(
+            f"Grid defines {self.grid.n_cells} cells, data provides {n_found}",
+            ValueError,
         )
 
     return darray
@@ -454,15 +467,13 @@ def square_xy_coord_array(self: Data, darray: DataArray) -> DataArray:
     return darray
 
 
-def _square_xy_dim_array(
-    grid: Grid, darray: DataArray, file: Optional[Path] = None
-) -> DataArray:
+@add_spatial_loader((("x", "y"), (), ("square",)))
+def square_xy_dim_array(self: Data, darray: DataArray) -> DataArray:
     """Maps a DataArray with XY dimensions onto a grid."""
 
     # Otherwise the data array must be the same shape as the grid
-    if grid.cell_nx != darray.sizes["x"] or grid.cell_ny != darray.sizes["y"]:
-
-        raise RuntimeError("Data XY dimensions do not match grid in: %s", file)
+    if self.grid.cell_nx != darray.sizes["x"] or self.grid.cell_ny != darray.sizes["y"]:
+        log_and_raise("Data XY dimensions do not match grid", ValueError)
 
     # Get DataArrays containing integer indices for values on x and y dimensions
     # but mapping to a single common cell_id dimension.

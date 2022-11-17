@@ -3,8 +3,9 @@ import os
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
+import numpy as np
 import pytest
-from xarray import load_dataset
+from xarray import DataArray, load_dataset
 
 from .conftest import log_check
 
@@ -155,8 +156,6 @@ def test_add_spatial_loader(caplog, signature, exp_err, expected_log):
 def test_load_netcdf(datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader."""
 
-    from xarray import DataArray
-
     from virtual_rainforest.core.data import load_netcdf
 
     with exp_err:
@@ -165,6 +164,148 @@ def test_load_netcdf(datadir, caplog, file, file_var, exp_err, expected_log):
 
     # Check the error reports
     log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(50), dims=("cell_id")),
+            pytest.raises(ValueError),
+            ((CRITICAL, "Grid defines 100 cells, data provides 50"),),
+        ),
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(100), dims=("cell_id")),
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.data import Data, any_cellid_dim_array
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    with exp_err:
+        darray = any_cellid_dim_array(data, darray)
+        assert isinstance(darray, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argvalues=[
+        (  # grid cell ids not covered by data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [1, 2, 3, 4, 5, 9]}),
+            pytest.raises(ValueError),
+            ((CRITICAL, "The data cell ids are not a superset of grid cell ids."),),
+            None,
+        ),
+        (  # Duplicate ids in data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 5, 4, 5]}),
+            pytest.raises(ValueError),
+            ((CRITICAL, "The data cell ids contain duplicate values."),),
+            None,
+        ),
+        (  # - same size and order
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 3, 4, 5]}),
+            does_not_raise(),
+            (),
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - same order but more ids in cell data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.arange(9), coords={"cell_id": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
+            ),
+            does_not_raise(),
+            (),
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - different order
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.array([5, 3, 1, 0, 4, 2]),
+                coords={"cell_id": [5, 3, 1, 0, 4, 2]},
+            ),
+            does_not_raise(),
+            (),
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - different order and subsetting
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.array([6, 5, 7, 3, 1, 0, 4, 2, 8]),
+                coords={"cell_id": [6, 5, 7, 3, 1, 0, 4, 2, 8]},
+            ),
+            does_not_raise(),
+            (),
+            [0, 1, 2, 3, 4, 5],
+        ),
+    ],
+)
+def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.data import Data, any_cellid_coord_array
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    with exp_err:
+        darray = any_cellid_coord_array(data, darray)
+        assert isinstance(darray, DataArray)
+        assert np.allclose(darray.values, exp_vals)
+
+    # Check the error reports
+    log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argvalues=[
+        (  # grid cell ids not covered by data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3},
+            DataArray(
+                data=np.array([[7, 8, 9], [4, 5, 6], [1, 2, 3]]), dims=("y", "x")
+            ),
+            does_not_raise(),
+            (),
+            np.arange(9),
+        ),
+    ],
+)
+def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.data import Data, square_xy_dim_array
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    with exp_err:
+        darray = square_xy_dim_array(data, darray)
+        assert isinstance(darray, DataArray)
+        assert np.allclose(darray.values, exp_vals)
+
+    # Check the error reports
+    log_check(caplog, exp_log)
+
+
+# OLD STUFF BELOW NEEDS REWORKING
 
 
 @pytest.mark.parametrize(
