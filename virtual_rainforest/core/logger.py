@@ -11,19 +11,6 @@ indicates the importance of the logging message. At the moment we use the 5 stan
 logging levels, though we might extend this by using custom logging levels at some
 point. The five logging levels we use are as follows:
 
-.. csv-table::
-    :header: Logging level, Use case
-
-    CRITICAL, "Something has gone so wrong that the model run has to stop immediately."
-    ERROR, "| Something has definitely gone wrong, but there is still a value in
-      continuing the execution
-    | of the model. This is mainly to check if other errors crop up, so that all
-    | relevant errors can be reported at once."
-    WARNING, "| Something seems a bit off, so the user should be warned, but the model
-      might actually be
-    | fine."
-
-
 =============  =========================================================================
 Logging level  Use case
 =============  =========================================================================
@@ -31,8 +18,8 @@ CRITICAL       Something has gone so wrong that the model run has to stop immedi
 ERROR          | Something has definitely gone wrong, but there is still a value in
                  continuing the execution
                | of the model. This is mainly to check if other errors crop
-                 up, so that all
-               | relevant errors can be reported at once.
+                 up, so that all relevant errors
+               | can be reported at once.
 WARNING        | Something seems a bit off, so the user should be warned, but the model
                  might actually be
                | fine.
