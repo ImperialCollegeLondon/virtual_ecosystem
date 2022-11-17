@@ -100,7 +100,7 @@ def make_square_grid(
     for y_idx in range(cell_nx):
         for x_idx in range(cell_ny):
             # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_nx
+            cell_id = x_idx + (y_idx) * cell_ny
             # Store shifted geometry under cell id
             cell_list[cell_id] = translate(
                 prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
@@ -164,7 +164,7 @@ def make_hex_grid(
     for y_idx in range(cell_ny):
         for x_idx in range(cell_nx):
             # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_nx
+            cell_id = x_idx + (y_idx) * cell_ny
             # Store shifted geometry under cell id
             cell_list[cell_id] = translate(
                 prototype,
