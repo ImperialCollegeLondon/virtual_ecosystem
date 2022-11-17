@@ -13,11 +13,12 @@ build:
   jobs:
     post_create_environment:
       # Install poetry
-      - curl -sSL https://install.python-poetry.org | python3 -
+      # https://python-poetry.org/docs/#osx--linux--bashonwindows-install-instructions
+      - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
       # Tell poetry to not use a virtual environment
-      - $HOME/.local/bin/poetry config virtualenvs.create false
+      - $HOME/.poetry/bin/poetry config virtualenvs.create false
       # Install project's dependencies
-      - $HOME/.local/bin/poetry install
+      - $HOME/.poetry/bin/poetry install
       # Install the project ipykernel under the fixed name
       - $HOME/.local/bin/poetry run python -m ipykernel install --user --name=vr_python3
 
