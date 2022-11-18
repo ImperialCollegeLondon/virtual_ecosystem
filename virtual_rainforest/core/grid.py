@@ -21,7 +21,7 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -533,8 +533,8 @@ class Grid:
         if (x_idx is None) and (y_idx is None):
             _x_idx = np.arange(x_coords.shape[0])
             _y_idx = np.arange(y_coords.shape[0])
-        elif (x_idx is None) ^ (y_idx is None):  # xor
-            raise ValueError("Only one of x/y indices provided.")
+        elif (x_idx is None) ^ (y_idx is None):  # Note: ^ is xor
+            log_and_raise("Only one of x/y indices provided.", ValueError)
         else:
             _x_idx = x_idx  # type: ignore
             _y_idx = y_idx  # type: ignore
@@ -543,18 +543,20 @@ class Grid:
         if (_x_idx.shape != x_coords.shape) or (  # type: ignore
             _y_idx.shape != y_coords.shape  # type: ignore
         ):  # type: ignore
-            raise ValueError("Dimensions of x/y indices do not match coordinates")
+            log_and_raise(
+                "Dimensions of x/y indices do not match coordinates", ValueError
+            )
 
         # Find the set of total number of cell mappings per point
         cell_counts = set([len(mp) for mp in cell_map])
 
         # If strict, raise an exception where not all coords fall in a grid cell
         if strict and (0 in cell_counts):
-            raise ValueError("Mapped points fall outside grid.")
+            log_and_raise("Mapped points fall outside grid.", ValueError)
 
         # Values greater than 1 indicate coordinates on cell edges
         if any([c > 1 for c in cell_counts]):
-            raise ValueError("Mapped points fall on cell boundaries.")
+            log_and_raise("Mapped points fall on cell boundaries.", ValueError)
 
         # Now all points are 1 to 1 with cells, or missing if strict = False, so
         # collapse down to list of ints/None.
@@ -565,10 +567,10 @@ class Grid:
 
         # Now check for cells with more than one point and cells with no points.
         if set(cells_found) != set(self.cell_id):
-            raise ValueError("Mapped points do not cover all cells.")
+            log_and_raise("Mapped points do not cover all cells.", ValueError)
 
         if len(cells_found) != self.n_cells:
-            raise ValueError("Some cells contain more than one point.")
+            log_and_raise("Some cells contain more than one point.", ValueError)
 
         # Reduce to matching cells in cell_id order
         cells = [

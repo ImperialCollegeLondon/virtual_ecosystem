@@ -433,23 +433,24 @@ def square_xy_coord_array(self: Data, darray: DataArray) -> DataArray:
 
     # Get x and y coords to check the extents and cell coverage.
     #
-    # Note that mapping all the cells here is a bit extreme with a square grid -
-    # checking the x and y values alone would confirm - but that is only true for square
-    # grids and for other grids the all polygons approach is robust. Maybe implement a
-    # special case method if needed?
+    # TODO - Note that mapping all the cells here is a bit extreme with a square grid -
+    # could just map one row and column to confirm the indexing into the data, but this
+    # is a more general solution.
 
-    grid_x, grid_y = np.meshgrid(darray["x"].values, darray["y"].values)
-    grid_x = grid_x.flatten()
-    grid_y = grid_y.flatten()
-
-    idx_x, idx_y = np.indices([darray.sizes["x"], darray.sizes["y"]])
-    idx_x = idx_x.flatten()
-    idx_y = idx_y.flatten()
+    # Use .stack() to convert the axis into stacked pairs of values
+    xy_pairs = darray.stack(cell=("y", "x")).coords
+    idx_pairs = darray.drop_vars(("x", "y")).stack(cell=("y", "x")).coords
 
     # Get the mapping of points onto the grid
     idx_x, idx_y = self.grid.map_xy_to_cell_indexing(
-        x_coords=grid_x, y_coords=grid_y, x_idx=idx_x, y_idx=idx_y, strict=False
+        x_coords=xy_pairs["x"].values,
+        y_coords=xy_pairs["y"].values,
+        x_idx=idx_pairs["x"].values,
+        y_idx=idx_pairs["y"].values,
+        strict=False,
     )
+
+    # TODO - fine a way to enable strict = True - probably just kwargs.
 
     # Now remap the grids from xy to cell_id - this uses the rather under
     # described vectorized indexing feature in xarray:
@@ -473,17 +474,16 @@ def square_xy_dim_array(self: Data, darray: DataArray) -> DataArray:
 
     # Otherwise the data array must be the same shape as the grid
     if self.grid.cell_nx != darray.sizes["x"] or self.grid.cell_ny != darray.sizes["y"]:
-        log_and_raise("Data XY dimensions do not match grid", ValueError)
+        log_and_raise("Data XY dimensions do not match square grid", ValueError)
 
-    # Get DataArrays containing integer indices for values on x and y dimensions
-    # but mapping to a single common cell_id dimension.
-    idx_x, idx_y = np.indices([darray.sizes["x"], darray.sizes["y"]])
-
-    # Now use DataArray.isel to select indexing dimensions by name - avoiding
-    # issues with different permutations of the axes - and map XY onto cell_id
+    # Use DataArray.stack to combine the x and y into a multiindex called cell_id, with
+    # x varying fastest (cell_id goes from top left to top right, then down by rows),
+    # and then use these stacked indices to map the 2D onto grid cell order, using
+    # isel() to avoid issues with dimension ordering.
+    darray_stack = darray.stack(cell_id=("y", "x"))
     darray = darray.isel(
-        x=DataArray(idx_x.flatten(), dims=["cell_id"]),
-        y=DataArray(idx_y.flatten(), dims=["cell_id"]),
+        x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
+        y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
     )
 
     return darray

@@ -1,11 +1,11 @@
 """Test data loading and validation."""
-import os
+
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import CRITICAL, DEBUG, INFO
 
 import numpy as np
 import pytest
-from xarray import DataArray, load_dataset
+from xarray import DataArray
 
 from .conftest import log_check
 
@@ -276,10 +276,19 @@ def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp
 @pytest.mark.parametrize(
     argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
     argvalues=[
-        (  # grid cell ids not covered by data
+        (  # Wrong size
+            {"grid_type": "square", "cell_nx": 2, "cell_ny": 3},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
+            ),
+            pytest.raises(ValueError),
+            ((CRITICAL, "Data XY dimensions do not match square grid"),),
+            np.arange(9),
+        ),
+        (  # All good
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 3},
             DataArray(
-                data=np.array([[7, 8, 9], [4, 5, 6], [1, 2, 3]]), dims=("y", "x")
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
             ),
             does_not_raise(),
             (),
@@ -305,99 +314,162 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
     log_check(caplog, exp_log)
 
 
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argvalues=[
+        (  # Coords on cell boundaries
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+                coords={"y": [2, 1, 0], "x": [2, 1, 0]},
+            ),
+            pytest.raises(ValueError),
+            ((CRITICAL, "Mapped points fall on cell boundaries."),),
+            None,
+        ),
+        (  # Does not cover cells
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5]]),
+                coords={"y": [2.5, 1.5], "x": [2.5, 1.5, 0.5]},
+            ),
+            pytest.raises(ValueError),
+            ((CRITICAL, "Mapped points do not cover all cells."),),
+            None,
+        ),
+        (  # Irregular sampling on y axis gives multiple points in bottom row
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]]),
+                coords={"y": [2.5, 1.5, 0.5, 0.4], "x": [0.5, 1.5, 2.5]},
+            ),
+            pytest.raises(ValueError),
+            ((CRITICAL, "Some cells contain more than one point."),),
+            None,
+        ),
+        (  # All good
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+                coords={"y": [2.5, 1.5, 0.5], "x": [0.5, 1.5, 2.5]},
+            ),
+            does_not_raise(),
+            (),
+            np.arange(9),
+        ),
+    ],
+)
+def test_square_xy_coords_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.data import Data, square_xy_coord_array
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    with exp_err:
+        darray = square_xy_coord_array(data, darray)
+        assert isinstance(darray, DataArray)
+        assert np.allclose(darray.values, exp_vals)
+
+    # Check the error reports
+    log_check(caplog, exp_log)
+
+
 # OLD STUFF BELOW NEEDS REWORKING
 
 
-@pytest.mark.parametrize(
-    argnames=["data_cfg", "expected_log"],
-    argvalues=[
-        (
-            {"variable": [{"file_var": "x", "file": "/path/to/unknown/format.xyz"}]},
-            (
-                (INFO, "Loading data from file: /path/to/unknown/format.xyz"),
-                (ERROR, "No data loader provided for .xyz files and square grids"),
-            ),
-        ),
-    ],
-)
-def test_setup_data(caplog, fixture_square_grid, data_cfg, expected_log):
-    """Tests the setup_data high level function."""
-    from virtual_rainforest.core.data import setup_data
+# @pytest.mark.parametrize(
+#     argnames=["data_cfg", "expected_log"],
+#     argvalues=[
+#         (
+#             {"variable": [{"file_var": "x", "file": "/path/to/unknown/format.xyz"}]},
+#             (
+#                 (INFO, "Loading data from file: /path/to/unknown/format.xyz"),
+#                 (ERROR, "No data loader provided for .xyz files and square grids"),
+#             ),
+#         ),
+#     ],
+# )
+# def test_setup_data(caplog, fixture_square_grid, data_cfg, expected_log):
+#     """Tests the setup_data high level function."""
+#     from virtual_rainforest.core.data import setup_data
 
-    setup_data(data_config=data_cfg, grid=fixture_square_grid)
+#     setup_data(data_config=data_cfg, grid=fixture_square_grid)
 
-    log_check(caplog, expected_log)
+#     log_check(caplog, expected_log)
 
 
-@pytest.mark.parametrize(
-    argnames=["filename", "expected_outcome", "expected_outcome_msg"],
-    argvalues=[
-        pytest.param("two_dim_xy.nc", does_not_raise(), "None", id="two_dim_xy"),
-        pytest.param(
-            "two_dim_xy_6by10.nc",
-            pytest.raises(ValueError),
-            "Data xy dimensions do not match grid",
-            id="two_dim_xy_6by10",
-        ),
-        pytest.param(
-            "two_dim_xy_lowx.nc",
-            pytest.raises(ValueError),
-            "Data coordinates do not align with grid coordinates.",
-            id="two_dim_xy_lowx",
-        ),
-        pytest.param("two_dim_idx.nc", does_not_raise(), "None", id="two_dim_idx"),
-        pytest.param(
-            "two_dim_idx_6by10.nc",
-            pytest.raises(ValueError),
-            "Data xy dimensions do not match grid",
-            id="two_dim_idx_6by10",
-        ),
-        pytest.param(
-            "one_dim_cellid.nc", does_not_raise(), "None", id="one_dim_cellid"
-        ),
-        pytest.param(
-            "one_dim_cellid_lown.nc",
-            pytest.raises(ValueError),
-            "Grid defines 100 cells, data provides 60",
-            id="one_dim_cellid_lown",
-        ),
-        pytest.param(
-            "one_dim_points_xy.nc", does_not_raise(), "None", id="one_dim_points_xy"
-        ),
-        pytest.param(
-            "one_dim_points_xy_xney.nc",
-            pytest.raises(ValueError),
-            "The cell_ids in the data do not match grid cell ids.",
-            id="one_dim_points_xy_xney",
-        ),
-        pytest.param(
-            "one_dim_cellid_badid.nc",
-            pytest.raises(ValueError),
-            "The x and y data have different dimensions",
-            id="one_dim_cellid_badid",
-        ),
-        pytest.param(
-            "one_dim_points_order_only.nc",
-            does_not_raise(),
-            "None",
-            id="one_dim_points_order_only",
-        ),
-    ],
-)
-def test_map_dataset_onto_square_grid(
-    fixture_square_grid, datadir, filename, expected_outcome, expected_outcome_msg
-):
-    """Test ability to map NetCDF files.
+# @pytest.mark.parametrize(
+#     argnames=["filename", "expected_outcome", "expected_outcome_msg"],
+#     argvalues=[
+#         pytest.param("two_dim_xy.nc", does_not_raise(), "None", id="two_dim_xy"),
+#         pytest.param(
+#             "two_dim_xy_6by10.nc",
+#             pytest.raises(ValueError),
+#             "Data xy dimensions do not match grid",
+#             id="two_dim_xy_6by10",
+#         ),
+#         pytest.param(
+#             "two_dim_xy_lowx.nc",
+#             pytest.raises(ValueError),
+#             "Data coordinates do not align with grid coordinates.",
+#             id="two_dim_xy_lowx",
+#         ),
+#         pytest.param("two_dim_idx.nc", does_not_raise(), "None", id="two_dim_idx"),
+#         pytest.param(
+#             "two_dim_idx_6by10.nc",
+#             pytest.raises(ValueError),
+#             "Data xy dimensions do not match grid",
+#             id="two_dim_idx_6by10",
+#         ),
+#         pytest.param(
+#             "one_dim_cellid.nc", does_not_raise(), "None", id="one_dim_cellid"
+#         ),
+#         pytest.param(
+#             "one_dim_cellid_lown.nc",
+#             pytest.raises(ValueError),
+#             "Grid defines 100 cells, data provides 60",
+#             id="one_dim_cellid_lown",
+#         ),
+#         pytest.param(
+#             "one_dim_points_xy.nc", does_not_raise(), "None", id="one_dim_points_xy"
+#         ),
+#         pytest.param(
+#             "one_dim_points_xy_xney.nc",
+#             pytest.raises(ValueError),
+#             "The cell_ids in the data do not match grid cell ids.",
+#             id="one_dim_points_xy_xney",
+#         ),
+#         pytest.param(
+#             "one_dim_cellid_badid.nc",
+#             pytest.raises(ValueError),
+#             "The x and y data have different dimensions",
+#             id="one_dim_cellid_badid",
+#         ),
+#         pytest.param(
+#             "one_dim_points_order_only.nc",
+#             does_not_raise(),
+#             "None",
+#             id="one_dim_points_order_only",
+#         ),
+#     ],
+# )
+# def test_map_dataset_onto_square_grid(
+#     fixture_square_grid, datadir, filename, expected_outcome, expected_outcome_msg
+# ):
+#     """Test ability to map NetCDF files.
 
-    The test parameters include both passing and failing files, stored in test_data.
-    """
-    from virtual_rainforest.core.data import _square_xy_coord_array
+#     The test parameters include both passing and failing files, stored in test_data.
+#     """
+#     from virtual_rainforest.core.data import _square_xy_coord_array
 
-    datafile = os.path.join(datadir, filename)
-    dataset = load_dataset(datafile)
+#     datafile = os.path.join(datadir, filename)
+#     dataset = load_dataset(datafile)
 
-    with expected_outcome as outcome:
+#     with expected_outcome as outcome:
 
-        _square_xy_coord_array(fixture_square_grid, dataset)
+#         _square_xy_coord_array(fixture_square_grid, dataset)
 
-        assert str(outcome) == expected_outcome_msg
+#         assert str(outcome) == expected_outcome_msg
