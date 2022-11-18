@@ -14,7 +14,7 @@ from typing import Any, Callable, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
-from jsonschema import Draft202012Validator, exceptions, validators
+from jsonschema import Draft202012Validator, FormatChecker, exceptions, validators
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
@@ -23,14 +23,41 @@ if sys.version_info[:2] >= (3, 11):
 else:
     import tomli as tomllib
 
-# Dictionary to store schema registry
 SCHEMA_REGISTRY: dict = {}
+"""A registry for different module schema."""
 
 
 class ConfigurationError(Exception):
     """Custom exception class for configuration failures."""
 
-    pass
+
+def log_all_validation_errors(
+    errors: list[exceptions.ValidationError], complete: bool
+) -> None:
+    """Logs all validation errors and raises an exception.
+
+    A tag is constructed to allow the location of each error to be better determined.
+    For each error this is then printed along with the error message.
+
+    Raises:
+        ConfigurationError: As at least one validation error has occurred.
+    """
+    if complete:
+        conf = "complete"
+    else:
+        conf = "core"
+
+    for error in errors:
+        # Construct details of the tag associated with the error
+        tag = ""
+        for k in error.path:
+            tag += f"[{k}]"
+        LOGGER.error("%s: %s" % (tag, error.message))
+
+    log_and_raise(
+        f"Validation of {conf} configuration files failed see above errors",
+        ConfigurationError,
+    )
 
 
 def validate_and_add_defaults(
@@ -160,7 +187,7 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
             file to
         out_file_name: The name to save the outputted complete configuration file under
     Raises:
-        OSError: If the final output file already exist.
+        ConfigurationError: If the final output file already exist.
     """
 
     # Throw critical error if combined output file already exists
@@ -170,7 +197,7 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
                 f"A config file in the specified configuration folder already makes use"
                 f" of the specified output file name ({out_file_name}.toml), this file "
                 f"should either be renamed or deleted!",
-                OSError,
+                ConfigurationError,
             )
 
     return None
@@ -308,12 +335,16 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
         )
 
     try:
-        ValidatorWithDefaults(core_schema).validate(config_dict)
-    except exceptions.ValidationError as err:
-        log_and_raise(
-            f"Validation of core configuration files failed: {err.message}",
-            ConfigurationError,
+        ValidatorWithDefaults(core_schema, format_checker=FormatChecker()).validate(
+            config_dict
         )
+    except exceptions.ValidationError:
+        # Find full set of errors
+        errors = ValidatorWithDefaults(
+            core_schema, format_checker=FormatChecker()
+        ).iter_errors(config_dict)
+        # Then log all errors in validating core config
+        log_all_validation_errors(errors, False)
 
 
 def find_schema(config_dict: dict[str, Any]) -> list[str]:
@@ -386,7 +417,13 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
     p_paths = []
     # Recursively search for all instances of properties in the schema
     for (path, value) in dpath.util.search(comb_schema, "**/properties", yielded=True):
-        p_paths.append("" if path == "properties" else path.replace("/properties", ""))
+        # Remove final properties instance from path so that additionalProperties ends
+        # up in the right place
+        p_paths.append(
+            ""
+            if path == "properties"
+            else path[::-1].replace("seitreporp/", "", 1)[::-1]
+        )
 
     # Set additional properties to false everywhere that properties are defined
     for path in p_paths:
@@ -416,12 +453,16 @@ def validate_with_defaults(
     # Validate the input configuration settings against the combined schema
     # This step also adds in all default module configuration details
     try:
-        ValidatorWithDefaults(comb_schema).validate(config_dict)
-    except exceptions.ValidationError as err:
-        log_and_raise(
-            f"Validation of configuration files failed: {err.message}",
-            ConfigurationError,
+        ValidatorWithDefaults(comb_schema, format_checker=FormatChecker()).validate(
+            config_dict
         )
+    except exceptions.ValidationError:
+        # Find full set of errors
+        errors = ValidatorWithDefaults(
+            comb_schema, format_checker=FormatChecker()
+        ).iter_errors(config_dict)
+        # Then log all errors in validating complete config
+        log_all_validation_errors(errors, True)
 
 
 def validate_config(
@@ -477,7 +518,8 @@ def validate_config(
 
     # Output combined toml file, into the initial config folder
     LOGGER.info(
-        f"Saving all configuration details to {output_folder}/{out_file_name}.toml"
+        "Saving all configuration details to %s/%s.toml"
+        % (output_folder, out_file_name)
     )
     with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)

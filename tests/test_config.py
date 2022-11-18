@@ -7,7 +7,7 @@ to date.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO
+from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
 import pytest
@@ -47,7 +47,7 @@ def test_check_outfile(caplog, mocker):
     mock_content.return_value = [Path(f"{file_name}.toml")]
 
     # Check that check_outfile fails as expected
-    with pytest.raises(OSError):
+    with pytest.raises(config.ConfigurationError):
         config.check_outfile(".", file_name)
 
     expected_log_entries = (
@@ -342,7 +342,6 @@ def test_register_schema_errors(
     log_check(caplog, expected_log_entries)
 
 
-# TODO - THIS TEST ABSOLUTELY NEEDS TO CHANGE
 def test_extend_with_default():
     """Test that validator has been properly extended to allow addition of defaults."""
 
@@ -367,14 +366,21 @@ def test_extend_with_default():
             (),
         ),
         (
-            {"basybuedb"},
+            {"core": {"grid": {"nx": -125, "ny": -10}}},
             None,
             pytest.raises(config.ConfigurationError),
             (
                 (
+                    ERROR,
+                    "[core][grid][nx]: -125 is less than or equal to the minimum of 0",
+                ),
+                (
+                    ERROR,
+                    "[core][grid][ny]: -10 is less than or equal to the minimum of 0",
+                ),
+                (
                     CRITICAL,
-                    "Validation of core configuration files failed: {'basybuedb'} is "
-                    "not of type 'object'",
+                    "Validation of core configuration files failed see above errors",
                 ),
             ),
         ),
@@ -429,14 +435,22 @@ def test_missing_core_schema(caplog, mocker):
             (),
         ),
         (
-            {"basybuedb"},
+            {"soil": {"no_layers": -1}},
             None,
             pytest.raises(config.ConfigurationError),
             (
                 (
+                    ERROR,
+                    "[plants]: 'ftypes' is a required property",
+                ),
+                (
+                    ERROR,
+                    "[soil][no_layers]: -1 is less than or equal to the minimum of 0",
+                ),
+                (
                     CRITICAL,
-                    "Validation of configuration files failed: {'basybuedb'} is not of"
-                    " type 'object'",
+                    "Validation of complete configuration files failed see above "
+                    "errors",
                 ),
             ),
         ),
@@ -447,7 +461,7 @@ def test_validate_with_defaults(
 ):
     """Test that addition of defaults values during configuration works as desired."""
 
-    comb_schema = config.construct_combined_schema(["core", "plants"])
+    comb_schema = config.construct_combined_schema(["core", "plants", "soil"])
 
     # Check that find_schema fails as expected
     with raises:
