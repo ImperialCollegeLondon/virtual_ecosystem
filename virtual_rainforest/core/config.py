@@ -4,7 +4,6 @@ The `core.config` module is used to read in the various configuration files, val
 their contents, and then configure a ready to run instance of the virtual rainforest
 model.
 """
-# TODO - find config folder based on command line argument
 
 import sys
 from collections import ChainMap
