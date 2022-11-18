@@ -5,13 +5,13 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO, WARNING
+from logging import CRITICAL, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel
-from virtual_rainforest.soil.model import InitialisationError, SoilModel
+from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
 
@@ -41,46 +41,50 @@ def test_base_model_initialization(caplog, mocker):
 
 
 @pytest.mark.parametrize(
-    "no_layers,expected_log_entries",
+    "no_layers,raises,expected_log_entries",
     [
         (
             2,
+            does_not_raise(),
             (),
         ),
         (
             -2,
+            pytest.raises(InitialisationError),
             (
                 (
-                    ERROR,
+                    CRITICAL,
                     "There has to be at least one soil layer in the soil model!",
                 ),
             ),
         ),
         (
             2.5,
+            pytest.raises(InitialisationError),
             (
                 (
-                    ERROR,
+                    CRITICAL,
                     "The number of soil layers must be an integer!",
                 ),
             ),
         ),
     ],
 )
-def test_soil_model_initialization(caplog, no_layers, expected_log_entries):
+def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entries):
     """Test `SoilModel` initialization."""
 
-    # Initialize model
-    model = SoilModel(timedelta64(1, "W"), no_layers)
+    with raises:
+        # Initialize model
+        model = SoilModel(timedelta64(1, "W"), no_layers)
 
-    # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
-    assert model.name == "soil"
-    assert str(model) == "A soil model instance"
-    assert (
-        repr(model)
-        == f"SoilModel(update_interval = 1 weeks, no_layers = {int(no_layers)})"
-    )
+        # In cases where it passes then checks that the object has the right properties
+        assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+        assert model.name == "soil"
+        assert str(model) == "A soil model instance"
+        assert (
+            repr(model)
+            == f"SoilModel(update_interval = 1 weeks, no_layers = {int(no_layers)})"
+        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -107,14 +111,8 @@ def test_register_model_errors(caplog):
     [
         (
             {},
-            pytest.raises(InitialisationError),
-            (
-                (
-                    CRITICAL,
-                    "Configuration is missing information required to initialise the "
-                    "soil model. The first missing key is 'core'",
-                ),
-            ),
+            pytest.raises(KeyError),
+            (),  # This error isn't handled so doesn't generate logging
         ),
         (
             {
@@ -138,9 +136,10 @@ def test_register_model_errors(caplog):
 )
 def test_generate_soil_model(caplog, config, raises, expected_log_entries):
     """Test that the function to initialise the soil model behaves as expected."""
-    # Check whether initialising the model fails as expected
+
+    # Check whether model is initialised (or not) as expected
     with raises:
-        model = SoilModel.factory(config)
+        model = SoilModel.from_config(config)
         assert model.no_layers == config["soil"]["no_layers"]
 
     # Final check that expected logging entries are produced
