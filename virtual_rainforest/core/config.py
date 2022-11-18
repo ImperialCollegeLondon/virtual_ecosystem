@@ -186,16 +186,30 @@ def check_outfile(output_folder: str, out_file_name: str) -> None:
             file to
         out_file_name: The name to save the outputted complete configuration file under
     Raises:
-        ConfigurationError: If the final output file already exist.
+        ConfigurationError: If the final output directory doesn't exist, isn't a
+            directory, or the final output file already exist there.
     """
+
+    # Throw critical error if the output folder doesn't exist
+    if not Path(output_folder).exists():
+        log_and_raise(
+            f"The user specified output directory ({output_folder}) doesn't exist!",
+            ConfigurationError,
+        )
+    elif not Path(output_folder).is_dir():
+        log_and_raise(
+            f"The user specified output folder ({output_folder}) isn't a directory!",
+            ConfigurationError,
+        )
 
     # Throw critical error if combined output file already exists
     for file in Path(output_folder).iterdir():
         if file.name == f"{out_file_name}.toml":
             log_and_raise(
-                f"A config file in the specified configuration folder already makes use"
-                f" of the specified output file name ({out_file_name}.toml), this file "
-                f"should either be renamed or deleted!",
+                f"A config file in the user specified output folder ({output_folder}) "
+                f"already makes use of the specified output file name "
+                f"({out_file_name}.toml), this file should either be renamed or "
+                f"deleted!",
                 ConfigurationError,
             )
 

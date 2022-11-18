@@ -9,10 +9,11 @@ import argparse
 import textwrap
 
 import virtual_rainforest as vr
+from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.logger import log_and_raise
 from virtual_rainforest.main import vr_run
 
 
-# TODO - WORK OUT THE TYPE HERE
 def _vr_run_cli() -> None:
     """Configure and run a Virtual Rainforest simulation.
 
@@ -48,7 +49,6 @@ def _vr_run_cli() -> None:
         dest="out_file_name",
     )
 
-    # TODO - WORK OUT HOW TO ADD VERSION INFO HERE
     parser.add_argument(
         "--version",
         action="version",
@@ -57,5 +57,11 @@ def _vr_run_cli() -> None:
 
     args = parser.parse_args()
 
-    # Run the virtual rainforest run function
-    vr_run(args.cfg_paths, args.output_folder, args.out_file_name)
+    if args.cfg_paths:
+        # Run the virtual rainforest run function
+        vr_run(args.cfg_paths, args.output_folder, args.out_file_name)
+    else:
+        log_and_raise(
+            "No configuration paths were provided to the `vr_run` entry point!",
+            ConfigurationError,
+        )

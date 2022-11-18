@@ -38,7 +38,42 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
 
-def test_check_outfile(caplog, mocker):
+@pytest.mark.parametrize(
+    "out_folder,expected_log_entries",
+    [
+        (
+            ".",
+            (
+                (
+                    CRITICAL,
+                    "A config file in the user specified output folder (.) already "
+                    "makes use of the specified output file name (complete_config.toml)"
+                    ", this file should either be renamed or deleted!",
+                ),
+            ),
+        ),
+        (
+            "bad_folder",
+            (
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
+        ),
+        (
+            "pyproject.toml",
+            (
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_outfile(caplog, mocker, out_folder, expected_log_entries):
     """Check that an error is logged if an output file is already saved."""
     file_name = "complete_config"
 
@@ -48,16 +83,7 @@ def test_check_outfile(caplog, mocker):
 
     # Check that check_outfile fails as expected
     with pytest.raises(config.ConfigurationError):
-        config.check_outfile(".", file_name)
-
-    expected_log_entries = (
-        (
-            CRITICAL,
-            "A config file in the specified configuration folder already makes "
-            "use of the specified output file name (complete_config.toml), this"
-            " file should either be renamed or deleted!",
-        ),
-    )
+        config.check_outfile(out_folder, file_name)
 
     log_check(caplog, expected_log_entries)
 
