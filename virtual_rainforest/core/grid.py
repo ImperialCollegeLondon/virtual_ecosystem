@@ -31,16 +31,21 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG = tuple[tuple[int, ...], tuple[Polygon, ...]]
-"""Signature of the data structure to be returned from grid creator functions."""
+GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
+"""Signature of the data structure to be returned from grid creator functions.
+
+The first value is a list of integer cell ids, the second is a matching list of the
+polygons for each cell id. Although cell ids could be a numpy array, the numpy int types
+then need handling in arguments and json representation.
+"""
 
 
 def register_grid(grid_type: str) -> Callable:
     """Add a grid type and creator function to the grid registry.
 
     This decorator is used to add a function creating a grid layout to the registry of
-    accepted grids. The function must return equal-length tuples of integer polygon ids
-    and Polygon objects, following the GRID_STRUCTURE_SIG signature.
+    accepted grids. The function must return a numpy array of integer polygon ids and an
+    equal length list of Polygon objects, following the GRID_STRUCTURE_SIG signature.
 
     The grid_type argument is used to identify the grid creation function to be used by
     the Grid class and in configuration files.
@@ -93,20 +98,19 @@ def make_square_grid(
     prototype = scale(prototype, xfact=scale_factor, yfact=scale_factor, origin=(0, 0))
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
-    # Tile the prototypes to create the grid
-    cell_list = [None] * (cell_nx * cell_ny)
+    # Get the cell ids and centres of the cells
+    idx_y, idx_x = np.indices((cell_ny, cell_nx))
+    cell_ids = idx_x + idx_y * cell_nx
+    cell_x = idx_x * scale_factor
+    cell_y = np.flipud(idx_y) * scale_factor
 
-    # Loop over columns and rows of cells, incrementing the base coordinates
-    for y_idx in range(cell_nx):
-        for x_idx in range(cell_ny):
-            # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_ny
-            # Store shifted geometry under cell id
-            cell_list[cell_id] = translate(
-                prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
-            )
+    # Get the list of polygons
+    cell_list = [
+        translate(prototype, xoff=xf, yoff=yf)
+        for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
+    ]
 
-    return tuple(range(len(cell_list))), tuple(cell_list)
+    return cell_ids.flatten().tolist(), cell_list
 
 
 @register_grid(grid_type="hexagon")
@@ -157,22 +161,19 @@ def make_hex_grid(
     prototype = scale(prototype, xfact=scale_factor, yfact=scale_factor, origin=(0, 0))
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
-    # Tile the prototypes to create the grid
-    cell_list = [None] * (cell_nx * cell_ny)
+    # Get the cell ids and centres of the cells
+    idx_y, idx_x = np.indices((cell_ny, cell_nx))
+    cell_ids = idx_x + idx_y * cell_nx
+    cell_x = 2 * apothem * idx_x + apothem * (idx_y % 2)
+    cell_y = 1.5 * side_length * np.flipud(idx_y)
 
-    # Loop over columns and rows of cells, incrementing the base coordinates
-    for y_idx in range(cell_ny):
-        for x_idx in range(cell_nx):
-            # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_ny
-            # Store shifted geometry under cell id
-            cell_list[cell_id] = translate(
-                prototype,
-                xoff=2 * apothem * x_idx + apothem * (y_idx % 2),
-                yoff=1.5 * side_length * y_idx,
-            )
+    # Get the list of polygons
+    cell_list = [
+        translate(prototype, xoff=xf, yoff=yf)
+        for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
+    ]
 
-    return tuple(range(len(cell_list))), tuple(cell_list)
+    return cell_ids.flatten().tolist(), cell_list
 
 
 @register_grid(grid_type="triangle")
