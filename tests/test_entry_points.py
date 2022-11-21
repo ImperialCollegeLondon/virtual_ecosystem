@@ -4,7 +4,6 @@ This module check that the model entry points exist and function as expected
 """
 
 import os
-import platform
 import subprocess
 
 import virtual_rainforest as vr
@@ -20,11 +19,6 @@ def test_entry_point_existence():
 def test_version():
     """Check --version information is displayed correctly."""
     expected_version = vr.__version__
-    if platform.system() == "Windows":
-        result = subprocess.run(
-            ["wsl", "vr_run", "--version"], capture_output=True, text=True
-        )
-    else:
-        result = subprocess.run(["vr_run", "--version"], capture_output=True, text=True)
+    result = subprocess.run(["vr_run", "--version"], capture_output=True, text=True)
 
     assert result.stdout == f"vr_run {expected_version}{os.linesep}"
