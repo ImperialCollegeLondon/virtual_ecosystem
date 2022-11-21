@@ -166,8 +166,10 @@ class Data(UserDict):
         super(Data, self).__init__()
 
         # Set up the extended instance properties
-        self.fast_fail = fast_fail
+        if not isinstance(grid, Grid):
+            log_and_raise("Data must be initialised with a Grid object", ValueError)
         self.grid = grid
+        self.fast_fail = fast_fail
         self.loading_errors = False
 
     def __repr__(self) -> str:
@@ -198,34 +200,97 @@ class Data(UserDict):
 
         return
 
-    def load_dataarray(self, darray: DataArray) -> None:
-        """Load a data array."""
+    def load_dataarray(
+        self, darray: DataArray, name: Optional[str] = None, replace: bool = False
+    ) -> None:
+        """Load a data array into a Data instance.
 
-        # Identify the correct loader routine from the data array signature
+        This method takes an input DataArray object and then matches the dimension and
+        coordinates signature of the array to find a loading routines given the grid
+        used in the Data instance. That routine is used to validate the DataArray and
+        then add the DataArray to the Data dictionary.
+
+        By default, the variable name used in the DataArray is used as the data key in
+        the Data instance, but this can be None. The optional `name` argument can be
+        used to either override the existing name or provide a name if the DataArray
+        name is missing.
+
+        By default, loading a data array will not replace an existing data array stored
+        under the same key.
+
+        Args:
+            darray: A DataArray to add to the Data dictionary.
+            name: An alternative name to be used as the data key for this DataArray.
+            replace: If the variable already exists, should it be replaced.
+        """
+
+        # Get the name, overriding with the alt if provided.
+        vname = name or darray.name
+
+        # Resolve name status
+        if vname is None:
+            log_and_raise("Cannot add DataArray with unnamed variable", ValueError)
+
+        if vname not in self:
+            LOGGER.info(f"Data: loading '{vname}'")
+        else:
+            if replace:
+                LOGGER.info(f"Data: replacing '{vname}'")
+            else:
+                log_and_raise(
+                    f"Data: '{vname}' already loaded. Use replace=True", KeyError
+                )
+
+        # Identify the correct spatial loader routine from the data array signature
         da_dims = set(darray.dims)
-        da_coords = set(darray.coords.dims)
+        da_coords = set(darray.coords.variables)
 
-        spatial_loader_func = None
+        # Empty function name, to be overwritten if a matching signature is found.
+        # String to avoid mypy issues with getattr(Data, matching_loader_fname)
+        matching_loader_fname = ""
 
-        for (ld_dims, ld_coords, ld_grid_type), ld_func in self.spatial_loaders.items():
+        # Loop over the available spatial loaders loooking for a congruent signature
+        # - dims _cannot_ be empty on a DataArray (they default to dim_N strings) so are
+        #   guaranteed to be non-empty and must then match.
+        # - coords _can_ be empty: they just associate values with indices along the
+        #   dimension. So, the signature should match _specified_ coords but not the
+        #   empty set.
+        for (ld_dims, ld_coords, ld_grid_type), ld_fnm in self.spatial_loaders.items():
 
             if (
-                da_dims.issubset([ld_dims])
-                and da_coords.issubset([ld_coords])
-                and ld_grid_type in [self.grid.grid_type, "__any__"]
+                set(ld_dims).issubset(da_dims)
+                and set(ld_coords).issubset(da_coords)
+                and (
+                    (self.grid.grid_type in ld_grid_type) or ("__any__" in ld_grid_type)
+                )
             ):
 
-                spatial_loader_func = ld_func
+                # Retrieve the method associated with the loader signature from the Data
+                # object.
+                matching_loader_fname = ld_fnm
                 break
 
-        if not spatial_loader_func:
-            raise AttributeError("Unknown loader signature")
+        if not matching_loader_fname:
+            log_and_raise(
+                "DataArray does not match a known spatial loader signature", ValueError
+            )
 
-        if darray.name in self:
-            raise KeyError(f"Variable {darray.name} already loaded in data instance")
+        # Try and get the loader function
+        try:
+            spatial_loader_func = getattr(self, matching_loader_fname)
+        except AttributeError:
+            log_and_raise(
+                f"Data array maps to unknown spatial loader '{matching_loader_fname}'",
+                AttributeError,
+            )
 
         # Load the data
-        self[darray.name] = ld_func(darray)
+        try:
+            loaded = spatial_loader_func(darray)
+        except Exception as excep:
+            log_and_raise(str(excep), type(excep))
+
+        self[vname] = loaded
 
     # def add_variable_from_file(
     #     self, file: Path, file_var: str, data_var: Optional[str] = None

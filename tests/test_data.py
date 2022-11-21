@@ -167,23 +167,25 @@ def test_load_netcdf(datadir, caplog, file, file_var, exp_err, expected_log):
 
 
 @pytest.mark.parametrize(
-    argnames=["grid_args", "darray", "exp_err", "expected_log"],
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[
         (
             {"grid_type": "square"},
             DataArray(data=np.arange(50), dims=("cell_id")),
             pytest.raises(ValueError),
-            ((CRITICAL, "Grid defines 100 cells, data provides 50"),),
+            "Grid defines 100 cells, data provides 50",
+            None,
         ),
         (
             {"grid_type": "square"},
             DataArray(data=np.arange(100), dims=("cell_id")),
             does_not_raise(),
-            (),
+            None,
+            np.arange(100),
         ),
     ],
 )
-def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
+def test_any_cellid_dim_array(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.data import Data, any_cellid_dim_array
@@ -192,36 +194,37 @@ def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err:
+    with exp_err as excep:
         darray = any_cellid_dim_array(data, darray)
         assert isinstance(darray, DataArray)
+        assert np.allclose(darray.values, exp_vals)
 
-    # Check the error reports
-    log_check(caplog, expected_log)
+    if excep is not None:
+        assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
-    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[
         (  # grid cell ids not covered by data
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
             DataArray(data=np.arange(6), coords={"cell_id": [1, 2, 3, 4, 5, 9]}),
             pytest.raises(ValueError),
-            ((CRITICAL, "The data cell ids are not a superset of grid cell ids."),),
+            "The data cell ids are not a superset of grid cell ids.",
             None,
         ),
         (  # Duplicate ids in data
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
             DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 5, 4, 5]}),
             pytest.raises(ValueError),
-            ((CRITICAL, "The data cell ids contain duplicate values."),),
+            "The data cell ids contain duplicate values.",
             None,
         ),
         (  # - same size and order
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
             DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 3, 4, 5]}),
             does_not_raise(),
-            (),
+            None,
             [0, 1, 2, 3, 4, 5],
         ),
         (  # - same order but more ids in cell data
@@ -230,7 +233,7 @@ def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
                 data=np.arange(9), coords={"cell_id": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
             ),
             does_not_raise(),
-            (),
+            None,
             [0, 1, 2, 3, 4, 5],
         ),
         (  # - different order
@@ -240,7 +243,7 @@ def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
                 coords={"cell_id": [5, 3, 1, 0, 4, 2]},
             ),
             does_not_raise(),
-            (),
+            None,
             [0, 1, 2, 3, 4, 5],
         ),
         (  # - different order and subsetting
@@ -250,12 +253,12 @@ def test_any_cellid_dim_array(caplog, grid_args, darray, exp_err, expected_log):
                 coords={"cell_id": [6, 5, 7, 3, 1, 0, 4, 2, 8]},
             ),
             does_not_raise(),
-            (),
+            None,
             [0, 1, 2, 3, 4, 5],
         ),
     ],
 )
-def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+def test_any_cellid_coord_array(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.data import Data, any_cellid_coord_array
@@ -264,17 +267,18 @@ def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err:
+    with exp_err as excep:
         darray = any_cellid_coord_array(data, darray)
+
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
-    # Check the error reports
-    log_check(caplog, exp_log)
+    if excep is not None:
+        assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
-    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[
         (  # Wrong size
             {"grid_type": "square", "cell_nx": 2, "cell_ny": 3},
@@ -282,8 +286,8 @@ def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp
                 data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Data XY dimensions do not match square grid"),),
-            np.arange(9),
+            "Data XY dimensions do not match square grid",
+            None,
         ),
         (  # All good
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 3},
@@ -291,12 +295,12 @@ def test_any_cellid_coord_array(caplog, grid_args, darray, exp_err, exp_log, exp
                 data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
             ),
             does_not_raise(),
-            (),
+            None,
             np.arange(9),
         ),
     ],
 )
-def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.data import Data, square_xy_dim_array
@@ -305,17 +309,17 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err:
+    with exp_err as excep:
         darray = square_xy_dim_array(data, darray)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
-    # Check the error reports
-    log_check(caplog, exp_log)
+    if excep is not None:
+        assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
-    argnames=["grid_args", "darray", "exp_err", "exp_log", "exp_vals"],
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[
         (  # Coords on cell boundaries
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
@@ -324,7 +328,7 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
                 coords={"y": [2, 1, 0], "x": [2, 1, 0]},
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Mapped points fall on cell boundaries."),),
+            "Mapped points fall on cell boundaries.",
             None,
         ),
         (  # Does not cover cells
@@ -334,7 +338,7 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
                 coords={"y": [2.5, 1.5], "x": [2.5, 1.5, 0.5]},
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Mapped points do not cover all cells."),),
+            "Mapped points do not cover all cells.",
             None,
         ),
         (  # Irregular sampling on y axis gives multiple points in bottom row
@@ -344,7 +348,7 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
                 coords={"y": [2.5, 1.5, 0.5, 0.4], "x": [0.5, 1.5, 2.5]},
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Some cells contain more than one point."),),
+            "Some cells contain more than one point.",
             None,
         ),
         (  # All good
@@ -354,12 +358,12 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_log, exp_va
                 coords={"y": [2.5, 1.5, 0.5], "x": [0.5, 1.5, 2.5]},
             ),
             does_not_raise(),
-            (),
+            None,
             np.arange(9),
         ),
     ],
 )
-def test_square_xy_coords_array(caplog, grid_args, darray, exp_err, exp_log, exp_vals):
+def test_square_xy_coords_array(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.data import Data, square_xy_coord_array
@@ -368,16 +372,239 @@ def test_square_xy_coords_array(caplog, grid_args, darray, exp_err, exp_log, exp
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err:
+    with exp_err as excep:
         darray = square_xy_coord_array(data, darray)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
+    if excep is not None:
+        assert str(excep.value) == exp_message
+
+
+# Testing the Data class
+
+
+@pytest.mark.parametrize(
+    argnames=["use_grid", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            False,
+            pytest.raises(ValueError),
+            ((CRITICAL, "Data must be initialised with a Grid object"),),
+        ),
+        (
+            True,
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_Data_init(caplog, use_grid, exp_err, expected_log):
+    """Test the Data __init__: pretty basic."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Switch on what to provide as grid
+    grid = Grid() if use_grid else 1
+
+    with exp_err:
+        _ = Data(grid)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "darray",
+        "dname",
+        "replace",
+        "exp_name",
+        "exp_err",
+        "exp_log",
+        "exp_vals",
+    ],
+    argvalues=[
+        pytest.param(  # Bad load - missing name
+            DataArray(
+                data=np.array([[0, 1], [2, 3]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+            ),
+            None,
+            False,
+            "air_temperature",
+            pytest.raises(ValueError),
+            ((CRITICAL, "Cannot add DataArray with unnamed variable"),),
+            None,
+            id="missing_name",
+        ),
+        pytest.param(  # Bad load - no known loader
+            DataArray(
+                data=np.array(np.arange(9)),
+                coords={"nope": np.arange(9)},
+                name="should_not_work",
+            ),
+            None,
+            False,
+            "air_temperature",
+            pytest.raises(ValueError),
+            (
+                (INFO, "Data: loading 'should_not_work'"),
+                (CRITICAL, "DataArray does not match a known spatial loader signature"),
+            ),
+            None,
+            id="no_loader",
+        ),
+        pytest.param(  # Bad load - catching corrupted spatial loader signatures
+            DataArray(
+                data=np.array(np.arange(9)),
+                coords={"z": np.arange(9)},
+                name="should_not_work",
+            ),
+            None,
+            False,
+            "air_temperature",
+            pytest.raises(AttributeError),
+            (
+                (INFO, "Data: loading 'should_not_work'"),
+                (
+                    CRITICAL,
+                    "Data array maps to unknown spatial loader 'does_not_exist'",
+                ),
+            ),
+            None,
+            id="invalid_loader_mapping",
+        ),
+        pytest.param(  # Valid load from square_xy_coords
+            DataArray(
+                data=np.array([[0, 1], [2, 3]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+                name="air_temperature",
+            ),
+            None,
+            False,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [0, 1, 2, 3],
+            id="valid_square_xy_coords",
+        ),
+        pytest.param(  # Bad load - variable already exists
+            DataArray(
+                data=np.array([[0, 1], [2, 3]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+                name="existing_var",
+            ),
+            None,
+            False,
+            "existing_var",
+            pytest.raises(KeyError),
+            ((CRITICAL, "Data: 'existing_var' already loaded. Use replace=True"),),
+            [0, 1, 2, 3],
+            id="existing_var",
+        ),
+        pytest.param(  # Replacing previous load from square_xy_coords
+            DataArray(
+                data=np.array([[4, 5], [6, 7]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+                name="existing_var",
+            ),
+            None,
+            True,
+            "existing_var",
+            does_not_raise(),
+            ((INFO, "Data: replacing 'existing_var'"),),
+            [4, 5, 6, 7],
+            id="replacing_data",
+        ),
+        pytest.param(  # Filling missing name
+            DataArray(
+                data=np.array([[4, 5], [6, 7]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+            ),
+            "air_temperature",
+            True,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [4, 5, 6, 7],
+            id="providing_name",
+        ),
+        pytest.param(  # Overriding dataarray name
+            DataArray(
+                data=np.array([[4, 5], [6, 7]]),
+                coords={"y": [2, 1], "x": [1, 2]},
+                name="name_not_to_be_used",
+            ),
+            "air_temperature",
+            True,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [4, 5, 6, 7],
+            id="overriding_name",
+        ),
+        pytest.param(  # Good load from square_xy_dims
+            DataArray(
+                data=np.array([[4, 5], [6, 7]]),
+                dims=("y", "x"),
+                name="air_temperature",
+            ),
+            None,
+            False,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [4, 5, 6, 7],
+            id="load_square_xy_dims",
+        ),
+        pytest.param(  # Good load from any_cellid_coords
+            DataArray(
+                data=np.array([4, 5, 6, 7]),
+                coords={"cell_id": [0, 1, 2, 3]},
+                name="air_temperature",
+            ),
+            None,
+            False,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [4, 5, 6, 7],
+            id="load_any_cellid_coords",
+        ),
+        pytest.param(  # Good load from any_cellid_dim
+            DataArray(
+                data=np.array([4, 5, 6, 7]),
+                dims=("cell_id",),
+                name="air_temperature",
+            ),
+            None,
+            False,
+            "air_temperature",
+            does_not_raise(),
+            ((INFO, "Data: loading 'air_temperature'"),),
+            [4, 5, 6, 7],
+            id="load_any_cell_id_dims",
+        ),
+    ],
+)
+def test_Data_load_dataarray(
+    caplog, fixture_data, darray, dname, replace, exp_name, exp_err, exp_log, exp_vals
+):
+    """Test the load_dataarray method.
+
+    Note that fixture_data is edited to create existing variables and to provide an
+    example of a corrupt spatial loader.
+    """
+
+    with exp_err:
+        fixture_data.load_dataarray(darray, name=dname, replace=replace)
+        assert exp_name in fixture_data
+        assert np.allclose(fixture_data[exp_name].values, exp_vals)
+
     # Check the error reports
     log_check(caplog, exp_log)
-
-
-# OLD STUFF BELOW NEEDS REWORKING
 
 
 # @pytest.mark.parametrize(

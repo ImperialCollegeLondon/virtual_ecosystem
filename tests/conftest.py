@@ -50,7 +50,7 @@ def fixture_square_grid():
     return grid
 
 
-@pytest.fixture
+@pytest.fixture()
 def fixture_square_grid_simple():
     """Create a square grid fixture.
 
@@ -69,3 +69,20 @@ def fixture_square_grid_simple():
     )
 
     return grid
+
+
+@pytest.fixture()
+def fixture_data(fixture_square_grid_simple):
+    """A Data instance fixture for use in testing."""
+
+    from virtual_rainforest.core.data import Data
+
+    data = Data(fixture_square_grid_simple)
+
+    # (Crudely) create an existing variable to test replacement
+    data.data["existing_var"] = None
+
+    # Deliberate fouling of spatial loaders with unknown function
+    data.spatial_loaders[(("z",), ("z",), ("__any__",))] = "does_not_exist"
+
+    return data
