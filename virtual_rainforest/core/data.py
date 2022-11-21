@@ -389,12 +389,10 @@ def any_cellid_coord_array(self: Data, darray: DataArray) -> DataArray:
     da_cell_ids = darray["cell_id"].values
 
     if len(np.unique(da_cell_ids)) != len(da_cell_ids):
-        log_and_raise("The data cell ids contain duplicate values.", ValueError)
+        raise ValueError("The data cell ids contain duplicate values.")
 
     if not set(self.grid.cell_id).issubset(da_cell_ids):
-        log_and_raise(
-            "The data cell ids are not a superset of grid cell ids.", ValueError
-        )
+        raise ValueError("The data cell ids are not a superset of grid cell ids.")
 
     # Now ensure sorting and any subsetting:
     # https://stackoverflow.com/questions/8251541
@@ -419,9 +417,8 @@ def any_cellid_dim_array(self: Data, darray: DataArray) -> DataArray:
     # and check the right number of cells found
     n_found = darray["cell_id"].size
     if self.grid.n_cells != n_found:
-        log_and_raise(
-            f"Grid defines {self.grid.n_cells} cells, data provides {n_found}",
-            ValueError,
+        raise ValueError(
+            f"Grid defines {self.grid.n_cells} cells, data provides {n_found}"
         )
 
     return darray
@@ -474,7 +471,7 @@ def square_xy_dim_array(self: Data, darray: DataArray) -> DataArray:
 
     # Otherwise the data array must be the same shape as the grid
     if self.grid.cell_nx != darray.sizes["x"] or self.grid.cell_ny != darray.sizes["y"]:
-        log_and_raise("Data XY dimensions do not match square grid", ValueError)
+        raise ValueError("Data XY dimensions do not match square grid")
 
     # Use DataArray.stack to combine the x and y into a multiindex called cell_id, with
     # x varying fastest (cell_id goes from top left to top right, then down by rows),
