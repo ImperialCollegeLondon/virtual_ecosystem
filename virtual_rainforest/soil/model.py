@@ -68,9 +68,15 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
-                "minutes"
-            )
+            # If model specific time step found use it, if not use
+            try:
+                raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
+                    "minutes"
+                )
+            except KeyError:
+                raw_interval = pint.Quantity(
+                    config["core"]["timing"]["main_time_step"]
+                ).to("minutes")
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(raw_interval.magnitude), "m")
             no_layers = config["soil"]["no_layers"]

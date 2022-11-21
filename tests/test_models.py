@@ -107,10 +107,11 @@ def test_register_model_errors(caplog):
 
 
 @pytest.mark.parametrize(
-    "config,raises,expected_log_entries",
+    "config,time_interval,raises,expected_log_entries",
     [
         (
             {},
+            None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
         ),
@@ -118,11 +119,31 @@ def test_register_model_errors(caplog):
             {
                 "core": {
                     "timing": {
-                        "min_time_step": "0.5 days",
+                        "main_time_step": "0.5 days",
                     }
                 },
                 "soil": {"no_layers": 2},
             },
+            timedelta64(12, "h"),
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "main_time_step": "0.5 days",
+                    }
+                },
+                "soil": {"no_layers": 2, "model_time_step": "5 days"},
+            },
+            timedelta64(5, "D"),
             does_not_raise(),
             (
                 (
@@ -134,13 +155,16 @@ def test_register_model_errors(caplog):
         ),
     ],
 )
-def test_generate_soil_model(caplog, config, raises, expected_log_entries):
+def test_generate_soil_model(
+    caplog, config, time_interval, raises, expected_log_entries
+):
     """Test that the function to initialise the soil model behaves as expected."""
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = SoilModel.from_config(config)
         assert model.no_layers == config["soil"]["no_layers"]
+        assert model.update_interval == time_interval
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
