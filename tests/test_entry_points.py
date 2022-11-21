@@ -19,6 +19,8 @@ def test_entry_point_existence():
 def test_version():
     """Check --version information is displayed correctly."""
     expected_version = vr.__version__
-    result = subprocess.run(["vr_run", "--version"], capture_output=True, text=True)
+    result = subprocess.run(
+        ["vr_run", "--version"], shell=True, capture_output=True, text=True
+    )
 
     assert result.stdout == f"vr_run {expected_version}{os.linesep}"
