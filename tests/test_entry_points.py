@@ -23,4 +23,5 @@ def test_version():
         ["vr_run --version"], shell=True, capture_output=True, text=True
     )
 
+    assert result.returncode == 0
     assert result.stdout == f"vr_run {expected_version}{os.linesep}"
