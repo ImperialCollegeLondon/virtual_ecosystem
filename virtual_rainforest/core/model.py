@@ -45,8 +45,7 @@ class BaseModel(ABC):
     """
 
     name = "base"
-    # TODO - Once higher level timing function is written use it to set this
-    last_update = datetime64("2000-01-01")
+    last_update = None
 
     def __init__(self, update_interval: timedelta64, **kwargs: Any):
         self.update_interval = update_interval
@@ -87,7 +86,10 @@ class BaseModel(ABC):
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""
 
-        if current_time > self.last_update + self.update_interval:
+        if (
+            not self.last_update
+            or current_time > self.last_update + self.update_interval
+        ):
             self.last_update = current_time
             return True
         return False
