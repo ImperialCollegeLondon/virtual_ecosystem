@@ -25,4 +25,4 @@ def test_version():
     )
 
     assert result.returncode == 0
-    assert result.stdout == f"vr_run {expected_version}{os.linesep}"
+    assert result.stdout == f"vr_run {expected_version}\n"
