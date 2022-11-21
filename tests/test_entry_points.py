@@ -4,6 +4,7 @@ This module check that the model entry points exist and function as expected
 """
 
 import os
+import shutil
 import subprocess
 
 import virtual_rainforest as vr
@@ -20,7 +21,7 @@ def test_version():
     """Check --version information is displayed correctly."""
     expected_version = vr.__version__
     result = subprocess.run(
-        ["poetry run vr_run --version"], shell=True, capture_output=True, text=True
+        [shutil.which("vr_run"), "--version"], capture_output=True, text=True
     )
 
     assert result.returncode == 0
