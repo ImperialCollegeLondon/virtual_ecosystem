@@ -123,6 +123,3 @@ def vr_run(
     # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")
-
-
-# TODO - Define command line entry point
