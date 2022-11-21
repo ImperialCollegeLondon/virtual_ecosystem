@@ -20,7 +20,7 @@ def test_version():
     """Check --version information is displayed correctly."""
     expected_version = vr.__version__
     result = subprocess.run(
-        ["vr_run --version"], shell=True, capture_output=True, text=True
+        ["poetry run vr_run --version"], shell=True, capture_output=True, text=True
     )
 
     assert result.returncode == 0
