@@ -20,6 +20,7 @@ build:
       # Install dependencies with 'docs' dependency group
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
       #- poetry install --with docs
+      - poetry install --with docs
       # Install the project ipykernel under the fixed name
       - poetry run python -m ipykernel install --user --name=vr_python3
 
