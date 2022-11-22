@@ -6,6 +6,8 @@ this script also defines the command line entry points for the model.
 
 from typing import Any, Type, Union
 
+from numpy import datetime64, timedelta64
+
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
@@ -80,6 +82,26 @@ def configure_models(
     return models_cfd
 
 
+# TODO TEST THIS
+def extract_timing_details(
+    config: dict[str, Any]
+) -> tuple[datetime64, datetime64, timedelta64]:
+    """TODO- PROPER DOCSTRING."""
+
+    # TODO - SOMEWHERE THERE NEEDS TO BE A CHECK THAT MODEL TIME STEPS ARE NOT SHORTER
+    # THAN THE MAIN TIME STEP, IF SO THERE PROBABLY SHOULD BE A WARNING EMITTED
+
+    # First extract start and end times
+    start_time = datetime64(config["core"]["timing"]["start_date"])
+    end_time = datetime64(config["core"]["timing"]["end_date"])
+    # CHECK UNITS ETC HERE, DO THE CONVERSION FROM PINT
+    timedelta = timedelta64(config["core"]["timing"]["main_time_step"])
+    # TYPE CHECKING IS ALREADY HANDLED, CHECK THAT SIMULATION DOESN'T END BEFORE IT
+    # STARTS THOUGH, ALSO CHECK THAT UPDATE INTERVAL DOESN'T MEAN NO UPDATE EVER OCCURS
+
+    return start_time, end_time, timedelta
+
+
 def vr_run(
     cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
 ) -> None:
@@ -102,6 +124,7 @@ def vr_run(
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
+    # TODO - Need to decide how to handle model update intervals
     models_cfd = configure_models(config, model_list)
 
     LOGGER.info(
@@ -111,9 +134,16 @@ def vr_run(
     # This is just a step to pass flake8 checks (DELETE LATER)
     print(models_cfd)
 
+    # Extract all the relevant timing details
+    current_time, end_time, timedelta = extract_timing_details(config)
+
     # TODO - Extract input data required to initialise the models
 
     # TODO - Initialise the set of configured models
+
+    # TODO - Spin up the models
+
+    # Set initial model times here!!!
 
     # TODO - Save model state
 
