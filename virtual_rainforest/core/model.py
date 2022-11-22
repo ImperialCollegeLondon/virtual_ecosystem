@@ -16,10 +16,14 @@ from typing import Any, Type
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
 """A registry for different models."""
+
+
+class ImproperFunctionCall(Exception):
+    """Custom exception class for cases where functions should not have been called."""
 
 
 class InitialisationError(Exception):
@@ -45,7 +49,6 @@ class BaseModel(ABC):
     """
 
     name = "base"
-    last_update = None
 
     def __init__(self, update_interval: timedelta64, **kwargs: Any):
         self.update_interval = update_interval
@@ -83,13 +86,21 @@ class BaseModel(ABC):
     def setup(self) -> None:
         """Function to use input data to set up the model."""
 
+    def start_model_timing(self, start_time: datetime64) -> None:
+        """Set of model timing by setting up initial last update time."""
+
+        if hasattr(self, "last_update"):
+            log_and_raise(
+                "Model timing was already set up, it should not be setup again!",
+                ImproperFunctionCall,
+            )
+        else:
+            self.last_update = start_time
+
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""
 
-        if (
-            not self.last_update
-            or current_time > self.last_update + self.update_interval
-        ):
+        if current_time > self.last_update + self.update_interval:
             self.last_update = current_time
             return True
         return False

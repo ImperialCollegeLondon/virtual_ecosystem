@@ -10,7 +10,11 @@ from logging import CRITICAL, INFO, WARNING
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.model import (
+    BaseModel,
+    ImproperFunctionCall,
+    InitialisationError,
+)
 from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
@@ -24,6 +28,7 @@ def test_base_model_initialization(caplog, mocker):
 
     # Initialise model
     model = BaseModel(timedelta64(1, "W"))
+    model.start_model_timing(datetime64("2022-11-01"))
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
@@ -32,11 +37,14 @@ def test_base_model_initialization(caplog, mocker):
     assert repr(model) == "BaseModel(update_interval = 1 weeks)"
     assert model.should_update(datetime64("2023-10-26"))
     assert not model.should_update(datetime64("2022-10-28"))
+    # Attempting to start model timing again should result in an error
+    with pytest.raises(ImproperFunctionCall):
+        model.start_model_timing(datetime64("2020-11-01"))
 
     # Final check that expected (i.e. no) logging entries are produced
     log_check(
         caplog,
-        (),
+        ((CRITICAL, "Model timing was already set up, it should not be setup again!"),),
     )
 
 
