@@ -45,7 +45,7 @@
                      "default": "2065-01-01"
                   },
                   "main_time_step": {
-                     "description": "Minimum time step, units must be provided!",
+                     "description": "Main model time step, units must be provided!",
                      "type": "string",
                      "default": "7.0 days"
                   }

@@ -76,7 +76,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         (
             {  # valid config
                 "soil": {"no_layers": 1},
-                "core": {"timing": {"min_time_step": "7 days"}},
+                "core": {"timing": {"main_time_step": "7 days"}},
             },
             "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
             does_not_raise(),
@@ -92,7 +92,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         (
             {  # invalid soil config tag
                 "soil": {"no_layers": -1},
-                "core": {"timing": {"min_time_step": "7 days"}},
+                "core": {"timing": {"main_time_step": "7 days"}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -117,7 +117,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         (
             {  # min_time_step missing units
                 "soil": {"no_layers": 1},
-                "core": {"timing": {"min_time_step": "7"}},
+                "core": {"timing": {"main_time_step": "7"}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -186,7 +186,7 @@ def test_vr_run_bad_model(mocker, caplog):
             "timing": {
                 "start_date": "2020-01-01",
                 "end_date": "2120-01-01",
-                "min_time_step": "0.5 martian days",
+                "main_time_step": "0.5 martian days",
             },
         },
         "soil": {},

@@ -10,6 +10,10 @@
                "type": "integer",
                "exclusiveMinimum": 0,
                "default": 2
+            },
+            "model_time_step": {
+               "description": "Time step for soil module, units must be provided!",
+               "type": "string"
             }
          },
          "default": {},
