@@ -4,6 +4,7 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
+from pathlib import Path
 from typing import Any, Type, Union
 
 from virtual_rainforest.core.config import validate_config
@@ -81,7 +82,8 @@ def configure_models(
 
 
 def vr_run(
-    cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
+    cfg_paths: Union[str, list[str]],
+    merge_file_path: Path,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -92,11 +94,10 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
-        output_folder: Folder to save combined configuration to
-        out_file_name: Name for the combined configuration file
+        merge_file_path: Path to save merged config file to
     """
 
-    config = validate_config(cfg_paths, output_folder, out_file_name)
+    config = validate_config(cfg_paths, merge_file_path)
 
     model_list = select_models(config["core"]["modules"])
 

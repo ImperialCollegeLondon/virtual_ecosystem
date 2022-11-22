@@ -178,38 +178,39 @@ def check_dict_leaves(
     return conflicts
 
 
-def check_outfile(output_folder: str, out_file_name: str) -> None:
+def check_outfile(merge_file_path: Path) -> None:
     """Check that final output file is not already in the output folder.
 
     Args:
-        output_folder: Path to a folder to output the outputted complete configuration
-            file to
-        out_file_name: The name to save the outputted complete configuration file under
+        merge_file_path: Path that merged config file is meant to be saved to
     Raises:
         ConfigurationError: If the final output directory doesn't exist, isn't a
-            directory, or the final output file already exist there.
+            directory, or the final output file already exists.
     """
 
+    # Extract parent folder name and output file name
+    parent_fold = merge_file_path.parent.relative_to(".")
+    out_file_name = merge_file_path.name
+
     # Throw critical error if the output folder doesn't exist
-    if not Path(output_folder).exists():
+    if not Path(parent_fold).exists():
         log_and_raise(
-            f"The user specified output directory ({output_folder}) doesn't exist!",
+            f"The user specified output directory ({parent_fold}) doesn't exist!",
             ConfigurationError,
         )
-    elif not Path(output_folder).is_dir():
+    elif not Path(parent_fold).is_dir():
         log_and_raise(
-            f"The user specified output folder ({output_folder}) isn't a directory!",
+            f"The user specified output folder ({parent_fold}) isn't a directory!",
             ConfigurationError,
         )
 
     # Throw critical error if combined output file already exists
-    for file in Path(output_folder).iterdir():
-        if file.name == f"{out_file_name}.toml":
+    for file in Path(parent_fold).iterdir():
+        if file.name == f"{out_file_name}":
             log_and_raise(
-                f"A config file in the user specified output folder ({output_folder}) "
-                f"already makes use of the specified output file name "
-                f"({out_file_name}.toml), this file should either be renamed or "
-                f"deleted!",
+                f"A config file in the user specified output folder ({parent_fold}) "
+                f"already makes use of the specified output file name ({out_file_name})"
+                f", this file should either be renamed or deleted!",
                 ConfigurationError,
             )
 
@@ -480,8 +481,7 @@ def validate_with_defaults(
 
 def validate_config(
     cfg_paths: Union[str, list[str]],
-    output_folder: str = ".",
-    out_file_name: str = "complete_config",
+    merge_file_path: Path = Path("./vr_full_model_configuration.toml"),
 ) -> dict[str, Any]:
     """Validates the contents of user provided config files.
 
@@ -499,13 +499,11 @@ def validate_config(
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
-        output_folder: Path to a folder to output the outputted complete configuration
-            file to
-        out_file_name: The name to save the outputted complete configuration file under.
+        merge_file_path: Path to save merged config file to
     """
 
     # Check that there isn't a final output file saved in the final output folder
-    check_outfile(output_folder, out_file_name)
+    check_outfile(merge_file_path)
     # If this passes collect the files
     if isinstance(cfg_paths, str):
         files = collect_files([cfg_paths])
@@ -530,11 +528,8 @@ def validate_config(
     LOGGER.info("Configuration files successfully validated!")
 
     # Output combined toml file, into the initial config folder
-    LOGGER.info(
-        "Saving all configuration details to %s/%s.toml"
-        % (output_folder, out_file_name)
-    )
-    with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
+    LOGGER.info("Saving all configuration details to %s" % merge_file_path)
+    with open(merge_file_path, "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
     # Return the complete validated config

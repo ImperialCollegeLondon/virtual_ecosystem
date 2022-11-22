@@ -6,6 +6,7 @@ defined in main.py that it calls.
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
+from pathlib import Path
 
 import pytest
 
@@ -162,7 +163,7 @@ def test_vr_run_miss_model(mocker, caplog):
     mock_conf.return_value = {"core": {"modules": ["topsoil"]}}
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['topsoil']"),
@@ -193,7 +194,7 @@ def test_vr_run_bad_model(mocker, caplog):
     }
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['soil']"),

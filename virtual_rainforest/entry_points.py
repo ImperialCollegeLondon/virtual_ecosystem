@@ -7,6 +7,7 @@ rainforest simulation based on a set of configuration files.
 
 import argparse
 import textwrap
+from pathlib import Path
 
 import virtual_rainforest as vr
 from virtual_rainforest.core.config import ConfigurationError
@@ -22,6 +23,15 @@ def _vr_run_cli() -> None:
     based on user supplied paths, these are converted to a single configuration file,
     which is then output for further reference. This combined configuration is then used
     to initialise a set of models.
+
+    The command accepts one or more paths to config files or folders containing config
+    files (cfg_paths). The set of config files found in those locations are then
+    combined and validated to make sure that they contain a complete and consistent
+    configuration for a virtual_rainforest simulation. The resolved complete
+    configuration is then written to a single consolidated config file (--merge). If a
+    specific location isn't provided via the --merge option, the consolidated file is
+    saved in the folder `vr_run` was called in under the name
+    `vr_full_model_configuration.toml`.
     """
 
     # Check function docstring exists, as -OO flag strips docstrings I believe
@@ -29,24 +39,14 @@ def _vr_run_cli() -> None:
     fmt = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc, formatter_class=fmt)
 
+    parser.add_argument("cfg_paths", help="Paths to config files", nargs="*")
     parser.add_argument(
-        "cfg_paths", help="Paths to config files and/or folders.", nargs="*"
-    )
-    parser.add_argument(
-        "-o",
-        "--output_folder",
-        default=".",
+        "-m",
+        "--merge",
         type=str,
-        help="Folder that the output config file should be saved in.",
-        dest="output_folder",
-    )
-    parser.add_argument(
-        "-n",
-        "--name_outfile",
-        type=str,
-        default="vr_full_model_configuration",
-        help="Name that the output config file should be saved under.",
-        dest="out_file_name",
+        default="./vr_full_model_configuration.toml",
+        help="Path for merged config file.",
+        dest="merge_file_path",
     )
 
     parser.add_argument(
@@ -57,11 +57,11 @@ def _vr_run_cli() -> None:
 
     args = parser.parse_args()
 
-    if args.cfg_paths:
-        # Run the virtual rainforest run function
-        vr_run(args.cfg_paths, args.output_folder, args.out_file_name)
-    else:
+    if not args.cfg_paths:
         log_and_raise(
             "No configuration paths were provided to the `vr_run` entry point!",
             ConfigurationError,
         )
+    else:
+        # Run the virtual rainforest run function
+        vr_run(args.cfg_paths, Path(args.merge_file_path))
