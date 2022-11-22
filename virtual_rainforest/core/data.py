@@ -1,4 +1,5 @@
-"""The core.data module.
+"""API documentation for the :mod:`core.data` module.
+************************************************** # noqa: D205
 
 This module handles the population and storage of data sources used to run Virtual
 Rainforest simulations.
@@ -6,58 +7,64 @@ Rainforest simulations.
 The Data class
 ==============
 
-The core `~virtual_rainforest.core.data.Data` class is a dictionary-like object that can
-be used to access data simply as `data['var_name']. All of the entries in the `Data`
-dictionary are `~xarray.DataArray` objects, which provides a flexible indexing system
-onto underlying `numpy` arrays. A `~virtual_rainforest.core.data.Data` instance is
-initalised using the core configuration parameters for a simulation, currently a
-`~virtual_rainforest.core.grid.Grid`.
+The core :class:`~virtual_rainforest.core.data.Data` class is a dictionary-like object
+that can be used to access data simply as ``data['var_name']``. All of the entries in
+the dictionary are :class:`~xarray.DataArray` objects, which provides a flexible
+indexing system onto underlying :mod:`numpy` arrays. A
+:class:`~virtual_rainforest.core.data.Data` instance is initalised using the core
+configuration parameters for a simulation, currently a
+:class:`~virtual_rainforest.core.grid.Grid`.
 
 Adding data to a Data instance
 ------------------------------
 
-The `Data` class extends a simple dictionary to provide validation methods for adding
-data to the dictionary. Only `~xarray.DataArray` objects can be added to an instance,
-using the `~virtual_rainforest.core.data.Data.load_dataarray` method. When this is used,
-the provided `~xarray.DataArray` is checked via a configurable system of `loader`
+The :class:`~virtual_rainforest.core.data.Data` class extends a simple dictionary to
+provide validation methods for adding data to the dictionary. Only
+:class:`~xarray.DataArray` objects can be added to an instance, using the
+:meth:`~virtual_rainforest.core.data.Data.load_dataarray` method. When this is used, the
+provided :class:`~xarray.DataArray` is checked via a configurable system of 'loader'
 methods. These loaders are used to check that particular signatures of dimensions and
-coordinates in input `~xarray.DataArray` are congruent with the core configuration
-parameters. A loader method should take an input that matches the signature, validate
-it, implement any internal standardisation and then return the valid, standardised data.
+coordinates in input :class:`~xarray.DataArray` are congruent with the core
+configuration parameters. A loader method should take an input that matches the
+signature, validate it, implement any internal standardisation and then return the
+valid, standardised data.
 
-At present, only the `spatial_loaders` are implemented, but temporal and
+At present, only the spatial loaders are implemented, but temporal and
 other loaders such as soil depth may be added.
 
 
-The `spatial_loaders` system
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The ``spatial_loaders`` system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `~virtual_rainforest.core.data.Data.spatial_loaders` attribute contains a dictionary
-that maps `~xarray.DataArray` signatures onto appropriate loader methods. The set of
-loaders can be extended using the
-`~virtual_rainforest.core.data.Data.add_spatial_loader` decorator, which adds a new
-pairing of a signature and method to the `~virtual_rainforest.core.data.Data` class.
+The :attr:`~virtual_rainforest.core.data.Data.spatial_loaders` attribute contains a
+dictionary that maps :class:`~xarray.DataArray` signatures onto appropriate loader
+methods. The set of loaders can be extended using the
+:func:`~virtual_rainforest.core.data.add_spatial_loader` decorator, which adds a
+new pairing of a signature and method to the :class:`~virtual_rainforest.core.data.Data`
+class.
 
-The signature for `spatial_loaders` is used to matchs tuples of the data array
+The signature for ``spatial_loaders`` is used to match tuples of the data array
 dimensions, coordinates and the spatial grid type against the input data. So, for
 example:
 
 .. code-block:: python
+
     @add_spatial_loader((("x", "y"), ("x", "y"), ("square",)))
 
-This adds a spatial loader that will map a `~xarray.DataArray` with `x` and `y`
-coordinates (and hence implicitly 'x' and 'y' dimensions) onto a square grid.
+This adds a spatial loader that will map a :class:`~xarray.DataArray` with ``x`` and
+``y`` coordinates (and hence implicitly 'x' and 'y' dimensions) onto a square grid.
 
 .. code-block:: python
+
     @add_spatial_loader((("cell_id",), (), ("__any__",)))
 
-This adds a spatial loader that will map a `~xarray.DataArray` with the `cell_id`
-dimension (but no `cell_id` coordinats) onto _any_ spatial grid type: the underlying
-`cell_id`  attribute of the grid is defined for all grid.
+This adds a spatial loader that will map a :class:`~xarray.DataArray` with the
+``cell_id`` dimension (but no ``cell_id`` coordinats) onto _any_ spatial grid type: the
+underlying ``cell_id``  attribute of the grid is defined for all grid.
 
 All spatial loader methods standardise the spatial structure of the input data to use a
-single `cell_id` spatial axis, which maps data onto the cell IDs used for indexing in
-the `~virtual_rainforest.core.grid.Grid` instance for the simulation.
+single ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in
+the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
 
 Adding data from a file
 -----------------------
@@ -65,38 +72,42 @@ Adding data from a file
 The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using the appropriate reader packages for the format,
-* coerce the data into a properly structured `~xarray.DataArray` object, and then
-* use the `~virtual_rainforest.core.data.Data.load_dataarray` method.
+* coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
+* use the :class:`~virtual_rainforest.core.data.Data.load_dataarray` method.
 
-However, the `~virtual_rainforest.core.data.Data.load_from_file` method automatically
-loads data from known formats.
+However, the :meth:`~virtual_rainforest.core.data.Data.load_from_file` method
+automatically loads data from known formats defined in the
+:attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY`
 
 The FILE_FORMAT_REGISTRY
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY` is used to register the set of
-known file formats for use in `~virtual_rainforest.core.data.Data.load_from_file`. This
-registry is extendable, so that new functions that implement the approach above for a
-given file format can be added to those supported by
-`~virtual_rainforest.core.data.Data.load_from_file`. This is done using the
-`~virtual_rainforest.core.data.register_file_format_loader` decorator, which needs to
-specify the file formats supported (as a tuple of file suffixes) and then decorate a
-function that returns a `~xarray.DataArray` suitable for use in
-`~virtual_rainforest.core.data.Data.load_dataarray`. For example:
+The :attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY` is used to register the
+set of known file formats for use in
+:meth:`~virtual_rainforest.core.data.Data.load_from_file`. This registry is extendable,
+so that new functions that implement the approach above for a given file format can be
+added to those supported by :meth:`~virtual_rainforest.core.data.Data.load_from_file`.
+This is done using the :func:`~virtual_rainforest.core.data.register_file_format_loader`
+decorator, which needs to specify the file formats supported (as a tuple of file
+suffixes) and then decorate a function that returns a :class:`~xarray.DataArray`
+suitable for use in :meth:`~virtual_rainforest.core.data.Data.load_dataarray`. For
+example:
 
 .. code-block:: python
+
     @register_file_format_loader(('.tif', '.tiff'))
     def new_function_to_load_tif_data(...):
 
 Using a data configuration
 --------------------------
 
-A `~virtual_rainforest.core.data.Data` instance can also be populated using the
-`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to take
-a properly validated configuration dictionary, loaded from a TOML file that specifies
-data source files:
+A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
+:meth:`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to
+take a properly validated configuration dictionary, loaded from a TOML file that
+specifies data source files:
 
 .. code-block:: toml
+
     [[data.variable]]
     var="precipitation"
     file="/path/to/file.nc"

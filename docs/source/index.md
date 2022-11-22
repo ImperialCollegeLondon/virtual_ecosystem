@@ -77,6 +77,7 @@ team.
   :hidden:
 
   api/core.md
+  api/data.md
 ```
 
 ```{eval-rst}
