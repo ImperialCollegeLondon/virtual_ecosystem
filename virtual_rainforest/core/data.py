@@ -367,7 +367,8 @@ class Data(UserDict):
                 AttributeError,
             )
 
-        # Load the data
+        # Load the data - using a generic Exception here simply to capture, log and then
+        # reraise upstream exceptions.
         try:
             loaded = spatial_loader_func(darray)
         except Exception as excep:
@@ -375,42 +376,41 @@ class Data(UserDict):
 
         self[vname] = loaded
 
-    # def add_variable_from_file(
-    #     self, file: Path, file_var: str, data_var: Optional[str] = None
-    # ) -> None:
-    #     """Adds a variable to the data object.
+    def load_from_file(
+        self,
+        file: Path,
+        file_var: str,
+        name: Optional[str] = None,
+        replace: bool = False,
+    ) -> None:
+        """Adds a variable to the data object.
 
-    #     This method is used to programatically populate a variable in a Data instance
-    #     from a file. The appropriate data loader function is selected using the file
-    #     suffix and the grid type used in the Data instance.
+        This method is used to programatically populate a variable in a Data instance
+        from a file. The appropriate data loader function is selected using the file
+        suffix and the grid type used in the Data instance.
 
-    #     Args:
-    #         file: A Path for the file containing the variable to load.
-    #         file_var: A string providing the name of the variable in the file.
-    #         data_var: An optional replacement name to use in the Data instance.
-    #     """
+        Args:
+            file: A Path for the file containing the variable to load.
+            file_var: A string providing the name of the variable in the file.
+            name: An optional replacement name to use in the Data instance.
+            replace: If the variable already exists, should it be replaced.
+        """
 
-    #     # Detect file type
-    #     file_type = file.suffix
+        # Detect file type
+        file_type = file.suffix
 
-    #     # Can the data mapper handle this grid and file type combination?
-    #     if (self.grid.grid_type, file_type) not in DATA_LOADER_REGISTRY:
-    #         LOGGER.error(
-    #             "No data loader provided for %s files and %s grids",
-    #             file_type,
-    #             self.grid.grid_type,
-    #         )
+        # Can the data mapper handle this grid and file type combination?
+        if file_type not in FILE_FORMAT_REGISTRY:
+            LOGGER.error(
+                "No file format loader provided for %s",
+                file_type,
+            )
 
-    #     # If so, load the data
-    #     loader = DATA_LOADER_REGISTRY[(self.grid.grid_type, file_type)]
-
-    #     # Get the data variable name
-    #     data_var = data_var or file_var
-
-    #     # Call the loader.
-    #     LOGGER.info("Loading %s data from file: %s", file_var, file)
-
-    #     loader(data=self, file=file, file_var=file_var, data_var=data_var)
+        # If so, load the data
+        LOGGER.info("Loading %s data from file: %s", file_var, file)
+        loader = FILE_FORMAT_REGISTRY[file_type]
+        input_data = loader(file, file_var)
+        self.load_dataarray(input_data, name=name, replace=replace)
 
     # def load_data_config(self, data_config: dict) -> None:
     #     """Setup the simulation data from a user configuration.
@@ -525,8 +525,8 @@ def add_spatial_loader(signature: tuple) -> Callable:
 
 
 @add_spatial_loader((("cell_id",), ("cell_id",), ("__any__",)))
-def any_cellid_coord_array(self: Data, darray: DataArray) -> DataArray:
-    """Load a DataArray with cell id coordinates.
+def spld_cellid_coord_any(self: Data, darray: DataArray) -> DataArray:
+    """Spatial loader for cell id coordinates onto any grid.
 
     In this loader, the DataArray has a cell_id dimension with valued coordinates, which
     should map onto the grid cell ids, allowing for a subset of ids. Because this method
@@ -552,8 +552,8 @@ def any_cellid_coord_array(self: Data, darray: DataArray) -> DataArray:
 
 
 @add_spatial_loader((("cell_id",), (), ("__any__",)))
-def any_cellid_dim_array(self: Data, darray: DataArray) -> DataArray:
-    """Load a DataArray with cell id dimension.
+def spld_cellid_dim_any(self: Data, darray: DataArray) -> DataArray:
+    """Spatial loader for cell id dimension onto any grid.
 
     In this loader, the DataArray only has a cell_id dimension so assumes that the
     values are provided in the same sequence as the grid cell ids. Because this method
@@ -573,8 +573,8 @@ def any_cellid_dim_array(self: Data, darray: DataArray) -> DataArray:
 
 
 @add_spatial_loader((("x", "y"), ("x", "y"), ("square",)))
-def square_xy_coord_array(self: Data, darray: DataArray) -> DataArray:
-    """Maps a DataArray with XY coordinates onto a grid."""
+def spld_xy_coord_square(self: Data, darray: DataArray) -> DataArray:
+    """Spatial loader for XY coordinates onto a square grid."""
 
     # Get x and y coords to check the extents and cell coverage.
     #
@@ -614,8 +614,8 @@ def square_xy_coord_array(self: Data, darray: DataArray) -> DataArray:
 
 
 @add_spatial_loader((("x", "y"), (), ("square",)))
-def square_xy_dim_array(self: Data, darray: DataArray) -> DataArray:
-    """Maps a DataArray with XY dimensions onto a grid."""
+def spld_xy_dim_square(self: Data, darray: DataArray) -> DataArray:
+    """Spatial loader for XY dimensions onto a square grid."""
 
     # Otherwise the data array must be the same shape as the grid
     if self.grid.cell_nx != darray.sizes["x"] or self.grid.cell_ny != darray.sizes["y"]:

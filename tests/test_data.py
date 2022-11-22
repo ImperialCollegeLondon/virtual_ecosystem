@@ -185,17 +185,17 @@ def test_load_netcdf(datadir, caplog, file, file_var, exp_err, expected_log):
         ),
     ],
 )
-def test_any_cellid_dim_array(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_spld_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, any_cellid_dim_array
+    from virtual_rainforest.core.data import Data, spld_cellid_dim_any
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
     with exp_err as excep:
-        darray = any_cellid_dim_array(data, darray)
+        darray = spld_cellid_dim_any(data, darray)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
@@ -258,17 +258,17 @@ def test_any_cellid_dim_array(grid_args, darray, exp_err, exp_message, exp_vals)
         ),
     ],
 )
-def test_any_cellid_coord_array(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_spld_cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, any_cellid_coord_array
+    from virtual_rainforest.core.data import Data, spld_cellid_coord_any
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
     with exp_err as excep:
-        darray = any_cellid_coord_array(data, darray)
+        darray = spld_cellid_coord_any(data, darray)
 
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
@@ -300,17 +300,17 @@ def test_any_cellid_coord_array(grid_args, darray, exp_err, exp_message, exp_val
         ),
     ],
 )
-def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_message, exp_vals):
+def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, square_xy_dim_array
+    from virtual_rainforest.core.data import Data, spld_xy_dim_square
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
     with exp_err as excep:
-        darray = square_xy_dim_array(data, darray)
+        darray = spld_xy_dim_square(data, darray)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
@@ -366,14 +366,14 @@ def test_square_xy_dim_array(caplog, grid_args, darray, exp_err, exp_message, ex
 def test_square_xy_coords_array(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, square_xy_coord_array
+    from virtual_rainforest.core.data import Data, spld_xy_coord_square
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
     with exp_err as excep:
-        darray = square_xy_coord_array(data, darray)
+        darray = spld_xy_coord_square(data, darray)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
@@ -690,13 +690,13 @@ def test_Data_load_dataarray(
 
 #     The test parameters include both passing and failing files, stored in test_data.
 #     """
-#     from virtual_rainforest.core.data import _square_xy_coord_array
+#     from virtual_rainforest.core.data import _spld_xy_coord_square
 
 #     datafile = os.path.join(datadir, filename)
 #     dataset = load_dataset(datafile)
 
 #     with expected_outcome as outcome:
 
-#         _square_xy_coord_array(fixture_square_grid, dataset)
+#         _spld_xy_coord_square(fixture_square_grid, dataset)
 
 #         assert str(outcome) == expected_outcome_msg
