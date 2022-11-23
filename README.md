@@ -38,5 +38,5 @@ The research is based at Imperial College London:
 
 The research team are supported by the Imperial College London
 [Research Software
-Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
+Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
