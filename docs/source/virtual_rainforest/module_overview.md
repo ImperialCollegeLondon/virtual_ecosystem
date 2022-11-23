@@ -132,7 +132,7 @@ The soil is represented by four vertical levels:
 
 ### The Radiation balance
 
-The radiation balance submodule calculates location-specific solar irradiance 
+The radiation balance submodule calculates location-specific solar irradiance
 shortwave), reflection and scattering of shortwave radiation from canopy and surface,
 vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
 and surface.
