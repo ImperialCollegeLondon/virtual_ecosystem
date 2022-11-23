@@ -363,7 +363,7 @@ def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
         ),
     ],
 )
-def test_square_xy_coords_array(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_spld_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.data import Data, spld_xy_coord_square
