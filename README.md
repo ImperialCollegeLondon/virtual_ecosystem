@@ -41,14 +41,7 @@ The research team are supported by the Imperial College London
 Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
 
-## Example usage
+## Model documentation
 
-An example configuration for the Virtual Rainforest model is provided in
-`data/example_config.toml`. A simulation using this configuration can be run through the
-command line by calling:
-
-```shell
-poetry shell
-poetry install
-vr_run data/example_config.toml
-```
+The full documentation for the Virtual Rainforest model can be viewed
+[here](https://virtual-rainforest.readthedocs.io/en/latest/).
