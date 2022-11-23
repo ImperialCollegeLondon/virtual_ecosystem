@@ -1,4 +1,5 @@
-"""The `core.model` module.
+"""API documentation for the :mod:`core.model` module.
+************************************************** # noqa: D205
 
 The `core.model` module defines the api that all individual models (e.g. the soil model)
 should conform to. This consists of a class (`BaseModel`), which defines the expected

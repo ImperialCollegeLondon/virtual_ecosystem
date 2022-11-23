@@ -1,4 +1,5 @@
-"""The `core.config` module.
+"""API documentation for the :mod:`core.config` module.
+************************************************** # noqa: D205
 
 The `core.config` module is used to read in the various configuration files, validate
 their contents, and then configure a ready to run instance of the virtual rainforest

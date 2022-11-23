@@ -1,4 +1,5 @@
-"""The `core.logging` module.
+"""API documentation for the :mod:`core.logger` module.
+************************************************** # noqa: D205
 
 The `core.logging` module is used to setup the extend the standard logging setup to
 provide additional functionality relevant to the virtual rainforest model.

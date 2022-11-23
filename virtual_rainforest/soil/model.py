@@ -1,4 +1,5 @@
-"""The `soil.model` module.
+"""API documentation for the :mod:`soil.model` module.
+************************************************** # noqa: D205
 
 The `soil.model` module creates a `SoilModel` class as a child of the `BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g. `setup` and `spinup`)

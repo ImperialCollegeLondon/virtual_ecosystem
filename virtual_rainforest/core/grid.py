@@ -1,4 +1,5 @@
-"""The `core.grid` module.
+"""API documentation for the :mod:`core.grid` module.
+************************************************** # noqa: D205
 
 The `core.grid` module is used to create the grid of cells underlying the simulation and
 to identify the neighbourhood connections of cells.
