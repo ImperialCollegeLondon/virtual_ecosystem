@@ -39,7 +39,7 @@ def _vr_run_cli() -> None:
     fmt = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc, formatter_class=fmt)
 
-    parser.add_argument("cfg_paths", help="Paths to config files", nargs="*")
+    parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
     parser.add_argument(
         "-m",
         "--merge",
