@@ -68,7 +68,7 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            # If model specific time step found use it, if not use
+            # If model specific time step found use it, if not use main time step
             try:
                 raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
                     "minutes"

@@ -6,6 +6,7 @@ this script also defines the command line entry points for the model.
 
 from typing import Any, Type, Union
 
+import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.config import validate_config
@@ -82,24 +83,54 @@ def configure_models(
     return models_cfd
 
 
-# TODO TEST THIS
 def extract_timing_details(
     config: dict[str, Any]
 ) -> tuple[datetime64, datetime64, timedelta64]:
-    """TODO- PROPER DOCSTRING."""
+    """Extract timing details for main loop from the model configuration.
 
-    # TODO - SOMEWHERE THERE NEEDS TO BE A CHECK THAT MODEL TIME STEPS ARE NOT SHORTER
-    # THAN THE MAIN TIME STEP, IF SO THERE PROBABLY SHOULD BE A WARNING EMITTED
+    Args:
+        config: The full virtual rainforest configuration
+
+    Raises:
+        InitialisationError: If the model is set to end before it starts, the units of
+            update interval aren't valid, or if the interval is too small for the model
+            to ever update.
+    """
 
     # First extract start and end times
     start_time = datetime64(config["core"]["timing"]["start_date"])
     end_time = datetime64(config["core"]["timing"]["end_date"])
-    # CHECK UNITS ETC HERE, DO THE CONVERSION FROM PINT
-    timedelta = timedelta64(config["core"]["timing"]["main_time_step"])
-    # TYPE CHECKING IS ALREADY HANDLED, CHECK THAT SIMULATION DOESN'T END BEFORE IT
-    # STARTS THOUGH, ALSO CHECK THAT UPDATE INTERVAL DOESN'T MEAN NO UPDATE EVER OCCURS
 
-    return start_time, end_time, timedelta
+    # Catch bad time dimensions
+    try:
+        raw_interval = pint.Quantity(config["core"]["timing"]["main_time_step"]).to(
+            "minutes"
+        )
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
+        log_and_raise(
+            "Units for core.timing.main_time_step are not valid time units: %s"
+            % config["core"]["timing"]["main_time_step"],
+            InitialisationError,
+        )
+    else:
+        # Round raw time interval to nearest minute
+        update_interval = timedelta64(int(raw_interval.magnitude), "m")
+
+    if end_time < start_time:
+        log_and_raise(
+            f"Simulation ends ({start_time}) before it starts ({end_time})!",
+            InitialisationError,
+        )
+
+    if update_interval > end_time - start_time:
+        log_and_raise(
+            f"Model will never update as update interval ({update_interval}) is larger "
+            f"than the difference between the start and end times "
+            f"({end_time - start_time})",
+            InitialisationError,
+        )
+
+    return start_time, end_time, update_interval
 
 
 def vr_run(
@@ -135,7 +166,10 @@ def vr_run(
     print(models_cfd)
 
     # Extract all the relevant timing details
-    current_time, end_time, timedelta = extract_timing_details(config)
+    start_time, end_time, update_interval = extract_timing_details(config)
+
+    # TODO - SOMEWHERE THERE NEEDS TO BE A CHECK THAT MODEL TIME STEPS ARE NOT SHORTER
+    # THAN THE MAIN TIME STEP, IF SO THERE PROBABLY SHOULD BE A WARNING EMITTED
 
     # TODO - Extract input data required to initialise the models
 

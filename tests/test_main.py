@@ -8,9 +8,15 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 
 import pytest
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, InitialisationError
-from virtual_rainforest.main import configure_models, select_models, vr_run
+from virtual_rainforest.main import (
+    configure_models,
+    extract_timing_details,
+    select_models,
+    vr_run,
+)
 
 from .conftest import log_check
 
@@ -213,5 +219,100 @@ def test_vr_run_bad_model(mocker, caplog):
             "following models failed: ['soil'].",
         ),
     )
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config,output,raises,expected_log_entries",
+    [
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "end_date": "2120-01-01",
+                        "main_time_step": "0.5 days",
+                    }
+                }
+            },
+            {
+                "start_time": datetime64("2020-01-01"),
+                "end_time": datetime64("2120-01-01"),
+                "update_interval": timedelta64(12, "h"),
+            },
+            does_not_raise(),
+            (),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "end_date": "1995-01-01",
+                        "main_time_step": "0.5 days",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Simulation ends (2020-01-01) before it starts (1995-01-01)!",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "end_date": "2020-01-03",
+                        "main_time_step": "7 days",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Model will never update as update interval (10080 minutes) is "
+                    "larger than the difference between the start and end times "
+                    "(2 days)",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "end_date": "2120-01-01",
+                        "main_time_step": "7 short days",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Units for core.timing.main_time_step are not valid time units: 7 "
+                    "short days",
+                ),
+            ),
+        ),
+    ],
+)
+def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
+    """Test that function to extract main loop timing works as intended."""
+
+    with raises:
+        start_time, end_time, update_interval = extract_timing_details(config)
+        assert start_time == output["start_time"]
+        assert end_time == output["end_time"]
+        assert update_interval == output["update_interval"]
 
     log_check(caplog, expected_log_entries)
