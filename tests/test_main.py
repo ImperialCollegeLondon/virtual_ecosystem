@@ -164,6 +164,8 @@ def test_vr_run_miss_model(mocker, caplog):
 
     with pytest.raises(InitialisationError):
         vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        # If vr_run is successful (which it shouldn't be) clean up the file
+        Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['topsoil']"),
@@ -195,6 +197,8 @@ def test_vr_run_bad_model(mocker, caplog):
 
     with pytest.raises(InitialisationError):
         vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        # If vr_run is successful (which it shouldn't be) clean up the file
+        Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['soil']"),
