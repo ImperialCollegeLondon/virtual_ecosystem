@@ -100,16 +100,16 @@ Further theoretical background for the soil module can be found [here](./soil/so
 
 The abiotic module provides the microclimate and hydrology for the Virtual Rainforest.
 Using a small set of input variables from external sources such as WFDE5
-({cite}:`WFDE5-2020`) or regional climate models, the module calculates atmospheric and
+({cite}`WFDE5-2020`) or regional climate models, the module calculates atmospheric and
 soil parameters that drive the dynamics of plants, animals, and microbes at different
 vertical levels. Four subroutines - the radiation balance, the energy balance, the water
-balance, and the atmospheric $CO\_{2}$ balance - provide the following variables at
+balance, and the atmospheric $\ce{CO_{2}}$ balance - provide the following variables at
 different vertical levels:
 
 - Net radiation and Photosynthetic photon flux density
 - Air temperature, relative humidity, and vapor pressure deficit
 - Soil temperature and soil moisture
-- Atmospheric $CO\_{2}$ concentration
+- Atmospheric $\ce{CO_{2}}$ concentration
 - above- and belowground runoff, mean vertical flow, and streamflow (at catchment scale)
 
 ### Vertical structure of atmosphere and soil
@@ -133,7 +133,7 @@ The soil is represented by four vertical levels:
 ### The Radiation balance
 
 The radiation balance submodule calculates location-specific solar irradiance
-shortwave), reflection and scattering of shortwave radiation from canopy and surface,
+(shortwave), reflection and scattering of shortwave radiation from canopy and surface,
 vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
 and surface.
 
@@ -143,7 +143,7 @@ The Energy balance submodule derives sensible and latent heat fluxes from canopy
 surface to the atmosphere, and updates air temperature, relative humidity, and vapor
 pressure deficit at each level. The vertical mixing between levels is assumed to be
 driven by heat conductance because turbulence is typically low below the canopy
-({cite}:`MACLEAN2021`). Part of the net radiation is converted into soil heat flux. The
+({cite}`MACLEAN2021`). Part of the net radiation is converted into soil heat flux. The
 vertical exchange of heat between soil levels is coupled to the atmospheric mixing.
 
 ### The Water balance
@@ -155,13 +155,13 @@ infiltration, percolation (= vertical flow), soil moisture profile, water table 
 and subsurface flow out of the grid cell.
 
 The second part of the module caluclates the water balance across the full model grid
-based on the TOPMODEL (e.g. Beven and Kirkby 1979, Metcalve, Beven & Freer 2015)
+based on the TOPMODEL (e.g. {cite}`Metcalfe2015`)
 including surface runoff, subsurface flow, return flow, and streamflow.
 
-### The atmospheric $CO\_{2}$ balance
+### The atmospheric $\ce{CO_{2}}$ balance
 
-The atmospheric $CO\_{2}$ submodule calculates the vertical profile of atmospheric
-$CO\_{2}$ below the canopy . It takes into account the carbon assimilation/respiration
+The atmospheric $\ce{CO_{2}}$ submodule calculates the vertical profile of atmospheric
+$\ce{CO_{2}}$ below the canopy. It takes into account the carbon assimilation/respiration
 from plants and respiration from animals and soil microbes and mixes vertically
 depending on wind speed below the canopy.
 
