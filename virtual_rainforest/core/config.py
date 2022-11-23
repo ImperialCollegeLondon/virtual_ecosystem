@@ -1,21 +1,21 @@
 """API documentation for the :mod:`core.config` module.
 ************************************************** # noqa: D205
 
-The `core.config` module is used to read in the various configuration files, validate
-their contents, and then configure a ready to run instance of the virtual rainforest
-model. The basic details of how this system is used can be found
+The :mod:`core.config` module is used to read in the various configuration files,
+validate their contents, and then configure a ready to run instance of the virtual
+rainforest model. The basic details of how this system is used can be found
 :ref:`here<virtual_rainforest/core/config:the configuration module>`.
 
-When a new module is defined a `JSON` file should be written, which includes the
+When a new module is defined a ``JSON`` file should be written, which includes the
 expected configuration tags, their expected types, any value constraints, and where
 appropriate default values. This schema should be saved in the folder of the module that
-it relates to. In order to make this schema generally accessible to the `vr` package, it
-should then be added to the schema registry.  The
+it relates to. In order to make this schema generally accessible to the ``vr`` package,
+it should then be added to the schema registry.  The
 :func:`~virtual_rainforest.core.config.register_schema` decorator is used for this
 purpose.
 
-Schema registration for each module takes place in the module's `__init__.py`. Here, a
-function is written that reads in the `JSON` file describing the schema. This function
+Schema registration for each module takes place in the module's ``__init__.py``. Here, a
+function is written that reads in the ``JSON`` file describing the schema. This function
 is then decorated using :func:`~virtual_rainforest.core.config.register_schema`, which
 results in the schema being added to the registry. The user provides a schema name to
 the decorator to register the schema under, this should be unique, and generally should
@@ -33,9 +33,9 @@ just be the module name. An example of decorator usage is shown below:
         return config_schema
 
 It's important to note that the schema will only be added to the registry if the module
-`__init__` is run. This means that somewhere in your path the module must be imported.
-Currently this is tackled by importing all active modules in the top level `__init__`,
-i.e. `virtual_rainforest.__init__.py`.
+``__init__`` is run. This means that somewhere in your path the module must be imported.
+Currently this is tackled by importing all active modules in the top level ``__init__``,
+i.e. :mod:`virtual_rainforest.__init__.py`.
 """
 
 import sys
