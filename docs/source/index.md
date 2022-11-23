@@ -72,12 +72,16 @@ team.
 
 ```{eval-rst}
 .. toctree::
-  :maxdepth: 4
-  :caption: API
+  :maxdepth: 1
+  :caption: API reference
   :hidden:
 
-  api/core.md
-  api/data.md
+  Overview <api/core.md>
+  api/core/config.md
+  api/core/grid.md
+  api/core/data.md
+  api/core/model.md
+  api/core/logger.md
 ```
 
 ```{eval-rst}
