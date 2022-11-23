@@ -161,9 +161,9 @@ including surface runoff, subsurface flow, return flow, and streamflow.
 ### The atmospheric $\ce{CO_{2}}$ balance
 
 The atmospheric $\ce{CO_{2}}$ submodule calculates the vertical profile of atmospheric
-$\ce{CO_{2}}$ below the canopy. It takes into account the carbon assimilation/respiration
-from plants and respiration from animals and soil microbes and mixes vertically
-depending on wind speed below the canopy.
+$\ce{CO_{2}}$ below the canopy. It takes into account the carbon assimilation/
+respiration from plants and respiration from animals and soil microbes and mixes
+vertically depending on wind speed below the canopy.
 
 ## Disturbance Module
 
