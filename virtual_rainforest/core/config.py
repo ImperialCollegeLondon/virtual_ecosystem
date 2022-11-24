@@ -7,10 +7,12 @@ rainforest model. The basic details of how this system is used can be found
 :ref:`here<virtual_rainforest/core/config:the configuration module>`.
 
 When a new module is defined a ``JSON`` file should be written, which includes the
-expected configuration tags, their expected types, any value constraints, and where
-appropriate default values. This schema should be saved in the folder of the module that
-it relates to. In order to make this schema generally accessible to the ``vr`` package,
-it should then be added to the schema registry.  The
+expected configuration tags, their expected types, and any constraints on their values
+(e.g. the number of soil layers being strictly positive). Additionally, where sensible
+default values exist (e.g. 1 week for the model time step) they should also be included
+in the schema. This schema should be saved in the folder of the module that it relates
+to. In order to make this schema generally accessible to the ``vr`` package, it should
+then be added to the schema registry. The
 :func:`~virtual_rainforest.core.config.register_schema` decorator is used for this
 purpose.
 
@@ -33,9 +35,12 @@ just be the module name. An example of decorator usage is shown below:
         return config_schema
 
 It's important to note that the schema will only be added to the registry if the module
-``__init__`` is run. This means that somewhere in your path the module must be imported.
-Currently this is tackled by importing all active modules in the top level ``__init__``,
-i.e. :mod:`virtual_rainforest.__init__.py`.
+``__init__`` is run. This means that somewhere in your chain of imports the module must
+be imported. Currently this is tackled by importing all active modules in the top level
+``__init__``, i.e. :mod:`virtual_rainforest.__init__.py`. This ensures that any script
+that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
+define schema, in turn ensuring that
+:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
 """
 
 import sys

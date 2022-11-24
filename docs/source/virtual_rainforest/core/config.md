@@ -36,10 +36,10 @@ information cannot be repeated between files as there is no way to establish whi
 two values (of e.g. `core.grid.nx`) the user intended to provide. In this case, the
 module will throw critical error and the `virtual_rainforest` model will not configure.
 The user supplies a list of config files and/or folders to look for config files, within
-the supplied folders every `toml` file will be read in. An output folder and file name
-should also be provided, if a file already exists in the output folder that has the same
-name as the user provided output file name the configuration will critically fail. This
-happens in order to minimise the chance of significant confusion downstream.
+the supplied folders every `toml` file will be read in. Once the complete configuration
+is validated, it is saved as a single file using a user provided name and location. If a
+file already exists with this name at this location, the configuration process will
+critically fail. This minimises the chance of significant confusion downstream.
 
 ## Optional module loading
 
