@@ -133,6 +133,21 @@ def extract_timing_details(
     return start_time, end_time, update_interval
 
 
+# TODO - TEST THIS
+def check_for_fast_models(
+    models_cfd: list[BaseModel], update_interval: timedelta64
+) -> None:
+    """Warn user of any models using a faster time step than update interval."""
+    fast_models = [
+        model.name for model in models_cfd if model.update_interval < update_interval
+    ]
+    if fast_models:
+        LOGGER.warning(
+            "The following models have shorter time steps than the main model: %s"
+            % fast_models
+        )
+
+
 def vr_run(
     cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
 ) -> None:
@@ -155,21 +170,17 @@ def vr_run(
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
-    # TODO - Need to decide how to handle model update intervals
     models_cfd = configure_models(config, model_list)
 
     LOGGER.info(
         "All models successfully configured, now attempting to initialise them."
     )
 
-    # This is just a step to pass flake8 checks (DELETE LATER)
-    print(models_cfd)
-
     # Extract all the relevant timing details
     start_time, end_time, update_interval = extract_timing_details(config)
 
-    # TODO - SOMEWHERE THERE NEEDS TO BE A CHECK THAT MODEL TIME STEPS ARE NOT SHORTER
-    # THAN THE MAIN TIME STEP, IF SO THERE PROBABLY SHOULD BE A WARNING EMITTED
+    # Identify models with shorter time steps than main loop and warn user about them
+    check_for_fast_models(models_cfd, update_interval)
 
     # TODO - Extract input data required to initialise the models
 
