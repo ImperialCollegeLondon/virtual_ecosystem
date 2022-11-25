@@ -1,5 +1,4 @@
 """Test data loading and validation."""
-
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
 
@@ -418,7 +417,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
 @pytest.mark.parametrize(
     argnames=[
         "darray",
-        "dname",
         "replace",
         "exp_name",
         "exp_err",
@@ -431,7 +429,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 data=np.array([[0, 1], [2, 3]]),
                 coords={"y": [2, 1], "x": [1, 2]},
             ),
-            None,
             False,
             "air_temperature",
             pytest.raises(ValueError),
@@ -445,7 +442,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"nope": np.arange(9)},
                 name="should_not_work",
             ),
-            None,
             False,
             "air_temperature",
             pytest.raises(ValueError),
@@ -462,7 +458,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"z": np.arange(9)},
                 name="should_not_work",
             ),
-            None,
             False,
             "air_temperature",
             pytest.raises(AttributeError),
@@ -482,7 +477,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"y": [2, 1], "x": [1, 2]},
                 name="air_temperature",
             ),
-            None,
             False,
             "air_temperature",
             does_not_raise(),
@@ -496,7 +490,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"y": [2, 1], "x": [1, 2]},
                 name="existing_var",
             ),
-            None,
             False,
             "existing_var",
             pytest.raises(KeyError),
@@ -510,7 +503,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"y": [2, 1], "x": [1, 2]},
                 name="existing_var",
             ),
-            None,
             True,
             "existing_var",
             does_not_raise(),
@@ -518,40 +510,12 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             [4, 5, 6, 7],
             id="replacing_data",
         ),
-        pytest.param(  # Filling missing name
-            DataArray(
-                data=np.array([[4, 5], [6, 7]]),
-                coords={"y": [2, 1], "x": [1, 2]},
-            ),
-            "air_temperature",
-            True,
-            "air_temperature",
-            does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
-            [4, 5, 6, 7],
-            id="providing_name",
-        ),
-        pytest.param(  # Overriding dataarray name
-            DataArray(
-                data=np.array([[4, 5], [6, 7]]),
-                coords={"y": [2, 1], "x": [1, 2]},
-                name="name_not_to_be_used",
-            ),
-            "air_temperature",
-            True,
-            "air_temperature",
-            does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
-            [4, 5, 6, 7],
-            id="overriding_name",
-        ),
         pytest.param(  # Good load from square_xy_dims
             DataArray(
                 data=np.array([[4, 5], [6, 7]]),
                 dims=("y", "x"),
                 name="air_temperature",
             ),
-            None,
             False,
             "air_temperature",
             does_not_raise(),
@@ -565,7 +529,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 coords={"cell_id": [0, 1, 2, 3]},
                 name="air_temperature",
             ),
-            None,
             False,
             "air_temperature",
             does_not_raise(),
@@ -579,7 +542,6 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
                 dims=("cell_id",),
                 name="air_temperature",
             ),
-            None,
             False,
             "air_temperature",
             does_not_raise(),
@@ -590,7 +552,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
     ],
 )
 def test_Data_load_dataarray(
-    caplog, fixture_data, darray, dname, replace, exp_name, exp_err, exp_log, exp_vals
+    caplog, fixture_data, darray, replace, exp_name, exp_err, exp_log, exp_vals
 ):
     """Test the load_dataarray method.
 
@@ -599,7 +561,7 @@ def test_Data_load_dataarray(
     """
 
     with exp_err:
-        fixture_data.load_dataarray(darray, name=dname, replace=replace)
+        fixture_data.load_dataarray(darray, replace=replace)
         assert exp_name in fixture_data
         assert np.allclose(fixture_data[exp_name].values, exp_vals)
 
@@ -607,96 +569,247 @@ def test_Data_load_dataarray(
     log_check(caplog, exp_log)
 
 
-# @pytest.mark.parametrize(
-#     argnames=["data_cfg", "expected_log"],
-#     argvalues=[
-#         (
-#             {"variable": [{"file_var": "x", "file": "/path/to/unknown/format.xyz"}]},
-#             (
-#                 (INFO, "Loading data from file: /path/to/unknown/format.xyz"),
-#                 (ERROR, "No data loader provided for .xyz files and square grids"),
-#             ),
-#         ),
-#     ],
-# )
-# def test_setup_data(caplog, fixture_square_grid, data_cfg, expected_log):
-#     """Tests the setup_data high level function."""
-#     from virtual_rainforest.core.data import setup_data
+@pytest.mark.parametrize(
+    argnames=["name", "replace", "exp_error", "exp_msg"],
+    argvalues=[
+        (None, False, does_not_raise(), None),
+        ("temperature", False, does_not_raise(), None),
+        (
+            "existing_var",
+            False,
+            pytest.raises(KeyError),
+            "\"Data: 'existing_var' already loaded. Use replace=True\"",
+        ),
+        ("existing_var", True, does_not_raise(), None),
+    ],
+)
+def test_Data_load_from_file_naming(
+    caplog,
+    datadir,
+    name,
+    replace,
+    exp_error,
+    exp_msg,
+):
+    """Test the coding of the name handling and replacement."""
 
-#     setup_data(data_config=data_cfg, grid=fixture_square_grid)
+    # Setup a Data instance to match the example files generated in test_data/
 
-#     log_check(caplog, expected_log)
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(
+        grid_type="square",
+        cell_nx=10,
+        cell_ny=10,
+        cell_area=10000,
+        xoff=500000,
+        yoff=200000,
+    )
+    data = Data(grid)
+
+    # (Crudely) create an existing variable to test replacement
+    data.data["existing_var"] = None
+
+    datafile = datadir / "cellid_dims.nc"
+
+    with exp_error as err:
+
+        data.load_from_file(file=datafile, file_var="temp", name=name, replace=replace)
+
+        # Check the naming has worked and the data are loaded
+        datakey = name or "temp"
+        assert datakey in data
+        assert data[datakey].sum() == (20 * 100)
+
+    if err:
+        assert str(err.value) == exp_msg
 
 
-# @pytest.mark.parametrize(
-#     argnames=["filename", "expected_outcome", "expected_outcome_msg"],
-#     argvalues=[
-#         pytest.param("two_dim_xy.nc", does_not_raise(), "None", id="two_dim_xy"),
-#         pytest.param(
-#             "two_dim_xy_6by10.nc",
-#             pytest.raises(ValueError),
-#             "Data xy dimensions do not match grid",
-#             id="two_dim_xy_6by10",
-#         ),
-#         pytest.param(
-#             "two_dim_xy_lowx.nc",
-#             pytest.raises(ValueError),
-#             "Data coordinates do not align with grid coordinates.",
-#             id="two_dim_xy_lowx",
-#         ),
-#         pytest.param("two_dim_idx.nc", does_not_raise(), "None", id="two_dim_idx"),
-#         pytest.param(
-#             "two_dim_idx_6by10.nc",
-#             pytest.raises(ValueError),
-#             "Data xy dimensions do not match grid",
-#             id="two_dim_idx_6by10",
-#         ),
-#         pytest.param(
-#             "one_dim_cellid.nc", does_not_raise(), "None", id="one_dim_cellid"
-#         ),
-#         pytest.param(
-#             "one_dim_cellid_lown.nc",
-#             pytest.raises(ValueError),
-#             "Grid defines 100 cells, data provides 60",
-#             id="one_dim_cellid_lown",
-#         ),
-#         pytest.param(
-#             "one_dim_points_xy.nc", does_not_raise(), "None", id="one_dim_points_xy"
-#         ),
-#         pytest.param(
-#             "one_dim_points_xy_xney.nc",
-#             pytest.raises(ValueError),
-#             "The cell_ids in the data do not match grid cell ids.",
-#             id="one_dim_points_xy_xney",
-#         ),
-#         pytest.param(
-#             "one_dim_cellid_badid.nc",
-#             pytest.raises(ValueError),
-#             "The x and y data have different dimensions",
-#             id="one_dim_cellid_badid",
-#         ),
-#         pytest.param(
-#             "one_dim_points_order_only.nc",
-#             does_not_raise(),
-#             "None",
-#             id="one_dim_points_order_only",
-#         ),
-#     ],
-# )
-# def test_map_dataset_onto_square_grid(
-#     fixture_square_grid, datadir, filename, expected_outcome, expected_outcome_msg
-# ):
-#     """Test ability to map NetCDF files.
+@pytest.fixture()
+def fixture_load_data_grids(request):
+    """Provides different grid types on request load data onto from file."""
 
-#     The test parameters include both passing and failing files, stored in test_data.
-#     """
-#     from virtual_rainforest.core.data import _spld_xy_coord_square
+    from virtual_rainforest.core.grid import Grid
 
-#     datafile = os.path.join(datadir, filename)
-#     dataset = load_dataset(datafile)
+    grid = Grid(
+        grid_type=request.param,
+        cell_nx=10,
+        cell_ny=10,
+        cell_area=10000,
+        xoff=500000,
+        yoff=200000,
+    )
 
-#     with expected_outcome as outcome:
+    return grid
 
-#         _spld_xy_coord_square(fixture_square_grid, dataset)
 
-#         assert str(outcome) == expected_outcome_msg
+@pytest.mark.parametrize(
+    argnames=[
+        "supported_grids",
+        "filename",
+        "exp_error",
+        "exp_msg",
+        "exp_log",
+        "exp_sum_val",
+    ],
+    argvalues=[
+        pytest.param(
+            ["__any__"],
+            "this_data_format.not_handled",
+            pytest.raises(ValueError),
+            "No file format loader provided for .not_handled",
+            (),
+            None,
+            id="unhandled file format",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_dims.nc",
+            does_not_raise(),
+            None,
+            (),
+            20 * 100,
+            id="spld_cellid_dim_any",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_dim_too_few.nc",
+            pytest.raises(ValueError),
+            "Grid defines 100 cells, data provides 60",
+            (),
+            None,
+            id="spld_cellid_dim_any_too_few",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_dim_too_many.nc",
+            pytest.raises(ValueError),
+            "Grid defines 100 cells, data provides 200",
+            (),
+            None,
+            id="spld_cellid_dim_any_too_many",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_coords.nc",
+            does_not_raise(),
+            None,
+            (),
+            20 * 100,
+            id="spld_cellid_coords_any",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_coords_too_few.nc",
+            pytest.raises(ValueError),
+            "The data cell ids are not a superset of grid cell ids.",
+            (),
+            None,
+            id="spld_cellid_coords_any_too_few",
+        ),
+        pytest.param(
+            ["__any__"],
+            "cellid_coords_bad_cellid.nc",
+            pytest.raises(ValueError),
+            "The data cell ids are not a superset of grid cell ids.",
+            (),
+            None,
+            id="spld_cellid_coords_any_badd_cellid",
+        ),
+        pytest.param(
+            ["square"],
+            "xy_dim.nc",
+            does_not_raise(),
+            None,
+            (),
+            20 * 100,
+            id="spld_xy_dim_square",
+        ),
+        pytest.param(
+            ["square"],
+            "xy_dim_small.nc",
+            pytest.raises(ValueError),
+            "Data XY dimensions do not match square grid",
+            (),
+            None,
+            id="spld_xy_dim_square_small",
+        ),
+        pytest.param(
+            ["square"],
+            "xy_coords.nc",
+            does_not_raise(),
+            None,
+            (),
+            20 * 100,
+            id="spld_xy_coords_square",
+        ),
+        pytest.param(
+            ["square"],
+            "xy_coords_small.nc",
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            (),
+            None,
+            id="spld_xy_coords_square_small",
+        ),
+        pytest.param(
+            ["square"],
+            "xy_coords_shifted.nc",
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            (),
+            None,
+            id="spld_xy_coords_square_shifted",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    # On request, use the fixture to provide different grids
+    "fixture_load_data_grids",
+    ["square", "hexagon"],
+    indirect=True,
+)
+def test_Data_load_from_file_data_handling(
+    caplog,
+    fixture_load_data_grids,
+    supported_grids,
+    datadir,
+    filename,
+    exp_error,
+    exp_msg,
+    exp_log,
+    exp_sum_val,
+):
+    """Test the loading of data from file formats against various grids.
+
+    This tests the data handling, and test_Data_load_from_file_naming handles the data
+    name and name replacement functionality
+    """
+
+    # Setup a Data instance to match the example files generated in test_data/
+
+    from virtual_rainforest.core.data import Data
+
+    # Skip combinations where loader does not supported this grid
+    if not (
+        ("__any__" in supported_grids)
+        or (fixture_load_data_grids.grid_type in supported_grids)
+    ):
+        pytest.skip("Combination not tested")
+
+    data = Data(fixture_load_data_grids)
+    datafile = datadir / filename
+
+    with exp_error as err:
+
+        data.load_from_file(file=datafile, file_var="temp")
+
+        # Check the data is in fact loaded and that a simple sum of values matches
+        assert "temp" in data
+        assert data["temp"].sum() == exp_sum_val
+
+    if err:
+        assert str(err.value) == exp_msg
+
+    # log_check(caplog, exp_log)
