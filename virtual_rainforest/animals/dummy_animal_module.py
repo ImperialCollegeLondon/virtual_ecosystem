@@ -27,7 +27,6 @@ setting up and testing the early stages of the animal module.
 # waste_energy pool likely unnecessary
 #   better to excrete directly to external pools
 
-
 import random
 from typing import List
 
@@ -52,7 +51,7 @@ class Plant:
         """
         self.name = name
         self.energy = mass * 100
-        self.alive = True
+        self.alive = "alive"
         self.energy_max = mass * 100
         self.position = position
 
@@ -79,7 +78,7 @@ class Plant:
             Modified value of self.alive.
             An alert (str) informing you the cohort has died.
         """
-        self.alive = False
+        self.alive = "dead"
         return f"""A {self.name} cohort died"""
 
 
@@ -125,7 +124,7 @@ class Animal:
         self.name = name
         self.mass = mass
         self.individuals = 4.23 * self.mass ** (-3 / 4)
-        self.alive = True
+        self.alive = "alive"
         self.age = age
         self.age_max = 30
         self.position = position
@@ -148,9 +147,9 @@ class Animal:
             An description (str) of cohort: name, aliveness, age, stored energy,
                 and waste energy.
         """
-        return f"""This {self.name} cohort is alive? {self.alive},
-                    is {self.age} years old, has {self.stored_energy}  stored energy,
-                    and has: {self.waste_energy} waste energy"""
+        return f"""This {self.name} cohort is {self.alive},
+                   is {self.age} years old, has {self.stored_energy}  stored energy,
+                   and has: {self.waste_energy} waste energy."""
 
     def metabolism(self, time: float) -> None:
         """The function to change reduce stored_energy through metabolism.
@@ -227,7 +226,7 @@ class Animal:
             Modified value of self.alive.
             An alert (str) informing you the cohort has died.
         """
-        self.alive = False
+        self.alive = "dead"
         return f"""A {self.name} cohort died"""
 
     # @classmethod
