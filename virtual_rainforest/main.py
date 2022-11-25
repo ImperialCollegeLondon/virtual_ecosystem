@@ -133,11 +133,15 @@ def extract_timing_details(
     return start_time, end_time, update_interval
 
 
-# TODO - TEST THIS
 def check_for_fast_models(
     models_cfd: list[BaseModel], update_interval: timedelta64
 ) -> None:
-    """Warn user of any models using a faster time step than update interval."""
+    """Warn user of any models using a faster time step than update interval.
+
+    Args:
+        models_cfd: Set of initialised models
+        update_interval: Time step of the main model loop
+    """
     fast_models = [
         model.name for model in models_cfd if model.update_interval < update_interval
     ]
@@ -146,6 +150,35 @@ def check_for_fast_models(
             "The following models have shorter time steps than the main model: %s"
             % fast_models
         )
+
+
+def setup_timing_loop(
+    start_time: datetime64, end_time: datetime64, update_interval: timedelta64
+) -> datetime64:
+    """Setup timing loop by returning the current time.
+
+    Also check if the time interval chosen means that more than 10% of the time window
+    is not covered. If this is the case the user is warned.
+
+    Args:
+        start_time: Time the model starts at
+        end_time: Time the model should end at
+        update_interval: Time step of the main model loop
+    """
+
+    # Print number of steps needed to cover the interval
+    n = (end_time - start_time) / update_interval
+    # Convert this to a percentage of time span not covered
+    _, d = divmod(n, 1)
+    p = 100 * d / n
+
+    if p > 5.0:
+        LOGGER.warning(
+            "Due to a (relatively) large model time step, %.4s%% of the desired time "
+            "span is not covered!" % p
+        )
+
+    return start_time
 
 
 def vr_run(
@@ -188,11 +221,19 @@ def vr_run(
 
     # TODO - Spin up the models
 
-    # Set initial model times here!!!
+    # Start timing for all models
+    for model in models_cfd:
+        model.start_model_timing(start_time)
 
     # TODO - Save model state
 
     # TODO - Add timing loop
+    current_time = setup_timing_loop(start_time, end_time, update_interval)
+    while current_time < end_time:
+
+        # TODO - ACTUALLY DO SOMETHING HERE
+        current_time += update_interval
+
     # TODO - Find models to update
     # TODO - Solve models to steady state
     # TODO - Save model state

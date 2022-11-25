@@ -16,6 +16,7 @@ from virtual_rainforest.main import (
     configure_models,
     extract_timing_details,
     select_models,
+    setup_timing_loop,
     vr_run,
 )
 from virtual_rainforest.soil.model import SoilModel
@@ -345,5 +346,43 @@ def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_ent
     models_cfd = [model]
 
     check_for_fast_models(models_cfd, update_interval)
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "update_interval,expected_log_entries",
+    [
+        (timedelta64(2 * 7 * 24 * 60, "m"), ()),
+        (
+            timedelta64(int(27 * 365.25 * 24 * 60), "m"),
+            (
+                (
+                    WARNING,
+                    "Due to a (relatively) large model time step, 9.99% of the desired "
+                    "time span is not covered!",
+                ),
+            ),
+        ),
+        (
+            timedelta64(int(13 * 365.25 * 24 * 60), "m"),
+            (
+                (
+                    WARNING,
+                    "Due to a (relatively) large model time step, 13.3% of the desired "
+                    "time span is not covered!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_setup_timing_loop(caplog, update_interval, expected_log_entries):
+    """Test to check that timing loop setup works properly."""
+
+    start_time = datetime64("2020-03-01")
+    end_time = datetime64("2050-03-01")
+    current_time = setup_timing_loop(start_time, end_time, update_interval)
+
+    assert start_time == current_time
 
     log_check(caplog, expected_log_entries)
