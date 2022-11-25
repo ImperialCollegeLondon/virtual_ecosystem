@@ -67,10 +67,41 @@
                   "plants",
                   "soil"
                ]
+            },
+            "data": {
+               "description": "Configuration settings for the core data module",
+               "type": "object",
+               "properties": {
+                  "variable": {
+                     "description": "Details of variables loaded from file",
+                     "type": "array",
+                     "items": {
+                        "type": "object",
+                        "properties": {
+                           "file": {
+                              "type": "string"
+                           },
+                           "file_var": {
+                              "type": "string"
+                           },
+                           "name": {
+                              "type": "string"
+                           }
+                        },
+                        "required": [
+                           "file",
+                           "file_var"
+                        ]
+                     }
+                  }
+               },
+               "default": {},
+               "required": []
             }
          },
          "default": {},
          "required": [
+            "data",
             "grid",
             "timing",
             "modules"
