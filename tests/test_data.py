@@ -133,7 +133,7 @@ def test_add_spatial_loader(caplog, signature, exp_err, expected_log):
             ((CRITICAL, "Could not load data from"),),
         ),
         (
-            "two_dim_xy.nc",
+            "xy_dim.nc",
             "missing",
             pytest.raises(KeyError),
             (
@@ -142,7 +142,7 @@ def test_add_spatial_loader(caplog, signature, exp_err, expected_log):
             ),
         ),
         (
-            "two_dim_xy.nc",
+            "xy_dim.nc",
             "temp",
             does_not_raise(),
             (
