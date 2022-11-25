@@ -283,9 +283,7 @@ class Data(UserDict):
 
         return
 
-    def load_dataarray(
-        self, darray: DataArray, name: Optional[str] = None, replace: bool = False
-    ) -> None:
+    def load_dataarray(self, darray: DataArray, replace: bool = False) -> None:
         """Load a data array into a Data instance.
 
         This method takes an input DataArray object and then matches the dimension and
@@ -293,35 +291,27 @@ class Data(UserDict):
         used in the Data instance. That routine is used to validate the DataArray and
         then add the DataArray to the Data dictionary.
 
-        By default, the variable name used in the DataArray is used as the data key in
-        the Data instance, but this can be None. The optional `name` argument can be
-        used to either override the existing name or provide a name if the DataArray
-        name is missing.
-
-        By default, loading a data array will not replace an existing data array stored
-        under the same key.
+        Note that the DataArray name is expected to match the standard internal variable
+        names used in Virtual Rainforest. By default, loading a data array will not
+        replace an existing data array stored under the same key.
 
         Args:
             darray: A DataArray to add to the Data dictionary.
-            name: An alternative name to be used as the data key for this DataArray.
             replace: If the variable already exists, should it be replaced.
         """
 
-        # Get the name, overriding with the alt if provided.
-        vname = name or darray.name
-
         # Resolve name status
-        if vname is None:
+        if darray.name is None:
             log_and_raise("Cannot add DataArray with unnamed variable", ValueError)
 
-        if vname not in self:
-            LOGGER.info(f"Data: loading '{vname}'")
+        if darray.name not in self:
+            LOGGER.info(f"Data: loading '{darray.name}'")
         else:
             if replace:
-                LOGGER.info(f"Data: replacing '{vname}'")
+                LOGGER.info(f"Data: replacing '{darray.name}'")
             else:
                 log_and_raise(
-                    f"Data: '{vname}' already loaded. Use replace=True", KeyError
+                    f"Data: '{darray.name}' already loaded. Use replace=True", KeyError
                 )
 
         # Identify the correct spatial loader routine from the data array signature
@@ -374,7 +364,7 @@ class Data(UserDict):
         except Exception as excep:
             log_and_raise(str(excep), type(excep))
 
-        self[vname] = loaded
+        self[darray.name] = loaded
 
     def load_from_file(
         self,
@@ -401,16 +391,19 @@ class Data(UserDict):
 
         # Can the data mapper handle this grid and file type combination?
         if file_type not in FILE_FORMAT_REGISTRY:
-            LOGGER.error(
-                "No file format loader provided for %s",
-                file_type,
-            )
+            log_and_raise(f"No file format loader provided for {file_type}", ValueError)
 
         # If so, load the data
         LOGGER.info("Loading %s data from file: %s", file_var, file)
         loader = FILE_FORMAT_REGISTRY[file_type]
         input_data = loader(file, file_var)
-        self.load_dataarray(input_data, name=name, replace=replace)
+
+        # Replace the file variable name if requested
+        if name is not None:
+            input_data.name = name
+
+        # Add the data array
+        self.load_dataarray(input_data, replace=replace)
 
     # def load_data_config(self, data_config: dict) -> None:
     #     """Setup the simulation data from a user configuration.
