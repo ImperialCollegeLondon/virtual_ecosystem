@@ -5,18 +5,20 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO
+from logging import CRITICAL, ERROR, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 from virtual_rainforest.main import (
+    check_for_fast_models,
     configure_models,
     extract_timing_details,
     select_models,
     vr_run,
 )
+from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
 
@@ -314,5 +316,34 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert start_time == output["start_time"]
         assert end_time == output["end_time"]
         assert update_interval == output["update_interval"]
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "update_interval,expected_log_entries",
+    [
+        (timedelta64(2, "W"), ()),
+        (
+            timedelta64(5, "W"),
+            (
+                (
+                    WARNING,
+                    "The following models have shorter time steps than the main model: "
+                    "['soil']",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_entries):
+    """Test that function to warn user about short module time steps works."""
+
+    # Create SoilModel instance and then populate the update_interval
+    model = SoilModel.__new__(SoilModel)
+    model.update_interval = timedelta64(3, "W")
+    models_cfd = [model]
+
+    check_for_fast_models(models_cfd, update_interval)
 
     log_check(caplog, expected_log_entries)
