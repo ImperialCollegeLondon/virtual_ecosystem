@@ -1,24 +1,38 @@
 """API documentation for the :mod:`core.model` module.
 ************************************************** # noqa: D205
 
+The Virtual Rainforest model requires a consistent api across models. That is a common
+set of functions which work the same across all modules. This cannot exist at a low
+level, as the basic classes and functions will differ massively between modules (e.g.
+:mod:`~virtual_rainforest.abiotic` will not have functions to handle consumption). So,
+this common api has to be high level and define a basic set of functions to set up and
+run each model. These functions effectively convert a general instruction (i.e. "setup
+the model") into the steps needed to carry out that instruction for a specific model.
+
 The :mod:`core.model` module defines the api that all individual models (e.g. the soil
 model) should conform to. This consists of a class
 (:class:`~virtual_rainforest.core.model.BaseModel`), which defines the expected
-functions. This class is an abstract base class, which is a class that is never intended
-to be instantiated itself but instead serves as a blueprint for inheriting classes. Some
-of its functions will be inherited and used by its child classes (e.g.
-:func:`~virtual_rainforest.core.model.BaseModel.__repr__` and
+functions. Some functions of this class will be inherited and used by its child classes
+(e.g. :func:`~virtual_rainforest.core.model.BaseModel.__repr__` and
 :func:`~virtual_rainforest.core.model.BaseModel.__str__`), unless they are explicitly
-overwritten in the child class (which is generally necessary for ``__init__``). However,
-it also possesses abstract methods (denoted by ``@abstractmethod``), which are merely
-placeholders. For these abstract methods, child classes have to overwrite the methods
-with new functions, otherwise class inheritance fails. This ensures that a consistent
-api (set of functions) is used across models, while also ensuring that functions don't
-default to an inappropriate generic behaviour due to a function not being defined for a
-particular model. Therefore, abstract methods should be used for functions that are
-always required, and are near certain to follow a different process for each model. At
-the moment, we expect every model to have a setup, spinup, solve and cleanup process,
-though this might change in the future.
+overwritten in the child class (which is generally necessary for ``__init__``). This is
+standard python class inheritance, which will be used in many places throughout the
+``virtual_rainforest`` model.
+
+However, a more complex form of inheritance is required for functions that define the
+shared api. These should take the same input and perform an equivalent set of steps
+across models, but because they interact with radically different modules their internal
+workings will have little in common. Thus,
+:class:`~virtual_rainforest.core.model.BaseModel` is defined as an abstract base class,
+which is a class that is never intended to be instantiated itself but instead serves as
+a blueprint for inheriting classes. This type of class can define abstract methods
+(denoted by ``@abstractmethod``), which are merely placeholders. For these abstract
+methods, child classes have to overwrite the methods with new functions, otherwise class
+inheritance fails. This ensures that a consistent api (set of functions) is used across
+models, while also ensuring that functions don't default to an inappropriate generic
+behaviour due to a function not being defined for a particular model. At the moment, we
+expect every model to have a setup, spinup, solve and cleanup process, though this might
+change in the future.
 
 We also define an abstract class method to perform model initialisation. This method
 (:func:`~virtual_rainforest.core.model.BaseModel.from_config`) is a factory method which
