@@ -4,7 +4,7 @@ from logging import CRITICAL, DEBUG, INFO
 
 import numpy as np
 import pytest
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 from .conftest import log_check
 
@@ -408,6 +408,22 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
     log_check(caplog, expected_log)
 
 
+def test_Data_setitem():
+    """Test that the the subclass Data.__setitem__ had been correctly disabled."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Switch on what to provide as grid
+    grid = Grid()
+    data = Data(grid)
+
+    with pytest.raises(RuntimeError) as err:
+        data["this"] = "should not work"
+
+    assert str(err.value) == "Use 'load_dataarray' to add data to Data instances."
+
+
 @pytest.mark.parametrize(
     argnames=[
         "darray",
@@ -418,6 +434,24 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
         "exp_vals",
     ],
     argvalues=[
+        pytest.param(  # Bad load - not a dataarray
+            np.array([1, 2, 3]),
+            False,
+            "air_temperature",
+            pytest.raises(ValueError),
+            ((CRITICAL, "Only DataArray objects can be added to Data instances"),),
+            None,
+            id="not_dataarray",
+        ),
+        pytest.param(  # Bad load - dataset
+            Dataset({"temp": np.array([1, 2, 3])}),
+            False,
+            "air_temperature",
+            pytest.raises(ValueError),
+            ((CRITICAL, "Cannot add Dataset - extract required DataArray"),),
+            None,
+            id="dataset_not_datarray",
+        ),
         pytest.param(  # Bad load - missing name
             DataArray(
                 data=np.array([[0, 1], [2, 3]]),

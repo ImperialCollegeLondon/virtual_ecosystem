@@ -27,11 +27,21 @@ methods. These loaders are used to check that particular signatures of dimension
 coordinates in input :class:`~xarray.DataArray` are congruent with the core
 configuration parameters. A loader method should take an input that matches the
 signature, validate it, implement any internal standardisation and then return the
-valid, standardised data.
+valid, standardised data. At present, only the spatial loaders are implemented, but
+temporal and other loaders such as soil depth may be added.
 
-At present, only the spatial loaders are implemented, but temporal and
-other loaders such as soil depth may be added.
+The standard dictionary ``__setitem__`` method is deliberately disabled to emphasize
+that only data arrays may be added to :class:`~virtual_rainforest.core.data.Data`
+instances.
 
+..code-block:: python
+
+    grid = Grid()
+    data = Data(grid)
+    # Not this
+    data['varname'] = DataArray([1,2,3])
+    # But this
+    data.load_dataarray(DataArray([1,2,3], name='varname'))
 
 The ``spatial_loaders`` system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,7 +87,7 @@ The general solution for programmatically adding data from a file is to:
 
 However, the :meth:`~virtual_rainforest.core.data.Data.load_from_file` method
 automatically loads data from known formats defined in the
-:attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY`
+:attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY`.
 
 The FILE_FORMAT_REGISTRY
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,7 +143,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Optional, Union
 
 import numpy as np
-from xarray import DataArray, load_dataset
+from xarray import DataArray, Dataset, load_dataset
 
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
@@ -261,6 +271,11 @@ class Data(UserDict):
 
         return "Data: no variables loaded"
 
+    def __setitem__(self, key: str, value: Any) -> None:
+        """The disabled Data.__setitem__ interface."""
+
+        raise RuntimeError("Use 'load_dataarray' to add data to Data instances.")
+
     def load_dataarray(self, darray: DataArray, replace: bool = False) -> None:
         """Load a data array into a Data instance.
 
@@ -277,6 +292,13 @@ class Data(UserDict):
             darray: A DataArray to add to the Data dictionary.
             replace: If the variable already exists, should it be replaced.
         """
+
+        if isinstance(darray, Dataset):
+            log_and_raise("Cannot add Dataset - extract required DataArray", ValueError)
+        elif not isinstance(darray, DataArray):
+            log_and_raise(
+                "Only DataArray objects can be added to Data instances", ValueError
+            )
 
         # Resolve name status
         if darray.name is None:
@@ -343,7 +365,9 @@ class Data(UserDict):
         except Exception as excep:
             log_and_raise(str(excep), type(excep))
 
-        self[darray.name] = loaded
+        # Store the data in the UserDict using super to bypass the disabled subclass
+        # __setitem__ interface
+        super(Data, self).__setitem__(darray.name, loaded)
 
     def load_from_file(
         self,
