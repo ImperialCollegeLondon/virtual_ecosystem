@@ -108,28 +108,34 @@ specifies data source files:
 
 .. code-block:: toml
 
-    [[data.variable]]
-    var="precipitation"
+    [[core.data.variable]]
+    name="precipitation"
     file="/path/to/file.nc"
     file_var="precip"
-    [[data.variable]]
-    var="temperature"
+    [[core.data.variable]]
+    name="temperature"
     file="/path/to/file.nc"
     file_var="temp"
-    [[data.variable]]
-    var="elevation"
+    [[core.data.variable]]
+    name="elevation"
     file="/path/to/file.csv"
     file_var="elev"
+
+Note that the properties for each variable in the configuration file are just the
+arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. The `replace`
+argument is not supported: data configurations should not contain multiple definitions
+of the same variable and so will fail with repeated variable names.
 """
 
 from collections import UserDict
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional, Type, Union
+from typing import Any, Callable, Mapping, Optional, Union
 
 import numpy as np
 from xarray import DataArray, load_dataset
 
+from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
@@ -224,20 +230,13 @@ class Data(UserDict):
     This class holds data for a Virtual Rainforest simulation. It functions like a
     dictionary but the class extends the dictionary methods to provide common methods
     for data validation etc and to hold key attributes, such as the underlying spatial
-    grid and flags to record loading errors.
-
-    By default, failure to add a dataset to a Data instance does not raise an Exception,
-    but sets the clean_load flag to False. This allows data loading to try multiple
-    files and the `clean_load` attribute can then be checked to see if all went well. If
-    `fast_fail` is set to True, the first failure will raise an Exception.
+    grid.
 
     Args:
         grid: A Grid instance that loaded datasets with spatial structure must match.
-        fast_fail: A boolean setting the fast fail behaviour.
 
     Attrs:
         grid: The grid instance
-        clean_load: A boolean indicating whether any data have failed to load cleanly.
     """
 
     spatial_loaders: dict = {}
@@ -252,8 +251,6 @@ class Data(UserDict):
         if not isinstance(grid, Grid):
             log_and_raise("Data must be initialised with a Grid object", ValueError)
         self.grid = grid
-        self.fast_fail = fast_fail
-        self.loading_errors = False
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -262,26 +259,6 @@ class Data(UserDict):
             return f"Data: {list(self.keys())}"
 
         return "Data: no variables loaded"
-
-    def loader_fail(self, excep: Type[Exception], msg: str, *args: Any) -> None:
-        """Emit and record a data loading fail.
-
-        This helper method emits an error message and then updates the `loading_errors`
-        attribute to record the failure. If the instance was created with `fast_fail`
-        set to True, the provided Exception is raised instead.
-
-        Args:
-            excep: The exception class triggering the failure
-            msg: An error or exception message to emit
-        """
-
-        if self.fast_fail:
-            raise excep(msg % args)
-
-        LOGGER.error(msg, *args)
-        self.loading_errors = True
-
-        return
 
     def load_dataarray(self, darray: DataArray, replace: bool = False) -> None:
         """Load a data array into a Data instance.
@@ -405,70 +382,60 @@ class Data(UserDict):
         # Add the data array
         self.load_dataarray(input_data, replace=replace)
 
-    # def load_data_config(self, data_config: dict) -> None:
-    #     """Setup the simulation data from a user configuration.
+    def load_data_config(self, data_config: dict) -> None:
+        """Setup the simulation data from a user configuration.
 
-    #     This is a method is used to validate a provided user data configuration and
-    #     populate the Data instance object from the provided data sources. The
-    #     data_config dictionary can contain lists of variables under the following
-    #     keys:
+        This is a method is used to validate a provided user data configuration and
+        populate the Data instance object from the provided data sources. The
+        data_config dictionary can contain lists of variables under the following
+        keys:
 
-    #     * `variable`: These are data elements loaded from a provided file. Each
-    #       element in the list should be a dictionary providing ...
-    #     * `constant`: TODO
-    #     * `generator`: TODO
+        * `variable`: These are data elements loaded from a provided file. Each
+          element in the list should be a dictionary providing the path to the file
+          ('file'), the name of the variable within the file ('file_var') and optionally
+          a different variable name to be used internally ('name').
+        * `constant`: TODO
+        * `generator`: TODO
 
-    #     Args:
-    #         data_config: A data configuration dictionary
-    #     """
+        Args:
+            data_config: A data configuration dictionary
+        """
 
-    #     LOGGER.info("Loading data configuration")
+        LOGGER.info("Loading data from configuration")
 
-    #     # Handle variables
-    #     if "variable" in data_config:
+        # Track errors in loading multiple files from a configuration
+        clean_load = True
 
-    #         # Extract the variable entries and restructure to group by data source.
-    #         variables = copy.deepcopy(data_config["variable"])
-    #         variables = [(Path(x.pop("file")), x) for x in variables]
-    #         variables = sorted(variables, key=lambda x: x[0])
-    #         var_groups = groupby(variables, key=lambda x: x[0])
+        # Handle variables
+        if "variable" in data_config:
 
-    #         # Load data from each data source
-    #         for data_src, data_vars in var_groups:
+            # Load data from each data source
+            for each_var in data_config["variable"]:
 
-    #             # Detect file type
-    #             file_type = data_src.suffix
+                # Get the name used in the file or None
+                name = each_var.get("name", None)
 
-    #             # Can the data mapper handle this grid and file type combination?
-    #             if (self.grid.grid_type, file_type) not in DATA_LOADER_REGISTRY:
-    #                 LOGGER.error(
-    #                     "No data loader provided for %s files and %s grids",
-    #                     file_type,
-    #                     self.grid.grid_type,
-    #                 )
-    #                 continue
+                # Attempt to load the file, trapping exceptions as critical logger
+                # messages and defer failure until the whole configuration has been
+                # processed
+                try:
+                    self.load_from_file(
+                        file=each_var["file"], file_var=each_var["file_var"], name=name
+                    )
+                except Exception as err:
+                    LOGGER.critical(str(err))
+                    clean_load = False
 
-    #             # If so, load the data
-    #             loader = DATA_LOADER_REGISTRY[(self.grid.grid_type, file_type)]
+        if "constant" in data_config:
+            raise NotImplementedError("Data config for constants not yet implemented.")
 
-    #             for var in data_vars:
-    #                 # Get the file and data variable name
-    #                 file_var = var["file_var"]
-    #                 data_var = var["data_var"] or file_var
+        if "generator" in data_config:
+            raise NotImplementedError("Data config for generators not yet implemented.")
 
-    #                 # Call the loader.
-    #                 LOGGER.info("Loading %s data from file: %s", file_var, data_src)
-    #                 loader(
-    #                     data=self, file=data_src, file_var=file_var, data_var=data_var
-    #                 )
-
-    #     if "constant" in data_config:
-    #         pass
-
-    #     if "generator" in data_config:
-    #         pass
-
-    #     return
+        if not clean_load:
+            raise ConfigurationError(
+                "Data configuration did not load cleanly - check log"
+            )
 
 
 def add_spatial_loader(signature: tuple) -> Callable:
