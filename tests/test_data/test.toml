@@ -1,0 +1,12 @@
+[[core.data.variable]]
+name = "temp_1"
+file = "cellid_dims.nc"
+file_var = "temp"
+[[core.data.variable]]
+name = "temp_2"
+file = "cellid_coords.nc"
+file_var = "temp"
+[[core.data.variable]]
+name = "temp_3"
+file = "cellid_coords.nc"
+file_var = "temp"
