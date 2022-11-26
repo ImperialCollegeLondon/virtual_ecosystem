@@ -206,6 +206,10 @@ def load_netcdf(file: Path, file_var: str) -> DataArray:
         file_var: A string providing the name of the variable in the file.
     """
 
+    # Note that this deliberately doesn't contain any INFO logging messages to maintain
+    # a simple logging sequence - load_from_file, load_dataarray - without unnecessary
+    # logger noise about the specific format unless there is an exception.
+
     # Try and load the provided file
     try:
         dataset = load_dataset(file)
@@ -214,13 +218,10 @@ def load_netcdf(file: Path, file_var: str) -> DataArray:
     except ValueError as err:
         log_and_raise(f"Could not load data from {file}: {err}.", ValueError)
 
-    LOGGER.info("Loading data from %s", file)
-
     # Check if file var is in the dataset
     if file_var not in dataset:
-        log_and_raise(f"Variable '{file_var}' not found in {file}", KeyError)
+        log_and_raise(f"Variable {file_var} not found in {file}", KeyError)
 
-    LOGGER.info("Loaded variable '%s' from %s", file_var, file)
     return dataset[file_var]
 
 
@@ -279,16 +280,17 @@ class Data(UserDict):
 
         # Resolve name status
         if darray.name is None:
-            log_and_raise("Cannot add DataArray with unnamed variable", ValueError)
+            log_and_raise("Cannot add data array with unnamed variable", ValueError)
 
         if darray.name not in self:
-            LOGGER.info(f"Data: loading '{darray.name}'")
+            LOGGER.info(f"Adding data array for '{darray.name}'")
         else:
             if replace:
-                LOGGER.info(f"Data: replacing '{darray.name}'")
+                LOGGER.info(f"Replacing data array for '{darray.name}'")
             else:
                 log_and_raise(
-                    f"Data: '{darray.name}' already loaded. Use replace=True", KeyError
+                    f"Data array for '{darray.name}' already loaded. Use replace=True",
+                    KeyError,
                 )
 
         # Identify the correct spatial loader routine from the data array signature
@@ -371,12 +373,13 @@ class Data(UserDict):
             log_and_raise(f"No file format loader provided for {file_type}", ValueError)
 
         # If so, load the data
-        LOGGER.info("Loading %s data from file: %s", file_var, file)
+        LOGGER.info("Loading variable '%s' from file: %s", file_var, file)
         loader = FILE_FORMAT_REGISTRY[file_type]
         input_data = loader(file, file_var)
 
         # Replace the file variable name if requested
         if name is not None:
+            LOGGER.info("Renaming file variable '%s' as '%s'", input_data.name, name)
             input_data.name = name
 
         # Add the data array

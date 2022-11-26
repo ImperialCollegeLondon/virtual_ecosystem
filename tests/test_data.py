@@ -136,19 +136,13 @@ def test_add_spatial_loader(caplog, signature, exp_err, expected_log):
             "xy_dim.nc",
             "missing",
             pytest.raises(KeyError),
-            (
-                (INFO, "Loading data from"),
-                (CRITICAL, "Variable 'missing' not found in"),
-            ),
+            ((CRITICAL, "Variable missing not found in"),),
         ),
         (
             "xy_dim.nc",
             "temp",
             does_not_raise(),
-            (
-                (INFO, "Loading data from"),
-                (INFO, "Loaded variable 'temp' from "),
-            ),
+            (),
         ),
     ],
 )
@@ -432,7 +426,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "air_temperature",
             pytest.raises(ValueError),
-            ((CRITICAL, "Cannot add DataArray with unnamed variable"),),
+            ((CRITICAL, "Cannot add data array with unnamed variable"),),
             None,
             id="missing_name",
         ),
@@ -446,7 +440,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             "air_temperature",
             pytest.raises(ValueError),
             (
-                (INFO, "Data: loading 'should_not_work'"),
+                (INFO, "Adding data array for 'should_not_work'"),
                 (CRITICAL, "DataArray does not match a known spatial loader signature"),
             ),
             None,
@@ -462,7 +456,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             "air_temperature",
             pytest.raises(AttributeError),
             (
-                (INFO, "Data: loading 'should_not_work'"),
+                (INFO, "Adding data array for 'should_not_work'"),
                 (
                     CRITICAL,
                     "Data array maps to unknown spatial loader 'does_not_exist'",
@@ -480,7 +474,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "air_temperature",
             does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             [0, 1, 2, 3],
             id="valid_square_xy_coords",
         ),
@@ -493,7 +487,12 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "existing_var",
             pytest.raises(KeyError),
-            ((CRITICAL, "Data: 'existing_var' already loaded. Use replace=True"),),
+            (
+                (
+                    CRITICAL,
+                    "Data array for 'existing_var' already loaded. Use replace=True",
+                ),
+            ),
             [0, 1, 2, 3],
             id="existing_var",
         ),
@@ -506,7 +505,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             True,
             "existing_var",
             does_not_raise(),
-            ((INFO, "Data: replacing 'existing_var'"),),
+            ((INFO, "Replacing data array for 'existing_var'"),),
             [4, 5, 6, 7],
             id="replacing_data",
         ),
@@ -519,7 +518,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "air_temperature",
             does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             [4, 5, 6, 7],
             id="load_square_xy_dims",
         ),
@@ -532,7 +531,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "air_temperature",
             does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             [4, 5, 6, 7],
             id="load_any_cellid_coords",
         ),
@@ -545,7 +544,7 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             False,
             "air_temperature",
             does_not_raise(),
-            ((INFO, "Data: loading 'air_temperature'"),),
+            ((INFO, "Adding data array for 'air_temperature'"),),
             [4, 5, 6, 7],
             id="load_any_cell_id_dims",
         ),
@@ -570,26 +569,64 @@ def test_Data_load_dataarray(
 
 
 @pytest.mark.parametrize(
-    argnames=["name", "replace", "exp_error", "exp_msg"],
+    argnames=["name", "replace", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
-        (None, False, does_not_raise(), None),
-        ("temperature", False, does_not_raise(), None),
-        (
+        pytest.param(
+            None,
+            False,
+            does_not_raise(),
+            None,
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+            ),
+            id="simple_load",
+        ),
+        pytest.param(
+            "temperature",
+            False,
+            does_not_raise(),
+            None,
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temperature'"),
+                (INFO, "Adding data array for 'temperature'"),
+            ),
+            id="load_with_rename",
+        ),
+        pytest.param(
+            # Unusual doubled quotes in error message specifically required with
+            # str(KeyError). See: https://stackoverflow.com/questions/24998968
             "existing_var",
             False,
             pytest.raises(KeyError),
-            "\"Data: 'existing_var' already loaded. Use replace=True\"",
+            "\"Data array for 'existing_var' already loaded. Use replace=True\"",
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'existing_var'"),
+                (
+                    CRITICAL,
+                    "Data array for 'existing_var' already loaded. Use replace=True",
+                ),
+            ),
+            id="load_with_clash",
         ),
-        ("existing_var", True, does_not_raise(), None),
+        pytest.param(
+            "existing_var",
+            True,
+            does_not_raise(),
+            None,
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'existing_var'"),
+                (INFO, "Replacing data array for 'existing_var'"),
+            ),
+            id="load_and_replace",
+        ),
     ],
 )
 def test_Data_load_from_file_naming(
-    caplog,
-    datadir,
-    name,
-    replace,
-    exp_error,
-    exp_msg,
+    caplog, datadir, name, replace, exp_error, exp_msg, exp_log
 ):
     """Test the coding of the name handling and replacement."""
 
@@ -625,6 +662,9 @@ def test_Data_load_from_file_naming(
     if err:
         assert str(err.value) == exp_msg
 
+    # Check the error reports
+    log_check(caplog, exp_log)
+
 
 @pytest.fixture()
 def fixture_load_data_grids(request):
@@ -659,7 +699,7 @@ def fixture_load_data_grids(request):
             "this_data_format.not_handled",
             pytest.raises(ValueError),
             "No file format loader provided for .not_handled",
-            (),
+            ((CRITICAL, "No file format loader provided for .not_handled"),),
             None,
             id="unhandled file format",
         ),
@@ -668,7 +708,10 @@ def fixture_load_data_grids(request):
             "cellid_dims.nc",
             does_not_raise(),
             None,
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+            ),
             20 * 100,
             id="spld_cellid_dim_any",
         ),
@@ -677,7 +720,11 @@ def fixture_load_data_grids(request):
             "cellid_dim_too_few.nc",
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 60",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "Grid defines 100 cells, data provides 60"),
+            ),
             None,
             id="spld_cellid_dim_any_too_few",
         ),
@@ -686,7 +733,11 @@ def fixture_load_data_grids(request):
             "cellid_dim_too_many.nc",
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 200",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "Grid defines 100 cells, data provides 200"),
+            ),
             None,
             id="spld_cellid_dim_any_too_many",
         ),
@@ -695,7 +746,10 @@ def fixture_load_data_grids(request):
             "cellid_coords.nc",
             does_not_raise(),
             None,
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+            ),
             20 * 100,
             id="spld_cellid_coords_any",
         ),
@@ -704,7 +758,11 @@ def fixture_load_data_grids(request):
             "cellid_coords_too_few.nc",
             pytest.raises(ValueError),
             "The data cell ids are not a superset of grid cell ids.",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
+            ),
             None,
             id="spld_cellid_coords_any_too_few",
         ),
@@ -713,16 +771,23 @@ def fixture_load_data_grids(request):
             "cellid_coords_bad_cellid.nc",
             pytest.raises(ValueError),
             "The data cell ids are not a superset of grid cell ids.",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
+            ),
             None,
-            id="spld_cellid_coords_any_badd_cellid",
+            id="spld_cellid_coords_any_bad_cellid",
         ),
         pytest.param(
             ["square"],
             "xy_dim.nc",
             does_not_raise(),
             None,
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+            ),
             20 * 100,
             id="spld_xy_dim_square",
         ),
@@ -731,7 +796,11 @@ def fixture_load_data_grids(request):
             "xy_dim_small.nc",
             pytest.raises(ValueError),
             "Data XY dimensions do not match square grid",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "Data XY dimensions do not match square grid"),
+            ),
             None,
             id="spld_xy_dim_square_small",
         ),
@@ -740,7 +809,10 @@ def fixture_load_data_grids(request):
             "xy_coords.nc",
             does_not_raise(),
             None,
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+            ),
             20 * 100,
             id="spld_xy_coords_square",
         ),
@@ -749,7 +821,11 @@ def fixture_load_data_grids(request):
             "xy_coords_small.nc",
             pytest.raises(ValueError),
             "Mapped points do not cover all cells.",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "Mapped points do not cover all cells."),
+            ),
             None,
             id="spld_xy_coords_square_small",
         ),
@@ -758,7 +834,11 @@ def fixture_load_data_grids(request):
             "xy_coords_shifted.nc",
             pytest.raises(ValueError),
             "Mapped points do not cover all cells.",
-            (),
+            (
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
+                (CRITICAL, "Mapped points do not cover all cells."),
+            ),
             None,
             id="spld_xy_coords_square_shifted",
         ),
@@ -812,4 +892,77 @@ def test_Data_load_from_file_data_handling(
     if err:
         assert str(err.value) == exp_msg
 
-    # log_check(caplog, exp_log)
+    log_check(caplog, exp_log)
+
+    return
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "file",
+        "exp_error",
+        "exp_msg",
+        "exp_log",
+    ],
+    argvalues=[
+        pytest.param(
+            "test.toml",
+            does_not_raise(),
+            None,
+            (
+                (INFO, "Loading data from configuration"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_1'"),
+                (INFO, "Adding data array for 'temp_1'"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_2'"),
+                (INFO, "Adding data array for 'temp_2'"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_3'"),
+                (INFO, "Adding data array for 'temp_3'"),
+            ),
+            id="valid config",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    # On request, use the fixture to provide different grids
+    "fixture_load_data_grids",
+    ["square", "hexagon"],
+    indirect=True,
+)
+def test_Data_load_from_config(
+    caplog, datadir, fixture_load_data_grids, file, exp_error, exp_msg, exp_log
+):
+    """Test the loading of data configuration strings.
+
+    TODO - think about a better way to do this.
+
+    1. Could run with actual files at known and fixed paths to be portable across test
+       systems.
+    2. Could mock Data.load_from_file to avoid needing real files and just test the
+       cofig loader part of the mechanism
+    """
+
+    # Setup a Data instance to match the example files generated in test_data/
+
+    from virtual_rainforest.core.config import load_in_config_files
+    from virtual_rainforest.core.data import Data
+
+    # Skip combinations where loader does not supported this grid
+    data = Data(fixture_load_data_grids)
+    file = [datadir / file]
+
+    with exp_error as err:
+        cfg = load_in_config_files(file)
+
+    # Edit the paths loaded
+    for each_var in cfg["core"]["data"]["variable"]:
+        each_var["file"] = datadir / each_var["file"]
+
+    data.load_data_config(data_config=cfg["core"]["data"])
+
+    if err:
+        assert str(err.value) == exp_msg
+
+    log_check(caplog, exp_log)
