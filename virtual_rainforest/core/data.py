@@ -260,7 +260,7 @@ class Data(UserDict):
 
         # Set up the extended instance properties
         if not isinstance(grid, Grid):
-            log_and_raise("Data must be initialised with a Grid object", ValueError)
+            log_and_raise("Data must be initialised with a Grid object", TypeError)
         self.grid = grid
 
     def __repr__(self) -> str:
@@ -294,15 +294,15 @@ class Data(UserDict):
         """
 
         if isinstance(darray, Dataset):
-            log_and_raise("Cannot add Dataset - extract required DataArray", ValueError)
+            log_and_raise("Cannot add Dataset - extract required DataArray", TypeError)
         elif not isinstance(darray, DataArray):
             log_and_raise(
-                "Only DataArray objects can be added to Data instances", ValueError
+                "Only DataArray objects can be added to Data instances", TypeError
             )
 
         # Resolve name status
         if darray.name is None:
-            log_and_raise("Cannot add data array with unnamed variable", ValueError)
+            log_and_raise("Cannot add data array with unnamed variable", TypeError)
 
         if darray.name not in self:
             LOGGER.info(f"Adding data array for '{darray.name}'")
@@ -346,7 +346,7 @@ class Data(UserDict):
 
         if not matching_loader_fname:
             log_and_raise(
-                "DataArray does not match a known spatial loader signature", ValueError
+                "DataArray does not match a known spatial loader signature", KeyError
             )
 
         # Try and get the loader function
@@ -498,7 +498,7 @@ def add_spatial_loader(signature: tuple) -> Callable:
             if (gtype not in GRID_REGISTRY) and (gtype != "__any__"):
                 log_and_raise(
                     f"Unknown grid type '{gtype}' decorating {func.__name__}",
-                    AttributeError,
+                    ValueError,
                 )
 
         # Add the function to the class and then register the signature -> function map

@@ -68,12 +68,12 @@ def test_file_format_loader(caplog, file_types, expected_log):
     argvalues=[
         (  # Unknown singleton
             (("zzz",), ("zzz",), ("penrose",)),
-            pytest.raises(AttributeError),
+            pytest.raises(ValueError),
             ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
         ),
         (  # Unknown grid in 2 tuple
             (("zzz",), ("zzz",), ("square", "penrose")),
-            pytest.raises(AttributeError),
+            pytest.raises(ValueError),
             ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
         ),
         (  # Succesful singleton
@@ -382,7 +382,7 @@ def test_spld_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals)
     argvalues=[
         (
             False,
-            pytest.raises(ValueError),
+            pytest.raises(TypeError),
             ((CRITICAL, "Data must be initialised with a Grid object"),),
         ),
         (
@@ -438,7 +438,7 @@ def test_Data_setitem():
             np.array([1, 2, 3]),
             False,
             "air_temperature",
-            pytest.raises(ValueError),
+            pytest.raises(TypeError),
             ((CRITICAL, "Only DataArray objects can be added to Data instances"),),
             None,
             id="not_dataarray",
@@ -447,7 +447,7 @@ def test_Data_setitem():
             Dataset({"temp": np.array([1, 2, 3])}),
             False,
             "air_temperature",
-            pytest.raises(ValueError),
+            pytest.raises(TypeError),
             ((CRITICAL, "Cannot add Dataset - extract required DataArray"),),
             None,
             id="dataset_not_datarray",
@@ -459,7 +459,7 @@ def test_Data_setitem():
             ),
             False,
             "air_temperature",
-            pytest.raises(ValueError),
+            pytest.raises(TypeError),
             ((CRITICAL, "Cannot add data array with unnamed variable"),),
             None,
             id="missing_name",
@@ -472,7 +472,7 @@ def test_Data_setitem():
             ),
             False,
             "air_temperature",
-            pytest.raises(ValueError),
+            pytest.raises(KeyError),
             (
                 (INFO, "Adding data array for 'should_not_work'"),
                 (CRITICAL, "DataArray does not match a known spatial loader signature"),
