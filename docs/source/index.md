@@ -65,6 +65,7 @@ team.
   :hidden:
 
   virtual_rainforest/module_overview.md
+  virtual_rainforest/usage.md
   virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
   virtual_rainforest/core/config.md
@@ -82,6 +83,7 @@ team.
   api/core/data.md
   api/core/model.md
   api/core/logger.md
+
 ```
 
 ```{eval-rst}

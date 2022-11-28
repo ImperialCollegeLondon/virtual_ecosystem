@@ -11,6 +11,9 @@ authors = [
     "Olivia Daniel <olivia.daniel08@imperial.ac.uk>",
 ]
 
+[tool.poetry.scripts]
+vr_run = "virtual_rainforest.entry_points:_vr_run_cli"
+
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 numpy = "^1.23.0"
