@@ -78,6 +78,7 @@ team.
   :hidden:
 
   api/core.md
+  api/soil.md
 ```
 
 ```{eval-rst}
