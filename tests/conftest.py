@@ -79,10 +79,8 @@ def fixture_data(fixture_square_grid_simple):
 
     data = Data(fixture_square_grid_simple)
 
-    # (Crudely) create an existing variable to test replacement
+    # (Crudely) create an existing variable to test replacement - note that although
+    # data[] is suppressed, the data.data[] option is not.
     data.data["existing_var"] = None
-
-    # Deliberate fouling of spatial loaders with unknown function
-    data.spatial_loaders[(("z",), ("z",), ("__any__",))] = "does_not_exist"
 
     return data

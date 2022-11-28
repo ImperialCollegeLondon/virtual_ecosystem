@@ -1,6 +1,7 @@
 """Test data loading and validation."""
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
+from typing import Callable
 
 import numpy as np
 import pytest
@@ -17,10 +18,10 @@ from .conftest import log_check
             ((DEBUG, "Adding data loader function for .xyz"),),
         ),
         (
-            (".xyz",),
-            ((DEBUG, "Replacing existing data loader function for .xyz"),),
+            (".ghi",),
+            ((DEBUG, "Replacing existing data loader function for .ghi"),),
         ),
-        (  # Tuple of file types, add and replace
+        (  # Tuple of file types, add only
             (".abc", ".def"),
             (
                 (DEBUG, "Adding data loader function for .abc"),
@@ -28,10 +29,10 @@ from .conftest import log_check
             ),
         ),
         (  # Tuple of file types, add and replace
-            (".abc", ".ghi"),
+            (".jkl", ".ghi"),
             (
-                (DEBUG, "Replacing existing data loader function for .abc"),
-                (DEBUG, "Adding data loader function for .ghi"),
+                (DEBUG, "Adding data loader function for .jkl"),
+                (DEBUG, "Replacing existing data loader function for .ghi"),
             ),
         ),
     ],
@@ -40,8 +41,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
     """Tests the file format loader decorator.
 
     TODO - Note that the test here is actually changing the live DATA_LOADER_REGISTRY,
-           so that the order of execution of the parameterisation for the tests are not
-           independent of one another.
+           so that the tests are not independent of one another.
     """
 
     # Import register_data_loader - this triggers the registration of existing data
@@ -52,11 +52,16 @@ def test_file_format_loader(caplog, file_types, expected_log):
     # Capture debug/setup messages
     LOGGER.setLevel("DEBUG")
 
+    # Create an existing one to test replace modes
+    @register_file_format_loader(file_types=".ghi")
+    def existing_func():
+        return
+
     caplog.clear()
 
     # Decorate a mock function to test the failure modes
     @register_file_format_loader(file_types=file_types)
-    def mock_function():
+    def test_func():
         return
 
     # Check the error reports
@@ -64,57 +69,125 @@ def test_file_format_loader(caplog, file_types, expected_log):
 
 
 @pytest.mark.parametrize(
-    argnames=["signature", "exp_err", "expected_log"],
+    argnames=["axis", "signature", "exp_err", "expected_log"],
     argvalues=[
         (  # Unknown singleton
+            "spatial",
             (("zzz",), ("zzz",), ("penrose",)),
             pytest.raises(ValueError),
             ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
         ),
         (  # Unknown grid in 2 tuple
+            "spatial",
             (("zzz",), ("zzz",), ("square", "penrose")),
             pytest.raises(ValueError),
             ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
         ),
         (  # Succesful singleton
+            "spatial",
             (("zzz",), ("zzz",), ("square",)),
             does_not_raise(),
-            ((DEBUG, "Adding spatial loader: mock_function"),),
+            ((DEBUG, "Adding spatial validator: mock_function"),),
         ),
         (  # Succesful 2 tuple
+            "spatial",
             (("zzz",), ("zzz",), ("square", "hexagon")),
             does_not_raise(),
-            ((DEBUG, "Adding spatial loader: mock_function"),),
+            ((DEBUG, "Adding spatial validator: mock_function"),),
+        ),
+        (  # Replace validator
+            "spatial",
+            (("yyy",), ("yyy",), ("square",)),
+            does_not_raise(),
+            ((DEBUG, "Replacing existing spatial validator: mock_function"),),
         ),
     ],
 )
-def test_add_spatial_loader(caplog, signature, exp_err, expected_log):
-    """Tests the file format loader decorator.
+def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log):
+    """Tests the register_axis_validator decorator.
 
-    TODO - Note that the test here is actually changing the live DataArrayLoader,
+    TODO - Note that the test here is actually changing the live AXIS_VALIDATORS,
            so that the order of execution of the parameterisation for the tests are not
            independent of one another.
     """
 
-    # Import register_data_loader - this triggers the registration of existing data
-    # loaders so need to clear those log messages before trying new ones
-    from virtual_rainforest.core.data import add_spatial_loader
+    # Import register_axis_validator - this triggers various registration messages, so
+    # need to use caplog.clear()
+
+    from virtual_rainforest.core.data import register_axis_validator
     from virtual_rainforest.core.logger import LOGGER
 
     # Capture debug/setup messages
     LOGGER.setLevel("DEBUG")
+
+    # Create an existing validator to clash with
+    @register_axis_validator("spatial", (("yyy",), ("yyy",), ("square",)))
+    def mock_function_existing():
+        return
 
     caplog.clear()
 
     # Decorate a mock function to test the failure modes
     with exp_err:
 
-        @add_spatial_loader(signature)
+        @register_axis_validator(axis, signature)
         def mock_function():
             return
 
     # Check the error reports
     log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["axis", "darray", "exp_err", "exp_msg", "exp_type", "exp_name"],
+    argvalues=[
+        pytest.param(
+            "xy",
+            DataArray(data=np.arange(100), dims=("cell_id")),
+            pytest.raises(ValueError),
+            "Unknown core axis: xy",
+            Callable,
+            "spld_cellid_dim_any",
+            id="Bad axis name",
+        ),
+        pytest.param(
+            "spatial",
+            DataArray(data=np.arange(100), dims=("cell_id")),
+            does_not_raise(),
+            None,
+            Callable,
+            "spld_cellid_dim_any",
+            id="Match found",
+        ),
+        pytest.param(
+            "spatial",
+            DataArray(data=np.arange(100), dims=("cell_identities")),
+            does_not_raise(),
+            None,
+            type(None),
+            None,
+            id="No match found",
+        ),
+    ],
+)
+def test_get_validator(
+    fixture_data, axis, darray, exp_err, exp_msg, exp_type, exp_name
+):
+    """Test the get_validator function."""
+
+    from virtual_rainforest.core.data import get_validator
+
+    # Decorate a mock function to test the failure modes
+    with exp_err as err:
+        val_func = get_validator(axis, fixture_data, darray)
+
+    if err is not None:
+        assert str(err.value) == exp_msg
+    else:
+        assert isinstance(val_func, exp_type)
+
+        if val_func is not None:
+            assert val_func.__name__ == exp_name
 
 
 @pytest.mark.parametrize(
@@ -475,29 +548,13 @@ def test_Data_setitem():
             pytest.raises(KeyError),
             (
                 (INFO, "Adding data array for 'should_not_work'"),
-                (CRITICAL, "DataArray does not match a known spatial loader signature"),
-            ),
-            None,
-            id="no_loader",
-        ),
-        pytest.param(  # Bad load - catching corrupted spatial loader signatures
-            DataArray(
-                data=np.array(np.arange(9)),
-                coords={"z": np.arange(9)},
-                name="should_not_work",
-            ),
-            False,
-            "air_temperature",
-            pytest.raises(AttributeError),
-            (
-                (INFO, "Adding data array for 'should_not_work'"),
                 (
                     CRITICAL,
-                    "Data array maps to unknown spatial loader 'does_not_exist'",
+                    "DataArray does not match a known spatial validator signature",
                 ),
             ),
             None,
-            id="invalid_loader_mapping",
+            id="no_loader",
         ),
         pytest.param(  # Valid load from square_xy_coords
             DataArray(
