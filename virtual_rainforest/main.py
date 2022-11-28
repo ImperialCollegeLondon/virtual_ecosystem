@@ -4,6 +4,7 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
+from itertools import compress
 from typing import Any, Type, Union
 
 import pint
@@ -181,6 +182,27 @@ def setup_timing_loop(
     return start_time
 
 
+# TODO - TEST THIS
+def get_models_to_update(
+    current_time: datetime64, models: list[BaseModel]
+) -> tuple[list[BaseModel], list[BaseModel]]:
+    """Split set of models based on whether they should be updated.
+
+    Args:
+        current_time: Main timing loop time step
+        models: Full set of models
+    """
+
+    # Find models to update
+    to_update = [model.should_update(current_time) for model in models]
+
+    # Separate models into lists based on whether they should update or not
+    to_refresh = list(compress([mod for mod in models], to_update))
+    fixed = list(compress([mod for mod in models], [not elem for elem in to_update]))
+
+    return (to_refresh, fixed)
+
+
 def vr_run(
     cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
 ) -> None:
@@ -227,16 +249,16 @@ def vr_run(
 
     # TODO - Save model state
 
-    # TODO - Add timing loop
+    # Setup the timing loop
     current_time = setup_timing_loop(start_time, end_time, update_interval)
     while current_time < end_time:
 
-        # TODO - ACTUALLY DO SOMETHING HERE
         current_time += update_interval
 
-    # TODO - Find models to update
-    # TODO - Solve models to steady state
-    # TODO - Save model state
+        to_refresh, fixed = get_models_to_update(current_time, models_cfd)
+
+        # TODO - Solve models to steady state
+        # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")
 

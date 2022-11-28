@@ -100,7 +100,7 @@ class BaseModel(ABC):
     def should_update(self, current_time: datetime64) -> bool:
         """Determines whether a model should be updated for a specific time step."""
 
-        if current_time > self.last_update + self.update_interval:
+        if current_time >= self.last_update + self.update_interval:
             self.last_update = current_time
             return True
         return False
