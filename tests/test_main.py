@@ -15,6 +15,7 @@ from virtual_rainforest.main import (
     check_for_fast_models,
     configure_models,
     extract_timing_details,
+    get_models_to_update,
     select_models,
     setup_timing_loop,
     vr_run,
@@ -386,3 +387,30 @@ def test_setup_timing_loop(caplog, update_interval, expected_log_entries):
     assert start_time == current_time
 
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "current_time,refreshed",
+    [(datetime64("2020-03-12"), False), (datetime64("2020-04-01"), True)],
+)
+def test_get_models_to_update(current_time, refreshed):
+    """Test to check that splitting models based on update status works."""
+
+    # Create SoilModel for testing
+    model = SoilModel.__new__(SoilModel)
+    model.update_interval = timedelta64(3, "W")
+    models = [model]
+
+    for model in models:
+        model.start_model_timing(datetime64("2020-03-01"))
+
+    to_refresh, fixed = get_models_to_update(current_time, models)
+
+    if refreshed is True:
+        assert len(to_refresh) == 1
+        assert len(fixed) == 0
+        assert models[0].last_update == datetime64("2020-04-01")
+    else:
+        assert len(to_refresh) == 0
+        assert len(fixed) == 1
+        assert models[0].last_update == datetime64("2020-03-01")

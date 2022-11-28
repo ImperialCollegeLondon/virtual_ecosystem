@@ -182,7 +182,6 @@ def setup_timing_loop(
     return start_time
 
 
-# TODO - TEST THIS
 def get_models_to_update(
     current_time: datetime64, models: list[BaseModel]
 ) -> tuple[list[BaseModel], list[BaseModel]]:
@@ -258,6 +257,9 @@ def vr_run(
         to_refresh, fixed = get_models_to_update(current_time, models_cfd)
 
         # TODO - Solve models to steady state
+
+        models_cfd = to_refresh + fixed
+
         # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")
