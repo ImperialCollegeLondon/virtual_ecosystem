@@ -40,3 +40,8 @@ The research team are supported by the Imperial College London
 [Research Software
 Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
+
+## Model documentation
+
+The full documentation for the Virtual Rainforest model can be viewed
+[here](https://virtual-rainforest.readthedocs.io/en/latest/).
