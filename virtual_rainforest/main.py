@@ -5,6 +5,7 @@ this script also defines the command line entry points for the model.
 """
 
 from itertools import compress
+from pathlib import Path
 from typing import Any, Type, Union
 
 import pint
@@ -203,7 +204,8 @@ def get_models_to_update(
 
 
 def vr_run(
-    cfg_paths: Union[str, list[str]], output_folder: str, out_file_name: str
+    cfg_paths: Union[str, list[str]],
+    merge_file_path: Path,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -214,11 +216,10 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
-        output_folder: Folder to save combined configuration to
-        out_file_name: Name for the combined configuration file
+        merge_file_path: Path to save merged config file to
     """
 
-    config = validate_config(cfg_paths, output_folder, out_file_name)
+    config = validate_config(cfg_paths, merge_file_path)
 
     model_list = select_models(config["core"]["modules"])
 
@@ -263,6 +264,3 @@ def vr_run(
         # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")
-
-
-# TODO - Define command line entry point

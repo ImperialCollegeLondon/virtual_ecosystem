@@ -1,7 +1,20 @@
-"""The `soil.model` module.
+"""API documentation for the :mod:`soil.model` module.
+************************************************** # noqa: D205
 
-The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
-class to be usable to simulate the soil.
+The :mod:`soil.model` module creates a :class:`~virtual_rainforest.soil.model.SoilModel`
+class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
+present a lot of the abstract methods of the parent class (e.g.
+:func:`~virtual_rainforest.core.model.BaseModel.setup` and
+:func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the
+:mod:`virtual_rainforest` model develops. The factory method
+:func:`~virtual_rainforest.soil.model.SoilModel.from_config` exists in a more complete
+state, and unpacks a small number of parameters from our currently pretty minimal
+configuration dictionary. These parameters are then used to generate a class instance.
+If errors crop here when converting the information from the config dictionary to the
+required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and
+at the end of the unpacking an error is thrown. This error should be caught and handled
+by downstream functions so that all model configuration failures can be reported as one.
 """
 
 from __future__ import annotations
