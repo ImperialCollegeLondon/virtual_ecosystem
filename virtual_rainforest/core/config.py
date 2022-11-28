@@ -1,10 +1,47 @@
-"""The `core.config` module.
+"""API documentation for the :mod:`core.config` module.
+************************************************** # noqa: D205
 
-The `core.config` module is used to read in the various configuration files, validate
-their contents, and then configure a ready to run instance of the virtual rainforest
-model.
+The :mod:`core.config` module is used to read in the various configuration files,
+validate their contents, and then configure a ready to run instance of the virtual
+rainforest model. The basic details of how this system is used can be found
+:ref:`here<virtual_rainforest/core/config:the configuration module>`.
+
+When a new module is defined a ``JSON`` file should be written, which includes the
+expected configuration tags, their expected types, and any constraints on their values
+(e.g. the number of soil layers being strictly positive). Additionally, where sensible
+default values exist (e.g. 1 week for the model time step) they should also be included
+in the schema. This schema should be saved in the folder of the module that it relates
+to. In order to make this schema generally accessible to the ``vr`` package, it should
+then be added to the schema registry. The
+:func:`~virtual_rainforest.core.config.register_schema` decorator is used for this
+purpose.
+
+Schema registration for each module takes place in the module's ``__init__.py``. Here, a
+function is written that reads in the ``JSON`` file describing the schema. This function
+is then decorated using :func:`~virtual_rainforest.core.config.register_schema`, which
+results in the schema being added to the registry. The user provides a schema name to
+the decorator to register the schema under, this should be unique, and generally should
+just be the module name. An example of decorator usage is shown below:
+
+.. code-block:: python
+
+    @register_schema("example_module")
+    def schema() -> dict:
+        schema_file = Path(__file__).parent.resolve() / "example_module_schema.json"
+
+        with schema_file.open() as f:
+            config_schema = json.load(f)
+
+        return config_schema
+
+It's important to note that the schema will only be added to the registry if the module
+``__init__`` is run. This means that somewhere in your chain of imports the module must
+be imported. Currently this is tackled by importing all active modules in the top level
+``__init__``, i.e. :mod:`virtual_rainforest.__init__.py`. This ensures that any script
+that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
+define schema, in turn ensuring that
+:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
 """
-# TODO - find config folder based on command line argument
 
 import sys
 from collections import ChainMap
@@ -24,7 +61,10 @@ else:
     import tomli as tomllib
 
 SCHEMA_REGISTRY: dict = {}
-"""A registry for different module schema."""
+"""A registry for different module schema.
+
+:meta hide-value:
+"""
 
 
 class ConfigurationError(Exception):
@@ -157,7 +197,7 @@ def check_dict_leaves(
         d1: First nested dictionary to compare
         d2: Second nested dictionary to compare
         path: List describing recursive path through the nested dictionary
-            conflicts: List of variables that are defined in multiple places
+        conflicts: List of variables that are defined in multiple places
 
     Returns:
         conflicts: List of variables that are defined in multiple places

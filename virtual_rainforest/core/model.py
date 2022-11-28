@@ -1,12 +1,63 @@
-"""The `core.model` module.
+"""API documentation for the :mod:`core.model` module.
+************************************************** # noqa: D205
 
-The `core.model` module defines the api that all individual models (e.g. the soil
-model) should conform to. This consists of a class (`Model`), which defines the expected
-functions. The relevant modules will create classes to represent specific models, which
-will inherit from the `Model` base class. These subclasses will generally overwrite the
-functions defined in the base class, which are defined mainly to force a consistent api
-between models. It also establishes a model registry that allows models to become
-accessible across scripts without individual loading in.
+The Virtual Rainforest model requires a consistent api across models. That is a common
+set of functions which work the same across all modules. This cannot exist at a low
+level, as the basic classes and functions will differ massively between modules (e.g.
+:mod:`~virtual_rainforest.abiotic` will not have functions to handle consumption). So,
+this common api has to be high level and define a basic set of functions to set up and
+run each model. These functions effectively convert a general instruction (i.e. "setup
+the model") into the steps needed to carry out that instruction for a specific model.
+
+The :mod:`core.model` module defines the api that all individual models (e.g. the soil
+model) should conform to. This consists of a class
+(:class:`~virtual_rainforest.core.model.BaseModel`), which defines the expected
+functions. Some functions of this class will be inherited and used by its child classes
+(e.g. :func:`~virtual_rainforest.core.model.BaseModel.__repr__` and
+:func:`~virtual_rainforest.core.model.BaseModel.__str__`), unless they are explicitly
+overwritten in the child class (which is generally necessary for ``__init__``). This is
+standard python class inheritance, which will be used in many places throughout the
+``virtual_rainforest`` model.
+
+However, a more complex form of inheritance is required for functions that define the
+shared api. These should take the same input and perform an equivalent set of steps
+across models, but because they interact with radically different modules their internal
+workings will have little in common. Thus,
+:class:`~virtual_rainforest.core.model.BaseModel` is defined as an abstract base class,
+which is a class that is never intended to be instantiated itself but instead serves as
+a blueprint for inheriting classes. This type of class can define abstract methods
+(denoted by ``@abstractmethod``), which are merely placeholders. For these abstract
+methods, child classes have to overwrite the methods with new functions, otherwise class
+inheritance fails. This ensures that a consistent api (set of functions) is used across
+models, while also ensuring that functions don't default to an inappropriate generic
+behaviour due to a function not being defined for a particular model. At the moment, we
+expect every model to have a setup, spinup, solve and cleanup process, though this might
+change in the future.
+
+We also define an abstract class method to perform model initialisation. This method
+(:func:`~virtual_rainforest.core.model.BaseModel.from_config`) is a factory method which
+unpacks the configuration dictionary, extracts the relevant tags and attempts to convert
+them into the form needed to initialise a class instance. This method must be defined
+for every child class of :class:`~virtual_rainforest.core.model.BaseModel`, as unpacking
+our complex configuration dictionary is a necessary before a class instance can be
+initialised.
+
+As in the case of configuration schema, we make ``Model`` classes generally accessible
+by adding them to a registry. However, in this case the function to add to the registry
+isn't a decorator but rather a member function of
+:class:`~virtual_rainforest.core.model.BaseModel`. The existence of this
+:func:`~virtual_rainforest.core.model.BaseModel.__init_subclass__` function means that
+every child class is automatically added to the model registry (called
+:attr:`~virtual_rainforest.core.model.MODEL_REGISTRY`), but that in every case a
+``model_name`` has to be provided to register it under. This model name should be
+unique. Although registration is automatic, it only happens when class definition
+happens, which requires the module which defines the child class to be imported
+somewhere. At the moment, we import all child models in the top level ``__init__.py`` to
+ensure that they are added to the registry.
+
+An example of ``Model`` inheritance from
+:class:`~virtual_rainforest.core.model.BaseModel` can been seen in the :mod:`soil.model`
+module.
 """
 
 from __future__ import annotations
