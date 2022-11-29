@@ -87,7 +87,7 @@ def configure_models(
 
 def extract_timing_details(
     config: dict[str, Any]
-) -> tuple[datetime64, datetime64, timedelta64]:
+) -> tuple[datetime64, datetime64, timedelta64, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
     Args:
@@ -132,7 +132,7 @@ def extract_timing_details(
             InitialisationError,
         )
 
-    return start_time, end_time, update_interval
+    return start_time, end_time, update_interval, start_time
 
 
 def check_for_fast_models(
@@ -156,10 +156,10 @@ def check_for_fast_models(
 
 def setup_timing_loop(
     start_time: datetime64, end_time: datetime64, update_interval: timedelta64
-) -> datetime64:
-    """Setup timing loop by returning the current time.
+) -> None:
+    """Check whether time interval covers the time window well.
 
-    Also check if the time interval chosen means that more than 10% of the time window
+    Check if the time interval chosen means that more than 10% of the time window
     is not covered. If this is the case the user is warned.
 
     Args:
@@ -179,8 +179,6 @@ def setup_timing_loop(
             "Due to a (relatively) large model time step, %.4s%% of the desired time "
             "span is not covered!" % p
         )
-
-    return start_time
 
 
 def get_models_to_update(
@@ -232,7 +230,7 @@ def vr_run(
     )
 
     # Extract all the relevant timing details
-    start_time, end_time, update_interval = extract_timing_details(config)
+    start_time, end_time, update_interval, current_time = extract_timing_details(config)
 
     # Identify models with shorter time steps than main loop and warn user about them
     check_for_fast_models(models_cfd, update_interval)
@@ -250,7 +248,7 @@ def vr_run(
     # TODO - Save model state
 
     # Setup the timing loop
-    current_time = setup_timing_loop(start_time, end_time, update_interval)
+    setup_timing_loop(start_time, end_time, update_interval)
     while current_time < end_time:
 
         current_time += update_interval

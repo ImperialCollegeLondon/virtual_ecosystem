@@ -319,10 +319,13 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     """Test that function to extract main loop timing works as intended."""
 
     with raises:
-        start_time, end_time, update_interval = extract_timing_details(config)
+        start_time, end_time, update_interval, current_time = extract_timing_details(
+            config
+        )
         assert start_time == output["start_time"]
         assert end_time == output["end_time"]
         assert update_interval == output["update_interval"]
+        assert current_time == output["start_time"]
 
     log_check(caplog, expected_log_entries)
 
@@ -387,9 +390,7 @@ def test_setup_timing_loop(caplog, update_interval, expected_log_entries):
 
     start_time = datetime64("2020-03-01")
     end_time = datetime64("2050-03-01")
-    current_time = setup_timing_loop(start_time, end_time, update_interval)
-
-    assert start_time == current_time
+    setup_timing_loop(start_time, end_time, update_interval)
 
     log_check(caplog, expected_log_entries)
 
