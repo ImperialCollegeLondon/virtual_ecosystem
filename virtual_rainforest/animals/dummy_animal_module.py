@@ -28,6 +28,7 @@ setting up and testing the early stages of the animal module.
 #   better to excrete directly to external pools
 
 import random
+from math import ceil
 from typing import List
 
 # plant and soil classes are dummies for testing functionality w/in the animal module
@@ -123,7 +124,7 @@ class Animal:
         """
         self.name = name
         self.mass = mass
-        self.individuals = 4.23 * self.mass ** (-3 / 4)
+        self.individuals = ceil(4.23 * self.mass ** (-3 / 4) * 1000000)
         self.alive = "alive"
         self.age = age
         self.age_max = 30
@@ -190,8 +191,9 @@ class Animal:
         Returns:
             Removes energy from the waste pool and adds it to the soil pool [j] [toy].
         """
-        self.waste_energy -= self.waste_energy * 0.1
-        soil.energy += self.waste_energy * 0.1
+        excreted_energy = self.stored_energy * 0.01
+        self.stored_energy -= excreted_energy
+        soil.energy += excreted_energy
 
     def aging(self, time: int) -> None:
         """The function to increase the age of an animal cohort.
