@@ -562,8 +562,14 @@ def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
 
     In this loader, the DataArray has a cell_id dimension with valued coordinates, which
     should map onto the grid cell ids, allowing for a subset of ids. Because this method
-    simply maps data to grid cells by id, it should applies to _any_ arbitrary grid
-    setup.
+    simply maps data to grid cells by id, it should apply to _any_ arbitrary grid setup.
+
+    Args:
+        data: A Data instance used to access validation information
+        darray: A data array containing spatial information to be validated
+
+    Returns:
+        A validated dataarray with a single cell id spatial dimension
     """
 
     da_cell_ids = darray["cell_id"].values
@@ -589,8 +595,15 @@ def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
 
     In this loader, the DataArray only has a cell_id dimension so assumes that the
     values are provided in the same sequence as the grid cell ids. Because this method
-    simply maps data to grid cells by id, it should applies to _any_ arbitrary grid
-    setup.
+    simply maps data to grid cells by id, it should apply to _any_ arbitrary grid setup.
+
+    Args:
+        data: A Data instance used to access validation information
+        darray: A data array containing spatial information to be validated
+
+    Returns:
+        A validated dataarray with a single cell id spatial dimension
+
     """
 
     # Cell ID is only a dimenson with a give length - assume the order correct
@@ -606,7 +619,18 @@ def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
 
 @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
 def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for XY coordinates onto a square grid."""
+    """Spatial loader for XY coordinates onto a square grid.
+
+    In this loader, the DataArray has a x and y dimensions with valued coordinates,
+    which should map onto the grid cell ids, allowing for a subset of ids.
+
+    Args:
+        data: A Data instance used to access validation information
+        darray: A data array containing spatial information to be validated
+
+    Returns:
+        A validated dataarray with a single cell id spatial dimension
+    """
 
     # Get x and y coords to check the extents and cell coverage.
     #
@@ -647,7 +671,19 @@ def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
 
 @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
 def spld_xy_dim_square(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for XY dimensions onto a square grid."""
+    """Spatial loader for XY dimensions onto a square grid.
+
+    In this loader, the DataArray has x and y dimension but no coordinates along those
+    dimensions. The assumption here is then that those spatial axes must describe the
+    same array shape as the square grid.
+
+    Args:
+        data: A Data instance used to access validation information
+        darray: A data array containing spatial information to be validated
+
+    Returns:
+        A validated dataarray with a single cell id spatial dimension
+    """
 
     # Otherwise the data array must be the same shape as the grid
     if data.grid.cell_nx != darray.sizes["x"] or data.grid.cell_ny != darray.sizes["y"]:
