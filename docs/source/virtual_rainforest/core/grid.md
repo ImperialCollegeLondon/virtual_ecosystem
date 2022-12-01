@@ -114,28 +114,26 @@ offset_grid
 :tags: [hide-input]
 
 # Plot of the an offset grid
-fig, axes = plt.subplots(1, 1, figsize=(6, 6))
+fig, ax = plt.subplots(1, 1, figsize=(6, 6))
 
-for this_ax, this_grid in zip([axes], [offset_grid]):
+# Plot the boundary polygon of each cell and label at the centroid
+for cell_id in offset_grid.cell_id:
 
-    # Plot the boundary polygon of each cell and label at the centroid
-    for cell_id in this_grid.cell_id:
+    poly = offset_grid.polygons[cell_id]
+    centroid = offset_grid.centroids[cell_id]
 
-        poly = this_grid.polygons[cell_id]
-        centroid = this_grid.centroids[cell_id]
+    cx, cy = poly.exterior.coords.xy
+    ax.plot(cx, cy, color="k", linewidth=0.5)
+    ax.text(
+        x=centroid[0],
+        y=centroid[1],
+        s=cell_id,
+        ha="center",
+        va="center",
+    )
 
-        cx, cy = poly.exterior.coords.xy
-        this_ax.plot(cx, cy, color="k", linewidth=0.5)
-        this_ax.text(
-            x=centroid[0],
-            y=centroid[1],
-            s=cell_id,
-            ha="center",
-            va="center",
-        )
-
-    # 1:1 aspect ratio
-    this_ax.set_aspect("equal")
+# 1:1 aspect ratio
+ax.set_aspect("equal")
 ```
 
 ## Neighbours
