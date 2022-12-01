@@ -16,7 +16,6 @@ from virtual_rainforest.main import (
     check_for_fast_models,
     configure_models,
     extract_timing_details,
-    get_models_to_update,
     select_models,
     vr_run,
 )
@@ -86,9 +85,12 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         (
             {  # valid config
                 "soil": {"no_layers": 1},
-                "core": {"timing": {"main_time_step": "7 days"}},
+                "core": {
+                    "timing": {"start_time": "2020-01-01", "main_time_step": "7 days"}
+                },
             },
-            "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
+            "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
+            " no_layers = 1)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -102,7 +104,9 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         (
             {  # invalid soil config tag
                 "soil": {"no_layers": -1},
-                "core": {"timing": {"main_time_step": "7 days"}},
+                "core": {
+                    "timing": {"start_time": "2020-01-01", "main_time_step": "7 days"}
+                },
             },
             None,
             pytest.raises(InitialisationError),
@@ -160,7 +164,7 @@ def test_configure_models(caplog, config, output, raises, expected_log_entries):
         if output is None:
             assert models == [None]
         else:
-            assert repr(models[0]) == output
+            assert repr(models["soil"]) == output
 
     log_check(caplog, expected_log_entries)
 
@@ -338,35 +342,8 @@ def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_ent
     # Create SoilModel instance and then populate the update_interval
     model = SoilModel.__new__(SoilModel)
     model.update_interval = timedelta64(3, "W")
-    models_cfd = [model]
+    models_cfd = {"soil": model}
 
     check_for_fast_models(models_cfd, update_interval)
 
     log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "current_time,refreshed",
-    [(datetime64("2020-03-12"), False), (datetime64("2020-04-01"), True)],
-)
-def test_get_models_to_update(current_time, refreshed):
-    """Test to check that splitting models based on update status works."""
-
-    # Create SoilModel for testing
-    model = SoilModel.__new__(SoilModel)
-    model.update_interval = timedelta64(3, "W")
-    models = [model]
-
-    for model in models:
-        model.start_model_timing(datetime64("2020-03-01"))
-
-    to_refresh, fixed = get_models_to_update(current_time, models)
-
-    if refreshed is True:
-        assert len(to_refresh) == 1
-        assert len(fixed) == 0
-        assert models[0].last_update == datetime64("2020-04-01")
-    else:
-        assert len(to_refresh) == 0
-        assert len(fixed) == 1
-        assert models[0].last_update == datetime64("2020-03-01")

@@ -4,7 +4,6 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
-from itertools import compress
 from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
@@ -55,7 +54,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 def configure_models(
     config: dict[str, Any], model_list: list[Type[BaseModel]]
-) -> list[BaseModel]:
+) -> dict[str, BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
@@ -68,10 +67,10 @@ def configure_models(
 
     # Use factory methods to configure the desired models
     failed_models = []
-    models_cfd = []
+    models_cfd = {}
     for model in model_list:
         try:
-            models_cfd.append(model.from_config(config))
+            models_cfd[model.name] = model.from_config(config)
         except InitialisationError:
             failed_models.append(model.name)
 
@@ -120,7 +119,7 @@ def extract_timing_details(
         )
     else:
         # Round raw time interval to nearest minute
-        run_length = timedelta64(int(raw_length.magnitude), "m")
+        run_length = timedelta64(int(round(raw_length.magnitude)), "m")
 
     # Catch bad time dimensions
     try:
@@ -135,7 +134,7 @@ def extract_timing_details(
         )
     else:
         # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(raw_interval.magnitude), "m")
+        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
 
     if run_length < update_interval:
         log_and_raise(
@@ -160,7 +159,7 @@ def extract_timing_details(
 
 
 def check_for_fast_models(
-    models_cfd: list[BaseModel], update_interval: timedelta64
+    models_cfd: dict[str, BaseModel], update_interval: timedelta64
 ) -> None:
     """Warn user of any models using a faster time step than update interval.
 
@@ -169,33 +168,15 @@ def check_for_fast_models(
         update_interval: Time step of the main model loop
     """
     fast_models = [
-        model.name for model in models_cfd if model.update_interval < update_interval
+        model.name
+        for model in models_cfd.values()
+        if model.update_interval < update_interval
     ]
     if fast_models:
         LOGGER.warning(
             "The following models have shorter time steps than the main model: %s"
             % fast_models
         )
-
-
-def get_models_to_update(
-    current_time: datetime64, models: list[BaseModel]
-) -> tuple[list[BaseModel], list[BaseModel]]:
-    """Split set of models based on whether they should be updated.
-
-    Args:
-        current_time: Main timing loop time step
-        models: Full set of models
-    """
-
-    # Find models to update
-    to_update = [model.should_update(current_time) for model in models]
-
-    # Separate models into lists based on whether they should update or not
-    to_refresh = list(compress([mod for mod in models], to_update))
-    fixed = list(compress([mod for mod in models], [not elem for elem in to_update]))
-
-    return (to_refresh, fixed)
 
 
 def vr_run(
@@ -238,22 +219,23 @@ def vr_run(
 
     # TODO - Spin up the models
 
-    # Start timing for all models
-    for model in models_cfd:
-        model.start_model_timing(start_time)
-
     # TODO - Save model state
+
+    # Get the list of date times of the next update.
+    update_due = {mod.name: mod.next_update for mod in models_cfd.values()}
 
     # Setup the timing loop
     while current_time < end_time:
 
         current_time += update_interval
 
-        to_refresh, fixed = get_models_to_update(current_time, models_cfd)
+        # Get the names of models that have expired due dates
+        update_needed = [nm for nm, upd in update_due.items() if upd <= current_time]
 
-        # TODO - Solve models to steady state
-
-        models_cfd = to_refresh + fixed
+        # Run their update() method and update due dates for all expired models
+        for mod_nm in update_needed:
+            models_cfd[mod_nm].update()
+            update_due[mod_nm] = models_cfd[mod_nm].next_update()
 
         # TODO - Save model state
 

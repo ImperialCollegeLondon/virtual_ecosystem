@@ -10,11 +10,7 @@ from logging import CRITICAL, INFO, WARNING
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import (
-    BaseModel,
-    ImproperFunctionCall,
-    InitialisationError,
-)
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
@@ -27,24 +23,14 @@ def test_base_model_initialization(caplog, mocker):
     mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
     # Initialise model
-    model = BaseModel(timedelta64(1, "W"))
-    model.start_model_timing(datetime64("2022-11-01"))
+    model = BaseModel(timedelta64(1, "W"), datetime64("2022-11-01"))
 
     # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
     assert model.name == "base"
     assert str(model) == "A base model instance"
-    assert repr(model) == "BaseModel(update_interval = 1 weeks)"
-    assert model.should_update(datetime64("2023-10-26"))
-    assert not model.should_update(datetime64("2022-10-28"))
-    # Attempting to start model timing again should result in an error
-    with pytest.raises(ImproperFunctionCall):
-        model.start_model_timing(datetime64("2020-11-01"))
-
-    # Final check that expected (i.e. no) logging entries are produced
-    log_check(
-        caplog,
-        ((CRITICAL, "Model timing was already set up, it should not be setup again!"),),
+    assert (
+        repr(model) == "BaseModel(update_interval = 1 weeks, next_update = 2022-11-08)"
     )
 
 
@@ -83,15 +69,16 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
 
     with raises:
         # Initialize model
-        model = SoilModel(timedelta64(1, "W"), no_layers)
+        model = SoilModel(timedelta64(1, "W"), datetime64("2022-11-01"), no_layers)
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "solve", "cleanup"]).issubset(dir(model))
+        assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
         assert model.name == "soil"
         assert str(model) == "A soil model instance"
         assert (
             repr(model)
-            == f"SoilModel(update_interval = 1 weeks, no_layers = {int(no_layers)})"
+            == f"SoilModel(update_interval = 1 weeks, next_update = 2022-11-08, "
+            f"no_layers = {int(no_layers)})"
         )
 
     # Final check that expected logging entries are produced
@@ -126,9 +113,7 @@ def test_register_model_errors(caplog):
         (
             {
                 "core": {
-                    "timing": {
-                        "main_time_step": "0.5 days",
-                    }
+                    "timing": {"main_time_step": "0.5 days", "start_time": "2020-01-01"}
                 },
                 "soil": {"no_layers": 2},
             },
@@ -147,6 +132,7 @@ def test_register_model_errors(caplog):
                 "core": {
                     "timing": {
                         "main_time_step": "0.5 days",
+                        "start_time": "2020-01-01",
                     }
                 },
                 "soil": {"no_layers": 2, "model_time_step": "5 days"},
@@ -173,6 +159,16 @@ def test_generate_soil_model(
         model = SoilModel.from_config(config)
         assert model.no_layers == config["soil"]["no_layers"]
         assert model.update_interval == time_interval
+        assert (
+            model.next_update
+            == datetime64(config["core"]["timing"]["start_time"]) + time_interval
+        )
+        # Run the update step and check that next_update has incremented properly
+        model.update()
+        assert (
+            model.next_update
+            == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
+        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
