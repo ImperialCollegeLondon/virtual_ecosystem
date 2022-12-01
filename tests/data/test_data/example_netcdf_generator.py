@@ -187,69 +187,6 @@ def generate_files() -> None:
 
     ds_2xy_lowx.to_netcdf("xy_coords_shifted.nc")
 
-    # # ----------------------------------------------------------------------
-    # # Generate NetCDF with column data with a row dimension integer, including x and y
-    # # data (A data frame, basically)
-    # # ----------------------------------------------------------------------
-
-    # # Good version
-    # ds_df = xarray.Dataset(
-    #     data_vars={
-    #         "temperature": xarray.DataArray(temp.flatten(), dims=["row"]),
-    #         "precipitation": xarray.DataArray(prec.flatten(), dims=["row"]),
-    #         "x": xarray.DataArray(xx.flatten(), dims=["row"]),
-    #         "y": xarray.DataArray(yy.flatten(), dims=["row"]),
-    #     }
-    # )
-
-    # ds_df.to_netcdf("one_dim_points_xy.nc")
-
-    # # Bad version - x and y don't align
-
-    # ds_df_xney = xarray.Dataset(
-    #     data_vars={
-    #         "temperature": xarray.DataArray(temp.flatten(), dims=["row"]),
-    #         "precipitation": xarray.DataArray(prec.flatten(), dims=["row"]),
-    #         "x": xarray.DataArray(xx.flatten()[0:60], dims=["row_short"]),
-    #         "y": xarray.DataArray(yy.flatten(), dims=["row"]),
-    #     }
-    # )
-
-    # ds_df_xney.to_netcdf("one_dim_points_xy_xney.nc")
-
-    # # Bad version - doesn't cover cells
-
-    # lown = np.arange(60)
-
-    # ds_1cid_lown = xarray.Dataset(
-    #     data_vars={
-    #         "temp": xarray.DataArray(
-    #             temp.flatten()[lown], coords=[cell_id[lown]], dims=["row"]
-    #         ),
-    #         "prec": xarray.DataArray(
-    #             prec.flatten()[lown], coords=[cell_id[lown]], dims=["row"]
-    #         ),
-    #         "x": xarray.DataArray(xx.flatten()[lown], dims=["row"]),
-    #         "y": xarray.DataArray(yy.flatten()[lown], dims=["row"]),
-    #     }
-    # )
-
-    # ds_df_xney.to_netcdf("one_dim_points_xy_lown.nc")
-
-    # # ----------------------------------------------------------------------
-    # # Generate NetCDF with column data with a row_idx dimension integer, _not_
-    # # including x and y data (A data frame, basically, but with an assumed order).
-    # # ----------------------------------------------------------------------
-
-    # ds_df = xarray.Dataset(
-    #     data_vars={
-    #         "temperature": xarray.DataArray(temp.flatten(), dims=["cell_id"]),
-    #         "precipitation": xarray.DataArray(prec.flatten(), dims=["cell_id"]),
-    #     }
-    # )
-
-    # ds_df.to_netcdf("one_dim_points_order_only.nc")
-
 
 if __name__ == "__main__":
 
