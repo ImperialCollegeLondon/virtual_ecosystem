@@ -32,53 +32,18 @@ simulation. All of the variables are stored as {class}`~xarray.DataArray` object
 the {mod}`xarray` package, which provides a consistent indexing and data manipulation
 for the underlying arrays of data.
 
-In many cases, a user will simply provide a Data configuration file to set up the data
-that will be validated and loaded when a simulation runs, but the main functionality for
+In many cases, a user will simply provide a configuration file to set up the data that
+will be validated and loaded when a simulation runs, but the main functionality for
 working with data using Python are shown below.
 
-## Core data axes
+## Validation
 
-One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to make
-sure that any data source is congruent with the basic configuration of a simulation:
-things like the size and layout of the spatial grid or the the duration and spacing of
-temporal data. The {mod}`~virtual_rainforest.core.data` module maintains a registry of
-these core axes along with a library of validators that can be used to map a DataArray
-onto the core axes. These validators are applied automatically when a DataArray is
-loaded, using the dimension names and coordinates of the DataArray object to identify an
-appropriate validator.
-
-## Structure of `DataArray` objects
-
-A {class}`~xarray.DataArray` provides a single variable as an array: each dimension of
-the array must have at least a dimension name and can also have coordinates along the
-dimension. The three examples below show how data arrays can be created with (and
-without) dimension names and coordinates and shows how the variable name for the array
-is set.
-
-```{code-cell}
-from xarray import DataArray
-import numpy as np
-
-# No dimension names specified, so default names are assigned and no variable name
-d = DataArray(np.ones((5, 5)))
-print(d)
-```
-
-```{code-cell}
-# A data array with just dimension names
-d = DataArray(np.ones((5, 5)), dims=("y", "x"))
-print(d)
-```
-
-```{code-cell}
-# A _named_ array with coordinates along both axes
-d = DataArray(
-    np.ones((5, 5)),
-    name="temperature",
-    coords={"y": np.arange(0, 401, 100), "x": np.arange(0, 401, 100)},
-)
-print(d)
-```
+One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to
+validate data before it is added to the `Data` instance. This works by looking for
+particular dimensions on the data that map onto core axes in the simulation and checking
+that the dimensions in the input data are congruent with the model configuration. For
+example, a data array with `x` and `y` dimensions should have the same number of rows
+and columns as square grid.
 
 ## Creating a `Data` instance
 
