@@ -148,8 +148,10 @@ class TestAnimal:
             "g8": ["g5", "g7"],
         }
         for initial_position in adjacency.keys():
-            a1 = am.Animal("Testasaurus", 100.0, 1, initial_position)
-            a1.disperse()
+            grid = am.Grid()
+            grid.populate_grid_squares()
+            a1 = grid.grid_squares[initial_position].elephants[0]
+            a1.disperse(grid)
             final_position = a1.position
             assert final_position in (adjacency[initial_position])
 

@@ -8,7 +8,6 @@ setting up and testing the early stages of the animal module.
 # experimental file for figuring out how to make an animal module
 
 # to do
-# - in dispersal, move cohort between grid square lists
 # - in birth, add cohort to grid square list
 # - send portion of dead to carcass pool
 
@@ -26,12 +25,56 @@ setting up and testing the early stages of the animal module.
 # damuth ~ 4.23*mass**(-3/4) indiv / km2
 # waste_energy pool likely unnecessary
 #   better to excrete directly to external pools
+# only elephants disperse atm
+# problems with circular type definitions between grid, gridsquare, and animal
 
 import random
 from math import ceil
 from typing import List
 
 # plant and soil classes are dummies for testing functionality w/in the animal module
+
+
+class Grid:
+    """This is a dummy class for collecting the spatial relationships of pools.
+
+    0 1 2
+    3 4 5
+    6 7 8
+    """
+
+    def __init__(self) -> None:
+        """The constructor for Grid class.
+
+        Args:
+            grid_squares (list): a list (str) of the grid squares present on the grid.
+
+        """
+        self.grid_squares = {
+            "g0": GridSquare("g0"),
+            "g1": GridSquare("g1"),
+            "g2": GridSquare("g2"),
+            "g3": GridSquare("g3"),
+            "g4": GridSquare("g4"),
+            "g5": GridSquare("g5"),
+            "g6": GridSquare("g6"),
+            "g7": GridSquare("g7"),
+            "g8": GridSquare("g8"),
+        }
+
+    def populate_grid_squares(self) -> None:
+        """The function to add one of each toy pool to each grid square in the grid.
+
+        Args:
+            None: Toy implementation  is only a function of the
+                  hardcoded pools and cohorts.
+
+        Returns:
+            Pool and cohort list attributes in each square
+             are populated with an containing an instance.
+        """
+        for square in self.grid_squares:
+            self.grid_squares[square].populate_grid_square()
 
 
 class Plant:
@@ -244,7 +287,7 @@ class Animal:
         """
         return Animal(name=self.name, mass=self.mass, age=0, position=self.position)
 
-    def disperse(self) -> None:
+    def disperse(self, grid: Grid) -> None:
         """The function to move an animal cohort between grid positions.
 
             0 1 2
@@ -269,8 +312,14 @@ class Animal:
             "g7": ["g4", "g6", "g8"],
             "g8": ["g5", "g7"],
         }
+        old_position = self.position
         new_position = random.choice(adjacency[self.position])
         self.position = new_position
+        old_animal_list = grid.grid_squares[old_position].elephants
+        index = old_animal_list.index(self)
+        new_animal_list = grid.grid_squares[new_position].elephants
+        new_animal_list.append(old_animal_list.pop(index))
+
         # need to update this so that the lists like 'elephants' are auto referenced
         # index_position = grid.grid_squares[self.position].elephants.index(self)
         # grid.grid_squares[new_position].elephants.append(
@@ -317,45 +366,3 @@ class GridSquare:
         self.carcasses.append(CarcassPool(1000, self.name))
         self.beetles.append(Animal("beetle", 50, 0, self.name))
         self.trees.append(Plant("tree", 10.0**5, self.name))
-
-
-class Grid:
-    """This is a dummy class for collecting the spatial relationships of pools.
-
-    0 1 2
-    3 4 5
-    6 7 8
-    """
-
-    def __init__(self) -> None:
-        """The constructor for Grid class.
-
-        Args:
-            grid_squares (list): a list (str) of the grid squares present on the grid.
-
-        """
-        self.grid_squares = {
-            "g0": GridSquare("g0"),
-            "g1": GridSquare("g1"),
-            "g2": GridSquare("g2"),
-            "g3": GridSquare("g3"),
-            "g4": GridSquare("g4"),
-            "g5": GridSquare("g5"),
-            "g6": GridSquare("g6"),
-            "g7": GridSquare("g7"),
-            "g8": GridSquare("g8"),
-        }
-
-    def populate_grid_squares(self) -> None:
-        """The function to add one of each toy pool to each grid square in the grid.
-
-        Args:
-            None: Toy implementation  is only a function of the
-                  hardcoded pools and cohorts.
-
-        Returns:
-            Pool and cohort list attributes in each square
-             are populated with an containing an instance.
-        """
-        for square in self.grid_squares:
-            self.grid_squares[square].populate_grid_square()
