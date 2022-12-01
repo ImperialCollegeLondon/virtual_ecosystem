@@ -112,32 +112,10 @@ def test_register_model_errors(caplog):
         ),
         (
             {
-                "core": {
-                    "timing": {"main_time_step": "0.5 days", "start_time": "2020-01-01"}
-                },
-                "soil": {"no_layers": 2},
+                "core": {"timing": {"start_time": "2020-01-01"}},
+                "soil": {"no_layers": 2, "model_time_step": "12 hours"},
             },
             timedelta64(12, "h"),
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "main_time_step": "0.5 days",
-                        "start_time": "2020-01-01",
-                    }
-                },
-                "soil": {"no_layers": 2, "model_time_step": "5 days"},
-            },
-            timedelta64(5, "D"),
             does_not_raise(),
             (
                 (

@@ -84,10 +84,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     [
         (
             {  # valid config
-                "soil": {"no_layers": 1},
-                "core": {
-                    "timing": {"start_time": "2020-01-01", "main_time_step": "7 days"}
-                },
+                "soil": {"no_layers": 1, "model_time_step": "7 days"},
+                "core": {"timing": {"start_time": "2020-01-01"}},
             },
             "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
             " no_layers = 1)",
@@ -103,10 +101,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         ),
         (
             {  # invalid soil config tag
-                "soil": {"no_layers": -1},
-                "core": {
-                    "timing": {"start_time": "2020-01-01", "main_time_step": "7 days"}
-                },
+                "soil": {"no_layers": -1, "model_time_step": "7 days"},
+                "core": {"timing": {"start_time": "2020-01-01"}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -129,9 +125,9 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             ),
         ),
         (
-            {  # min_time_step missing units
-                "soil": {"no_layers": 1},
-                "core": {"timing": {"main_time_step": "7"}},
+            {  # model_time_step missing units
+                "soil": {"no_layers": 1, "model_time_step": "7"},
+                "core": {"timing": {}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -202,10 +198,11 @@ def test_vr_run_bad_model(mocker, caplog):
             "timing": {
                 "start_date": "2020-01-01",
                 "end_date": "2120-01-01",
-                "main_time_step": "0.5 martian days",
             },
         },
-        "soil": {},
+        "soil": {
+            "model_time_step": "0.5 martian days",
+        },
     }
 
     with pytest.raises(InitialisationError):

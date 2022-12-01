@@ -87,7 +87,7 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["core"]["timing"]["main_time_step"]).to(
+            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
