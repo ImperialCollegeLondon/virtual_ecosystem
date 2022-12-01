@@ -153,7 +153,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import numpy as np
-from xarray import DataArray, Dataset, load_dataset
+from xarray import DataArray, load_dataset
 
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
@@ -278,54 +278,40 @@ class Data(UserDict):
 
         return "Data: no variables loaded"
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        """The disabled Data.__setitem__ interface."""
-
-        raise RuntimeError("Use 'load_dataarray' to add data to Data instances.")
-
-    def load_dataarray(self, darray: DataArray, replace: bool = False) -> None:
+    def __setitem__(self, key: str, value: DataArray) -> None:
         """Load a data array into a Data instance.
 
         This method takes an input DataArray object and then matches the dimension and
         coordinates signature of the array to find a loading routines given the grid
         used in the Data instance. That routine is used to validate the DataArray and
-        then add the DataArray to the Data dictionary.
+        then add the DataArray to the Data dictionary or replace the existing DataArray
+        under that key.
 
         Note that the DataArray name is expected to match the standard internal variable
-        names used in Virtual Rainforest. By default, loading a data array will not
-        replace an existing data array stored under the same key.
+        names used in Virtual Rainforest.
 
         Args:
-            darray: A DataArray to add to the Data dictionary.
-            replace: If the variable already exists, should it be replaced.
+            key: The name to store the data under
+            value: The DataArray to be stored
         """
 
-        if isinstance(darray, Dataset):
-            log_and_raise("Cannot add Dataset - extract required DataArray", TypeError)
-        elif not isinstance(darray, DataArray):
+        if not isinstance(value, DataArray):
             log_and_raise(
                 "Only DataArray objects can be added to Data instances", TypeError
             )
 
-        # Resolve name status
-        if darray.name is None:
-            log_and_raise("Cannot add data array with unnamed variable", TypeError)
+        # Ensure dataarray name matches the key
+        value.name = key
 
-        if darray.name not in self:
-            LOGGER.info(f"Adding data array for '{darray.name}'")
+        if key not in self:
+            LOGGER.info(f"Adding data array for '{key}'")
         else:
-            if replace:
-                LOGGER.info(f"Replacing data array for '{darray.name}'")
-            else:
-                log_and_raise(
-                    f"Data array for '{darray.name}' already loaded. Use replace=True",
-                    KeyError,
-                )
+            LOGGER.info(f"Replacing data array for '{key}'")
 
         # Look for data validators on registered axes
         for axis in AXIS_VALIDATORS.keys():
 
-            axis_validator_func = get_validator(axis=axis, data=self, darray=darray)
+            axis_validator_func = get_validator(axis=axis, data=self, darray=value)
 
             if axis_validator_func is None:
                 log_and_raise(
@@ -337,23 +323,21 @@ class Data(UserDict):
             # upstream exceptions. Using "#type: ignore"" here as None has been
             # explicitly handled above.
             try:
-                darray = axis_validator_func(data=self, darray=darray)  # type: ignore
+                darray = axis_validator_func(data=self, darray=value)  # type: ignore
             except Exception as excep:
                 log_and_raise(str(excep), type(excep))
 
             # Set validation function name as proof of concept
             darray.attrs[axis] = axis_validator_func.__name__  # type: ignore
 
-        # Store the data in the UserDict using super to bypass the disabled subclass
-        # __setitem__ interface
-        super().__setitem__(darray.name, darray)
+        # Store the data in the UserDict
+        super().__setitem__(key, darray)
 
     def load_from_file(
         self,
         file: Path,
         file_var: str,
         name: Optional[str] = None,
-        replace: bool = False,
     ) -> None:
         """Adds a variable to the data object.
 
@@ -365,7 +349,6 @@ class Data(UserDict):
             file: A Path for the file containing the variable to load.
             file_var: A string providing the name of the variable in the file.
             name: An optional replacement name to use in the Data instance.
-            replace: If the variable already exists, should it be replaced.
         """
 
         # Detect file type
@@ -386,7 +369,7 @@ class Data(UserDict):
             input_data.name = name
 
         # Add the data array
-        self.load_dataarray(input_data, replace=replace)
+        self[input_data.name] = input_data
 
     def load_data_config(self, data_config: dict) -> None:
         """Setup the simulation data from a user configuration.

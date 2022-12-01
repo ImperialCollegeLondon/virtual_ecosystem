@@ -41,27 +41,10 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
     log_check(caplog, expected_log)
 
 
-def test_Data_setitem():
-    """Test that the the subclass Data.__setitem__ had been correctly disabled."""
-
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    # Switch on what to provide as grid
-    grid = Grid()
-    data = Data(grid)
-
-    with pytest.raises(RuntimeError) as err:
-        data["this"] = "should not work"
-
-    assert str(err.value) == "Use 'load_dataarray' to add data to Data instances."
-
-
 @pytest.mark.parametrize(
     argnames=[
         "darray",
-        "replace",
-        "exp_name",
+        "name",
         "exp_err",
         "exp_log",
         "exp_vals",
@@ -69,7 +52,6 @@ def test_Data_setitem():
     argvalues=[
         pytest.param(  # Bad load - not a dataarray
             np.array([1, 2, 3]),
-            False,
             "air_temperature",
             pytest.raises(TypeError),
             ((CRITICAL, "Only DataArray objects can be added to Data instances"),),
@@ -78,24 +60,11 @@ def test_Data_setitem():
         ),
         pytest.param(  # Bad load - dataset
             Dataset({"temp": np.array([1, 2, 3])}),
-            False,
             "air_temperature",
             pytest.raises(TypeError),
-            ((CRITICAL, "Cannot add Dataset - extract required DataArray"),),
+            ((CRITICAL, "Only DataArray objects can be added to Data instances"),),
             None,
             id="dataset_not_datarray",
-        ),
-        pytest.param(  # Bad load - missing name
-            DataArray(
-                data=np.array([[0, 1], [2, 3]]),
-                coords={"y": [2, 1], "x": [1, 2]},
-            ),
-            False,
-            "air_temperature",
-            pytest.raises(TypeError),
-            ((CRITICAL, "Cannot add data array with unnamed variable"),),
-            None,
-            id="missing_name",
         ),
         pytest.param(  # Bad load - no known loader
             DataArray(
@@ -103,8 +72,7 @@ def test_Data_setitem():
                 coords={"nope": np.arange(9)},
                 name="should_not_work",
             ),
-            False,
-            "air_temperature",
+            "should_not_work",
             pytest.raises(KeyError),
             (
                 (INFO, "Adding data array for 'should_not_work'"),
@@ -122,30 +90,11 @@ def test_Data_setitem():
                 coords={"y": [2, 1], "x": [1, 2]},
                 name="air_temperature",
             ),
-            False,
             "air_temperature",
             does_not_raise(),
             ((INFO, "Adding data array for 'air_temperature'"),),
             [0, 1, 2, 3],
             id="valid_square_xy_coords",
-        ),
-        pytest.param(  # Bad load - variable already exists
-            DataArray(
-                data=np.array([[0, 1], [2, 3]]),
-                coords={"y": [2, 1], "x": [1, 2]},
-                name="existing_var",
-            ),
-            False,
-            "existing_var",
-            pytest.raises(KeyError),
-            (
-                (
-                    CRITICAL,
-                    "Data array for 'existing_var' already loaded. Use replace=True",
-                ),
-            ),
-            [0, 1, 2, 3],
-            id="existing_var",
         ),
         pytest.param(  # Replacing previous load from square_xy_coords
             DataArray(
@@ -153,7 +102,6 @@ def test_Data_setitem():
                 coords={"y": [2, 1], "x": [1, 2]},
                 name="existing_var",
             ),
-            True,
             "existing_var",
             does_not_raise(),
             ((INFO, "Replacing data array for 'existing_var'"),),
@@ -166,7 +114,6 @@ def test_Data_setitem():
                 dims=("y", "x"),
                 name="air_temperature",
             ),
-            False,
             "air_temperature",
             does_not_raise(),
             ((INFO, "Adding data array for 'air_temperature'"),),
@@ -179,7 +126,6 @@ def test_Data_setitem():
                 coords={"cell_id": [0, 1, 2, 3]},
                 name="air_temperature",
             ),
-            False,
             "air_temperature",
             does_not_raise(),
             ((INFO, "Adding data array for 'air_temperature'"),),
@@ -192,7 +138,6 @@ def test_Data_setitem():
                 dims=("cell_id",),
                 name="air_temperature",
             ),
-            False,
             "air_temperature",
             does_not_raise(),
             ((INFO, "Adding data array for 'air_temperature'"),),
@@ -201,9 +146,7 @@ def test_Data_setitem():
         ),
     ],
 )
-def test_Data_load_dataarray(
-    caplog, fixture_data, darray, replace, exp_name, exp_err, exp_log, exp_vals
-):
+def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_vals):
     """Test the load_dataarray method.
 
     Note that fixture_data is edited to create existing variables and to provide an
@@ -211,20 +154,19 @@ def test_Data_load_dataarray(
     """
 
     with exp_err:
-        fixture_data.load_dataarray(darray, replace=replace)
-        assert exp_name in fixture_data
-        assert np.allclose(fixture_data[exp_name].values, exp_vals)
+        fixture_data[name] = darray
+        assert name in fixture_data
+        assert np.allclose(fixture_data[name].values, exp_vals)
 
     # Check the error reports
     log_check(caplog, exp_log)
 
 
 @pytest.mark.parametrize(
-    argnames=["name", "replace", "exp_error", "exp_msg", "exp_log"],
+    argnames=["name", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
             None,
-            False,
             does_not_raise(),
             None,
             (
@@ -235,7 +177,6 @@ def test_Data_load_dataarray(
         ),
         pytest.param(
             "temperature",
-            False,
             does_not_raise(),
             None,
             (
@@ -246,25 +187,7 @@ def test_Data_load_dataarray(
             id="load_with_rename",
         ),
         pytest.param(
-            # Unusual doubled quotes in error message specifically required with
-            # str(KeyError). See: https://stackoverflow.com/questions/24998968
             "existing_var",
-            False,
-            pytest.raises(KeyError),
-            "\"Data array for 'existing_var' already loaded. Use replace=True\"",
-            (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Renaming file variable 'temp' as 'existing_var'"),
-                (
-                    CRITICAL,
-                    "Data array for 'existing_var' already loaded. Use replace=True",
-                ),
-            ),
-            id="load_with_clash",
-        ),
-        pytest.param(
-            "existing_var",
-            True,
             does_not_raise(),
             None,
             (
@@ -277,7 +200,7 @@ def test_Data_load_dataarray(
     ],
 )
 def test_Data_load_from_file_naming(
-    caplog, shared_datadir, name, replace, exp_error, exp_msg, exp_log
+    caplog, shared_datadir, name, exp_error, exp_msg, exp_log
 ):
     """Test the coding of the name handling and replacement."""
 
@@ -296,14 +219,16 @@ def test_Data_load_from_file_naming(
     )
     data = Data(grid)
 
-    # (Crudely) create an existing variable to test replacement
-    data.data["existing_var"] = None
+    # Create an existing variable to test replacement
+    data["existing_var"] = DataArray(np.arange(100), dims=("cell_id",))
+    caplog.clear()
 
+    # Load the data from file
     datafile = shared_datadir / "test_data/cellid_dims.nc"
 
     with exp_error as err:
 
-        data.load_from_file(file=datafile, file_var="temp", name=name, replace=replace)
+        data.load_from_file(file=datafile, file_var="temp", name=name)
 
         # Check the naming has worked and the data are loaded
         datakey = name or "temp"
