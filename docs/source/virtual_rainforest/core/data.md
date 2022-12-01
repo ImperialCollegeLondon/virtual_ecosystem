@@ -39,11 +39,11 @@ working with data using Python are shown below.
 ## Validation
 
 One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to
-validate data before it is added to the `Data` instance. This works by looking for
-particular dimensions on the data that map onto core axes in the simulation and checking
-that the dimensions in the input data are congruent with the model configuration. For
-example, a data array with `x` and `y` dimensions should have the same number of rows
-and columns as square grid.
+automatically validate data before it is added to the `Data` instance. This works by
+looking for particular dimensions on the data that map onto core axes in the simulation
+and checking that the dimensions in the input data are congruent with the model
+configuration. For example, a data array with `x` and `y` dimensions should have the
+same number of rows and columns as square grid.
 
 ## Creating a `Data` instance
 
