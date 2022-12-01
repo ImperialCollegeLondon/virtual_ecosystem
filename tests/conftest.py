@@ -50,7 +50,7 @@ def fixture_square_grid():
     return grid
 
 
-@pytest.fixture()
+@pytest.fixture
 def fixture_square_grid_simple():
     """Create a square grid fixture.
 
@@ -71,7 +71,7 @@ def fixture_square_grid_simple():
     return grid
 
 
-@pytest.fixture()
+@pytest.fixture
 def fixture_data(fixture_square_grid_simple):
     """A Data instance fixture for use in testing."""
 
