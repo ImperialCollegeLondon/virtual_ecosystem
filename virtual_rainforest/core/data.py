@@ -48,7 +48,7 @@ be several methods to map the data in a provided array onto the axis. The method
 selection depends on matching the _signature_ of a provided array for a particular axis:
 this is a combination of the named dimensions and whether the dimensions are associated
 with coordinates.  As an example, an array with simple ``x`` and ``y`` dimensions and no
-coordinates, could be mapped onto a square grid assuming that the lengths of each
+coordinates could be mapped onto a square grid, assuming that the lengths of each
 dimension match.
 
 At present, the signature also includes only the spatial
@@ -263,7 +263,7 @@ class Data(UserDict):
 
         # Call the UserDict __init__ to set up the dictionary functionality, but the
         # Data class does not pass in data at __init__, so no arguments provided.
-        super(Data, self).__init__()
+        super().__init__()
 
         # Set up the extended instance properties
         if not isinstance(grid, Grid):
@@ -346,7 +346,7 @@ class Data(UserDict):
 
         # Store the data in the UserDict using super to bypass the disabled subclass
         # __setitem__ interface
-        super(Data, self).__setitem__(darray.name, darray)
+        super().__setitem__(darray.name, darray)
 
     def load_from_file(
         self,
