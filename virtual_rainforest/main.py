@@ -5,6 +5,7 @@ this script also defines the command line entry points for the model.
 """
 
 from itertools import compress
+from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
 
@@ -90,18 +91,36 @@ def extract_timing_details(
 ) -> tuple[datetime64, datetime64, timedelta64, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
+    The start time, run length and update interval are all extracted from the
+    configuration. Sanity checks are carried out on these extracted values. The end time
+    is then generated from the previously extracted timing information. This end time
+    will always be a multiple of the update interval, with the convention that the
+    simulation should always run for at least as long as the user specified run
+    length.
+
     Args:
         config: The full virtual rainforest configuration
 
     Raises:
-        InitialisationError: If the model is set to end before it starts, the units of
-            update interval aren't valid, or if the interval is too small for the model
-            to ever update.
+        InitialisationError: If the run length is too short for the model to update, or
+            the units of update interval or run length aren't valid.
     """
 
     # First extract start and end times
     start_time = datetime64(config["core"]["timing"]["start_date"])
-    end_time = datetime64(config["core"]["timing"]["end_date"])
+
+    # Catch bad time dimensions
+    try:
+        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("minutes")
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
+        log_and_raise(
+            "Units for core.timing.run_length are not valid time units: %s"
+            % config["core"]["timing"]["run_length"],
+            InitialisationError,
+        )
+    else:
+        # Round raw time interval to nearest minute
+        run_length = timedelta64(int(raw_length.magnitude), "m")
 
     # Catch bad time dimensions
     try:
@@ -118,20 +137,25 @@ def extract_timing_details(
         # Round raw time interval to nearest minute
         update_interval = timedelta64(int(raw_interval.magnitude), "m")
 
-    if end_time < start_time:
+    if run_length < update_interval:
         log_and_raise(
-            f"Simulation ends ({start_time}) before it starts ({end_time})!",
+            f"Models will never update as the update interval ({update_interval}) is "
+            f"larger than the run length ({run_length})",
             InitialisationError,
         )
 
-    if update_interval > end_time - start_time:
-        log_and_raise(
-            f"Model will never update as update interval ({update_interval}) is larger "
-            f"than the difference between the start and end times "
-            f"({end_time - start_time})",
-            InitialisationError,
-        )
+    # Calculate when the simulation should stop based on principle that it should run at
+    # least as long as the user requests rather than shorter
+    end_time = start_time + ceil(run_length / update_interval) * update_interval
 
+    # Then inform the user how long it will run for
+    LOGGER.info(
+        "Virtual Rainforest simulation will run from %s until %s. This is a run length "
+        "of %s, the user requested %s"
+        % (start_time, end_time, end_time - start_time, run_length)
+    )
+
+    # TODO - WORK OUT WHICH OF THESE SHOULD ACTUALLY BE RETURNED
     return start_time, end_time, update_interval, start_time
 
 
@@ -151,33 +175,6 @@ def check_for_fast_models(
         LOGGER.warning(
             "The following models have shorter time steps than the main model: %s"
             % fast_models
-        )
-
-
-def setup_timing_loop(
-    start_time: datetime64, end_time: datetime64, update_interval: timedelta64
-) -> None:
-    """Check whether time interval covers the time window well.
-
-    Check if the time interval chosen means that more than 10% of the time window
-    is not covered. If this is the case the user is warned.
-
-    Args:
-        start_time: Time the model starts at
-        end_time: Time the model should end at
-        update_interval: Time step of the main model loop
-    """
-
-    # Print number of steps needed to cover the interval
-    n = (end_time - start_time) / update_interval
-    # Convert this to a percentage of time span not covered
-    _, d = divmod(n, 1)
-    p = 100 * d / n
-
-    if p > 5.0:
-        LOGGER.warning(
-            "Due to a (relatively) large model time step, %.4s%% of the desired time "
-            "span is not covered!" % p
         )
 
 
@@ -248,7 +245,6 @@ def vr_run(
     # TODO - Save model state
 
     # Setup the timing loop
-    setup_timing_loop(start_time, end_time, update_interval)
     while current_time < end_time:
 
         current_time += update_interval

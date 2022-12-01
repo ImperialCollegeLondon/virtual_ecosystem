@@ -7,7 +7,7 @@ ny = 10
 
 [core.timing]
 start_date = "2020-01-01"
-end_date = "2120-01-01"
+run_length = "50 years"
 main_time_step = "0.5 days"
 
 [plants]

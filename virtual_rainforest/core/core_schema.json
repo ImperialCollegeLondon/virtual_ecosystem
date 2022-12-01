@@ -38,11 +38,10 @@
                      "format": "date",
                      "default": "2015-01-01"
                   },
-                  "end_date": {
-                     "description": "Simulation end date",
+                  "run_length": {
+                     "description": "How long the simulation should be run for",
                      "type": "string",
-                     "format": "date",
-                     "default": "2065-01-01"
+                     "default": "30 years"
                   },
                   "main_time_step": {
                      "description": "Main model time step, units must be provided!",
@@ -53,7 +52,7 @@
                "default": {},
                "required": [
                   "start_date",
-                  "end_date",
+                  "run_length",
                   "main_time_step"
                ]
             },

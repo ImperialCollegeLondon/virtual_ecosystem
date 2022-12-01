@@ -18,7 +18,6 @@ from virtual_rainforest.main import (
     extract_timing_details,
     get_models_to_update,
     select_models,
-    setup_timing_loop,
     vr_run,
 )
 from virtual_rainforest.soil.model import SoilModel
@@ -240,35 +239,23 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "end_date": "2120-01-01",
-                        "main_time_step": "0.5 days",
+                        "run_length": "30 years",
+                        "main_time_step": "1 month",
                     }
                 }
             },
             {
                 "start_time": datetime64("2020-01-01"),
-                "end_time": datetime64("2120-01-01"),
-                "update_interval": timedelta64(12, "h"),
+                "end_time": datetime64("2049-12-31T12:00"),
+                "update_interval": timedelta64(43830, "m"),
             },
             does_not_raise(),
-            (),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "end_date": "1995-01-01",
-                        "main_time_step": "0.5 days",
-                    }
-                }
-            },
-            {},  # Fails so no output to check
-            pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
-                    "Simulation ends (2020-01-01) before it starts (1995-01-01)!",
+                    INFO,
+                    "Virtual Rainforest simulation will run from 2020-01-01 until 2049-"
+                    "12-31T12:00. This is a run length of 15778800 minutes, the user "
+                    "requested 15778800 minutes",
                 ),
             ),
         ),
@@ -277,8 +264,8 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "end_date": "2020-01-03",
-                        "main_time_step": "7 days",
+                        "run_length": "1 year",
+                        "main_time_step": "2 years",
                     }
                 }
             },
@@ -287,9 +274,8 @@ def test_vr_run_bad_model(mocker, caplog):
             (
                 (
                     CRITICAL,
-                    "Model will never update as update interval (10080 minutes) is "
-                    "larger than the difference between the start and end times "
-                    "(2 days)",
+                    "Models will never update as the update interval (1051920 minutes) "
+                    "is larger than the run length (525960 minutes)",
                 ),
             ),
         ),
@@ -298,7 +284,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "end_date": "2120-01-01",
+                        "run_length": "30 years",
                         "main_time_step": "7 short days",
                     }
                 }
@@ -355,42 +341,6 @@ def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_ent
     models_cfd = [model]
 
     check_for_fast_models(models_cfd, update_interval)
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "update_interval,expected_log_entries",
-    [
-        (timedelta64(2 * 7 * 24 * 60, "m"), ()),
-        (
-            timedelta64(int(27 * 365.25 * 24 * 60), "m"),
-            (
-                (
-                    WARNING,
-                    "Due to a (relatively) large model time step, 9.99% of the desired "
-                    "time span is not covered!",
-                ),
-            ),
-        ),
-        (
-            timedelta64(int(13 * 365.25 * 24 * 60), "m"),
-            (
-                (
-                    WARNING,
-                    "Due to a (relatively) large model time step, 13.3% of the desired "
-                    "time span is not covered!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_setup_timing_loop(caplog, update_interval, expected_log_entries):
-    """Test to check that timing loop setup works properly."""
-
-    start_time = datetime64("2020-03-01")
-    end_time = datetime64("2050-03-01")
-    setup_timing_loop(start_time, end_time, update_interval)
 
     log_check(caplog, expected_log_entries)
 
