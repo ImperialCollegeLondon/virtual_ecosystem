@@ -244,14 +244,12 @@ def test_vr_run_bad_model(mocker, caplog):
                     "timing": {
                         "start_date": "2020-01-01",
                         "run_length": "30 years",
-                        "main_time_step": "1 month",
                     }
                 }
             },
             {
                 "start_time": datetime64("2020-01-01"),
                 "end_time": datetime64("2049-12-31T12:00"),
-                "update_interval": timedelta64(43830, "m"),
             },
             does_not_raise(),
             (
@@ -268,8 +266,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "run_length": "1 year",
-                        "main_time_step": "2 years",
+                        "run_length": "1 minute",
                     }
                 }
             },
@@ -278,8 +275,8 @@ def test_vr_run_bad_model(mocker, caplog):
             (
                 (
                     CRITICAL,
-                    "Models will never update as the update interval (1051920 minutes) "
-                    "is larger than the run length (525960 minutes)",
+                    "Models will never update as the update interval (10 minutes) is "
+                    "larger than the run length (1 minutes)",
                 ),
             ),
         ),
@@ -288,8 +285,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "run_length": "30 years",
-                        "main_time_step": "7 short days",
+                        "run_length": "7 short days",
                     }
                 }
             },
@@ -298,8 +294,8 @@ def test_vr_run_bad_model(mocker, caplog):
             (
                 (
                     CRITICAL,
-                    "Units for core.timing.main_time_step are not valid time units: 7 "
-                    "short days",
+                    "Units for core.timing.run_length are not valid time units: 7 short"
+                    " days",
                 ),
             ),
         ),
@@ -309,12 +305,8 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     """Test that function to extract main loop timing works as intended."""
 
     with raises:
-        start_time, end_time, update_interval, current_time = extract_timing_details(
-            config
-        )
-        assert start_time == output["start_time"]
+        current_time, end_time = extract_timing_details(config, timedelta64(10, "m"))
         assert end_time == output["end_time"]
-        assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
 
     log_check(caplog, expected_log_entries)

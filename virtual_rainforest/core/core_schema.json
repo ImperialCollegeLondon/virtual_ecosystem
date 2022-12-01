@@ -42,18 +42,12 @@
                      "description": "How long the simulation should be run for",
                      "type": "string",
                      "default": "30 years"
-                  },
-                  "main_time_step": {
-                     "description": "Main model time step, units must be provided!",
-                     "type": "string",
-                     "default": "7.0 days"
                   }
                },
                "default": {},
                "required": [
                   "start_date",
-                  "run_length",
-                  "main_time_step"
+                  "run_length"
                ]
             },
             "modules": {
