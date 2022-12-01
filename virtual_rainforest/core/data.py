@@ -70,16 +70,16 @@ So, for example:
 
 .. code-block:: python
 
-    @add_spatial_loader("spatial", (("x", "y"), ("x", "y"), ("square",)))
+    @add_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
 
 This adds a spatial validator that will map a :class:`~xarray.DataArray` with ``x`` and
 ``y`` coordinates (and hence implicitly 'x' and 'y' dimensions) onto a square grid.
 
 .. code-block:: python
 
-    @add_spatial_loader("spatial", (("cell_id",), (), ("__any__",)))
+    @add_validator("spatial", (("cell_id",), (), ("__any__",)))
 
-This adds a spatial loader that will map a :class:`~xarray.DataArray` with the
+This adds a spatial validator that will map a :class:`~xarray.DataArray` with the
 ``cell_id`` dimension (but no ``cell_id`` coordinates) onto _any_ spatial grid type: the
 underlying ``cell_id``  attribute of the grid is defined for all grid.
 
