@@ -526,9 +526,6 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     da_dims = set(darray.dims)
     da_coords = set(darray.coords.variables)
 
-    # Variable to hold the matching callable if found
-    matching_validator: Optional[Callable] = None
-
     # Loop over the available validators loooking for a congruent signature
     # - dims _cannot_ be empty on a DataArray (they default to dim_N strings) so are
     #   guaranteed to be non-empty and must then match.
@@ -545,10 +542,9 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
             # Retrieve the method associated with the loader signature from the Data
             # object.
-            matching_validator = ld_fnm
-            break
+            return ld_fnm
 
-    return matching_validator
+    return None
 
 
 @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
