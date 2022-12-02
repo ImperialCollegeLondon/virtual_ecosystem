@@ -468,12 +468,10 @@ class Grid:
         # option, if this gets problematic, possibly including an STRTree in the grid
         #    object https://shapely.readthedocs.io/en/latest/strtree.html
 
-        cell_map = [
+        return [
             [id for id, ply in zip(self.cell_id, self.polygons) if ply.intersects(pt)]
             for pt in xyp
         ]
-
-        return cell_map
 
     def map_xy_to_cell_indexing(
         self,
