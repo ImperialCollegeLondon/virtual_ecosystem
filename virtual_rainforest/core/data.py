@@ -653,11 +653,9 @@ def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
     # avoids issues with different permutations of the axes - and map XY onto a common
     # cell_id
 
-    darray = darray.isel(
+    return darray.isel(
         x=DataArray(idx_x, dims=["cell_id"]), y=DataArray(idx_y, dims=["cell_id"])
     )
-
-    return darray
 
 
 @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
@@ -685,12 +683,11 @@ def spld_xy_dim_square(data: Data, darray: DataArray) -> DataArray:
     # and then use these stacked indices to map the 2D onto grid cell order, using
     # isel() to avoid issues with dimension ordering.
     darray_stack = darray.stack(cell_id=("y", "x"))
-    darray = darray.isel(
+
+    return darray.isel(
         x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
         y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
     )
-
-    return darray
 
 
 class DataGenerator:
