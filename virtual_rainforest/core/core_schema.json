@@ -38,6 +38,13 @@
                      "format": "date",
                      "default": "2015-01-01"
                   },
+                  "update_interval": {
+                     "description": "Model update interval. This should either be significantly",
+                     "desc_cont": "shorter than the model time steps, or all model time steps",
+                     "desc_cont2": "should be directly divisible by it.",
+                     "type": "string",
+                     "default": "10 minutes"
+                  },
                   "run_length": {
                      "description": "How long the simulation should be run for",
                      "type": "string",
@@ -47,6 +54,7 @@
                "default": {},
                "required": [
                   "start_date",
+                  "update_interval",
                   "run_length"
                ]
             },

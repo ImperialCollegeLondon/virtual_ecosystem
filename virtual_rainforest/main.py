@@ -86,8 +86,8 @@ def configure_models(
 
 
 def extract_timing_details(
-    config: dict[str, Any], update_interval: timedelta64
-) -> tuple[datetime64, datetime64]:
+    config: dict[str, Any]
+) -> tuple[datetime64, timedelta64, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
     The start time, run length and update interval are all extracted from the
@@ -99,7 +99,6 @@ def extract_timing_details(
 
     Args:
         config: The full virtual rainforest configuration
-        update_interval: Update interval for the main timing loop
 
     Raises:
         InitialisationError: If the run length is too short for the model to update, or
@@ -122,6 +121,21 @@ def extract_timing_details(
         # Round raw time interval to nearest minute
         run_length = timedelta64(int(round(raw_length.magnitude)), "m")
 
+    # Catch bad time dimensions
+    try:
+        raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
+            "minutes"
+        )
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
+        log_and_raise(
+            "Units for core.timing.update_interval are not valid time units: %s"
+            % config["core"]["timing"]["update_interval"],
+            InitialisationError,
+        )
+    else:
+        # Round raw time interval to nearest minute
+        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+
     if run_length < update_interval:
         log_and_raise(
             f"Models will never update as the update interval ({update_interval}) is "
@@ -140,7 +154,7 @@ def extract_timing_details(
         % (start_time, end_time, end_time - start_time, run_length)
     )
 
-    return start_time, end_time
+    return start_time, update_interval, end_time
 
 
 def check_for_fast_models(
@@ -196,7 +210,7 @@ def vr_run(
     update_interval = timedelta64(10, "m")
 
     # Extract all the relevant timing details
-    current_time, end_time = extract_timing_details(config, update_interval)
+    current_time, update_interval, end_time = extract_timing_details(config)
 
     # Identify models with shorter time steps than main loop and warn user about them
     check_for_fast_models(models_cfd, update_interval)

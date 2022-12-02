@@ -240,12 +240,14 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
                         "run_length": "30 years",
                     }
                 }
             },
             {
                 "start_time": datetime64("2020-01-01"),
+                "update_interval": timedelta64(10, "m"),
                 "end_time": datetime64("2049-12-31T12:00"),
             },
             does_not_raise(),
@@ -263,6 +265,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
                         "run_length": "1 minute",
                     }
                 }
@@ -282,6 +285,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
                         "run_length": "7 short days",
                     }
                 }
@@ -296,14 +300,35 @@ def test_vr_run_bad_model(mocker, caplog):
                 ),
             ),
         ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "10 long minutes",
+                        "run_length": "30 years",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Units for core.timing.update_interval are not valid time units: 10"
+                    " long minutes",
+                ),
+            ),
+        ),
     ],
 )
 def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
     """Test that function to extract main loop timing works as intended."""
 
     with raises:
-        current_time, end_time = extract_timing_details(config, timedelta64(10, "m"))
+        current_time, update_interval, end_time = extract_timing_details(config)
         assert end_time == output["end_time"]
+        assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
 
     log_check(caplog, expected_log_entries)
