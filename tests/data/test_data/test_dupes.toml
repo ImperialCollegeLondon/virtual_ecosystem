@@ -1,9 +1,6 @@
 [[core.data.variable]]
 file = "test_data/cellid_dims.nc"
 file_var_name = "temp"
-[[core.data.variable]]
-file = "test_data/cellid_dims.nc"
-file_var_name = "temp"
 data_var_name = "temp_1"
 [[core.data.variable]]
 file = "test_data/cellid_coords.nc"
@@ -12,4 +9,4 @@ data_var_name = "temp_2"
 [[core.data.variable]]
 file = "test_data/cellid_coords.nc"
 file_var_name = "temp"
-data_var_name = "temp_3"
+data_var_name = "temp_2"

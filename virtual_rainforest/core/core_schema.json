@@ -81,10 +81,10 @@
                            "file": {
                               "type": "string"
                            },
-                           "file_var": {
+                           "file_var_name": {
                               "type": "string"
                            },
-                           "name": {
+                           "data_var_name": {
                               "type": "string"
                            }
                         },

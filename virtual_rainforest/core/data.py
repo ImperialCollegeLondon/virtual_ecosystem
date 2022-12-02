@@ -125,27 +125,26 @@ Using a data configuration
 A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
 :meth:`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to
 take a properly validated configuration dictionary, loaded from a TOML file that
-specifies data source files:
+specifies data source files, where `data_var_name` is optional and is used to store the
+data in a `Data` instance under a different variable name to the name used in the file.
 
 .. code-block:: toml
 
     [[core.data.variable]]
-    name="precipitation"
     file="/path/to/file.nc"
-    file_var="precip"
+    file_var_name="precip"
+    data_var_name="precipitation"
     [[core.data.variable]]
-    name="temperature"
     file="/path/to/file.nc"
-    file_var="temp"
+    file_var_name="temperature"
     [[core.data.variable]]
-    name="elevation"
     file="/path/to/file.csv"
-    file_var="elev"
+    file_var_name="elev"
+    data_var_name="elevation"
 
 Note that the properties for each variable in the configuration file are just the
-arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. The `replace`
-argument is not supported: data configurations should not contain multiple definitions
-of the same variable and so will fail with repeated variable names.
+arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Note that data
+configurations cannot define repeated variable names.
 """
 
 from collections import UserDict
@@ -217,12 +216,12 @@ def register_file_format_loader(file_types: tuple[str]) -> Callable:
 
 
 @register_file_format_loader(file_types=(".nc",))
-def load_netcdf(file: Path, file_var: str) -> DataArray:
+def load_netcdf(file: Path, file_var_name: str) -> DataArray:
     """Loads a DataArray from a NetCDF file.
 
     Args:
         file: A Path for a NetCDF file containing the variable to load.
-        file_var: A string providing the name of the variable in the file.
+        file_var_name: A string providing the name of the variable in the file.
     """
 
     # Note that this deliberately doesn't contain any INFO logging messages to maintain
@@ -238,10 +237,10 @@ def load_netcdf(file: Path, file_var: str) -> DataArray:
         log_and_raise(f"Could not load data from {file}: {err}.", ValueError)
 
     # Check if file var is in the dataset
-    if file_var not in dataset:
-        log_and_raise(f"Variable {file_var} not found in {file}", KeyError)
+    if file_var_name not in dataset:
+        log_and_raise(f"Variable {file_var_name} not found in {file}", KeyError)
 
-    return dataset[file_var]
+    return dataset[file_var_name]
 
 
 class Data(UserDict):
@@ -336,8 +335,8 @@ class Data(UserDict):
     def load_from_file(
         self,
         file: Path,
-        file_var: str,
-        name: Optional[str] = None,
+        file_var_name: str,
+        data_var_name: Optional[str] = None,
     ) -> None:
         """Adds a variable to the data object.
 
@@ -347,8 +346,9 @@ class Data(UserDict):
 
         Args:
             file: A Path for the file containing the variable to load.
-            file_var: A string providing the name of the variable in the file.
-            name: An optional replacement name to use in the Data instance.
+            file_var_name: A string providing the name of the variable in the file.
+            data_var_name: An optional replacement name to use as the data key in the
+                Data instance.
         """
 
         # Detect file type
@@ -359,19 +359,21 @@ class Data(UserDict):
             log_and_raise(f"No file format loader provided for {file_type}", ValueError)
 
         # If so, load the data
-        LOGGER.info("Loading variable '%s' from file: %s", file_var, file)
+        LOGGER.info("Loading variable '%s' from file: %s", file_var_name, file)
         loader = FILE_FORMAT_REGISTRY[file_type]
-        input_data = loader(file, file_var)
+        input_data = loader(file, file_var_name)
 
         # Replace the file variable name if requested
-        if name is not None:
-            LOGGER.info("Renaming file variable '%s' as '%s'", input_data.name, name)
-            input_data.name = name
+        if data_var_name is not None:
+            LOGGER.info(
+                "Renaming file variable '%s' as '%s'", input_data.name, data_var_name
+            )
+            input_data.name = data_var_name
 
         # Add the data array
         self[input_data.name] = input_data
 
-    def load_data_config(self, data_config: dict) -> None:
+    def load_data_config(self, data_config: dict[str, Any]) -> None:
         """Setup the simulation data from a user configuration.
 
         This is a method is used to validate a provided user data configuration and
@@ -379,10 +381,10 @@ class Data(UserDict):
         data_config dictionary can contain lists of variables under the following
         keys:
 
-        * `variable`: These are data elements loaded from a provided file. Each
-          element in the list should be a dictionary providing the path to the file
-          ('file'), the name of the variable within the file ('file_var') and optionally
-          a different variable name to be used internally ('name').
+        * `variable`: These are data elements loaded from a provided file. Each element
+          in the list should be a dictionary providing the path to the file ('file'),
+          the name of the variable within the file ('file_var_name') and optionally a
+          different variable name to be used internally ('data_var_name').
         * `constant`: TODO
         * `generator`: TODO
 
@@ -398,18 +400,30 @@ class Data(UserDict):
         # Handle variables
         if "variable" in data_config:
 
+            # Check what name the data will be saved under but do then carry on to check
+            # for other loading problems
+            data_var_names = [
+                v.get("data_var_name") or v["file_var_name"]
+                for v in data_config["variable"]
+            ]
+            dupl_names = set(
+                [str(md) for md in data_var_names if data_var_names.count(md) > 1]
+            )
+            if dupl_names:
+                LOGGER.critical("Duplicate variable names in data configuration.")
+                clean_load = False
+
             # Load data from each data source
             for each_var in data_config["variable"]:
-
-                # Get the name used in the file or None
-                name = each_var.get("name", None)
 
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
                 try:
                     self.load_from_file(
-                        file=each_var["file"], file_var=each_var["file_var"], name=name
+                        file=each_var["file"],
+                        file_var_name=each_var["file_var_name"],
+                        data_var_name=each_var.get("data_var_name"),
                     )
                 except Exception as err:
                     LOGGER.critical(str(err))

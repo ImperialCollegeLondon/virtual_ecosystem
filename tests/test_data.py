@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 from xarray import DataArray, Dataset
 
+from virtual_rainforest.core.config import ConfigurationError
+
 from .conftest import log_check
 
 
@@ -228,7 +230,7 @@ def test_Data_load_from_file_naming(
 
     with exp_error as err:
 
-        data.load_from_file(file=datafile, file_var="temp", name=name)
+        data.load_from_file(file=datafile, file_var_name="temp", data_var_name=name)
 
         # Check the naming has worked and the data are loaded
         datakey = name or "temp"
@@ -459,7 +461,7 @@ def test_Data_load_from_file_data_handling(
 
     with exp_error as err:
 
-        data.load_from_file(file=datafile, file_var="temp")
+        data.load_from_file(file=datafile, file_var_name="temp")
 
         # Check the data is in fact loaded and that a simple sum of values matches
         assert "temp" in data
@@ -474,12 +476,7 @@ def test_Data_load_from_file_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=[
-        "file",
-        "exp_error",
-        "exp_msg",
-        "exp_log",
-    ],
+    argnames=["file", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
             "test_data/test.toml",
@@ -487,6 +484,8 @@ def test_Data_load_from_file_data_handling(
             None,
             (
                 (INFO, "Loading data from configuration"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Adding data array for 'temp'"),
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Renaming file variable 'temp' as 'temp_1'"),
                 (INFO, "Adding data array for 'temp_1'"),
@@ -498,6 +497,25 @@ def test_Data_load_from_file_data_handling(
                 (INFO, "Adding data array for 'temp_3'"),
             ),
             id="valid config",
+        ),
+        pytest.param(
+            "test_data/test_dupes.toml",
+            pytest.raises(ConfigurationError),
+            "Data configuration did not load cleanly - check log",
+            (
+                (INFO, "Loading data from configuration"),
+                (CRITICAL, "Duplicate variable names in data configuration"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_1'"),
+                (INFO, "Adding data array for 'temp_1'"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_2'"),
+                (INFO, "Adding data array for 'temp_2'"),
+                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Renaming file variable 'temp' as 'temp_2'"),
+                (INFO, "Replacing data array for 'temp_2'"),
+            ),
+            id="repeated names",
         ),
     ],
 )
@@ -525,14 +543,14 @@ def test_Data_load_from_config(
     data = Data(fixture_load_data_grids)
     file = [shared_datadir / file]
 
-    with exp_error as err:
-        cfg = load_in_config_files(file)
+    cfg = load_in_config_files(file)
 
     # Edit the paths loaded to point to copies in shared_datadir
     for each_var in cfg["core"]["data"]["variable"]:
         each_var["file"] = shared_datadir / each_var["file"]
 
-    data.load_data_config(data_config=cfg["core"]["data"])
+    with exp_error as err:
+        data.load_data_config(data_config=cfg["core"]["data"])
 
     if err:
         assert str(err.value) == exp_msg
