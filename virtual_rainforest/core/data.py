@@ -77,7 +77,7 @@ This adds a spatial validator that will map a :class:`~xarray.DataArray` with ``
 
 .. code-block:: python
 
-    @add_validator("spatial", (("cell_id",), (), ("__any__",)))
+    @add_validator("spatial", (("cell_id",), (), ("any",)))
 
 This adds a spatial validator that will map a :class:`~xarray.DataArray` with the
 ``cell_id`` dimension (but no ``cell_id`` coordinates) onto _any_ spatial grid type: the
@@ -436,9 +436,7 @@ class Data(UserDict):
             raise NotImplementedError("Data config for generators not yet implemented.")
 
         if not clean_load:
-            raise ConfigurationError(
-                "Data configuration did not load cleanly - check log"
-            )
+            raise ConfigurationError("Data configuration did not load cleanly")
 
 
 AXIS_VALIDATORS: dict[str, dict[tuple, Callable]] = {}
@@ -469,7 +467,7 @@ def register_axis_validator(axis: str, signature: tuple) -> Callable:
     * a tuple of dimension names required in the data array to use the function,
     * a tuple of coordinate names required in the data array to use the function - this
       can be an empty tuple if no coordinate names are required,
-    * a tuple of grid types that the loader can be used with. The "__any__" grid type
+    * a tuple of grid types that the loader can be used with. The "any" grid type
       can be used to indicate that a loader will work with any grid type.
 
     Args:
@@ -482,7 +480,7 @@ def register_axis_validator(axis: str, signature: tuple) -> Callable:
         # Check the grid types are valid
         grid_types = signature[2]
         for gtype in grid_types:
-            if (gtype not in GRID_REGISTRY) and (gtype != "__any__"):
+            if (gtype not in GRID_REGISTRY) and (gtype != "any"):
                 log_and_raise(
                     f"Unknown grid type '{gtype}' decorating {func.__name__}",
                     ValueError,
@@ -542,7 +540,7 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
         if (
             set(ld_dims).issubset(da_dims)
             and set(ld_coords).issubset(da_coords)
-            and ((data.grid.grid_type in ld_grid_type) or ("__any__" in ld_grid_type))
+            and ((data.grid.grid_type in ld_grid_type) or ("any" in ld_grid_type))
         ):
 
             # Retrieve the method associated with the loader signature from the Data
@@ -553,7 +551,7 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     return matching_validator
 
 
-@register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("__any__",)))
+@register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
 def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
     """Spatial loader for cell id coordinates onto any grid.
 
@@ -586,7 +584,7 @@ def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
     return darray.isel(cell_id=da_indices)
 
 
-@register_axis_validator("spatial", (("cell_id",), (), ("__any__",)))
+@register_axis_validator("spatial", (("cell_id",), (), ("any",)))
 def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
     """Spatial loader for cell id dimension onto any grid.
 

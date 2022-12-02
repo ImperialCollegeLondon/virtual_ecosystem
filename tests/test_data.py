@@ -501,7 +501,7 @@ def test_Data_load_from_file_data_handling(
         pytest.param(
             "test_data/test_dupes.toml",
             pytest.raises(ConfigurationError),
-            "Data configuration did not load cleanly - check log",
+            "Data configuration did not load cleanly",
             (
                 (INFO, "Loading data from configuration"),
                 (CRITICAL, "Duplicate variable names in data configuration"),
