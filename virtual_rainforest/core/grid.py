@@ -177,29 +177,6 @@ def make_hex_grid(
     return cell_ids.flatten().tolist(), cell_list
 
 
-@register_grid(grid_type="triangle")
-def make_triangular_grid(
-    cell_area: float,
-    cell_nx: int,
-    cell_ny: int,
-    xoff: float = 0,
-    yoff: float = 0,
-) -> GRID_STRUCTURE_SIG:
-    """Create a equilateral triangular grid.
-
-    Args:
-        cell_area: The area of each triangular cell
-        cell_nx: The number of grid cells in the X direction.
-        cell_ny: The number of grid cells in the Y direction.
-        xoff: An offset to use for the grid origin in the X direction.
-        yoff: An offset to use for the grid origin in the Y direction.
-    """
-
-    # Note shapely.affinity.rotate for inversion
-
-    raise NotImplementedError()
-
-
 class Grid:
     """Define the grid of cells used in a Virtual Rainforest simulation.
 
