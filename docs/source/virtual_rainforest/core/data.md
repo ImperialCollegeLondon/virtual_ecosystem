@@ -47,72 +47,77 @@ same number of rows and columns as square grid.
 
 ## Creating a `Data` instance
 
-A  {class}`~core.data.Data` instance is created using information that provides
-information on the core configuration of the simulation. At present, this is just the
-spatial grid being used.
+A  {class}`~virtual_rainforest.core.data.Data` instance is created using information
+that provides information on the core configuration of the simulation. At present, this
+is just the spatial grid being used.
 
-```{code-cell}
+```{code-cell} ipython3
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.data import Data
+from xarray import DataArray
+import numpy as np
 
 # Create a simple default grid and a Data instance
 grid = Grid()
 data = Data(grid=grid)
 
-print(data)
+data
 ```
 
 ## Adding data to a Data instance
 
-Data can be added to a {class}`~core.data.Data` instance using one of three methods:
+Data can be added to a {class}`~virtual_rainforest.core.data.Data` instance using one of
+three methods:
 
-1. The  {meth}`~core.data.Data.load_dataarray` method adds an existing DataArray object
-   to the Data instance, validating it as it goes.
+1. An existing DataArray object can be added to a
+   {class}`~virtual_rainforest.core.data.Data` instance just using the standard
+   dictionary assignment.
 
-1. The  {meth}`~core.data.Data.load_from_file` method loads data from a supported file
-   format and then coerces it into a DataArray, which is then loaded using
-   {meth}`~core.data.Data.load_dataarray`.
+1. The  {meth}`~virtual_rainforest.core.data.Data.load_from_file` method loads data from
+   a supported file format and then coerces it into a DataArray, which is then added to
+   the `~virtual_rainforest.core.data.Data` instance.
 
-1. The  {meth}`~core.data.Data.load_from_config` method takes a loaded Data
-   configuration - which is a set of named variables and source files - and then just
-   uses {meth}`~core.data.Data.load_from_file` to try and load each one.
+1. The  {meth}`~virtual_rainforest.core.data.Data.load_from_config` method takes a
+   loaded Data configuration - which is a set of named variables and source files - and
+   then just uses {meth}`~virtual_rainforest.core.data.Data.load_from_file` to try and
+   load each one.
 
-### Using `load_dataarray`
+### Adding a data array directly
 
-The {meth}`~core.data.Data.load_dataarray` method takes an existing DataArray object and
-then uses the built in validation to match the data onto core axes. So, for example, the
-grid used above has a spatial resolution and size:
+Adding a  DataArray to a {class}`~virtual_rainforest.core.data.Data` method takes an
+existing DataArray object and then uses the built in validation to match the data onto
+core axes. So, for example, the grid used above has a spatial resolution and size:
 
-```{code-cell}
+```{code-cell} ipython3
 grid
 ```
 
 One of the validation routines for the core spatial axis takes a DataArray with `x` and
 `y` coordinates and checks that the data covers all the cells in a square grid:
 
-```{code-cell}
-grid_data = DataArray(
+```{code-cell} ipython3
+temperature_data = DataArray(
     np.random.normal(loc=20.0, size=(10, 10)),
     name="temperature",
     coords={"y": np.arange(5, 100, 10), "x": np.arange(5, 100, 10)},
 )
 
-print(grid_data.coords)
+temperature_data.plot();
 ```
 
-That data array can then be loaded and validated:
+That data array can then be added to the  loaded and validated:
 
-```{code-cell}
-data.load_dataarray(grid_data)
+```{code-cell} ipython3
+data["temperature"] = temperature_data
 ```
 
-```{code-cell}
-print(data)
+The representation of the {class}`virtual_rainforest.core.data.Data` instance now shows
+the loaded variables:
+
+```{code-cell} ipython3
+data
 ```
 
-Note that the spatial validator methods map the input data array onto the underlying
-`cell_id` used in the `Grid` object.
-
-```{code-cell}
+```{code-cell} ipython3
 print(data["temperature"])
 ```

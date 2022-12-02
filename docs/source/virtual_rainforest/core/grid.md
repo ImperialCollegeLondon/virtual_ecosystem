@@ -311,3 +311,7 @@ simple = Grid("square", cell_nx=2, cell_ny=2, cell_area=1)
 
 simple.dumps()
 ```
+
+```{code-cell} ipython3
+
+```
