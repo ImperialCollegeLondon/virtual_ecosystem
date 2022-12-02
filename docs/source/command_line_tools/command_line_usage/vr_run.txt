@@ -1,0 +1,28 @@
+cl_prompt $ vr_run -h
+usage: vr_run [-h] [-m MERGE_FILE_PATH] [--version] [cfg_paths ...]
+
+Configure and run a Virtual Rainforest simulation.
+
+    This program sets up and runs a simulation of the Virtual Rainforest model. At
+    present this is incomplete. At the moment a set of configuration files are read in
+    based on user supplied paths, these are converted to a single configuration file,
+    which is then output for further reference. This combined configuration is then used
+    to initialise a set of models.
+
+    The command accepts one or more paths to config files or folders containing config
+    files (cfg_paths). The set of config files found in those locations are then
+    combined and validated to make sure that they contain a complete and consistent
+    configuration for a virtual_rainforest simulation. The resolved complete
+    configuration is then written to a single consolidated config file (--merge). If a
+    specific location isn't provided via the --merge option, the consolidated file is
+    saved in the folder `vr_run` was called in under the name
+    `vr_full_model_configuration.toml`.
+
+positional arguments:
+  cfg_paths             Paths to config files
+
+options:
+  -h, --help            show this help message and exit
+  -m MERGE_FILE_PATH, --merge MERGE_FILE_PATH
+                        Path for merged config file.
+  --version             show program's version number and exit
