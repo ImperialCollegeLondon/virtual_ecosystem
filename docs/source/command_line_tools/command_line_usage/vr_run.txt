@@ -1,3 +1,4 @@
+```
 cl_prompt $ vr_run -h
 usage: vr_run [-h] [-m MERGE_FILE_PATH] [--version] [cfg_paths ...]
 
@@ -26,3 +27,4 @@ options:
   -m MERGE_FILE_PATH, --merge MERGE_FILE_PATH
                         Path for merged config file.
   --version             show program's version number and exit
+```

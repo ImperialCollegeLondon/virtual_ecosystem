@@ -13,8 +13,9 @@ that, and no actual simulation steps are performed. This will change in the futu
 
 ### Using `vr_run`
 
-```sh
-{!docs/source/command_line_tools/command_line_usage/vr_run.txt!}
+The usage instructions for `vr_run` are given below:
+
+```{include} command_line_usage/vr_run.txt
 ```
 
 Essentially, you can run the Virtual Rainforest model by calling:
