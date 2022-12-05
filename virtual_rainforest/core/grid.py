@@ -506,18 +506,17 @@ class Grid:
         cell_map = self.map_xy_to_cell_id(x_coords=x_coords, y_coords=y_coords)
 
         # Set indexing to sequence along coords if missing
-        if (x_idx is None) and (y_idx is None):
-            _x_idx = np.arange(x_coords.shape[0])
-            _y_idx = np.arange(y_coords.shape[0])
-        elif (x_idx is None) ^ (y_idx is None):  # Note: ^ is xor
+        if (x_idx is None) ^ (y_idx is None):  # Note: ^ is xor
             raise ValueError("Only one of x/y indices provided.")
-        else:
-            _x_idx = x_idx  # type: ignore
-            _y_idx = y_idx  # type: ignore
 
-        # Check provided
-        if (_x_idx.shape != x_coords.shape) or (  # type: ignore
-            _y_idx.shape != y_coords.shape  # type: ignore
+        if (x_idx is None) and (y_idx is None):
+            x_idx = np.arange(x_coords.shape[0])
+            y_idx = np.arange(y_coords.shape[0])
+
+        # Check provided - note that "type: ignore" here and below comes from the
+        # Optional type of the x_idx and y_idx args. These now cannot be None.
+        if (x_idx.shape != x_coords.shape) or (  # type: ignore
+            y_idx.shape != y_coords.shape  # type: ignore
         ):  # type: ignore
             raise ValueError("Dimensions of x/y indices do not match coordinates")
 
@@ -549,7 +548,7 @@ class Grid:
         # Reduce to matching cells in cell_id order
         cells = [
             (mp, x, y)
-            for (mp, x, y) in zip(cell_id_map, _x_idx, _y_idx)
+            for (mp, x, y) in zip(cell_id_map, x_idx, y_idx)  # type: ignore
             if mp is not None
         ]
         cells.sort()
