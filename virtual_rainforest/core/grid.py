@@ -479,7 +479,7 @@ class Grid:
         y_coords: np.ndarray,
         x_idx: Optional[np.ndarray],
         y_idx: Optional[np.ndarray],
-        strict: Optional[bool] = True,
+        strict: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Returns indexing to map xy coordinates a single cell_id axis.
 
