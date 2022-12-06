@@ -57,7 +57,7 @@ def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log)
     # Import register_axis_validator - this triggers various registration messages, so
     # need to use caplog.clear()
 
-    from virtual_rainforest.core.data import register_axis_validator
+    from virtual_rainforest.core.axes import register_axis_validator
     from virtual_rainforest.core.logger import LOGGER
 
     # Capture debug/setup messages
@@ -118,7 +118,7 @@ def test_get_validator(
 ):
     """Test the get_validator function."""
 
-    from virtual_rainforest.core.data import get_validator
+    from virtual_rainforest.core.axes import get_validator
 
     # Decorate a mock function to test the failure modes
     with exp_err as err:
@@ -155,7 +155,8 @@ def test_get_validator(
 def test_spld_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, spld_cellid_dim_any
+    from virtual_rainforest.core.axes import spld_cellid_dim_any
+    from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
@@ -228,7 +229,8 @@ def test_spld_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
 def test_spld_cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, spld_cellid_coord_any
+    from virtual_rainforest.core.axes import spld_cellid_coord_any
+    from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
@@ -270,7 +272,8 @@ def test_spld_cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals
 def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, spld_xy_dim_square
+    from virtual_rainforest.core.axes import spld_xy_dim_square
+    from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
@@ -333,7 +336,8 @@ def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
 def test_spld_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import Data, spld_xy_coord_square
+    from virtual_rainforest.core.axes import spld_xy_coord_square
+    from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)

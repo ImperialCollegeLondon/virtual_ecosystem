@@ -45,8 +45,8 @@ def test_file_format_loader(caplog, file_types, expected_log):
 
     # Import register_data_loader - this triggers the registration of existing data
     # loaders so need to clear those log messages before trying new ones
-    from virtual_rainforest.core.data import register_file_format_loader
     from virtual_rainforest.core.logger import LOGGER
+    from virtual_rainforest.core.readers import register_file_format_loader
 
     # Capture debug/setup messages
     LOGGER.setLevel("DEBUG")
@@ -99,7 +99,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
 def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.data import load_netcdf
+    from virtual_rainforest.core.readers import load_netcdf
 
     with exp_err:
         darray = load_netcdf(shared_datadir / file, file_var)
