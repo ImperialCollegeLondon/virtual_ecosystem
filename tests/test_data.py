@@ -149,10 +149,9 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
     ],
 )
 def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_vals):
-    """Test the load_dataarray method.
+    """Test the __setitem__ method.
 
-    Note that fixture_data is edited to create existing variables and to provide an
-    example of a corrupt spatial loader.
+    Note that fixture_data is edited to create existing variables
     """
 
     with exp_err:
@@ -162,6 +161,57 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
 
     # Check the error reports
     log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["var_name", "exp_err", "exp_msg", "exp_vals"],
+    argvalues=[
+        pytest.param(
+            "existing_var",
+            does_not_raise(),
+            None,
+            [1, 2, 3, 4],
+            id="should_get",
+        ),
+        pytest.param(
+            "not_existing_var",
+            pytest.raises(KeyError),
+            "'not_existing_var'",
+            None,
+            id="should_not_get",
+        ),
+    ],
+)
+def test_Data_getitem(fixture_data, var_name, exp_err, exp_msg, exp_vals):
+    """Test the __getitem__ method.
+
+    Note that fixture_data is edited to include an existing variable
+    """
+
+    with exp_err as err:
+        darray = fixture_data[var_name]
+        assert np.allclose(darray.values, exp_vals)
+
+    # Check the error reports
+    if err:
+        assert str(err.value) == exp_msg
+
+
+@pytest.mark.parametrize(
+    argnames=["var_name", "expected"],
+    argvalues=[
+        pytest.param("existing_var", True),
+        pytest.param("not_existing_var", False),
+    ],
+)
+def test_Data_contains(fixture_data, var_name, expected):
+    """Test the __contains__ method.
+
+    Note that fixture_data is edited to include an existing variable
+    """
+
+    # Check the return boolean
+    assert (var_name in fixture_data) == expected
 
 
 @pytest.mark.parametrize(

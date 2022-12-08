@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
 import pytest
+from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
@@ -79,8 +80,7 @@ def fixture_data(fixture_square_grid_simple):
 
     data = Data(fixture_square_grid_simple)
 
-    # (Crudely) create an existing variable to test replacement - note that although
-    # data[] is suppressed, the data.data[] option is not.
-    data.data["existing_var"] = None
+    # Create an existing variable to test replacement
+    data["existing_var"] = DataArray([1, 2, 3, 4], dims=("cell_id",))
 
     return data
