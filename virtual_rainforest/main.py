@@ -4,8 +4,12 @@ As well as setting up the function to run the overall virtual rainforest simulat
 this script also defines the command line entry points for the model.
 """
 
+from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
+
+import pint
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
@@ -50,7 +54,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 def configure_models(
     config: dict[str, Any], model_list: list[Type[BaseModel]]
-) -> list[BaseModel]:
+) -> dict[str, BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
@@ -63,10 +67,10 @@ def configure_models(
 
     # Use factory methods to configure the desired models
     failed_models = []
-    models_cfd = []
+    models_cfd = {}
     for model in model_list:
         try:
-            models_cfd.append(model.from_config(config))
+            models_cfd[model.name] = model.from_config(config)
         except InitialisationError:
             failed_models.append(model.name)
 
@@ -79,6 +83,99 @@ def configure_models(
         )
 
     return models_cfd
+
+
+def extract_timing_details(
+    config: dict[str, Any]
+) -> tuple[datetime64, timedelta64, datetime64]:
+    """Extract timing details for main loop from the model configuration.
+
+    The start time, run length and update interval are all extracted from the
+    configuration. Sanity checks are carried out on these extracted values. The end time
+    is then generated from the previously extracted timing information. This end time
+    will always be a multiple of the update interval, with the convention that the
+    simulation should always run for at least as long as the user specified run
+    length.
+
+    Args:
+        config: The full virtual rainforest configuration
+
+    Raises:
+        InitialisationError: If the run length is too short for the model to update, or
+            the units of update interval or run length aren't valid.
+    """
+
+    # First extract start and end times
+    start_time = datetime64(config["core"]["timing"]["start_date"])
+
+    # Catch bad time dimensions
+    try:
+        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("minutes")
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
+        log_and_raise(
+            "Units for core.timing.run_length are not valid time units: %s"
+            % config["core"]["timing"]["run_length"],
+            InitialisationError,
+        )
+    else:
+        # Round raw time interval to nearest minute
+        run_length = timedelta64(int(round(raw_length.magnitude)), "m")
+
+    # Catch bad time dimensions
+    try:
+        raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
+            "minutes"
+        )
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
+        log_and_raise(
+            "Units for core.timing.update_interval are not valid time units: %s"
+            % config["core"]["timing"]["update_interval"],
+            InitialisationError,
+        )
+    else:
+        # Round raw time interval to nearest minute
+        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+
+    if run_length < update_interval:
+        log_and_raise(
+            f"Models will never update as the update interval ({update_interval}) is "
+            f"larger than the run length ({run_length})",
+            InitialisationError,
+        )
+
+    # Calculate when the simulation should stop based on principle that it should run at
+    # least as long as the user requests rather than shorter
+    end_time = start_time + ceil(run_length / update_interval) * update_interval
+
+    # Then inform the user how long it will run for
+    LOGGER.info(
+        "Virtual Rainforest simulation will run from %s until %s. This is a run length "
+        "of %s, the user requested %s"
+        % (start_time, end_time, end_time - start_time, run_length)
+    )
+
+    return start_time, update_interval, end_time
+
+
+def check_for_fast_models(
+    models_cfd: dict[str, BaseModel], update_interval: timedelta64
+) -> None:
+    """Warn user of any models using a faster time step than update interval.
+
+    Args:
+        models_cfd: Set of initialised models
+        update_interval: Time step of the main model loop
+    """
+    fast_models = [
+        model.name
+        for model in models_cfd.values()
+        if model.update_interval < update_interval
+    ]
+    if fast_models:
+        LOGGER.warning(
+            "The following models have shorter time steps than the main model: %s"
+            % fast_models
+        )
 
 
 def vr_run(
@@ -109,18 +206,39 @@ def vr_run(
         "All models successfully configured, now attempting to initialise them."
     )
 
-    # This is just a step to pass flake8 checks (DELETE LATER)
-    print(models_cfd)
+    # Define the basic model time grain (set to 10 minutes for now)
+    update_interval = timedelta64(10, "m")
+
+    # Extract all the relevant timing details
+    current_time, update_interval, end_time = extract_timing_details(config)
+
+    # Identify models with shorter time steps than main loop and warn user about them
+    check_for_fast_models(models_cfd, update_interval)
 
     # TODO - Extract input data required to initialise the models
 
     # TODO - Initialise the set of configured models
 
+    # TODO - Spin up the models
+
     # TODO - Save model state
 
-    # TODO - Add timing loop
-    # TODO - Find models to update
-    # TODO - Solve models to steady state
-    # TODO - Save model state
+    # Get the list of date times of the next update.
+    update_due = {mod.name: mod.next_update for mod in models_cfd.values()}
+
+    # Setup the timing loop
+    while current_time < end_time:
+
+        current_time += update_interval
+
+        # Get the names of models that have expired due dates
+        update_needed = [nm for nm, upd in update_due.items() if upd <= current_time]
+
+        # Run their update() method and update due dates for all expired models
+        for mod_nm in update_needed:
+            models_cfd[mod_nm].update()
+            update_due[mod_nm] = models_cfd[mod_nm].next_update()
+
+        # TODO - Save model state
 
     LOGGER.info("Virtual rainforest model run completed!")

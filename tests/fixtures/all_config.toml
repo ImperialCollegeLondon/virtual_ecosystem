@@ -7,8 +7,8 @@ ny = 10
 
 [core.timing]
 start_date = "2020-01-01"
-end_date = "2120-01-01"
-min_time_step = "0.5 days"
+update_interval = "10 minutes"
+run_length = "50 years"
 
 [plants]
 a_plant_integer = 12
@@ -23,3 +23,4 @@ maxh = 50.0
 
 [soil]
 no_layers = 1
+model_time_step = "5 days"

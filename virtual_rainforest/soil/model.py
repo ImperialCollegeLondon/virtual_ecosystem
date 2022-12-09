@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 import pint
-from numpy import timedelta64
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
@@ -46,7 +46,13 @@ class SoilModel(BaseModel, model_name="soil"):
 
     name = "soil"
 
-    def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
+    def __init__(
+        self,
+        update_interval: timedelta64,
+        start_time: datetime64,
+        no_layers: int,
+        **kwargs: Any,
+    ):
 
         if no_layers < 1:
             log_and_raise(
@@ -58,7 +64,7 @@ class SoilModel(BaseModel, model_name="soil"):
                 "The number of soil layers must be an integer!", InitialisationError
             )
 
-        super(SoilModel, self).__init__(update_interval, **kwargs)
+        super().__init__(update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
         # Save variables names to be used by the __repr__
         self._repr.append("no_layers")
@@ -81,11 +87,12 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
+            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(raw_interval.magnitude), "m")
+            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+            start_time = datetime64(config["core"]["timing"]["start_time"])
             no_layers = config["soil"]["no_layers"]
         except (
             ValueError,
@@ -104,7 +111,7 @@ class SoilModel(BaseModel, model_name="soil"):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(update_interval, no_layers)
+            return cls(update_interval, start_time, no_layers)
         else:
             raise InitialisationError()
 
@@ -120,8 +127,11 @@ class SoilModel(BaseModel, model_name="soil"):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def solve(self) -> None:
-        """Placeholder function to solve the soil model."""
+    def update(self) -> None:
+        """Placeholder function to update the soil model."""
+
+        # Finally increment timing
+        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
