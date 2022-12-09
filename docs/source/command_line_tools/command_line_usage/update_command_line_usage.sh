@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # This script echoes the command line usage for script tools to files in this directory
 # that can then be transcluded into markdown files using MyST's built include
 # capability. The syntax is:
