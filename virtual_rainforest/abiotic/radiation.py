@@ -1,179 +1,235 @@
 """The `abiotic.radiation` module.
 
 The radiation module calculates the radiation balance of the Virtual Rainforest.
-Top of canopy net shortwave radiation at a given location depends on
+The top of canopy net shortwave radiation at a given location depends on
     1. extra-terrestrial radiation (affected by the earth's orbit, time of year and
         day, and location on the earth),
     2. terrestrial radiation (affected by atmospheric composition and clouds),
-    3. topography (slope and aspect), and
+    3. topography (elevantion, slope and aspect), and
     4. surface albedo (vegetation type and fraction of vegetation/bare soil).
 
-Terrestial radiation can be derived from climatologies (e.g. WFDE5) or calculated here;
-the implementation is based on Davis et al., (2017). The effects of topography are taken
-into account with a factor derived from the preprocessing module.
+The preprocessing module takes extra-terrestrial radiation as an input and adjusts for
+the effects of topography (slope and aspect). Here, the effects of atmospheric
+filtering (elevation dependend) and cloud cover are added to calculate photosynthetic
+photon flux density (PPFD) at the top of the canopy which is a crucial input to the
+plant module. The implementation is based on David et al. (2017): Simple process-led
+algorithms for simulating habitats (SPLASH v.1.0): robust indices of radiation, evapo-
+transpiration and plant-available moisture, Geosci. Model Dev., 10, 689-708.
 
-The vertical profile of net radiation below the canopy depends on the canopy
-structure, the amount of radiation absorbed by the canopy, and the longwave radiation
-emitted by canopy and surface.
+The effects of cloud cover and surface albedo also determine how much of the shortwave
+radiation that reaches the top of the canopy is refleceted, absorbed, and re-emitted as
+longwave radiation by vegetation and forest floor. The canopy structure determines the
+vertical profile of net shortwave radiation below the canopy which is available for
+sensible and latent heat flux and ground heat flux (see Energy_balance).
 
-The radiation balance can be calculated with the radiation_balance() function. If
-terrestrial radiation is NOT provided as an input, it will be calculated internally.
+The radiation balance can be calculated with the radiation_balance() function. At the
+moment, this happens at a daily timestep.
 
 # the following structural components are not implemented yet
-TODO core.constants
 TODO include vertical structure (canopy layers)
-TODO include data structure (->numpy array)
 TODO include time dimension
 TODO logging, raise errors
+TODO all tests
 """
 
-# import numpy as np
-# from core.constants import kc, kd, kfFEC, bolz # this doesn't exist yet
-kc = 1
-kd = 1
-kfFEC = 1
-bolz = 1
+# from typing import Optional
+import numpy as np
+from numpy.typing import NDArray
+
+# from core.constants import CONSTANTS as C
+# this doesn't exist yet; optional scipy
+CLOUDY_TRANSMISSIVITY = 0.25  # cloudy transmittivity (Linacre, 1968)
+TRANSMISSIVITY_COEFFICIENT = (
+    0.50  # angular coefficient of transmittivity (Linacre, 1968)
+)
+FLUX_TO_ENERGY = 2.04  # from flux to energy conversion, umol/J (Meek et al., 1984)
+BOLZMAN_CONSTANT = 5.67 * 10 ** (-8)  # Stephan Bolzman constant W m-2 K-4
+SOIL_EMISSIVITY = 0.95  # default for tropical rainforest
+CANOPY_EMISSIVITY = 0.95  # default for tropical rainforest
+BEER_REGRESSION = 2.67e-5  # parameter in equation for atmospheric transmissivity based
+# on regression of Beer’s radiation extinction function (Allen 1996)
 
 
 class Radiation:
     """Radiation balance.
 
     Attributes:
-        topofcanopy_radiation: float, shortwave radiation, top of canopy [W m-2]
-        ppfd: float, photosynth. photon flux density, top of canopy [mol m-2]
-        rn_profile: float, net radiation profile, below canopy [W m-2]
+        elevation: NDArray[np.float32], evelation [m]
+        topofcanopy_radiation: NDArray[np.float32], top of canopy downward shortwave
+         radiation, [W m-2]
+        ppfd: NDArray[np.float32], photosynthetic photon flux density, [mol m-2]
+        longwave_out: NDArray[np.float32], total outgoing longwave radiation [W m-2]
+        netradiation_profile: NDArray[np.float32], net shortwave radiation below canopy
+         [W m-2]
     """
 
-    def __init__(self) -> None:
+    def __init__(self, elevation: NDArray[np.float32]) -> None:
         """Initializes point-based radiation method."""
-        pass
+        self.elevation = elevation
 
-    def calc_sw_down(self, n: int, y: int, lat: float) -> float:
-        """Calculate shortwave downward radiation.
-
-        This function calculated incoming shortwave radiation based on location and time
-        of year if this is NOT provided as an input to the virtual rainforest.
+    def calc_ppfd(
+        self,
+        shortwave_in: NDArray[np.float32],
+        sunshine_hours: NDArray[np.float32],
+        albedo_vis: NDArray[np.float32] = 0.03,
+    ) -> NDArray[np.float32]:
+        """Calculates photosynthetic photon flux density at the top of the canopy.
 
         Args:
-            n: day of the year
-            y: year
-            lat: latitude
+            shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            albedo_vis: NDArray[np.float32], visible light albedo, default = 0.03
 
-        Ref:
+        Returns:
+            tau: NDArray[np.float32], transmissivity, unitless
+            self.ppfd: NDArray[np.float32], photosynthetic photon flux density [mol m-2]
+
+        Reference:
             Davis et al. (2017): Simple process-led algorithms for simulating habitats
             (SPLASH v.1.0): robust indices of radiation, evapotranspiration and plant-
             available moisture, Geosci. Model Dev., 10, 689-708
         """
-        raise NotImplementedError("Implementation of this feature is missing")
+        # calculate transmissivity (tau), unitless
+        tau_o = CLOUDY_TRANSMISSIVITY + TRANSMISSIVITY_COEFFICIENT * sunshine_hours
+        tau = tau_o * (1.0 + BEER_REGRESSION * self.elevation)
+
+        # Calculate daily photosynth. photon flux density (ppfd_d), mol/m^2
+        self.ppfd_d = (
+            (1.0e-6) * FLUX_TO_ENERGY * (1.0 - albedo_vis) * tau * shortwave_in
+        )
+        return tau
 
     def calc_topofcanopy_radiation(
         self,
-        sw_in: float,
-        n: int,
-        y: int,
-        lat: float,  # this is optional for the case of sw_in == FALSE
-        elev: float,
-        sf: float,
-        topo_factor: float,
-        sw_albedo: float,
-        vis_albedo: float,
-    ) -> None:
+        tau: NDArray[np.float32],
+        shortwave_in: NDArray[np.float32],
+        sunshine_hours: NDArray[np.float32],
+        albedo_shortwave: NDArray[np.float32] = 0.17,
+    ) -> NDArray[np.float32]:
         """Calculate top of canopy shortwave radiation.
 
-        If sw_in (extra-terrestrial) radiation is NOT provided as an input, it is
-        calculated as a function of latitude and date based on the SPLASH model
-        (Davis et al., 2017).
-
         Args:
-            sw_in: shortwave downward radiation [W m-2]
-            n: day of year
-            y: year
-            lat: latitude
-            elev: elevation (m)
-            sf: fraction of sunshine hours
-            topo_factor: topographic adjustment factor for radiation (slope and aspect)
-            sw_albedo: shortwave albedo (function of vegetation and bare soil fraction)
-            vis_albedo: albedo visible light (for PPFD calculation)
+            shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            albedo_shortwave: NDArray[np.float32], shortwave albedo, defaul = 0.17
 
         Returns:
-            topofcanopy_radiation
-            ppfd
+            self.topofcanopy_radiation: NDArray[np.float32], shortwave radiation [W m-2]
         """
-        # check if shortwave down is provided, else calculate
-        if sw_in:
-            sw_down = sw_in
-        else:
-            sw_down = self.calc_sw_down(n, y, lat)
+        self.topofcanopy_radiation = (1.0 - albedo_shortwave) * tau * shortwave_in
 
-        # atmospheric filtering (clouds, aerosols)
-        tau_o = kc + kd * sf
-        tau = tau_o * (1.0 + (2.67e-5) * elev)
-        sw_down_f = sw_down * tau
+    def calc_longwave_radiation(
+        self,
+        canopy_temperature: NDArray[np.float32],
+        surface_temperature: NDArray[np.float32],
+    ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+        """Calculates longwave emission from canopy and forest floor.
 
-        # topography and albedo effects on shortwave radiation
-        sw_net_toc = (1 - sw_albedo) * sw_down_f * topo_factor
-        self.sw_net_toc = sw_net_toc
+        Args:
+            canopy_temperature: NDArray[np.float32], canopy temperature of n layers [C]
+            surface_temperature: NDArray[np.float32], surface soil temperature [C]
 
-        # PPFD
-        # TODO integrate over duration of the day?
-        ppfd = (1.0e-6) * kfFEC * (1.0 - vis_albedo) * sw_down_f
-        self.ppfd = ppfd
+        Returns:
+            longwave_canopy: NDArray[np.float32], longwave radiation from n individual
+                canopy layers [W m-2]
+            longwave_soil: NDArray[np.float32], longwave radiation from soil [W m-2]
+            self.longwave_out: NDArray[np.float32], total longwave radiation [W m-2]
+        """
+        raise NotImplementedError("Implementation of this feature is missing")
 
-    def calc_canopy_radiation(
-        self, canopy_abs: float, tc: float, ts: float, emis: list
+        # longwave emission canopy
+        # TODO define the longwave_canopy array to match grid+vertical structure
+        # which is not uniform (different number of layers in each grid cell)
+        longwave_canopy = np.array()
+        for layer in canopy_temperature:
+            longwave_canopy[layer] = (
+                CANOPY_EMISSIVITY * BOLZMAN_CONSTANT * canopy_temperature[layer] ** 4
+            )
+
+        # longwave emission surface
+        longwave_soil = SOIL_EMISSIVITY * BOLZMAN_CONSTANT * surface_temperature**4
+
+        # total outgoing longwave radiation
+        # TODO integrate over all canopy layers
+        self.longwave_out = longwave_canopy + longwave_soil
+
+        return longwave_canopy, longwave_soil
+
+    def calc_netradiation_profile(
+        self,
+        longwave_canopy: NDArray[np.float32],
+        longwave_soil: NDArray[np.float32],
+        canopy_absorption: NDArray[np.float32],
     ) -> None:
         """Calculates daily net radiation profile within the canopy.
 
-        The output is a vector of net radiation, the first entry is the top
-        of the canopy, the last entry is the net radiation that reaches the surface.
+        The output is a vector of net shortwave radiation, the first entry is the top
+        of the canopy, the last entry is the net radiation that reaches the surface. The
+        length of the vector varies in response to the number of canopy layers indicated
+        by length of canopy_absorption.
 
         Args:
-            n_level: number of canopy layers
-            canopy_abs: absorption by canopy (from plant module) [W m-2]
-            emis: vector with canopy and soil emmissivity
-            tc: vector of canopy temperatures
-            ts: surface soil temperature
+            longwave_canopy: NDArray[np.float32], longwave radiation from n individual
+                canopy layers [W m-2]
+            longwave_soil: NDArray[np.float32], longwave radiation from soil [W m-2]
+            canopy_absorption: NDArray[np.float32]: absorption by canopy [W m-2]
 
         Returns:
-            rn_profile: vertical profile net shortwave radiation [W m-2]
-
-           TODO: consider multiple layers
+            self.netradiation_profile: NDArray[np.float32],vertical profile net short-
+                wave radiation [W m-2]
         """
-        # Estimate net longwave emission
-        lw_profile = emis[0] * bolz * (tc**4) + emis[1] * bolz * (ts**4)
-
-        # We need a number of stept to integrate radiatio over the duration of the day,
-        # this could happen here or in a different function?
-
-        # Calculate net radiation cross-over hour angle (hn), degrees
-        # Calculate daytime net radiation (rn_d), J/m^2
-        # Calculate nighttime net radiation (rnn_d), J/m^2
-
-        # calculate vertical canopy shortwave radiation profile
-        sw_profile = self.sw_net_toc - canopy_abs
-
-        # calculate vertical canopy net radiation profile
-        rn_profile = sw_profile - lw_profile
-        self.rn_profile = rn_profile
+        raise NotImplementedError("Implementation of this feature is missing")
+        # this needs to loop over all layers and stepwise reduce topofcanopy_radiation
+        # number of layers can differ between grid cells
+        # netrad = self.topofcanopy_radiation
+        # for i in len(canopy_absorption):
+        #   self.netradiation_profile[i] = (
+        #    netrad - self.longwave_out[i] - canopy_absorption[i]
+        #    netrad = self.netradiation_profile[i]
+        # )
 
     def radiation_balance(
         self,
-        sw_in: float,
-        n: int,
-        y: int,
-        lat: float,
-        elev: float,
-        sf: float,
-        topo_factor: float,
-        sw_albedo: float,
-        vis_albedo: float,
-        canopy_abs: float,
-        tc: float,
-        ts: float,
-        emis: list,
-    ) -> None:
-        """Calculate radiation balance."""
+        elevation: NDArray[np.float32],
+        shortwave_in: NDArray[np.float32],
+        sunshine_hours: NDArray[np.float32],
+        albedo_vis: NDArray[np.float32],
+        albedo_shortwave: NDArray[np.float32],
+        canopy_temperature: NDArray[np.float32],
+        surface_temperature: NDArray[np.float32],
+        canopy_absorption: NDArray[np.float32],
+    ) -> NDArray[np.float32]:
+        """Calculate radiation balance.
+
+        Args:
+            elevation: NDArray[np.float32], elevation [m]
+            shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            albedo_vis: NDArray[np.float32], visible light albedo, default = 0.03
+            albedo_shortwave: NDArray[np.float32], shortwave albedo, defaul = 0.17
+            canopy_temperature: NDArray[np.float32], canopy temperature of n layers [C]
+            surface_temperature: NDArray[np.float32], surface soil temperature [C]
+            canopy_absorption: NDArray[np.float32]: absorption by canopy [W m-2]
+
+        Returns:
+            elevation: NDArray[np.float32], evelation [m]
+            topofcanopy_radiation: NDArray[np.float32], top of canopy downward shortwave
+                radiation, [W m-2]
+            ppfd: NDArray[np.float32], photosynthetic photon flux density, [mol m-2]
+            longwave_out: NDArray[np.float32], total outgoing longwave radiation [W m-2]
+            netradiation_profile: NDArray[np.float32], net shortwave radiation below
+            canopy [W m-2]
+        """
+        raise NotImplementedError("Implementation of this feature is missing")
+
+        tau = self.calc_ppfd(self, shortwave_in, sunshine_hours, albedo_vis=0.03)
         self.calc_topofcanopy_radiation(
-            sw_in, n, y, lat, elev, sf, topo_factor, sw_albedo, vis_albedo
+            self, tau, shortwave_in, sunshine_hours, albedo_shortwave=0.17
         )
-        self.calc_canopy_radiation(canopy_abs, tc, ts, emis)
+        longwave_canopy, longwave_soil = self.calc_longwave_radiation(
+            self, canopy_temperature, surface_temperature
+        )
+        self.calc_netradiation_profile(
+            self, longwave_canopy, longwave_soil, canopy_absorption
+        )
+        del tau, longwave_canopy, longwave_soil
