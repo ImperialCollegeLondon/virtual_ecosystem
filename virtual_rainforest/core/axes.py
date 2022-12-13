@@ -140,12 +140,21 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
     This function iterates over the registered validator functions for a given core axis
     in the AXIS_VALIDATORS registry and matches the data array signatures against the
-    provided signatures. It returns either the appropriate function or None.
+    provided signatures.
+
+    If the input data array uses dimension names that have been registered to validate a
+    particular axis, then a matching validator must be found and an exception is raised
+    if no signature is matched. If the dimension names on the data array do not match
+    any of the registered dimensions, then the function returns None.
 
     Args:
         axis: The core axis to get a validator for
         data: A Data object providing parameter information
         darray: The data to match to a validator signature
+
+    Raises:
+        ValueError if the input data array uses dimension names required for an axis
+        without matching a registered validator.
     """
 
     # Check the axis exists
@@ -156,6 +165,10 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     da_dims = set(darray.dims)
     da_coords = set(darray.coords.variables)
 
+    # Track the dimension names used by the validators on this axis - data arrays should
+    # not be allowed to use reserved dimension names
+    registered_dim_names: set[str] = set()
+
     # Loop over the available validators loooking for a congruent signature
     # - dims _cannot_ be empty on a DataArray (they default to dim_N strings) so are
     #   guaranteed to be non-empty and must then match.
@@ -163,6 +176,10 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     #   dimension. So, the signature should match _specified_ coords but not the
     #   empty set.
     for (ld_dims, ld_coords, ld_grid_type), ld_fnm in AXIS_VALIDATORS[axis].items():
+
+        # Compile a set of dimension names associated with this axis
+        registered_dim_names.update(ld_dims)
+        registered_dim_names.update(ld_coords)
 
         if (
             set(ld_dims).issubset(da_dims)
@@ -173,6 +190,14 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
             # Retrieve the method associated with the loader signature from the Data
             # object.
             return ld_fnm
+
+    uses_registered = registered_dim_names.intersection(da_dims.union(da_coords))
+    if uses_registered:
+        log_and_raise(
+            f"DataArray uses '{axis}' axis dimension names but does "
+            f"not match a validator: {uses_registered}",
+            ValueError,
+        )
 
     return None
 
