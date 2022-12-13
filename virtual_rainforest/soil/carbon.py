@@ -1,14 +1,13 @@
 """The `soil.carbon` module.
 
-This module simulates the radiation soil carbon cycle for the Virtual Rainforest.
-TODO - EXPAND THE DETAILS HERE
-
-TODO - EXPLAIN WHAT ISN'T INCLUDED HERE
+This module simulates the radiation soil carbon cycle for the Virtual Rainforest. At the
+moment only two pools are modelled, these are low molecular weight carbon (LMWC) and
+mineral associated organic matter (MAOM). More pools and their interactions will be
+added at a later date.
 """
 
-
-# OKAY FIRST QUESTION IS WHAT EQUATION SET TO USE
-# WHAT'S A NICE SUBSET?
+import numpy as np
+from numpy.typing import NDArray
 
 # OKAY FOR ME IT MAKES SENSE TO HAVE A CLASS CALLED CARBON
 # AN ATTRIBUTE FOR EVERY POOL, THESE ATTRIBUTES ARE ONLY MODIFIED BY SPECIFIC FUNCTIONS
@@ -21,7 +20,9 @@ class SoilCarbon:
     TODO - List attributes
     """
 
-    def __init__(self) -> None:
-        """Initializes set of carbon pools."""
-        # TODO - ACTUALLY INIT POOLS HERE
+    def __init__(self, MAOM: NDArray[np.float32], LMWC: NDArray[np.float32]) -> None:
+        """Initialise set of carbon pools."""
+
+        self.MAOM = MAOM
+        self.LMWC = LMWC
         pass
