@@ -79,11 +79,10 @@ arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Note th
 configurations cannot define repeated variable names.
 """
 
-from collections import UserDict
 from pathlib import Path
 from typing import Any, Optional
 
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
@@ -91,7 +90,7 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.readers import FILE_FORMAT_REGISTRY
 
 
-class Data(UserDict):
+class Data:
     """The Virtual Rainforest data object.
 
     This class holds data for a Virtual Rainforest simulation. It functions like a
@@ -106,22 +105,20 @@ class Data(UserDict):
         grid: The grid instance
     """
 
-    def __init__(self, grid: Grid, fast_fail: bool = False) -> None:
+    def __init__(self, grid: Grid) -> None:
 
-        # Call the UserDict __init__ to set up the dictionary functionality, but the
-        # Data class does not pass in data at __init__, so no arguments provided.
-        super().__init__()
-
-        # Set up the extended instance properties
+        # Set up the instance properties
         if not isinstance(grid, Grid):
             log_and_raise("Data must be initialised with a Grid object", TypeError)
+
         self.grid = grid
+        self.data = Dataset()
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
 
         if self.data:
-            return f"Data: {list(self.keys())}"
+            return f"Data: {list(self.data.data_vars)}"
 
         return "Data: no variables loaded"
 
@@ -153,7 +150,7 @@ class Data(UserDict):
         # Ensure dataarray name matches the key
         value.name = key
 
-        if key not in self:
+        if key not in self.data.data_vars:
             LOGGER.info(f"Adding data array for '{key}'")
         else:
             LOGGER.info(f"Replacing data array for '{key}'")
@@ -177,11 +174,41 @@ class Data(UserDict):
             except Exception as excep:
                 log_and_raise(str(excep), type(excep))
 
-            # Set validation function name as proof of concept
+            # Set the validation function name keyed by the axis name as an attribute on
+            # the data array to use as a record that it has been validated on this axis.
             darray.attrs[axis] = axis_validator_func.__name__  # type: ignore
 
-        # Store the data in the UserDict
-        super().__setitem__(key, darray)
+        # Store the data in the Dataset
+        self.data[key] = darray
+
+    def __getitem__(self, key: str) -> DataArray:
+        """Get a given data variable from a Data instance.
+
+        This method looks for the provided key in the data variables saved in the `data`
+        attribute and returns the DataArray for that variable. Note that this is just a
+        shortcut: ``data_instance['var']`` is the same as ``data_instance.data['var']``.
+
+        Args:
+            key: The name of the data variable to get
+
+        Raises:
+            KeyError: if the data variable is not present
+        """
+
+        return self.data[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a given data variable is present in a Data instance.
+
+        This method provides the `var_name in data_instance` functionality for a Data
+        instance. This is just a shortcut: ``var in data_instance`` is the same as
+        ``var in data_instance.data``.
+
+        Args:
+            key: A data variable name
+        """
+
+        return key in self.data
 
     def load_from_file(
         self,

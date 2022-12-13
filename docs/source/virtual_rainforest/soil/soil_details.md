@@ -50,7 +50,7 @@ Another mechanism by which carbon is protected from microbial activity is minera
 association, whereby mineral surfaces take up organic matter by adsorption, conferring
 chemical protection. It is generally microbial biomass and LMWC that gets absorbed in
 this way. Aggregates can form from MAOM, which they then release upon breakdown. When
-desorption occurs carbon is released from mineral associated in the form of LMWC.
+desorption occurs carbon is released from mineral association in the form of LMWC.
 
 ### Microbial biomass
 
@@ -67,7 +67,7 @@ We also select our litter pools from a pre-existing framework
 ({cite}`kirschbaum_modelling_2002`). Here, pools are principally defined by input type,
 e.g. coarse wood, fine wood, structural and metabolic. They are then further subdivided
 into above- and below-ground pools. Some of these pools cannot be fully characterised
-due to insufficient data and so following ({cite}`fatichi_mechanistic_2019`) we neglect
+due to insufficient data and so following ({cite}`fatichi_mechanistic_2019`), we neglect
 them. This means that we use a single above-ground woody litter pool, rather than coarse
 and fine woody, and we do not include any below-ground woody pool. This leaves us with
 the following pools
@@ -111,7 +111,7 @@ significant nitrogen cycle processes that involve inorganic forms of nitrogen. F
 reason a number of inorganic nitrogen pools are additionally defined. They are as
 follows:
 
-### Combined ammonia ($\ce{NH_{3}}$) and ammonium ($\ce{NH_{4}^{+}}$) pool
+### Combined ammonia ($\ce{NH_{3}}$) and ammonium ($\ce{NH^{+}_{4}}$) pool
 
 Nitrogen fixation is a hugely significant process in tropical soils. It generally
 produces ammonia ($\ce{NH_{3}}$), which plants can directly take up. Ammonium
@@ -121,20 +121,20 @@ ammonium (and vice versa) is a frequent occurrence in soils, but the process wou
 tricky to parametrise and validate. So, for the sake of simplicity, only a single
 combined pool is used.
 
-### Nitrate ($\ce{NO_{3}^{-}}$)
+### Nitrate ($\ce{NO^{-}_{3}}$)
 
-Nitrification results in production of nitrate ($\ce{NO_{3}^{-}}$) from ammonium. This
+Nitrification results in production of nitrate ($\ce{NO^{-}_{3}}$) from ammonium. This
 nitrate can be lost due to leaching and volatilisation, or can be taken up by plant
 roots. We use a separate nitrate pool as it is the generally the preferred form of
 nitrogen for plant uptake, and so warrants detailed consideration.
 
-### Nitrite ($\ce{NO_{2}^{-}}$)
+### Nitrite ($\ce{NO^{-}_{2}}$)
 
 Denitrification is a (microbially mediated) process that converts nitrate to gaseous
 forms of nitrogen, particularly nitrous oxide ($\ce{N_{2}O}$) and dinitrogen
 ($\ce{N_{2}}$), which then escape the soil. In order to avoid modelling too many forms
 of nitrogen, we choose to only explicitly track the concentration of the intermediate
-product nitrite ($\ce{NO_{2}^{-}}$). Though nitrite is not generally taken up by
+product nitrite ($\ce{NO^{-}_{2}}$). Though nitrite is not generally taken up by
 plants, it can be converted back into nitrate which can be. However, the conversion of
 nitrite into nitrous oxide or dinitrogen represents a point of no return, with the
 nitrogen being irretrievably lost to the soil. Thus, including an explicit nitrite pool

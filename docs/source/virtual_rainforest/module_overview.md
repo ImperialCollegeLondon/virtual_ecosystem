@@ -40,8 +40,8 @@ between water loss and photosynthetic productivity and hence gross primary produ
 - Vapour pressure deficit (VPD, Pa)
 - Atmospheric pressure (Pa)
 - Atmospheric CO2 concentration (parts per million)
-- Fraction of absorbed photosynthetically active radiation ($F\_{APAR}$, unitless)
-- Photosynthetic photon flux density (PPFD, $\\mu \\text{mol}, m^{-2}, s^{-1}$)
+- Fraction of absorbed photosynthetically active radiation ($F_{APAR}$, unitless)
+- Photosynthetic photon flux density (PPFD, $\mu \text{mol}, m^{-2}, s^{-1}$)
 
 GPP is then allocated to plant maintenance, respiration and growth using the T Model
 ({cite}`Li:2014bc`).
@@ -78,9 +78,9 @@ pools, and by biomass source (e.g. deadwood).
 The Nitrogen cycle is strongly coupled to the carbon cycle, therefore tracking the
 stoichiometry of the carbon pools is key to modelling it correctly. In addition,
 specific forms of nitrogen are explicitly modelled. They are as follows: a combined
-$\\ce{NH\_{3}}$ and $\\ce{NH\_{4}^{+}}$ pool to represent the products of nitrogen
-fixation and ammonification, a $\\ce{NO\_{3}^{-}}$ pool to represent the products of
-nitrification, and a $\\ce{NO\_{2}^{-}}$ pool to capture the process of denitrification.
+$\ce{NH_{3}}$ and $\ce{NH_{4}^{+}}$ pool to represent the products of nitrogen
+fixation and ammonification, a $\ce{NO_{3}^{-}}$ pool to represent the products of
+nitrification, and a $\ce{NO_{2}^{-}}$ pool to capture the process of denitrification.
 
 ### Phosphorous cycle
 
@@ -92,7 +92,8 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 
 ### Further details
 
-Further theoretical background for the soil module can be found [here](./soil/soil_details.md).
+Further theoretical background for the soil module can be found
+[here](./soil/soil_details.md).
 
 ## Animal Module
 

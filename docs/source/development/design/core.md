@@ -118,8 +118,8 @@ These are configured as an array of tables to support multiple mappings:
 
 ```toml
 [[core.mappings]]
-file = /path/to/netcdf.nc
-var = habitat
+file = '/path/to/netcdf.nc'
+var = "habitat"
 ```
 
 ### Loading data
@@ -144,12 +144,12 @@ values directly to avoid having to create NetCDF files with trivial variables.
 
 ```toml
 [core.data.precipitation]
-file = /path/to/netcdf.nc
-var = prec
+file = '/path/to/netcdf.nc'
+var = "prec"
 
 [core.data.air_temperature]
-file = /path/to/netcdf.nc
-var = temp
+file = '/path/to/netcdf.nc'
+var = "temp"
 
 [core.data.ambient_co2]
 values = 400
