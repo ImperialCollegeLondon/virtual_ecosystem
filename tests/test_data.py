@@ -68,23 +68,24 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             None,
             id="dataset_not_datarray",
         ),
-        pytest.param(  # Bad load - no known loader
+        pytest.param(  # Bad load - uses reserved dimension names
             DataArray(
                 data=np.array(np.arange(9)),
-                coords={"nope": np.arange(9)},
+                coords={"x": np.arange(9)},
                 name="should_not_work",
             ),
             "should_not_work",
-            pytest.raises(KeyError),
+            pytest.raises(ValueError),
             (
                 (INFO, "Adding data array for 'should_not_work'"),
                 (
                     CRITICAL,
-                    "DataArray does not match a known spatial validator signature",
+                    "DataArray uses 'spatial' axis dimension names but does "
+                    "not match a validator",
                 ),
             ),
             None,
-            id="no_loader",
+            id="uses_reserved_dims",
         ),
         pytest.param(  # Valid load from square_xy_coords
             DataArray(
@@ -145,6 +146,18 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
             ((INFO, "Adding data array for 'air_temperature'"),),
             [4, 5, 6, 7],
             id="load_any_cell_id_dims",
+        ),
+        pytest.param(  # Good load - does not match axes
+            DataArray(
+                data=np.array(np.arange(9)),
+                coords={"nope": np.arange(9)},
+                name="add_without_axis",
+            ),
+            "add_without_axis",
+            does_not_raise(),
+            ((INFO, "Adding data array for 'add_without_axis'"),),
+            np.arange(9),
+            id="add_without_axis",
         ),
     ],
 )
