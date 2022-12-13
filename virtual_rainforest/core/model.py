@@ -31,8 +31,8 @@ methods, child classes have to overwrite the methods with new functions, otherwi
 inheritance fails. This ensures that a consistent api (set of functions) is used across
 models, while also ensuring that functions don't default to an inappropriate generic
 behaviour due to a function not being defined for a particular model. At the moment, we
-expect every model to have a setup, spinup, solve and cleanup process, though this might
-change in the future.
+expect every model to have a setup, spinup, update and cleanup process, though this
+might change in the future.
 
 We also define an abstract class method to perform model initialisation. This method
 (:func:`~virtual_rainforest.core.model.BaseModel.from_config`) is a factory method which
@@ -81,7 +81,7 @@ class BaseModel(ABC):
     """A superclass for all `vr` models.
 
     Describes the common functions and attributes that all `vr` models should have. This
-    includes functions to setup, spin up and solve the specific model, as well as a
+    includes functions to setup, spin up and update the specific model, as well as a
     function to cleanup redundant model data. At this level these functions are not
     define and are mere placeholders to be overwritten (where appropriate) by the
     inheriting classes.
@@ -96,21 +96,22 @@ class BaseModel(ABC):
     """
 
     name = "base"
-    # TODO - Once higher level timing function is written use it to set this
-    last_update = datetime64("2000-01-01")
 
-    def __init__(self, update_interval: timedelta64, **kwargs: Any):
+    def __init__(
+        self, update_interval: timedelta64, start_time: datetime64, **kwargs: Any
+    ):
         self.update_interval = update_interval
+        self.next_update = start_time + update_interval
         # Save variables names to be used by the __repr__
-        self._repr = ["update_interval"]
+        self._repr = ["update_interval", "next_update"]
 
     @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""
 
     @abstractmethod
-    def solve(self) -> None:
-        """Function to solve the model."""
+    def update(self) -> None:
+        """Function to update the model."""
 
     @abstractmethod
     def cleanup(self) -> None:
@@ -134,14 +135,6 @@ class BaseModel(ABC):
 
     def setup(self) -> None:
         """Function to use input data to set up the model."""
-
-    def should_update(self, current_time: datetime64) -> bool:
-        """Determines whether a model should be updated for a specific time step."""
-
-        if current_time > self.last_update + self.update_interval:
-            self.last_update = current_time
-            return True
-        return False
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""

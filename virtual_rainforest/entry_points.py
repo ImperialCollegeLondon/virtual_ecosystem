@@ -55,11 +55,19 @@ def _vr_run_cli() -> None:
         version="%(prog)s {version}".format(version=vr.__version__),
     )
 
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except SystemExit as e:
+        if e.code != 0:
+            # Catch unexpected args and similar problems
+            log_and_raise("For more information please run vr_run --help", SystemExit)
+        else:
+            raise SystemExit
 
     if not args.cfg_paths:
         log_and_raise(
-            "No configuration paths were provided to the `vr_run` entry point!",
+            "No configuration paths must be provided! For more information please run "
+            "vr_run --help",
             ConfigurationError,
         )
     else:

@@ -89,6 +89,15 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
+  :caption: Command line tools
+  :hidden:
+
+  command_line_tools/vr_run.md
+```
+
+```{eval-rst}
+.. toctree::
+  :maxdepth: 4
   :caption: Development
   :hidden:
 
