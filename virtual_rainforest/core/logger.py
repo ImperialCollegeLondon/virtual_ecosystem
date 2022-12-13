@@ -61,7 +61,7 @@ LOGGER = logging.getLogger("virtual_rainforest")
 
 
 def log_and_raise(
-    msg: str, exception: Type[Exception], extra: Optional[dict] = None
+    msg: str, exception: Type[BaseException], extra: Optional[dict] = None
 ) -> None:
     """Emit a critical error message and raise an Exception.
 
