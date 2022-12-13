@@ -161,25 +161,22 @@ class Data:
             axis_validator_func = get_validator(axis=axis, data=self, darray=value)
 
             if axis_validator_func is None:
-                log_and_raise(
-                    f"DataArray does not match a known {axis} validator signature",
-                    KeyError,
-                )
+                # Record the lack of a validator for this axis
+                value.attrs[axis] = None
+            else:
+                # Now run the validator using a broad base exception for now to reraise
+                # upstream exceptions. Using "#type: ignore"" here as None has been
+                # explicitly handled above.
+                try:
+                    value = axis_validator_func(data=self, darray=value)
+                except Exception as excep:
+                    log_and_raise(str(excep), type(excep))
 
-            # Now run the validator using a broad base exception for now to reraise
-            # upstream exceptions. Using "#type: ignore"" here as None has been
-            # explicitly handled above.
-            try:
-                darray = axis_validator_func(data=self, darray=value)  # type: ignore
-            except Exception as excep:
-                log_and_raise(str(excep), type(excep))
-
-            # Set the validation function name keyed by the axis name as an attribute on
-            # the data array to use as a record that it has been validated on this axis.
-            darray.attrs[axis] = axis_validator_func.__name__  # type: ignore
+                # Record the axis validator to show this axis has been validated
+                value.attrs[axis] = axis_validator_func.__name__
 
         # Store the data in the Dataset
-        self.data[key] = darray
+        self.data[key] = value
 
     def __getitem__(self, key: str) -> DataArray:
         """Get a given data variable from a Data instance.
