@@ -178,7 +178,7 @@ class Data:
             # the data array to use as a record that it has been validated on this axis.
             darray.attrs[axis] = axis_validator_func.__name__  # type: ignore
 
-        # Store the data in the UserDict
+        # Store the data in the Dataset
         self.data[key] = darray
 
     def __getitem__(self, key: str) -> DataArray:
