@@ -89,8 +89,8 @@ def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log)
             DataArray(data=np.arange(100), dims=("cell_id")),
             pytest.raises(ValueError),
             "Unknown core axis: xy",
-            Callable,
-            "spld_cellid_dim_any",
+            type(None),
+            None,
             id="Bad axis name",
         ),
         pytest.param(
@@ -101,6 +101,16 @@ def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log)
             Callable,
             "spld_cellid_dim_any",
             id="Match found",
+        ),
+        pytest.param(
+            "spatial",
+            DataArray(data=np.arange(100), dims=("x")),
+            pytest.raises(ValueError),
+            "DataArray uses 'spatial' axis dimension names but "
+            "does not match a validator: x",
+            type(None),
+            None,
+            id="Uses dims, no match",
         ),
         pytest.param(
             "spatial",

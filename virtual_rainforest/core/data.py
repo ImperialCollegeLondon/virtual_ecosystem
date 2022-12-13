@@ -165,8 +165,7 @@ class Data:
                 value.attrs[axis] = None
             else:
                 # Now run the validator using a broad base exception for now to reraise
-                # upstream exceptions. Using "#type: ignore"" here as None has been
-                # explicitly handled above.
+                # upstream exceptions.
                 try:
                     value = axis_validator_func(data=self, darray=value)
                 except Exception as excep:

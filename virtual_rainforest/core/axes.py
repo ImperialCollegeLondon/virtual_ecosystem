@@ -195,7 +195,7 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     if uses_registered:
         log_and_raise(
             f"DataArray uses '{axis}' axis dimension names but does "
-            f"not match a validator: {uses_registered}",
+            f"not match a validator: {', '.join(uses_registered)}",
             ValueError,
         )
 
