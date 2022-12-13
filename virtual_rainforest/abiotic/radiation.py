@@ -26,7 +26,6 @@ The radiation balance can be calculated with the radiation_balance() function. A
 moment, this happens at a daily timestep.
 
 # the following structural components are not implemented yet
-TODO include vertical structure (canopy layers)
 TODO include time dimension
 TODO logging, raise errors
 TODO all tests
@@ -58,7 +57,6 @@ class Radiation:
         topofcanopy_radiation: NDArray[np.float32], top of canopy downward shortwave
          radiation, [W m-2]
         ppfd: NDArray[np.float32], photosynthetic photon flux density, [mol m-2]
-        longwave_out: NDArray[np.float32], total outgoing longwave radiation [W m-2]
         netradiation_profile: NDArray[np.float32], net shortwave radiation below canopy
          [W m-2]
     """
@@ -71,7 +69,7 @@ class Radiation:
         self,
         shortwave_in: NDArray[np.float32],
         sunshine_hours: NDArray[np.float32],
-        albedo_vis: NDArray[np.float32] = 0.03,
+        albedo_vis: NDArray[np.float32] = np.array(0.03, dtype=float),
     ) -> NDArray[np.float32]:
         """Calculates photosynthetic photon flux density at the top of the canopy.
 
@@ -104,14 +102,14 @@ class Radiation:
         tau: NDArray[np.float32],
         shortwave_in: NDArray[np.float32],
         sunshine_hours: NDArray[np.float32],
-        albedo_shortwave: NDArray[np.float32] = 0.17,
-    ) -> NDArray[np.float32]:
+        albedo_shortwave: NDArray[np.float32] = np.array(0.17, dtype=float),
+    ) -> None:
         """Calculate top of canopy shortwave radiation.
 
         Args:
             shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
             sunshine_hours: NDArray[np.float32], fraction of sunshine hours
-            albedo_shortwave: NDArray[np.float32], shortwave albedo, defaul = 0.17
+            albedo_shortwave: NDArray[np.float32], shortwave albedo, default = 0.17
 
         Returns:
             self.topofcanopy_radiation: NDArray[np.float32], shortwave radiation [W m-2]
@@ -140,18 +138,17 @@ class Radiation:
         # longwave emission canopy
         # TODO define the longwave_canopy array to match grid+vertical structure
         # which is not uniform (different number of layers in each grid cell)
-        longwave_canopy = np.array()
-        for layer in canopy_temperature:
-            longwave_canopy[layer] = (
-                CANOPY_EMISSIVITY * BOLZMAN_CONSTANT * canopy_temperature[layer] ** 4
-            )
+        longwave_canopy = np.full_like(canopy_temperature, 0)
+        for id in canopy_temperature["cell_id"]:
+            for n in canopy_temperature["layer"]:
+                longwave_canopy[id][n] = (
+                    CANOPY_EMISSIVITY
+                    * BOLZMAN_CONSTANT
+                    * canopy_temperature[id][n] ** 4
+                )
 
         # longwave emission surface
         longwave_soil = SOIL_EMISSIVITY * BOLZMAN_CONSTANT * surface_temperature**4
-
-        # total outgoing longwave radiation
-        # TODO integrate over all canopy layers
-        self.longwave_out = longwave_canopy + longwave_soil
 
         return longwave_canopy, longwave_soil
 
@@ -216,15 +213,14 @@ class Radiation:
             topofcanopy_radiation: NDArray[np.float32], top of canopy downward shortwave
                 radiation, [W m-2]
             ppfd: NDArray[np.float32], photosynthetic photon flux density, [mol m-2]
-            longwave_out: NDArray[np.float32], total outgoing longwave radiation [W m-2]
             netradiation_profile: NDArray[np.float32], net shortwave radiation below
             canopy [W m-2]
         """
         raise NotImplementedError("Implementation of this feature is missing")
 
-        tau = self.calc_ppfd(self, shortwave_in, sunshine_hours, albedo_vis=0.03)
+        tau = self.calc_ppfd(self, shortwave_in, sunshine_hours, albedo_vis)
         self.calc_topofcanopy_radiation(
-            self, tau, shortwave_in, sunshine_hours, albedo_shortwave=0.17
+            self, tau, shortwave_in, sunshine_hours, albedo_shortwave
         )
         longwave_canopy, longwave_soil = self.calc_longwave_radiation(
             self, canopy_temperature, surface_temperature
