@@ -6,34 +6,33 @@ mineral associated organic matter (MAOM). More pools and their interactions will
 added at a later date.
 """
 
-from math import atan, e, pi
+from math import atan, e, log10, pi
 
 import numpy as np
 from numpy.typing import NDArray
 
-# TODO - CHECK ALL UNITS
 # TODO - THINK ABOUT TIME STEP
 
 # from core.constants import CONSTANTS as C
 # but for meanwhile define all the constants needed here
 BINDING_WITH_PH = {
-    "slope": -0.186,
-    "intercept": -0.216,
+    "slope": -0.186,  # unitless
+    "intercept": -0.216,  # unitless
 }  # From linear regression (Mayes et al. (2012))
 MAX_SORPTION_WITH_CLAY = {
-    "slope": 0.483,
-    "intercept": 2.328,
+    "slope": 0.483,  # unitless
+    "intercept": 2.328,  # unitless
 }  # From linear regression (Mayes et al. (2012))
 MOISTURE_SCALAR = {
-    "coefficient": 30.0,
-    "exponent": 9.0,
+    "coefficient": 30.0,  # unitless
+    "exponent": 9.0,  # unitless
 }  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
 TEMP_SCALAR = {
-    "t_1": 15.4,
-    "t_2": 11.75,
-    "t_3": 29.7,
-    "t_4": 0.031,
-    "ref_temp": 30.0,
+    "t_1": 15.4,  # C
+    "t_2": 11.75,  # unclear
+    "t_3": 29.7,  # unclear
+    "t_4": 0.031,  # unclear
+    "ref_temp": 30.0,  # C
 }  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
 
 
@@ -61,6 +60,7 @@ class SoilCarbon:
         bulk_density: NDArray[np.float32],
         soil_moisture: NDArray[np.float32],
         soil_temp: NDArray[np.float32],
+        percent_clay: NDArray[np.float32],
     ) -> None:
         """Update all soil carbon pools.
 
@@ -73,11 +73,12 @@ class SoilCarbon:
             bulk_density: bulk density values for each soil grid cell
             soil_moisture: soil moisture for each soil grid cell
             soil_temp: soil temperature for each soil grid cell
+            percent_clay: Percentage clay for each soil grid cell
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
         lmwc_from_maom, maom_from_lmwc = self.mineral_association(
-            pH, bulk_density, soil_moisture, soil_temp
+            pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
         # Once changes are determined update all pools
@@ -90,6 +91,7 @@ class SoilCarbon:
         bulk_density: NDArray[np.float32],
         soil_moisture: NDArray[np.float32],
         soil_temp: NDArray[np.float32],
+        percent_clay: NDArray[np.float32],
     ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
         """Calculates net rate of LMWC association with soil minerals.
 
@@ -104,6 +106,7 @@ class SoilCarbon:
             bulk_density: bulk density values for each soil grid cell
             soil_moisture: soil moisture for each soil grid cell
             soil_temp: soil temperature for each soil grid cell
+            percent_clay: Percentage clay for each soil grid cell
         """
 
         # This expression is drawn from (Mayes et al. (2012))
@@ -115,7 +118,7 @@ class SoilCarbon:
         # Original paper also depends on Fe concentration, but we are ignoring this for
         # now
         Q_max = bulk_density * 10 ** (
-            MAX_SORPTION_WITH_CLAY["slope"] * bulk_density
+            MAX_SORPTION_WITH_CLAY["slope"] * log10(percent_clay)
             + MAX_SORPTION_WITH_CLAY["intercept"]
         )
 
