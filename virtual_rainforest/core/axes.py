@@ -55,9 +55,9 @@ At present, the signature also includes only the spatial
 :class:`~virtual_rainforest.core.data.Data` instance, but this will likely be expanded
 to include configuration details for other core axes.
 
-All spatial loader methods standardise the spatial structure of the input data to use a
-single ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in
-the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
+All spatial validator methods standardise the spatial structure of the input data to use
+a single ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing
+in the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
 """
 
 from typing import Any, Callable, Optional
@@ -97,8 +97,8 @@ def register_axis_validator(axis: str, signature: tuple) -> Callable:
     * a tuple of dimension names required in the data array to use the function,
     * a tuple of coordinate names required in the data array to use the function - this
       can be an empty tuple if no coordinate names are required,
-    * a tuple of grid types that the loader can be used with. The "any" grid type
-      can be used to indicate that a loader will work with any grid type.
+    * a tuple of grid types that the validator can be used with. The "any" grid type
+      can be used to indicate that a validator will work with any grid type.
 
     Args:
         axis: The core axis that the validator applies to
@@ -140,7 +140,10 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
     This function iterates over the registered validator functions for a given core axis
     in the AXIS_VALIDATORS registry and matches the data array signatures against the
-    provided signatures.
+    provided signatures. The validator signature identifies reserved dimension names,
+    which should show that the data dimension maps onto a core axis. Usually that is a
+    single dimension name, but it can be more: for example, 'x' and 'y' are used to map
+    data onto the internal spatial dimension using 'cell_id'.
 
     If the input data array uses dimension names that have been registered to validate a
     particular axis, then a matching validator must be found and an exception is raised
@@ -175,21 +178,21 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
     # - coords _can_ be empty: they just associate values with indices along the
     #   dimension. So, the signature should match _specified_ coords but not the
     #   empty set.
-    for (ld_dims, ld_coords, ld_grid_type), ld_fnm in AXIS_VALIDATORS[axis].items():
+    for (vldr_dims, vldr_coords, vldr_grid), vldr_func in AXIS_VALIDATORS[axis].items():
 
         # Compile a set of dimension names associated with this axis
-        registered_dim_names.update(ld_dims)
-        registered_dim_names.update(ld_coords)
+        registered_dim_names.update(vldr_dims)
+        registered_dim_names.update(vldr_coords)
 
         if (
-            set(ld_dims).issubset(da_dims)
-            and set(ld_coords).issubset(da_coords)
-            and ((data.grid.grid_type in ld_grid_type) or ("any" in ld_grid_type))
+            set(vldr_dims).issubset(da_dims)
+            and set(vldr_coords).issubset(da_coords)
+            and ((data.grid.grid_type in vldr_grid) or ("any" in vldr_grid))
         ):
 
-            # Retrieve the method associated with the loader signature from the Data
+            # Retrieve the method associated with the validator signature from the Data
             # object.
-            return ld_fnm
+            return vldr_func
 
     uses_registered = registered_dim_names.intersection(da_dims.union(da_coords))
     if uses_registered:
@@ -204,11 +207,12 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
 @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
 def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for cell id coordinates onto any grid.
+    """Spatial validator for cell id coordinates onto any grid.
 
-    In this loader, the DataArray has a cell_id dimension with valued coordinates, which
-    should map onto the grid cell ids, allowing for a subset of ids. Because this method
-    simply maps data to grid cells by id, it should apply to _any_ arbitrary grid setup.
+    In this validator, the DataArray has a cell_id dimension with valued coordinates,
+    which should map onto the grid cell ids, allowing for a subset of ids. Because this
+    method simply maps data to grid cells by id, it should apply to _any_ arbitrary grid
+    setup.
 
     Args:
         data: A Data instance used to access validation information
@@ -237,9 +241,9 @@ def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
 
 @register_axis_validator("spatial", (("cell_id",), (), ("any",)))
 def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for cell id dimension onto any grid.
+    """Spatial validator for cell id dimension onto any grid.
 
-    In this loader, the DataArray only has a cell_id dimension so assumes that the
+    In this validator, the DataArray only has a cell_id dimension so assumes that the
     values are provided in the same sequence as the grid cell ids. Because this method
     simply maps data to grid cells by id, it should apply to _any_ arbitrary grid setup.
 
@@ -265,9 +269,9 @@ def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
 
 @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
 def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for XY coordinates onto a square grid.
+    """Spatial validator for XY coordinates onto a square grid.
 
-    In this loader, the DataArray has a x and y dimensions with valued coordinates,
+    In this validator, the DataArray has a x and y dimensions with valued coordinates,
     which should map onto the grid cell ids, allowing for a subset of ids.
 
     Args:
@@ -315,11 +319,11 @@ def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
 
 @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
 def spld_xy_dim_square(data: Data, darray: DataArray) -> DataArray:
-    """Spatial loader for XY dimensions onto a square grid.
+    """Spatial validator for XY dimensions onto a square grid.
 
-    In this loader, the DataArray has x and y dimension but no coordinates along those
-    dimensions. The assumption here is then that those spatial axes must describe the
-    same array shape as the square grid.
+    In this validator, the DataArray has x and y dimension but no coordinates along
+    those dimensions. The assumption here is then that those spatial axes must describe
+    the same array shape as the square grid.
 
     Args:
         data: A Data instance used to access validation information
