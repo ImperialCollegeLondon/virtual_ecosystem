@@ -99,7 +99,7 @@ def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log)
             does_not_raise(),
             None,
             Callable,
-            "vldr_spat__cellid_dim_any",
+            "vldr_spat_cellid_dim_any",
             id="Match found",
         ),
         pytest.param(
@@ -162,18 +162,16 @@ def test_get_validator(
         ),
     ],
 )
-def test_vldr_spat__cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_vldr_spat_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import vldr_spat__cellid_dim_any
-    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.axes import vldr_spat_cellid_dim_any
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
-    data = Data(grid)
 
     with exp_err as excep:
-        darray = vldr_spat__cellid_dim_any(data, darray)
+        darray = vldr_spat_cellid_dim_any(darray, grid=grid)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
@@ -236,18 +234,16 @@ def test_vldr_spat__cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_
         ),
     ],
 )
-def test_vldr_spat__cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_vldr_spat_cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import vldr_spat__cellid_coord_any
-    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.axes import vldr_spat_cellid_coord_any
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
-    data = Data(grid)
 
     with exp_err as excep:
-        darray = vldr_spat__cellid_coord_any(data, darray)
+        darray = vldr_spat_cellid_coord_any(darray, grid=grid)
 
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
@@ -279,18 +275,16 @@ def test_vldr_spat__cellid_coord_any(grid_args, darray, exp_err, exp_message, ex
         ),
     ],
 )
-def test_vldr_spat__xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_vldr_spat_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import vldr_spat__xy_dim_square
-    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.axes import vldr_spat_xy_dim_square
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
-    data = Data(grid)
 
     with exp_err as excep:
-        darray = vldr_spat__xy_dim_square(data, darray)
+        darray = vldr_spat_xy_dim_square(darray, grid)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
@@ -343,18 +337,16 @@ def test_vldr_spat__xy_dim_square(grid_args, darray, exp_err, exp_message, exp_v
         ),
     ],
 )
-def test_vldr_spat__xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_vldr_spat_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import vldr_spat__xy_coord_square
-    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.axes import vldr_spat_xy_coord_square
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
-    data = Data(grid)
 
     with exp_err as excep:
-        darray = vldr_spat__xy_coord_square(data, darray)
+        darray = vldr_spat_xy_coord_square(darray, grid=grid)
         assert isinstance(darray, DataArray)
         assert np.allclose(darray.values, exp_vals)
 
