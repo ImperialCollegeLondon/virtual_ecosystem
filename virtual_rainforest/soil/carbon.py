@@ -6,10 +6,13 @@ mineral associated organic matter (MAOM). More pools and their interactions will
 added at a later date.
 """
 
-from math import e
+from math import atan, e, pi
 
 import numpy as np
 from numpy.typing import NDArray
+
+# TODO - CHECK ALL UNITS
+# TODO - THINK ABOUT TIME STEP
 
 # from core.constants import CONSTANTS as C
 # but for meanwhile define all the constants needed here
@@ -24,6 +27,13 @@ MAX_SORPTION_WITH_CLAY = {
 MOISTURE_SCALAR = {
     "coefficient": 30.0,
     "exponent": 9.0,
+}  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
+TEMP_SCALAR = {
+    "t_1": 15.4,
+    "t_2": 11.75,
+    "t_3": 29.7,
+    "t_4": 0.031,
+    "ref_temp": 30.0,
 }  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
 
 
@@ -50,6 +60,7 @@ class SoilCarbon:
         pH: NDArray[np.float32],
         bulk_density: NDArray[np.float32],
         soil_moisture: NDArray[np.float32],
+        soil_temp: NDArray[np.float32],
     ) -> None:
         """Update all soil carbon pools.
 
@@ -61,11 +72,12 @@ class SoilCarbon:
             pH: pH values for each soil grid cell
             bulk_density: bulk density values for each soil grid cell
             soil_moisture: soil moisture for each soil grid cell
+            soil_temp: soil temperature for each soil grid cell
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
         lmwc_from_maom, maom_from_lmwc = self.mineral_association(
-            pH, bulk_density, soil_moisture
+            pH, bulk_density, soil_moisture, soil_temp
         )
 
         # Once changes are determined update all pools
@@ -77,6 +89,7 @@ class SoilCarbon:
         pH: NDArray[np.float32],
         bulk_density: NDArray[np.float32],
         soil_moisture: NDArray[np.float32],
+        soil_temp: NDArray[np.float32],
     ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
         """Calculates net rate of LMWC association with soil minerals.
 
@@ -90,6 +103,7 @@ class SoilCarbon:
             pH: pH values for each soil grid cell
             bulk_density: bulk density values for each soil grid cell
             soil_moisture: soil moisture for each soil grid cell
+            soil_temp: soil temperature for each soil grid cell
         """
 
         # This expression is drawn from (Mayes et al. (2012))
@@ -111,18 +125,35 @@ class SoilCarbon:
         )
 
         # Find scalar factors that multiple rates
-        temp_scaler = scaler_temperature()
+        temp_scaler = scaler_temperature(soil_temp)
         moist_scaler = scaler_moisture(soil_moisture)
 
         flux = temp_scaler * moist_scaler * self.lmwc * (equib_maom - self.maom) / Q_max
 
         return -flux, flux
 
-    # FIRST TASK FIND OUT WHAT THE HELL THIS SCALER IS
 
+def scaler_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Convert soil temperature into a factor to multiply rates by.
 
-def scaler_temperature() -> NDArray[np.float32]:
-    """Convert soil temperature into a factor to multiply rates by."""
+    This form is used in Abramoff et al. (2018) to minimise differences with the
+    CENTURY model. We very likely want to define our own functional form here. I'm
+    also a bit unsure how this form was even obtained, so further work here is very
+    needed.
+
+    Args:
+       soil_temp: soil temperature for each soil grid cell
+    """
+
+    # This expression is drawn from Abramoff et al. (2018)
+    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * atan(
+        pi * (soil_temp - TEMP_SCALAR["t_1"])
+    )
+    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * atan(
+        pi * TEMP_SCALAR["t_4"] * (TEMP_SCALAR["ref_temp"] - TEMP_SCALAR["t_1"])
+    )
+
+    return numerator / denominator
 
 
 def scaler_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
