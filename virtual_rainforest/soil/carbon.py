@@ -11,8 +11,6 @@ from math import atan, e, log10, pi
 import numpy as np
 from numpy.typing import NDArray
 
-# TODO - THINK ABOUT TIME STEP
-
 # from core.constants import CONSTANTS as C
 # but for meanwhile define all the constants needed here
 BINDING_WITH_PH = {
@@ -61,6 +59,7 @@ class SoilCarbon:
         soil_moisture: NDArray[np.float32],
         soil_temp: NDArray[np.float32],
         percent_clay: NDArray[np.float32],
+        dt: np.timedelta64,
     ) -> None:
         """Update all soil carbon pools.
 
@@ -74,6 +73,7 @@ class SoilCarbon:
             soil_moisture: soil moisture for each soil grid cell
             soil_temp: soil temperature for each soil grid cell
             percent_clay: Percentage clay for each soil grid cell
+            dt: time step in a format convertible to minutes
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
@@ -81,9 +81,13 @@ class SoilCarbon:
             pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
+        # Convert dt to a float representing the number of days
+        # 1440 minutes in a day
+        time_step = 1440.0 * dt.astype("timedelta64[m]") / np.timedelta64(1, "m")
+
         # Once changes are determined update all pools
-        self.lmwc += lmwc_from_maom
-        self.lmwc += maom_from_lmwc
+        self.lmwc += lmwc_from_maom * time_step
+        self.lmwc += maom_from_lmwc * time_step
 
     def mineral_association(
         self,
@@ -97,9 +101,9 @@ class SoilCarbon:
 
         Following Abramoff et al. (2018), mineral adsorption of carbon is controlled by
         a Langmuir saturation function. At present, binding affinity and Q_max are
-        recalculated on every function called based on pH and bulk density. Once a
-        decision has been reached as to how fast pH and bulk density will change (if at
-        all), this calculation may need to be moved elsewhere.
+        recalculated on every function called based on pH, bulk density and clay
+        content. Once a decision has been reached as to how fast pH and bulk density
+        will change (if at all), this calculation may need to be moved elsewhere.
 
         Args:
             pH: pH values for each soil grid cell
