@@ -44,6 +44,12 @@ This adds a validator for the spatial axis that will map a :class:`~xarray.DataA
 with the ``cell_id`` dimension (but no ``cell_id`` coordinates) onto _any_ spatial grid
 type: the underlying ``cell_id``  attribute of the grid is defined for all grid.
 
+Validator functions should all accept **kwargs so that the when the function is called,
+an arbitrary set of information can be passed to each function, but only the specific
+requirements of that validator need to be documented. See discussion here:
+
+https://github.com/ImperialCollegeLondon/virtual_rainforest/pull/133
+
 Core axes
 =========
 
@@ -66,7 +72,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.grid import GRID_REGISTRY
+from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 AXIS_VALIDATORS: dict[str, dict[tuple, Callable]] = {}
@@ -206,7 +212,9 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
 
 @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
-def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
+def vldr_spat__cellid_coord_any(
+    darray: DataArray, grid: Grid, **kwargs: Any
+) -> DataArray:
     """Spatial validator for cell id coordinates onto any grid.
 
     In this validator, the DataArray has a cell_id dimension with valued coordinates,
@@ -215,8 +223,8 @@ def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
     setup.
 
     Args:
-        data: A Data instance used to access validation information
         darray: A data array containing spatial information to be validated
+        grid: A Grid instance describing the expected spatial structure.
 
     Returns:
         A validated dataarray with a single cell id spatial dimension
@@ -227,20 +235,22 @@ def spld_cellid_coord_any(data: Data, darray: DataArray) -> DataArray:
     if len(np.unique(da_cell_ids)) != len(da_cell_ids):
         raise ValueError("The data cell ids contain duplicate values.")
 
-    if not set(data.grid.cell_id).issubset(da_cell_ids):
+    if not set(grid.cell_id).issubset(da_cell_ids):
         raise ValueError("The data cell ids are not a superset of grid cell ids.")
 
     # Now ensure sorting and any subsetting:
     # https://stackoverflow.com/questions/8251541
     da_sortorder = np.argsort(da_cell_ids)
-    gridid_pos = np.searchsorted(da_cell_ids[da_sortorder], data.grid.cell_id)
+    gridid_pos = np.searchsorted(da_cell_ids[da_sortorder], grid.cell_id)
     da_indices = da_sortorder[gridid_pos]
 
     return darray.isel(cell_id=da_indices)
 
 
 @register_axis_validator("spatial", (("cell_id",), (), ("any",)))
-def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
+def vldr_spat__cellid_dim_any(
+    darray: DataArray, grid: Grid, **kwargs: Any
+) -> DataArray:
     """Spatial validator for cell id dimension onto any grid.
 
     In this validator, the DataArray only has a cell_id dimension so assumes that the
@@ -248,8 +258,8 @@ def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
     simply maps data to grid cells by id, it should apply to _any_ arbitrary grid setup.
 
     Args:
-        data: A Data instance used to access validation information
         darray: A data array containing spatial information to be validated
+        grid: A Grid instance describing the expected spatial structure.
 
     Returns:
         A validated dataarray with a single cell id spatial dimension
@@ -259,19 +269,19 @@ def spld_cellid_dim_any(data: Data, darray: DataArray) -> DataArray:
     # Cell ID is only a dimenson with a give length - assume the order correct
     # and check the right number of cells found
     n_found = darray["cell_id"].size
-    if data.grid.n_cells != n_found:
-        raise ValueError(
-            f"Grid defines {data.grid.n_cells} cells, data provides {n_found}"
-        )
+    if grid.n_cells != n_found:
+        raise ValueError(f"Grid defines {grid.n_cells} cells, data provides {n_found}")
 
     return darray
 
 
 @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
-def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
+def vldr_spat__xy_coord_square(
+    darray: DataArray, grid: Grid, **kwargs: Any
+) -> DataArray:
     """Spatial validator for XY coordinates onto a square grid.
 
-    In this validator, the DataArray has a x and y dimensions with valued coordinates,
+    In this validatorq, the DataArray has a x and y dimensions with valued coordinates,
     which should map onto the grid cell ids, allowing for a subset of ids.
 
     Args:
@@ -293,7 +303,7 @@ def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
     idx_pairs = darray.drop_vars(("x", "y")).stack(cell=("y", "x")).coords
 
     # Get the mapping of points onto the grid
-    idx_x, idx_y = data.grid.map_xy_to_cell_indexing(
+    idx_x, idx_y = grid.map_xy_to_cell_indexing(
         x_coords=xy_pairs["x"].values,
         y_coords=xy_pairs["y"].values,
         x_idx=idx_pairs["x"].values,
@@ -318,7 +328,7 @@ def spld_xy_coord_square(data: Data, darray: DataArray) -> DataArray:
 
 
 @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
-def spld_xy_dim_square(data: Data, darray: DataArray) -> DataArray:
+def vldr_spat__xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Spatial validator for XY dimensions onto a square grid.
 
     In this validator, the DataArray has x and y dimension but no coordinates along
@@ -326,15 +336,15 @@ def spld_xy_dim_square(data: Data, darray: DataArray) -> DataArray:
     the same array shape as the square grid.
 
     Args:
-        data: A Data instance used to access validation information
         darray: A data array containing spatial information to be validated
+        grid: A Grid instance describing the expected spatial structure.
 
     Returns:
         A validated dataarray with a single cell id spatial dimension
     """
 
     # Otherwise the data array must be the same shape as the grid
-    if data.grid.cell_nx != darray.sizes["x"] or data.grid.cell_ny != darray.sizes["y"]:
+    if grid.cell_nx != darray.sizes["x"] or grid.cell_ny != darray.sizes["y"]:
         raise ValueError("Data XY dimensions do not match square grid")
 
     # Use DataArray.stack to combine the x and y into a multiindex called cell_id, with

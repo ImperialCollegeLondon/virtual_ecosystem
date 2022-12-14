@@ -354,7 +354,7 @@ def fixture_load_data_grids(request):
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
-            id="spld_cellid_dim_any",
+            id="vldr_spat__cellid_dim_any",
         ),
         pytest.param(
             ["__any__"],
@@ -367,7 +367,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "Grid defines 100 cells, data provides 60"),
             ),
             None,
-            id="spld_cellid_dim_any_too_few",
+            id="vldr_spat__cellid_dim_any_too_few",
         ),
         pytest.param(
             ["__any__"],
@@ -380,7 +380,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "Grid defines 100 cells, data provides 200"),
             ),
             None,
-            id="spld_cellid_dim_any_too_many",
+            id="vldr_spat__cellid_dim_any_too_many",
         ),
         pytest.param(
             ["__any__"],
@@ -392,7 +392,7 @@ def fixture_load_data_grids(request):
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
-            id="spld_cellid_coords_any",
+            id="vldr_spat__cellid_coords_any",
         ),
         pytest.param(
             ["__any__"],
@@ -405,7 +405,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
             ),
             None,
-            id="spld_cellid_coords_any_too_few",
+            id="vldr_spat__cellid_coords_any_too_few",
         ),
         pytest.param(
             ["__any__"],
@@ -418,7 +418,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
             ),
             None,
-            id="spld_cellid_coords_any_bad_cellid",
+            id="vldr_spat__cellid_coords_any_bad_cellid",
         ),
         pytest.param(
             ["square"],
@@ -430,7 +430,7 @@ def fixture_load_data_grids(request):
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
-            id="spld_xy_dim_square",
+            id="vldr_spat__xy_dim_square",
         ),
         pytest.param(
             ["square"],
@@ -443,7 +443,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "Data XY dimensions do not match square grid"),
             ),
             None,
-            id="spld_xy_dim_square_small",
+            id="vldr_spat__xy_dim_square_small",
         ),
         pytest.param(
             ["square"],
@@ -455,7 +455,7 @@ def fixture_load_data_grids(request):
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
-            id="spld_xy_coords_square",
+            id="vldr_spat__xy_coords_square",
         ),
         pytest.param(
             ["square"],
@@ -468,7 +468,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
             None,
-            id="spld_xy_coords_square_small",
+            id="vldr_spat__xy_coords_square_small",
         ),
         pytest.param(
             ["square"],
@@ -481,7 +481,7 @@ def fixture_load_data_grids(request):
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
             None,
-            id="spld_xy_coords_square_shifted",
+            id="vldr_spat__xy_coords_square_shifted",
         ),
     ],
 )

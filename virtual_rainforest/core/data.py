@@ -167,7 +167,7 @@ class Data:
                 # Now run the validator using a broad base exception for now to reraise
                 # upstream exceptions.
                 try:
-                    value = axis_validator_func(data=self, darray=value)
+                    value = axis_validator_func(darray=value, grid=self.grid)
                 except Exception as excep:
                     log_and_raise(str(excep), type(excep))
 
