@@ -212,7 +212,7 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
 
 
 @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
-def vldr_spat__cellid_coord_any(
+def vldr_spat_cellid_coord_any(
     darray: DataArray, grid: Grid, **kwargs: Any
 ) -> DataArray:
     """Spatial validator for cell id coordinates onto any grid.
@@ -248,9 +248,7 @@ def vldr_spat__cellid_coord_any(
 
 
 @register_axis_validator("spatial", (("cell_id",), (), ("any",)))
-def vldr_spat__cellid_dim_any(
-    darray: DataArray, grid: Grid, **kwargs: Any
-) -> DataArray:
+def vldr_spat_cellid_dim_any(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Spatial validator for cell id dimension onto any grid.
 
     In this validator, the DataArray only has a cell_id dimension so assumes that the
@@ -276,7 +274,7 @@ def vldr_spat__cellid_dim_any(
 
 
 @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
-def vldr_spat__xy_coord_square(
+def vldr_spat_xy_coord_square(
     darray: DataArray, grid: Grid, **kwargs: Any
 ) -> DataArray:
     """Spatial validator for XY coordinates onto a square grid.
@@ -328,7 +326,7 @@ def vldr_spat__xy_coord_square(
 
 
 @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
-def vldr_spat__xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+def vldr_spat_xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Spatial validator for XY dimensions onto a square grid.
 
     In this validator, the DataArray has x and y dimension but no coordinates along
