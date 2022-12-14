@@ -281,7 +281,7 @@ def vldr_spat__xy_coord_square(
 ) -> DataArray:
     """Spatial validator for XY coordinates onto a square grid.
 
-    In this validatorq, the DataArray has a x and y dimensions with valued coordinates,
+    In this validator, the DataArray has a x and y dimensions with valued coordinates,
     which should map onto the grid cell ids, allowing for a subset of ids.
 
     Args:
