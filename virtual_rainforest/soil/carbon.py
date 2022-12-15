@@ -6,7 +6,7 @@ mineral associated organic matter (MAOM). More pools and their interactions will
 added at a later date.
 """
 
-from math import atan, e, log10, pi
+from math import e, log10, pi
 
 import numpy as np
 from numpy.typing import NDArray
@@ -149,15 +149,15 @@ class SoilCarbon:
         )
 
         # Find scalar factors that multiple rates
-        temp_scaler = scaler_temperature(soil_temp)
-        moist_scaler = scaler_moisture(soil_moisture)
+        temp_scalar = scalar_temperature(soil_temp)
+        moist_scalar = scalar_moisture(soil_moisture)
 
-        flux = temp_scaler * moist_scaler * self.lmwc * (equib_maom - self.maom) / Q_max
+        flux = temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
 
         return -flux, flux
 
 
-def scaler_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
+def scalar_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
     This form is used in Abramoff et al. (2018) to minimise differences with the
@@ -170,17 +170,17 @@ def scaler_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
     """
 
     # This expression is drawn from Abramoff et al. (2018)
-    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * atan(
+    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * np.arctan(
         pi * (soil_temp - TEMP_SCALAR["t_1"])
     )
-    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * atan(
+    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * np.arctan(
         pi * TEMP_SCALAR["t_4"] * (TEMP_SCALAR["ref_temp"] - TEMP_SCALAR["t_1"])
     )
 
-    return numerator / denominator
+    return np.divide(numerator, denominator)
 
 
-def scaler_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
+def scalar_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
     This form is used in Abramoff et al. (2018) to minimise differences with the
