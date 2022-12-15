@@ -3,14 +3,15 @@
 # import pytest
 
 # from virtual_rainforest.models.abiotic import radiation
+# from core.constants import CONSTANTS as C  # this doesn't exist yet
 
 
-def test_calc_ppfd(elevation):
+def test_calc_ppfd(shortwave_in, sunshine_hours, albedo_vis):
     """Test to be decided."""
     raise NotImplementedError("Implementation of this feature is missing")
 
 
-def test_calc_topofcanopy_radiation(shortwave_in, sunshine_hours, albedo_vis):
+def test_calc_topofcanopy_radiation(shortwave_in, sunshine_hours, albedo_shortwave):
     """Test to be decided."""
     raise NotImplementedError("Implementation of this feature is missing")
 
@@ -20,7 +21,7 @@ def test_calc_longwave_radiation(canopy_temperature, surface_temperature):
     raise NotImplementedError("Implementation of this feature is missing")
 
 
-def test_calc_netradiation_profile(longwave_canopy, longwave_soil, canopy_absorption):
+def test_calc_netradiation_surface(canopy_absorption):
     """Test to be decided."""
     raise NotImplementedError("Implementation of this feature is missing")
 
