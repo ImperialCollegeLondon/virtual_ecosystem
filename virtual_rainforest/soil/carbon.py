@@ -6,7 +6,7 @@ mineral associated organic matter (MAOM). More pools and their interactions will
 added at a later date.
 """
 
-from math import e, log10, pi
+from math import e, pi
 
 import numpy as np
 from numpy.typing import NDArray
@@ -139,7 +139,7 @@ class SoilCarbon:
         # Original paper also depends on Fe concentration, but we are ignoring this for
         # now
         Q_max = bulk_density * 10 ** (
-            MAX_SORPTION_WITH_CLAY["slope"] * log10(percent_clay)
+            MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
             + MAX_SORPTION_WITH_CLAY["intercept"]
         )
 

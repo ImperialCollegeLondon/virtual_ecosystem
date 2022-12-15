@@ -72,9 +72,31 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
 # And by the correct amount
 # To get the amounts right it probably makes sense to test lower level functions first
 
-# TEST mineral_association()
-# Again test that it runs without errors
-# Check that correct pair of fluxes is returned
+
+def test_mineral_association():
+    """Test that mineral_association runs and generates the correct value."""
+
+    # Initialise soil carbon class
+    maom = np.array([23.0, 23.0], dtype=np.float32)
+    lmwc = np.array([98.0, 55.0], dtype=np.float32)
+    soil_carbon = SoilCarbon(maom, lmwc)
+
+    # Define all the required variables to run function
+    pH = np.array([7.0, 7.0], dtype=np.float32)
+    bulk_density = np.array([1350, 1350], dtype=np.float32)
+    percent_clay = np.array([50.0, 50.0], dtype=np.float32)
+    soil_moisture = np.array([0.5, 0.5], dtype=np.float32)
+    soil_temp = np.array([35.0, 35.0], dtype=np.float32)
+
+    lmwc_from_maom, maom_from_lmwc = soil_carbon.mineral_association(
+        pH, bulk_density, soil_moisture, soil_temp, percent_clay
+    )
+
+    # Check that expected values are generated
+    assert isclose(lmwc_from_maom[0].item(), -69.9158630)
+    assert isclose(lmwc_from_maom[1].item(), -32.78682327)
+    assert isclose(maom_from_lmwc[0].item(), 69.9158630)
+    assert isclose(maom_from_lmwc[1].item(), 32.78682327)
 
 
 def test_scalar_temperature():
@@ -82,7 +104,6 @@ def test_scalar_temperature():
 
     soil_temperature = np.array([35.0, 37.5], dtype=np.float32)
     temp_scalar = scalar_temperature(soil_temperature)
-    print(temp_scalar)
 
     assert isclose(temp_scalar[0].item(), 1.271131634)
     assert isclose(temp_scalar[1].item(), 1.271966338)
