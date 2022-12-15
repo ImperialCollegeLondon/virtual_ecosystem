@@ -11,6 +11,9 @@ from math import atan, e, log10, pi
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.model import InitialisationError
+
 # from core.constants import CONSTANTS as C
 # but for meanwhile define all the constants needed here
 BINDING_WITH_PH = {
@@ -48,6 +51,20 @@ class SoilCarbon:
 
     def __init__(self, maom: NDArray[np.float32], lmwc: NDArray[np.float32]) -> None:
         """Initialise set of carbon pools."""
+
+        # Check that arrays are of equal size and shape
+        if maom.shape != lmwc.shape:
+            log_and_raise(
+                "Dimension mismatch for initial carbon pools!",
+                InitialisationError,
+            )
+
+        # Check that negative initial values are not given
+        if any(i < 0 for i in maom) or any(i < 0 for i in lmwc):
+            log_and_raise(
+                "Initial carbon pools contain at least one negative value!",
+                InitialisationError,
+            )
 
         self.maom = maom
         self.lmwc = lmwc
