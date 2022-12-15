@@ -100,11 +100,12 @@ class SoilCarbon:
 
         # Convert dt to a float representing the number of days
         # 1440 minutes in a day
-        time_step = 1440.0 * dt.astype("timedelta64[m]") / np.timedelta64(1, "m")
+        time_step = (dt.astype("timedelta64[m]") / np.timedelta64(1, "m")) / 1440.0
+        print(time_step)
 
         # Once changes are determined update all pools
         self.lmwc += lmwc_from_maom * time_step
-        self.lmwc += maom_from_lmwc * time_step
+        self.maom += maom_from_lmwc * time_step
 
     def mineral_association(
         self,
