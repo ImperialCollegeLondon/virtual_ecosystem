@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 from virtual_rainforest.core.model import InitialisationError
-from virtual_rainforest.soil.carbon import (
+from virtual_rainforest.models.soil.carbon import (
     SoilCarbon,
     scalar_moisture,
     scalar_temperature,
