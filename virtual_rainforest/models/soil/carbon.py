@@ -6,8 +6,6 @@ mineral associated organic matter (MAOM). More pools and their interactions will
 added at a later date.
 """
 
-from math import e, pi
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -37,7 +35,7 @@ TEMP_SCALAR = {
 }  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
 
 
-class SoilCarbon:
+class SoilCarbonPools:
     """Class containing the full set of soil carbon pools.
 
     At the moment, only two pools are included. Functions exist for the transfer of
@@ -101,7 +99,6 @@ class SoilCarbon:
         # Convert dt to a float representing the number of days
         # 1440 minutes in a day
         time_step = (dt.astype("timedelta64[m]") / np.timedelta64(1, "m")) / 1440.0
-        print(time_step)
 
         # Once changes are determined update all pools
         self.lmwc += lmwc_from_maom * time_step
@@ -171,11 +168,11 @@ def scalar_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
     """
 
     # This expression is drawn from Abramoff et al. (2018)
-    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * np.arctan(
-        pi * (soil_temp - TEMP_SCALAR["t_1"])
+    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / np.pi) * np.arctan(
+        np.pi * (soil_temp - TEMP_SCALAR["t_1"])
     )
-    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / pi) * np.arctan(
-        pi * TEMP_SCALAR["t_4"] * (TEMP_SCALAR["ref_temp"] - TEMP_SCALAR["t_1"])
+    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / np.pi) * np.arctan(
+        np.pi * TEMP_SCALAR["t_4"] * (TEMP_SCALAR["ref_temp"] - TEMP_SCALAR["t_1"])
     )
 
     return np.divide(numerator, denominator)
@@ -197,7 +194,7 @@ def scalar_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
     scaler = 1 / (
         1
         + MOISTURE_SCALAR["coefficient"]
-        * e ** (-MOISTURE_SCALAR["exponent"] * soil_moisture)
+        * np.exp(-MOISTURE_SCALAR["exponent"] * soil_moisture)
     )
 
     return scaler

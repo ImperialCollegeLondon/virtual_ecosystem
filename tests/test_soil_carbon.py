@@ -12,7 +12,7 @@ import pytest
 
 from virtual_rainforest.core.model import InitialisationError
 from virtual_rainforest.models.soil.carbon import (
-    SoilCarbon,
+    SoilCarbonPools,
     scalar_moisture,
     scalar_temperature,
 )
@@ -58,7 +58,7 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
 
     # Check that initialisation fails (or doesn't) as expected
     with raises:
-        soil_carbon = SoilCarbon(maom, lmwc)
+        soil_carbon = SoilCarbonPools(maom, lmwc)
 
         assert (soil_carbon.maom == maom).all()
         assert (soil_carbon.lmwc == lmwc).all()
@@ -72,7 +72,7 @@ def test_update_pools():
     # Initialise soil carbon class
     maom = np.array([23.0, 23.0], dtype=np.float32)
     lmwc = np.array([98.0, 55.0], dtype=np.float32)
-    soil_carbon = SoilCarbon(maom, lmwc)
+    soil_carbon = SoilCarbonPools(maom, lmwc)
 
     # Define all the required variables to run function
     pH = np.array([7.0, 7.0], dtype=np.float32)
@@ -99,7 +99,7 @@ def test_mineral_association():
     # Initialise soil carbon class
     maom = np.array([23.0, 23.0], dtype=np.float32)
     lmwc = np.array([98.0, 55.0], dtype=np.float32)
-    soil_carbon = SoilCarbon(maom, lmwc)
+    soil_carbon = SoilCarbonPools(maom, lmwc)
 
     # Define all the required variables to run function
     pH = np.array([7.0, 7.0], dtype=np.float32)
@@ -114,9 +114,9 @@ def test_mineral_association():
 
     # Check that expected values are generated
     assert isclose(lmwc_from_maom[0].item(), -69.9158630)
-    assert isclose(lmwc_from_maom[1].item(), -32.78682327)
+    assert isclose(lmwc_from_maom[1].item(), -32.78682708)
     assert isclose(maom_from_lmwc[0].item(), 69.9158630)
-    assert isclose(maom_from_lmwc[1].item(), 32.78682327)
+    assert isclose(maom_from_lmwc[1].item(), 32.78682708)
 
 
 def test_scalar_temperature():
@@ -135,5 +135,5 @@ def test_scalar_moisture():
     soil_moisture = np.array([0.5, 0.7], dtype=np.float32)
     moist_scalar = scalar_moisture(soil_moisture)
 
-    assert isclose(moist_scalar[0].item(), 0.750035643)
+    assert isclose(moist_scalar[0].item(), 0.750035703)
     assert isclose(moist_scalar[1].item(), 0.947787225)
