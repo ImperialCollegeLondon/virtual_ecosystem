@@ -80,7 +80,7 @@ def test_update_pools():
     percent_clay = np.array([50.0, 50.0], dtype=np.float32)
     soil_moisture = np.array([0.5, 0.5], dtype=np.float32)
     soil_temp = np.array([35.0, 35.0], dtype=np.float32)
-    dt = np.timedelta64(2, "h")
+    dt = 2.0 / 24.0
 
     soil_carbon.update_pools(
         pH, bulk_density, soil_moisture, soil_temp, percent_clay, dt

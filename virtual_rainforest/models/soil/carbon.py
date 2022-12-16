@@ -78,7 +78,7 @@ class SoilCarbonPools:
         soil_moisture: NDArray[np.float32],
         soil_temp: NDArray[np.float32],
         percent_clay: NDArray[np.float32],
-        dt: np.timedelta64,
+        dt: float,
     ) -> None:
         """Update all soil carbon pools.
 
@@ -92,7 +92,7 @@ class SoilCarbonPools:
             soil_moisture: soil moisture for each soil grid cell
             soil_temp: soil temperature for each soil grid cell
             percent_clay: Percentage clay for each soil grid cell
-            dt: time step in a format convertible to minutes
+            dt: time step (days)
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
@@ -100,13 +100,9 @@ class SoilCarbonPools:
             pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
-        # Convert dt to a float representing the number of days
-        # 1440 minutes in a day
-        time_step = (dt.astype("timedelta64[m]") / np.timedelta64(1, "m")) / 1440.0
-
         # Once changes are determined update all pools
-        self.lmwc -= lmwc_to_maom * time_step
-        self.maom += lmwc_to_maom * time_step
+        self.lmwc -= lmwc_to_maom * dt
+        self.maom += lmwc_to_maom * dt
 
     def mineral_association(
         self,
@@ -115,7 +111,7 @@ class SoilCarbonPools:
         soil_moisture: NDArray[np.float32],
         soil_temp: NDArray[np.float32],
         percent_clay: NDArray[np.float32],
-    ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    ) -> NDArray[np.float32]:
         """Calculates net rate of LMWC association with soil minerals.
 
         Following Abramoff et al. (2018), mineral adsorption of carbon is controlled by
