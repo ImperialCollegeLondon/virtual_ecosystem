@@ -96,7 +96,7 @@ class SoilCarbonPools:
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
-        lmwc_from_maom, maom_from_lmwc = self.mineral_association(
+        lmwc_to_maom = self.mineral_association(
             pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
@@ -105,8 +105,8 @@ class SoilCarbonPools:
         time_step = (dt.astype("timedelta64[m]") / np.timedelta64(1, "m")) / 1440.0
 
         # Once changes are determined update all pools
-        self.lmwc += lmwc_from_maom * time_step
-        self.maom += maom_from_lmwc * time_step
+        self.lmwc -= lmwc_to_maom * time_step
+        self.maom += lmwc_to_maom * time_step
 
     def mineral_association(
         self,
@@ -130,6 +130,9 @@ class SoilCarbonPools:
             soil_moisture: soil moisture for each soil grid cell
             soil_temp: soil temperature for each soil grid cell
             percent_clay: Percentage clay for each soil grid cell
+
+        Returns:
+            lmwc_to_maom: The net flux from LMWC to MAOM
         """
 
         # This expression is drawn from (Mayes et al. (2012))
@@ -154,9 +157,7 @@ class SoilCarbonPools:
         temp_scalar = scalar_temperature(soil_temp)
         moist_scalar = scalar_moisture(soil_moisture)
 
-        flux = temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
-
-        return -flux, flux
+        return temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
 
 
 def scalar_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:

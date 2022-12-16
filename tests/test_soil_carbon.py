@@ -108,15 +108,13 @@ def test_mineral_association():
     soil_moisture = np.array([0.5, 0.5], dtype=np.float32)
     soil_temp = np.array([35.0, 35.0], dtype=np.float32)
 
-    lmwc_from_maom, maom_from_lmwc = soil_carbon.mineral_association(
+    lmwc_to_maom = soil_carbon.mineral_association(
         pH, bulk_density, soil_moisture, soil_temp, percent_clay
     )
 
     # Check that expected values are generated
-    assert isclose(lmwc_from_maom[0].item(), -69.9158630)
-    assert isclose(lmwc_from_maom[1].item(), -32.78682708)
-    assert isclose(maom_from_lmwc[0].item(), 69.9158630)
-    assert isclose(maom_from_lmwc[1].item(), 32.78682708)
+    assert isclose(lmwc_to_maom[0].item(), 69.9158630)
+    assert isclose(lmwc_to_maom[1].item(), 32.78682708)
 
 
 def test_scalar_temperature():
