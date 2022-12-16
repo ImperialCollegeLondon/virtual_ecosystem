@@ -154,13 +154,15 @@ class SoilCarbonPools:
         )
 
         # Find scalar factors that multiple rates
-        temp_scalar = scalar_temperature(soil_temp)
-        moist_scalar = scalar_moisture(soil_moisture)
+        temp_scalar = convert_temperature_to_scalar(soil_temp)
+        moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
         return temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
 
 
-def scalar_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
+def convert_temperature_to_scalar(
+    soil_temp: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
     This form is used in Abramoff et al. (2018) to minimise differences with the
@@ -183,7 +185,9 @@ def scalar_temperature(soil_temp: NDArray[np.float32]) -> NDArray[np.float32]:
     return np.divide(numerator, denominator)
 
 
-def scalar_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
+def convert_moisture_to_scalar(
+    soil_moisture: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
     This form is used in Abramoff et al. (2018) to minimise differences with the
@@ -196,10 +200,8 @@ def scalar_moisture(soil_moisture: NDArray[np.float32]) -> NDArray[np.float32]:
     """
 
     # This expression is drawn from Abramoff et al. (2018)
-    scaler = 1 / (
+    return 1 / (
         1
         + MOISTURE_SCALAR["coefficient"]
         * np.exp(-MOISTURE_SCALAR["exponent"] * soil_moisture)
     )
-
-    return scaler

@@ -13,8 +13,8 @@ import pytest
 from virtual_rainforest.core.model import InitialisationError
 from virtual_rainforest.models.soil.carbon import (
     SoilCarbonPools,
-    scalar_moisture,
-    scalar_temperature,
+    convert_moisture_to_scalar,
+    convert_temperature_to_scalar,
 )
 
 from .conftest import log_check
@@ -117,21 +117,21 @@ def test_mineral_association():
     assert isclose(lmwc_to_maom[1].item(), 32.78682708)
 
 
-def test_scalar_temperature():
+def test_convert_temperature_to_scalar():
     """Test that scalar_temperature runs and generates the correct value."""
 
     soil_temperature = np.array([35.0, 37.5], dtype=np.float32)
-    temp_scalar = scalar_temperature(soil_temperature)
+    temp_scalar = convert_temperature_to_scalar(soil_temperature)
 
     assert isclose(temp_scalar[0].item(), 1.271131634)
     assert isclose(temp_scalar[1].item(), 1.271966338)
 
 
-def test_scalar_moisture():
+def test_convert_moisture_to_scalar():
     """Test that scalar_moisture runs and generates the correct value."""
 
     soil_moisture = np.array([0.5, 0.7], dtype=np.float32)
-    moist_scalar = scalar_moisture(soil_moisture)
+    moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
     assert isclose(moist_scalar[0].item(), 0.750035703)
     assert isclose(moist_scalar[1].item(), 0.947787225)
