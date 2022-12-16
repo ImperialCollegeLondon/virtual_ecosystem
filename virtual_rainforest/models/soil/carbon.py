@@ -17,22 +17,26 @@ from virtual_rainforest.core.model import InitialisationError
 BINDING_WITH_PH = {
     "slope": -0.186,  # unitless
     "intercept": -0.216,  # unitless
-}  # From linear regression (Mayes et al. (2012))
+}
+"""From linear regression (Mayes et al. (2012))."""
 MAX_SORPTION_WITH_CLAY = {
     "slope": 0.483,  # unitless
     "intercept": 2.328,  # unitless
-}  # From linear regression (Mayes et al. (2012))
+}
+"""From linear regression (Mayes et al. (2012))."""
 MOISTURE_SCALAR = {
     "coefficient": 30.0,  # unitless
     "exponent": 9.0,  # unitless
-}  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
+}
+"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete."""
 TEMP_SCALAR = {
     "t_1": 15.4,  # C
     "t_2": 11.75,  # unclear
     "t_3": 29.7,  # unclear
     "t_4": 0.031,  # unclear
     "ref_temp": 30.0,  # C
-}  # Used in Abramoff et al. (2018), but can't trace it back to anything more concrete
+}
+"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete."""
 
 
 class SoilCarbonPools:
