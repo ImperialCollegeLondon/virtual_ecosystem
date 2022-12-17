@@ -98,7 +98,7 @@ class AxisValidator(ABC):
     """
 
     core_axis: str = ""
-    dim_names: tuple[str] = ("",)
+    dim_names: set[str] = {""}
 
     def __init__(self) -> None:
         super().__init__()
@@ -190,7 +190,8 @@ def validate_axis(axis: str, value: DataArray, grid: Grid, data: Data) -> DataAr
     else:
         raise KeyError("Unknown core axis name: %s", axis)
 
-    validator_dims = set([v.dim_names for v in validators])
+    # Get the set of dim names across all of the validators for this axis
+    validator_dims = set.union(*[v.dim_names for v in validators])
 
     # If the dataarray includes any of those dimension names, one of the validators for
     # that axis must be able to validate the array, otherwise we can skip validation on
@@ -214,6 +215,53 @@ def validate_axis(axis: str, value: DataArray, grid: Grid, data: Data) -> DataAr
 
     else:
         return value
+
+
+class Spat_CellId_Coord_Any(AxisValidator):
+    """Spatial Axis Validator for cell id coordinates on any grid.
+
+    In this validator, the DataArray has a cell_id dimension with valued coordinates,
+    which should map onto the grid cell ids, allowing for a subset of ids. Because this
+    method simply maps data to grid cells by id, it should apply to _any_ arbitrary grid
+    setup.
+
+    Args:
+        darray: A data array containing spatial information to be validated
+        grid: A Grid instance describing the expected spatial structure.
+
+    Returns:
+        A validated dataarray with a single cell id spatial dimension
+    """
+
+    core_axis = "spatial"
+    dim_names = {"cell_id"}
+
+    def can_validate(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> bool:
+        return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
+            value.coords
+        )
+
+    def run_validation(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
+
+        da_cell_ids = value["cell_id"].values
+
+        if len(np.unique(da_cell_ids)) != len(da_cell_ids):
+            raise ValueError("The data cell ids contain duplicate values.")
+
+        if not set(grid.cell_id).issubset(da_cell_ids):
+            raise ValueError("The data cell ids are not a superset of grid cell ids.")
+
+        # Now ensure sorting and any subsetting:
+        # https://stackoverflow.com/questions/8251541
+        da_sortorder = np.argsort(da_cell_ids)
+        gridid_pos = np.searchsorted(da_cell_ids[da_sortorder], grid.cell_id)
+        da_indices = da_sortorder[gridid_pos]
+
+        return value.isel(cell_id=da_indices)
 
 
 # @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
