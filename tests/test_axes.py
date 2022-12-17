@@ -352,3 +352,86 @@ def test_vldr_spat_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_
 
     if excep is not None:
         assert str(excep.value) == exp_message
+
+
+# ABC implementation
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
+    argvalues=[
+        (  # grid cell ids not covered by data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [1, 2, 3, 4, 5, 9]}),
+            pytest.raises(ValueError),
+            "The data cell ids are not a superset of grid cell ids.",
+            None,
+        ),
+        (  # Duplicate ids in data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 5, 4, 5]}),
+            pytest.raises(ValueError),
+            "The data cell ids contain duplicate values.",
+            None,
+        ),
+        (  # - same size and order
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(data=np.arange(6), coords={"cell_id": [0, 1, 2, 3, 4, 5]}),
+            does_not_raise(),
+            None,
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - same order but more ids in cell data
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.arange(9), coords={"cell_id": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
+            ),
+            does_not_raise(),
+            None,
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - different order
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.array([5, 3, 1, 0, 4, 2]),
+                coords={"cell_id": [5, 3, 1, 0, 4, 2]},
+            ),
+            does_not_raise(),
+            None,
+            [0, 1, 2, 3, 4, 5],
+        ),
+        (  # - different order and subsetting
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
+            DataArray(
+                data=np.array([6, 5, 7, 3, 1, 0, 4, 2, 8]),
+                coords={"cell_id": [6, 5, 7, 3, 1, 0, 4, 2, 8]},
+            ),
+            does_not_raise(),
+            None,
+            [0, 1, 2, 3, 4, 5],
+        ),
+    ],
+)
+def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.axes import Spat_CellId_Coord_Any
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    v7r = Spat_CellId_Coord_Any()
+
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.validate(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
