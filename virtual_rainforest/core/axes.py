@@ -153,57 +153,6 @@ the `__subclass_init__` method.
 """
 
 
-def register_axis_validator(axis: str, signature: tuple) -> Callable:
-    """Add a new validator and data signature to a core axis.
-
-    This decorator adds the decorated method to the AXIS_VALIDATORS registry to extend
-    or amend the available routines used to load and validate an array containing
-    spatial information. The decorator adds the method to the list of validators
-    provided for the given axis class attribute under the given signature.
-
-    The signature consists of a tuple containing:
-
-    * a tuple of dimension names required in the data array to use the function,
-    * a tuple of coordinate names required in the data array to use the function - this
-      can be an empty tuple if no coordinate names are required,
-    * a tuple of grid types that the validator can be used with. The "any" grid type
-      can be used to indicate that a validator will work with any grid type.
-
-    Args:
-        axis: The core axis that the validator applies to
-        signature: A tuple of the validator signature.
-    """
-
-    def decorator(func: Callable) -> Callable:
-
-        # Check the grid types are valid
-        grid_types = signature[2]
-        for gtype in grid_types:
-            if (gtype not in GRID_REGISTRY) and (gtype != "any"):
-                log_and_raise(
-                    f"Unknown grid type '{gtype}' decorating {func.__name__}",
-                    ValueError,
-                )
-
-        # Does the axis exist yet?
-        if axis not in AXIS_VALIDATORS:
-            AXIS_VALIDATORS[axis] = dict()
-
-        # Register the signature -> function map under the given axis, checking if the
-        # signature already exists
-        if signature in AXIS_VALIDATORS[axis]:
-            LOGGER.debug("Replacing existing %s validator: %s", axis, func.__name__)
-        else:
-            LOGGER.debug("Adding %s validator: %s", axis, func.__name__)
-
-        # Add the validator
-        AXIS_VALIDATORS[axis][signature] = func
-
-        return func
-
-    return decorator
-
-
 def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable]:
     """Get the matching validator function for a data array on a given axis.
 
