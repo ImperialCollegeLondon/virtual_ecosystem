@@ -67,14 +67,14 @@ in the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Type
+from typing import Any, Optional, Type
 
 import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.grid import Grid
+from virtual_rainforest.core.logger import LOGGER
 
 
 class AxisValidator(ABC):
@@ -97,7 +97,8 @@ class AxisValidator(ABC):
     DataArrays to record that validation has been passed on the core axis.
     """
 
-    core_axis: str = "placeholder"
+    core_axis: str = ""
+    dim_names: tuple[str] = ("",)
 
     def __init__(self) -> None:
         super().__init__()
@@ -110,6 +111,9 @@ class AxisValidator(ABC):
         :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. The subclass is
         added to the list of AxisValidators that apply to the subclass core axis.
         """
+
+        if cls.core_axis == "":
+            raise ValueError("Core axis name cannot be an empty string.")
 
         if cls.core_axis in AXIS_VALIDATORS:
             AXIS_VALIDATORS[cls.core_axis].append(cls)
@@ -153,20 +157,23 @@ the `__subclass_init__` method.
 """
 
 
-def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable]:
-    """Get the matching validator function for a data array on a given axis.
+def validate_axis(axis: str, value: DataArray, grid: Grid, data: Data) -> DataArray:
+    """Validate a DataArray on a core axis.
 
-    This function iterates over the registered validator functions for a given core axis
-    in the AXIS_VALIDATORS registry and matches the data array signatures against the
-    provided signatures. The validator signature identifies reserved dimension names,
-    which should show that the data dimension maps onto a core axis. Usually that is a
-    single dimension name, but it can be more: for example, 'x' and 'y' are used to map
-    data onto the internal spatial dimension using 'cell_id'.
+    The AXIS_VALIDATORS registry provides a list of AxisValidators subclasses for each
+    core axis. This function takes a list for a given axis and then applies validation
+    for that axis to the input DataArray.
 
-    If the input data array uses dimension names that have been registered to validate a
-    particular axis, then a matching validator must be found and an exception is raised
-    if no signature is matched. If the dimension names on the data array do not match
-    any of the registered dimensions, then the function returns None.
+    The function first checks if the dimension names of the input DataArray overlap with
+    the set of dimension names used across the AxisValidators for the core axis. If they
+    do then the (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`)
+    method of _one_ of the AxisValidator subclasses should return True. It is an error
+    for either no or more than one validator to be able to validate the input array. The
+    appropriate AxisValidator is then used to validate the input array and return a
+    validated DataArray.
+
+    If the dimension names on the data array do not match any of the registered
+    dimensions, then the function returns the input DataArray.
 
     Args:
         axis: The core axis to get a validator for
@@ -178,52 +185,38 @@ def get_validator(axis: str, data: Data, darray: DataArray) -> Optional[Callable
         without matching a registered validator.
     """
 
-    # Check the axis exists
-    if axis not in AXIS_VALIDATORS:
-        raise ValueError(f"Unknown core axis: {axis}")
+    if axis in AXIS_VALIDATORS:
+        validators: list[Type[AxisValidator]] = AXIS_VALIDATORS[axis]
+    else:
+        raise KeyError("Unknown core axis name: %s", axis)
 
-    # Identify the correct validator routine from the data array signature
-    da_dims = set(darray.dims)
-    da_coords = set(darray.coords.variables)
+    validator_dims = set([v.dim_names for v in validators])
 
-    # Track the dimension names used by the validators on this axis - data arrays should
-    # not be allowed to use reserved dimension names
-    registered_dim_names: set[str] = set()
+    # If the dataarray includes any of those dimension names, one of the validators for
+    # that axis must be able to validate the array, otherwise we can skip validation on
+    # this axis and return the input array.
+    if validator_dims.intersection(value.dims):
 
-    # Loop over the available validators loooking for a congruent signature
-    # - dims _cannot_ be empty on a DataArray (they default to dim_N strings) so are
-    #   guaranteed to be non-empty and must then match.
-    # - coords _can_ be empty: they just associate values with indices along the
-    #   dimension. So, the signature should match _specified_ coords but not the
-    #   empty set.
-    for (vldr_dims, vldr_coords, vldr_grid), vldr_func in AXIS_VALIDATORS[axis].items():
+        # There should be one and only validator that can validate for this axis.
+        validator_found = [v().can_validate(value, data, grid) for v in validators]
 
-        # Compile a set of dimension names associated with this axis
-        registered_dim_names.update(vldr_dims)
-        registered_dim_names.update(vldr_coords)
+        if not any(validator_found):
+            raise RuntimeError(
+                f"Data dimensions match '{axis}' axis but no validator can validate"
+            )
 
-        if (
-            set(vldr_dims).issubset(da_dims)
-            and set(vldr_coords).issubset(da_coords)
-            and ((data.grid.grid_type in vldr_grid) or ("any" in vldr_grid))
-        ):
+        if sum(validator_found) > 1:
+            raise RuntimeError(f"Validators on '{axis}' axis not mutually exclusive")
 
-            # Retrieve the method associated with the validator signature from the Data
-            # object.
-            return vldr_func
+        # Get the appropriate Validator class and then use it to update the data array
+        this_validator = validators[validator_found.index(True)]
+        return this_validator().validate(value, data, grid)
 
-    uses_registered = registered_dim_names.intersection(da_dims.union(da_coords))
-    if uses_registered:
-        log_and_raise(
-            f"DataArray uses '{axis}' axis dimension names but does "
-            f"not match a validator: {', '.join(uses_registered)}",
-            ValueError,
-        )
-
-    return None
+    else:
+        return value
 
 
-@register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
+# @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
 def vldr_spat_cellid_coord_any(
     darray: DataArray, grid: Grid, **kwargs: Any
 ) -> DataArray:
@@ -259,7 +252,7 @@ def vldr_spat_cellid_coord_any(
     return darray.isel(cell_id=da_indices)
 
 
-@register_axis_validator("spatial", (("cell_id",), (), ("any",)))
+# @register_axis_validator("spatial", (("cell_id",), (), ("any",)))
 def vldr_spat_cellid_dim_any(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Spatial validator for cell id dimension onto any grid.
 
@@ -285,7 +278,7 @@ def vldr_spat_cellid_dim_any(darray: DataArray, grid: Grid, **kwargs: Any) -> Da
     return darray
 
 
-@register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
+# @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
 def vldr_spat_xy_coord_square(
     darray: DataArray, grid: Grid, **kwargs: Any
 ) -> DataArray:
@@ -337,7 +330,7 @@ def vldr_spat_xy_coord_square(
     )
 
 
-@register_axis_validator("spatial", (("x", "y"), (), ("square",)))
+# @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
 def vldr_spat_xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Spatial validator for XY dimensions onto a square grid.
 
