@@ -66,7 +66,8 @@ a single ``cell_id`` spatial axis, which maps data onto the cell IDs used for in
 in the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
 """
 
-from typing import Any, Callable, Optional
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 from xarray import DataArray
@@ -75,18 +76,80 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.grid import GRID_REGISTRY, Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
-AXIS_VALIDATORS: dict[str, dict[tuple, Callable]] = {}
-"""A registry for different axis validators
 
-This dictionary is keyed by the name of a particular core axis (e.g. 'spatial'), and the
-value for that key is then another dictionary that keys a particular data array
-signature to a function that validates data with that signature.
+class AxisValidator(ABC):
+    """The AxisValidator abstract base class.
 
-Users can register their own functions to map data onto a core axis using the
-:func:`~virtual_rainforest.core.data.register_axis_validator` decorator. The
-function itself should have the following signature:
+    This ABC provides the structure for axis validators. These are used to check that a
+    DataArray to be added to a Data instance is congruent with the configuration of a
+    virtual rainforest simulation. The base class provides abstract methods that provide
+    the following functionality:
 
-    func(data: Data, darray: DataArray) -> DataArray
+    * Test if the validator subclass can be applied to a particular DataArray
+      (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`).
+    * Run any appropriate validation on DataArrays that pass the validation test
+      (:meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`).
+
+    The class method (:meth:`~virtual_rainforest.core.axes.AxisValidator.validate`)
+    wraps the subclass specific implementations of these two functions. If the input can
+    be validated then it returns the DataArray with any validation applied, otherwise
+    the original input is returned. The method also sets the attributes of validated
+    DataArrays to record that validation has been passed on the core axis.
+    """
+
+    core_axis: str = "placeholder"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    @classmethod
+    def __init_subclass__(cls) -> None:
+        """Adds new subclasses to the AxisValidator registry.
+
+        When new subclasses are created this method automatically extends the
+        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. The subclass is
+        added to the list of AxisValidators that apply to the subclass core axis.
+        """
+
+        if cls.core_axis in AXIS_VALIDATORS:
+            AXIS_VALIDATORS[cls.core_axis].append(cls)
+        else:
+            AXIS_VALIDATORS[cls.core_axis] = [cls]
+
+        LOGGER.debug("Adding '%s' AxisValidator: %s", cls.core_axis, cls.__name__)
+
+    @classmethod
+    def validate(
+        cls, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
+        """Run a validator on the input data."""
+        validator = cls()
+        if validator.can_validate(value, data, grid, **kwargs):
+            return validator.run_validation(value, data, grid, **kwargs)
+        return value
+
+    @abstractmethod
+    def can_validate(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> bool:
+        """Logic to check if this validator can validate the value array."""
+
+    @abstractmethod
+    def run_validation(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
+        """Validate the input."""
+
+
+AXIS_VALIDATORS: dict[str, list[Type[AxisValidator]]] = {}
+"""A registry for different axis validators subclasses
+
+This registry contains a dictionary of lists of AxisValidator subclasses. Each list
+contains all of AxisValidator subclasses that apply to a particular core axis, and the
+core axis names are used as the key to these lists.
+
+Users defined AxisValidator subclasses will be automatically added to this registry by
+the `__subclass_init__` method.
 """
 
 
