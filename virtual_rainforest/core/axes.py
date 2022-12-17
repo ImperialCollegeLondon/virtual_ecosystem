@@ -264,44 +264,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
         return value.isel(cell_id=da_indices)
 
 
-# @register_axis_validator("spatial", (("cell_id",), ("cell_id",), ("any",)))
-def vldr_spat_cellid_coord_any(
-    darray: DataArray, grid: Grid, **kwargs: Any
-) -> DataArray:
-    """Spatial validator for cell id coordinates onto any grid.
-
-    In this validator, the DataArray has a cell_id dimension with valued coordinates,
-    which should map onto the grid cell ids, allowing for a subset of ids. Because this
-    method simply maps data to grid cells by id, it should apply to _any_ arbitrary grid
-    setup.
-
-    Args:
-        darray: A data array containing spatial information to be validated
-        grid: A Grid instance describing the expected spatial structure.
-
-    Returns:
-        A validated dataarray with a single cell id spatial dimension
-    """
-
-    da_cell_ids = darray["cell_id"].values
-
-    if len(np.unique(da_cell_ids)) != len(da_cell_ids):
-        raise ValueError("The data cell ids contain duplicate values.")
-
-    if not set(grid.cell_id).issubset(da_cell_ids):
-        raise ValueError("The data cell ids are not a superset of grid cell ids.")
-
-    # Now ensure sorting and any subsetting:
-    # https://stackoverflow.com/questions/8251541
-    da_sortorder = np.argsort(da_cell_ids)
-    gridid_pos = np.searchsorted(da_cell_ids[da_sortorder], grid.cell_id)
-    da_indices = da_sortorder[gridid_pos]
-
-    return darray.isel(cell_id=da_indices)
-
-
-# @register_axis_validator("spatial", (("cell_id",), (), ("any",)))
-def vldr_spat_cellid_dim_any(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+class Spat_CellId_Dim_Any(AxisValidator):
     """Spatial validator for cell id dimension onto any grid.
 
     In this validator, the DataArray only has a cell_id dimension so assumes that the
@@ -317,13 +280,29 @@ def vldr_spat_cellid_dim_any(darray: DataArray, grid: Grid, **kwargs: Any) -> Da
 
     """
 
-    # Cell ID is only a dimenson with a give length - assume the order correct
-    # and check the right number of cells found
-    n_found = darray["cell_id"].size
-    if grid.n_cells != n_found:
-        raise ValueError(f"Grid defines {grid.n_cells} cells, data provides {n_found}")
+    core_axis = "spatial"
+    dim_names = {"cell_id"}
 
-    return darray
+    def can_validate(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> bool:
+        return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
+            value.coords
+        )
+
+    def run_validation(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
+
+        # Cell ID is only a dimenson with a give length - assume the order correct and
+        # check the right number of cells found
+        n_found = value["cell_id"].size
+        if grid.n_cells != n_found:
+            raise ValueError(
+                f"Grid defines {grid.n_cells} cells, data provides {n_found}"
+            )
+
+        return value
 
 
 # @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))

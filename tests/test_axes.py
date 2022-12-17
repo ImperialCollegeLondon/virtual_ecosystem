@@ -416,13 +416,57 @@ def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.axes import Spat_CellId_Coord_Any
-    from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.data import Data
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
     v7r = Spat_CellId_Coord_Any()
+
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.validate(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
+    argvalues=[
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(50), dims=("cell_id")),
+            pytest.raises(ValueError),
+            "Grid defines 100 cells, data provides 50",
+            None,
+        ),
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(100), dims=("cell_id")),
+            does_not_raise(),
+            None,
+            np.arange(100),
+        ),
+    ],
+)
+def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.axes import Spat_CellId_Dim_Any
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.data import Data
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    v7r = Spat_CellId_Dim_Any()
 
     can_val = v7r.can_validate(darray, data=data, grid=grid)
 
