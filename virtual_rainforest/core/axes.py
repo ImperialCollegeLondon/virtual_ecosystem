@@ -157,7 +157,7 @@ the `__subclass_init__` method.
 """
 
 
-def validate_axis(axis: str, value: DataArray, grid: Grid, data: Data) -> DataArray:
+def validate_dataarray(value: DataArray, grid: Grid, data: Data) -> DataArray:
     """Validate a DataArray on a core axis.
 
     The AXIS_VALIDATORS registry provides a list of AxisValidators subclasses for each
@@ -185,36 +185,38 @@ def validate_axis(axis: str, value: DataArray, grid: Grid, data: Data) -> DataAr
         without matching a registered validator.
     """
 
-    if axis in AXIS_VALIDATORS:
+    # Get the validators applying to each axis
+    for axis in AXIS_VALIDATORS:
+
         validators: list[Type[AxisValidator]] = AXIS_VALIDATORS[axis]
-    else:
-        raise KeyError("Unknown core axis name: %s", axis)
 
-    # Get the set of dim names across all of the validators for this axis
-    validator_dims = set.union(*[v.dim_names for v in validators])
+        # Get the set of dim names across all of the validators for this axis
+        validator_dims = set.union(*[v.dim_names for v in validators])
 
-    # If the dataarray includes any of those dimension names, one of the validators for
-    # that axis must be able to validate the array, otherwise we can skip validation on
-    # this axis and return the input array.
-    if validator_dims.intersection(value.dims):
+        # If the dataarray includes any of those dimension names, one of the validators
+        # for that axis must be able to validate the array, otherwise we can skip
+        # validation on this axis and return the input array.
+        if validator_dims.intersection(value.dims):
 
-        # There should be one and only validator that can validate for this axis.
-        validator_found = [v().can_validate(value, data, grid) for v in validators]
+            # There should be one and only validator that can validate for this axis.
+            validator_found = [v().can_validate(value, data, grid) for v in validators]
 
-        if not any(validator_found):
-            raise RuntimeError(
-                f"Data dimensions match '{axis}' axis but no validator can validate"
-            )
+            if not any(validator_found):
+                raise RuntimeError(
+                    f"Data dimensions match '{axis}' axis but no validator can validate"
+                )
 
-        if sum(validator_found) > 1:
-            raise RuntimeError(f"Validators on '{axis}' axis not mutually exclusive")
+            if sum(validator_found) > 1:
+                raise RuntimeError(
+                    f"Validators on '{axis}' axis not mutually exclusive"
+                )
 
-        # Get the appropriate Validator class and then use it to update the data array
-        this_validator = validators[validator_found.index(True)]
-        return this_validator().validate(value, data, grid)
+            # Get the appropriate Validator class and then use it to update the data
+            # array
+            this_validator = validators[validator_found.index(True)]
+            value = this_validator().validate(value, data, grid)
 
-    else:
-        return value
+    return value
 
 
 class Spat_CellId_Coord_Any(AxisValidator):

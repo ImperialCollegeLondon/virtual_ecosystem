@@ -88,6 +88,7 @@ from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.readers import FILE_FORMAT_REGISTRY
+from virtual_rainforest.core.axes import validate_dataarray
 
 
 class Data:
@@ -139,9 +140,6 @@ class Data:
             value: The DataArray to be stored
         """
 
-        # Import core.axis functions here to avoid circular imports
-        from virtual_rainforest.core.axes import AXIS_VALIDATORS, get_validator
-
         if not isinstance(value, DataArray):
             log_and_raise(
                 "Only DataArray objects can be added to Data instances", TypeError
@@ -155,27 +153,8 @@ class Data:
         else:
             LOGGER.info(f"Replacing data array for '{key}'")
 
-        # Look for data validators on registered axes
-        for axis in AXIS_VALIDATORS.keys():
-
-            axis_validator_func = get_validator(axis=axis, data=self, darray=value)
-
-            if axis_validator_func is None:
-                # Record the lack of a validator for this axis
-                value.attrs[axis] = None
-            else:
-                # Now run the validator using a broad base exception for now to reraise
-                # upstream exceptions.
-                try:
-                    value = axis_validator_func(darray=value, grid=self.grid)
-                except Exception as excep:
-                    log_and_raise(str(excep), type(excep))
-
-                # Record the axis validator to show this axis has been validated
-                value.attrs[axis] = axis_validator_func.__name__
-
-        # Store the data in the Dataset
-        self.data[key] = value
+        # Validate and store the data array
+        self.data[key] = validate_dataarray(value=value, grid=self.grid, data=self)
 
     def __getitem__(self, key: str) -> DataArray:
         """Get a given data variable from a Data instance.
