@@ -305,10 +305,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         return value
 
 
-# @register_axis_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
-def vldr_spat_xy_coord_square(
-    darray: DataArray, grid: Grid, **kwargs: Any
-) -> DataArray:
+class Spat_XY_Coord_Square(AxisValidator):
     """Spatial validator for XY coordinates onto a square grid.
 
     In this validator, the DataArray has a x and y dimensions with valued coordinates,
@@ -322,39 +319,53 @@ def vldr_spat_xy_coord_square(
         A validated dataarray with a single cell id spatial dimension
     """
 
-    # Get x and y coords to check the extents and cell coverage.
-    #
-    # TODO - Note that mapping all the cells here is a bit extreme with a square grid -
-    # could just map one row and column to confirm the indexing into the data, but this
-    # is a more general solution.
+    core_axis = "spatial"
+    dim_names = {"x", "y"}
 
-    # Use .stack() to convert the axis into stacked pairs of values
-    xy_pairs = darray.stack(cell=("y", "x")).coords
-    idx_pairs = darray.drop_vars(("x", "y")).stack(cell=("y", "x")).coords
+    def can_validate(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> bool:
+        return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
+            value.coords
+        )
 
-    # Get the mapping of points onto the grid
-    idx_x, idx_y = grid.map_xy_to_cell_indexing(
-        x_coords=xy_pairs["x"].values,
-        y_coords=xy_pairs["y"].values,
-        x_idx=idx_pairs["x"].values,
-        y_idx=idx_pairs["y"].values,
-        strict=False,
-    )
+    def run_validation(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
 
-    # TODO - fine a way to enable strict = True - probably just kwargs.
+        # Get x and y coords to check the extents and cell coverage.
+        #
+        # TODO - Note that mapping all the cells here is a bit extreme with a square
+        # grid - could just map one row and column to confirm the indexing into the
+        # data, but this is a more general solution.
 
-    # Now remap the grids from xy to cell_id - this uses the rather under
-    # described vectorized indexing feature in xarray:
-    #
-    #   https://docs.xarray.dev/en/stable/user-guide/indexing.html
-    #
-    # Specifically using DataArray.isel to select indexed dimensions by name, which
-    # avoids issues with different permutations of the axes - and map XY onto a common
-    # cell_id
+        # Use .stack() to convert the axis into stacked pairs of values
+        xy_pairs = value.stack(cell=("y", "x")).coords
+        idx_pairs = value.drop_vars(("x", "y")).stack(cell=("y", "x")).coords
 
-    return darray.isel(
-        x=DataArray(idx_x, dims=["cell_id"]), y=DataArray(idx_y, dims=["cell_id"])
-    )
+        # Get the mapping of points onto the grid
+        idx_x, idx_y = grid.map_xy_to_cell_indexing(
+            x_coords=xy_pairs["x"].values,
+            y_coords=xy_pairs["y"].values,
+            x_idx=idx_pairs["x"].values,
+            y_idx=idx_pairs["y"].values,
+            strict=False,
+        )
+
+        # TODO - fine a way to enable strict = True - probably just kwargs.
+
+        # Now remap the grids from xy to cell_id - this uses the rather under described
+        # vectorized indexing feature in xarray:
+        #
+        #   https://docs.xarray.dev/en/stable/user-guide/indexing.html
+        #
+        # Specifically using DataArray.isel to select indexed dimensions by name, which
+        # avoids issues with different permutations of the axes - and map XY onto a
+        # common cell_id
+
+        return value.isel(
+            x=DataArray(idx_x, dims=["cell_id"]), y=DataArray(idx_y, dims=["cell_id"])
+        )
 
 
 # @register_axis_validator("spatial", (("x", "y"), (), ("square",)))

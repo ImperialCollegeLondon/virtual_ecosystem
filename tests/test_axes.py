@@ -479,3 +479,73 @@ def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
 
         if excep is not None:
             assert str(excep.value) == exp_message
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
+    argvalues=[
+        (  # Coords on cell boundaries
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+                coords={"y": [2, 1, 0], "x": [2, 1, 0]},
+            ),
+            pytest.raises(ValueError),
+            "Mapped points fall on cell boundaries.",
+            None,
+        ),
+        (  # Does not cover cells
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5]]),
+                coords={"y": [2.5, 1.5], "x": [2.5, 1.5, 0.5]},
+            ),
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            None,
+        ),
+        (  # Irregular sampling on y axis gives multiple points in bottom row
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]]),
+                coords={"y": [2.5, 1.5, 0.5, 0.4], "x": [0.5, 1.5, 2.5]},
+            ),
+            pytest.raises(ValueError),
+            "Some cells contain more than one point.",
+            None,
+        ),
+        (  # All good
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3, "cell_area": 1},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+                coords={"y": [2.5, 1.5, 0.5], "x": [0.5, 1.5, 2.5]},
+            ),
+            does_not_raise(),
+            None,
+            np.arange(9),
+        ),
+    ],
+)
+def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.axes import Spat_XY_Coord_Square
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.data import Data
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    v7r = Spat_XY_Coord_Square()
+
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.validate(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
