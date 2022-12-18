@@ -132,8 +132,8 @@ def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.axes import Spat_CellId_Coord_Any
-    from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -176,8 +176,8 @@ def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.axes import Spat_CellId_Dim_Any
-    from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -246,8 +246,8 @@ def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals)
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.axes import Spat_XY_Coord_Square
-    from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -294,8 +294,8 @@ def test_Spat_XY_Dim_Square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
     from virtual_rainforest.core.axes import Spat_XY_Dim_Square
-    from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
