@@ -368,8 +368,7 @@ class Spat_XY_Coord_Square(AxisValidator):
         )
 
 
-# @register_axis_validator("spatial", (("x", "y"), (), ("square",)))
-def vldr_spat_xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+class Spat_XY_Dim_Square(AxisValidator):
     """Spatial validator for XY dimensions onto a square grid.
 
     In this validator, the DataArray has x and y dimension but no coordinates along
@@ -384,20 +383,34 @@ def vldr_spat_xy_dim_square(darray: DataArray, grid: Grid, **kwargs: Any) -> Dat
         A validated dataarray with a single cell id spatial dimension
     """
 
-    # Otherwise the data array must be the same shape as the grid
-    if grid.cell_nx != darray.sizes["x"] or grid.cell_ny != darray.sizes["y"]:
-        raise ValueError("Data XY dimensions do not match square grid")
+    core_axis = "spatial"
+    dim_names = {"x", "y"}
 
-    # Use DataArray.stack to combine the x and y into a multiindex called cell_id, with
-    # x varying fastest (cell_id goes from top left to top right, then down by rows),
-    # and then use these stacked indices to map the 2D onto grid cell order, using
-    # isel() to avoid issues with dimension ordering.
-    darray_stack = darray.stack(cell_id=("y", "x"))
+    def can_validate(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> bool:
+        return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
+            value.coords
+        )
 
-    return darray.isel(
-        x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
-        y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
-    )
+    def run_validation(
+        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
+    ) -> DataArray:
+
+        # Otherwise the data array must be the same shape as the grid
+        if grid.cell_nx != value.sizes["x"] or grid.cell_ny != value.sizes["y"]:
+            raise ValueError("Data XY dimensions do not match square grid")
+
+        # Use DataArray.stack to combine the x and y into a multiindex called cell_id,
+        # with x varying fastest (cell_id goes from top left to top right, then down by
+        # rows), and then use these stacked indices to map the 2D onto grid cell order,
+        # using isel() to avoid issues with dimension ordering.
+        darray_stack = value.stack(cell_id=("y", "x"))
+
+        return value.isel(
+            x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
+            y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
+        )
 
 
 class DataGenerator:
