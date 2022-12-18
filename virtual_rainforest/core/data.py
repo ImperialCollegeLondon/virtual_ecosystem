@@ -84,11 +84,11 @@ from typing import Any, Optional
 
 from xarray import DataArray, Dataset
 
+from virtual_rainforest.core.axes import validate_dataarray
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.readers import FILE_FORMAT_REGISTRY
-from virtual_rainforest.core.axes import validate_dataarray
 
 
 class Data:
