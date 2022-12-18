@@ -1,54 +1,28 @@
 """API documentation for the :mod:`core.axes` module.
 ************************************************** # noqa: D205
 
-This module handles the definition of the axis validators and adding validators to the
-AXIS_VALIDATORS registry.
+This module handles the validation of data being loaded into the core data storage of
+the virtual rainforest simulation. The main functionality in this module is ensuring
+that any loaded data is congruent with the core axes of the simulation and the
+configuration of a given simulation.
 
-Axis registry and validators
-============================
+The AxisValidator class
+=======================
 
-A virtual rainforest simulation has a set of core axes - such as spatial, temporal and
-soil depth axes - which have dimensions and possibly coordinates that are defined in the
-model configuration.  Within a given axis - for example the 'Spatial' axis - there can
-be several methods to map the data in a provided array onto the axis. The method
-selection depends on matching the _signature_ of a provided array for a particular axis:
-this is a combination of the named dimensions and whether the dimensions are associated
-with coordinates.  As an example, an array with simple ``x`` and ``y`` dimensions and no
-coordinates could be mapped onto a square grid, assuming that the lengths of each
-dimension match.
+The :class:`~virtual_rainforest.core.axes.AxisValidator` abstract base class provides an
+extensible framework for validating data arrays. Each subclass of the base class defines
+a particular core axis along with the name or names of dimensions in the input array
+that are expected to map onto that axis. So, for example, a validator can support the
+`spatial` axis using the `x` and `y` dimensions. Each individual subclass provides
+bespoke methods to test whether that validator can be applied to an input data array and
+then a validation routine to apply when it can.
 
-The AXIS_VALIDATORS registry is a dictionary that provides sets of validator methods for
-different axes. The list of validators for a given axis is then a mapping of data
-signatures to the function that will handle that given signature. The individual
-validation functions should take an input that matches the signature, validate it,
-implement any internal standardisation and then return the valid, standardised data.
+When new :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses are defined,
+they are automatically added to the AXIS_VALIDATORS registry. This maintains a list of
+the validators define for each core axis. 
 
-The set of validators provided in the AXIS_VALIDATORS registry can be extended using the
-:func:`~virtual_rainforest.core.data.add_validator` decorator, which adds a new
-pairing of a signature and method to the appropriate named axis in the registry. So, for
-example:
-
-.. code-block:: python
-
-    @add_validator("spatial", (("x", "y"), ("x", "y"), ("square",)))
-
-This adds a validator for the spatial axis that will map a :class:`~xarray.DataArray`
-with ``x`` and ``y`` coordinates (and hence implicitly 'x' and 'y' dimensions) onto a
-square grid.
-
-.. code-block:: python
-
-    @add_validator("spatial", (("cell_id",), (), ("any",)))
-
-This adds a validator for the spatial axis that will map a :class:`~xarray.DataArray`
-with the ``cell_id`` dimension (but no ``cell_id`` coordinates) onto _any_ spatial grid
-type: the underlying ``cell_id``  attribute of the grid is defined for all grid.
-
-Validator functions should all accept **kwargs so that the when the function is called,
-an arbitrary set of information can be passed to each function, but only the specific
-requirements of that validator need to be documented. See discussion here:
-
-https://github.com/ImperialCollegeLondon/virtual_rainforest/pull/133
+Note that the set of validators defined for a specific core axis should be mutually
+exclusive: only one should be applicable to any given dataset being tested on that axis.
 
 Core axes
 =========
@@ -56,14 +30,10 @@ Core axes
 The 'spatial' axis
 ------------------
 
-At present, the signature also includes only the spatial
-:attr:`~virtual_rainforest.core.grid.Grid.grid_type` used in the
-:class:`~virtual_rainforest.core.data.Data` instance, but this will likely be expanded
-to include configuration details for other core axes.
-
-All spatial validator methods standardise the spatial structure of the input data to use
-a single ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing
-in the :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
+The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for the
+'spatial' axis  standardise the spatial structure of the input data to use a single
+``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
+:class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
 """
 
 from abc import ABC, abstractmethod
@@ -72,7 +42,6 @@ from typing import Any, Optional, Type
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
@@ -123,25 +92,19 @@ class AxisValidator(ABC):
         LOGGER.debug("Adding '%s' AxisValidator: %s", cls.core_axis, cls.__name__)
 
     @classmethod
-    def validate(
-        cls, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def validate(cls, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
         """Run a validator on the input data."""
         validator = cls()
-        if validator.can_validate(value, data, grid, **kwargs):
-            return validator.run_validation(value, data, grid, **kwargs)
+        if validator.can_validate(value, grid, **kwargs):
+            return validator.run_validation(value, grid, **kwargs)
         return value
 
     @abstractmethod
-    def can_validate(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Logic to check if this validator can validate the value array."""
 
     @abstractmethod
-    def run_validation(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
         """Validate the input."""
 
 
@@ -157,7 +120,7 @@ the `__subclass_init__` method.
 """
 
 
-def validate_dataarray(value: DataArray, grid: Grid, data: Data) -> DataArray:
+def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Validate a DataArray on a core axis.
 
     The AXIS_VALIDATORS registry provides a list of AxisValidators subclasses for each
@@ -199,7 +162,7 @@ def validate_dataarray(value: DataArray, grid: Grid, data: Data) -> DataArray:
         if validator_dims.intersection(value.dims):
 
             # There should be one and only validator that can validate for this axis.
-            validator_found = [v().can_validate(value, data, grid) for v in validators]
+            validator_found = [v().can_validate(value, grid) for v in validators]
 
             if not any(validator_found):
                 raise RuntimeError(
@@ -214,7 +177,7 @@ def validate_dataarray(value: DataArray, grid: Grid, data: Data) -> DataArray:
             # Get the appropriate Validator class and then use it to update the data
             # array
             this_validator = validators[validator_found.index(True)]
-            value = this_validator().validate(value, data, grid)
+            value = this_validator().validate(value, grid, **kwargs)
 
     return value
 
@@ -238,16 +201,12 @@ class Spat_CellId_Coord_Any(AxisValidator):
     core_axis = "spatial"
     dim_names = {"cell_id"}
 
-    def can_validate(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
 
         da_cell_ids = value["cell_id"].values
 
@@ -285,16 +244,12 @@ class Spat_CellId_Dim_Any(AxisValidator):
     core_axis = "spatial"
     dim_names = {"cell_id"}
 
-    def can_validate(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
 
         # Cell ID is only a dimenson with a give length - assume the order correct and
         # check the right number of cells found
@@ -324,16 +279,12 @@ class Spat_XY_Coord_Square(AxisValidator):
     core_axis = "spatial"
     dim_names = {"x", "y"}
 
-    def can_validate(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
 
         # Get x and y coords to check the extents and cell coverage.
         #
@@ -388,16 +339,12 @@ class Spat_XY_Dim_Square(AxisValidator):
     core_axis = "spatial"
     dim_names = {"x", "y"}
 
-    def can_validate(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(
-        self, value: DataArray, data: Data, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
 
         # Otherwise the data array must be the same shape as the grid
         if grid.cell_nx != value.sizes["x"] or grid.cell_ny != value.sizes["y"]:
