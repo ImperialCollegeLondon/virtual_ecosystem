@@ -76,7 +76,7 @@ data in a `Data` instance under a different variable name to the name used in th
 
 Note that the properties for each variable in the configuration file are just the
 arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
-configurations must contain repeated data variable names.
+configurations must not contain repeated data variable names.
 """
 
 from pathlib import Path
