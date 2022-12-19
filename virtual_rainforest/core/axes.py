@@ -59,11 +59,11 @@ class AxisValidator(ABC):
     * Run any appropriate validation on DataArrays that pass the validation test
       (:meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`).
 
-    The class method (:meth:`~virtual_rainforest.core.axes.AxisValidator.validate`)
-    wraps the subclass specific implementations of these two functions. If the input can
-    be validated then it returns the DataArray with any validation applied, otherwise
-    the original input is returned. The method also sets the attributes of validated
-    DataArrays to record that validation has been passed on the core axis.
+    The :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate` method should
+    be used first to check that a particular `DataArray` can be validated, and then the
+    :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation` method can be
+    used to validate that input if appropriate. The method also sets the attributes of
+    validated DataArrays to record that validation has been passed on the core axis.
     """
 
     core_axis: str = ""
@@ -94,14 +94,6 @@ class AxisValidator(ABC):
         cls.run_validation.__doc__ = AxisValidator.run_validation.__doc__
 
         LOGGER.debug("Adding '%s' AxisValidator: %s", cls.core_axis, cls.__name__)
-
-    @classmethod
-    def validate(cls, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
-        """Run a validator on the input data."""
-        validator = cls()
-        if validator.can_validate(value, grid, **kwargs):
-            return validator.run_validation(value, grid, **kwargs)
-        return value
 
     @abstractmethod
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
@@ -204,7 +196,7 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
             # array
             this_validator = validators[validator_found.index(True)]
             try:
-                value = this_validator().validate(value, grid, **kwargs)
+                value = this_validator().run_validation(value, grid, **kwargs)
             except Exception as excep:
                 log_and_raise(str(excep), excep.__class__)
 

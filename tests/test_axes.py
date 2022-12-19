@@ -66,12 +66,6 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
     )
     assert np.allclose(validated, DataArray([6, 6, 6, 6, 6]))
 
-    not_altered = test_v7r.validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
-    assert np.allclose(not_altered, DataArray([1, 1, 1, 1, 1]))
-
-    is_altered = test_v7r.validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
-    assert np.allclose(is_altered, DataArray([6, 6, 6, 6, 6]))
-
 
 @pytest.mark.parametrize(
     argnames=["value", "exp_err", "exp_msg"],
@@ -191,7 +185,7 @@ def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.validate(darray, data=data, grid=grid)
+            darray = v7r.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -235,7 +229,7 @@ def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.validate(darray, data=data, grid=grid)
+            darray = v7r.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -305,7 +299,7 @@ def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals)
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.validate(darray, data=data, grid=grid)
+            darray = v7r.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -353,7 +347,7 @@ def test_Spat_XY_Dim_Square(grid_args, darray, exp_err, exp_message, exp_vals):
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.validate(darray, data=data, grid=grid)
+            darray = v7r.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
