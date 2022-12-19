@@ -84,6 +84,9 @@ class AxisValidator(ABC):
         if cls.core_axis == "":
             raise ValueError("Core axis name cannot be an empty string.")
 
+        if not cls.dim_names:
+            raise ValueError("AxisValidator dim names cannot be an empty set.")
+
         if cls.core_axis in AXIS_VALIDATORS:
             AXIS_VALIDATORS[cls.core_axis].append(cls)
         else:

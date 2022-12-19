@@ -43,6 +43,56 @@ def new_axis_validators():
             return value * 2
 
 
+def test_AxisValidator_registration_bad_core_axis():
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Registered correctly
+    with pytest.raises(ValueError) as excep:
+
+        # Create a new failing subclass.
+        class TestAxis(AxisValidator):
+
+            core_axis = ""
+            dim_names = {"test"}
+
+            def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+                return True
+
+            def run_validation(
+                self, value: DataArray, grid: Grid, **kwargs: Any
+            ) -> DataArray:
+                return value
+
+    assert str(excep.value) == "Core axis name cannot be an empty string."
+
+
+def test_AxisValidator_registration_bad_dim_names():
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Registered correctly
+    with pytest.raises(ValueError) as excep:
+
+        # Create a new failing subclass.
+        class TestAxis(AxisValidator):
+
+            core_axis = "failing_test"
+            dim_names = {}
+
+            def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+                return True
+
+            def run_validation(
+                self, value: DataArray, grid: Grid, **kwargs: Any
+            ) -> DataArray:
+                return value
+
+    assert str(excep.value) == "AxisValidator dim names cannot be an empty set."
+
+
 def test_AxisValidator_registration(new_axis_validators):
     """Simple test of AxisValidator registration."""
     from virtual_rainforest.core.axes import AXIS_VALIDATORS
