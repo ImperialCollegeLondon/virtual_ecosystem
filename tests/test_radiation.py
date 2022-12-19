@@ -1,7 +1,7 @@
 """Test module for abiotic.radiation.py."""
 
-import pytest
 import numpy as np
+import pytest
 
 # from core.constants import CONSTANTS as C  # this doesn't exist yet
 # from core.constants import CONSTANTS as C
