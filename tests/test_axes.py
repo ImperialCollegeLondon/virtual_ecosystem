@@ -164,6 +164,22 @@ def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, e
         assert str(err.value) == exp_msg
 
 
+def test_validate_CoreAxisAccessor(new_axis_validators, fixture_data):
+    """Test the core_axis property functions correctly."""
+
+    from virtual_rainforest.core.axes import validate_dataarray
+
+    value = DataArray(data=np.arange(4), dims=("cell_id"))
+
+    value = validate_dataarray(value, grid=fixture_data.grid)
+
+    assert value.core_axes["spatial"] == "Spat_CellId_Dim_Any"
+    assert value.core_axes["testing"] is None
+
+    assert value.core_axes("spatial")
+    assert not value.core_axes("testing")
+
+
 @pytest.mark.parametrize(
     argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[

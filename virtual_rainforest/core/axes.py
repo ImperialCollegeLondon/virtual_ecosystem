@@ -40,7 +40,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
 
 import numpy as np
-from xarray import DataArray
+from xarray import DataArray, register_dataarray_accessor
 
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
@@ -138,6 +138,39 @@ the `__subclass_init__` method.
 """
 
 
+@register_dataarray_accessor("core_axes")  # type:ignore
+class CoreAxisAccessor(dict):
+    """An xarray DataArray accessor providing a core_axes dictionary.
+
+    This class extends xarray DataArrays to provide a property containing a dictionary
+    providing a record of core axis validation applied to the data array. The resulting
+    `da.core_axes` property contains a dictionary keyed by core axis names with values
+    either as None or the name of the AxisValidator applied to that axis. The dictionary
+    can be edited directly using `da.core_axes['axis_name'] = value`.
+
+    The property can also be called as a function (`da.core_axes('axis_name')`), which
+    returns a boolean showing if the data array has been validated on that axis.
+    """
+
+    def __init__(self, xarray_obj: DataArray):
+        """Initialise the accessor on a DataArray.
+
+        Args:
+            xarray_obj: A data array to extend.
+        """
+        self._obj = xarray_obj
+        super().__init__()
+
+    def __call__(self, axis_name: str) -> bool:
+        """Check if the data array has been validated on a given axis.
+
+        Args:
+            axis_name: A core axis name to check
+        """
+
+        return False if self[axis_name] is None else True
+
+
 def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
     """Validate a DataArray on a core axis.
 
@@ -200,8 +233,11 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
             this_validator = validators[validator_found.index(True)]
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
+                value.core_axes[axis] = this_validator.__name__
             except Exception as excep:
                 log_and_raise(str(excep), excep.__class__)
+        else:
+            value.core_axes[axis] = None
 
     return value
 
