@@ -43,7 +43,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
 
 
 class AxisValidator(ABC):
@@ -182,25 +182,31 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
         # If the dataarray includes any of those dimension names, one of the validators
         # for that axis must be able to validate the array, otherwise we can skip
         # validation on this axis and return the input array.
-        if validator_dims.intersection(value.dims):
+        matching_dims = validator_dims.intersection(value.dims)
+        if matching_dims:
 
             # There should be one and only validator that can validate for this axis.
             validator_found = [v().can_validate(value, grid) for v in validators]
 
             if not any(validator_found):
-                raise RuntimeError(
-                    f"Data dimensions match '{axis}' axis but no validator can validate"
+                log_and_raise(
+                    f"DataArray uses '{axis}' axis dimension names but does "
+                    f"not match a validator: {','.join(matching_dims)}",
+                    ValueError,
                 )
 
             if sum(validator_found) > 1:
-                raise RuntimeError(
-                    f"Validators on '{axis}' axis not mutually exclusive"
+                log_and_raise(
+                    f"Validators on '{axis}' axis not mutually exclusive", RuntimeError
                 )
 
             # Get the appropriate Validator class and then use it to update the data
             # array
             this_validator = validators[validator_found.index(True)]
-            value = this_validator().validate(value, grid, **kwargs)
+            try:
+                value = this_validator().validate(value, grid, **kwargs)
+            except Exception as excep:
+                log_and_raise(str(excep), excep.__class__)
 
     return value
 
