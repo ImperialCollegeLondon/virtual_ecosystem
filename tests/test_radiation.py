@@ -23,33 +23,35 @@ CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
 
 def test_calc_ppfd():
     """Test to be decided."""
-    raise NotImplementedError("Implementation of this feature is missing")
+    from virtual_rainforest.models.abiotic import radiation
+
+    test = radiation.Radiation(100)
+    tau = test.calc_ppfd(29376000, 1.0)
+    assert tau == pytest.approx(0.752, 0.1)
+    assert test.ppfd == pytest.approx(43.713, 0.1)
 
 
-def test_calc_topofcanopy_radiation(shortwave_in, sunshine_hours, albedo_shortwave):
+def test_calc_topofcanopy_radiation():
     """Test to be decided."""
-    raise NotImplementedError("Implementation of this feature is missing")
+    from virtual_rainforest.models.abiotic import radiation
+
+    test = radiation.Radiation(100)
+    tau = test.calc_ppfd(29376000, 1.0)
+    assert tau == pytest.approx(0.752, 0.1)
+    test.calc_topofcanopy_radiation(tau, 29376000, 1.0)
+    assert test.topofcanopy_radiation == pytest.approx(18335385.16, 0.1)
 
 
-def test_calc_longwave_radiation(canopy_temperature, surface_temperature):
+def test_calc_longwave_radiation():
     """Test to be decided."""
-    raise NotImplementedError("Implementation of this feature is missing")
+    pass
 
 
-def test_calc_netradiation_surface(canopy_absorption):
+def test_calc_netradiation_surface():
     """Test to be decided."""
-    raise NotImplementedError("Implementation of this feature is missing")
+    pass
 
 
-def test_radiation_balance(
-    elevation,
-    shortwave_in,
-    sunshine_hours,
-    albedo_vis,
-    albedo_shortwave,
-    canopy_temperature,
-    surface_temperature,
-    canopy_absorption,
-):
+def test_radiation_balance():
     """Test to be decided."""
-    raise NotImplementedError("Implementation of this feature is missing")
+    pass
