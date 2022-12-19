@@ -1,26 +1,24 @@
 """Testing the data validators."""
 
 from contextlib import nullcontext as does_not_raise
-
-# from logging import CRITICAL, DEBUG
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pytest
 from xarray import DataArray
 
-# from .conftest import log_check
 
-
-def test_AxisValidator_subclass(fixture_data):
-    """Simple test of AxisValidator registration and methods."""
-    from virtual_rainforest.core.axes import AXIS_VALIDATORS, AxisValidator
+@pytest.fixture
+def new_axis_validators():
+    """Create new axis validators to test methods and registration."""
+    from virtual_rainforest.core.axes import AxisValidator
     from virtual_rainforest.core.grid import Grid
 
     # Create a new subclass.
     class TestAxis(AxisValidator):
 
         core_axis = "testing"
+        dim_names = {"test"}
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
@@ -30,12 +28,36 @@ def test_AxisValidator_subclass(fixture_data):
         ) -> DataArray:
             return value * 2
 
+    # Create a new duplicate subclass to check mutual exclusivity test
+    class TestAxis2(AxisValidator):
+
+        core_axis = "testing"
+        dim_names = {"test"}
+
+        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+            return True if value.sum() > 10 else False
+
+        def run_validation(
+            self, value: DataArray, grid: Grid, **kwargs: Any
+        ) -> DataArray:
+            return value * 2
+
+
+def test_AxisValidator_registration(new_axis_validators):
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AXIS_VALIDATORS
+
     # Registered correctly
     assert "testing" in AXIS_VALIDATORS
-    assert len(AXIS_VALIDATORS["testing"]) == 1
+    assert len(AXIS_VALIDATORS["testing"]) == 2
+
+
+def test_AxisValidator_methods(new_axis_validators, fixture_data):
+    """Simple test of AxisValidator registration and methods."""
+    from virtual_rainforest.core.axes import AXIS_VALIDATORS
 
     # Use the methods
-    test_v7r = TestAxis()
+    test_v7r = AXIS_VALIDATORS["testing"][0]()
     assert not test_v7r.can_validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
     assert test_v7r.can_validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
 
@@ -52,65 +74,50 @@ def test_AxisValidator_subclass(fixture_data):
 
 
 @pytest.mark.parametrize(
-    argnames=["axis", "darray", "exp_err", "exp_msg", "exp_type", "exp_name"],
+    argnames=["value", "exp_err", "exp_msg"],
     argvalues=[
         pytest.param(
-            "xy",
-            DataArray(data=np.arange(100), dims=("cell_id")),
-            pytest.raises(ValueError),
-            "Unknown core axis: xy",
-            type(None),
-            None,
-            id="Bad axis name",
-        ),
-        pytest.param(
-            "spatial",
-            DataArray(data=np.arange(100), dims=("cell_id")),
+            DataArray(data=np.arange(4), dims=("cell_id")),
             does_not_raise(),
             None,
-            Callable,
-            "vldr_spat_cellid_dim_any",
             id="Match found",
         ),
         pytest.param(
-            "spatial",
-            DataArray(data=np.arange(100), dims=("x")),
+            DataArray(data=np.arange(4), dims=("x")),
             pytest.raises(ValueError),
             "DataArray uses 'spatial' axis dimension names but "
             "does not match a validator: x",
-            type(None),
-            None,
             id="Uses dims, no match",
         ),
         pytest.param(
-            "spatial",
-            DataArray(data=np.arange(100), dims=("cell_identities")),
+            DataArray(data=np.arange(50), dims=("test")),
+            pytest.raises(RuntimeError),
+            "Validators on 'testing' axis not mutually exclusive",
+            id="Bad validator setup",
+        ),
+        pytest.param(
+            DataArray(data=np.arange(4), dims=("cell_identities")),
             does_not_raise(),
-            None,
-            type(None),
             None,
             id="No match found",
         ),
     ],
 )
-def test_get_validator(
-    fixture_data, axis, darray, exp_err, exp_msg, exp_type, exp_name
-):
-    """Test the get_validator function."""
+def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, exp_msg):
+    """Test the validate_dataarray function.
 
-    from virtual_rainforest.core.axes import get_validator
+    This just checks the pass through and failure modes - the individual AxisValidator
+    tests should check the return values
+    """
+
+    from virtual_rainforest.core.axes import validate_dataarray
 
     # Decorate a mock function to test the failure modes
     with exp_err as err:
-        val_func = get_validator(axis, fixture_data, darray)
+        value = validate_dataarray(value, grid=fixture_data.grid)
 
     if err is not None:
         assert str(err.value) == exp_msg
-    else:
-        assert isinstance(val_func, exp_type)
-
-        if val_func is not None:
-            assert val_func.__name__ == exp_name
 
 
 @pytest.mark.parametrize(
