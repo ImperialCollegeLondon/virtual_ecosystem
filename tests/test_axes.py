@@ -1,14 +1,54 @@
 """Testing the data validators."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG
-from typing import Callable
+
+# from logging import CRITICAL, DEBUG
+from typing import Any, Callable
 
 import numpy as np
 import pytest
 from xarray import DataArray
 
-from .conftest import log_check
+# from .conftest import log_check
+
+
+def test_AxisValidator_subclass(fixture_data):
+    """Simple test of AxisValidator registration and methods."""
+    from virtual_rainforest.core.axes import AXIS_VALIDATORS, AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Create a new subclass.
+    class TestAxis(AxisValidator):
+
+        core_axis = "testing"
+
+        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+            return True if value.sum() > 10 else False
+
+        def run_validation(
+            self, value: DataArray, grid: Grid, **kwargs: Any
+        ) -> DataArray:
+            return value * 2
+
+    # Registered correctly
+    assert "testing" in AXIS_VALIDATORS
+    assert len(AXIS_VALIDATORS["testing"]) == 1
+
+    # Use the methods
+    test_v7r = TestAxis()
+    assert not test_v7r.can_validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
+    assert test_v7r.can_validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
+
+    validated = test_v7r.run_validation(
+        DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid
+    )
+    assert np.allclose(validated, DataArray([6, 6, 6, 6, 6]))
+
+    not_altered = test_v7r.validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
+    assert np.allclose(not_altered, DataArray([1, 1, 1, 1, 1]))
+
+    is_altered = test_v7r.validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
+    assert np.allclose(is_altered, DataArray([6, 6, 6, 6, 6]))
 
 
 @pytest.mark.parametrize(
