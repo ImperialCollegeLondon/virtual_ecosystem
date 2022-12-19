@@ -512,7 +512,7 @@ def test_Data_load_from_file_data_handling(
 
     from virtual_rainforest.core.data import Data
 
-    # Skip combinations where loader does not supported this grid
+    # Skip combinations where validator does not supported this grid
     if not (
         ("__any__" in supported_grids)
         or (fixture_load_data_grids.grid_type in supported_grids)
