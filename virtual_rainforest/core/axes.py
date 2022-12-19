@@ -214,23 +214,23 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
         if matching_dims:
 
             # There should be one and only validator that can validate for this axis.
-            validator_found = [v().can_validate(value, grid) for v in validators]
+            validator_found = [v for v in validators if v().can_validate(value, grid)]
 
-            if not any(validator_found):
+            if len(validator_found) == 0:
                 log_and_raise(
                     f"DataArray uses '{axis}' axis dimension names but does "
                     f"not match a validator: {','.join(matching_dims)}",
                     ValueError,
                 )
 
-            if sum(validator_found) > 1:
+            if len(validator_found) > 1:
                 log_and_raise(
                     f"Validators on '{axis}' axis not mutually exclusive", RuntimeError
                 )
 
             # Get the appropriate Validator class and then use it to update the data
             # array
-            this_validator = validators[validator_found.index(True)]
+            this_validator = validator_found[0]
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
                 value.core_axes[axis] = this_validator.__name__
