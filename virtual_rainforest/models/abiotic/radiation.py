@@ -80,7 +80,8 @@ class Radiation:
 
         Args:
             shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
-            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours, between 0
+                (100% cloud cover) and 1 (cloud free sky)
             albedo_vis: NDArray[np.float32], visible light albedo, default = 0.03
 
         Returns:
@@ -114,7 +115,8 @@ class Radiation:
 
         Args:
             shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
-            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours, between 0
+                (100% cloud cover) and 1 (cloud free sky)
             albedo_shortwave: NDArray[np.float32], shortwave albedo, default = 0.17
 
         Returns:
@@ -191,7 +193,8 @@ class Radiation:
         Args:
             elevation: NDArray[np.float32], elevation [m]
             shortwave_in: NDArray[np.float32], daily downward shortwave radiation[W m-2]
-            sunshine_hours: NDArray[np.float32], fraction of sunshine hours
+            sunshine_hours: NDArray[np.float32], fraction of sunshine hours, between 0
+                (100% cloud cover) and 1 (cloud free sky)
             albedo_vis: NDArray[np.float32], visible light albedo, default = 0.03
             albedo_shortwave: NDArray[np.float32], shortwave albedo, default = 0.17
             canopy_temperature: NDArray[np.float32], canopy temperature of n layers [C]
