@@ -1,174 +1,167 @@
 """Testing the data validators."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG
-from typing import Callable
+from typing import Any
 
 import numpy as np
 import pytest
 from xarray import DataArray
 
-from .conftest import log_check
+
+@pytest.fixture
+def new_axis_validators():
+    """Create new axis validators to test methods and registration."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Create a new subclass.
+    class TestAxis(AxisValidator):
+
+        core_axis = "testing"
+        dim_names = {"test"}
+
+        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+            return True if value.sum() > 10 else False
+
+        def run_validation(
+            self, value: DataArray, grid: Grid, **kwargs: Any
+        ) -> DataArray:
+            return value * 2
+
+    # Create a new duplicate subclass to check mutual exclusivity test
+    class TestAxis2(AxisValidator):
+
+        core_axis = "testing"
+        dim_names = {"test"}
+
+        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+            return True if value.sum() > 10 else False
+
+        def run_validation(
+            self, value: DataArray, grid: Grid, **kwargs: Any
+        ) -> DataArray:
+            return value * 2
+
+
+def test_AxisValidator_registration_bad_core_axis():
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Registered correctly
+    with pytest.raises(ValueError) as excep:
+
+        # Create a new failing subclass.
+        class TestAxis(AxisValidator):
+
+            core_axis = ""
+            dim_names = {"test"}
+
+            def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+                return True
+
+            def run_validation(
+                self, value: DataArray, grid: Grid, **kwargs: Any
+            ) -> DataArray:
+                return value
+
+    assert str(excep.value) == "Core axis name cannot be an empty string."
+
+
+def test_AxisValidator_registration_bad_dim_names():
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Registered correctly
+    with pytest.raises(ValueError) as excep:
+
+        # Create a new failing subclass.
+        class TestAxis(AxisValidator):
+
+            core_axis = "failing_test"
+            dim_names = {}
+
+            def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+                return True
+
+            def run_validation(
+                self, value: DataArray, grid: Grid, **kwargs: Any
+            ) -> DataArray:
+                return value
+
+    assert str(excep.value) == "AxisValidator dim names cannot be an empty set."
+
+
+def test_AxisValidator_registration(new_axis_validators):
+    """Simple test of AxisValidator registration."""
+    from virtual_rainforest.core.axes import AXIS_VALIDATORS
+
+    # Registered correctly
+    assert "testing" in AXIS_VALIDATORS
+    assert len(AXIS_VALIDATORS["testing"]) == 2
+
+
+def test_AxisValidator_methods(new_axis_validators, fixture_data):
+    """Simple test of AxisValidator registration and methods."""
+    from virtual_rainforest.core.axes import AXIS_VALIDATORS
+
+    # Use the methods
+    test_v7r = AXIS_VALIDATORS["testing"][0]()
+    assert not test_v7r.can_validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
+    assert test_v7r.can_validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
+
+    validated = test_v7r.run_validation(
+        DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid
+    )
+    assert np.allclose(validated, DataArray([6, 6, 6, 6, 6]))
 
 
 @pytest.mark.parametrize(
-    argnames=["axis", "signature", "exp_err", "expected_log"],
-    argvalues=[
-        (  # Unknown singleton
-            "spatial",
-            (("zzz",), ("zzz",), ("penrose",)),
-            pytest.raises(ValueError),
-            ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
-        ),
-        (  # Unknown grid in 2 tuple
-            "spatial",
-            (("zzz",), ("zzz",), ("square", "penrose")),
-            pytest.raises(ValueError),
-            ((CRITICAL, "Unknown grid type 'penrose' decorating mock_function"),),
-        ),
-        (  # Succesful singleton
-            "spatial",
-            (("zzz",), ("zzz",), ("square",)),
-            does_not_raise(),
-            ((DEBUG, "Adding spatial validator: mock_function"),),
-        ),
-        (  # Succesful 2 tuple
-            "spatial",
-            (("zzz",), ("zzz",), ("square", "hexagon")),
-            does_not_raise(),
-            ((DEBUG, "Adding spatial validator: mock_function"),),
-        ),
-        (  # Replace validator
-            "spatial",
-            (("yyy",), ("yyy",), ("square",)),
-            does_not_raise(),
-            ((DEBUG, "Replacing existing spatial validator: mock_function"),),
-        ),
-    ],
-)
-def test_register_axis_validator(caplog, axis, signature, exp_err, expected_log):
-    """Tests the register_axis_validator decorator.
-
-    TODO - Note that the test here is actually changing the live AXIS_VALIDATORS,
-           so that the order of execution of the parameterisation for the tests are not
-           independent of one another.
-    """
-
-    # Import register_axis_validator - this triggers various registration messages, so
-    # need to use caplog.clear()
-
-    from virtual_rainforest.core.axes import register_axis_validator
-    from virtual_rainforest.core.logger import LOGGER
-
-    # Capture debug/setup messages
-    LOGGER.setLevel("DEBUG")
-
-    # Create an existing validator to clash with
-    @register_axis_validator("spatial", (("yyy",), ("yyy",), ("square",)))
-    def mock_function_existing():
-        return
-
-    caplog.clear()
-
-    # Decorate a mock function to test the failure modes
-    with exp_err:
-
-        @register_axis_validator(axis, signature)
-        def mock_function():
-            return
-
-    # Check the error reports
-    log_check(caplog, expected_log)
-
-
-@pytest.mark.parametrize(
-    argnames=["axis", "darray", "exp_err", "exp_msg", "exp_type", "exp_name"],
+    argnames=["value", "exp_err", "exp_msg"],
     argvalues=[
         pytest.param(
-            "xy",
-            DataArray(data=np.arange(100), dims=("cell_id")),
-            pytest.raises(ValueError),
-            "Unknown core axis: xy",
-            Callable,
-            "spld_cellid_dim_any",
-            id="Bad axis name",
-        ),
-        pytest.param(
-            "spatial",
-            DataArray(data=np.arange(100), dims=("cell_id")),
+            DataArray(data=np.arange(4), dims=("cell_id")),
             does_not_raise(),
             None,
-            Callable,
-            "spld_cellid_dim_any",
             id="Match found",
         ),
         pytest.param(
-            "spatial",
-            DataArray(data=np.arange(100), dims=("cell_identities")),
+            DataArray(data=np.arange(4), dims=("x")),
+            pytest.raises(ValueError),
+            "DataArray uses 'spatial' axis dimension names but "
+            "does not match a validator: x",
+            id="Uses dims, no match",
+        ),
+        pytest.param(
+            DataArray(data=np.arange(50), dims=("test")),
+            pytest.raises(RuntimeError),
+            "Validators on 'testing' axis not mutually exclusive",
+            id="Bad validator setup",
+        ),
+        pytest.param(
+            DataArray(data=np.arange(4), dims=("cell_identities")),
             does_not_raise(),
-            None,
-            type(None),
             None,
             id="No match found",
         ),
     ],
 )
-def test_get_validator(
-    fixture_data, axis, darray, exp_err, exp_msg, exp_type, exp_name
-):
-    """Test the get_validator function."""
+def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, exp_msg):
+    """Test the validate_dataarray function.
 
-    from virtual_rainforest.core.axes import get_validator
+    This just checks the pass through and failure modes - the individual AxisValidator
+    tests should check the return values
+    """
+
+    from virtual_rainforest.core.axes import validate_dataarray
 
     # Decorate a mock function to test the failure modes
     with exp_err as err:
-        val_func = get_validator(axis, fixture_data, darray)
+        value = validate_dataarray(value, grid=fixture_data.grid)
 
     if err is not None:
         assert str(err.value) == exp_msg
-    else:
-        assert isinstance(val_func, exp_type)
-
-        if val_func is not None:
-            assert val_func.__name__ == exp_name
-
-
-@pytest.mark.parametrize(
-    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
-    argvalues=[
-        (
-            {"grid_type": "square"},
-            DataArray(data=np.arange(50), dims=("cell_id")),
-            pytest.raises(ValueError),
-            "Grid defines 100 cells, data provides 50",
-            None,
-        ),
-        (
-            {"grid_type": "square"},
-            DataArray(data=np.arange(100), dims=("cell_id")),
-            does_not_raise(),
-            None,
-            np.arange(100),
-        ),
-    ],
-)
-def test_spld_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
-    """Test the netdcf variable loader."""
-
-    from virtual_rainforest.core.axes import spld_cellid_dim_any
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    grid = Grid(**grid_args)
-    data = Data(grid)
-
-    with exp_err as excep:
-        darray = spld_cellid_dim_any(data, darray)
-        assert isinstance(darray, DataArray)
-        assert np.allclose(darray.values, exp_vals)
-
-    if excep is not None:
-        assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
@@ -226,66 +219,73 @@ def test_spld_cellid_dim_any(grid_args, darray, exp_err, exp_message, exp_vals):
         ),
     ],
 )
-def test_spld_cellid_coord_any(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import spld_cellid_coord_any
+    from virtual_rainforest.core.axes import Spat_CellId_Coord_Any
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err as excep:
-        darray = spld_cellid_coord_any(data, darray)
+    v7r = Spat_CellId_Coord_Any()
 
-        assert isinstance(darray, DataArray)
-        assert np.allclose(darray.values, exp_vals)
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
 
-    if excep is not None:
-        assert str(excep.value) == exp_message
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.run_validation(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
     argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
     argvalues=[
-        (  # Wrong size
-            {"grid_type": "square", "cell_nx": 2, "cell_ny": 3},
-            DataArray(
-                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
-            ),
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(50), dims=("cell_id")),
             pytest.raises(ValueError),
-            "Data XY dimensions do not match square grid",
+            "Grid defines 100 cells, data provides 50",
             None,
         ),
-        (  # All good
-            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3},
-            DataArray(
-                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
-            ),
+        (
+            {"grid_type": "square"},
+            DataArray(data=np.arange(100), dims=("cell_id")),
             does_not_raise(),
             None,
-            np.arange(9),
+            np.arange(100),
         ),
     ],
 )
-def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import spld_xy_dim_square
+    from virtual_rainforest.core.axes import Spat_CellId_Dim_Any
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err as excep:
-        darray = spld_xy_dim_square(data, darray)
-        assert isinstance(darray, DataArray)
-        assert np.allclose(darray.values, exp_vals)
+    v7r = Spat_CellId_Dim_Any()
 
-    if excep is not None:
-        assert str(excep.value) == exp_message
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.run_validation(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
 
 
 @pytest.mark.parametrize(
@@ -333,20 +333,74 @@ def test_spld_xy_dim_square(grid_args, darray, exp_err, exp_message, exp_vals):
         ),
     ],
 )
-def test_spld_xy_coord_square(grid_args, darray, exp_err, exp_message, exp_vals):
+def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import spld_xy_coord_square
+    from virtual_rainforest.core.axes import Spat_XY_Coord_Square
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    with exp_err as excep:
-        darray = spld_xy_coord_square(data, darray)
-        assert isinstance(darray, DataArray)
-        assert np.allclose(darray.values, exp_vals)
+    v7r = Spat_XY_Coord_Square()
 
-    if excep is not None:
-        assert str(excep.value) == exp_message
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.run_validation(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_args", "darray", "exp_err", "exp_message", "exp_vals"],
+    argvalues=[
+        (  # Wrong size
+            {"grid_type": "square", "cell_nx": 2, "cell_ny": 3},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
+            ),
+            pytest.raises(ValueError),
+            "Data XY dimensions do not match square grid",
+            None,
+        ),
+        (  # All good
+            {"grid_type": "square", "cell_nx": 3, "cell_ny": 3},
+            DataArray(
+                data=np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]), dims=("y", "x")
+            ),
+            does_not_raise(),
+            None,
+            np.arange(9),
+        ),
+    ],
+)
+def test_Spat_XY_Dim_Square(grid_args, darray, exp_err, exp_message, exp_vals):
+    """Test the netdcf variable loader."""
+
+    from virtual_rainforest.core.axes import Spat_XY_Dim_Square
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(**grid_args)
+    data = Data(grid)
+
+    v7r = Spat_XY_Dim_Square()
+
+    can_val = v7r.can_validate(darray, data=data, grid=grid)
+
+    if can_val:
+        with exp_err as excep:
+            darray = v7r.run_validation(darray, data=data, grid=grid)
+
+            assert isinstance(darray, DataArray)
+            assert np.allclose(darray.values, exp_vals)
+
+        if excep is not None:
+            assert str(excep.value) == exp_message

@@ -75,8 +75,8 @@ data in a `Data` instance under a different variable name to the name used in th
     data_var_name="elevation"
 
 Note that the properties for each variable in the configuration file are just the
-arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Note that data
-configurations cannot define repeated variable names.
+arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
+configurations must not contain repeated data variable names.
 """
 
 from pathlib import Path
@@ -84,6 +84,7 @@ from typing import Any, Optional
 
 from xarray import DataArray, Dataset
 
+from virtual_rainforest.core.axes import validate_dataarray
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
@@ -139,9 +140,6 @@ class Data:
             value: The DataArray to be stored
         """
 
-        # Import core.axis functions here to avoid circular imports
-        from virtual_rainforest.core.axes import AXIS_VALIDATORS, get_validator
-
         if not isinstance(value, DataArray):
             log_and_raise(
                 "Only DataArray objects can be added to Data instances", TypeError
@@ -155,31 +153,8 @@ class Data:
         else:
             LOGGER.info(f"Replacing data array for '{key}'")
 
-        # Look for data validators on registered axes
-        for axis in AXIS_VALIDATORS.keys():
-
-            axis_validator_func = get_validator(axis=axis, data=self, darray=value)
-
-            if axis_validator_func is None:
-                log_and_raise(
-                    f"DataArray does not match a known {axis} validator signature",
-                    KeyError,
-                )
-
-            # Now run the validator using a broad base exception for now to reraise
-            # upstream exceptions. Using "#type: ignore"" here as None has been
-            # explicitly handled above.
-            try:
-                darray = axis_validator_func(data=self, darray=value)  # type: ignore
-            except Exception as excep:
-                log_and_raise(str(excep), type(excep))
-
-            # Set the validation function name keyed by the axis name as an attribute on
-            # the data array to use as a record that it has been validated on this axis.
-            darray.attrs[axis] = axis_validator_func.__name__  # type: ignore
-
-        # Store the data in the Dataset
-        self.data[key] = darray
+        # Validate and store the data array
+        self.data[key] = validate_dataarray(value=value, grid=self.grid)
 
     def __getitem__(self, key: str) -> DataArray:
         """Get a given data variable from a Data instance.
@@ -239,17 +214,18 @@ class Data:
         # If so, load the data
         LOGGER.info("Loading variable '%s' from file: %s", file_var_name, file)
         loader = FILE_FORMAT_REGISTRY[file_type]
-        input_data = loader(file, file_var_name)
+        value = loader(file, file_var_name)
 
         # Replace the file variable name if requested
         if data_var_name is not None:
             LOGGER.info(
-                "Renaming file variable '%s' as '%s'", input_data.name, data_var_name
+                "Renaming file variable '%s' as '%s'", value.name, data_var_name
             )
-            input_data.name = data_var_name
+            value.name = data_var_name
 
-        # Add the data array
-        self[input_data.name] = input_data
+        # Add the data array, note that the __setitem__ method here does the actual
+        # validation required for this step.
+        self[value.name] = value
 
     def load_data_config(self, data_config: dict[str, Any]) -> None:
         """Setup the simulation data from a user configuration.
