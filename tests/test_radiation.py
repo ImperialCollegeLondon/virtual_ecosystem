@@ -23,10 +23,6 @@ CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
 
 def test_calc_ppfd():
     """Test to be decided."""
-    from virtual_rainforest.models.abiotic import radiation
-    test = radiation.Radiation(elevation=100)
-    test.ppdf = test.calc_ppfd(shortwave_in=400, sunshine_hours=1.0, albedo_vis=ALBEDO_VIS)
-    assert test.ppfd == 
     raise NotImplementedError("Implementation of this feature is missing")
 
 
