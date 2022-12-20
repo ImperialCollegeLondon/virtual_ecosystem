@@ -148,9 +148,9 @@ loaded_temp = data["temperature"]
 print(loaded_temp)
 ```
 
-The returned data array has a `core_axes` property, which can be used to check that data
-has been validated on a particular core axis:
+You can check whether a particular variable has been validated on a given core axis
+using the {meth}`~virtual_rainforest.core.data.Data.on_core_axis` method:
 
 ```{code-cell} ipython3
-loaded_temp.core_axes('spatial')
+data.on_core_axis("temperature", "spatial")
 ```
