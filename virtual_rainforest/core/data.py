@@ -200,13 +200,13 @@ class Data:
         """
 
         if var_name not in self.data:
-            raise KeyError(f"Unknown variable name: {var_name}")
-
-        if axis_name not in AXIS_VALIDATORS:
-            raise KeyError(f"Unknown core axis name: {var_name}")
+            raise ValueError(f"Unknown variable name: {var_name}")
 
         if var_name not in self._variable_validation:
             raise RuntimeError(f"Missing variable validation data: {var_name}")
+
+        if axis_name not in AXIS_VALIDATORS:
+            raise ValueError(f"Unknown core axis name: {axis_name}")
 
         return False if self._variable_validation[var_name][axis_name] is None else True
 

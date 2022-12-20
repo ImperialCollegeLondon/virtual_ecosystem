@@ -8,41 +8,6 @@ import pytest
 from xarray import DataArray
 
 
-@pytest.fixture
-def new_axis_validators():
-    """Create new axis validators to test methods and registration."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
-
-    # Create a new subclass.
-    class TestAxis(AxisValidator):
-
-        core_axis = "testing"
-        dim_names = {"test"}
-
-        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
-            return True if value.sum() > 10 else False
-
-        def run_validation(
-            self, value: DataArray, grid: Grid, **kwargs: Any
-        ) -> DataArray:
-            return value * 2
-
-    # Create a new duplicate subclass to check mutual exclusivity test
-    class TestAxis2(AxisValidator):
-
-        core_axis = "testing"
-        dim_names = {"test"}
-
-        def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
-            return True if value.sum() > 10 else False
-
-        def run_validation(
-            self, value: DataArray, grid: Grid, **kwargs: Any
-        ) -> DataArray:
-            return value * 2
-
-
 def test_AxisValidator_registration_bad_core_axis():
     """Simple test of AxisValidator registration."""
     from virtual_rainforest.core.axes import AxisValidator

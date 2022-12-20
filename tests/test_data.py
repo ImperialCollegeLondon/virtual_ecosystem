@@ -619,3 +619,50 @@ def test_Data_load_from_config(
         assert str(err.value) == exp_msg
 
     log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames="vname, axname, result, err_ctxt, err_message",
+    argvalues=[
+        ("temp", "spatial", True, does_not_raise(), None),
+        ("temp", "testing", False, does_not_raise(), None),
+        (
+            "missing",
+            "spatial",
+            False,
+            pytest.raises(ValueError),
+            "Unknown variable name: missing",
+        ),
+        (
+            "incorrect",
+            "spatial",
+            False,
+            pytest.raises(RuntimeError),
+            "Missing variable validation data: incorrect",
+        ),
+        (
+            "temp",
+            "missing",
+            False,
+            pytest.raises(ValueError),
+            "Unknown core axis name: missing",
+        ),
+    ],
+)
+def test_on_core_axis(
+    new_axis_validators, fixture_data, vname, axname, result, err_ctxt, err_message
+):
+    """Test the on_core_axis method."""
+
+    # Add a data array properly
+    da = DataArray([1, 2, 3, 4], dims=("cell_id",), name="temp")
+    fixture_data["temp"] = da
+
+    # Add a data array _incorrectly_
+    fixture_data.data["incorrect"] = da
+
+    with err_ctxt as err:
+        assert result == fixture_data.on_core_axis(vname, axname)
+
+    if err_message:
+        assert str(err.value) == err_message
