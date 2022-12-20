@@ -10,12 +10,16 @@ model of above, below and within-canopy microclimate. Ecological Modelling
 Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
 """
 
+from math import exp as exp
+
 import numpy as np
 from numpy.typing import NDArray
 
 # from core.constants import CONSTANTS as C
-
-
+CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
+VAPOR_PRESSURE_FACTOR1 = 0.6108 # constant in calculation of vapor pressure
+VAPOR_PRESSURE_FACTOR2 = 17.27 # constant in calculation of vapor pressure
+VAPOR_PRESSURE_FACTOR3 = 237.7 # constant in calculation of vapor pressure
 class EnergyBalance:
     """EnergyBalance method."""
 
@@ -95,9 +99,9 @@ class EnergyBalance:
         air_temperature_2m: NDArray[np.float32],
         thermal_conductivity: NDArray[np.float32],
         thermal_heat_capacity: NDArray[np.float32],
-        added_temperatures: NDArray[np.float32] = np.array(0.0, type=float),
+        added_temperatures: NDArray[np.float32] = np.ndarray(0.0, type=float),
         weighting_factor: float = 0.6,
-    ) -> None:
+    ) -> NDArray[np.float32]:
         """Thomas algorithm for solving simultanious heat fluxes between soil/air.
 
         Args:
@@ -119,9 +123,9 @@ class EnergyBalance:
                 details
 
         Returns:
-            air_temperature: NDArray[np.float32], air temperatures from current
+            air_temperature_t: NDArray[np.float32], air temperatures from current
                 timestep [C]
-            soil_temperature: NDArray[np.float32], soil temperatures from current
+            soil_temperature_t: NDArray[np.float32], soil temperatures from current
                 timestep [C]
 
         Details:
@@ -150,7 +154,6 @@ class EnergyBalance:
             A typical compromise is `weighting_factor` = 0.6.
 
             m = n_layers ; check difference in starting from 0 or 1
-            tn = current_temperature
         """
         # combine temperatures from previous timestep in one vector
         previous_temperatures = [
@@ -164,11 +167,11 @@ class EnergyBalance:
         n_layers = len(previous_temperatures) - 2
 
         # create empty array for current temperatures
-        current_temperature = np.zeros(n_layers + 2, type=int)
+        air_temperature_t = np.array(n_layers + 2, type=float)
 
         # assign first and last value, indices from maclean R code, needs changing!!
-        current_temperature[n_layers + 2] = mean_annual_temperature
-        current_temperature[1] = air_temperature_2m
+        air_temperature_t[n_layers + 2] = mean_annual_temperature
+        air_temperature_t[1] = air_temperature_2m
 
         # derive factor `g` and `matrix zeros``
         a = [0, 0]
@@ -176,7 +179,7 @@ class EnergyBalance:
         cc = 0
         d = 0
 
-        xx = range(2, (n_layers + 1))  ### ??? index ???
+        xx = range(2, (n_layers + 1))  ### xx<-(2:(m+1)) index ???
 
         previous_temperatures[xx] = (
             previous_temperatures[xx] + (1 - weighting_factor) * added_temperatures
@@ -201,14 +204,12 @@ class EnergyBalance:
             * thermal_conductivity[xx]
             * previous_temperatures[xx + 1]
         )
-        d[2] = (
-            d[2] + thermal_conductivity[1] * current_temperature[1] * weighting_factor
-        )
+        d[2] = d[2] + thermal_conductivity[1] * air_temperature_t[1] * weighting_factor
         d[n_layers + 1] = (
             d[n_layers + 1]
             + thermal_conductivity[n_layers + 1]
             * weighting_factor
-            * current_temperature[n_layers + 2]
+            * air_temperature_t[n_layers + 2]
         )
 
         for i in range(2, n_layers):
@@ -217,67 +218,125 @@ class EnergyBalance:
             b[i + 1] = b[i + 1] - a[i + 1] * cc[i]
             d[i + 1] = d[i + 1] - a[i + 1] * d[i]
 
-        current_temperature[n_layers + 1] = d[n_layers + 1] / b[n_layers + 1]
+        air_temperature_t[n_layers + 1] = d[n_layers + 1] / b[n_layers + 1]
 
         for i in range(
             2, n_layers
         ):  ### double-check, looks like error in original code
-            current_temperature[i] = d[i] - cc[i] * current_temperature[i + 1]
+            air_temperature_t[i] = d[i] - cc[i] * air_temperature_t[i + 1]
 
         x_min = pmin(
-            current_temperature[xx],
-            current_temperature[xx - 1],
-            current_temperature[xx + 1],
+            air_temperature_t[xx],
+            air_temperature_t[xx - 1],
+            air_temperature_t[xx + 1],
         )
         x_max = pmax(
-            current_temperature[xx],
-            current_temperature[xx - 1],
-            current_temperature[xx + 1],
+            air_temperature_t[xx],
+            air_temperature_t[xx - 1],
+            air_temperature_t[xx + 1],
         )
-        current_temperature[xx] = ifelse(
-            current_temperature[xx] < x_min, x_min, current_temperature[xx]
+        air_temperature_t[xx] = ifelse(
+            air_temperature_t[xx] < x_min, x_min, air_temperature_t[xx]
         )
-        current_temperature[xx] = ifelse(
-            current_temperature[xx] > x_max, x_max, current_temperature[xx]
+        air_temperature_t[xx] = ifelse(
+            air_temperature_t[xx] > x_max, x_max, air_temperature_t[xx]
         )
-        current_temperature[xx] = (
-            current_temperature[xx] + weighting_factor * added_temperatures
+        air_temperature_t[xx] = (
+            air_temperature_t[xx] + weighting_factor * added_temperatures
         )
 
-        return current_temperature
+        return air_temperature_t
 
-    def thomasV(self, args: None, kwargs: None) -> None:
+    def thomasV(self, air_vapour_concentration: NDArray[np.float32],
+            air_temperature_t: NDArray[np.float32],
+            atmospheric_pressure: NDArray[np.float32],
+            top_soil_moisture_t: NDArray[np.floa32],
+            top_soil_moisture: NDArray[np.floa32],
+            relative_humidity_2m: NDArray[np.float32],
+            air_temperature_2m: NDArray[np.float32],
+            soil_temperature_t: NDArray[np.float32],
+            node_height_differences: NDArray[np.float32],
+            canopy_node_conductance: NDArray[np.float32],
+            vapour_flux: NDArray[np.float32],
+            air_temperature: NDArray[np.float32],
+            relative_humidity: NDArray[np.float32],
+            weighting_factor:float = 0.6,
+            soilp = None
+) -> NDArray[np.foat32]:
         """Thomas algorithm for solving simultanious vapour fluxes between air layers.
 
         Args:
-            Vo a vector of air vapour concentrations for each canopy node in the previos
-            timestep (mol fraction)
-            tn vector of air temperatures (deg C) for each canopy node in the current
-            timestep (deg C)
-            pk atmospheric pressure (kPa)
-            theta Volumetric water content of the upper most soil layer in the current
-            time step (m3 / m3)
-            thetap Volumetric water content of the upper most soil layer in the previous
-            time step (m3 / m3)
-            relhum relative humidity (percentage) at reference height 2 m above canopy
-            in current time step (percentage)
-            tair air temperature at reference height 2 m above canopy in current time
-            step (deg C)
-            tsoil temperature of upper soil layer in current time step (deg C)
-            zth heightdifference between each canopy node and that directly below it.
-            The first value is the height difference between the lowest canopy node and
-            the ground
-            gt vector of molar conductances between each canopy node at that directly
-            below it (mol / m^2 / sec). The first value is the conductivity between the
-            ground and the lowest node, and the last value the conductivity between the
-            highest node and reference height.
-            Vflux Total vapour flux from leaves to air (mol /m^3)
-            f forward / backward weighting of algorithm (as for [Thomas()])
-            previn a list of model outputs form the previous timestep
+            air_vapour_concentration: NDArray[np.float32], air vapour concentrations for
+                each canopy node in the previous timestep (mol fraction)
+            air_temperature_t: NDArray[np.float32], air temperatures for each canopy
+                node in the current timestep [C]
+            atmospheric_pressure: NDArray[np.float32], atmospheric pressure [kPa]
+            top_soil_moisture_t: NDArray[np.floa32], Volumetric water content of
+                the upper most soil layer in the current time step [m3 m-3]
+            top_soil_moisture: NDArray[np.floa32] Volumetric water content of the upper
+                most soil layer in the previous time step [m3 m-3]
+            relative_humidity_2m: NDArray[np.float32], relative humidity (percentage) at
+                reference height 2 m above canopy in current time step (percentage)
+            air_temperature_2m: NDArray[np.float32], air temperature at reference
+                height 2 m above canopy in current time step [C]
+            soil_temperature_t: NDArray[np.float32], soil temperatures from current
+                timestep [C]
+            node_height_differences: NDArray[np.float32], height difference between each
+                canopy node and that directly below it. The first value is the height
+                difference between the lowest canopy node and the ground.
+            canopy_node_conductance: NDArray[np.float32], molar conductances between each
+                canopy node at that directly below it [mol m-2 sec-1]. The first value
+                is the conductivity between the ground and the lowest node, and the last
+                value the conductivity between the highest node and reference height.
+            vapour_flux: NDArray[np.float32], Total vapour flux from leaves to air[mol m-3]
+            air_temperature: NDArray[np.float32], air temperature from previous time
+                step [C]
+            realtive_humidity: NDArray[np.float32], relative humidity from previous time
+                step [percentage]
+            weighting_factor:float = 0.6, forward / backward weighting of algorithm, see
+                details (as for [thomas()])
             soilp a list of soil parameters as returned by [soilinit()]
 
         Returns:
-            a vector of vapour concentrations expressed as mole fractions for each
-            canopy node in the current time step. The first value is that for the ground
-            and the last value that at reference height
+            air_vapour_concentration_t: NDArray[np.float32], vapour concentrations
+                for each canopy node in the current time step [mole fractions].
+                The first value is that for the ground and the last value that at
+                reference height.
         """
+        n_layers = len(node_height_differences)
+ 
+        # Calculate molar density of air
+        molar_density_air = 44.6 * (atmospheric_pressure/101.3)*(CELCIUS_TO_KELVIN / (air_temperature_2m + CELCIUS_TO_KELVIN))
+        
+        # Calculate actual vapor pressure
+        actual_vapor_pressure = (
+        VAPOR_PRESSURE_FACTOR1 
+        * exp(VAPOR_PRESSURE_FACTOR2 
+        * (air_temperature_2m / (air_temperature_2m + VAPOR_PRESSURE_FACTOR3))) 
+        * (relative_humidity_2m / 100)
+        )
+
+        # Calculate potential vapor pressure or previous timestep????
+        eap = VAPOR_PRESSURE_FACTOR1 * exp(VAPOR_PRESSURE_FACTOR2 * air_temperature/(air_temperature+VAPOR_PRESSURE_FACTOR3))*(relative_humidity_2m_previous/100)
+  
+        # Calculate ???
+        Vair = actual_vapor_pressure / atmospheric_pressure
+
+        # calculate soil relative humidity, function in microclimctools
+        rhsoil<-soilrh(top_soil_moisture_t,soilp$b,soilp$psi_e,soilp$Smax,soil_temperature_t)
+        rhsoilp<-soilrh(top_soil_moisture,soilp$b,soilp$psi_e,soilp$Smax,soil_temperature[1])
+        rhsoil[rhsoil>1]<-1
+        rhsoilp[rhsoilp>1]<-1
+
+        # calculate saturation vapor pressure ??
+        eas<-VAPOR_PRESSURE_FACTOR1*exp(VAPOR_PRESSURE_FACTOR2*tsoil/(soil_temperature_t+VAPOR_PRESSURE_FACTOR3))*rhsoil
+  
+        # calculate potential saturation vapor pressure ??
+        easp<-VAPOR_PRESSURE_FACTOR1*exp(VAPOR_PRESSURE_FACTOR2*soil_temperature/(soil_temperature+VAPOR_PRESSURE_FACTOR3))*rhsoilp
+  
+        Vsoil = eas/atmospheric_pressure
+        Vo = c(easp/previn$pk,Vo,eap/previn$pk)
+
+        Vn = Thomas(rev(Vo), Vsoil, Vair, rev(canopy_node_conductance), rev(molar_density_air), weighting_factor, Vflux)
+        Vn = rev(Vn)
+}
