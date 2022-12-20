@@ -5,7 +5,9 @@
          "description": "Configuration settings for the abiotic module",
          "type": "object",
          "properties": {}
-      },
-      "required": true
-   }
+      }
+   },
+   "required": [
+      "abiotic"
+   ]
 }
