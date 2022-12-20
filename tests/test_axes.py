@@ -164,7 +164,7 @@ def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, e
         assert str(err.value) == exp_msg
 
 
-def test_validate_CoreAxisAccessor(new_axis_validators, fixture_data):
+def test_validate_CoreAxesAccessor(new_axis_validators, fixture_data):
     """Test the core_axis property functions correctly."""
 
     from virtual_rainforest.core.axes import validate_dataarray

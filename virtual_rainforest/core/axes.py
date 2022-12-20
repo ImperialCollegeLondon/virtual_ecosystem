@@ -24,6 +24,16 @@ the validators define for each core axis.
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
 
+DataArray validation records
+============================
+
+The :mod:`~virtual_rainforest.core.axes` module uses the custom `DataArray.core_axes`
+property to record the validation applied to input Data Arrays. This property is set
+using the :func:`xarray.register_dataarray_accessor` framework and the
+:class:`~virtual_rainforest.core.axes.CoreAxesAccessor` class. The `core_axes` property
+provides a dictionary of the validators applied to each core axis on a DataArray and a
+callable to check if validation has been applied on a particular axis.
+
 Core axes
 =========
 
@@ -139,7 +149,7 @@ the `__subclass_init__` method.
 
 
 @register_dataarray_accessor("core_axes")  # type:ignore
-class CoreAxisAccessor(dict):
+class CoreAxesAccessor(dict):
     """An xarray DataArray accessor providing a core_axes dictionary.
 
     This class extends xarray DataArrays to provide a property containing a dictionary
