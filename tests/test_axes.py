@@ -118,16 +118,18 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
 
 
 @pytest.mark.parametrize(
-    argnames=["value", "exp_err", "exp_msg"],
+    argnames=["value", "exp_val_dict", "exp_err", "exp_msg"],
     argvalues=[
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_id")),
+            {"spatial": "Spat_CellId_Dim_Any", "testing": None},
             does_not_raise(),
             None,
             id="Match found",
         ),
         pytest.param(
             DataArray(data=np.arange(4), dims=("x")),
+            {},
             pytest.raises(ValueError),
             "DataArray uses 'spatial' axis dimension names but "
             "does not match a validator: x",
@@ -135,19 +137,23 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
         ),
         pytest.param(
             DataArray(data=np.arange(50), dims=("test")),
+            {},
             pytest.raises(RuntimeError),
             "Validators on 'testing' axis not mutually exclusive",
             id="Bad validator setup",
         ),
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_identities")),
+            {"spatial": None, "testing": None},
             does_not_raise(),
             None,
             id="No match found",
         ),
     ],
 )
-def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, exp_msg):
+def test_validate_dataarray(
+    new_axis_validators, fixture_data, value, exp_val_dict, exp_err, exp_msg
+):
     """Test the validate_dataarray function.
 
     This just checks the pass through and failure modes - the individual AxisValidator
@@ -158,26 +164,10 @@ def test_validate_dataarray(new_axis_validators, fixture_data, value, exp_err, e
 
     # Decorate a mock function to test the failure modes
     with exp_err as err:
-        value = validate_dataarray(value, grid=fixture_data.grid)
-
+        value, val_dict = validate_dataarray(value, grid=fixture_data.grid)
+        assert exp_val_dict == val_dict
     if err is not None:
         assert str(err.value) == exp_msg
-
-
-def test_validate_CoreAxesAccessor(new_axis_validators, fixture_data):
-    """Test the core_axis property functions correctly."""
-
-    from virtual_rainforest.core.axes import validate_dataarray
-
-    value = DataArray(data=np.arange(4), dims=("cell_id"))
-
-    value = validate_dataarray(value, grid=fixture_data.grid)
-
-    assert value.core_axes["spatial"] == "Spat_CellId_Dim_Any"
-    assert value.core_axes["testing"] is None
-
-    assert value.core_axes("spatial")
-    assert not value.core_axes("testing")
 
 
 @pytest.mark.parametrize(
