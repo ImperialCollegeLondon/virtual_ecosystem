@@ -24,15 +24,13 @@ the validators define for each core axis.
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
 
-DataArray validation records
-============================
+DataArray validation
+====================
 
-The :mod:`~virtual_rainforest.core.axes` module uses the custom `DataArray.core_axes`
-property to record the validation applied to input Data Arrays. This property is set
-using the :func:`xarray.register_dataarray_accessor` framework and the
-:class:`~virtual_rainforest.core.axes.CoreAxesAccessor` class. The `core_axes` property
-provides a dictionary of the validators applied to each core axis on a DataArray and a
-callable to check if validation has been applied on a particular axis.
+The :mod:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
+Arrays and applies validation where applicable across all the core axes. The function
+returns the validated input (possibly altered to align with the core axes) along with a
+dictionary recording which (if any) AxisValidator has been applied to each core axis.
 
 Core axes
 =========
@@ -50,7 +48,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
 
 import numpy as np
-from xarray import DataArray, register_dataarray_accessor
+from xarray import DataArray
 
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
@@ -148,66 +146,37 @@ the `__subclass_init__` method.
 """
 
 
-@register_dataarray_accessor("core_axes")  # type:ignore
-class CoreAxesAccessor(dict):
-    """An xarray DataArray accessor providing a core_axes dictionary.
-
-    This class extends xarray DataArrays to provide a property containing a dictionary
-    providing a record of core axis validation applied to the data array. The resulting
-    `da.core_axes` property contains a dictionary keyed by core axis names with values
-    either as None or the name of the AxisValidator applied to that axis. The dictionary
-    can be edited directly using `da.core_axes['axis_name'] = value`.
-
-    The property can also be called as a function (`da.core_axes('axis_name')`), which
-    returns a boolean showing if the data array has been validated on that axis.
-    """
-
-    def __init__(self, xarray_obj: DataArray):
-        """Initialise the accessor on a DataArray.
-
-        Args:
-            xarray_obj: A data array to extend.
-        """
-        self._obj = xarray_obj
-        super().__init__()
-
-    def __call__(self, axis_name: str) -> bool:
-        """Check if the data array has been validated on a given axis.
-
-        Args:
-            axis_name: A core axis name to check
-        """
-
-        return False if self[axis_name] is None else True
-
-
-def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
-    """Validate a DataArray on a core axis.
+def validate_dataarray(
+    value: DataArray, grid: Grid, **kwargs: Any
+) -> tuple[DataArray, dict]:
+    """Validate a DataArray across the core axes.
 
     The AXIS_VALIDATORS registry provides a list of AxisValidators subclasses for each
-    core axis. This function takes a list for a given axis and then applies validation
-    for that axis to the input DataArray.
+    core axis. This function loops over the core axes, and checks whether to apply
+    validation for that axis to the input DataArray.
 
-    The function first checks if the dimension names of the input DataArray overlap with
-    the set of dimension names used across the AxisValidators for the core axis. If they
-    do then the (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`)
-    method of _one_ of the AxisValidator subclasses should return True. It is an error
-    for either no or more than one validator to be able to validate the input array. The
-    appropriate AxisValidator is then used to validate the input array and return a
-    validated DataArray.
+    For each axis in turn, the function first checks if the dimension names of the input
+    DataArray overlap with the set of dimension names used across the AxisValidators for
+    that axis. If not, then the next axis is checked without altering the input array.
+    If the dimension names do match the axis then the appropriate AxisValidator is then
+    used to validate the input array and the validated array is passed on to the next
+    axis for further validation.
 
-    If the dimension names on the data array do not match any of the registered
-    dimensions, then the function returns the input DataArray.
+    The function returns the validated data array and a dictionary recording which
+    AxisValidator classes were applied to each of the core axes.
 
     Args:
-        axis: The core axis to get a validator for
-        data: A Data object providing parameter information
-        darray: The data to match to a validator signature
+        value: An input DataArray for validation
+        grid: A Grid object giving the spatial configuration.
+        kwargs: Further configuration details to be passed to AxisValidators
 
     Raises:
-        ValueError if the input data array uses dimension names required for an axis
-        without matching a registered validator.
+        ValueError: If the input data array uses dimension names required for an axis
+            without matching a registered validator.
+        RuntimeError: If more than one validator reports that it can validate an input.
     """
+
+    validation_dict: dict[str, Optional[str]] = {}
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
@@ -243,13 +212,15 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
             this_validator = validator_found[0]
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
-                value.core_axes[axis] = this_validator.__name__
             except Exception as excep:
                 log_and_raise(str(excep), excep.__class__)
-        else:
-            value.core_axes[axis] = None
 
-    return value
+            validation_dict[axis] = this_validator.__name__
+
+        else:
+            validation_dict[axis] = None
+
+    return value, validation_dict
 
 
 class Spat_CellId_Coord_Any(AxisValidator):
