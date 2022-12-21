@@ -169,13 +169,12 @@ class Radiation:
             self.netradiation_surface: NDArray[np.float32], net shortwave radiation at
                 the forest floor [J m-2]
         """
-        # self.netradiation_surface = (
-        #    self.topofcanopy_radiation
-        #    - np.sum(canopy_absorption, axis=1)  # what axis is level? select by name?
-        #    - self.longwave_soil
-        #    - np.sum(self.longwave_canopy, axis=1)  #
-        # )
-        pass
+         self.netradiation_surface = (
+            self.topofcanopy_radiation
+            - canopy_absorption  # np.sum(canopy_absorption, axis=1)  # what axis is level? select by name?
+            - self.longwave_soil
+            - self.longwave_canopy  # np.sum(self.longwave_canopy, axis=1)  #
+         )
 
     def radiation_balance(
         self,
