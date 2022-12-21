@@ -20,10 +20,9 @@ VAPOR_PRESSURE_FACTOR3 = 237.7 # constant in calculation of vapor pressure
 # import data
 data = {"air_temperature_2m": 25,
         "relative_humidity_2m": 90,
-        "atmospheric_pressure_2m":
-                relhum, relative humidity at 2 m above canopy (percentage)
-                pk, pressure at 2 m above canopy (kPA)
-                u, wind speed at reference height (m/s)}
+        "atmospheric_pressure_2m": 101.325,
+        "wind_speed_2m": 10.0
+}
 
 class EnergyBalance:
     """EnergyBalance method."""
@@ -36,17 +35,6 @@ class EnergyBalance:
         """Calculates energy balance under steady state.
 
         Args:
-            climate variables:
-                tair, air temperature at 2 m above canopy (deg C)
-                relhum, relative humidity at 2 m above canopy (percentage)
-                pk, pressure at 2 m above canopy (kPA)
-                u, wind speed at reference height (m/s)
-                tsoil, temperature below deepest soil layer
-                Rsw, Incoming shortwave radiation (W / m2)
-                dp, proportion of `Rsw` that is diffuse radiation
-                H, Sensible heat flux (W / m^2)
-
-            soil varaibles:
 
         Returns:
             air_temperature
