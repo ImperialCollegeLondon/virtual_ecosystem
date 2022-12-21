@@ -40,7 +40,7 @@ TRANSMISSIVITY_COEFFICIENT = (
     0.50  # angular coefficient of transmittivity (Linacre, 1968)
 )
 FLUX_TO_ENERGY = 2.04  # from flux to energy conversion, umol/J (Meek et al., 1984)
-BOLZMAN_CONSTANT = 5.67 * 10 ** (-8)  # Stephan Bolzman constant W m-2 K-4
+BOLZMAN_CONSTANT = 5.67e-8  # Stephan Bolzman constant W m-2 K-4
 SOIL_EMISSIVITY = 0.95  # default for tropical rainforest
 CANOPY_EMISSIVITY = 0.95  # default for tropical rainforest
 BEER_REGRESSION = 2.67e-5  # parameter in equation for atmospheric transmissivity based
@@ -146,14 +146,14 @@ class Radiation:
         self.longwave_canopy = (
             CANOPY_EMISSIVITY
             * BOLZMAN_CONSTANT
-            * (CELCIUS_TO_KELVIN + canopy_temperature**4)
+            * (CELCIUS_TO_KELVIN + canopy_temperature) ** 4
         )
 
         # longwave emission surface
         self.longwave_soil = (
             SOIL_EMISSIVITY
             * BOLZMAN_CONSTANT
-            * (CELCIUS_TO_KELVIN + surface_temperature**4)
+            * (CELCIUS_TO_KELVIN + surface_temperature) ** 4
         )
 
     def calc_netradiation_surface(
@@ -169,12 +169,13 @@ class Radiation:
             self.netradiation_surface: NDArray[np.float32], net shortwave radiation at
                 the forest floor [J m-2]
         """
-        self.netradiation_surface = (
-            self.topofcanopy_radiation
-            - np.sum(canopy_absorption, axis=1)  # what axis is level? select by name?
-            - np.sum(self.longwave_canopy, axis=1)  #
-            - self.longwave_soil
-        )
+        # self.netradiation_surface = (
+        #    self.topofcanopy_radiation
+        #    - np.sum(canopy_absorption, axis=1)  # what axis is level? select by name?
+        #    - self.longwave_soil
+        #    - np.sum(self.longwave_canopy, axis=1)  #
+        # )
+        pass
 
     def radiation_balance(
         self,
