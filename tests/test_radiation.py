@@ -65,8 +65,15 @@ def test_calc_longwave_radiation():
 
 
 def test_calc_netradiation_surface():
-    """Test to be decided."""
-    pass
+    """Simple check for correct numbers, better test to be decided."""
+    from virtual_rainforest.models.abiotic import radiation
+
+    dummy = radiation.Radiation(100)
+    dummy.topofcanopy_radiation = 10000
+    dummy.longwave_canopy = 100
+    dummy.longwave_soil = 100
+    dummy.calc_netradiation_surface(200)
+    assert dummy.netradiation_surface == pytest.approx(9600)
 
 
 def test_radiation_balance():
