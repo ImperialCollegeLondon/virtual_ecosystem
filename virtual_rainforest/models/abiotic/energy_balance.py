@@ -1,10 +1,6 @@
 """The `abiotic.energy_balance` module.
 
 This module calculates the energy balance for the Virtual Rainforest.
-Under steady state, the heat balance equation for the leaves in each canopy layer is as
-follows:
-absorbed radiation - emitted radiation - sensible heat flux - latent heat flux = 0
-
 The sequence of processes is based on Maclean et al, 2021: Microclimc: A mechanistic
 model of above, below and within-canopy microclimate. Ecological Modelling
 Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
@@ -20,6 +16,15 @@ CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
 VAPOR_PRESSURE_FACTOR1 = 0.6108 # constant in calculation of vapor pressure
 VAPOR_PRESSURE_FACTOR2 = 17.27 # constant in calculation of vapor pressure
 VAPOR_PRESSURE_FACTOR3 = 237.7 # constant in calculation of vapor pressure
+
+# import data
+data = {"air_temperature_2m": 25,
+        "relative_humidity_2m": 90,
+        "atmospheric_pressure_2m":
+                relhum, relative humidity at 2 m above canopy (percentage)
+                pk, pressure at 2 m above canopy (kPA)
+                u, wind speed at reference height (m/s)}
+
 class EnergyBalance:
     """EnergyBalance method."""
 
@@ -179,7 +184,7 @@ class EnergyBalance:
         cc = 0
         d = 0
 
-        xx = range(2, (n_layers + 1))  ### xx<-(2:(m+1)) index ???
+        xx = [x for x in range(2, (n_layers + 1))]  ### as a list
 
         previous_temperatures[xx] = (
             previous_temperatures[xx] + (1 - weighting_factor) * added_temperatures
