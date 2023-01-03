@@ -29,14 +29,16 @@ MOISTURE_SCALAR = {
     "exponent": 9.0,  # unitless
 }
 """Used in Abramoff et al. (2018), but can't trace it back to anything more concrete."""
-TEMP_SCALAR = {
-    "t_1": 15.4,  # C
-    "t_2": 11.75,  # unclear
-    "t_3": 29.7,  # unclear
-    "t_4": 0.031,  # unclear
-    "ref_temp": 30.0,  # C
-}
-"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete."""
+TEMP_SCALAR = np.array([15.4, 11.75, 29.7, 0.031, 30.0])
+"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete.
+
+Values:
+    t_1: (degrees C)
+    t_2: (unit unclear)
+    t_3: (unit unclear)
+    t_4: (unit unclear)
+    ref_temp: (degrees C)
+"""
 
 
 class SoilCarbonPools:
@@ -170,13 +172,11 @@ def convert_temperature_to_scalar(
        soil_temp: soil temperature for each soil grid cell
     """
 
+    t_1, t_2, t_3, t_4, ref_temp = TEMP_SCALAR
+
     # This expression is drawn from Abramoff et al. (2018)
-    numerator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / np.pi) * np.arctan(
-        np.pi * (soil_temp - TEMP_SCALAR["t_1"])
-    )
-    denominator = TEMP_SCALAR["t_2"] + (TEMP_SCALAR["t_3"] / np.pi) * np.arctan(
-        np.pi * TEMP_SCALAR["t_4"] * (TEMP_SCALAR["ref_temp"] - TEMP_SCALAR["t_1"])
-    )
+    numerator = t_2 + (t_3 / np.pi) * np.arctan(np.pi * (soil_temp - t_1))
+    denominator = t_2 + (t_3 / np.pi) * np.arctan(np.pi * t_4 * (ref_temp - t_1))
 
     return np.divide(numerator, denominator)
 
