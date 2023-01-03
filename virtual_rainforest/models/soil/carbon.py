@@ -64,7 +64,7 @@ class SoilCarbonPools:
             )
 
         # Check that negative initial values are not given
-        if any(i < 0 for i in maom) or any(i < 0 for i in lmwc):
+        if np.any(maom < 0) or np.any(lmwc < 0):
             log_and_raise(
                 "Initial carbon pools contain at least one negative value!",
                 InitialisationError,
