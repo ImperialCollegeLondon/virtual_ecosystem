@@ -5,17 +5,12 @@ This module tests the functionality of the soil carbon module
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL
-from math import isclose
 
 import numpy as np
 import pytest
 
 from virtual_rainforest.core.model import InitialisationError
-from virtual_rainforest.models.soil.carbon import (
-    SoilCarbonPools,
-    convert_moisture_to_scalar,
-    convert_temperature_to_scalar,
-)
+from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 from .conftest import log_check
 
@@ -87,10 +82,8 @@ def test_update_pools():
     )
 
     # Check that pools are correctly incremented
-    assert isclose(soil_carbon.maom[0].item(), 28.82632255)
-    assert isclose(soil_carbon.lmwc[0].item(), 92.17367553)
-    assert isclose(soil_carbon.maom[1].item(), 25.73223495)
-    assert isclose(soil_carbon.lmwc[1].item(), 52.26776504)
+    assert np.allclose(soil_carbon.maom, np.array([28.8263, 25.7322]))
+    assert np.allclose(soil_carbon.lmwc, np.array([92.1736, 52.2677]))
 
 
 def test_mineral_association():
@@ -113,25 +106,24 @@ def test_mineral_association():
     )
 
     # Check that expected values are generated
-    assert isclose(lmwc_to_maom[0].item(), 69.9158630)
-    assert isclose(lmwc_to_maom[1].item(), 32.78682708)
+    assert np.allclose(lmwc_to_maom, np.array([69.9158, 32.7868]))
 
 
 def test_convert_temperature_to_scalar():
     """Test that scalar_temperature runs and generates the correct value."""
+    from virtual_rainforest.models.soil.carbon import convert_temperature_to_scalar
 
     soil_temperature = np.array([35.0, 37.5], dtype=np.float32)
     temp_scalar = convert_temperature_to_scalar(soil_temperature)
 
-    assert isclose(temp_scalar[0].item(), 1.271131634)
-    assert isclose(temp_scalar[1].item(), 1.271966338)
+    assert np.allclose(temp_scalar, np.array([1.27113, 1.27196]))
 
 
 def test_convert_moisture_to_scalar():
     """Test that scalar_moisture runs and generates the correct value."""
+    from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
     soil_moisture = np.array([0.5, 0.7], dtype=np.float32)
     moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-    assert isclose(moist_scalar[0].item(), 0.750035703)
-    assert isclose(moist_scalar[1].item(), 0.947787225)
+    assert np.allclose(moist_scalar, np.array([0.750035, 0.947787]))
