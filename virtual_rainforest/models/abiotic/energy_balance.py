@@ -26,6 +26,37 @@ data = {
     "wind_speed_2m": 10.0,
 }
 
+soil_parameters = {
+    "Sand": {
+        "Smax": 1,  # Volumetric water content at saturation (m^3 / m^3)
+        "Smin": 1,  # Residual water content (m^3 / m^3)
+        "alpha": 1,  # Shape parameter of the van Genuchten model (cm^-1)
+        "n": 1,  # Pore_size_distribution_parameter (dimensionless, > 1)
+        "Ksat": 1,  # Saturated hydraulic conductivity (cm / day)
+        "Vq": 1,  # Volumetric quartz content of soil
+        "Vm": 1,  # Volumetric mineral content of soil
+        "Vo": 1,  # Volumetric organic content of soil
+        "Mc": 1,  # Mass fraction of clay
+        "rho": 1,  # Soil bulk density (Mg / m^3)
+        "b": 1,  # Shape parameter for Campbell model (dimensionless, > 1)
+        "psi_e": 1,  # Matric potential (J / m^3)
+    },
+    "Clay": {
+        "Smax": 0.1,  # Volumetric water content at saturation (m^3 / m^3)
+        "Smin": 0.1,  # Residual water content (m^3 / m^3)
+        "alpha": 0.1,  # Shape parameter of the van Genuchten model (cm^-1)
+        "n": 0.1,  # Pore_size_distribution_parameter (dimensionless, > 1)
+        "Ksat": 0.1,  # Saturated hydraulic conductivity (cm / day)
+        "Vq": 0.1,  # Volumetric quartz content of soil
+        "Vm": 0.1,  # Volumetric mineral content of soil
+        "Vo": 0.1,  # Volumetric organic content of soil
+        "Mc": 0.1,  # Mass fraction of clay
+        "rho": 0.1,  # Soil bulk density (Mg / m^3)
+        "b": 0.1,  # Shape parameter for Campbell model (dimensionless, > 1)
+        "psi_e": 0.1,  # Matric potential (J / m^3)
+    },
+}
+
 
 class EnergyBalance:
     """EnergyBalance method.
@@ -51,11 +82,15 @@ class EnergyBalance:
         latent_heat_flux: NDArray[np.float32],
         ground_heat_flux: NDArray[np.float32],
         diabatic_correction_factor: NDArray[np.float32]
+        soil_type: NDArray[np.string_]
+        soil_depth: NDArray[np.float32]
     """
 
     def __init__(
         self,
         data: dict[str, float],
+        soil_type: NDArray[np.string_],
+        soil_depth: NDArray[np.float32] = np.array(2.0, dtype=float),
         mean_annual_temperature: NDArray[np.float32] = np.array(20, dtype=float),
         canopy_layers: NDArray[np.int32] = np.array(3, dtype=int),
         soil_layers: NDArray[np.int32] = np.array(2, dtype=int),
@@ -64,7 +99,8 @@ class EnergyBalance:
     ) -> None:
         """Initializes point-based energy_balance method.
 
-        The interpolation of initial values follows the MacLean et al., (2021).
+        Generates a set of climate, conductivity, and soil parameters for running the
+        first time step of the model. This might go in the json file.
         """
 
         # set boundary conditions
@@ -78,7 +114,7 @@ class EnergyBalance:
         self.wind_speed_2m = data["wind_speed_2m"]
         self.mean_annual_temperature = mean_annual_temperature
 
-        # interpolate initial temperature profile
+        # interpolate initial temperature profile, could be more realistic
         self.temperature_above_canopy = self.air_temperature_2m
         temperature_interpolation = np.linspace(
             self.mean_annual_temperature,
@@ -95,7 +131,7 @@ class EnergyBalance:
         self.absorbed_radiation = absorbed_radiation
         self.canopy_temperature = self.air_temperature + 0.01 * self.absorbed_radiation
 
-        # interpolate relative humidity and atmospheric pressure
+        # initiate relative humidity and atmospheric pressure
         self.relative_humidity = np.repeat(
             data["relative_humidity_2m"], self.canopy_layers
         )
@@ -142,9 +178,15 @@ class EnergyBalance:
         self.ground_heat_flux = np.array(0.0)
         self.diabatic_correction_factor = np.array(0.0)
 
+        # get soil parameters
+        self.soil_parameters = soil_parameters[str(soil_type)]
+        # there is another soil node depth in Maclean, not sure what the difference is
+        # self.soil_node_depth = [soil_depth/self.soil_layers**1.2 * (x**1.2)
+        # for x in range(1, self.soil_layers)]
+
 
 # --- this is the sequence of processes in microclimc for one time step ---
-# paraminit
+# paraminit - DONE
 # soilinit
 # runonetimestep:
 # Check whether any vegetation layers have zero PAI
