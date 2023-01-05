@@ -4,9 +4,50 @@ This module calculates the energy balance for the Virtual Rainforest.
 The sequence of processes is based on Maclean et al, 2021: Microclimc: A mechanistic
 model of above, below and within-canopy microclimate. Ecological Modelling
 Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
+
+# --- this is the sequence of processes in microclimc for one time step ---
+# paraminit - DONE
+# soilinit - DONE
+# runonetimestep:
+# Check whether any vegetation layers have zero PAI
+# == Unpack climate variables == DONE
+# == calculate baseline variables: == DONE
+# - molar density of air DONE
+# - specific heat of air DONE
+# - latent heat of vaporisation DONE
+
+# Adjust wind to 2 m above canopy
+# Generate heights of nodes
+# Set z above
+# == Calculate diabatic correction factors ==
+# Calculate temperatures and relative humidities for top of canopy
+# Set limits to temp can
+# Adjust relative humidity
+# == Calculate wind speed and turbulent conductances ==
+# == Calculate canopy turbulences ==
+# == Calculate conductivity to top of canopy and merge ==
+# Turbulent air conductivity and layer merge
+# == Calculate absorbed radiation
+# == Conductivities ==
+# Vapour conductivity
+# Leaf conductivity
+# == Soil conductivity ==
+# conductivity and specific heat
+# soil heat
+# Canopy air layer not in equilibrium with above canopy:
+# Heat to add / loose
+# vapour exchange
+# Interpolate
+# Canopy air layer in equilibrium with above canopy
+# Set limits to soil temperatures
+# Calculate Heat flux
+# Latent heat
+# dewpoints
+# Incoming radiation
+# internal function to sort out vegetation parameters
 """
 
-from math import exp, sqrt
+from math import exp, sqrt, log
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,6 +69,7 @@ MIN_LEAF_AIR_CONDUCTIVITY = (
 MAX_LEAF_AIR_CONDUCTIVITY = (
     0.19  # typical for decidious forest with wind above canopy 2 m/s
 )
+KARMANS_CONSTANT = 0.4  # constant to calculate mixing length
 CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
 STANDARD_MOLE = 44.6  # moles of ideal gas in 1 m^3 air at standard atmosphere
 VAPOR_PRESSURE_FACTOR1 = 0.6108  # constant in calculation of vapor pressure
@@ -40,7 +82,7 @@ data = {
     "air_temperature_2m": 25,
     "relative_humidity_2m": 90,
     "atmospheric_pressure_2m": 101.325,
-    "wind_speed_2m": 2.0,
+    "wind_speed_10m": 2.0,
     "soil_moisture_reference": 0.3,
 }
 
@@ -104,6 +146,7 @@ class EnergyBalance:
         soil_depth: NDArray[np.float32]
         soil_moisture: NDArray[np.float32]
         soil_moisture_reference: NDArray[np.float32]
+        wind_profile: NDArray[np.float32]
     """
 
     def __init__(
@@ -132,9 +175,9 @@ class EnergyBalance:
         self.air_temperature_2m = data["air_temperature_2m"]
         self.relative_humidity_2m = data["relative_humidity_2m"]
         self.atmospheric_pressure_2m = data["atmospheric_pressure_2m"]
-        self.wind_speed_2m = data["wind_speed_2m"]
+        self.wind_speed_10m = data["wind_speed_10m"]
         self.mean_annual_temperature = mean_annual_temperature
-        self.soil_moisture = data["soil_moisture_reference"]
+        self.soil_moisture_reference = data["soil_moisture_reference"]
 
         # interpolate initial temperature profile, could be more realistic
         self.temperature_above_canopy = self.air_temperature_2m
@@ -319,108 +362,101 @@ class EnergyBalance:
     def calc_wind_profile(
         self,
         canopy_height: NDArray[np.float32],
+        wind_profile_heights: NDArray[np.float32],
         plant_area_index: NDArray[np.float32],
         height_scaling_parameter: float = 7.5,
         ground_vegetation_height: float = 0.05,
-        diabatic_correction_factor: NDArray[np.float32] = 0.0,
+        diabatic_correction_factor: NDArray[np.float32] = np.array(0.0),
+        wind_measurement_height: float = 10.0,
+        attenuation_coefficient: NDArray[np.float32] = np.array(2.0),
+        below_canopy_roughness_length: float = 0.004,
     ) -> None:
         """Calculates wind speed at any given point above or below canopy.
 
         Args:
-            canopy_height:NDArray[np.float32], height of canopy [m]
-            plant_area_index PAI plant area index [m m-1]
+            canopy_height: NDArray[np.float32], height of canopy [m]
+            wind_profile_heights: NDArray[np.float32], heights for which wind is
+                calculated [m]
+            plant_area_index: NDArray[np.float32], plant area index [m m-1]
             height_scaling_parameter: float = 7.5,
-            ground_vegetation_height: float = 0.05,
-
-            ui wind at reference height (m / s)
-            zi height of wind measurement (m)
-            zo height for which wind is required (m)
-            a=2 attenuation coefficient
-            diabatic_corretion_factor =0 diabatic correction factor
-            ground_vegetation_height: float=0.05,
-                height of ground vegetation layer below canopy (m)
-            zm0 = 0.004 roughness length (m) of vegetation layer below canopy as
-                returned by [microctools::roughlength()]
+            ground_vegetation_height: float = 0.05, height of ground vegetation layer
+                below canopy [m]
+            diabatic_correction_factor: NDArray[np.float32] = np.array(0.0)
+            wind_measurement_height: float = 10.0,
+            attenuation_coefficient: NDArray[np.float32] = np.array(2.0), wind
+                attenuation coefficient
+            below_canopy_roughness_length: roughness length (m) of vegetation layer
+                below canopy
 
         Returns:
-            wind_profile: NDArray[np.float32], wind speed in m s-1 at different heights
+            self.wind_profile: NDArray[np.float32], wind at different heights [m s-1]
         """
-        raise (NotImplementedError)
         zero_plane_displacement = (
             1
             - (1 - exp(-sqrt(height_scaling_parameter * plant_area_index)))
             / sqrt(height_scaling_parameter * plant_area_index)
         ) * canopy_height
-        roughness_length = self.calc_roughness_length(canopy_height, plant_area_index)
+        roughness_length = self.calc_roughness_length(
+            canopy_height, plant_area_index, below_canopy_roughness_length
+        )
 
-        dg = 0.65 * ground_vegetation_height
+        # dg = 0.65 * ground_vegetation_height   #unused?
         ground_vegetation_roughness_length = 0.1 * ground_vegetation_height
 
-    # ln1 = log((zi - zero_plane_displacement) / roughness_length) +
-    # diabatic_corretion_factor
-    # uf = 0.4 * (ui / ln1)
-    # zo above canopy
-    # ln2 = suppressWarnings(log((zo - zero_plane_displacement) / roughness_length) +
-    # diabatic_corretion_factor)
-    # ln2[ln2<0.55]<-0.55
-    # uo = (uf / 0.4) * ln2
-    # zo below canopy
-    # sel = which(zo < canopy_height)
-    # ln2 = log((canopy_height[sel] - zero_plane_displacement[sel]) /
-    # ground_vegetation_roughness_length[sel]) + diabatic_corretion_factor[sel]
-    # uo[sel] <- (uf[sel] / 0.4) * ln2
-    # zo above 10% of canopy hgt, but below top of canopy
-    # sel <- which(zo > (0.1 * canopy_height) & zo < canopy_height)
-    # uo[sel] <- uo[sel] * exp(a[sel] * ((zo[sel] / canopy_height[sel]) - 1))
-    # zo below 10% of canopy hgt
-    # sel <- which(zo <= (0.1 * canopy_height))
-    # uo[sel] <- uo[sel] * exp(a[sel] * (((0.1 * canopy_height[sel]) /
-    # canopy_height[sel]) - 1))
-    # ln1 <- log((0.1 * canopy_height[sel]) / ground_vegetation_roughness_length[sel])
-    # + diabatic_corretion_factor[sel]
-    # uf <- 0.4 * (uo[sel] / ln1)
-    # ln2 <- log(zo[sel] / ground_vegetation_roughness_length[sel])
-    # + diabatic_corretion_factor[sel]
-    # uo[sel] <- (uf / 0.4) * ln2
-    # uo
+        wind_log_profile1 = (
+            log((wind_measurement_height - zero_plane_displacement) / roughness_length)
+            + diabatic_correction_factor
+        )
+        friction_velocity = KARMANS_CONSTANT * (self.wind_speed_10m / wind_log_profile1)
 
+        # case 1: wind_profile_heights above canopy
+        wind_log_profile2 = (
+            log((wind_profile_heights - zero_plane_displacement) / roughness_length)
+            + diabatic_correction_factor
+        )  # suppress warning in MacLean
+        wind_log_profile2[wind_log_profile2 < 0.55] = 0.55
+        self.wind_profile = (friction_velocity / KARMANS_CONSTANT) * wind_log_profile2
 
-# --- this is the sequence of processes in microclimc for one time step ---
-# paraminit - DONE
-# soilinit - DONE
-# runonetimestep:
-# Check whether any vegetation layers have zero PAI
-# == Unpack climate variables == DONE
-# == calculate baseline variables: ==
-# - molar density of air DONE
-# - specific heat of air DONE
-# - latent heat of vaporisation DONE
-# Adjust wind to 2 m above canopy
-# Generate heights of nodes
-# Set z above
-# == Calculate diabatic correction factors ==
-# Calculate temperatures and relative humidities for top of canopy
-# Set limits to temp can
-# Adjust relative humidity
-# == Calculate wind speed and turbulent conductances ==
-# == Calculate canopy turbulences ==
-# == Calculate conductivity to top of canopy and merge ==
-# Turbulent air conductivity and layer merge
-# == Calculate absorbed radiation
-# == Conductivities ==
-# Vapour conductivity
-# Leaf conductivity
-# == Soil conductivity ==
-# conductivity and specific heat
-# soil heat
-# Canopy air layer not in equilibrium with above canopy:
-# Heat to add / loose
-# vapour exchange
-# Interpolate
-# Canopy air layer in equilibrium with above canopy
-# Set limits to soil temperatures
-# Calculate Heat flux
-# Latent heat
-# dewpoints
-# Incoming radiation
-# internal function to sort out vegetation parameters
+        # case 2: wind_profile_heights below canopy
+        sel = np.where(wind_profile_heights < canopy_height)
+        wind_log_profile2 = (
+            log(
+                (canopy_height[sel] - zero_plane_displacement[sel])
+                / roughness_length[sel]
+            )
+            + diabatic_correction_factor[sel]
+        )
+        self.wind_profile[sel] = (
+            friction_velocity[sel] / KARMANS_CONSTANT
+        ) * wind_log_profile2
+
+        # case 3: wind_profile_heights above 10% of canopy hgt, but below top of canopy
+        sel = np.where(
+            wind_profile_heights > (0.1 * canopy_height)
+            and wind_profile_heights < canopy_height
+        )
+        self.wind_profile[sel] = self.wind_profile[sel] * exp(
+            attenuation_coefficient[sel]
+            * ((wind_profile_heights[sel] / canopy_height[sel]) - 1)
+        )
+
+        # case 4: wind_profile_heights below 10% of canopy hgt
+        sel = np.where(wind_profile_heights <= (0.1 * canopy_height))
+        self.wind_profile[sel] = self.wind_profile[sel] * exp(
+            attenuation_coefficient[sel]
+            * (((0.1 * canopy_height[sel]) / canopy_height[sel]) - 1)
+        )
+        wind_log_profile1 < -log(
+            (0.1 * canopy_height[sel]) / ground_vegetation_roughness_length[sel]
+        )
+        +diabatic_correction_factor[sel]
+        friction_velocity = KARMANS_CONSTANT * (
+            self.wind_profile[sel] / wind_log_profile1
+        )
+        wind_log_profile2 < -log(
+            wind_profile_heights[sel] / ground_vegetation_roughness_length[sel]
+        )
+        +diabatic_correction_factor[sel]
+        self.wind_profile[sel] < -(
+            friction_velocity / KARMANS_CONSTANT
+        ) * wind_log_profile2
