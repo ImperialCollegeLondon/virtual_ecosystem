@@ -36,6 +36,7 @@ variables (or derivatives) at each time step (default: monthly means):
 * Air pressure (typically mean sealevel or surface pressure)
 * Wind speed (typically 10m)
 * Precipitation
+* Top of atmosphere short-wave downward radiation
 * CO2 concentration (for future projections)
 * optional: soil temperature and soil moisture for initialisation
 
