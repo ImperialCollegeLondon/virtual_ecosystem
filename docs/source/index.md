@@ -104,6 +104,16 @@ team.
 
 ```{eval-rst}
 .. toctree::
+  :maxdepth: 4
+  :caption: Climate data pre-processing
+  :hidden:
+
+  data_recipes/CDS_toolbox_template.md
+  data_recipes/ERA5_preprocessing_example.md
+```
+
+```{eval-rst}
+.. toctree::
   :maxdepth: 0
   :caption: Bibliography
   :hidden:
