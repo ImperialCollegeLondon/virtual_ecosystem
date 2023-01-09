@@ -111,7 +111,7 @@ from the CORDEX-SEA:
 * Start year and End year (here: 2001-2005)
 
 Once you selected the data, you can either download the dataset for further processing,
-[see here]('./ERA5_preprocessing_example.md') an example of how to manipulate ERA5 data
+[see here](./ERA5_preprocessing_example.md) an example of how to manipulate ERA5 data
 using xarray, or click on 'show Toolbox request' at the bottom of the page, copy the
 code, and open the CDS toolbox editor.
 
