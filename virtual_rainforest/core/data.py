@@ -300,7 +300,7 @@ class Data:
                 # processed
                 try:
                     self.load_from_file(
-                        file=each_var["file"],
+                        file=Path(each_var["file"]),
                         file_var_name=each_var["file_var_name"],
                         data_var_name=each_var.get("data_var_name"),
                     )

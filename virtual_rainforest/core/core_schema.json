@@ -91,7 +91,7 @@
                         },
                         "required": [
                            "file",
-                           "file_var"
+                           "file_var_name"
                         ]
                      }
                   }
