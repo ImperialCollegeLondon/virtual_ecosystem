@@ -47,10 +47,6 @@ class SoilCarbonPools:
     At the moment, only two pools are included. Functions exist for the transfer of
     carbon between these pools, but not with either the yet to be implemented soil
     carbon pools, other pools in the soil module, or other modules.
-
-    Attributes:
-        maom: Mineral associated organic matter pool
-        lmwc: Low molecular weight carbon pool
     """
 
     def __init__(self, maom: NDArray[np.float32], lmwc: NDArray[np.float32]) -> None:
@@ -71,7 +67,9 @@ class SoilCarbonPools:
             )
 
         self.maom = maom
+        """Mineral associated organic matter pool"""
         self.lmwc = lmwc
+        """Low molecular weight carbon pool"""
 
     def update_pools(
         self,
