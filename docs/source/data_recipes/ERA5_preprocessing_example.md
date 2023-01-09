@@ -19,7 +19,7 @@ kernelspec:
 This section illustrates how to perform simple manipulations to adjust ERA5 data to use
 in the Virtual Rainforest. This includes reading climate data from netcdf, converting
 the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
-Celcius conversion), and writing the output in a new netcdf file. This does not include
+Celsius conversion), and writing the output in a new netcdf file. This does not include
 scaling or topographic adjustment.
 
 ## Dummy data set
@@ -88,7 +88,10 @@ dataset["stl1_C"] = dataset["stl1"]-273.15 # top soil temperature
 Relative humidity (RH) is not a standard output from ERA5 but can be calculated from 2m
 dewpoint temperature (DPT) and 2m temperature (T) as follows:
 
-$$ RH = {{100*exp(17.625*DPT)/(243.04+DPT)} \over {exp(17.625*T)/(243.04+T)}} $$
+$$
+RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
+                 {\exp(17.625 \cdot T)/(243.04+T)}
+$$
 
 ```{code-cell} ipython3
  dataset["rh2m"] = (
