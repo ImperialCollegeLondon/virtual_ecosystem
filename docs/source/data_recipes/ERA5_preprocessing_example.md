@@ -109,6 +109,6 @@ Once you confirmed that your dataset is complete and your calculations are corre
 it as a new netcdf file. This can then be fed into the code data loading system,
 see {mod}`~virtual_rainforest.core.data`.
 
-```{code-cell} ipython3
+```{code-block} ipython3
 dataset_cleaned.to_netcdf("./dummy_climate_data_processed.nc")
 ```
