@@ -19,7 +19,7 @@ kernelspec:
 This section illustrates how to perform simple manipulations to adjust ERA5 data to use
 in the Virtual Rainforest. This includes reading climate data from netcdf, converting
 the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
-Celsius conversion), and writing the output in a new netcdf file. This does not include
+Celcius conversion), and writing the output in a new netcdf file. This does not include
 scaling or topographic adjustment.
 
 ## Dummy data set
@@ -28,35 +28,35 @@ Example file: [dummy_climate_data.nc](./dummy_climate_data.nc)
 
 ### Metadata
 
-Reference:
+* Reference:
 Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz Sabater, J.,
 Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A., Soci, C., Dee,
 D., Thépaut, J-N. (2019): ERA5 monthly averaged data on single levels from 1959 to
 present. Copernicus Climate Change Service (C3S) Climate Data Store (CDS).
 (Accessed on < DD-MMM-YYYY >), 10.24381/cds.f17050d7
 
-Product type:
+* Product type:
 Monthly averaged reanalysis
 
-Variable:
+* Variable:
 10m wind speed, 2m dewpoint temperature, 2m temperature, Soil temperature level 1,
 Surface pressure, TOA incident solar radiation, Total cloud cover, Total precipitation,
 Volumetric soil water layer 1
 
-Year:
+* Year:
 2013, 2014
 
-Month:
+* Month:
 January, February, March, April, May, June, July, August, September, October, November,
 December
 
-Time:
+* Time:
 00:00
 
-Sub-region extraction:
+* Sub-region extraction:
 North 6°, West 116°, South 4°, East 118°
 
-Format:
+* Format:
 NetCDF (experimental)
 
 ## Code example
@@ -88,10 +88,7 @@ dataset["stl1_C"] = dataset["stl1"]-273.15 # top soil temperature
 Relative humidity (RH) is not a standard output from ERA5 but can be calculated from 2m
 dewpoint temperature (DPT) and 2m temperature (T) as follows:
 
-$$
-RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
-                 {\exp(17.625 \cdot T)/(243.04+T)}
-$$
+$$ RH = {{100*exp(17.625*DPT)/(243.04+DPT)} \over {exp(17.625*T)/(243.04+T)}} $$
 
 ```{code-cell} ipython3
  dataset["rh2m"] = (
