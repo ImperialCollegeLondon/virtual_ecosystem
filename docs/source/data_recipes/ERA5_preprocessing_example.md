@@ -105,7 +105,7 @@ dataset_cleaned = dataset.drop_vars(["d2m","t2m","stl1"])
 dataset_cleaned
 ```
 
-Once you confirmed that yourdataset is complete and your calculations are correct, save
+Once you confirmed that your dataset is complete and your calculations are correct, save
 it as a new netcdf file. This can then be fed into the code data loading system,
 see {mod}`~virtual_rainforest.core.data`.
 
