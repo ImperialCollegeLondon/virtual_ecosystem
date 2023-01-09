@@ -108,8 +108,8 @@ team.
   :caption: Climate data pre-processing
   :hidden:
 
-  data_recipes/CDS_toolbox_template.md
-  data_recipes/ERA5_preprocessing_example.md
+  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
+  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}
