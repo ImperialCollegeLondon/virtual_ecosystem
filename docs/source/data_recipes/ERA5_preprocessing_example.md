@@ -28,36 +28,28 @@ Example file: [dummy_climate_data.nc](./dummy_climate_data.nc)
 
 ### Metadata
 
-* Reference:
-Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz Sabater, J.,
-Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A., Soci, C., Dee,
-D., Thépaut, J-N. (2019): ERA5 monthly averaged data on single levels from 1959 to
-present. Copernicus Climate Change Service (C3S) Climate Data Store (CDS).
-(Accessed on < DD-MMM-YYYY >), 10.24381/cds.f17050d7
+- Reference: Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz
+  Sabater, J., Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A.,
+  Soci, C., Dee, D., Thépaut, J-N. (2019): ERA5 monthly averaged data on single levels
+  from 1959 to present. Copernicus Climate Change Service (C3S) Climate Data Store
+  (CDS). (Accessed on \< DD-MMM-YYYY >), 10.24381/cds.f17050d7
 
-* Product type:
-Monthly averaged reanalysis
+- Product type: Monthly averaged reanalysis
 
-* Variable:
-10m wind speed, 2m dewpoint temperature, 2m temperature, Soil temperature level 1,
-Surface pressure, TOA incident solar radiation, Total cloud cover, Total precipitation,
-Volumetric soil water layer 1
+- Variable: 10m wind speed, 2m dewpoint temperature, 2m temperature, Soil temperature
+  level 1, Surface pressure, TOA incident solar radiation, Total cloud cover, Total
+  precipitation, Volumetric soil water layer 1
 
-* Year:
-2013, 2014
+- Year: 2013, 2014
 
-* Month:
-January, February, March, April, May, June, July, August, September, October, November,
-December
+- Month: January, February, March, April, May, June, July, August, September, October,
+  November, December
 
-* Time:
-00:00
+- Time: 00:00
 
-* Sub-region extraction:
-North 6°, West 116°, South 4°, East 118°
+- Sub-region extraction: North 6°, West 116°, South 4°, East 118°
 
-* Format:
-NetCDF (experimental)
+- Format: NetCDF (experimental)
 
 ## Code example
 
@@ -88,7 +80,7 @@ dataset["stl1_C"] = dataset["stl1"]-273.15 # top soil temperature
 Relative humidity (RH) is not a standard output from ERA5 but can be calculated from 2m
 dewpoint temperature (DPT) and 2m temperature (T) as follows:
 
-$$ RH = {{100*exp(17.625*DPT)/(243.04+DPT)} \over {exp(17.625*T)/(243.04+T)}} $$
+$$ RH = {{100*exp(17.625*DPT)/(243.04+DPT)} \\over {exp(17.625\*T)/(243.04+T)}} $$
 
 ```{code-cell} ipython3
  dataset["rh2m"] = (
@@ -106,8 +98,8 @@ dataset_cleaned
 ```
 
 Once you confirmed that your dataset is complete and your calculations are correct, save
-it as a new netcdf file. This can then be fed into the code data loading system,
-see {mod}`~virtual_rainforest.core.data`.
+it as a new netcdf file. This can then be fed into the code data loading system, see
+{mod}`~virtual_rainforest.core.data`.
 
 ```{code-block} ipython3
 dataset_cleaned.to_netcdf("./dummy_climate_data_processed.nc")
