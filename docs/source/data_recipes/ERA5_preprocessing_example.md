@@ -19,7 +19,7 @@ kernelspec:
 This section illustrates how to perform simple manipulations to adjust ERA5 data to use
 in the Virtual Rainforest. This includes reading climate data from netcdf, converting
 the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
-Celcius conversion), and writing the output in a new netcdf file. This does not include
+Celsius conversion), and writing the output in a new netcdf file. This does not include
 scaling or topographic adjustment.
 
 ## Dummy data set
@@ -66,7 +66,7 @@ dataset
 ### 2. Convert temperatures
 
 The standard output unit of ERA5 tempertures is Kelvin which we need to convert into
-degree Celcius for the Virtual Rainforest. This includes 2m air temperature, 2m dewpoint
+degree Celsius for the Virtual Rainforest. This includes 2m air temperature, 2m dewpoint
 temperature (used to calculate relative humidity in next step), and topsoil temperature.
 
 ```{code-cell} ipython3
