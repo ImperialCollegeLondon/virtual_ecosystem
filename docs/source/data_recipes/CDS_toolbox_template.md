@@ -123,7 +123,7 @@ calculate the monthly means, and download the product. For illustration, the rou
 also plots the mean value. Adjust the 'data' lines to match your data request. You find
 the full documentation of the CDS toolbox [here](https://cds.climate.copernicus.eu/toolbox/doc/index.html).
 
-```{code-cell, eval=F, echo=T}
+```{code-block} ipython
 # EXAMPLE CODE to preprocess CORDEX-SEA with CDS toolbox
 
 import cdstoolbox as ct
