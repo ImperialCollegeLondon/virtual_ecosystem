@@ -47,7 +47,7 @@ BEER_REGRESSION = 2.67e-5  # parameter in equation for atmospheric transmissivit
 # on regression of Beer’s radiation extinction function (Allen 1996)
 ALBEDO_VIS = np.array(0.03, dtype=float)
 ALBEDO_SHORTWAVE = np.array(0.17, dtype=float)
-CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
+CELSIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
 SECOND_TO_DAY = 86400  # factor to convert between days and seconds
 
 
@@ -146,14 +146,14 @@ class Radiation:
         self.longwave_canopy = (
             CANOPY_EMISSIVITY
             * BOLZMAN_CONSTANT
-            * (CELCIUS_TO_KELVIN + canopy_temperature) ** 4
+            * (CELSIUS_TO_KELVIN + canopy_temperature) ** 4
         )
 
         # longwave emission surface
         self.longwave_soil = (
             SOIL_EMISSIVITY
             * BOLZMAN_CONSTANT
-            * (CELCIUS_TO_KELVIN + surface_temperature) ** 4
+            * (CELSIUS_TO_KELVIN + surface_temperature) ** 4
         )
 
     def calc_netradiation_surface(
