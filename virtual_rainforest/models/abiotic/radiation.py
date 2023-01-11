@@ -11,7 +11,7 @@ The top of canopy net shortwave radiation at a given location depends on
 
 The preprocessing module takes extra-terrestrial radiation as an input and adjusts for
 the effects of topography (slope and aspect). Here, the effects of atmospheric
-filtering (elevation dependend) and cloud cover are added to calculate photosynthetic
+filtering (elevation-dependend) and cloud cover are added to calculate photosynthetic
 photon flux density (PPFD) at the top of the canopy which is a crucial input to the
 plant module. The implementation is based on David et al. (2017): Simple process-led
 algorithms for simulating habitats (SPLASH v.1.0): robust indices of radiation, evapo-
@@ -20,6 +20,7 @@ transpiration and plant-available moisture, Geosci. Model Dev., 10, 689-708.
 Cloud cover and surface albedo also determine how much of the shortwave radiation that
 reaches the top of the canopy is reflected and how much remains to be absorbed via
 photosynthesis and re-emitted as longwave radiation by vegetation and forest floor.
+Scattering and re-absorption of longwave radiation are not considered at this stage.
 
 The radiation balance is calculated with the radiation_balance() function. At the
 moment, this happens at a daily timestep.
@@ -35,20 +36,29 @@ from numpy.typing import NDArray
 
 # from core.constants import CONSTANTS as C
 # this doesn't exist yet; optional scipy
-CLOUDY_TRANSMISSIVITY = 0.25  # cloudy transmittivity (Linacre, 1968)
-TRANSMISSIVITY_COEFFICIENT = (
-    0.50  # angular coefficient of transmittivity (Linacre, 1968)
-)
-FLUX_TO_ENERGY = 2.04  # from flux to energy conversion, umol/J (Meek et al., 1984)
-BOLZMAN_CONSTANT = 5.67e-8  # Stephan Bolzman constant W m-2 K-4
-SOIL_EMISSIVITY = 0.95  # default for tropical rainforest
-CANOPY_EMISSIVITY = 0.95  # default for tropical rainforest
-BEER_REGRESSION = 2.67e-5  # parameter in equation for atmospheric transmissivity based
-# on regression of Beer’s radiation extinction function (Allen 1996)
+CLOUDY_TRANSMISSIVITY = 0.25
+"""cloudy transmittivity (Linacre, 1968)"""
+TRANSMISSIVITY_COEFFICIENT = 0.50
+"""angular coefficient of transmittivity (Linacre, 1968)"""
+FLUX_TO_ENERGY = 2.04
+"""from flux to energy conversion, umol/J (Meek et al., 1984)"""
+BOLZMAN_CONSTANT = 5.67e-8
+"""Stephan Bolzman constant W m-2 K-4"""
+SOIL_EMISSIVITY = 0.95
+"""Soil emissivity, default for tropical rainforest"""
+CANOPY_EMISSIVITY = 0.95
+"""canopy emissivity, default for tropical rainforest"""
+BEER_REGRESSION = 2.67e-5
+"""parameter in equation for atmospheric transmissivity based on regression of Beer’s
+radiation extinction function (Allen 1996)"""
 ALBEDO_VIS = np.array(0.03, dtype=float)
+"""Albedo of visible light"""
 ALBEDO_SHORTWAVE = np.array(0.17, dtype=float)
-CELSIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
-SECOND_TO_DAY = 86400  # factor to convert between days and seconds
+"""Albedo of shortwave radiation"""
+CELSIUS_TO_KELVIN = 273.15
+"""factor to convert temperature in Celsius to absolute temperature in Kelvin"""
+SECOND_TO_DAY = 86400
+"""factor to convert between days and seconds"""
 
 
 class Radiation:
