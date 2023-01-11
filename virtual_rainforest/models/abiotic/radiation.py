@@ -58,7 +58,7 @@ ALBEDO_SHORTWAVE = np.array(0.17, dtype=float)
 CELSIUS_TO_KELVIN = 273.15
 """factor to convert temperature in Celsius to absolute temperature in Kelvin"""
 SECOND_TO_DAY = 86400
-"""factor to convert between days and seconds"""
+"""factor to convert between days and seconds."""
 
 
 class Radiation:
