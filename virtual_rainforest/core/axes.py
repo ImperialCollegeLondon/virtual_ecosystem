@@ -162,13 +162,14 @@ def validate_dataarray(
     used to validate the input array and the validated array is passed on to the next
     axis for further validation.
 
-    The function returns the validated data array and a dictionary recording which
-    AxisValidator classes were applied to each of the core axes.
-
     Args:
         value: An input DataArray for validation
         grid: A Grid object giving the spatial configuration.
         kwargs: Further configuration details to be passed to AxisValidators
+
+    Returns:
+        The function returns the validated data array and a dictionary recording which
+        AxisValidator classes were applied to each of the core axes.
 
     Raises:
         ValueError: If the input data array uses dimension names required for an axis

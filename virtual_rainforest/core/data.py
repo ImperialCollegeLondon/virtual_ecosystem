@@ -197,6 +197,13 @@ class Data:
         Args:
             var_name: The name of a variable
             axis_name: The core axis name
+
+        Returns:
+            A boolean indicating if the variable was validated on the named axis.
+
+        Raises:
+            ValueError: Unknown variable or core axis name
+            RuntimeError: Incomplete variable validation data in Data instance.
         """
 
         if var_name not in self.data:
