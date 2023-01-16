@@ -20,7 +20,7 @@ MIN_LEAF_CONDUCTIVITY = 0.25
 MAX_LEAF_CONDUCTIVITY = 0.32
 """max leaf conductivity, typical for decidious forest with wind above canopy 2 m/s"""
 AIR_CONDUCTIVITY = 50.0
-"""air conductivity, typical for decidious forest with wind above canopy 2 m/s"""
+"""initial air conductivity, typical for decid. forest with wind above canopy 2 m/s"""
 MIN_LEAF_AIR_CONDUCTIVITY = 0.13
 """min conductivity between leaf and air, typical for decidious forest with wind above
 canopy 2 m/s"""
@@ -43,16 +43,25 @@ VAPOR_PRESSURE_FACTOR3 = 237.7
 """constant in calculation of vapor pressure"""
 
 # import external driving data at reference hight (2 m) TODO for current timestep
-# this will be a Data.data object
+# this will be a Data.data object, time dimension needs to be changed
 data = {
-    "time": [1, 2, 3],
-    "air_temperature_2m": 25,  # Celsius
-    "relative_humidity_2m": 90,  # percent
-    "atmospheric_pressure_2m": 101.325,  # kPa
-    "wind_speed_10m": 2.0,  # m s-1
-    "soil_moisture_reference": 0.3,  # fraction
-    "mean_annual_temperture": 20.0,  # Celsius
-    "soil_depth": 2.0,  # meter
+    "soil_depth": 2.0,  # meter, might not change
+    "time_1": {
+        "air_temperature_2m": 25,  # Celsius
+        "relative_humidity_2m": 90,  # percent
+        "atmospheric_pressure_2m": 101.325,  # kPa
+        "wind_speed_10m": 2.0,  # m s-1
+        "soil_moisture_reference": 0.3,  # fraction
+        "mean_annual_temperature": 20.0,  # Celsius
+    },
+    "time_2": {
+        "air_temperature_2m": 25,  # Celsius
+        "relative_humidity_2m": 90,  # percent
+        "atmospheric_pressure_2m": 101.325,  # kPa
+        "wind_speed_10m": 2.0,  # m s-1
+        "soil_moisture_reference": 0.3,  # fraction
+        "mean_annual_temperature": 20.0,  # Celsius, might not change
+    },
 }
 
 # soil parameter for different soil types, no real values, will be external data base
@@ -96,10 +105,10 @@ class EnergyBalance:
         soil_type: NDArray[np.string_],
         soil_layers: NDArray[np.int32] = np.array(
             2, dtype=np.int32
-        ),  # opt. from config
+        ),  # optional from config
         canopy_layers: NDArray[np.int32] = np.array(
             3, dtype=np.int32
-        ),  # opt. from config
+        ),  # optional from config
     ) -> None:
         """Initializes point-based energy_balance method."""
 
@@ -127,8 +136,9 @@ class EnergyBalance:
         first time step of the model.
         """
 
-        # select first timestep in data
-        self.data = data[0]  # how can I select first timestep?
+        # select first timestep in data set
+        # problem with access later, indexing object??
+        self.data_t = data["time_1"]
 
         # set initial canopy height
         self.canopy_height = initial_canopy_height
@@ -140,12 +150,12 @@ class EnergyBalance:
 
         # interpolate initial temperature profile, linear, could be more realistic
         self.air_temperature = self.temperature_interpolation(
-            option=interpolation_method
+            data=data, option=interpolation_method
         )[(int(self.soil_layers)) : int((self.canopy_layers + self.soil_layers))]
         """Vertical profile of atmospheric temperatures [C]."""
 
         self.soil_temperature = self.temperature_interpolation(
-            option=interpolation_method
+            data=data, option=interpolation_method
         )[0 : int(self.soil_layers)][::-1]
         """Vertical profile of soil temperatures [C]."""
 
@@ -158,11 +168,11 @@ class EnergyBalance:
 
         # initiate relative humidity and atmospheric pressure
         self.relative_humidity = np.repeat(
-            data["relative_humidity_2m"], self.canopy_layers
+            self.data_t["relative_humidity_2m"], self.canopy_layers
         )
         """Vertical profile of atmospheric relative humidity [%]."""
 
-        self.atmospheric_pressure = data["atmospheric_pressure_2m"]
+        self.atmospheric_pressure = self.data_t["atmospheric_pressure_2m"]
         """Atmospheric pressure [kPa]"""
 
         # set initial conductivities
@@ -201,7 +211,7 @@ class EnergyBalance:
 
         self.soil_node_depths = [
             self.soil_depth
-            / (self.soil_layers**SOIL_DIVISION_FACTOR)
+            / (float(self.soil_layers) ** SOIL_DIVISION_FACTOR)
             * (x**SOIL_DIVISION_FACTOR)
             for x in range(1, self.soil_layers + 1)
         ]
@@ -211,7 +221,7 @@ class EnergyBalance:
         """Height defined as 'height above canopy' [m]"""
 
         self.canopy_wind_speed = [
-            (x / self.canopy_layers) * data["wind_speed_10m"]
+            (x / self.canopy_layers) * self.data_t["wind_speed_10m"]
             for x in range(1, self.canopy_layers + 1)
         ]
         """Vertical profile of canopy wind speed [m s-1]"""
@@ -219,7 +229,7 @@ class EnergyBalance:
         # set initial fluxes
         self.sensible_heat_flux = np.array(0.0)
         """Sensible Heat flux [W m-2]"""
-        self.latent_heat_flux = np.repeat(0.0, self.canopy_layers)
+        self.latent_heat_flux = np.zeros(self.canopy_layers)
         """Latent Heat flux [W m-2]"""
         self.ground_heat_flux = np.array(0.0)
         """Ground Heat flux [W m-2]"""
@@ -240,7 +250,9 @@ class EnergyBalance:
         self.absorbed_radiation = absorbed_radiation  # input from plant module
 
     # small functions
-    def temperature_interpolation(self, option: str = "linear") -> NDArray[np.float32]:
+    def temperature_interpolation(
+        self, data: dict, option: str = "linear"
+    ) -> NDArray[np.float32]:
         """Interpolation of initial temperature profile.
 
         Options:
@@ -249,7 +261,7 @@ class EnergyBalance:
         if option == "linear":
             temperature_interpolation = np.linspace(
                 data["mean_annual_temperature"],
-                data["air_temperature_2m"],
+                data["time_1"]["air_temperature_2m"],
                 self.canopy_layers + self.soil_layers,
             )
         else:
