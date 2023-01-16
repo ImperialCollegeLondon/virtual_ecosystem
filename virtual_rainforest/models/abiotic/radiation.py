@@ -205,7 +205,7 @@ class Radiation:
             canopy_absorption: NDArray[np.float32]: absorption by canopy [J m-2]
 
         Returns:
-            elevation: NDArray[np.float32], evelation [m]
+            elevation: NDArray[np.float32], elevation [m]
             topofcanopy_radiation: NDArray[np.float32], top of canopy downward shortwave
                 radiation, [J m-2]
             ppfd: NDArray[np.float32], top of canopy photosynthetic photon flux density,
