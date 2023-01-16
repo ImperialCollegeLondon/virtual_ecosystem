@@ -84,7 +84,7 @@ from typing import Any, Optional
 
 from xarray import DataArray, Dataset
 
-from virtual_rainforest.core.axes import validate_dataarray
+from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
@@ -114,6 +114,7 @@ class Data:
 
         self.grid = grid
         self.data = Dataset()
+        self._variable_validation: dict[str, dict[str, Optional[str]]] = {}
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -154,7 +155,9 @@ class Data:
             LOGGER.info(f"Replacing data array for '{key}'")
 
         # Validate and store the data array
-        self.data[key] = validate_dataarray(value=value, grid=self.grid)
+        value, valid_dict = validate_dataarray(value=value, grid=self.grid)
+        self.data[key] = value
+        self._variable_validation[key] = valid_dict
 
     def __getitem__(self, key: str) -> DataArray:
         """Get a given data variable from a Data instance.
@@ -184,6 +187,35 @@ class Data:
         """
 
         return key in self.data
+
+    def on_core_axis(self, var_name: str, axis_name: str) -> bool:
+        """Check core axis validation.
+
+        This function checks if a given variable loaded into a Data instance has been
+        validated on one of the core axes.
+
+        Args:
+            var_name: The name of a variable
+            axis_name: The core axis name
+
+        Returns:
+            A boolean indicating if the variable was validated on the named axis.
+
+        Raises:
+            ValueError: Unknown variable or core axis name
+            RuntimeError: Incomplete variable validation data in Data instance.
+        """
+
+        if var_name not in self.data:
+            raise ValueError(f"Unknown variable name: {var_name}")
+
+        if var_name not in self._variable_validation:
+            raise RuntimeError(f"Missing variable validation data: {var_name}")
+
+        if axis_name not in AXIS_VALIDATORS:
+            raise ValueError(f"Unknown core axis name: {axis_name}")
+
+        return False if self._variable_validation[var_name][axis_name] is None else True
 
     def load_from_file(
         self,
@@ -275,7 +307,7 @@ class Data:
                 # processed
                 try:
                     self.load_from_file(
-                        file=each_var["file"],
+                        file=Path(each_var["file"]),
                         file_var_name=each_var["file_var_name"],
                         data_var_name=each_var.get("data_var_name"),
                     )

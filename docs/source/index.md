@@ -68,6 +68,7 @@ team.
   virtual_rainforest/usage.md
   virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
+  virtual_rainforest/core/data.md
   virtual_rainforest/core/config.md
 ```
 

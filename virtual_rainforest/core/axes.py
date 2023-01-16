@@ -24,6 +24,14 @@ the validators define for each core axis.
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
 
+DataArray validation
+====================
+
+The :mod:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
+Arrays and applies validation where applicable across all the core axes. The function
+returns the validated input (possibly altered to align with the core axes) along with a
+dictionary recording which (if any) AxisValidator has been applied to each core axis.
+
 Core axes
 =========
 
@@ -138,33 +146,38 @@ the `__subclass_init__` method.
 """
 
 
-def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
-    """Validate a DataArray on a core axis.
+def validate_dataarray(
+    value: DataArray, grid: Grid, **kwargs: Any
+) -> tuple[DataArray, dict]:
+    """Validate a DataArray across the core axes.
 
     The AXIS_VALIDATORS registry provides a list of AxisValidators subclasses for each
-    core axis. This function takes a list for a given axis and then applies validation
-    for that axis to the input DataArray.
+    core axis. This function loops over the core axes, and checks whether to apply
+    validation for that axis to the input DataArray.
 
-    The function first checks if the dimension names of the input DataArray overlap with
-    the set of dimension names used across the AxisValidators for the core axis. If they
-    do then the (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`)
-    method of _one_ of the AxisValidator subclasses should return True. It is an error
-    for either no or more than one validator to be able to validate the input array. The
-    appropriate AxisValidator is then used to validate the input array and return a
-    validated DataArray.
-
-    If the dimension names on the data array do not match any of the registered
-    dimensions, then the function returns the input DataArray.
+    For each axis in turn, the function first checks if the dimension names of the input
+    DataArray overlap with the set of dimension names used across the AxisValidators for
+    that axis. If not, then the next axis is checked without altering the input array.
+    If the dimension names do match the axis then the appropriate AxisValidator is then
+    used to validate the input array and the validated array is passed on to the next
+    axis for further validation.
 
     Args:
-        axis: The core axis to get a validator for
-        data: A Data object providing parameter information
-        darray: The data to match to a validator signature
+        value: An input DataArray for validation
+        grid: A Grid object giving the spatial configuration.
+        kwargs: Further configuration details to be passed to AxisValidators
+
+    Returns:
+        The function returns the validated data array and a dictionary recording which
+        AxisValidator classes were applied to each of the core axes.
 
     Raises:
-        ValueError if the input data array uses dimension names required for an axis
-        without matching a registered validator.
+        ValueError: If the input data array uses dimension names required for an axis
+            without matching a registered validator.
+        RuntimeError: If more than one validator reports that it can validate an input.
     """
+
+    validation_dict: dict[str, Optional[str]] = {}
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
@@ -181,29 +194,34 @@ def validate_dataarray(value: DataArray, grid: Grid, **kwargs: Any) -> DataArray
         if matching_dims:
 
             # There should be one and only validator that can validate for this axis.
-            validator_found = [v().can_validate(value, grid) for v in validators]
+            validator_found = [v for v in validators if v().can_validate(value, grid)]
 
-            if not any(validator_found):
+            if len(validator_found) == 0:
                 log_and_raise(
                     f"DataArray uses '{axis}' axis dimension names but does "
                     f"not match a validator: {','.join(matching_dims)}",
                     ValueError,
                 )
 
-            if sum(validator_found) > 1:
+            if len(validator_found) > 1:
                 log_and_raise(
                     f"Validators on '{axis}' axis not mutually exclusive", RuntimeError
                 )
 
             # Get the appropriate Validator class and then use it to update the data
             # array
-            this_validator = validators[validator_found.index(True)]
+            this_validator = validator_found[0]
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
             except Exception as excep:
                 log_and_raise(str(excep), excep.__class__)
 
-    return value
+            validation_dict[axis] = this_validator.__name__
+
+        else:
+            validation_dict[axis] = None
+
+    return value, validation_dict
 
 
 class Spat_CellId_Coord_Any(AxisValidator):

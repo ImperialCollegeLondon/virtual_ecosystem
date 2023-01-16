@@ -26,11 +26,10 @@ to provide support for different file formats and axis validation (see the [modu
 docs](../../api/core/data.md)) but that is beyond the scope of this document.
 
 A Virtual Rainforest simulation will have one instance of the
-{class}`~virtual_rainforest.core.data.Data` class and this instance behaves as a
-dictionary to provide access to the different forcing and internal variables used in the
-simulation. All of the variables are stored as {class}`~xarray.DataArray` objects from
-the {mod}`xarray` package, which provides a consistent indexing and data manipulation
-for the underlying arrays of data.
+{class}`~virtual_rainforest.core.data.Data` class to provide access to the different
+forcing and internal variables used in the simulation. As they are loaded, all variables
+are validated and then  added to an {class}`xarray.Dataset` object, which provides a
+consistent indexing and data manipulation for the underlying arrays of data.
 
 In many cases, a user will simply provide a configuration file to set up the data that
 will be validated and loaded when a simulation runs, but the main functionality for
@@ -39,11 +38,31 @@ working with data using Python are shown below.
 ## Validation
 
 One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to
-automatically validate data before it is added to the `Data` instance. This works by
-looking for particular dimensions on the data that map onto core axes in the simulation
-and checking that the dimensions in the input data are congruent with the model
-configuration. For example, a data array with `x` and `y` dimensions should have the
-same number of rows and columns as square grid.
+automatically validate data before it is added to the `Data` instance. Validation is
+applied along a set of **core axes** used in the simulation. Each core axis has a set of
+validators: each validator in the set detects a possible data configuration and then
+runs code to validate data in that configuration. The validation process is primarily
+intended to check that provided data is congruent with the configuration of a particular
+simulation.
+
+The validators use the dimension names of input data to detect if that data should be
+validated on a particular axis. For example, the `x` and `y` dimension names are used to
+trigger validation on the `spatial` core axis.
+
+### Core axes
+
+The table below show the dimension names that are used to trigger validation on core
+axes in a simulation. If an input data set uses **any** of the dimension names
+associated with a given core axes, then that data must past validation on the axis.
+
+```{list-table}
+:header-rows: 1
+
+* - Axis name
+  - Dimension names
+* - `spatial`
+  - `x`, `y`, `cell_id`
+```
 
 ## Creating a `Data` instance
 
@@ -54,6 +73,7 @@ is just the spatial grid being used.
 ```{code-cell} ipython3
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.axes import *
 from xarray import DataArray
 import numpy as np
 
@@ -118,6 +138,19 @@ the loaded variables:
 data
 ```
 
+A variable can be accessed from the `data` object using the variable name as a key, and
+the data is returned as an :class:`xarray.DataArray` object.
+
 ```{code-cell} ipython3
-print(data["temperature"])
+# Get the temperature data
+loaded_temp = data["temperature"]
+
+print(loaded_temp)
+```
+
+You can check whether a particular variable has been validated on a given core axis
+using the {meth}`~virtual_rainforest.core.data.Data.on_core_axis` method:
+
+```{code-cell} ipython3
+data.on_core_axis("temperature", "spatial")
 ```
