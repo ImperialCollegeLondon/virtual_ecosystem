@@ -7,36 +7,48 @@ Rainforest simulations.
 The Data class
 ==============
 
-The core :class:`~virtual_rainforest.core.data.Data` class is a dictionary-like object
-that can be used to access data simply as ``data['var_name']``. All of the entries in
-the dictionary are :class:`~xarray.DataArray` objects, which provides a flexible
-indexing system onto underlying :mod:`numpy` arrays. A
-:class:`~virtual_rainforest.core.data.Data` instance is initalised using the core
-configuration parameters for a simulation, currently a
-:class:`~virtual_rainforest.core.grid.Grid`. The ``__getitem__`` method is provided to
-make it easy to access data using the variable name as a key, but the ``__setitem__``
-method is deliberately disabled. Data must be added to a
-:class:`~virtual_rainforest.core.data.Data` instance using the
-:meth:`~virtual_rainforest.core.data.Data.load_dataarray` method.
+The core :class:`~virtual_rainforest.core.data.Data` class is a wrapper around an
+:class:`~xarray.DataSet` object, which is used to core variables in the simulation on
+shared axes. The :class:`~xarray.DataSet` object is stored as the :attr:`Data.data`
+attribute, and this attribute can be used directly to access :class:`~xarray.DataSet`
+methods.
+
+The :class:`~virtual_rainforest.core.data.Data` itself provides methods to add data to
+an instance, and to automatically validate added data against the configuration of the
+simulation.
+
+* The :class:`~virtual_rainforest.core.data.Data.__setitem__` method is used to validate
+  input data. The data must be an :class:`~xarray.DataSet` object and it is then checked
+  to see that its dimensions are congruent with the simulation configuration. Valid
+  inputs are then added onto the internal :class:`~xarray.DataSet` instance.
+* The :class:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
+  a named variable from the internal :class:`~xarray.DataSet` instance.
+* The :class:`~virtual_rainforest.core.data.Data.__contains__` method is provided to
+  test if a named variable is included in the internal :class:`~xarray.DataSet`
+  instance.
 
 ..code-block:: python
 
     grid = Grid()
     data = Data(grid)
-    # Not this
     data['varname'] = DataArray([1,2,3])
-    # But this
-    data.load_dataarray(DataArray([1,2,3], name='varname'))
+    'varname' in data
+    data['varname']
 
-Adding data to a Data instance
-------------------------------
+Data validation
+---------------
 
-The :meth:`~virtual_rainforest.core.data.Data.load_dataarray` method validates a
-provided :class:`~xarray.DataArray` using a configurable system of axis validation
-methods (:mod:`~virtual_rainforest.core.axes`),  before the data is added  to a
-:class:`~virtual_rainforest.core.data.Data` instance. These validators are used to check
-that particular signatures of dimensions and coordinates in the provided
-:class:`~xarray.DataArray` are congruent with the core configuration parameters.
+The :meth:`~virtual_rainforest.core.data.Data.__setitem__` method  validates a
+provided :class:`~xarray.DataArray` by passing it to the
+:func:`~virtual_rainforest.core.axes.validate_datarray` function, described in the
+:mod:`~virtual_rainforest.core.axes` module. See that module for discussion of the
+:class:`~virtual_rainforest.core.axes.AxisValidators` class and the concept of core
+axes.
+
+The :class:`~virtual_rainforest.core.data.Data` instance records validation that has
+been applied to each variable on each core axis and provides the
+:class:`~virtual_rainforest.core.data.Data.on_core_axis` method to allow models to
+confirm that required variables have been validated on particular axes.
 
 Adding data from a file
 -----------------------
@@ -45,20 +57,22 @@ The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using the appropriate reader packages for the format,
 * coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
-* use the :class:`~virtual_rainforest.core.data.Data.load_dataarray` method.
+* use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
+  add it to a :class:`~virtual_rainforest.core.data.Data` instance.
 
-However, the :meth:`~virtual_rainforest.core.data.Data.load_from_file` method
-automatically loads data from known formats defined in the
-:attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY`.
+The  :meth:`~virtual_rainforest.core.data.Data.load_from_file` method implements this
+general recipe for known file formats, with readers described
+:class:`~virtual_rainforest.core.readers` module. See the details of that module for
+supported formats and for extending the system to additional file formats.
 
 Using a data configuration
 --------------------------
 
 A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
 :meth:`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to
-take a properly validated configuration dictionary, loaded from a TOML file that
-specifies data source files, where `data_var_name` is optional and is used to store the
-data in a `Data` instance under a different variable name to the name used in the file.
+take a properly validated configuration dictionary, typically loaded from a TOML file
+during configuration (see :class:`~virtual_rainforest.core.config`). The expected
+structure is as follows:
 
 .. code-block:: toml
 
@@ -76,7 +90,9 @@ data in a `Data` instance under a different variable name to the name used in th
 
 Note that the properties for each variable in the configuration file are just the
 arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
-configurations must not contain repeated data variable names.
+configurations must not contain repeated data variable names.  The `data_var_name` is
+optional and is used to change the variable name used in the file to a different value
+to be used within the simulation.
 """
 
 from pathlib import Path

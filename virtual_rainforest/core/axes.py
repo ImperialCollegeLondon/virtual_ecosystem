@@ -27,8 +27,8 @@ exclusive: only one should be applicable to any given dataset being tested on th
 DataArray validation
 ====================
 
-The :mod:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
-Arrays and applies validation where applicable across all the core axes. The function
+The :func:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
+Array and applies validation where applicable across all the core axes. The function
 returns the validated input (possibly altered to align with the core axes) along with a
 dictionary recording which (if any) AxisValidator has been applied to each core axis.
 
