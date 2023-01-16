@@ -5,75 +5,44 @@ The sequence of processes is based on Maclean et al, 2021: Microclimc: A mechani
 model of above, below and within-canopy microclimate. Ecological Modelling
 Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
 
-# --- this is the sequence of processes in microclimc for one time step ---
-# paraminit - DONE
-# soilinit - DONE
-# runonetimestep:
-# (Check whether any vegetation layers have zero PAI) here?
-# == Unpack climate variables == DONE
-# == calculate baseline variables: == DONE
-# - molar density of air DONE
-# - specific heat of air DONE
-# - latent heat of vaporisation DONE
 
-# Adjust wind to 2 m above canopy
-# Generate heights of nodes
-# Set z above
-# == Calculate diabatic correction factors ==
-# Calculate temperatures and relative humidities for top of canopy
-# Set limits to temp can
-# Adjust relative humidity
-# == Calculate wind speed and turbulent conductances ==
-# == Calculate canopy turbulences ==
-# == Calculate conductivity to top of canopy and merge ==
-# Turbulent air conductivity and layer merge
-# == Calculate absorbed radiation
-# == Conductivities ==
-# Vapour conductivity
-# Leaf conductivity
-# == Soil conductivity ==
-# conductivity and specific heat
-# soil heat
-# Canopy air layer not in equilibrium with above canopy:
-# Heat to add / loose
-# vapour exchange
-# Interpolate
-# Canopy air layer in equilibrium with above canopy
-# Set limits to soil temperatures
-# Calculate Heat flux
-# Latent heat
-# dewpoints
-# Incoming radiation
-# internal function to sort out vegetation parameters
 """
 
 import numpy as np
 from numpy.typing import NDArray
 
 # from core.constants import CONSTANTS as C
-LEAF_TEMPERATURE_INI_FACTOR = 0.01  # factor used to initialise leaf temperature
-SOIL_DIVISION_FACTOR = 2.42  # factor defines how to divide soil into layers with
-# increasing thickness, alternateve value 1.2
-MIN_LEAF_CONDUCTIVITY = (
-    0.25  # typical for decidious forest with wind above canopy 2 m/s
-)
-MAX_LEAF_CONDUCTIVITY = (
-    0.32  # typical for decidious forest with wind above canopy 2 m/s
-)
-AIR_CONDUCTIVITY = 50.0  # typical for decidious forest with wind above canopy 2 m/s
-MIN_LEAF_AIR_CONDUCTIVITY = (
-    0.13  # typical for decidious forest with wind above canopy 2 m/s
-)
-MAX_LEAF_AIR_CONDUCTIVITY = (
-    0.19  # typical for decidious forest with wind above canopy 2 m/s
-)
-KARMANS_CONSTANT = 0.4  # constant to calculate mixing length
-CELCIUS_TO_KELVIN = 273.15  # calculate absolute temperature in Kelvin
-STANDARD_MOLE = 44.6  # moles of ideal gas in 1 m^3 air at standard atmosphere
-MOLAR_HEAT_CAPACITY_AIR = 29.19  # molar heat capacity of air [J mol-1 C-1]
-VAPOR_PRESSURE_FACTOR1 = 0.6108  # constant in calculation of vapor pressure
-VAPOR_PRESSURE_FACTOR2 = 17.27  # constant in calculation of vapor pressure
-VAPOR_PRESSURE_FACTOR3 = 237.7  # constant in calculation of vapor pressure
+LEAF_TEMPERATURE_INI_FACTOR = 0.01
+"""factor used to initialise leaf temperature"""
+SOIL_DIVISION_FACTOR = 2.42
+"""factor defines how to divide soil into layers with increasing thickness, alternateve
+value 1.2"""
+MIN_LEAF_CONDUCTIVITY = 0.25
+"""min leaf conductivity, typical for decidious forest with wind above canopy 2 m/s"""
+MAX_LEAF_CONDUCTIVITY = 0.32
+"""max leaf conductivity, typical for decidious forest with wind above canopy 2 m/s"""
+AIR_CONDUCTIVITY = 50.0
+"""air conductivity, typical for decidious forest with wind above canopy 2 m/s"""
+MIN_LEAF_AIR_CONDUCTIVITY = 0.13
+"""min conductivity between leaf and air, typical for decidious forest with wind above
+canopy 2 m/s"""
+MAX_LEAF_AIR_CONDUCTIVITY = 0.19
+"""max conductivity between leaf and air, typical for decidious forest with wind above
+canopy 2 m/s"""
+KARMANS_CONSTANT = 0.4
+"""constant to calculate mixing length"""
+CELCIUS_TO_KELVIN = 273.15
+"""factor to convert temperature in Celsius to absolute temperature in Kelvin"""
+STANDARD_MOLE = 44.6
+"""moles of ideal gas in 1 m^3 air at standard atmosphere"""
+MOLAR_HEAT_CAPACITY_AIR = 29.19
+"""molar heat capacity of air [J mol-1 C-1]"""
+VAPOR_PRESSURE_FACTOR1 = 0.6108
+"""constant in calculation of vapor pressure"""
+VAPOR_PRESSURE_FACTOR2 = 17.27
+"""constant in calculation of vapor pressure"""
+VAPOR_PRESSURE_FACTOR3 = 237.7
+"""constant in calculation of vapor pressure"""
 
 # import external driving data at reference hight (2 m) for current timestep
 # this will be a Data.data object
