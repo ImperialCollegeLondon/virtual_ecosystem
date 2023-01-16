@@ -28,7 +28,6 @@ moment, this happens at a daily timestep.
 # the following structural components are not implemented yet
 TODO include time dimension
 TODO logging, raise errors
-test commit
 """
 
 # from typing import Optional
@@ -52,9 +51,9 @@ CANOPY_EMISSIVITY = 0.95
 BEER_REGRESSION = 2.67e-5
 """parameter in equation for atmospheric transmissivity based on regression of Beer’s
 radiation extinction function (Allen 1996)"""
-ALBEDO_VIS = np.array(0.03, dtype=float)
+ALBEDO_VIS = np.array(0.03, dtype=np.float32)
 """Albedo of visible light"""
-ALBEDO_SHORTWAVE = np.array(0.17, dtype=float)
+ALBEDO_SHORTWAVE = np.array(0.17, dtype=np.float32)
 """Albedo of shortwave radiation"""
 CELSIUS_TO_KELVIN = 273.15
 """factor to convert temperature in Celsius to absolute temperature in Kelvin"""
@@ -63,29 +62,18 @@ SECOND_TO_DAY = 86400
 
 
 class Radiation:
-    """Radiation balance.
-
-    Attributes:
-        elevation: NDArray[np.float32], elevation [m]
-        topofcanopy_radiation: NDArray[np.float32], daily top of canopy downward
-        shortwave radiation, [J m-2]
-        ppfd: NDArray[np.float32], daily top of canopy photosynthetic photon flux
-        density, [mol m-2]
-        longwave_canopy: NDArray[np.float32], daily longwave radiation from n individual
-            canopy layers [J m-2]
-        longwave_soil: NDArray[np.float32], daily longwave radiation from soil [J m-2]
-        netradiation_surface: NDArray[np.float32], daily net shortwave radiation at the
-            surface (=forest floor) [J m-2]
-    """
+    """Radiation balance."""
 
     def __init__(self, elevation: NDArray[np.float32]) -> None:
         """Initializes point-based radiation method."""
+
         self.elevation = elevation
+        """Elevation above sea level, [m]"""
 
     def calc_ppfd(
         self,
         shortwave_in: NDArray[np.float32],
-        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=float),
+        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
         albedo_vis: NDArray[np.float32] = ALBEDO_VIS,
     ) -> NDArray[np.float32]:
         """Calculates photosynthetic photon flux density at the top of the canopy.
@@ -112,13 +100,14 @@ class Radiation:
 
         # Calculate daily photosynth. photon flux density (ppfd_d), mol/m^2
         self.ppfd = (1.0e-6) * FLUX_TO_ENERGY * (1.0 - albedo_vis) * tau * shortwave_in
+        """Daily top of canopy photosynthetic photon flux density, [mol m-2]"""
         return tau
 
     def calc_topofcanopy_radiation(
         self,
         tau: NDArray[np.float32],
         shortwave_in: NDArray[np.float32],
-        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=float),
+        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
         albedo_shortwave: NDArray[np.float32] = ALBEDO_SHORTWAVE,
     ) -> None:
         """Calculate top of canopy shortwave radiation.
@@ -134,6 +123,7 @@ class Radiation:
                 shortwave radiation, [J m-2]
         """
         self.topofcanopy_radiation = (1.0 - albedo_shortwave) * tau * shortwave_in
+        """Daily top of canopy downward shortwave radiation, [J m-2]"""
 
     def calc_longwave_radiation(
         self,
@@ -159,6 +149,7 @@ class Radiation:
             * BOLZMAN_CONSTANT
             * (CELSIUS_TO_KELVIN + canopy_temperature) ** 4
         )
+        """Daily longwave radiation from n individual canopy layers, [J m-2]"""
 
         # longwave emission surface
         self.longwave_soil = (
@@ -166,6 +157,7 @@ class Radiation:
             * BOLZMAN_CONSTANT
             * (CELSIUS_TO_KELVIN + surface_temperature) ** 4
         )
+        """Daily longwave radiation from soil, [J m-2]"""
 
     def calc_netradiation_surface(
         self,
@@ -174,11 +166,11 @@ class Radiation:
         """Calculates daily net radiation at the forest floor.
 
         Args:
-            canopy_absorption: NDArray[np.float32]: absorption by canopy layers [J m-2]
+            canopy_absorption: NDArray[np.float32]: absorption by canopy layers, [J m-2]
 
         Returns:
             self.netradiation_surface: NDArray[np.float32], net shortwave radiation at
-                the forest floor [J m-2]
+                the forest floor, [J m-2]
         """
         self.netradiation_surface = (
             self.topofcanopy_radiation
@@ -186,6 +178,7 @@ class Radiation:
             - self.longwave_soil
             - self.longwave_canopy  # np.sum(self.longwave_canopy, axis=1)
         )
+        """Daily net shortwave radiation at the surface (= forest floor), [J m-2]"""
 
     def radiation_balance(
         self,

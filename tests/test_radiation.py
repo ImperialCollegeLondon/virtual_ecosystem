@@ -28,8 +28,8 @@ def test_import_constants():
     assert SOIL_EMISSIVITY == 0.95
     assert CANOPY_EMISSIVITY == 0.95
     assert BEER_REGRESSION == 2.67e-5
-    assert ALBEDO_VIS == 0.03
-    assert ALBEDO_SHORTWAVE == 0.17
+    assert ALBEDO_VIS == np.array(0.03, dtype=np.float32)
+    assert ALBEDO_SHORTWAVE == np.array(0.17, dtype=np.float32)
     assert CELSIUS_TO_KELVIN == 273.15
     assert SECOND_TO_DAY == 86400
 
