@@ -19,7 +19,7 @@ then a validation routine to apply when it can.
 
 When new :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses are defined,
 they are automatically added to the AXIS_VALIDATORS registry. This maintains a list of
-the validators define for each core axis.
+the validators defined for each core axis.
 
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
@@ -30,7 +30,9 @@ DataArray validation
 The :func:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
 Array and applies validation where applicable across all the core axes. The function
 returns the validated input (possibly altered to align with the core axes) along with a
-dictionary recording which (if any) AxisValidator has been applied to each core axis.
+dictionary using the set of core axes as names: the value associated with each axis name
+is the name of the AxisValidator applied or None if the input did not match a validator
+on that axis.
 
 Core axes
 =========
