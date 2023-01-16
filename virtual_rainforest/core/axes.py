@@ -394,23 +394,3 @@ class Spat_XY_Dim_Square(AxisValidator):
             x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
             y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
         )
-
-
-class DataGenerator:
-    """Generate artificial data.
-
-    Currently just a signature sketch.
-    """
-
-    def __init__(
-        self,
-        # grid: GRID,
-        spatial_axis: str,
-        temporal_axis: str,
-        temporal_interpolation: np.timedelta64,
-        seed: Optional[int],
-        method: str,  # one of the numpy.random.Generator methods
-        **kwargs: Any,
-    ) -> None:
-
-        pass

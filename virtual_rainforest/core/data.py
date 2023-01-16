@@ -98,6 +98,7 @@ to be used within the simulation.
 from pathlib import Path
 from typing import Any, Optional
 
+import numpy as np
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
@@ -339,3 +340,23 @@ class Data:
 
         if not clean_load:
             raise ConfigurationError("Data configuration did not load cleanly")
+
+
+class DataGenerator:
+    """Generate artificial data.
+
+    Currently just a signature sketch.
+    """
+
+    def __init__(
+        self,
+        # grid: GRID,
+        spatial_axis: str,
+        temporal_axis: str,
+        temporal_interpolation: np.timedelta64,
+        seed: Optional[int],
+        method: str,  # one of the numpy.random.Generator methods
+        **kwargs: Any,
+    ) -> None:
+
+        pass
