@@ -109,21 +109,29 @@ def test_mineral_association():
     assert np.allclose(lmwc_to_maom, np.array([69.9158, 32.7868]))
 
 
-def test_convert_temperature_to_scalar():
+@pytest.mark.parametrize(
+    "temperatures,output_scalars",
+    [([35.0, 37.5], [1.27113, 1.27196]), ([40.0], [1.27263]), ([25.0], [1.26344])],
+)
+def test_convert_temperature_to_scalar(temperatures, output_scalars):
     """Test that scalar_temperature runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_temperature_to_scalar
 
-    soil_temperature = np.array([35.0, 37.5], dtype=np.float32)
+    soil_temperature = np.array(temperatures, dtype=np.float32)
     temp_scalar = convert_temperature_to_scalar(soil_temperature)
 
-    assert np.allclose(temp_scalar, np.array([1.27113, 1.27196]))
+    assert np.allclose(temp_scalar, np.array(output_scalars))
 
 
-def test_convert_moisture_to_scalar():
+@pytest.mark.parametrize(
+    "moistures,output_scalars",
+    [([0.5, 0.7], [0.750035, 0.947787]), ([0.6], [0.880671]), ([0.2], [0.167814])],
+)
+def test_convert_moisture_to_scalar(moistures, output_scalars):
     """Test that scalar_moisture runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
-    soil_moisture = np.array([0.5, 0.7], dtype=np.float32)
+    soil_moisture = np.array(moistures, dtype=np.float32)
     moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-    assert np.allclose(moist_scalar, np.array([0.750035, 0.947787]))
+    assert np.allclose(moist_scalar, np.array(output_scalars))
