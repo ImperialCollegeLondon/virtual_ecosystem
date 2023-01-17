@@ -43,26 +43,14 @@ applied along a set of **core axes** used in the simulation. Each core axis has 
 validators: each validator in the set detects a possible data configuration and then
 runs code to validate data in that configuration. The validation process is primarily
 intended to check that provided data is congruent with the configuration of a particular
-simulation.
+simulation and to map the data onto a core axis.
 
 The validators use the dimension names of input data to detect if that data should be
 validated on a particular axis. For example, the `x` and `y` dimension names are used to
 trigger validation on the `spatial` core axis.
 
-### Core axes
-
-The table below show the dimension names that are used to trigger validation on core
-axes in a simulation. If an input data set uses **any** of the dimension names
-associated with a given core axes, then that data must past validation on the axis.
-
-```{list-table}
-:header-rows: 1
-
-* - Axis name
-  - Dimension names
-* - `spatial`
-  - `x`, `y`, `cell_id`
-```
+For more details on the different core axes and the alternative mappings applied by
+validators see the [core axis](axes.md) documentation.
 
 ## Creating a `Data` instance
 
