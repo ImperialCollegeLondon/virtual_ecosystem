@@ -110,6 +110,24 @@ def test_mineral_association():
 
 
 @pytest.mark.parametrize(
+    "pH,output_coefs",
+    [
+        ([3.0, 7.5], [0.16826738, 0.02449064]),
+        ([9.0], [0.0128825]),
+        ([5.7], [0.05294197]),
+    ],
+)
+def test_calculate_binding_coefficient(pH, output_coefs):
+    """Test that Langmuir binding coefficient calculation works as expected."""
+    from virtual_rainforest.models.soil.carbon import calculate_binding_coefficient
+
+    soil_pH = np.array(pH, dtype=np.float32)
+    binding_coefs = calculate_binding_coefficient(soil_pH)
+
+    assert np.allclose(binding_coefs, np.array(output_coefs))
+
+
+@pytest.mark.parametrize(
     "temperatures,output_scalars",
     [([35.0, 37.5], [1.27113, 1.27196]), ([40.0], [1.27263]), ([25.0], [1.26344])],
 )
