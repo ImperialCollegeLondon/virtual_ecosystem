@@ -86,27 +86,55 @@ def test_update_pools():
     assert np.allclose(soil_carbon.lmwc, np.array([92.1736, 52.2677]))
 
 
-def test_mineral_association():
+@pytest.mark.parametrize(
+    "maom,lmwc,temp_scalar,moist_scalar,equib_maom,Q_max,output_l_to_m",
+    [
+        (
+            [2.5, 1.7],
+            [0.05, 0.02],
+            [1.27113, 1.27196],
+            [0.750035, 0.947787],
+            [19900.19, 969.4813],
+            [2.385207e6, 1.980259e6],
+            [0.000397665, 1.178336e-5],
+        ),
+        ([4.5], [0.1], [1.27263], [0.880671], [832.6088], [647142.61], [0.0001434178]),
+        ([0.5], [0.005], [1.26344], [0.167814], [742.4128], [2.805371e6], [2.80359e-7]),
+    ],
+)
+def test_mineral_association(
+    mocker, maom, lmwc, temp_scalar, moist_scalar, equib_maom, Q_max, output_l_to_m
+):
     """Test that mineral_association runs and generates the correct values."""
 
     # Initialise soil carbon class
-    maom = np.array([23.0, 23.0], dtype=np.float32)
-    lmwc = np.array([98.0, 55.0], dtype=np.float32)
-    soil_carbon = SoilCarbonPools(maom, lmwc)
-
-    # Define all the required variables to run function
-    pH = np.array([7.0, 7.0], dtype=np.float32)
-    bulk_density = np.array([1350, 1350], dtype=np.float32)
-    percent_clay = np.array([50.0, 50.0], dtype=np.float32)
-    soil_moisture = np.array([0.5, 0.5], dtype=np.float32)
-    soil_temp = np.array([35.0, 35.0], dtype=np.float32)
-
-    lmwc_to_maom = soil_carbon.mineral_association(
-        pH, bulk_density, soil_moisture, soil_temp, percent_clay
+    soil_carbon = SoilCarbonPools(
+        maom=np.array(maom, dtype=np.float32), lmwc=np.array(lmwc, dtype=np.float32)
     )
 
+    # Mock required values
+    mock_t_scalar = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.convert_temperature_to_scalar"
+    )
+    mock_t_scalar.return_value = np.array(temp_scalar, dtype=np.float32)
+    mock_m_scalar = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.convert_moisture_to_scalar"
+    )
+    mock_m_scalar.return_value = np.array(moist_scalar, dtype=np.float32)
+    mock_equib_maom = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.calculate_equilibrium_maom"
+    )
+    mock_equib_maom.return_value = np.array(equib_maom, dtype=np.float32)
+    mock_Q_max = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.calculate_max_sorption_capacity"
+    )
+    mock_Q_max.return_value = np.array(Q_max, dtype=np.float32)
+
+    # Then calculate mineral association rate
+    lmwc_to_maom = soil_carbon.mineral_association([], [], [], [], [])
+
     # Check that expected values are generated
-    assert np.allclose(lmwc_to_maom, np.array([69.9158, 32.7868]))
+    assert np.allclose(lmwc_to_maom, output_l_to_m)
 
 
 @pytest.mark.parametrize(
@@ -128,7 +156,7 @@ def test_calculate_equilibrium_maom(
     """Test that equilibrium maom calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
 
-    # Configure the mock to return a specific list of files
+    # Configure the mock to return specific binding coefficients
     mock_binding = mocker.patch(
         "virtual_rainforest.models.soil.carbon.calculate_binding_coefficient"
     )
