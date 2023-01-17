@@ -67,9 +67,9 @@ class SoilCarbonPools:
             )
 
         self.maom = maom
-        """Mineral associated organic matter pool"""
+        """Mineral associated organic matter pool (kg C m^-3)"""
         self.lmwc = lmwc
-        """Low molecular weight carbon pool"""
+        """Low molecular weight carbon pool (kg C m^-3)"""
 
     def update_pools(
         self,
@@ -177,7 +177,7 @@ def calculate_equilibrium_maom(
     Args:
         pH: pH values for each soil grid cell
         Q_max: Maximum sorption capacities
-        lmwc: Low molecular weight carbon pool
+        lmwc: Low molecular weight carbon pool (kg C m^-3)
 
     Returns:
         equib_maom: Equilibrium concentration of Mineral associated organic carbon

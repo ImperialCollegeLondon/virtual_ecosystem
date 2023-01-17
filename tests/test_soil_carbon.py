@@ -109,9 +109,36 @@ def test_mineral_association():
     assert np.allclose(lmwc_to_maom, np.array([69.9158, 32.7868]))
 
 
-# def test_calculate_equilibrium_maom():
-#     """Test that equilibrium maom calculation works as expected."""
-#     from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
+@pytest.mark.parametrize(
+    "binding_coefficients,Q_max,lmwc,output_eqb_maoms",
+    [
+        (
+            [0.16826738, 0.02449064],
+            [2.385207e6, 1.980259e6],
+            [0.05, 0.02],
+            [19900.19, 969.4813],
+        ),
+        ([0.0128825], [647142.61], [0.1], [832.6088]),
+        ([0.05294197], [2.805371e6], [0.005], [742.4128]),
+    ],
+)
+def test_calculate_equilibrium_maom(
+    mocker, binding_coefficients, Q_max, lmwc, output_eqb_maoms
+):
+    """Test that equilibrium maom calculation works as expected."""
+    from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
+
+    # Configure the mock to return a specific list of files
+    mock_binding = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.calculate_binding_coefficient"
+    )
+    mock_binding.return_value = np.array(binding_coefficients, dtype=np.float32)
+
+    soil_Q_max = np.array(Q_max, dtype=np.float32)
+    soil_lmwc = np.array(lmwc, dtype=np.float32)
+
+    equib_maoms = calculate_equilibrium_maom([], soil_Q_max, soil_lmwc)
+    assert np.allclose(equib_maoms, np.array(output_eqb_maoms))
 
 
 @pytest.mark.parametrize(
