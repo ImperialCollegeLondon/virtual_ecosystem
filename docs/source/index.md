@@ -62,7 +62,6 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: The Virtual Rainforest
-  :hidden:
 
   virtual_rainforest/module_overview.md
   virtual_rainforest/usage.md
@@ -74,24 +73,23 @@ team.
 
 ```{eval-rst}
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 0
   :caption: API reference
-  :hidden:
 
   Overview <api/core.md>
-  api/core/config.md
-  api/core/grid.md
-  api/core/data.md
-  api/core/model.md
-  api/core/logger.md
-
+  Configuration <api/core/config.md>
+  Logger <api/core/logger.md>
+  Grid <api/core/grid.md>
+  Data <api/core/data.md>
+  File readers <api/core/readers.md>
+  Core axes <api/core/axes.md>
+  Base Model <api/core/model.md>
 ```
 
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
   :caption: Command line tools
-  :hidden:
 
   command_line_tools/vr_run.md
 ```
@@ -100,7 +98,6 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: Development
-  :hidden:
 
   development/code_development_strategy.md
   development/jupyter_notebooks.md
@@ -112,7 +109,6 @@ team.
 .. toctree::
   :maxdepth: 0
   :caption: Bibliography
-  :hidden:
 
   bibliography.md
 ```
