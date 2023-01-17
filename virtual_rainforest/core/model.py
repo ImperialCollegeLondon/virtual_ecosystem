@@ -1,5 +1,5 @@
 """API documentation for the :mod:`core.model` module.
-************************************************** # noqa: D205
+***************************************************
 
 The Virtual Rainforest model requires a consistent api across models. That is a common
 set of functions which work the same across all modules. This cannot exist at a low
@@ -58,7 +58,7 @@ ensure that they are added to the registry.
 An example of ``Model`` inheritance from
 :class:`~virtual_rainforest.core.model.BaseModel` can been seen in the :mod:`soil.model`
 module.
-"""
+"""  # noqa: D205
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """API documentation for the :mod:`core.grid` module.
-************************************************** # noqa: D205
+**************************************************
 
 The :mod:`core.grid` module is used to create the grid of cells underlying the
 simulation and to identify the neighbourhood connections of cells.
@@ -11,7 +11,7 @@ simulation and to identify the neighbourhood connections of cells.
   defining mappings though.
 - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
   https://pysal.org/libpysal/
-"""
+"""  # noqa: D205
 
 import json
 from typing import Any, Callable, Optional, Sequence, Union

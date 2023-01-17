@@ -1,5 +1,5 @@
 """API documentation for the :mod:`core.axes` module.
-************************************************** # noqa: D205
+**************************************************
 
 This module handles the validation of data being loaded into the core data storage of
 the virtual rainforest simulation. The main functionality in this module is ensuring
@@ -44,7 +44,7 @@ The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for 
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
 :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
-"""
+"""  # noqa: D205
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
