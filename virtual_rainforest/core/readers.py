@@ -1,5 +1,5 @@
 """API documentation for the :mod:`core.readers` module.
-************************************************** # noqa: D205
+*****************************************************
 
 This module handles the registration of functions to read files from different formats
 and convert them into :class:`~xarray.DataArray` objects.
@@ -10,20 +10,22 @@ The FILE_FORMAT_REGISTRY
 The :attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY` is used to register the
 set of known file formats for use in
 :meth:`~virtual_rainforest.core.data.Data.load_from_file`. This registry is extendable,
-so that new functions that implement the approach above for a given file format can be
+so that new functions that implement data loading for a given file format can be
 added to those supported by :meth:`~virtual_rainforest.core.data.Data.load_from_file`.
-This is done using the :func:`~virtual_rainforest.core.data.register_file_format_loader`
-decorator, which needs to specify the file formats supported (as a tuple of file
-suffixes) and then decorate a function that returns a :class:`~xarray.DataArray`
-suitable for use in :meth:`~virtual_rainforest.core.data.Data.load_dataarray`. For
+
+New file format readers are made available using the
+:func:`~virtual_rainforest.core.data.register_file_format_loader` decorator, which needs
+to specify the file formats supported (as a tuple of file suffixes) and then decorate a
+function that returns a :class:`~xarray.DataArray` suitable for validation using
+:func:`~virtual_rainforest.core.axes.validate_dataarray`. For
 example:
 
 .. code-block:: python
 
     @register_file_format_loader(('.tif', '.tiff'))
     def new_function_to_load_tif_data(...):
-
-"""
+        # code to turn tif file into a data array
+"""  # noqa: D205
 
 from pathlib import Path
 from typing import Callable
