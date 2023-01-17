@@ -131,29 +131,78 @@ class SoilCarbonPools:
             lmwc_to_maom: The net flux from LMWC to MAOM
         """
 
-        # This expression is drawn from (Mayes et al. (2012))
-        binding_affinity = 10.0 ** (
-            BINDING_WITH_PH["slope"] * pH + BINDING_WITH_PH["intercept"]
-        )
-
-        # This expression is also drawn from Mayes et al. (2012)
-        # Original paper also depends on Fe concentration, but we are ignoring this for
-        # now
-        Q_max = bulk_density * 10 ** (
-            MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
-            + MAX_SORPTION_WITH_CLAY["intercept"]
-        )
-
-        # Using the above calculate the equilibrium MAOM pool
-        equib_maom = (binding_affinity * Q_max * self.lmwc) / (
-            1 + self.lmwc * binding_affinity
-        )
+        # Calculate
+        binding_coefficient = calculate_binding_coefficient(pH)
+        Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
+        equib_maom = calculate_equilibrium_maom(binding_coefficient, Q_max, self.lmwc)
 
         # Find scalar factors that multiple rates
         temp_scalar = convert_temperature_to_scalar(soil_temp)
         moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
         return temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
+
+
+def calculate_binding_coefficient(pH: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Calculate Langmuir binding coefficient based on pH.
+
+    This specific expression and its parameters are drawn from (Mayes et al. (2012)).
+
+    Args:
+        pH: pH values for each soil grid cell
+
+    Returns:
+        binding_coefficient: Langmuir binding coefficients for mineral association of
+            labile carbon
+    """
+
+    return 10.0 ** (BINDING_WITH_PH["slope"] * pH + BINDING_WITH_PH["intercept"])
+
+
+def calculate_max_sorption_capacity(
+    bulk_density: NDArray[np.float32], percent_clay: NDArray[np.float32]
+) -> NDArray[np.float32]:
+    """Calculate maximum sorption capacity based on bulk density and clay content.
+
+    The maximum sorption capacity is the maximum amount of mineral associated organic
+    matter that can exist per unit volume. This expression and its parameters are also
+    drawn from Mayes et al. (2012). In that paper max sorption also depends on Fe
+    content, but we are ignoring this for now.
+
+    Args:
+        bulk_density: bulk density values for each soil grid cell
+        percent_clay: Percentage clay for each soil grid cell
+
+    Returns:
+        Q_max: Maximum sorption capacities
+    """
+
+    Q_max = bulk_density * 10 ** (
+        MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
+        + MAX_SORPTION_WITH_CLAY["intercept"]
+    )
+    return Q_max
+
+
+def calculate_equilibrium_maom(
+    binding_coefficient: NDArray[np.float32],
+    Q_max: NDArray[np.float32],
+    lmwc: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Based on Langmuir coefficients calculate equilibrium MAOM concentration.
+
+    Args:
+        binding_coefficient: Langmuir binding coefficients for lmwc mineral association
+        Q_max: Maximum sorption capacities
+        lmwc: Low molecular weight carbon pool
+
+    Returns:
+        equib_maom: Equilibrium concentration of Mineral associated organic carbon
+            (MAOM), assuming fixed LMWC
+    """
+
+    # Using the above calculate the equilibrium MAOM pool
+    return (binding_coefficient * Q_max * lmwc) / (1 + lmwc * binding_coefficient)
 
 
 def convert_temperature_to_scalar(
