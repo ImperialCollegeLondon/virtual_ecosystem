@@ -109,6 +109,30 @@ def test_mineral_association():
     assert np.allclose(lmwc_to_maom, np.array([69.9158, 32.7868]))
 
 
+# def test_calculate_equilibrium_maom():
+#     """Test that equilibrium maom calculation works as expected."""
+#     from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
+
+
+@pytest.mark.parametrize(
+    "bulk_density,percent_clay,output_capacities",
+    [
+        ([1350.0, 1800.0], [80.0, 30.0], [2.385207e6, 1.980259e6]),
+        ([1000.0], [10.0], [647142.61]),
+        ([1500.0], [90.0], [2.805371e6]),
+    ],
+)
+def test_calculate_max_sorption_capacity(bulk_density, percent_clay, output_capacities):
+    """Test that max sorption capacity calculation works as expected."""
+    from virtual_rainforest.models.soil.carbon import calculate_max_sorption_capacity
+
+    soil_BD = np.array(bulk_density, dtype=np.float32)
+    soil_clay = np.array(percent_clay, dtype=np.float32)
+    max_capacities = calculate_max_sorption_capacity(soil_BD, soil_clay)
+
+    assert np.allclose(max_capacities, np.array(output_capacities))
+
+
 @pytest.mark.parametrize(
     "pH,output_coefs",
     [

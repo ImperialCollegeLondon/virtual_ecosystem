@@ -153,7 +153,7 @@ def calculate_max_sorption_capacity(
     content, but we are ignoring this for now.
 
     Args:
-        bulk_density: bulk density values for each soil grid cell
+        bulk_density: bulk density values for each soil grid cell (kg m^-3)
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
