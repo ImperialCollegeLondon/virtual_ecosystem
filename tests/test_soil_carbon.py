@@ -61,29 +61,40 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
     log_check(caplog, expected_log_entries)
 
 
-def test_update_pools():
+@pytest.mark.parametrize(
+    "maom,lmwc,lmwc_to_maom,dt,end_maom,end_lmwc",
+    [
+        (
+            [2.5, 1.7],
+            [0.05, 0.02],
+            [0.000397665, 1.178336e-5],
+            [2.0 / 24.0, 1.0 / 24.0],
+            [2.500033, 1.70000049],
+            [0.0499668, 0.0199995],
+        ),
+        ([4.5], [0.1], [0.0001434178], [0.5], [4.500071], [0.0999282]),
+        ([0.5], [0.005], [2.80359e-7], [1.0 / 30.0], [0.500000], [0.00499999]),
+    ],
+)
+def test_update_pools(mocker, maom, lmwc, lmwc_to_maom, dt, end_maom, end_lmwc):
     """Test that update_pools runs and generates the correct values."""
 
     # Initialise soil carbon class
-    maom = np.array([23.0, 23.0], dtype=np.float32)
-    lmwc = np.array([98.0, 55.0], dtype=np.float32)
-    soil_carbon = SoilCarbonPools(maom, lmwc)
-
-    # Define all the required variables to run function
-    pH = np.array([7.0, 7.0], dtype=np.float32)
-    bulk_density = np.array([1350, 1350], dtype=np.float32)
-    percent_clay = np.array([50.0, 50.0], dtype=np.float32)
-    soil_moisture = np.array([0.5, 0.5], dtype=np.float32)
-    soil_temp = np.array([35.0, 35.0], dtype=np.float32)
-    dt = 2.0 / 24.0
-
-    soil_carbon.update_pools(
-        pH, bulk_density, soil_moisture, soil_temp, percent_clay, dt
+    soil_carbon = SoilCarbonPools(
+        maom=np.array(maom, dtype=np.float32), lmwc=np.array(lmwc, dtype=np.float32)
     )
 
+    # Mock required values
+    mock_l_to_m = mocker.patch(
+        "virtual_rainforest.models.soil.carbon.SoilCarbonPools.mineral_association"
+    )
+    mock_l_to_m.return_value = np.array(lmwc_to_maom, dtype=np.float32)
+
+    soil_carbon.update_pools([], [], [], [], [], dt)
+
     # Check that pools are correctly incremented
-    assert np.allclose(soil_carbon.maom, np.array([28.8263, 25.7322]))
-    assert np.allclose(soil_carbon.lmwc, np.array([92.1736, 52.2677]))
+    assert np.allclose(soil_carbon.maom, np.array(end_maom))
+    assert np.allclose(soil_carbon.lmwc, np.array(end_lmwc))
 
 
 @pytest.mark.parametrize(
