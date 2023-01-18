@@ -1,4 +1,4 @@
-"""The `soil.carbon` module.
+"""The `models.soil.carbon` module.
 
 This module simulates the radiation soil carbon cycle for the Virtual Rainforest. At the
 moment only two pools are modelled, these are low molecular weight carbon (LMWC) and
@@ -11,6 +11,10 @@ from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import log_and_raise
 from virtual_rainforest.core.model import InitialisationError
+
+# TODO - I'm basically certain that the paper I've taken this model structure from has
+# not used units consistently (in particular the BINDING_WITH_PH). Down the line I need
+# to track down a reliable parameterisation for this section.
 
 # from core.constants import CONSTANTS as C
 # but for meanwhile define all the constants needed here
@@ -88,9 +92,9 @@ class SoilCarbonPools:
 
         Args:
             pH: pH values for each soil grid cell
-            bulk_density: bulk density values for each soil grid cell
-            soil_moisture: soil moisture for each soil grid cell
-            soil_temp: soil temperature for each soil grid cell
+            bulk_density: bulk density values for each soil grid cell (kg m^-3)
+            soil_moisture: relative water content for each soil grid cell (unitless)
+            soil_temp: soil temperature for each soil grid cell (degrees C)
             percent_clay: Percentage clay for each soil grid cell
             dt: time step (days)
         """
@@ -122,13 +126,13 @@ class SoilCarbonPools:
 
         Args:
             pH: pH values for each soil grid cell
-            bulk_density: bulk density values for each soil grid cell
-            soil_moisture: soil moisture for each soil grid cell
-            soil_temp: soil temperature for each soil grid cell
+            bulk_density: bulk density values for each soil grid cell (kg m^-3)
+            soil_moisture: relative water content for each soil grid cell (unitless)
+            soil_temp: soil temperature for each soil grid cell (degrees C)
             percent_clay: Percentage clay for each soil grid cell
 
         Returns:
-            lmwc_to_maom: The net flux from LMWC to MAOM
+            lmwc_to_maom: The net flux from LMWC to MAOM (kg C m^-3 day^-1)
         """
 
         # Calculate
@@ -157,7 +161,7 @@ def calculate_max_sorption_capacity(
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
-        Q_max: Maximum sorption capacities
+        Q_max: Maximum sorption capacities (kg m^-3)
     """
 
     Q_max = bulk_density * 10 ** (
@@ -176,12 +180,12 @@ def calculate_equilibrium_maom(
 
     Args:
         pH: pH values for each soil grid cell
-        Q_max: Maximum sorption capacities
+        Q_max: Maximum sorption capacities (kg m^-3)
         lmwc: Low molecular weight carbon pool (kg C m^-3)
 
     Returns:
         equib_maom: Equilibrium concentration of Mineral associated organic carbon
-            (MAOM), assuming fixed LMWC
+            (MAOM), assuming fixed LMWC (kg C m^-3)
     """
 
     binding_coefficient = calculate_binding_coefficient(pH)
@@ -198,7 +202,7 @@ def calculate_binding_coefficient(pH: NDArray[np.float32]) -> NDArray[np.float32
 
     Returns:
         binding_coefficient: Langmuir binding coefficients for mineral association of
-            labile carbon
+            labile carbon (m^3 kg^-1)
     """
 
     return 10.0 ** (BINDING_WITH_PH["slope"] * pH + BINDING_WITH_PH["intercept"])
@@ -215,7 +219,7 @@ def convert_temperature_to_scalar(
     needed.
 
     Args:
-       soil_temp: soil temperature for each soil grid cell
+       soil_temp: soil temperature for each soil grid cell (degrees C)
     """
 
     t_1, t_2, t_3, t_4, ref_temp = TEMP_SCALAR
@@ -238,7 +242,7 @@ def convert_moisture_to_scalar(
     needed.
 
     Args:
-        soil_moisture: soil moisture for each soil grid cell
+        soil_moisture: relative water content for each soil grid cell (unitless)
     """
 
     # This expression is drawn from Abramoff et al. (2018)
