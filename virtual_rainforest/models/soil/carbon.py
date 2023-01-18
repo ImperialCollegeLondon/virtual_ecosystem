@@ -1,9 +1,9 @@
 """The `models.soil.carbon` module.
 
-This module simulates the radiation soil carbon cycle for the Virtual Rainforest. At the
-moment only two pools are modelled, these are low molecular weight carbon (LMWC) and
-mineral associated organic matter (MAOM). More pools and their interactions will be
-added at a later date.
+This module simulates the soil carbon cycle for the Virtual Rainforest. At the moment
+only two pools are modelled, these are low molecular weight carbon (LMWC) and mineral
+associated organic matter (MAOM). More pools and their interactions will be added at a
+later date.
 """
 
 import numpy as np
@@ -164,7 +164,7 @@ def calculate_max_sorption_capacity(
         Q_max: Maximum sorption capacities (kg m^-3)
     """
 
-    if any(percent_clay > 100.0) or any(percent_clay < 0.0):
+    if np.any(percent_clay > 100.0) or np.any(percent_clay < 0.0):
         log_and_raise(
             "Relative clay content must be expressed as a percentage!", ValueError
         )
@@ -250,7 +250,7 @@ def convert_moisture_to_scalar(
         soil_moisture: relative water content for each soil grid cell (unitless)
     """
 
-    if any(soil_moisture > 1.0) or any(soil_moisture < 0.0):
+    if np.any(soil_moisture > 1.0) or np.any(soil_moisture < 0.0):
         log_and_raise(
             "Relative water content cannot go below zero or above one!", ValueError
         )
