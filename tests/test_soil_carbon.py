@@ -181,22 +181,48 @@ def test_calculate_equilibrium_maom(
 
 
 @pytest.mark.parametrize(
-    "bulk_density,percent_clay,output_capacities",
+    "bulk_density,percent_clay,output_capacities,raises,expected_log_entries",
     [
-        ([1350.0, 1800.0], [80.0, 30.0], [2.385207e6, 1.980259e6]),
-        ([1000.0], [10.0], [647142.61]),
-        ([1500.0], [90.0], [2.805371e6]),
+        (
+            [1350.0, 1800.0],
+            [80.0, 30.0],
+            [2.385207e6, 1.980259e6],
+            does_not_raise(),
+            (),
+        ),
+        ([1000.0], [10.0], [647142.61], does_not_raise(), ()),
+        ([1500.0], [90.0], [2.805371e6], does_not_raise(), ()),
+        (
+            [1500.0],
+            [156.0],
+            [],
+            pytest.raises(ValueError),
+            ((CRITICAL, "Relative clay content must be expressed as a percentage!"),),
+        ),
+        (
+            [1500.0],
+            [-9.0],
+            [],
+            pytest.raises(ValueError),
+            ((CRITICAL, "Relative clay content must be expressed as a percentage!"),),
+        ),
     ],
 )
-def test_calculate_max_sorption_capacity(bulk_density, percent_clay, output_capacities):
+def test_calculate_max_sorption_capacity(
+    caplog, bulk_density, percent_clay, output_capacities, raises, expected_log_entries
+):
     """Test that max sorption capacity calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_max_sorption_capacity
 
-    soil_BD = np.array(bulk_density, dtype=np.float32)
-    soil_clay = np.array(percent_clay, dtype=np.float32)
-    max_capacities = calculate_max_sorption_capacity(soil_BD, soil_clay)
+    # Check that initialisation fails (or doesn't) as expected
+    with raises:
+        soil_BD = np.array(bulk_density, dtype=np.float32)
+        soil_clay = np.array(percent_clay, dtype=np.float32)
+        max_capacities = calculate_max_sorption_capacity(soil_BD, soil_clay)
 
-    assert np.allclose(max_capacities, np.array(output_capacities))
+        assert np.allclose(max_capacities, np.array(output_capacities))
+
+    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -232,14 +258,36 @@ def test_convert_temperature_to_scalar(temperatures, output_scalars):
 
 
 @pytest.mark.parametrize(
-    "moistures,output_scalars",
-    [([0.5, 0.7], [0.750035, 0.947787]), ([0.6], [0.880671]), ([0.2], [0.167814])],
+    "moistures,output_scalars,raises,expected_log_entries",
+    [
+        ([0.5, 0.7], [0.750035, 0.947787], does_not_raise(), ()),
+        ([0.6], [0.880671], does_not_raise(), ()),
+        ([0.2], [0.167814], does_not_raise(), ()),
+        (
+            [-0.2],
+            [],
+            pytest.raises(ValueError),
+            ((CRITICAL, "Relative water content cannot go below zero or above one!"),),
+        ),
+        (
+            [2.7],
+            [],
+            pytest.raises(ValueError),
+            ((CRITICAL, "Relative water content cannot go below zero or above one!"),),
+        ),
+    ],
 )
-def test_convert_moisture_to_scalar(moistures, output_scalars):
+def test_convert_moisture_to_scalar(
+    caplog, moistures, output_scalars, raises, expected_log_entries
+):
     """Test that scalar_moisture runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
-    soil_moisture = np.array(moistures, dtype=np.float32)
-    moist_scalar = convert_moisture_to_scalar(soil_moisture)
+    # Check that initialisation fails (or doesn't) as expected
+    with raises:
+        soil_moisture = np.array(moistures, dtype=np.float32)
+        moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-    assert np.allclose(moist_scalar, np.array(output_scalars))
+        assert np.allclose(moist_scalar, np.array(output_scalars))
+
+    log_check(caplog, expected_log_entries)

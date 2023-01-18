@@ -164,6 +164,11 @@ def calculate_max_sorption_capacity(
         Q_max: Maximum sorption capacities (kg m^-3)
     """
 
+    if any(percent_clay > 100.0) or any(percent_clay < 0.0):
+        log_and_raise(
+            "Relative clay content must be expressed as a percentage!", ValueError
+        )
+
     Q_max = bulk_density * 10 ** (
         MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
         + MAX_SORPTION_WITH_CLAY["intercept"]
@@ -244,6 +249,11 @@ def convert_moisture_to_scalar(
     Args:
         soil_moisture: relative water content for each soil grid cell (unitless)
     """
+
+    if any(soil_moisture > 1.0) or any(soil_moisture < 0.0):
+        log_and_raise(
+            "Relative water content cannot go below zero or above one!", ValueError
+        )
 
     # This expression is drawn from Abramoff et al. (2018)
     return 1 / (
