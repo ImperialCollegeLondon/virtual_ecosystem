@@ -79,6 +79,8 @@ team.
 
   api/core.md
   api/soil.md
+  api/soil/model.md
+  api/soil/carbon.md
 ```
 
 ```{eval-rst}
