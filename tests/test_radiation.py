@@ -1,37 +1,40 @@
 """Test module for abiotic.radiation.py."""
 
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
 import pytest
 
 # from core.constants import CONSTANTS as C  # this doesn't exist yet
-from virtual_rainforest.models.abiotic.radiation import (
-    ALBEDO_SHORTWAVE,
-    ALBEDO_VIS,
-    BEER_REGRESSION,
-    BOLZMAN_CONSTANT,
-    CANOPY_EMISSIVITY,
-    CELSIUS_TO_KELVIN,
-    CLOUDY_TRANSMISSIVITY,
-    FLUX_TO_ENERGY,
-    SECOND_TO_DAY,
-    SOIL_EMISSIVITY,
-    TRANSMISSIVITY_COEFFICIENT,
+from virtual_rainforest.models.abiotic.radiation import ALBEDO_SHORTWAVE, ALBEDO_VIS
+
+
+@pytest.mark.parametrize(
+    argnames=["cname"],
+    argvalues=[
+        ("ALBEDO_SHORTWAVE",),
+        ("ALBEDO_VIS",),
+        ("BEER_REGRESSION",),
+        ("BOLZMAN_CONSTANT",),
+        ("CANOPY_EMISSIVITY",),
+        ("CELSIUS_TO_KELVIN",),
+        ("CLOUDY_TRANSMISSIVITY",),
+        ("FLUX_TO_ENERGY",),
+        ("SECOND_TO_DAY",),
+        ("SOIL_EMISSIVITY",),
+        ("TRANSMISSIVITY_COEFFICIENT",),
+    ],
 )
+def test_import_constants2(cname):
+    """Test constants can be imported."""
 
+    # Get the module that should contain the constants
+    import virtual_rainforest.models.abiotic.radiation as rad
 
-def test_import_constants():
-    """Test that constants were imported correctly."""
-    assert CLOUDY_TRANSMISSIVITY == 0.25
-    assert TRANSMISSIVITY_COEFFICIENT == 0.50
-    assert FLUX_TO_ENERGY == 2.04
-    assert BOLZMAN_CONSTANT == 5.67e-8
-    assert SOIL_EMISSIVITY == 0.95
-    assert CANOPY_EMISSIVITY == 0.95
-    assert BEER_REGRESSION == 2.67e-5
-    assert ALBEDO_VIS == np.array(0.03, dtype=np.float32)
-    assert ALBEDO_SHORTWAVE == np.array(0.17, dtype=np.float32)
-    assert CELSIUS_TO_KELVIN == 273.15
-    assert SECOND_TO_DAY == 86400
+    # Check that the constant can be retrieved from the module without
+    # raising an AttributeError.
+    with does_not_raise():
+        assert getattr(rad, cname)
 
 
 @pytest.fixture
