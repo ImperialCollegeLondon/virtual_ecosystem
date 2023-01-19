@@ -8,6 +8,7 @@ setting up and testing the early stages of the animal module.
 # experimental file for figuring out how to make an animal module
 
 # to do
+# - rework dispersal
 # - in birth, add cohort to grid square list
 # - send portion of dead to carcass pool
 
@@ -28,65 +29,133 @@ setting up and testing the early stages of the animal module.
 # only elephants disperse atm
 # problems with circular type definitions between grid, gridsquare, and animal
 
-import random
+# import random
+import pint
 from math import ceil
-from typing import List
+from typing import List, Any
+from numpy import timedelta64
+from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.grid import Grid
 
 # plant and soil classes are dummies for testing functionality w/in the animal module
 
 
-class Grid:
-    """This is a dummy class for collecting the spatial relationships of pools.
+class AnimalModel(BaseModel, model_name="animal"):
+    """A class describing the animal model.
 
-    0 1 2
-    3 4 5
-    6 7 8
+    Describes the specific functions and attributes that the animal module should
+    possess.
+
+    Args:
+        update_interval: Time to wait between updates of the model state.
+
+
+    Attributes:
+        name: Names the model that is described.
+        grid: The spatial grid over which the model is run, currently fixed 3x3.
+        #     0 1 2
+        #     3 4 5
+        #     6 7 8
     """
 
-    def __init__(self) -> None:
-        """The constructor for Grid class.
+    name = "animal"
+
+    def __init__(self, update_interval: timedelta64):
+        self.animal_list: List[Animal] = []
+        self.plant_list: List[Plant] = []
+        self.soil_list: List[SoilPool] = []
+        self.carcass_list: List[CarcassPool] = []
+        self.grid = Grid(grid_type="square", cell_area=9, cell_nx=3, cell_ny=3)
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> AnimalModel:
+        """Factory function to initialise the animal model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance None is returned.
 
         Args:
-            grid_squares (list): a list (str) of the grid squares present on the grid.
+            config: The complete (and validated) virtual rainforest configuration.
 
+        Raises:
+            InitialisationError: If configuration data can't be properly converted
         """
-        self.grid_squares = {
-            "g0": GridSquare("g0"),
-            "g1": GridSquare("g1"),
-            "g2": GridSquare("g2"),
-            "g3": GridSquare("g3"),
-            "g4": GridSquare("g4"),
-            "g5": GridSquare("g5"),
-            "g6": GridSquare("g6"),
-            "g7": GridSquare("g7"),
-            "g8": GridSquare("g8"),
-        }
 
-    def populate_grid_squares(self) -> None:
-        """The function to add one of each toy pool to each grid square in the grid.
+        # Assume input is valid until we learn otherwise
+        valid_input = True
+        try:
+            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
+                "minutes"
+            )
+            # Round raw time interval to nearest minute
+            update_interval = timedelta64(int(raw_interval.magnitude), "m")
+        except (
+            ValueError,
+            pint.errors.DimensionalityError,
+            pint.errors.UndefinedUnitError,
+        ) as e:
+            valid_input = False
+            LOGGER.error(
+                "Configuration types appear not to have been properly validated. This "
+                "problem prevents initialisation of the soil model. The first instance"
+                " of this problem is as follows: %s" % str(e)
+            )
+
+        if valid_input:
+            LOGGER.info(
+                "Information required to initialise the soil model successfully "
+                "extracted."
+            )
+            return cls(update_interval)
+        else:
+            raise InitialisationError()
+
+    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
+    # SHOULD WORK
+    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
+    # STATE
+    def setup(self) -> None:
+        """Function to set up the soil model."""
+
+    def spinup(self) -> None:
+        """Placeholder function to spin up the soil model."""
+
+    def solve(self) -> None:
+        """Placeholder function to solve the soil model."""
+
+    def cleanup(self) -> None:
+        """Placeholder function for soil model cleanup."""
+
+    def populate_pool_lists(self) -> None:
+        """The function to add one of each of the toy pools to the pool lists
 
         Args:
             None: Toy implementation  is only a function of the
                   hardcoded pools and cohorts.
 
         Returns:
-            Pool and cohort list attributes in each square
-             are populated with an containing an instance.
+             Pool and cohort list attributes containing an instance.
         """
-        for square in self.grid_squares:
-            self.grid_squares[square].populate_grid_square()
+        for grid in range(9):
+            self.animal_list.append(Animal("elephant", 10**6, 5, grid))
+            self.soil_list.append(SoilPool(1000, grid))
+            self.carcass_list.append(CarcassPool(1000, grid))
+            self.animal_list.append(Animal("beetle", 50, 0, grid))
+            self.plant_list.append(Plant("tree", 10.0**5, grid))
 
 
 class Plant:
     """This is a dummy class of plant cohorts for testing the animal module."""
 
-    def __init__(self, name: str, mass: float, position: str) -> None:
+    def __init__(self, name: str, mass: float, position: int) -> None:
         """The constructor for Plant class.
 
         Args:
             name (str): The functional type name of the plant cohort.
             mass (str): The mass of the plant cohort [g].
-            position (str): The grid position of the plant cohort [g0-g8].
+            position (int): The grid position of the plant cohort [0-8].
             energy (flt): The amount of energy in the plant cohort [j] [toy].
             alive (bool): Whether the cohort is alive [True] or dead [False].
             energy_max (flt): The maximum amount of energy that the cohort
@@ -131,15 +200,15 @@ class SoilPool:
 
     Attributes:
         energy (flt): The amount of energy in the soil pool [j].
-        position (str): The grid position of the soil pool [g0-g8].
+        position (int): The grid position of the soil pool [g0-g8].
     """
 
-    def __init__(self, energy: float, position: str) -> None:
+    def __init__(self, energy: float, position: int) -> None:
         """The constructor for Soil class.
 
         Args:
             energy (flt): The amount of energy in the soil pool [j].
-            position (str): The grid position of the soil pool [g0-g8].
+            position (int): The grid position of the soil pool [0-8].
         """
         self.energy = energy
         self.position = position
@@ -148,14 +217,14 @@ class SoilPool:
 class Animal:
     """This is a class of animal cohorts."""
 
-    def __init__(self, name: str, mass: float, age: int, position: str):
+    def __init__(self, name: str, mass: float, age: int, position: int):
         """The constructor for the Animal class.
 
         Args:
             name (str): The functional type name of the animal cohort.
             mass (flt): The average mass of an individual in the animal cohort [g].
             age (int): The age of the animal cohort [yrs].
-            position (str): The grid position of the plant cohort [g0-g8].
+            position (int): The grid position of the plant cohort [0-8].
             individuals (int): The number of individuals in the cohort [toy].
             alive (bool): Whether the cohort is alive [True] or dead [False].
             age_max (int): The maximum lifespan of the cohort [yrs].
@@ -301,24 +370,24 @@ class Animal:
         Returns:
             Modifies the cohort's position by 1 random king-step.
         """
-        adjacency = {
-            "g0": ["g1", "g3"],
-            "g1": ["g0", "g2", "g4"],
-            "g2": ["g1", "g5"],
-            "g3": ["g0", "g4", "g6"],
-            "g4": ["g1", "g3", "g5", "g7"],
-            "g5": ["g2", "g4", "g8"],
-            "g6": ["g3", "g7"],
-            "g7": ["g4", "g6", "g8"],
-            "g8": ["g5", "g7"],
-        }
-        old_position = self.position
-        new_position = random.choice(adjacency[self.position])
-        self.position = new_position
-        old_animal_list = grid.grid_squares[old_position].elephants
-        index = old_animal_list.index(self)
-        new_animal_list = grid.grid_squares[new_position].elephants
-        new_animal_list.append(old_animal_list.pop(index))
+        # adjacency = {
+        #     "g0": ["g1", "g3"],
+        #     "g1": ["g0", "g2", "g4"],
+        #     "g2": ["g1", "g5"],
+        #     "g3": ["g0", "g4", "g6"],
+        #     "g4": ["g1", "g3", "g5", "g7"],
+        #     "g5": ["g2", "g4", "g8"],
+        #     "g6": ["g3", "g7"],
+        #     "g7": ["g4", "g6", "g8"],
+        #     "g8": ["g5", "g7"],
+        # }
+        # old_position = self.position
+        # new_position = random.choice(adjacency[self.position])
+        # self.position = new_position
+        # old_animal_list = grid.grid_squares[old_position].elephants
+        # index = old_animal_list.index(self)
+        # new_animal_list = grid.grid_squares[new_position].elephants
+        # new_animal_list.append(old_animal_list.pop(index))
 
         # need to update this so that the lists like 'elephants' are auto referenced
         # index_position = grid.grid_squares[self.position].elephants.index(self)
@@ -329,40 +398,12 @@ class Animal:
 class CarcassPool:
     """This is a class of carcass pools."""
 
-    def __init__(self, energy: float, position: str) -> None:
+    def __init__(self, energy: float, position: int) -> None:
         """The constructor for Carcass class.
 
         Args:
             energy (flt): The amount of energy in the carcass pool [j].
-            position (str): The grid position of carcass pool pool [g0-g8].
+            position (int): The grid position of carcass pool pool [0-8].
         """
         self.energy = energy
         self.position = position
-
-
-class GridSquare:
-    """This is a dummy class for collecting lists of pools sharing a grid."""
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.soil: List[SoilPool] = []
-        self.trees: List[Plant] = []
-        self.carcasses: List[CarcassPool] = []
-        self.beetles: List[Animal] = []
-        self.elephants: List[Animal] = []
-
-    def populate_grid_square(self) -> None:
-        """The function to add one of each of the toy pools to the grid square.
-
-        Args:
-            None: Toy implementation  is only a function of the
-                  hardcoded pools and cohorts.
-
-        Returns:
-            Pool and cohort list attributes containing an instance.
-        """
-        self.elephants.append(Animal("elephant", 10**6, 5, self.name))
-        self.soil.append(SoilPool(1000, self.name))
-        self.carcasses.append(CarcassPool(1000, self.name))
-        self.beetles.append(Animal("beetle", 50, 0, self.name))
-        self.trees.append(Plant("tree", 10.0**5, self.name))
