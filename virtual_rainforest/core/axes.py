@@ -60,18 +60,19 @@ class AxisValidator(ABC):
     """The AxisValidator abstract base class.
 
     This ABC provides the structure for axis validators. These are used to check that a
-    DataArray to be added to a Data instance is congruent with the configuration of a
-    virtual rainforest simulation. The base class provides abstract methods that provide
-    the following functionality:
+    ``DataArray`` to be added to a ``Data`` instance is congruent with the configuration
+    of a virtual rainforest simulation. The base class provides abstract methods that
+    provide the following functionality:
 
-    * Test if a given AxisValidator subclass can be applied to a particular DataArray
-      (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`).
-    * Run appropriate validation and standardisation on a DataArray.
-      (:meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`).
+    :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`:
+        Test that a given ``AxisValidator`` subclass can be applied to the inputs.
+
+    :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`:
+        Run appropriate validation and standardisation on the input ``DataArray``.
 
     The :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate` method should
-    be used first to check that a particular `DataArray` can be validated, and then the
-    :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation` method can be
+    be used first to check that a particular ``DataArray`` can be validated, and then
+    the :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation` method can be
     used to validate that input if appropriate.
     """
 
@@ -113,13 +114,13 @@ class AxisValidator(ABC):
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check if an AxisValidator subclass applies to inputs.
 
-        A given AxisValidator subclass must provide a `run_validation` method that
+        A given AxisValidator subclass must provide a ``run_validation`` method that
         defines data validation that should be applied to the inputs. However, the
         validation for a particular subclass will only apply to inputs with particular
         features, such as an array with a given dimension name or a set grid type.
 
         In a subclass, the implementation of this method should check whether the
-        validation implemented in `run_validation` _can_ be applied to the inputs.
+        validation implemented in ``run_validation`` **can** be applied to the inputs.
 
         Args:
             value: An input DataArray to check
@@ -274,10 +275,11 @@ class Spat_CellId_Coord_Any(AxisValidator):
     def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
         """Run validation on the inputs.
 
-        Validation will fail when the ``cell_id`` coordinate values
+        Validation will fail when the ``cell_id`` coordinate values:
+
         * are not unique, or
         * do not cover the full set of ``cell_id`` values defined in the configured
-        ``Grid`` object.
+          ``Grid`` object.
 
         It is permitted for the input DataArray to include a larger set of ``cell_id``
         coordinates than needed, and the DataArray ``cell_id`` dimension will be reduced
