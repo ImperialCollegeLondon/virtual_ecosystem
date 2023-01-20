@@ -44,7 +44,10 @@ Users can register their own functions to load from a particular file format usi
 :func:`~virtual_rainforest.core.data.register_file_format_loader` decorator. The
 function itself should have the following signature:
 
+.. code-block:: python
+
     func(file: Path, file_var: str) -> DataArray
+
 """
 
 

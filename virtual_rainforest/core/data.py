@@ -27,7 +27,7 @@ simulation.
   test if a named variable is included in the internal :class:`~xarray.DataSet`
   instance.
 
-..code-block:: python
+.. code-block:: python
 
     grid = Grid()
     data = Data(grid)
