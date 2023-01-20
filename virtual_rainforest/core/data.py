@@ -7,63 +7,85 @@ Rainforest simulations.
 The Data class
 ==============
 
-The core :class:`~virtual_rainforest.core.data.Data` class is a wrapper around an
-:class:`~xarray.DataSet` object, which is used to core variables in the simulation on
-shared axes. The :class:`~xarray.DataSet` object is stored as the :attr:`Data.data`
-attribute, and this attribute can be used directly to access :class:`~xarray.DataSet`
-methods.
+The core :class:`~virtual_rainforest.core.data.Data` class is used to store data for the
+variables used in a simulation. It can be used both for data from external sources - for
+example, data used to set the initial environment or time series of inputs - and for
+internal variables used in the simulation. The core of the class is an
+:class:`~xarray.DataSet` object, which is accessible as the
+:attr:`~virtual_rainforest.core.data.Data.data` attribute of the class. This attribute
+can be used directly to access all of the methods of the :class:`~xarray.DataSet` class.
 
-The :class:`~virtual_rainforest.core.data.Data` itself provides methods to add data to
-an instance, and to automatically validate added data against the configuration of the
-simulation.
+The function of the :class:`~virtual_rainforest.core.data.Data` class itself is to
+automatically validate datasets against the configuration of a simulation before they
+are added to the :attr:`~virtual_rainforest.core.data.Data.data` instance. It also
+stores information about the validation process so that models can confirm that required
+data has been successfully validated.
 
-* The :class:`~virtual_rainforest.core.data.Data.__setitem__` method is used to validate
-  input data. The data must be an :class:`~xarray.DataSet` object and it is then checked
-  to see that its dimensions are congruent with the simulation configuration. Valid
-  inputs are then added onto the internal :class:`~xarray.DataSet` instance.
-* The :class:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
+The core of the :class:`~virtual_rainforest.core.data.Data` class is the
+:class:`~virtual_rainforest.core.data.Data.__setitem__` method. This method provides the
+following functionality:
+
+* It allows a ``DataArray`` to be added to a :class:`~virtual_rainforest.core.data.Data`
+  instance using the `data['varname'] = data_array` syntax.
+* It applies the validation step using the
+  :func:`~virtual_rainforest.core.axes.validate_datarray` function. See the
+  :mod:`~virtual_rainforest.core.axes` module for the details of the validation process,
+  including the :class:`~virtual_rainforest.core.axes.AxisValidators` class and the
+  concept of core axes.
+* It inserts the data into the :class:`~xarray.DataSet` instance stored in the
+  :attr:`~virtual_rainforest.core.data.Data.data` attribute.
+* Lastly, it records the data validation details in the
+  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute.
+
+The :class:`~virtual_rainforest.core.data.Data` class also provides three shorthand
+methods to get information and data from an instance.
+
+* The :meth:`~virtual_rainforest.core.data.Data.__contains__` method tests if a named
+  variable is included in the internal :class:`~xarray.DataSet` instance.
+
+    .. code-block:: python
+
+        # Equivalent code
+        'varname' in data
+        'varname' in data.data
+
+* The :meth:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
   a named variable from the internal :class:`~xarray.DataSet` instance.
-* The :class:`~virtual_rainforest.core.data.Data.__contains__` method is provided to
-  test if a named variable is included in the internal :class:`~xarray.DataSet`
-  instance.
 
-.. code-block:: python
+    .. code-block:: python
 
-    grid = Grid()
-    data = Data(grid)
-    data['varname'] = DataArray([1,2,3])
-    'varname' in data
-    data['varname']
+        # Equivalent code
+        data['varname']
+        data.data['varname']
 
-Data validation
----------------
+* The :meth:`~virtual_rainforest.core.data.Data.on_core_axis` method queries the
+  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute to
+  confirm that a named variable has been validated on a named axis.
 
-The :meth:`~virtual_rainforest.core.data.Data.__setitem__` method  validates a
-provided :class:`~xarray.DataArray` by passing it to the
-:func:`~virtual_rainforest.core.axes.validate_datarray` function, described in the
-:mod:`~virtual_rainforest.core.axes` module. See that module for discussion of the
-:class:`~virtual_rainforest.core.axes.AxisValidators` class and the concept of core
-axes.
+    .. code-block:: python
 
-The :class:`~virtual_rainforest.core.data.Data` instance records validation that has
-been applied to each variable on each core axis and provides the
-:class:`~virtual_rainforest.core.data.Data.on_core_axis` method to allow models to
-confirm that required variables have been validated on particular axes.
+        # Test that the temperature variable has been validated on the spatial axis
+        data.on_core_axis('temperature', 'spatial')
 
 Adding data from a file
 -----------------------
 
 The general solution for programmatically adding data from a file is to:
 
-* manually open a data file using the appropriate reader packages for the format,
+* manually open a data file using an appropriate reader packages for the format,
 * coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
 * use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_rainforest.core.data.Data` instance.
 
 The  :meth:`~virtual_rainforest.core.data.Data.load_from_file` method implements this
-general recipe for known file formats, with readers described
-:class:`~virtual_rainforest.core.readers` module. See the details of that module for
+general recipe for known file formats, using file reader functions described in the
+:mod:`~virtual_rainforest.core.readers` module. See the details of that module for
 supported formats and for extending the system to additional file formats.
+
+.. code-block:: python
+
+    # Load temperature data from a support file
+    data.load_from_file('/path/to/supported/format.nc', var_name='temperature')
 
 Using a data configuration
 --------------------------
@@ -93,6 +115,12 @@ arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
 configurations must not contain repeated data variable names.  The ``data_var_name`` is
 optional and is used to change the variable name used in the file to a different value
 to be used within the simulation.
+
+.. code-block:: python
+
+    # Load configured datasets
+    data.load_data_config(loaded_data_config_dict)
+
 """  # noqa: D205
 
 from pathlib import Path
@@ -130,8 +158,15 @@ class Data:
         """The configured Grid to be used in a simulation."""
         self.data = Dataset()
         """The :class:`~xarray.Dataset` used to store data."""
-        self._variable_validation: dict[str, dict[str, Optional[str]]] = {}
-        """Private attribute used to record validation details for loaded variables."""
+        self.variable_validation: dict[str, dict[str, Optional[str]]] = {}
+        """Records validation details for loaded variables.
+
+        The validation details for each variable is stored in this dictionary using the
+        variable name as a key. The validation details are a dictionary, keyed using
+        core axis names, of the :class:`~virtual_rainforest.core.axis.AxisValidator`
+        subclass applied to that axis. If no validator was applied, the entry for that
+        core axis will be ``None``.
+        """
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
@@ -174,7 +209,7 @@ class Data:
         # Validate and store the data array
         value, valid_dict = validate_dataarray(value=value, grid=self.grid)
         self.data[key] = value
-        self._variable_validation[key] = valid_dict
+        self.variable_validation[key] = valid_dict
 
     def __getitem__(self, key: str) -> DataArray:
         """Get a given data variable from a Data instance.
@@ -226,13 +261,13 @@ class Data:
         if var_name not in self.data:
             raise ValueError(f"Unknown variable name: {var_name}")
 
-        if var_name not in self._variable_validation:
+        if var_name not in self.variable_validation:
             raise RuntimeError(f"Missing variable validation data: {var_name}")
 
         if axis_name not in AXIS_VALIDATORS:
             raise ValueError(f"Unknown core axis name: {axis_name}")
 
-        return False if self._variable_validation[var_name][axis_name] is None else True
+        return False if self.variable_validation[var_name][axis_name] is None else True
 
     def load_from_file(
         self,
@@ -284,12 +319,13 @@ class Data:
         data_config dictionary can contain lists of variables under the following
         keys:
 
-        * `variable`: These are data elements loaded from a provided file. Each element
-          in the list should be a dictionary providing the path to the file ('file'),
-          the name of the variable within the file ('file_var_name') and optionally a
-          different variable name to be used internally ('data_var_name').
-        * `constant`: TODO
-        * `generator`: TODO
+        * ``variable``: These are data elements loaded from a provided file. Each
+          element in the list should be a dictionary providing the path to the file
+          (``file``), the name of the variable within the file (``file_var_name``) and
+          optionally a different variable name to be used internally
+          (``data_var_name``).
+        * ``constant``: TODO
+        * ``generator``: TODO
 
         Args:
             data_config: A data configuration dictionary
