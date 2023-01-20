@@ -117,10 +117,7 @@ class Data:
     grid.
 
     Args:
-        grid: A Grid instance that loaded datasets with spatial structure must match.
-
-    Attrs:
-        grid: The grid instance
+        grid: The Grid instance that will be used for simulation.
     """
 
     def __init__(self, grid: Grid) -> None:
@@ -129,9 +126,12 @@ class Data:
         if not isinstance(grid, Grid):
             log_and_raise("Data must be initialised with a Grid object", TypeError)
 
-        self.grid = grid
+        self.grid: Grid = grid
+        """The configured Grid to be used in a simulation."""
         self.data = Dataset()
+        """The :class:`~xarray.Dataset` used to store data."""
         self._variable_validation: dict[str, dict[str, Optional[str]]] = {}
+        """Private attribute used to record validation details for loaded variables."""
 
     def __repr__(self) -> str:
         """Returns a representation of a Data instance."""
