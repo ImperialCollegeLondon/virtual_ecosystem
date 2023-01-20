@@ -204,13 +204,13 @@ def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    v7r = Spat_CellId_Coord_Any()
+    validator = Spat_CellId_Coord_Any()
 
-    can_val = v7r.can_validate(darray, data=data, grid=grid)
+    can_val = validator.can_validate(darray, data=data, grid=grid)
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.run_validation(darray, data=data, grid=grid)
+            darray = validator.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -248,13 +248,13 @@ def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    v7r = Spat_CellId_Dim_Any()
+    validator = Spat_CellId_Dim_Any()
 
-    can_val = v7r.can_validate(darray, data=data, grid=grid)
+    can_val = validator.can_validate(darray, data=data, grid=grid)
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.run_validation(darray, data=data, grid=grid)
+            darray = validator.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -318,13 +318,13 @@ def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals)
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    v7r = Spat_XY_Coord_Square()
+    validator = Spat_XY_Coord_Square()
 
-    can_val = v7r.can_validate(darray, data=data, grid=grid)
+    can_val = validator.can_validate(darray, data=data, grid=grid)
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.run_validation(darray, data=data, grid=grid)
+            darray = validator.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
@@ -366,13 +366,13 @@ def test_Spat_XY_Dim_Square(grid_args, darray, exp_err, exp_message, exp_vals):
     grid = Grid(**grid_args)
     data = Data(grid)
 
-    v7r = Spat_XY_Dim_Square()
+    validator = Spat_XY_Dim_Square()
 
-    can_val = v7r.can_validate(darray, data=data, grid=grid)
+    can_val = validator.can_validate(darray, data=data, grid=grid)
 
     if can_val:
         with exp_err as excep:
-            darray = v7r.run_validation(darray, data=data, grid=grid)
+            darray = validator.run_validation(darray, data=data, grid=grid)
 
             assert isinstance(darray, DataArray)
             assert np.allclose(darray.values, exp_vals)
