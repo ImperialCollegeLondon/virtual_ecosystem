@@ -243,29 +243,58 @@ def validate_dataarray(
 
 
 class Spat_CellId_Coord_Any(AxisValidator):
-    """Spatial Axis Validator for cell id coordinates on any grid.
+    """Validate *cell_id* coordinates on the *spatial* core axis.
 
-    This spatial axis validator applies to a DataArray that has a cell_id dimension with
-    valued coordinates, which should map onto the grid cell ids, allowing for a subset
-    of ids. Because this method simply maps data to grid cells by id, it should apply to
-    _any_ arbitrary grid setup.
+    Applies to:
+        An input DataArray with coordinate values set along a ``cell_id`` dimension
+        is assumed to map values in the DataArray onto the ``cell_id`` values defined in
+        the :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation.
+        Because ``cell_id`` values are defined for any grid configuration, this
+        validator does not require a particular grid geometry.
     """
 
     core_axis = "spatial"
     dim_names = {"cell_id"}
 
-    def can_validate(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
 
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
         return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
 
+        Validation will fail when the ``cell_id`` coordinate values
+        * are not unique, or
+        * do not cover the full set of ``cell_id`` values defined in the configured
+        ``Grid`` object.
+
+        It is permitted for the input DataArray to include a larger set of ``cell_id``
+        coordinates than needed, and the DataArray ``cell_id`` dimension will be reduced
+        to match the ``Grid`` configuration and sorted if necessary.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
+
+        Returns:
+            A DataArray standardised to match the ``cell_id`` values in the ``Grid``
+            object.
+        """
         da_cell_ids = value["cell_id"].values
 
         if len(np.unique(da_cell_ids)) != len(da_cell_ids):
