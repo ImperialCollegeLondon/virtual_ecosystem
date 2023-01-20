@@ -16,29 +16,48 @@ kernelspec:
 # Core axes
 
 The Virtual Rainforest uses a set of **core axes** which have dimensions and possibly
-coordinates set by the configuration of a simulation. Each core axis is defined below
-along with the different validation routines used to map data onto a core axis.
+coordinates set by the configuration of a simulation.
 
-Data is loaded into the simulation as {class}`~xarray.DataArray` object. Each of the
-dimensions of a data array will have a _dimension name_ and may also have _coordinate
-values_ assigned for the dimension. In general, validation for a given core axis will
-look for specific dimension names and possibly coordinate values on those dimensions and
-then attempts to map those dimensions onto the configured axis.  If an input data set
-uses **any** of the dimension names associated with a given core axes, then that data
-must past validation on that axis.
+* The **dimensions** of an axis set the shape of the axis. For example, a simulation
+  might use a square 10 by 10 [grid](./grid.md), so spatial data might be expected to
+  have the same 10 by 10 shape along `x` and `y` dimensions.
+
+* The **coordinates** of an axis set the values of the intervals along the dimension.
+  For example, a spatial grid might be configured with [offsets](./grid.md#grid-origin)
+  to map data onto a projected coordinate system.
+
+When data is loaded into the simulation as it is first converted into a
+{class}`~xarray.DataArray` object. These objects also provide _dimension names_ for each
+of the array dimensions and can also have _coordinate values_ assigned for the
+dimension. This allows the axis validation to ensure that the dimensions and coordinates
+of loaded data are congruent with the different core axes.
+
+In general, validation for a given core axis will look for specific dimension names and
+any coordinate values and attempts to map those dimensions onto the configured axis. The
+validators for an axis all define sets of dimensions names that are used to match
+dimensions to that axis.  If an input data set uses **any** of the dimension names
+associated with a given core axes, then that data must pass validation on that axis.
+Each core axis is defined below along with the validation used to map data onto a core
+axis.
 
 ## The `spatial` core axis
 
 ```{admonition} Array dimensions
-This core axis looks for: `cell_id`, `x` and `y`. We expect Virtual Rainforest to be 
-used with projected coordinate systems and so `lat` and `long` dimensions do not cause 
-data to be mapped onto the `spatial` axis.
+The validators for this axis check for variables with either a `cell_id` dimension or 
+with `x` and `y` dimensions. 
+
+Datasets that use `latitude` and `longitude` dimension names - or variants of those 
+names - will not be validated on the `spatial` axis. This is because we expect Virtual 
+Rainforest to be used exclusively with projected coordinate systems and so spatial data 
+on geographic coordinates must be projected onto appropriate local projected coordinates
+before use.
 ```
 
 Within a simulation, the Virtual Rainforest uses a single spatial dimension along the
-[grid](grid.md) cell ids, but spatial data is often provided using two dimensional `x`
-and `y` coordinates. The mapping of data onto the `spatial` core axis can also vary
-depending on the geometry of the simulation grid.
+[grid](grid.md) cell ids, so a `cell_id` dimension can be used to directly map data onto
+the grid. However, spatial data is often provided using two dimensional `x` and `y`
+coordinates, which can then be used to map data onto polygon geometry of each of the
+grid cells. The `spatial` validators cover the following cases.
 
 The data has a `cell_id` dimension without coordinates, any grid geometry.
 : The `cell_id` dimension must be of the same length as the number of cells in the
@@ -46,13 +65,14 @@ The data has a `cell_id` dimension without coordinates, any grid geometry.
 
 The data has a `cell_id` dimension with coordinate values, any grid geometry.
 : The coordinate values associated with the `cell_id` dimension must include all of
-cell_id values in the configured grid. The data is reordered to map onto the grid cell
-id values and any additional cell id values in the data are dropped.
+the `cell_id` values in the configured grid. The data is reordered to map onto the grid
+cell id values and any additional cell id values in the data are dropped.
 
 The data has `x` and `y` dimensions, square grid geometry.
-: The `x` and `y` dimensions must both be of the same length as the corresponding square
-grid dimensions and the data is assumed to be in order. The data is then mapped onto the
-internal cell id dimension.
+: In this case, the `x` and `y` dimensions provide the shape of the grid - for example -
+a 10 by 10 grid - but not `x` and `y` coordinates for each cell. The data grid must be
+the same shape as the square grid dimensions and the data is assumed to be in the same
+order as the grid. The data is then mapped onto the internal cell id dimension.
 
 The data has `x` and `y` dimensions with coordinates, square grid geometry.
 : The `x` and `y` coordinates for each cell must map data values uniquely onto all
