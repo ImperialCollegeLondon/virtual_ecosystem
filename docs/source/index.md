@@ -65,6 +65,7 @@ team.
   :hidden:
 
   virtual_rainforest/module_overview.md
+  virtual_rainforest/usage.md
   virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
   virtual_rainforest/core/config.md
@@ -77,6 +78,16 @@ team.
   :hidden:
 
   api/core.md
+  api/soil.md
+```
+
+```{eval-rst}
+.. toctree::
+  :maxdepth: 4
+  :caption: Command line tools
+  :hidden:
+
+  command_line_tools/vr_run.md
 ```
 
 ```{eval-rst}
@@ -89,6 +100,16 @@ team.
   development/jupyter_notebooks.md
   development/developer_setup.md
   development/design/core.md
+```
+
+```{eval-rst}
+.. toctree::
+  :maxdepth: 4
+  :caption: Climate data pre-processing
+  :hidden:
+
+  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
+  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}

@@ -45,3 +45,12 @@ This page contains the detailed documentation of the functions and classes in th
     :members:
     :special-members: __init__
 ```
+
+## The `virtual_rainforest.core.logger` module
+
+```{eval-rst}
+.. automodule:: virtual_rainforest.core.logger
+    :autosummary:
+    :members:
+    :special-members: __init__
+```

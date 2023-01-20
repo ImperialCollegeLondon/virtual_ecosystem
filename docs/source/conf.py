@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
+    "sphinx.ext.autosectionlabel",
     "sphinxcontrib.bibtex",
     "myst_nb",
     # "sphinx_astrorefs",  # Gives author year references
@@ -47,6 +48,10 @@ extensions = [
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+
+# Set auto labelling to section level
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 2
 
 myst_enable_extensions = ["dollarmath", "deflist"]
 

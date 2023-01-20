@@ -10,11 +10,19 @@
                "type": "integer",
                "exclusiveMinimum": 0,
                "default": 2
+            },
+            "model_time_step": {
+               "description": "Time step for soil module, units must be provided!",
+               "desc_cont": "The time grain of the model is 10 minutes, so your choice",
+               "desc_cont2": "here should be divisible by 10 minutes.",
+               "type": "string",
+               "default": "7 days"
             }
          },
          "default": {},
          "required": [
-            "no_layers"
+            "no_layers",
+            "model_time_step"
          ]
       }
    },
