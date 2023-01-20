@@ -64,11 +64,10 @@ class AxisValidator(ABC):
     of a virtual rainforest simulation. The base class provides abstract methods that
     provide the following functionality:
 
-    :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`:
-        Test that a given ``AxisValidator`` subclass can be applied to the inputs.
-
-    :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`:
-        Run appropriate validation and standardisation on the input ``DataArray``.
+    * :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`: test that a
+      given ``AxisValidator`` subclass can be applied to the inputs.
+    * :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`: run
+      appropriate validation and standardisation on the input ``DataArray``.
 
     The :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate` method should
     be used first to check that a particular ``DataArray`` can be validated, and then
@@ -247,11 +246,11 @@ class Spat_CellId_Coord_Any(AxisValidator):
     """Validate *cell_id* coordinates on the *spatial* core axis.
 
     Applies to:
-        An input DataArray with coordinate values set along a ``cell_id`` dimension
-        is assumed to map values in the DataArray onto the ``cell_id`` values defined in
-        the :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation.
-        Because ``cell_id`` values are defined for any grid configuration, this
-        validator does not require a particular grid geometry.
+        An input DataArray with that provides coordinate values along a ``cell_id``
+        dimension is assumed to map values in the DataArray onto the ``cell_id`` values
+        defined in the :class:`~virtual_rainforest.core.grid.Grid` configured for the
+        simulation. Because ``cell_id`` values are defined for any grid configuration,
+        this validator does not require a particular grid geometry.
     """
 
     core_axis = "spatial"
