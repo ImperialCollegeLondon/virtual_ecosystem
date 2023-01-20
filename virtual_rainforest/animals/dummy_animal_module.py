@@ -28,6 +28,8 @@ setting up and testing the early stages of the animal module.
 # only elephants disperse atm
 # problems with circular type definitions between grid, gridsquare, and animal
 
+from __future__ import annotations
+
 from math import ceil
 from typing import Any, List
 
