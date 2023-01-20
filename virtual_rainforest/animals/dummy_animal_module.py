@@ -9,7 +9,6 @@ setting up and testing the early stages of the animal module.
 
 # to do
 # - rework dispersal
-# - in birth, add cohort to grid square list
 # - send portion of dead to carcass pool
 
 
@@ -29,14 +28,16 @@ setting up and testing the early stages of the animal module.
 # only elephants disperse atm
 # problems with circular type definitions between grid, gridsquare, and animal
 
+from math import ceil
+from typing import Any, List
+
 # import random
 import pint
-from math import ceil
-from typing import List, Any
 from numpy import timedelta64
-from virtual_rainforest.core.model import BaseModel, InitialisationError
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+
 from virtual_rainforest.core.grid import Grid
+from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 # plant and soil classes are dummies for testing functionality w/in the animal module
 
@@ -69,7 +70,7 @@ class AnimalModel(BaseModel, model_name="animal"):
         self.grid = Grid(grid_type="square", cell_area=9, cell_nx=3, cell_ny=3)
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> AnimalModel:
+    def from_config(cls, config: dict[str, Any]) -> BaseModel:
         """Factory function to initialise the animal model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -129,7 +130,7 @@ class AnimalModel(BaseModel, model_name="animal"):
         """Placeholder function for soil model cleanup."""
 
     def populate_pool_lists(self) -> None:
-        """The function to add one of each of the toy pools to the pool lists
+        """The function to add one of each of the toy pools to the pool lists.
 
         Args:
             None: Toy implementation  is only a function of the
