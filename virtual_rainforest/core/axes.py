@@ -246,11 +246,12 @@ class Spat_CellId_Coord_Any(AxisValidator):
     """Validate *cell_id* coordinates on the *spatial* core axis.
 
     Applies to:
-        An input DataArray with that provides coordinate values along a ``cell_id``
-        dimension is assumed to map values in the DataArray onto the ``cell_id`` values
-        defined in the :class:`~virtual_rainforest.core.grid.Grid` configured for the
-        simulation. Because ``cell_id`` values are defined for any grid configuration,
-        this validator does not require a particular grid geometry.
+        An input DataArray that provides coordinate values along a ``cell_id`` dimension
+        is assumed to map data onto the cells values defined in the
+        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation. The
+        coordinate values are assumed to map onto the ``cell_id`` values defined for
+        each cell in the ``Grid``. Because ``cell_id`` values are defined for cells in
+        all grid types, this validator does not require a particular grid geometry.
     """
 
     core_axis = "spatial"
@@ -314,28 +315,55 @@ class Spat_CellId_Coord_Any(AxisValidator):
 
 
 class Spat_CellId_Dim_Any(AxisValidator):
-    """Spatial validator for cell id dimension onto any grid.
+    """Validate *cell_id* dimension on the *spatial* core axis.
 
-    This spatial axis validator applies to a DataArray that only has a cell_id
-    dimension. It assumes that the values are provided in the same sequence as the grid
-    cell ids. Because this method simply maps data to grid cells by id, it should apply
-    to _any_ arbitrary grid setup.
+    Applies to:
+        An input DataArray with a ``cell_id`` dimension is assumed to provide data for
+        the cells defined in the :class:`~virtual_rainforest.core.grid.Grid` configured
+        for the simulation. The data are assumed to be in the same order as the cells in
+        the ``Grid``.  As a one-dimensional array of cells is defined for all grid
+        configurations, this validator does not require a particular grid geometry.
     """
 
     core_axis = "spatial"
     dim_names = {"cell_id"}
 
-    def can_validate(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
+
         return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
 
+        Validation will fail when the ``cell_id`` dimension:
+
+        * is not of exactly the same length as the list of cells defined in the
+          configured ``Grid`` object.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
+
+        Returns:
+            A DataArray standardised to match the ``cell_id`` values in the ``Grid``
+            object.
+        """
         # Cell ID is only a dimenson with a give length - assume the order correct and
         # check the right number of cells found
         n_found = value["cell_id"].size
@@ -348,27 +376,64 @@ class Spat_CellId_Dim_Any(AxisValidator):
 
 
 class Spat_XY_Coord_Square(AxisValidator):
-    """Spatial validator for XY coordinates onto a square grid.
+    """Validate *x* and *y* coordinates on the *spatial* core axis for a square grid.
 
-    This spatial axis validator applies to a  DataArray that has a x and y dimensions
-    with valued coordinates, which should map onto the grid cell ids, allowing for a
-    subset of ids.
+    Applies to:
+        An input DataArray that provides coordinates along ``x`` and ``y`` dimensions is
+        assumed to map data onto the cells defined in a
+        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation with a
+        ``square`` cell geometry. The pairwise combinations of ``x`` and ``y``
+        coordinates in the data are expected to provide a one-to-one mapping onto the
+        all of the cell geometries. It is permitted for the DataArray to have a larger
+        spatial extent than the configured simulation.
+
+    This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
+    dimension used in the :mod:`~virtual_rainforest.core.grid` module.
     """
 
     core_axis = "spatial"
     dim_names = {"x", "y"}
 
-    def can_validate(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
         return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
 
+        Validation will fail when the ``x`` and ``y`` coordinates:
+
+        * Fall on cell geometry boundaries: unambiguous coordinates within the geometry,
+          such as cell centroids, should be used.
+        * Are not at the same resolution, such that either multiple data cells map onto
+          a single grid cell or that some grid cells do not have matching data cells.
+        * Have too small an extent, so that again some grid cells do not have matching
+          data coordinates.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.
+
+        Returns:
+            A DataArray with the ``x`` and ``y`` dimensions remapped onto the internal
+            ``cell_id`` dimension used in the :mod:`~virtual_rainforest.core.grid`
+            module.
+        """
         # Get x and y coords to check the extents and cell coverage.
         #
         # TODO - Note that mapping all the cells here is a bit extreme with a square
@@ -405,27 +470,57 @@ class Spat_XY_Coord_Square(AxisValidator):
 
 
 class Spat_XY_Dim_Square(AxisValidator):
-    """Spatial validator for XY dimensions onto a square grid.
+    """Validate *x* and *y* dimensions on the *spatial* core axis on a square grid.
 
-    This spatial axis validator applies to a  DataArray has x and y dimension but no
-    coordinates along those dimensions. The assumption here is then that those spatial
-    axes must describe the same array shape as the square grid.
+    Applies to:
+        An input DataArray with ``x`` and ``y`` dimensions is assumed to provide a
+        square grid of the same shape as the cell grid defined in a
+        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation with a
+        ``square`` cell geometry.
+
+    This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
+    dimension used in the :mod:`~virtual_rainforest.core.grid` module.
     """
 
     core_axis = "spatial"
     dim_names = {"x", "y"}
 
-    def can_validate(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> bool:
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
         return self.dim_names.issubset(value.dims) and not self.dim_names.issubset(
             value.coords
         )
 
-    def run_validation(  # noqa: D102
-        self, value: DataArray, grid: Grid, **kwargs: Any
-    ) -> DataArray:
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
 
+        Validation will fail when the ``x`` and ``y`` dimensions:
+
+        * do not have exactly the same shape - numbers of rows (``y``) and columns
+          (``x``) as the configured square ``Grid``.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.
+
+        Returns:
+            A DataArray with the ``x`` and ``y`` dimensions remapped onto the internal
+            ``cell_id`` dimension used in the :mod:`~virtual_rainforest.core.grid`
+            module.
+        """
         # Otherwise the data array must be the same shape as the grid
         if grid.cell_nx != value.sizes["x"] or grid.cell_ny != value.sizes["y"]:
             raise ValueError("Data XY dimensions do not match square grid")
