@@ -54,8 +54,6 @@ def register_file_format_loader(file_types: tuple[str]) -> Callable:
     This decorator is used to register a function that loads data from a given file type
     and coerces it to a DataArray.
 
-    TODO - How to ensure that grids are registered before this decorator is used.
-
     Args:
         file_types: A tuple of strings giving the file type that the function will map
             onto the Grid. The strings should match expected file suffixes for the file
