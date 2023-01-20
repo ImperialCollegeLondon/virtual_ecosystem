@@ -72,11 +72,15 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
     from virtual_rainforest.core.axes import AXIS_VALIDATORS
 
     # Use the methods
-    test_v7r = AXIS_VALIDATORS["testing"][0]()
-    assert not test_v7r.can_validate(DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid)
-    assert test_v7r.can_validate(DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid)
+    test_validator = AXIS_VALIDATORS["testing"][0]()
+    assert not test_validator.can_validate(
+        DataArray([1, 1, 1, 1, 1]), grid=fixture_data.grid
+    )
+    assert test_validator.can_validate(
+        DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid
+    )
 
-    validated = test_v7r.run_validation(
+    validated = test_validator.run_validation(
         DataArray([3, 3, 3, 3, 3]), grid=fixture_data.grid
     )
     assert np.allclose(validated, DataArray([6, 6, 6, 6, 6]))
