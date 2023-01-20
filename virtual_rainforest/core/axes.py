@@ -76,8 +76,11 @@ class AxisValidator(ABC):
     used to validate that input if appropriate.
     """
 
-    core_axis: str = ""
-    dim_names: set[str] = {""}
+    core_axis: str
+    """Class attribute giving the name of the core axis for an AxisValidator."""
+
+    dim_names: set[str]
+    """Class attribute giving the dimension names for and AxisValidator."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -97,11 +100,21 @@ class AxisValidator(ABC):
             Value Error: if the subclass attributes are invalid.
         """
 
-        if cls.core_axis == "":
-            raise ValueError("Core axis name cannot be an empty string.")
+        if not hasattr(cls, "core_axis"):
+            raise ValueError("Class attribute core_axis not set.")
 
-        if not cls.dim_names:
-            raise ValueError("AxisValidator dim names cannot be an empty set.")
+        if not isinstance(cls.core_axis, str) or cls.core_axis == "":
+            raise ValueError(
+                "Class attribute core_axis is not a string or is an empty string."
+            )
+
+        if not hasattr(cls, "dim_names"):
+            raise ValueError("Class attribute dim_names not set.")
+
+        if not isinstance(cls.dim_names, set) or any(
+            [not isinstance(x, str) for x in cls.dim_names]
+        ):
+            raise ValueError("Class attribute dim_names is not a set of strings.")
 
         if cls.core_axis in AXIS_VALIDATORS:
             AXIS_VALIDATORS[cls.core_axis].append(cls)

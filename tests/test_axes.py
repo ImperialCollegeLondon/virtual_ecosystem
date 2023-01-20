@@ -8,8 +8,8 @@ import pytest
 from xarray import DataArray
 
 
-def test_AxisValidator_registration_bad_core_axis():
-    """Simple test of AxisValidator registration."""
+def test_AxisValidator_registration_coreaxis_not_set():
+    """Test of AxisValidator registration exceptinos."""
     from virtual_rainforest.core.axes import AxisValidator
     from virtual_rainforest.core.grid import Grid
 
@@ -19,8 +19,7 @@ def test_AxisValidator_registration_bad_core_axis():
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
 
-            core_axis = ""
-            dim_names = {"test"}
+            dim_names = {"valid"}
 
             def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
                 return True
@@ -30,11 +29,11 @@ def test_AxisValidator_registration_bad_core_axis():
             ) -> DataArray:
                 return value
 
-    assert str(excep.value) == "Core axis name cannot be an empty string."
+    assert str(excep.value) == "Class attribute core_axis not set."
 
 
-def test_AxisValidator_registration_bad_dim_names():
-    """Simple test of AxisValidator registration."""
+def test_AxisValidator_registration_dimnames_not_set():
+    """Test of AxisValidator registration exceptinos."""
     from virtual_rainforest.core.axes import AxisValidator
     from virtual_rainforest.core.grid import Grid
 
@@ -44,8 +43,7 @@ def test_AxisValidator_registration_bad_dim_names():
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
 
-            core_axis = "failing_test"
-            dim_names = {}
+            core_axis = "valid"
 
             def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
                 return True
@@ -55,7 +53,57 @@ def test_AxisValidator_registration_bad_dim_names():
             ) -> DataArray:
                 return value
 
-    assert str(excep.value) == "AxisValidator dim names cannot be an empty set."
+    assert str(excep.value) == "Class attribute dim_names not set."
+
+
+@pytest.mark.parametrize(
+    argnames="axis_val,dimnames_val,excep_str",
+    argvalues=[
+        (
+            "",
+            {"ok"},
+            "Class attribute core_axis is not a string or is an empty string.",
+        ),
+        (
+            123,
+            {"ok"},
+            "Class attribute core_axis is not a string or is an empty string.",
+        ),
+        (
+            "ok",
+            123,
+            "Class attribute dim_names is not a set of strings.",
+        ),
+        (
+            "ok",
+            {123},
+            "Class attribute dim_names is not a set of strings.",
+        ),
+    ],
+)
+def test_AxisValidator_registration_exceptions(axis_val, dimnames_val, excep_str):
+    """Test of AxisValidator registration exceptinos."""
+    from virtual_rainforest.core.axes import AxisValidator
+    from virtual_rainforest.core.grid import Grid
+
+    # Registered correctly
+    with pytest.raises(ValueError) as excep:
+
+        # Create a new failing subclass.
+        class TestAxis(AxisValidator):
+
+            core_axis = axis_val
+            dim_names = dimnames_val
+
+            def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+                return True
+
+            def run_validation(
+                self, value: DataArray, grid: Grid, **kwargs: Any
+            ) -> DataArray:
+                return value
+
+    assert str(excep.value) == excep_str
 
 
 def test_AxisValidator_registration(new_axis_validators):
