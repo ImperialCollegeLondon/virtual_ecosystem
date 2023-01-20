@@ -11,7 +11,11 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
-import virtual_rainforest as vr  # noqa: E402
+# Import Matplotlib to avoid this message in notebooks:
+# "Matplotlib is building the font cache; this may take a moment."
+import matplotlib.pyplot  # noqa: F401
+
+import virtual_rainforest as vr
 
 version = vr.__version__
 release = version
