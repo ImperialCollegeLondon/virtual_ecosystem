@@ -39,15 +39,24 @@ working with data using Python are shown below.
 
 One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to
 automatically validate data before it is added to the `Data` instance. Validation is
-applied along a set of **core axes** used in the simulation. Each core axis has a set of
-validators: each validator in the set detects a possible data configuration and then
-runs code to validate data in that configuration. The validation process is primarily
-intended to check that provided data is congruent with the configuration of a particular
-simulation and to map the data onto a core axis.
+applied along a set of **core axes** used in the simulation. For a given core axis:
 
-The validators use the dimension names of input data to detect if that data should be
-validated on a particular axis. For example, the `x` and `y` dimension names are used to
-trigger validation on the `spatial` core axis.
+* The dimension names of a dataset are used to identify if data should be validated on
+  that axis. For example, a dataset with `x` and `y` dimensions will be validated
+  on the `spatial` core axis.
+
+* The axis will have a set of defined validators, which are provided to handles different
+  possible data configurations. For example, there is a specific `spatial` validator
+  used to handle a dataset with `x` and `y` dimensions but no coordinate values.
+
+* When a dataset is checked against a core axis, the validation checks to see that one
+  of those validators applies to the actual configuration of the data, and then runs the
+  specific validation for that configuration.
+
+The validation process is primarily intended to check that the sizes or coordinates of
+the dimensions of provided datasets are congruent with the configuration of a particular
+simulation. Validators may also standardise or subset input datasets to map them onto a
+particular axis configuration.
 
 For more details on the different core axes and the alternative mappings applied by
 validators see the [core axis](axes.md) documentation.
@@ -58,12 +67,16 @@ A  {class}`~virtual_rainforest.core.data.Data` instance is created using informa
 that provides information on the core configuration of the simulation. At present, this
 is just the spatial grid being used.
 
-```{code-cell} ipython3
+```{code-cell}
+from pathlib import Path
+
+import tomli
+import numpy as np
+from xarray import DataArray
+
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.axes import *
-from xarray import DataArray
-import numpy as np
 
 # Create a simple default grid and a Data instance
 grid = Grid()
@@ -96,14 +109,14 @@ Adding a  DataArray to a {class}`~virtual_rainforest.core.data.Data` method take
 existing DataArray object and then uses the built in validation to match the data onto
 core axes. So, for example, the grid used above has a spatial resolution and size:
 
-```{code-cell} ipython3
+```{code-cell}
 grid
 ```
 
 One of the validation routines for the core spatial axis takes a DataArray with `x` and
 `y` coordinates and checks that the data covers all the cells in a square grid:
 
-```{code-cell} ipython3
+```{code-cell}
 temperature_data = DataArray(
     np.random.normal(loc=20.0, size=(10, 10)),
     name="temperature",
@@ -115,21 +128,25 @@ temperature_data.plot();
 
 That data array can then be added to the  loaded and validated:
 
-```{code-cell} ipython3
+```{code-cell}
 data["temperature"] = temperature_data
 ```
 
 The representation of the {class}`virtual_rainforest.core.data.Data` instance now shows
 the loaded variables:
 
-```{code-cell} ipython3
+```{code-cell}
 data
 ```
 
 A variable can be accessed from the `data` object using the variable name as a key, and
 the data is returned as an :class:`xarray.DataArray` object.
 
-```{code-cell} ipython3
+Note that the `x` and `y` coordinates have been mapped onto the internal `cell_id`
+dimension used to label the different grid cells (see the [Grid](./grid.md)
+documentation for details).
+
+```{code-cell}
 # Get the temperature data
 loaded_temp = data["temperature"]
 
@@ -139,6 +156,68 @@ print(loaded_temp)
 You can check whether a particular variable has been validated on a given core axis
 using the {meth}`~virtual_rainforest.core.data.Data.on_core_axis` method:
 
-```{code-cell} ipython3
+```{code-cell}
 data.on_core_axis("temperature", "spatial")
+```
+
+### Loading data from a file
+
+Data can be loaded directly from a file by providing a path to a supported file
+format and the name of a variable stored in the file. In this example below, the
+NetCDF file contains a variable `temp` with dimensions `x` and `y`, both of which
+are of length 10: it contains a 10 by 10 grid that maps onto the shape of the
+configured grid.
+
+```{code-cell}
+# Load data from a file
+file_path = Path("../../data/xy_dim.nc")
+data.load_from_file(file_path, file_var_name="temp")
+```
+
+```{code-cell}
+data
+```
+
+```{code-cell}
+data.on_core_axis("temp", "spatial")
+```
+
+### Loading data from a configuration
+
+The configuration files for a Virtual Rainforest simulation can include a data
+configuration section. This can be used to automatically load multiple datasets into
+a Data object. The configuration file is TOML formatted and should contain an entry
+like the example below for each variable to be loaded.
+
+```toml
+[[core.data.variable]]
+file="'../../data/xy_dim.nc'"
+file_var_name="temp"
+data_var_name="another_name"
+```
+
+The `data_var_name` option in the configuration is used to store the dataset in the Data
+object under a different variable name from the source file.
+
+To load data from a configuration file, the file is first read from the TOML source:
+
+```{code-cell}
+data_toml = '''[[core.data.variable]]
+file="../../data/xy_dim.nc"
+file_var_name="temp"
+data_var_name="another_name"'''
+
+data_config = tomli.loads(data_toml)
+
+print(data_config)
+```
+
+The `data` section can then be passed to the `load_data_config` method:
+
+```{code-cell}
+data.load_data_config(data_config["core"]["data"])
+```
+
+```{code-cell}
+data
 ```

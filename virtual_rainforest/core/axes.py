@@ -80,7 +80,7 @@ class AxisValidator(ABC):
     """Class attribute giving the name of the core axis for an AxisValidator."""
 
     dim_names: set[str]
-    """Class attribute giving the dimension names for and AxisValidator."""
+    """Class attribute giving the dimension names for an AxisValidator."""
 
     def __init__(self) -> None:
         super().__init__()
