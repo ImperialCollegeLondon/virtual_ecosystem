@@ -90,7 +90,7 @@ structure is as follows:
 
 Note that the properties for each variable in the configuration file are just the
 arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
-configurations must not contain repeated data variable names.  The `data_var_name` is
+configurations must not contain repeated data variable names.  The ``data_var_name`` is
 optional and is used to change the variable name used in the file to a different value
 to be used within the simulation.
 """  # noqa: D205

@@ -13,13 +13,14 @@ The :class:`~virtual_rainforest.core.axes.AxisValidator` abstract base class pro
 extensible framework for validating data arrays. Each subclass of the base class defines
 a particular core axis along with the name or names of dimensions in the input array
 that are expected to map onto that axis. So, for example, a validator can support the
-`spatial` axis using the `x` and `y` dimensions. Each individual subclass provides
+``spatial`` axis using the ``x`` and ``y`` dimensions. Each individual subclass provides
 bespoke methods to test whether that validator can be applied to an input data array and
 then a validation routine to apply when it can.
 
 When new :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses are defined,
-they are automatically added to the AXIS_VALIDATORS registry. This maintains a list of
-the validators defined for each core axis.
+they are automatically added to the
+:attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. This maintains a list
+of the validators defined for each core axis.
 
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
@@ -43,7 +44,7 @@ The 'spatial' axis
 The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for the
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
-:class:`~virtual_rainforest.core.grid.Grid` instance for the simulation.
+:class:`~virtual_rainforest.core.grid.Grid` instance for the simulation. `x`
 """  # noqa: D205
 
 from abc import ABC, abstractmethod
@@ -59,10 +60,10 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 class AxisValidator(ABC):
     """The AxisValidator abstract base class.
 
-    This ABC provides the structure for axis validators. These are used to check that a
-    ``DataArray`` to be added to a ``Data`` instance is congruent with the configuration
-    of a virtual rainforest simulation. The base class provides abstract methods that
-    provide the following functionality:
+    This abstract base class provides the structure for axis validators. These are used
+    to check that a ``DataArray`` to be added to a ``Data`` instance is congruent with
+    the configuration of a virtual rainforest simulation. The base class provides
+    abstract methods that provide the following functionality:
 
     * :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`: test that a
       given ``AxisValidator`` subclass can be applied to the inputs.
@@ -160,7 +161,7 @@ contains all of AxisValidator subclasses that apply to a particular core axis, a
 core axis names are used as the key to these lists.
 
 Users defined AxisValidator subclasses will be automatically added to this registry by
-the `__subclass_init__` method.
+the ``__subclass_init__`` method.
 """
 
 
