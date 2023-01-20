@@ -64,16 +64,15 @@ class AxisValidator(ABC):
     virtual rainforest simulation. The base class provides abstract methods that provide
     the following functionality:
 
-    * Test if the validator subclass can be applied to a particular DataArray
+    * Test if a given AxisValidator subclass can be applied to a particular DataArray
       (:meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`).
-    * Run any appropriate validation on DataArrays that pass the validation test
+    * Run appropriate validation and standardisation on a DataArray.
       (:meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`).
 
     The :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate` method should
     be used first to check that a particular `DataArray` can be validated, and then the
     :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation` method can be
-    used to validate that input if appropriate. The method also sets the attributes of
-    validated DataArrays to record that validation has been passed on the core axis.
+    used to validate that input if appropriate.
     """
 
     core_axis: str = ""
@@ -87,8 +86,14 @@ class AxisValidator(ABC):
         """Adds new subclasses to the AxisValidator registry.
 
         When new subclasses are created this method automatically extends the
-        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. The subclass is
-        added to the list of AxisValidators that apply to the subclass core axis.
+        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
+        are arranged in the registry dictionary as lists keyed under core axis names,
+        and the core axis name for a given subclass is set in the  subclass
+        :attr:`~virtual_rainforest.core.axes.AxisValidator.AxisValidator.core_axis`
+        class attribute.
+
+        Raises:
+            Value Error: if the subclass attributes are invalid.
         """
 
         if cls.core_axis == "":
@@ -102,37 +107,48 @@ class AxisValidator(ABC):
         else:
             AXIS_VALIDATORS[cls.core_axis] = [cls]
 
-        # Copy ABC docstrings to the subclass
-        cls.can_validate.__doc__ = AxisValidator.can_validate.__doc__
-        cls.run_validation.__doc__ = AxisValidator.run_validation.__doc__
-
         LOGGER.debug("Adding '%s' AxisValidator: %s", cls.core_axis, cls.__name__)
 
     @abstractmethod
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
-        """Check the validator can validate a given DataArray.
+        """Check if an AxisValidator subclass applies to inputs.
 
-        This method checks if the input DataArray includes dimensions mapping onto the
-        core axis for this AxisValidator and any further checks on whether this specific
-        validator for the core axis can be applied.
+        A given AxisValidator subclass must provide a `run_validation` method that
+        defines data validation that should be applied to the inputs. However, the
+        validation for a particular subclass will only apply to inputs with particular
+        features, such as an array with a given dimension name or a set grid type.
+
+        In a subclass, the implementation of this method should check whether the
+        validation implemented in `run_validation` _can_ be applied to the inputs.
 
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
             kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if the `run_validation` method of the subclass can be
+            applied to the inputs.
         """
 
     @abstractmethod
     def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
         """Validate the input DataArray.
 
-        This method defines the validation steps to be applied if the input DataArray
-        can be validated by this AxisValidator.
+        The implementation for an AxisValidator subclass should define a set of checks
+        on the inputs that are used to validate that the input DataArray value is
+        congruent with the simulation configuration. The method can also perform
+        standardisation and return a modified input value that has been aligned to the
+        simulation structure.
 
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
             kwargs: Other configuration details to be used.
+
+        Returns:
+            A DataArray that passes validation, possibly modified to align with internal
+            data structures.
         """
 
 
