@@ -15,20 +15,32 @@ transfer within the canopy and boundary layer.
 Heat balance equations for each canopy layer are then linearized, enabling simultaneous
 calculation of leaf and air temperatures. Time-dependant differential equations for each
 canopy and soil node are then specified and storage and simultaneous exchanges of heat
-and vapour between each layer then computed. The model returns a time-series of
+and vapor between each layer then computed. The model returns a time-series of
 temperature and humidity at user-specified heights or depths.
 """
 
-from typing import Any, Dict, Optional
 
 import dummy_constants as C
 import dummy_data as data  # external driving data at reference height/depth
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.model import InitialisationError
+
+# this will link to other modules, structure to be decided, could be in `data`
+# at the moment 1 cell_id, 3 canopy layers, 2 soil layers
 # from plants import leaf_area_index, canopy_height, absorbed_radiation
+leaf_area_index = np.ones(3, dtype=np.float32)
+canopy_height = np.array(20.0, dtype=np.float32)
+absorbed_radiation = np.array(100.0, dtype=np.float32)  # NOT for initialisation
+
 # from radiation import topofcanopy_radiation
+topofcanopy_radiation = np.array(350.0, dtype=np.float32)
+
 # from wind import wind_above_canopy, wind_below_canopy
+wind_above_canopy = np.array(2.0, dtype=np.float32)
+wind_below_canopy = np.ones(3, dtype=np.float32)
 
 
 class EnergyBalance:
@@ -37,20 +49,22 @@ class EnergyBalance:
     def __init__(
         self,
         soil_type: NDArray[np.string_],
-        soil_layers: NDArray[np.int32] = np.array(
-            2, dtype=np.int32
-        ),  # optional from config
-        canopy_layers: NDArray[np.int32] = np.array(
-            3, dtype=np.int32
-        ),  # optional from config
+        soil_layers: NDArray[np.int32] = np.array(2, dtype=np.int32),  # from config?
+        canopy_layers: NDArray[np.int32] = np.array(3, dtype=np.int32),  # from config?
         initial_canopy_height: NDArray[np.float32] = np.array(20.0, dtype=np.float32),
     ) -> None:
-        """Initializes point-based energy_balance method."""
+        """Initializes point-based energy_balance method.
+
+        This function sets the boundary conditions for the vertical profile and loads
+        the soil parameters.
+        """
 
         # set boundary conditions for vertical profile
         self.soil_type = soil_type
         """Soil type"""
-        self.soil_depth = data["soil_depth"]
+        self.soil_parameters = data.soil_parameters[soil_type]
+        """Dict of soil type specific soil parameters."""
+        self.soil_depth = data.data["soil_depth"]
         """Soil depth [m]"""
         self.soil_layers = soil_layers
         """Number of soil layers. Currently static."""
@@ -73,11 +87,11 @@ class EnergyBalance:
         self.atmospheric_pressure: NDArray[np.float32]
         """Atmospheric pressure [kPa]"""
         self.air_conductivity: NDArray[np.float32]
-        """Vertical profile of air conductivities []"""
+        """Vertical profile of air conductivities [mol m-2 s-1]"""
         self.leaf_conductivity: NDArray[np.float32]
-        """Vertical profile of leaf conductivities []"""
+        """Vertical profile of leaf conductivities [mol m-2 s-1]"""
         self.air_leaf_conductivity: NDArray[np.float32]
-        """Vertical profile of air-leaf conductivities []"""
+        """Vertical profile of air-leaf conductivities [mol m-2 s-1]"""
         self.canopy_node_heights: NDArray[np.float32]
         """Canopy node heights [m]"""
         self.soil_node_depths: NDArray[np.float32]
@@ -93,50 +107,52 @@ class EnergyBalance:
         self.ground_heat_flux: NDArray[np.float32]
         """Ground Heat flux [J m-2]"""
         self.diabatic_correction_factor: NDArray[np.float32]
-        """Diabatic correction factor []"""
-        self.soil_parameters: Dict[str, Any]
-        """Dictionary of soil parameters for each grid cell."""
+        """Diabatic correction factor [-]"""
 
-    def initialise_vertical_profile(  # this could later move to AbioticModel
+    def initialise_vertical_profile(  # this could later move to AbioticModel ini step
         self,
-        leaf_area_index: Optional[NDArray[np.float32]],
-        topofcanopy_radiation: NDArray[np.float32] = np.array(350.0, dtype=np.float32),
+        leaf_area_index: NDArray[np.float32],
+        topofcanopy_radiation: NDArray[np.float32],
         interpolation_method: str = "linear",
     ) -> None:
         """Generates a set of initial climate, conductivity, and soil parameters.
 
-        This function populates the followinf attributes for running the first time step
-        of the model:
+        This function populates the following attributes for running the first time step
+        of the energy balance:
         * data_t (climate input data at current time step),
-        * absorbed_radiation (this is an input from the plant module), [J m-2]
+        * absorbed_radiation (after the first time step, this is an input from the plant
+            module), [J m-2]
         * air_temperature, soil_temperature, canopy_temperature, [C]
         * relative_humidity, [%]; atmospheric_pressure, [kPa],
         * air_conductivity, leaf_conductivity, air_leaf_conductivity,
         * canopy_node_heights, soil_node_depths, height_of_above_canopy, [m]
         * canopy_wind_speed, [m s-1]
         * sensible/latent/ground heat flux, [J m-2]
-        * adiabatic correction factor, and
-        * soil parameters
+        * adiabatic correction factor, [-]
 
         Args:
-            leaf_area_index: Leaf area index [m m-1], default = 1
+            leaf_area_index: Leaf area index [m m-1]
             topofcanopy_radiation: top of canopy shortwave downward radiation [J m-2]
             interpolation_method: method to interpolate air and soil temperature profile
                 default = 'linear'
         """
 
         # select first timestep in data set
-        self.data_t = data["time_1"]
+        self.data_t = data.data["time_1"]
 
-        leaf_area_index = np.ones(self.canopy_layers)
+        # check that leaf area index has correct number of layers
+        if len(leaf_area_index) != self.canopy_layers:
+            log_and_raise(
+                "Dimension mismatch for initial leaf area index and canopy layers!",
+                InitialisationError,
+            )
 
         # set initial absorbed radiation
         self.absorbed_radiation = self.calc_initial_absorbed_radiation(
             leaf_area_index, topofcanopy_radiation
         )
-        # TODO check number of layers correct
 
-        # interpolate initial temperature profile, linear, could be more realistic
+        # interpolate initial temperature profile
         self.air_temperature = self.temperature_interpolation(
             data=self.data_t, option=interpolation_method
         )[(int(self.soil_layers)) : int((self.canopy_layers + self.soil_layers))]
@@ -147,15 +163,13 @@ class EnergyBalance:
 
         self.canopy_temperature = (
             self.air_temperature
-            + C.LEAF_TEMPERATURE_INI_FACTOR
-            * self.absorbed_radiation  # TODO this needs vertical levels
+            + C.LEAF_TEMPERATURE_INI_FACTOR * self.absorbed_radiation
         )
 
         # initiate relative humidity and atmospheric pressure
         self.relative_humidity = np.repeat(
             self.data_t["relative_humidity_2m"], self.canopy_layers
         )
-
         self.atmospheric_pressure = self.data_t["atmospheric_pressure_2m"]
 
         # set initial conductivities
@@ -185,43 +199,45 @@ class EnergyBalance:
         )
 
         # set initial heights
-        self.canopy_node_heights = [
+        self.canopy_node_heights = np.array(
             (x + 0.5) / self.canopy_layers * self.canopy_height
             for x in range(0, self.canopy_layers)
-        ]
+        )
 
-        self.soil_node_depths = [
+        self.soil_node_depths = np.array(
             self.soil_depth
             / (float(self.soil_layers) ** C.SOIL_DIVISION_FACTOR)
             * (x**C.SOIL_DIVISION_FACTOR)
             for x in range(1, self.soil_layers + 1)
-        ]
+        )
 
         self.height_of_above_canopy = self.canopy_height
 
-        self.canopy_wind_speed = [
+        self.canopy_wind_speed = np.array(
             (x / self.canopy_layers) * self.data_t["wind_speed_10m"]
             for x in range(1, self.canopy_layers + 1)
-        ]
+        )
 
         # set initial fluxes
-        self.sensible_heat_flux = np.array(0.0)
-        self.latent_heat_flux = np.zeros(self.canopy_layers)
-        self.ground_heat_flux = np.array(0.0)
-        self.diabatic_correction_factor = np.array(0.0)
+        self.sensible_heat_flux = np.array(0.0, dtype=np.float32)
+        self.latent_heat_flux = np.zeros(self.canopy_layers, dtype=np.float32)
+        self.ground_heat_flux = np.array(0.0, dtype=np.float32)
+        self.diabatic_correction_factor = np.array(0.0, dtype=np.float32)
 
-        # get soil parameters
-        self.soil_parameters = data.soil_parameters[str(self.soil_type)]
+    def calc_energy_balance(self) -> None:
+        """Calculate full energy balance for one time step."""
+        raise NotImplementedError
 
     def update_canopy(
         self,
-        canopy_height: NDArray[np.float32] = np.array(30.0, dtype=np.float32),
-        leaf_area_index: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
-        absorbed_radiation: NDArray[np.float32] = np.array(100.0, dtype=np.float32),
+        canopy_height: NDArray[np.float32],
+        leaf_area_index: NDArray[np.float32],
+        absorbed_radiation: NDArray[np.float32],
     ) -> None:
-        """Update canopy each time step."""
-        self.canopy_height = canopy_height  # input from plant module
-        self.absorbed_radiation = absorbed_radiation  # input from plant module
+        """Update canopy height, leaf area index and absorption at each time step."""
+        self.canopy_height = canopy_height
+        self.latent_heat_flux = leaf_area_index
+        self.absorbed_radiation = absorbed_radiation
 
     def calc_temperature_above_canopy(args) -> None:
         """Calculates temperature above canopy based on logarithmic height profile."""
@@ -329,7 +345,7 @@ class EnergyBalance:
     ) -> NDArray[np.float32]:
         """Calculate initial light absorption profile."""
 
-        initial_absorbed_radiation = np.zeros(self.canopy_layers)
+        initial_absorbed_radiation = np.zeros(self.canopy_layers, dtype=np.float32)
         initial_absorbed_radiation[0] = topofcanopy_radiation * (
             1 - np.exp(-C.LIGHT_EXCTINCTION_COEFFICIENT * leaf_area_index[0])
         )
