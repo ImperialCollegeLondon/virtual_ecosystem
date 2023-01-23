@@ -19,7 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        # Pinned to fix problem with macosx and older python versions (change when fixed)
         python-version: [ "3.9" , "3.10", "3.11" ]
 
     steps:
