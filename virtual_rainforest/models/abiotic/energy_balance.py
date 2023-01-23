@@ -9,9 +9,8 @@ Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
 
 Above-canopy temperature, humidity and wind profiles (see wind.py) are calculated using
 K-theory with estimates of bulk aerodynamic resistance derived from canopy properties.
-Within the canopy, radiation transmission (see radiation.py) and wind profiles are also
-estimated from canopy properties. These, in turn, are used to estimate turbulent
-transfer within the canopy and boundary layer.
+Within the canopy, radiation transmission (see radiation.py) and wind profiles are used
+to estimate turbulent transfer within the canopy and boundary layer.
 Heat balance equations for each canopy layer are then linearized, enabling simultaneous
 calculation of leaf and air temperatures. Time-dependant differential equations for each
 canopy and soil node are then specified and storage and simultaneous exchanges of heat
@@ -28,7 +27,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import log_and_raise
 from virtual_rainforest.core.model import InitialisationError
 
-# this will link to other modules, structure to be decided, could be in `data`
+# this will link to other modules, structure to be decided, could be in `data` object
 # at the moment 1 cell_id, 3 canopy layers, 2 soil layers
 # from plants import leaf_area_index, canopy_height, absorbed_radiation
 leaf_area_index = np.ones(3, dtype=np.float32)
@@ -49,8 +48,8 @@ class EnergyBalance:
     def __init__(
         self,
         soil_type: NDArray[np.string_],
-        soil_layers: NDArray[np.int32] = np.array(2, dtype=np.int32),  # from config?
-        canopy_layers: NDArray[np.int32] = np.array(3, dtype=np.int32),  # from config?
+        soil_layers: int = 2,  # from config?
+        canopy_layers: int = 3,  # from config?
         initial_canopy_height: NDArray[np.float32] = np.array(20.0, dtype=np.float32),
     ) -> None:
         """Initializes point-based energy_balance method.
