@@ -38,7 +38,7 @@ import pint
 from numpy import timedelta64
 
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER  # , log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 # plant and soil classes are dummies for testing functionality w/in the animal module

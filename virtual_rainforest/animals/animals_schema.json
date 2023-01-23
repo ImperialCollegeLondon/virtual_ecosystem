@@ -1,0 +1,13 @@
+{
+    "type": "object",
+    "properties": {
+        "animal": {
+            "description": "Configuration settings for the animal module",
+            "type": "object",
+            "properties": {}
+        }
+    },
+    "required": [
+        "animal"
+    ]
+}
