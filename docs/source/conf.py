@@ -44,7 +44,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
-    # "sphinx.ext.autosectionlabel",
+    # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
     "sphinxcontrib.bibtex",
     "myst_nb",
     # "sphinx_astrorefs",  # Gives author year references

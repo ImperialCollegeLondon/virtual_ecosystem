@@ -10,16 +10,20 @@ The Data class
 The core :class:`~virtual_rainforest.core.data.Data` class is used to store data for the
 variables used in a simulation. It can be used both for data from external sources - for
 example, data used to set the initial environment or time series of inputs - and for
-internal variables used in the simulation. The core of the class is an
-:class:`~xarray.DataSet` object, which is accessible as the
-:attr:`~virtual_rainforest.core.data.Data.data` attribute of the class. This attribute
-can be used directly to access all of the methods of the :class:`~xarray.DataSet` class.
+internal variables used in the simulation. The class behaves like a dictionary - so data
+can be retrieved and set using ``data_object['varname']`` - but also provide validation
+for data being added to the object.
 
-The function of the :class:`~virtual_rainforest.core.data.Data` class itself is to
-automatically validate datasets against the configuration of a simulation before they
-are added to the :attr:`~virtual_rainforest.core.data.Data.data` instance. It also
-stores information about the validation process so that models can confirm that required
-data has been successfully validated.
+All data added to the class is stored in a :class:`~xarray.DataSet` object, and data
+extracted from the object will be a :class:`~xarray.DataArray`. The `Dataset` can also
+be accessed directly using the :attr:`~virtual_rainforest.core.data.Data.data` attribute
+of the class instance to use any of the :class:`~xarray.DataSet` class methods.
+
+When data is added to a :class:`~virtual_rainforest.core.data.Data` instance, it is
+automatically validated against the configuration of a simulation before being added to
+the :attr:`~virtual_rainforest.core.data.Data.data` attribute. The validation process
+also stores information that allows models to can confirm that a given variable has been
+successfully validated.
 
 The core of the :class:`~virtual_rainforest.core.data.Data` class is the
 :class:`~virtual_rainforest.core.data.Data.__setitem__` method. This method provides the
@@ -179,11 +183,12 @@ class Data:
     def __setitem__(self, key: str, value: DataArray) -> None:
         """Load a data array into a Data instance.
 
-        This method takes an input DataArray object and then matches the dimension and
-        coordinates signature of the array to find a loading routines given the grid
-        used in the Data instance. That routine is used to validate the DataArray and
-        then add the DataArray to the Data dictionary or replace the existing DataArray
-        under that key.
+        This method takes an input {class}`~xarray.DataArray` object and then matches
+        the dimension and coordinates signature of the array to find a loading routine
+        given the grid used in the {class}`virtual_rainforest.core.data.Data` instance.
+        That routine is used to validate the DataArray and then add the DataArray to the
+        {class}`~xarray.Dataset` object or replace the existing DataArray under that
+        key.
 
         Note that the DataArray name is expected to match the standard internal variable
         names used in Virtual Rainforest.
@@ -267,7 +272,10 @@ class Data:
         if axis_name not in AXIS_VALIDATORS:
             raise ValueError(f"Unknown core axis name: {axis_name}")
 
-        return False if self.variable_validation[var_name][axis_name] is None else True
+        if self.variable_validation[var_name][axis_name] is None:
+            return False
+
+        return True
 
     def load_from_file(
         self,
@@ -316,16 +324,10 @@ class Data:
 
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
-        data_config dictionary can contain lists of variables under the following
-        keys:
-
-        * ``variable``: These are data elements loaded from a provided file. Each
-          element in the list should be a dictionary providing the path to the file
-          (``file``), the name of the variable within the file (``file_var_name``) and
-          optionally a different variable name to be used internally
-          (``data_var_name``).
-        * ``constant``: TODO
-        * ``generator``: TODO
+        data_config dictionary can contain a 'variable' key containing an array of
+        dictionaries with the following structure: the path to the file (``file``), the
+        name of the variable within the file (``file_var_name``) and optionally a
+        different variable name to be used internally (``data_var_name``).
 
         Args:
             data_config: A data configuration dictionary
@@ -365,7 +367,7 @@ class Data:
                         data_var_name=each_var.get("data_var_name"),
                     )
                 except Exception as err:
-                    LOGGER.critical(str(err))
+                    LOGGER.error(str(err))
                     clean_load = False
 
         if "constant" in data_config:
