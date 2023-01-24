@@ -2,7 +2,7 @@
 
 This module calculates the energy balance for the Virtual Rainforest. The basic
 assumption of this approach is that below-canopy heat and vapor exchange attain steady
-state, and the temperatures and soil moisture are determined using energy balance
+state, and that temperatures and soil moisture are determined using energy balance
 equations that sum to zero. The approach is based on Maclean et al, 2021: Microclimc: A
 mechanistic model of above, below and within-canopy microclimate. Ecological Modelling
 Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
@@ -148,17 +148,18 @@ class EnergyBalance:
 
         # set initial absorbed radiation
         self.absorbed_radiation = self.calc_initial_absorbed_radiation(
-            leaf_area_index, topofcanopy_radiation
+            topofcanopy_radiation=topofcanopy_radiation,
+            leaf_area_index=leaf_area_index,
         )
 
         # interpolate initial temperature profile
         self.air_temperature = self.temperature_interpolation(
             data=self.data_t, option=interpolation_method
-        )[(int(self.soil_layers)) : int((self.canopy_layers + self.soil_layers))]
+        )[(self.soil_layers) : (self.canopy_layers + self.soil_layers)]
 
         self.soil_temperature = self.temperature_interpolation(
             data=self.data_t, option=interpolation_method
-        )[0 : int(self.soil_layers)][::-1]
+        )[0 : self.soil_layers][::-1]
 
         self.canopy_temperature = (
             self.air_temperature
@@ -345,12 +346,8 @@ class EnergyBalance:
         """Calculate initial light absorption profile."""
 
         initial_absorbed_radiation = np.zeros(self.canopy_layers, dtype=np.float32)
-        initial_absorbed_radiation[0] = topofcanopy_radiation * (
-            1 - np.exp(-C.LIGHT_EXCTINCTION_COEFFICIENT * leaf_area_index[0])
-        )
-        topofcanopy_radiation = topofcanopy_radiation - initial_absorbed_radiation[0]
 
-        for i in range(1, self.canopy_layers - 1):
+        for i in range(0, self.canopy_layers - 1):
             initial_absorbed_radiation[i] = topofcanopy_radiation * (
                 1 - np.exp(-C.LIGHT_EXCTINCTION_COEFFICIENT * leaf_area_index[i])
             )
