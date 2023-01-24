@@ -64,9 +64,11 @@ The data has a `cell_id` dimension without coordinates, any grid geometry.
   configured grid and is assumed to be in the same order.
 
 The data has a `cell_id` dimension with coordinate values, any grid geometry.
-: The coordinate values associated with the `cell_id` dimension must include all of
-the `cell_id` values in the configured grid. The data is reordered to map onto the grid
-cell id values and any additional cell id values in the data are dropped.
+: In this case, the dataset associates `cell_id` values with positions along the
+`cell_id` dimension. Those might simply be `0` to `ncells`, but could be in a different
+order. Those values associated with the `cell_id` dimension must then include all of the
+`cell_id` values defined in the configured grid. The data is reordered to map onto the
+grid cell id values and any additional cell id values in the data are dropped.
 
 The data has `x` and `y` dimensions, square grid geometry.
 : In this case, the `x` and `y` dimensions provide the shape of the grid - for example -
