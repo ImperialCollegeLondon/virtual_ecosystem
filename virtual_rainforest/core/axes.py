@@ -489,10 +489,11 @@ class Spat_XY_Dim_Square(AxisValidator):
     """Validate *x* and *y* dimensions on the *spatial* core axis on a square grid.
 
     Applies to:
-        An input DataArray with ``x`` and ``y`` dimensions is assumed to provide a
-        square grid of the same shape as the cell grid defined in a
-        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation with a
-        ``square`` cell geometry.
+        An input DataArray with ``x`` and ``y`` dimensions specifies the size of the
+        array along those dimensions but does not provide coordinates for the cells. The
+        input is then  assumed to provide an array with the same shape as a the cell
+        grid of a :class:`~virtual_rainforest.core.grid.Grid` configured for the
+        simulation with a ``square`` cell geometries.
 
     This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
     dimension used in the :mod:`~virtual_rainforest.core.grid` module.
