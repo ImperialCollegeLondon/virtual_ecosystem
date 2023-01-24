@@ -332,11 +332,13 @@ class Spat_CellId_Dim_Any(AxisValidator):
     """Validate *cell_id* dimension on the *spatial* core axis.
 
     Applies to:
-        An input DataArray with a ``cell_id`` dimension is assumed to provide data for
+        The input DataArray for this validator has a ``cell_id`` dimension but there are
+        no ``cell_id`` values provided as coordinates along that dimension. The
+        ``cell_id`` dimension name means that the array is assumed to provide data for
         the cells defined in the :class:`~virtual_rainforest.core.grid.Grid` configured
-        for the simulation. The data are assumed to be in the same order as the cells in
-        the ``Grid``.  As a one-dimensional array of cells is defined for all grid
-        configurations, this validator does not require a particular grid geometry.
+        for the simulation. The data are then assumed to be in the same order as the
+        cells in the ``Grid``.  As a one-dimensional array of cells is defined for all
+        grid configurations, this validator does not require a particular grid geometry.
     """
 
     core_axis = "spatial"
@@ -549,3 +551,63 @@ class Spat_XY_Dim_Square(AxisValidator):
             x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
             y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
         )
+
+
+class Spat_NoLatLong(AxisValidator):
+    """Validator to trap latitude and longitude dimensions on the spatial core axis.
+
+    Applies to:
+        An input DataArray with dimensions matching any of the common abbreviations for
+        latitude and longitude.
+
+    This validator functions purely to intercept spatial data using a geographic
+    coordinate system and provide a meaningful error.
+    """
+
+    core_axis = "spatial"
+    dim_names = {"lat", "long", "latitude", "longitude"}
+
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
+
+        return self.dim_names.issubset(value.dims)
+
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
+
+        Validation will fail when:
+
+        * the input data array includes any dimension names from the following list:
+          ``lat``, ``long``, ``latitude``, ``longitude``.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
+
+        Returns:
+            The input data array should never return data - it is intended to always
+            raise an error when latitude and longitude coordinates are provided for
+            input data.
+        """
+
+        if self.dim_names.issubset(value.dims):
+
+            used_names = self.dim_names.intersection(value.dims)
+            raise ValueError(
+                f"Data uses a geographic coordinate system: {', '. join(used_names)}"
+            )
+
+        return value
