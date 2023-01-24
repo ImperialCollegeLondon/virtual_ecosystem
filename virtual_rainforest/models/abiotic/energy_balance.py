@@ -5,17 +5,12 @@ assumption of this approach is that below-canopy heat and vapor exchange attain 
 state, and that temperatures and soil moisture are determined using energy balance
 equations that sum to zero. The approach is based on Maclean et al, 2021: Microclimc: A
 mechanistic model of above, below and within-canopy microclimate. Ecological Modelling
-Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567.
+Volume 451, 109567. https://doi.org/10.1016/j.ecolmodel.2021.109567; the details are
+described here [link to general documentation here].
 
-Above-canopy temperature, humidity and wind profiles (see wind.py) are calculated using
-K-theory with estimates of bulk aerodynamic resistance derived from canopy properties.
-Within the canopy, radiation transmission (see radiation.py) and wind profiles are used
-to estimate turbulent transfer within the canopy and boundary layer.
-Heat balance equations for each canopy layer are then linearized, enabling simultaneous
-calculation of leaf and air temperatures. Time-dependant differential equations for each
-canopy and soil node are then specified and storage and simultaneous exchanges of heat
-and vapor between each layer then computed. The model returns a time-series of
-temperature and humidity at user-specified heights or depths.
+In summary, the submodule contains the `Energy_Balance` class and associated functions
+to calculate above and below canopy atmospheric temperature and humidity profiles, soil
+temperatures, and radiative fluxes.
 """
 
 
@@ -27,17 +22,17 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import log_and_raise
 from virtual_rainforest.core.model import InitialisationError
 
-# this will link to other modules, structure to be decided, could be in `data` object
+# this will link to other modules via the `data` object
 # at the moment 1 cell_id, 3 canopy layers, 2 soil layers
-# from plants import leaf_area_index, canopy_height, absorbed_radiation
+# from plants get leaf_area_index, canopy_height, absorbed_radiation
 leaf_area_index = np.ones(3, dtype=np.float32)
 canopy_height = np.array(20.0, dtype=np.float32)
 absorbed_radiation = np.array(100.0, dtype=np.float32)  # NOT for initialisation
 
-# from radiation import topofcanopy_radiation
+# from radiation get topofcanopy_radiation
 topofcanopy_radiation = np.array(350.0, dtype=np.float32)
 
-# from wind import wind_above_canopy, wind_below_canopy
+# from wind get wind_above_canopy, wind_below_canopy
 wind_above_canopy = np.array(2.0, dtype=np.float32)
 wind_below_canopy = np.ones(3, dtype=np.float32)
 
@@ -48,8 +43,8 @@ class EnergyBalance:
     def __init__(
         self,
         soil_type: NDArray[np.string_],
-        soil_layers: int = 2,  # from config?
-        canopy_layers: int = 3,  # from config?
+        soil_layers: int = 2,  # TODO from config
+        canopy_layers: int = 3,  # TODO from config
         initial_canopy_height: NDArray[np.float32] = np.array(20.0, dtype=np.float32),
     ) -> None:
         """Initializes point-based energy_balance method.
@@ -155,11 +150,11 @@ class EnergyBalance:
         # interpolate initial temperature profile
         self.air_temperature = self.temperature_interpolation(
             data=self.data_t, option=interpolation_method
-        )[(self.soil_layers) : (self.canopy_layers + self.soil_layers)]
+        )[int(self.soil_layers) :]
 
         self.soil_temperature = self.temperature_interpolation(
             data=self.data_t, option=interpolation_method
-        )[0 : self.soil_layers][::-1]
+        )[int(self.soil_layers) - 1 :: -1]
 
         self.canopy_temperature = (
             self.air_temperature
@@ -199,9 +194,10 @@ class EnergyBalance:
         )
 
         # set initial heights
-        self.canopy_node_heights = np.array(
-            (x + 0.5) / self.canopy_layers * self.canopy_height
-            for x in range(0, self.canopy_layers)
+        self.canopy_node_heights = (
+            (np.arange(self.canopy_layers) + 0.5)
+            / self.canopy_layers
+            * self.canopy_height
         )
 
         self.soil_node_depths = np.array(
@@ -214,8 +210,9 @@ class EnergyBalance:
         self.height_of_above_canopy = self.canopy_height
 
         self.canopy_wind_speed = np.array(
-            (x / self.canopy_layers) * self.data_t["wind_speed_10m"]
-            for x in range(1, self.canopy_layers + 1)
+            (np.arange(self.canopy_layers) + 1)
+            / self.canopy_layers
+            * self.data_t["wind_speed_10m"]
         )
 
         # set initial fluxes
