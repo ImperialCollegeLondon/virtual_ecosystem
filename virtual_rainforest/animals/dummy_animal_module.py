@@ -35,7 +35,7 @@ from typing import Any, List
 
 # import random
 import pint
-from numpy import timedelta64
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER  # , log_and_raise
@@ -64,12 +64,24 @@ class AnimalModel(BaseModel, model_name="animal"):
 
     name = "animal"
 
-    def __init__(self, update_interval: timedelta64):
+    def __init__(
+        self,
+        update_interval: timedelta64,
+        start_time: datetime64,
+        # no_layers: int,
+        **kwargs: Any,
+    ):
+
         self.animal_list: List[Animal] = []
         self.plant_list: List[Plant] = []
         self.soil_list: List[SoilPool] = []
         self.carcass_list: List[CarcassPool] = []
         self.grid = Grid(grid_type="square", cell_area=9, cell_nx=3, cell_ny=3)
+
+        super().__init__(update_interval, start_time, **kwargs)
+        # self.no_layers = int(no_layers)
+        # Save variables names to be used by the __repr__
+        # self._repr.append("no_layers")
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> BaseModel:
@@ -89,11 +101,12 @@ class AnimalModel(BaseModel, model_name="animal"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
+            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(raw_interval.magnitude), "m")
+            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+            start_time = datetime64(config["core"]["timing"]["start_time"])
         except (
             ValueError,
             pint.errors.DimensionalityError,
@@ -111,7 +124,7 @@ class AnimalModel(BaseModel, model_name="animal"):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(update_interval)
+            return cls(update_interval, start_time)
         else:
             raise InitialisationError()
 
@@ -125,7 +138,7 @@ class AnimalModel(BaseModel, model_name="animal"):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def solve(self) -> None:
+    def update(self) -> None:
         """Placeholder function to solve the soil model."""
 
     def cleanup(self) -> None:
@@ -373,6 +386,7 @@ class Animal:
         Returns:
             Modifies the cohort's position by 1 random king-step.
         """
+        # the following is commented out until disersal is reworked for Grid
         # adjacency = {
         #     "g0": ["g1", "g3"],
         #     "g1": ["g0", "g2", "g4"],
