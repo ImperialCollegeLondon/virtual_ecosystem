@@ -106,6 +106,16 @@ team.
 
 ```{eval-rst}
 .. toctree::
+  :maxdepth: 4
+  :caption: Climate data pre-processing
+  :hidden:
+
+  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
+  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
+```
+
+```{eval-rst}
+.. toctree::
   :maxdepth: 0
   :caption: Bibliography
   :hidden:
