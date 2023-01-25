@@ -1,24 +1,31 @@
 """API documentation for the :mod:`core.readers` module.
 *****************************************************
 
-This module handles the registration of functions to read files from different formats
-and convert them into :class:`~xarray.DataArray` objects.
+This module provides the function
+:func:`~virtual_rainforest.core.reader.load_to_dataarray`, which is used to load data
+from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
+can then be added to a :class:`~virtual_rainforest.core.data.Data` instance for use in a
+Virtual Rainforest simulation.
+
+The module also supports the registration of different reader functions, used to convert
+files in different storage formats into a ``DataArray``. The
+:func:`~virtual_rainforest.core.reader.load_to_dataarray` automatically uses an
+appropriate reader based on the file suffix.
 
 The FILE_FORMAT_REGISTRY
 ========================
 
-The :attr:`~virtual_rainforest.core.data.FILE_FORMAT_REGISTRY` is used to register the
+The :attr:`~virtual_rainforest.core.reader.FILE_FORMAT_REGISTRY` is used to register a
 set of known file formats for use in
-:meth:`~virtual_rainforest.core.data.Data.load_from_file`. This registry is extendable,
-so that new functions that implement data loading for a given file format can be
-added to those supported by :meth:`~virtual_rainforest.core.data.Data.load_from_file`.
+:meth:`~virtual_rainforest.core.reader.load_to_dataarray`. This registry is extendable,
+so that new functions that implement data loading for a given file format can be added.
 
 New file format readers are made available using the
-:func:`~virtual_rainforest.core.data.register_file_format_loader` decorator, which needs
-to specify the file formats supported (as a tuple of file suffixes) and then decorate a
-function that returns a :class:`~xarray.DataArray` suitable for validation using
-:func:`~virtual_rainforest.core.axes.validate_dataarray`. For
-example:
+:func:`~virtual_rainforest.core.reader.register_file_format_loader` decorator, which
+needs to specify the file formats supported (as a tuple of file suffixes) and then
+decorates a function that returns a :class:`~xarray.DataArray` that can be added to a
+:class:`~virtual_rainforest.core.data.Data` instance and validated
+using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
 
 .. code-block:: python
 
