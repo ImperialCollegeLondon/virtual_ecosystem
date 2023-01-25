@@ -203,7 +203,11 @@ class Data:
                 "Only DataArray objects can be added to Data instances", TypeError
             )
 
-        # Ensure dataarray name matches the key
+        # Ensure dataarray name matches the key, warning if this overrides a different
+        # existing name for the DataArray
+        if value.name is not None and value.name != key:
+            LOGGER.warn(f"Overriding DataArray name {value.name} with {key}")
+
         value.name = key
 
         if key not in self.data.data_vars:
