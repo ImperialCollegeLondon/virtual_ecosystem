@@ -228,12 +228,10 @@ def test_Data_contains(fixture_data, var_name, expected):
 
 
 @pytest.mark.parametrize(
-    argnames=["name", "exp_error", "exp_msg", "exp_log"],
+    argnames=["name", "exp_log"],
     argvalues=[
         pytest.param(
-            None,
-            does_not_raise(),
-            None,
+            "temp",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
@@ -241,32 +239,16 @@ def test_Data_contains(fixture_data, var_name, expected):
             id="simple_load",
         ),
         pytest.param(
-            "temperature",
-            does_not_raise(),
-            None,
+            "elev",
             (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Renaming file variable 'temp' as 'temperature'"),
-                (INFO, "Adding data array for 'temperature'"),
-            ),
-            id="load_with_rename",
-        ),
-        pytest.param(
-            "existing_var",
-            does_not_raise(),
-            None,
-            (
-                (INFO, "Loading variable 'temp' from file:"),
-                (INFO, "Renaming file variable 'temp' as 'existing_var'"),
-                (INFO, "Replacing data array for 'existing_var'"),
+                (INFO, "Loading variable 'elev' from file:"),
+                (INFO, "Replacing data array for 'elev'"),
             ),
             id="load_and_replace",
         ),
     ],
 )
-def test_Data_load_to_dataarray_naming(
-    caplog, shared_datadir, name, exp_error, exp_msg, exp_log
-):
+def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     """Test the coding of the name handling and replacement."""
 
     # Setup a Data instance to match the example files generated in test_data/
@@ -286,26 +268,17 @@ def test_Data_load_to_dataarray_naming(
     data = Data(grid)
 
     # Create an existing variable to test replacement
-    data["existing_var"] = DataArray(np.arange(100), dims=("cell_id",))
+    data["elev"] = DataArray(np.arange(100), dims=("cell_id",))
     caplog.clear()
 
     # Load the data from file
-    datafile = shared_datadir / "test_data/cellid_dims.nc"
+    datafile = shared_datadir / "test_data/cellid_coords.nc"
 
-    with exp_error as err:
+    data[name] = load_to_dataarray(file=datafile, var_name=name)
 
-        datakey = name or "temp"
-
-        data[datakey] = load_to_dataarray(
-            file=datafile, file_var_name="temp", data_var_name=name
-        )
-
-        # Check the naming has worked and the data are loaded
-        assert datakey in data
-        assert data[datakey].sum() == (20 * 100)
-
-    if err:
-        assert str(err.value) == exp_msg
+    # Check the naming has worked and the data are loaded
+    assert name in data
+    assert data[name].sum() == (20 * 100)
 
     # Check the error reports
     log_check(caplog, exp_log)
