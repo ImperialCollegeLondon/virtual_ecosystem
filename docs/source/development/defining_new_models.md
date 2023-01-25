@@ -34,8 +34,8 @@ from virtual_rainforest.core.model import BaseModel
 
 The new model class is created using a class method, this means that a model name must
 be provided when class inheritance occurs, so that the model can automatically be added
-to the registry under that name. This name does not strictly have to match the
-`self.name` attribute, but it generally should.
+to the registry under that name. N.B. The `self.name` attribute for the class is
+automatically changed to this name.
 
 ```python
 class FreshWaterModel(BaseModel, model_name="freshwater"):
@@ -43,12 +43,7 @@ class FreshWaterModel(BaseModel, model_name="freshwater"):
 
     Args:
         Describe arguments here
-
-    Attributes:
-        name: Names the model that is described
     """
-
-    name = "freshwater"
 ```
 
 With the basic class now defined an `__init__` function should be added to the class.
