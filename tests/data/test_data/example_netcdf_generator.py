@@ -93,6 +93,15 @@ def generate_files() -> None:
             "temp": xarray.DataArray(
                 temp.flatten(), coords=[cell_id], dims=["cell_id"]
             ),
+            "prec": xarray.DataArray(
+                temp.flatten(), coords=[cell_id], dims=["cell_id"]
+            ),
+            "elev": xarray.DataArray(
+                temp.flatten(), coords=[cell_id], dims=["cell_id"]
+            ),
+            "vapd": xarray.DataArray(
+                temp.flatten(), coords=[cell_id], dims=["cell_id"]
+            ),
         }
     )
 

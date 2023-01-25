@@ -159,7 +159,7 @@ def test_load_to_dataarray(
 
     with exp_error as err:
 
-        dataarray = load_to_dataarray(file=datafile, file_var_name="temp")
+        dataarray = load_to_dataarray(file=datafile, var_name="temp")
 
         # Check the data is in fact loaded and that a simple sum of values matches
         dataarray.sum() == exp_sum_val
