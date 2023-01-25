@@ -1,7 +1,7 @@
 """Testing the data loaders."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG
+from logging import CRITICAL, DEBUG, INFO
 
 import pytest
 from xarray import DataArray
@@ -107,3 +107,66 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
 
     # Check the error reports
     log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "filename",
+        "exp_error",
+        "exp_msg",
+        "exp_log",
+        "exp_sum_val",
+    ],
+    argvalues=[
+        pytest.param(
+            "this_data_format.not_handled",
+            pytest.raises(ValueError),
+            "No file format loader provided for .not_handled",
+            ((CRITICAL, "No file format loader provided for .not_handled"),),
+            None,
+            id="unhandled file format",
+        ),
+        pytest.param(
+            "test_data/cellid_dims.nc",
+            does_not_raise(),
+            None,
+            ((INFO, "Loading variable 'temp' from file:"),),
+            20 * 100,
+            id="valid_netcdf",
+        ),
+    ],
+)
+def test_load_to_dataarray(
+    caplog,
+    shared_datadir,
+    filename,
+    exp_error,
+    exp_msg,
+    exp_log,
+    exp_sum_val,
+):
+    """Test the loading of data to dataarray.
+
+    This is primarily about making sure that the registered loaders are called correctly
+    and the test methods for individual readers should test failure modes.
+    """
+
+    # Setup a Data instance to match the example files generated in test_data/
+
+    from virtual_rainforest.core.readers import load_to_dataarray
+
+    datafile = shared_datadir / filename
+
+    with exp_error as err:
+
+        dataarray = load_to_dataarray(file=datafile, file_var_name="temp")
+
+        # Check the data is in fact loaded and that a simple sum of values matches
+        dataarray.sum() == exp_sum_val
+
+    if err:
+        assert str(err.value) == exp_msg
+
+    log_check(caplog, exp_log)
+
+    return

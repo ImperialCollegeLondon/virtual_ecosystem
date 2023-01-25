@@ -273,6 +273,7 @@ def test_Data_load_from_file_naming(
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.readers import load_to_dataarray
 
     grid = Grid(
         grid_type="square",
@@ -293,10 +294,13 @@ def test_Data_load_from_file_naming(
 
     with exp_error as err:
 
-        data.load_from_file(file=datafile, file_var_name="temp", data_var_name=name)
+        datakey = name or "temp"
+
+        data[datakey] = load_to_dataarray(
+            file=datafile, file_var_name="temp", data_var_name=name
+        )
 
         # Check the naming has worked and the data are loaded
-        datakey = name or "temp"
         assert datakey in data
         assert data[datakey].sum() == (20 * 100)
 
@@ -511,6 +515,7 @@ def test_Data_load_from_file_data_handling(
     # Setup a Data instance to match the example files generated in test_data/
 
     from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.readers import load_to_dataarray
 
     # Skip combinations where validator does not supported this grid
     if not (
@@ -524,7 +529,7 @@ def test_Data_load_from_file_data_handling(
 
     with exp_error as err:
 
-        data.load_from_file(file=datafile, file_var_name="temp")
+        data["temp"] = load_to_dataarray(file=datafile, file_var_name="temp")
 
         # Check the data is in fact loaded and that a simple sum of values matches
         assert "temp" in data
@@ -637,7 +642,7 @@ def test_Data_load_from_config(
             "incorrect",
             "spatial",
             False,
-            pytest.raises(RuntimeError),
+            pytest.raises(ValueError),
             "Missing variable validation data: incorrect",
         ),
         (
