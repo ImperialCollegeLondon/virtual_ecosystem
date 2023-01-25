@@ -106,6 +106,10 @@ class BaseModel(ABC):
         self._repr = ["update_interval", "next_update"]
 
     @abstractmethod
+    def setup(self) -> None:
+        """Function to use input data to set up the model."""
+
+    @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""
 
@@ -132,9 +136,6 @@ class BaseModel(ABC):
                 "Model with name %s already exists and is being replaced", model_name
             )
         MODEL_REGISTRY[model_name] = cls
-
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""
