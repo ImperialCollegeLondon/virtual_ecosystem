@@ -35,7 +35,7 @@ using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
 """  # noqa: D205
 
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 from xarray import DataArray, load_dataset
 
@@ -53,7 +53,7 @@ function itself should have the following signature:
 
 .. code-block:: python
 
-    func(file: Path, file_var: str) -> DataArray
+    func(file: Path, var_name: str) -> DataArray
 
 """
 
@@ -100,12 +100,12 @@ def register_file_format_loader(file_types: tuple[str]) -> Callable:
 
 
 @register_file_format_loader(file_types=(".nc",))
-def load_netcdf(file: Path, file_var_name: str) -> DataArray:
+def load_netcdf(file: Path, var_name: str) -> DataArray:
     """Loads a DataArray from a NetCDF file.
 
     Args:
         file: A Path for a NetCDF file containing the variable to load.
-        file_var_name: A string providing the name of the variable in the file.
+        var_name: A string providing the name of the variable in the file.
     """
 
     # Note that this deliberately doesn't contain any INFO logging messages to maintain
@@ -121,16 +121,15 @@ def load_netcdf(file: Path, file_var_name: str) -> DataArray:
         log_and_raise(f"Could not load data from {file}: {err}.", ValueError)
 
     # Check if file var is in the dataset
-    if file_var_name not in dataset:
-        log_and_raise(f"Variable {file_var_name} not found in {file}", KeyError)
+    if var_name not in dataset:
+        log_and_raise(f"Variable {var_name} not found in {file}", KeyError)
 
-    return dataset[file_var_name]
+    return dataset[var_name]
 
 
 def load_to_dataarray(
     file: Path,
-    file_var_name: str,
-    data_var_name: Optional[str] = None,
+    var_name: str,
 ) -> DataArray:
     """Loads data from a file into a DataArray.
 
@@ -142,9 +141,7 @@ def load_to_dataarray(
 
     Args:
         file: A Path for the file containing the variable to load.
-        file_var_name: A string providing the name of the variable in the file.
-        data_var_name: An optional replacement name to use as the data key in the
-            Data instance.
+        var_name: A string providing the name of the variable in the file.
     """
 
     # Detect file type
@@ -155,13 +152,8 @@ def load_to_dataarray(
         log_and_raise(f"No file format loader provided for {file_type}", ValueError)
 
     # If so, load the data
-    LOGGER.info("Loading variable '%s' from file: %s", file_var_name, file)
+    LOGGER.info("Loading variable '%s' from file: %s", var_name, file)
     loader = FILE_FORMAT_REGISTRY[file_type]
-    value = loader(file, file_var_name)
-
-    # Replace the file variable name if requested
-    if data_var_name is not None:
-        LOGGER.info("Renaming file variable '%s' as '%s'", value.name, data_var_name)
-        value.name = data_var_name
+    value = loader(file, var_name)
 
     return value
