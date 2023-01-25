@@ -203,13 +203,6 @@ class Data:
                 "Only DataArray objects can be added to Data instances", TypeError
             )
 
-        # Ensure dataarray name matches the key, warning if this overrides a different
-        # existing name for the DataArray
-        if value.name is not None and value.name != key:
-            LOGGER.warn(f"Overriding DataArray name {value.name} with {key}")
-
-        value.name = key
-
         if key not in self.data.data_vars:
             LOGGER.info(f"Adding data array for '{key}'")
         else:
@@ -323,8 +316,9 @@ class Data:
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
+                key = each_var.get("data_var_name") or each_var["file_var_name"]
                 try:
-                    self.data[each_var["file_var_name"]] = load_to_dataarray(
+                    self[key] = load_to_dataarray(
                         file=Path(each_var["file"]),
                         file_var_name=each_var["file_var_name"],
                         data_var_name=each_var.get("data_var_name"),
