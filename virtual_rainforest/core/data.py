@@ -103,19 +103,14 @@ structure is as follows:
 
     [[core.data.variable]]
     file="/path/to/file.nc"
-    file_var_name="precip"
-    data_var_name="precipitation"
+    var_name="precip"
     [[core.data.variable]]
     file="/path/to/file.nc"
-    file_var_name="temperature"
+    var_name="temperature"
     [[core.data.variable]]
-    file="/path/to/file.csv"
-    file_var_name="elev"
-    data_var_name="elevation"
+    var_name="elev"
 
-Data configurations must not contain repeated data variable names.  The
-``data_var_name`` is optional and is used to change the variable name used in the file
-to a different value to be used within the simulation.
+Data configurations must not contain repeated data variable names.
 
 .. code-block:: python
 
@@ -278,9 +273,8 @@ class Data:
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
         data_config dictionary can contain a 'variable' key containing an array of
-        dictionaries with the following structure: the path to the file (``file``), the
-        name of the variable within the file (``file_var_name``) and optionally a
-        different variable name to be used internally (``data_var_name``).
+        dictionaries provding the path to the file (``file``) and the
+        name of the variable within the file (``var_name``).
 
         Args:
             data_config: A data configuration dictionary
@@ -296,10 +290,8 @@ class Data:
 
             # Check what name the data will be saved under but do then carry on to check
             # for other loading problems
-            data_var_names = [
-                v.get("data_var_name") or v["file_var_name"]
-                for v in data_config["variable"]
-            ]
+            data_var_names = [v["var_name"] for v in data_config["variable"]]
+
             dupl_names = set(
                 [str(md) for md in data_var_names if data_var_names.count(md) > 1]
             )
@@ -313,12 +305,10 @@ class Data:
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
-                key = each_var.get("data_var_name") or each_var["file_var_name"]
                 try:
-                    self[key] = load_to_dataarray(
+                    self[each_var["var_name"]] = load_to_dataarray(
                         file=Path(each_var["file"]),
-                        file_var_name=each_var["file_var_name"],
-                        data_var_name=each_var.get("data_var_name"),
+                        var_name=each_var["var_name"],
                     )
                 except Exception as err:
                     LOGGER.error(str(err))
