@@ -173,7 +173,7 @@ configured grid.
 ```{code-cell}
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-data['temp'] = load_to_dataarray(file_path, file_var_name="temp")
+data['temp'] = load_to_dataarray(file_path, var_name="temp")
 ```
 
 ```{code-cell}
@@ -194,20 +194,16 @@ like the example below for each variable to be loaded.
 ```toml
 [[core.data.variable]]
 file="'../../data/xy_dim.nc'"
-file_var_name="temp"
-data_var_name="another_name"
+var_name="temp"
 ```
-
-The `data_var_name` option in the configuration is used to store the dataset in the Data
-object under a different variable name from the source file.
 
 To load data from a configuration file, the file is first read from the TOML source:
 
 ```{code-cell}
 data_toml = '''[[core.data.variable]]
 file="../../data/xy_dim.nc"
-file_var_name="temp"
-data_var_name="another_name"'''
+var_name="temp"
+'''
 
 data_config = tomli.loads(data_toml)
 

@@ -82,16 +82,13 @@
                            "file": {
                               "type": "string"
                            },
-                           "file_var_name": {
-                              "type": "string"
-                           },
-                           "data_var_name": {
+                           "var_name": {
                               "type": "string"
                            }
                         },
                         "required": [
                            "file",
-                           "file_var_name"
+                           "var_name"
                         ]
                      }
                   }
