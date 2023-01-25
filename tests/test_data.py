@@ -264,7 +264,7 @@ def test_Data_contains(fixture_data, var_name, expected):
         ),
     ],
 )
-def test_Data_load_from_file_naming(
+def test_Data_load_to_dataarray_naming(
     caplog, shared_datadir, name, exp_error, exp_msg, exp_log
 ):
     """Test the coding of the name handling and replacement."""
@@ -495,7 +495,7 @@ def fixture_load_data_grids(request):
     ["square", "hexagon"],
     indirect=True,
 )
-def test_Data_load_from_file_data_handling(
+def test_Data_load_to_dataarray_data_handling(
     caplog,
     fixture_load_data_grids,
     supported_grids,
@@ -508,8 +508,8 @@ def test_Data_load_from_file_data_handling(
 ):
     """Test the loading of data from file formats against various grids.
 
-    This tests the data handling, and test_Data_load_from_file_naming handles the data
-    name and name replacement functionality
+    This tests the data handling, and test_Data_load_to_dataarray_naming handles the
+    data name and name replacement functionality
     """
 
     # Setup a Data instance to match the example files generated in test_data/
@@ -598,7 +598,7 @@ def test_Data_load_from_config(
 ):
     """Test the loading of data configuration strings.
 
-    TODO - Could mock Data.load_from_file to avoid needing real files and just test the
+    TODO - Could mock load_to_dataarray to avoid needing real files and just test the
            config loader part of the mechanism
     """
 

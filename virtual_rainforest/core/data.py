@@ -49,22 +49,18 @@ methods to get information and data from an instance.
 
     .. code-block:: python
 
-        # Equivalent code
-        'varname' in data
-        'varname' in data.data
+        # Equivalent code 'varname' in data 'varname' in data.data
 
 * The :meth:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
   a named variable from the internal :class:`~xarray.DataSet` instance.
 
     .. code-block:: python
 
-        # Equivalent code
-        data['varname']
-        data.data['varname']
+        # Equivalent code data['varname'] data.data['varname']
 
 * The :meth:`~virtual_rainforest.core.data.Data.on_core_axis` method queries the
-  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute to
-  confirm that a named variable has been validated on a named axis.
+  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute to confirm
+  that a named variable has been validated on a named axis.
 
     .. code-block:: python
 
@@ -81,15 +77,18 @@ The general solution for programmatically adding data from a file is to:
 * use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_rainforest.core.data.Data` instance.
 
-The  :meth:`~virtual_rainforest.core.data.Data.load_from_file` method implements this
-general recipe for known file formats, using file reader functions described in the
+The  :meth:`~virtual_rainforest.core.reader.load_to_dataarray` implements data loading
+to a DataArray for some known file formats, using file reader functions described in the
 :mod:`~virtual_rainforest.core.readers` module. See the details of that module for
 supported formats and for extending the system to additional file formats.
 
 .. code-block:: python
 
-    # Load temperature data from a support file
-    data.load_from_file('/path/to/supported/format.nc', var_name='temperature')
+    # Load temperature data from a supported file
+    from virtual_rainforest.core.readers import load_to_dataarray
+    data['temp'] = load_to_dataarray(
+        '/path/to/supported/format.nc', var_name='temperature'
+    )
 
 Using a data configuration
 --------------------------
@@ -114,11 +113,9 @@ structure is as follows:
     file_var_name="elev"
     data_var_name="elevation"
 
-Note that the properties for each variable in the configuration file are just the
-arguments for :meth:`~virtual_rainforest.core.data.Data.load_from_file`. Data
-configurations must not contain repeated data variable names.  The ``data_var_name`` is
-optional and is used to change the variable name used in the file to a different value
-to be used within the simulation.
+Data configurations must not contain repeated data variable names.  The
+``data_var_name`` is optional and is used to change the variable name used in the file
+to a different value to be used within the simulation.
 
 .. code-block:: python
 

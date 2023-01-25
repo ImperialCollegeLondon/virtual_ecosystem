@@ -109,8 +109,8 @@ def load_netcdf(file: Path, file_var_name: str) -> DataArray:
     """
 
     # Note that this deliberately doesn't contain any INFO logging messages to maintain
-    # a simple logging sequence - load_from_file, load_dataarray - without unnecessary
-    # logger noise about the specific format unless there is an exception.
+    # a simple logging sequence without unnecessary logger noise about the specific
+    # format unless there is an exception.
 
     # Try and load the provided file
     try:

@@ -77,6 +77,7 @@ from xarray import DataArray
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.axes import *
+from virtual_rainforest.core.readers import load_to_dataarray
 
 # Create a simple default grid and a Data instance
 grid = Grid()
@@ -88,19 +89,20 @@ data
 ## Adding data to a Data instance
 
 Data can be added to a {class}`~virtual_rainforest.core.data.Data` instance using one of
-three methods:
+two methods:
 
 1. An existing DataArray object can be added to a
    {class}`~virtual_rainforest.core.data.Data` instance just using the standard
-   dictionary assignment.
+   dictionary assignment:`data['var_name'] = data_array`
 
-1. The  {meth}`~virtual_rainforest.core.data.Data.load_from_file` method loads data from
-   a supported file format and then coerces it into a DataArray, which is then added to
-   the `~virtual_rainforest.core.data.Data` instance.
+   The Virtual Rainforest {mod}`~virtual_rainforest.core.readers` module provides the
+   function {func}`~virtual_rainforest.core.readers.load_to_dataarray` to read data into
+   a DataArray from supported file formats. This can then be added directly to a Data
+   instance: `data['var_name'] = load_to_dataarray('path/to/file.nc', var='temperature')`.
 
 1. The  {meth}`~virtual_rainforest.core.data.Data.load_from_config` method takes a
    loaded Data configuration - which is a set of named variables and source files - and
-   then just uses {meth}`~virtual_rainforest.core.data.Data.load_from_file` to try and
+   then just uses {func}`~virtual_rainforest.core.readers.load_to_dataarray` to try and
    load each one.
 
 ### Adding a data array directly
@@ -171,7 +173,7 @@ configured grid.
 ```{code-cell}
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-data.load_from_file(file_path, file_var_name="temp")
+data['temp'] = load_to_dataarray(file_path, file_var_name="temp")
 ```
 
 ```{code-cell}
