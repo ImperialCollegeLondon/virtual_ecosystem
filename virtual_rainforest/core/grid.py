@@ -514,9 +514,10 @@ class Grid:
             y_idx = np.arange(y_coords.shape[0])
 
         # Check the shapes of the indices.
-        # x_idx and y_idx cannot now be None, so use assert to signal that to mypy.
-        assert (x_idx is not None) and (y_idx is not None)
-        if (x_idx.shape != x_coords.shape) or (y_idx.shape != y_coords.shape):
+        # x_idx and y_idx cannot now be None, so type ignore.
+        if (x_idx.shape != x_coords.shape) or (  # type: ignore [union-attr]
+            y_idx.shape != y_coords.shape  # type: ignore [union-attr]
+        ):
             raise ValueError("Dimensions of x/y indices do not match coordinates")
 
         # Find the set of total number of cell mappings per point
