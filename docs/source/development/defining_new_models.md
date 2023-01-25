@@ -174,3 +174,48 @@ def spinup(self) -> None:
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
 ```
+
+## Including a configuration schema
+
+A detailed description of the configuration system can be found
+[here](../virtual_rainforest/core/config.md). The key thing to note is that a `JSON`
+schema file should be saved within your model folder. This file should have a name of
+the format "{MODEL_NAME}_schema.json". In order for this schema to be generally
+accessible, it needs to be registered in the model's `__init__.py` (i.e. the
+`__init__.py` in the model folder). This means that when the model is imported, it's
+schema is automatically added to the schema registry.
+
+```python
+from virtual_rainforest.core.config import register_schema
+
+@register_schema("freshwater")
+def schema() -> dict:
+    """Defines the schema that the freshwater module configuration should conform to."""
+
+    schema_file = Path(__file__).parent.resolve() / "freshwater_schema.json"
+
+    with schema_file.open() as f:
+        config_schema = json.load(f)
+
+    return config_schema
+```
+
+## Ensuring that schema and models are always added to the registry
+
+At the moment,a configuration schema only get added to the schema registry when the
+model it belongs to is imported, and a `Model` class only gets added to the registry
+when the class itself is imported. This is a problem because the script that runs the
+main Virtual Rainforest simulation does not import these things directly. To circumvent
+this these imports needed to be placed in the top level `__init__.py` file (the one in
+the same folder as `main.py`). This won't pass the `pre-commit` checks unless `flake8`
+checks are turned off for the relevant lines. It's only strictly necessary to import the
+`Model` class, as this implicitly entails importing the specific model as a whole.
+However, for the sake of clarity we currently include both imports.
+
+```python
+# Import all module schema here to ensure that they are added to the registry
+from virtual_rainforest.models.freshwater import schema  # noqa
+
+# Import models here so that they also end up in the registry
+from virtual_rainforest.models.freshwater.model import FreshWaterModel  # noqa
+```
