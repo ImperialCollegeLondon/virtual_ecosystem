@@ -75,7 +75,7 @@ class SoilModel(BaseModel, model_name="soil"):
 
         This function unpacks the relevant information from the configuration file, and
         then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance None is returned.
+        invalid rather than returning an initialised model instance an error is raised.
 
         Args:
             config: The complete (and validated) virtual rainforest configuration.
