@@ -39,12 +39,7 @@ class SoilModel(BaseModel, model_name="soil"):
     Args:
         update_interval: Time to wait between updates of the model state.
         no_layers: The number of soil layers to be modelled.
-
-    Attributes:
-        name: Names the model that is described
     """
-
-    name = "soil"
 
     def __init__(
         self,

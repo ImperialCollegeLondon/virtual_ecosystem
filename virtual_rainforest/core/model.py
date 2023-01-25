@@ -91,11 +91,10 @@ class BaseModel(ABC):
         end_time: Time that the model simulation should end
         update_interval: Time to wait between updates of the model state.
 
-    Attributes:
-        name: Names the model that is described
     """
 
     name = "base"
+    """Names the model that is described"""
 
     def __init__(
         self, update_interval: timedelta64, start_time: datetime64, **kwargs: Any
@@ -135,6 +134,7 @@ class BaseModel(ABC):
             LOGGER.warning(
                 "Model with name %s already exists and is being replaced", model_name
             )
+        cls.name = model_name
         MODEL_REGISTRY[model_name] = cls
 
     def __repr__(self) -> str:
