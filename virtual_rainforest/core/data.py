@@ -263,15 +263,16 @@ class Data:
             A boolean indicating if the variable was validated on the named axis.
 
         Raises:
-            ValueError: Unknown variable or core axis name
-            RuntimeError: Incomplete variable validation data in Data instance.
+            ValueError: Either an unknown variable or core axis name or that the
+                variable validation data in the Data instance does not include the
+                variable, which would be an internal coding error.
         """
 
         if var_name not in self.data:
             raise ValueError(f"Unknown variable name: {var_name}")
 
         if var_name not in self.variable_validation:
-            raise RuntimeError(f"Missing variable validation data: {var_name}")
+            raise ValueError(f"Missing variable validation data: {var_name}")
 
         if axis_name not in AXIS_VALIDATORS:
             raise ValueError(f"Unknown core axis name: {axis_name}")
