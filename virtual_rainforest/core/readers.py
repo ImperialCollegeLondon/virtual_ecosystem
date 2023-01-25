@@ -28,7 +28,7 @@ example:
 """  # noqa: D205
 
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 from xarray import DataArray, load_dataset
 
@@ -118,3 +118,43 @@ def load_netcdf(file: Path, file_var_name: str) -> DataArray:
         log_and_raise(f"Variable {file_var_name} not found in {file}", KeyError)
 
     return dataset[file_var_name]
+
+
+def load_to_dataarray(
+    file: Path,
+    file_var_name: str,
+    data_var_name: Optional[str] = None,
+) -> DataArray:
+    """Loads data from a file into a DataArray.
+
+    The function takes a path to a file format supported in the
+    :attr:`~virtual_rainforest.core.readers.FILE_FORMAT_REGISTRY` and uses the
+    appropriate data loader function to load the data and convert it to a
+    {class}`~xarray.DataArray`, ready for insertion into a
+    :attr:`~virtual_rainforest.core.data.Data` instance.
+
+    Args:
+        file: A Path for the file containing the variable to load.
+        file_var_name: A string providing the name of the variable in the file.
+        data_var_name: An optional replacement name to use as the data key in the
+            Data instance.
+    """
+
+    # Detect file type
+    file_type = file.suffix
+
+    # Can the data mapper handle this grid and file type combination?
+    if file_type not in FILE_FORMAT_REGISTRY:
+        log_and_raise(f"No file format loader provided for {file_type}", ValueError)
+
+    # If so, load the data
+    LOGGER.info("Loading variable '%s' from file: %s", file_var_name, file)
+    loader = FILE_FORMAT_REGISTRY[file_type]
+    value = loader(file, file_var_name)
+
+    # Replace the file variable name if requested
+    if data_var_name is not None:
+        LOGGER.info("Renaming file variable '%s' as '%s'", value.name, data_var_name)
+        value.name = data_var_name
+
+    return value

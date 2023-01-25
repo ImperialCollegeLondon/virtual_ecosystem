@@ -137,7 +137,7 @@ from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
-from virtual_rainforest.core.readers import FILE_FORMAT_REGISTRY
+from virtual_rainforest.core.readers import load_to_dataarray
 
 
 class Data:
@@ -265,7 +265,7 @@ class Data:
         Raises:
             ValueError: Either an unknown variable or core axis name or that the
                 variable validation data in the Data instance does not include the
-                variable, which would be an internal coding error.
+                variable, which would be an internal programming error.
         """
 
         if var_name not in self.data:
@@ -281,48 +281,6 @@ class Data:
             return False
 
         return True
-
-    def load_from_file(
-        self,
-        file: Path,
-        file_var_name: str,
-        data_var_name: Optional[str] = None,
-    ) -> None:
-        """Adds a variable to the data object.
-
-        This method is used to programatically populate a variable in a Data instance
-        from a file. The appropriate data loader function is selected using the file
-        suffix and the grid type used in the Data instance.
-
-        Args:
-            file: A Path for the file containing the variable to load.
-            file_var_name: A string providing the name of the variable in the file.
-            data_var_name: An optional replacement name to use as the data key in the
-                Data instance.
-        """
-
-        # Detect file type
-        file_type = file.suffix
-
-        # Can the data mapper handle this grid and file type combination?
-        if file_type not in FILE_FORMAT_REGISTRY:
-            log_and_raise(f"No file format loader provided for {file_type}", ValueError)
-
-        # If so, load the data
-        LOGGER.info("Loading variable '%s' from file: %s", file_var_name, file)
-        loader = FILE_FORMAT_REGISTRY[file_type]
-        value = loader(file, file_var_name)
-
-        # Replace the file variable name if requested
-        if data_var_name is not None:
-            LOGGER.info(
-                "Renaming file variable '%s' as '%s'", value.name, data_var_name
-            )
-            value.name = data_var_name
-
-        # Add the data array, note that the __setitem__ method here does the actual
-        # validation required for this step.
-        self[value.name] = value
 
     def load_data_config(self, data_config: dict[str, Any]) -> None:
         """Setup the simulation data from a user configuration.
@@ -366,7 +324,7 @@ class Data:
                 # messages and defer failure until the whole configuration has been
                 # processed
                 try:
-                    self.load_from_file(
+                    self.data[each_var["file_var_name"]] = load_to_dataarray(
                         file=Path(each_var["file"]),
                         file_var_name=each_var["file_var_name"],
                         data_var_name=each_var.get("data_var_name"),
