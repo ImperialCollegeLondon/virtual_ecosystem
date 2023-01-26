@@ -25,11 +25,28 @@ Within this folder a `python` script defining the model should be created.
 touch virtual_rainforest/models/freshwater/model.py
 ```
 
-This script must import the [`BaseModel` class](../api/core/model.md) as new class must
-inherit from this abstract base class.
+This script must import a number of things to be able to set up a new `Model` class
+correctly. It's worth noting that `log_and_raise` will be removed soon.
 
 ```python
-from virtual_rainforest.core.model import BaseModel
+# One of the member functions of the Model class returns a class instance. mypy doesn't
+# know how to handle this unless annotations are imported from __future__
+from __future__ import annotations
+
+# Any needed for type hints of the config dictionary as the values are of various types
+from typing import Any
+
+# Used by the timing loop to handle time units
+import pint
+# Used by timing loop to store date times, and time intervals, respectively
+from numpy import datetime64, timedelta64
+
+# Logging of relevant information handled by Virtual Rainforest logger module
+from virtual_rainforest.core.logger import LOGGER, log_and_raise
+# New model class will inherit from BaseModel.
+# InitialisationError is a custom exception, for case where a `Model` class cannot be
+# properly initialised based on the data contained in the configuration
+from virtual_rainforest.core.model import BaseModel, InitialisationError
 ```
 
 The new model class is created using a class method, this means that a model name must
