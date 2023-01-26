@@ -66,8 +66,7 @@
                },
                "default": [
                   "plants",
-                  "soil",
-                  "animal"
+                  "soil"
                ]
             }
          },

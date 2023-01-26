@@ -25,131 +25,10 @@ setting up and testing the early stages of the animal module.
 #   better to excrete directly to external pools
 # only elephants disperse atm
 
-from __future__ import annotations
 
 from math import ceil
-from typing import Any
-
-# import random
-import pint
-from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER  # , log_and_raise
-from virtual_rainforest.core.model import BaseModel, InitialisationError
-
-# plant and soil classes are dummies for testing functionality w/in the animal module
-
-
-class AnimalModel(BaseModel, model_name="animal"):
-    """A class describing the animal model.
-
-    Describes the specific functions and attributes that the animal module should
-    possess.
-
-    Args:
-        update_interval: Time to wait between updates of the model state.
-
-
-    Attributes:
-        name: Names the model that is described.
-    """
-
-    name = "animal"
-
-    def __init__(
-        self,
-        update_interval: timedelta64,
-        start_time: datetime64,
-        **kwargs: Any,
-    ):
-        # This is commented to streamline the first round of code reviews.
-        # self.animal_list: List[Animal] = []
-        # self.plant_list: List[Plant] = []
-        # self.soil_list: List[SoilPool] = []
-        # self.carcass_list: List[CarcassPool] = []
-        self.grid = Grid(grid_type="square", cell_area=9, cell_nx=3, cell_ny=3)
-        """The spatial grid over which the model is run, currently fixed 3x3."""
-        super().__init__(update_interval, start_time, **kwargs)
-
-    @classmethod
-    def from_config(cls, config: dict[str, Any]) -> BaseModel:
-        """Factory function to initialise the animal model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance None is returned.
-
-        Args:
-            config: The complete (and validated) virtual rainforest configuration.
-
-        Raises:
-            InitialisationError: If configuration data can't be properly converted
-        """
-
-        # Assume input is valid until we learn otherwise
-        valid_input = True
-        try:
-            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
-                "minutes"
-            )
-            # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-            start_time = datetime64(config["core"]["timing"]["start_time"])
-        except (
-            ValueError,
-            pint.errors.DimensionalityError,
-            pint.errors.UndefinedUnitError,
-        ) as e:
-            valid_input = False
-            LOGGER.error(
-                "Configuration types appear not to have been properly validated. This "
-                "problem prevents initialisation of the soil model. The first instance"
-                " of this problem is as follows: %s" % str(e)
-            )
-
-        if valid_input:
-            LOGGER.info(
-                "Information required to initialise the soil model successfully "
-                "extracted."
-            )
-            return cls(update_interval, start_time)
-        else:
-            raise InitialisationError()
-
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
-    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
-    # STATE
-    def setup(self) -> None:
-        """Function to set up the soil model."""
-
-    def spinup(self) -> None:
-        """Placeholder function to spin up the soil model."""
-
-    def update(self) -> None:
-        """Placeholder function to solve the soil model."""
-
-    def cleanup(self) -> None:
-        """Placeholder function for soil model cleanup."""
-
-    # This is commented to streamline getting the first round of code reviews.
-    # def populate_pool_lists(self) -> None:
-    #     """The function to add one of each of the toy pools to the pool lists.
-
-    #     Args:
-    #         None: Toy implementation  is only a function of the
-    #               hardcoded pools and cohorts.
-
-    #     Returns:
-    #          Pool and cohort list attributes containing an instance.
-    #     """
-    #     for grid in range(9):
-    #         self.animal_list.append(Animal("elephant", 10**6, 5, grid))
-    #         self.soil_list.append(SoilPool(1000, grid))
-    #         self.carcass_list.append(CarcassPool(1000, grid))
-    #         self.animal_list.append(Animal("beetle", 50, 0, grid))
-    #         self.plant_list.append(Plant("tree", 10.0**5, grid))
 
 
 class Plant:
@@ -227,17 +106,15 @@ class Animal:
         """The maximum lifespan of the cohort [yrs]."""
         self.position = position
         """The grid position of the plant cohort [0-8]."""
-        # derived allometric parameters
+        # below are derived allometric parameters
         self.intake_rate = (10**-4) * self.mass ** (3 / 4)
         """The rate of energy gain while foraging [j/s] [toy]."""
         self.reproductive_threshold = self.mass * 20
         """Thresh mass of a reproductive event [g]."""
         self.metabolic_rate = (10**-5) * self.mass ** (3 / 4)
         """The rate at which energy is expended to [j/s] [toy]."""
-        # storage pool
         self.stored_energy = self.mass * 10.0
         """The current indiv energetic reserve [j] [toy]."""
-        # internal waste pools
         self.waste_energy = 0.0
         """ The  energetic content of an indivs excreta [j] [toy]"""
 
@@ -334,7 +211,6 @@ class Animal:
         self.alive = "dead"
         return f"""A {self.name} cohort died"""
 
-    # @classmethod
     def birth(self) -> object:
         """The function to create a new animal cohort.
 
