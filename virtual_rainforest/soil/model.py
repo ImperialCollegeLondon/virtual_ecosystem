@@ -73,7 +73,7 @@ class SoilModel(BaseModel, model_name="soil"):
         invalid rather than returning an initialised model instance an error is raised.
 
         Args:
-            config: The complete (and validated) virtual rainforest configuration.
+            config: The complete (and validated) Virtual Rainforest configuration.
 
         Raises:
             InitialisationError: If configuration data can't be properly converted
