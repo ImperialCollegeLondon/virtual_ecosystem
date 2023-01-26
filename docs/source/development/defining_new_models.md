@@ -3,8 +3,8 @@
 The Virtual Rainforest is designed to be modular, meaning that the set of models to be
 used in a particular run is configurable at the start of the simulation. We are starting
 out by defining a core set of models (`abiotic`, `animals`, `plants` and `soil`), which
-will generally all be included for the vast majority of simulations. In future, it might
-be desirable to include models for other aspects of rainforests (e.g. `freshwater`), or
+will generally all be included for the vast majority of simulations. In the future, it might
+be desirable to include models for other aspects of rainforests (e.g. `freshwater`, `disturbance`), or
 to include multiple modelling approaches for a process. When this happens a new model
 should be created. This page will set out the process for adding a new model to the
 Virtual Rainforest in a manner that allows it to be used appropriately by the `core`
@@ -197,7 +197,7 @@ def schema() -> dict:
 
 ## Ensuring that schema and models are always added to the registry
 
-At the moment,a configuration schema only get added to the schema registry when the
+At the moment, a configuration schema only gets added to the schema registry when the
 model it belongs to is imported, and a `Model` class only gets added to the registry
 when the class itself is imported. This is a problem because the script that runs the
 main Virtual Rainforest simulation does not import these things directly. To circumvent
