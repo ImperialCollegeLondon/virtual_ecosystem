@@ -1,10 +1,47 @@
-"""The `core.config` module.
+"""API documentation for the :mod:`core.config` module.
+************************************************** # noqa: D205
 
-The `core.config` module is used to read in the various configuration files, validate
-their contents, and then configure a ready to run instance of the virtual rainforest
-model.
+The :mod:`core.config` module is used to read in the various configuration files,
+validate their contents, and then configure a ready to run instance of the virtual
+rainforest model. The basic details of how this system is used can be found
+:ref:`here<virtual_rainforest/core/config:the configuration module>`.
+
+When a new module is defined a ``JSON`` file should be written, which includes the
+expected configuration tags, their expected types, and any constraints on their values
+(e.g. the number of soil layers being strictly positive). Additionally, where sensible
+default values exist (e.g. 1 week for the model time step) they should also be included
+in the schema. This schema should be saved in the folder of the module that it relates
+to. In order to make this schema generally accessible to the ``vr`` package, it should
+then be added to the schema registry. The
+:func:`~virtual_rainforest.core.config.register_schema` decorator is used for this
+purpose.
+
+Schema registration for each module takes place in the module's ``__init__.py``. Here, a
+function is written that reads in the ``JSON`` file describing the schema. This function
+is then decorated using :func:`~virtual_rainforest.core.config.register_schema`, which
+results in the schema being added to the registry. The user provides a schema name to
+the decorator to register the schema under, this should be unique, and generally should
+just be the module name. An example of decorator usage is shown below:
+
+.. code-block:: python
+
+    @register_schema("example_module")
+    def schema() -> dict:
+        schema_file = Path(__file__).parent.resolve() / "example_module_schema.json"
+
+        with schema_file.open() as f:
+            config_schema = json.load(f)
+
+        return config_schema
+
+It's important to note that the schema will only be added to the registry if the module
+``__init__`` is run. This means that somewhere in your chain of imports the module must
+be imported. Currently this is tackled by importing all active modules in the top level
+``__init__``, i.e. :mod:`virtual_rainforest.__init__.py`. This ensures that any script
+that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
+define schema, in turn ensuring that
+:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
 """
-# TODO - find config folder based on command line argument
 
 import sys
 from collections import ChainMap
@@ -24,7 +61,10 @@ else:
     import tomli as tomllib
 
 SCHEMA_REGISTRY: dict = {}
-"""A registry for different module schema."""
+"""A registry for different module schema.
+
+:meta hide-value:
+"""
 
 
 class ConfigurationError(Exception):
@@ -157,7 +197,7 @@ def check_dict_leaves(
         d1: First nested dictionary to compare
         d2: Second nested dictionary to compare
         path: List describing recursive path through the nested dictionary
-            conflicts: List of variables that are defined in multiple places
+        conflicts: List of variables that are defined in multiple places
 
     Returns:
         conflicts: List of variables that are defined in multiple places
@@ -179,24 +219,39 @@ def check_dict_leaves(
     return conflicts
 
 
-def check_outfile(output_folder: str, out_file_name: str) -> None:
+def check_outfile(merge_file_path: Path) -> None:
     """Check that final output file is not already in the output folder.
 
     Args:
-        output_folder: Path to a folder to output the outputted complete configuration
-            file to
-        out_file_name: The name to save the outputted complete configuration file under
+        merge_file_path: Path that merged config file is meant to be saved to
     Raises:
-        ConfigurationError: If the final output file already exist.
+        ConfigurationError: If the final output directory doesn't exist, isn't a
+            directory, or the final output file already exists.
     """
 
+    # Extract parent folder name and output file name
+    parent_fold = merge_file_path.parent.relative_to(".")
+    out_file_name = merge_file_path.name
+
+    # Throw critical error if the output folder doesn't exist
+    if not Path(parent_fold).exists():
+        log_and_raise(
+            f"The user specified output directory ({parent_fold}) doesn't exist!",
+            ConfigurationError,
+        )
+    elif not Path(parent_fold).is_dir():
+        log_and_raise(
+            f"The user specified output folder ({parent_fold}) isn't a directory!",
+            ConfigurationError,
+        )
+
     # Throw critical error if combined output file already exists
-    for file in Path(output_folder).iterdir():
-        if file.name == f"{out_file_name}.toml":
+    for file in Path(parent_fold).iterdir():
+        if file.name == f"{out_file_name}":
             log_and_raise(
-                f"A config file in the specified configuration folder already makes use"
-                f" of the specified output file name ({out_file_name}.toml), this file "
-                f"should either be renamed or deleted!",
+                f"A config file in the user specified output folder ({parent_fold}) "
+                f"already makes use of the specified output file name ({out_file_name})"
+                f", this file should either be renamed or deleted!",
                 ConfigurationError,
             )
 
@@ -467,8 +522,7 @@ def validate_with_defaults(
 
 def validate_config(
     cfg_paths: Union[str, list[str]],
-    output_folder: str = ".",
-    out_file_name: str = "complete_config",
+    merge_file_path: Path = Path("./vr_full_model_configuration.toml"),
 ) -> dict[str, Any]:
     """Validates the contents of user provided config files.
 
@@ -486,13 +540,11 @@ def validate_config(
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
-        output_folder: Path to a folder to output the outputted complete configuration
-            file to
-        out_file_name: The name to save the outputted complete configuration file under.
+        merge_file_path: Path to save merged config file to
     """
 
     # Check that there isn't a final output file saved in the final output folder
-    check_outfile(output_folder, out_file_name)
+    check_outfile(merge_file_path)
     # If this passes collect the files
     if isinstance(cfg_paths, str):
         files = collect_files([cfg_paths])
@@ -517,11 +569,8 @@ def validate_config(
     LOGGER.info("Configuration files successfully validated!")
 
     # Output combined toml file, into the initial config folder
-    LOGGER.info(
-        "Saving all configuration details to %s/%s.toml"
-        % (output_folder, out_file_name)
-    )
-    with open(f"{output_folder}/{out_file_name}.toml", "wb") as toml_file:
+    LOGGER.info("Saving all configuration details to %s" % merge_file_path)
+    with open(merge_file_path, "wb") as toml_file:
         tomli_w.dump(config_dict, toml_file)
 
     # Return the complete validated config

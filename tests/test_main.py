@@ -5,12 +5,21 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO
+from logging import CRITICAL, ERROR, INFO, WARNING
+from pathlib import Path
 
 import pytest
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, InitialisationError
-from virtual_rainforest.main import configure_models, select_models, vr_run
+from virtual_rainforest.main import (
+    check_for_fast_models,
+    configure_models,
+    extract_timing_details,
+    select_models,
+    vr_run,
+)
+from virtual_rainforest.soil.model import SoilModel
 
 from .conftest import log_check
 
@@ -75,10 +84,11 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     [
         (
             {  # valid config
-                "soil": {"no_layers": 1},
-                "core": {"timing": {"min_time_step": "7 days"}},
+                "soil": {"no_layers": 1, "model_time_step": "7 days"},
+                "core": {"timing": {"start_time": "2020-01-01"}},
             },
-            "SoilModel(update_interval = 10080 minutes, no_layers = 1)",
+            "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
+            " no_layers = 1)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -91,8 +101,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         ),
         (
             {  # invalid soil config tag
-                "soil": {"no_layers": -1},
-                "core": {"timing": {"min_time_step": "7 days"}},
+                "soil": {"no_layers": -1, "model_time_step": "7 days"},
+                "core": {"timing": {"start_time": "2020-01-01"}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -115,9 +125,9 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             ),
         ),
         (
-            {  # min_time_step missing units
-                "soil": {"no_layers": 1},
-                "core": {"timing": {"min_time_step": "7"}},
+            {  # model_time_step missing units
+                "soil": {"no_layers": 1, "model_time_step": "7"},
+                "core": {"timing": {}},
             },
             None,
             pytest.raises(InitialisationError),
@@ -150,7 +160,7 @@ def test_configure_models(caplog, config, output, raises, expected_log_entries):
         if output is None:
             assert models == [None]
         else:
-            assert repr(models[0]) == output
+            assert repr(models["soil"]) == output
 
     log_check(caplog, expected_log_entries)
 
@@ -162,7 +172,9 @@ def test_vr_run_miss_model(mocker, caplog):
     mock_conf.return_value = {"core": {"modules": ["topsoil"]}}
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        # If vr_run is successful (which it shouldn't be) clean up the file
+        Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['topsoil']"),
@@ -186,14 +198,17 @@ def test_vr_run_bad_model(mocker, caplog):
             "timing": {
                 "start_date": "2020-01-01",
                 "end_date": "2120-01-01",
-                "min_time_step": "0.5 martian days",
             },
         },
-        "soil": {},
+        "soil": {
+            "model_time_step": "0.5 martian days",
+        },
     }
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", ".", "delete_me")
+        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        # If vr_run is successful (which it shouldn't be) clean up the file
+        Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
         (INFO, "Attempting to configure the following models: ['soil']"),
@@ -213,5 +228,136 @@ def test_vr_run_bad_model(mocker, caplog):
             "following models failed: ['soil'].",
         ),
     )
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config,output,raises,expected_log_entries",
+    [
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
+                        "run_length": "30 years",
+                    }
+                }
+            },
+            {
+                "start_time": datetime64("2020-01-01"),
+                "update_interval": timedelta64(10, "m"),
+                "end_time": datetime64("2049-12-31T12:00"),
+            },
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Virtual Rainforest simulation will run from 2020-01-01 until 2049-"
+                    "12-31T12:00. This is a run length of 15778800 minutes, the user "
+                    "requested 15778800 minutes",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
+                        "run_length": "1 minute",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Models will never update as the update interval (10 minutes) is "
+                    "larger than the run length (1 minutes)",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "10 minutes",
+                        "run_length": "7 short days",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Units for core.timing.run_length are not valid time units: 7 short"
+                    " days",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "10 long minutes",
+                        "run_length": "30 years",
+                    }
+                }
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Units for core.timing.update_interval are not valid time units: 10"
+                    " long minutes",
+                ),
+            ),
+        ),
+    ],
+)
+def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
+    """Test that function to extract main loop timing works as intended."""
+
+    with raises:
+        current_time, update_interval, end_time = extract_timing_details(config)
+        assert end_time == output["end_time"]
+        assert update_interval == output["update_interval"]
+        assert current_time == output["start_time"]
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "update_interval,expected_log_entries",
+    [
+        (timedelta64(2, "W"), ()),
+        (
+            timedelta64(5, "W"),
+            (
+                (
+                    WARNING,
+                    "The following models have shorter time steps than the main model: "
+                    "['soil']",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_entries):
+    """Test that function to warn user about short module time steps works."""
+
+    # Create SoilModel instance and then populate the update_interval
+    model = SoilModel.__new__(SoilModel)
+    model.update_interval = timedelta64(3, "W")
+    models_cfd = {"soil": model}
+
+    check_for_fast_models(models_cfd, update_interval)
 
     log_check(caplog, expected_log_entries)

@@ -38,7 +38,42 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
     assert overlap == config.check_dict_leaves(d_a, d_b, [])
 
 
-def test_check_outfile(caplog, mocker):
+@pytest.mark.parametrize(
+    "out_path,expected_log_entries",
+    [
+        (
+            "./complete_config.toml",
+            (
+                (
+                    CRITICAL,
+                    "A config file in the user specified output folder (.) already "
+                    "makes use of the specified output file name (complete_config.toml)"
+                    ", this file should either be renamed or deleted!",
+                ),
+            ),
+        ),
+        (
+            "bad_folder/complete_config.toml",
+            (
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
+        ),
+        (
+            "pyproject.toml/complete_config.toml",
+            (
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     """Check that an error is logged if an output file is already saved."""
     file_name = "complete_config"
 
@@ -48,16 +83,7 @@ def test_check_outfile(caplog, mocker):
 
     # Check that check_outfile fails as expected
     with pytest.raises(config.ConfigurationError):
-        config.check_outfile(".", file_name)
-
-    expected_log_entries = (
-        (
-            CRITICAL,
-            "A config file in the specified configuration folder already makes "
-            "use of the specified output file name (complete_config.toml), this"
-            " file should either be renamed or deleted!",
-        ),
-    )
+        config.check_outfile(Path(out_path))
 
     log_check(caplog, expected_log_entries)
 
@@ -234,7 +260,7 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
                 ),
                 (
                     INFO,
-                    "Saving all configuration details to ./complete_config.toml",
+                    "Saving all configuration details to complete_config.toml",
                 ),
             ),
         ),
@@ -247,7 +273,7 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
                 ),
                 (
                     INFO,
-                    "Saving all configuration details to ./complete_config.toml",
+                    "Saving all configuration details to complete_config.toml",
                 ),
             ),
         ),
@@ -256,7 +282,7 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
 def test_final_validation_log(caplog, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    config.validate_config([file_path], out_file_name="complete_config")
+    config.validate_config([file_path], Path("./complete_config.toml"))
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location

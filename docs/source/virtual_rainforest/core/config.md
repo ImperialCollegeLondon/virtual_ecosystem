@@ -1,4 +1,4 @@
-# The `core.config` module
+# The configuration module
 
 This module is used to configure a `virtual_rainforest` simulation run. This module
 reads in a set of configuration files written using `toml`. It is setup in such a way as
@@ -35,11 +35,11 @@ input can be spread across an arbitrarily large number of config files. However,
 information cannot be repeated between files as there is no way to establish which of
 two values (of e.g. `core.grid.nx`) the user intended to provide. In this case, the
 module will throw critical error and the `virtual_rainforest` model will not configure.
-Config files are read from a folder that the user specifies, this can either be every
-`toml` file in the folder, or a user provided list of files. If a file exists in this
-folder that has the same name as the user provided output file name the configuration
-will critically fail, in order to minimise the chance of significant confusion
-downstream.
+The user supplies a list of config files and/or folders to look for config files, within
+the supplied folders every `toml` file will be read in. Once the complete configuration
+is validated, it is saved as a single file using a user provided name and location. If a
+file already exists with this name at this location, the configuration process will
+critically fail. This minimises the chance of significant confusion downstream.
 
 ## Optional module loading
 

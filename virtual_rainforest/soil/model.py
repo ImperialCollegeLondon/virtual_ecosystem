@@ -1,7 +1,20 @@
-"""The `soil.model` module.
+"""API documentation for the :mod:`soil.model` module.
+************************************************** # noqa: D205
 
-The `soil.model` module creates a `SoilModel` class, which extended the base `Model`
-class to be usable to simulate the soil.
+The :mod:`soil.model` module creates a :class:`~virtual_rainforest.soil.model.SoilModel`
+class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
+present a lot of the abstract methods of the parent class (e.g.
+:func:`~virtual_rainforest.core.model.BaseModel.setup` and
+:func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the
+:mod:`virtual_rainforest` model develops. The factory method
+:func:`~virtual_rainforest.soil.model.SoilModel.from_config` exists in a more complete
+state, and unpacks a small number of parameters from our currently pretty minimal
+configuration dictionary. These parameters are then used to generate a class instance.
+If errors crop here when converting the information from the config dictionary to the
+required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and
+at the end of the unpacking an error is thrown. This error should be caught and handled
+by downstream functions so that all model configuration failures can be reported as one.
 """
 
 from __future__ import annotations
@@ -9,7 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 import pint
-from numpy import timedelta64
+from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
@@ -33,7 +46,13 @@ class SoilModel(BaseModel, model_name="soil"):
 
     name = "soil"
 
-    def __init__(self, update_interval: timedelta64, no_layers: int, **kwargs: Any):
+    def __init__(
+        self,
+        update_interval: timedelta64,
+        start_time: datetime64,
+        no_layers: int,
+        **kwargs: Any,
+    ):
 
         if no_layers < 1:
             log_and_raise(
@@ -45,7 +64,7 @@ class SoilModel(BaseModel, model_name="soil"):
                 "The number of soil layers must be an integer!", InitialisationError
             )
 
-        super(SoilModel, self).__init__(update_interval, **kwargs)
+        super().__init__(update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
         # Save variables names to be used by the __repr__
         self._repr.append("no_layers")
@@ -68,11 +87,12 @@ class SoilModel(BaseModel, model_name="soil"):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["core"]["timing"]["min_time_step"]).to(
+            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
                 "minutes"
             )
             # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(raw_interval.magnitude), "m")
+            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+            start_time = datetime64(config["core"]["timing"]["start_time"])
             no_layers = config["soil"]["no_layers"]
         except (
             ValueError,
@@ -91,7 +111,7 @@ class SoilModel(BaseModel, model_name="soil"):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(update_interval, no_layers)
+            return cls(update_interval, start_time, no_layers)
         else:
             raise InitialisationError()
 
@@ -107,8 +127,11 @@ class SoilModel(BaseModel, model_name="soil"):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def solve(self) -> None:
-        """Placeholder function to solve the soil model."""
+    def update(self) -> None:
+        """Placeholder function to update the soil model."""
+
+        # Finally increment timing
+        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
