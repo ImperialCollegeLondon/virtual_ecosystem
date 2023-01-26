@@ -197,7 +197,7 @@ def schema() -> dict:
 
 ## Ensuring that schema and models are always added to the registry
 
-At the moment,a configuration schema only get added to the schema registry when the
+At the moment, a configuration schema only gets added to the schema registry when the
 model it belongs to is imported, and a `Model` class only gets added to the registry
 when the class itself is imported. This is a problem because the script that runs the
 main Virtual Rainforest simulation does not import these things directly. To circumvent
