@@ -375,11 +375,15 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "test_data/cellid_coords_too_few.nc",
             pytest.raises(ValueError),
-            "The data cell ids are not a superset of grid cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
-                (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
+                (
+                    CRITICAL,
+                    "The data cell ids do not provide a one-to-one map onto grid "
+                    "cell ids.",
+                ),
             ),
             None,
             id="vldr_spat__cellid_coords_any_too_few",
@@ -388,11 +392,15 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "test_data/cellid_coords_bad_cellid.nc",
             pytest.raises(ValueError),
-            "The data cell ids are not a superset of grid cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
-                (CRITICAL, "The data cell ids are not a superset of grid cell ids."),
+                (
+                    CRITICAL,
+                    "The data cell ids do not provide a one-to-one map onto grid "
+                    "cell ids.",
+                ),
             ),
             None,
             id="vldr_spat__cellid_coords_any_bad_cellid",
@@ -451,11 +459,11 @@ def fixture_load_data_grids(request):
             ["square"],
             "test_data/xy_coords_shifted.nc",
             pytest.raises(ValueError),
-            "Mapped points do not cover all cells.",
+            "Mapped points fall outside grid.",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
-                (CRITICAL, "Mapped points do not cover all cells."),
+                (CRITICAL, "Mapped points fall outside grid."),
             ),
             None,
             id="vldr_spat__xy_coords_square_shifted",
