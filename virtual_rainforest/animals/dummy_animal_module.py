@@ -11,13 +11,11 @@ setting up and testing the early stages of the animal module.
 # - rework dispersal
 # - send portion of dead to carcass pool
 
-
 # current simplifications
 # - only herbivory (want: carnivory and omnivory)
 # - only endothermy (want: ectothermy)
 # - only iteroparity (want: semelparity)
 # - no development
-
 
 # notes to self
 # assume each grid = 1 km2
@@ -26,12 +24,11 @@ setting up and testing the early stages of the animal module.
 # waste_energy pool likely unnecessary
 #   better to excrete directly to external pools
 # only elephants disperse atm
-# problems with circular type definitions between grid, gridsquare, and animal
 
 from __future__ import annotations
 
 from math import ceil
-from typing import Any, List
+from typing import Any
 
 # import random
 import pint
@@ -56,10 +53,6 @@ class AnimalModel(BaseModel, model_name="animal"):
 
     Attributes:
         name: Names the model that is described.
-        grid: The spatial grid over which the model is run, currently fixed 3x3.
-        #     0 1 2
-        #     3 4 5
-        #     6 7 8
     """
 
     name = "animal"
@@ -68,20 +61,16 @@ class AnimalModel(BaseModel, model_name="animal"):
         self,
         update_interval: timedelta64,
         start_time: datetime64,
-        # no_layers: int,
         **kwargs: Any,
     ):
-
-        self.animal_list: List[Animal] = []
-        self.plant_list: List[Plant] = []
-        self.soil_list: List[SoilPool] = []
-        self.carcass_list: List[CarcassPool] = []
+        # This is commented to streamline the first round of code reviews.
+        # self.animal_list: List[Animal] = []
+        # self.plant_list: List[Plant] = []
+        # self.soil_list: List[SoilPool] = []
+        # self.carcass_list: List[CarcassPool] = []
         self.grid = Grid(grid_type="square", cell_area=9, cell_nx=3, cell_ny=3)
-
+        """The spatial grid over which the model is run, currently fixed 3x3."""
         super().__init__(update_interval, start_time, **kwargs)
-        # self.no_layers = int(no_layers)
-        # Save variables names to be used by the __repr__
-        # self._repr.append("no_layers")
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> BaseModel:
@@ -144,45 +133,42 @@ class AnimalModel(BaseModel, model_name="animal"):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    def populate_pool_lists(self) -> None:
-        """The function to add one of each of the toy pools to the pool lists.
+    # This is commented to streamline getting the first round of code reviews.
+    # def populate_pool_lists(self) -> None:
+    #     """The function to add one of each of the toy pools to the pool lists.
 
-        Args:
-            None: Toy implementation  is only a function of the
-                  hardcoded pools and cohorts.
+    #     Args:
+    #         None: Toy implementation  is only a function of the
+    #               hardcoded pools and cohorts.
 
-        Returns:
-             Pool and cohort list attributes containing an instance.
-        """
-        for grid in range(9):
-            self.animal_list.append(Animal("elephant", 10**6, 5, grid))
-            self.soil_list.append(SoilPool(1000, grid))
-            self.carcass_list.append(CarcassPool(1000, grid))
-            self.animal_list.append(Animal("beetle", 50, 0, grid))
-            self.plant_list.append(Plant("tree", 10.0**5, grid))
+    #     Returns:
+    #          Pool and cohort list attributes containing an instance.
+    #     """
+    #     for grid in range(9):
+    #         self.animal_list.append(Animal("elephant", 10**6, 5, grid))
+    #         self.soil_list.append(SoilPool(1000, grid))
+    #         self.carcass_list.append(CarcassPool(1000, grid))
+    #         self.animal_list.append(Animal("beetle", 50, 0, grid))
+    #         self.plant_list.append(Plant("tree", 10.0**5, grid))
 
 
 class Plant:
     """This is a dummy class of plant cohorts for testing the animal module."""
 
     def __init__(self, name: str, mass: float, position: int) -> None:
-        """The constructor for Plant class.
-
-        Args:
-            name (str): The functional type name of the plant cohort.
-            mass (str): The mass of the plant cohort [g].
-            position (int): The grid position of the plant cohort [0-8].
-            energy (flt): The amount of energy in the plant cohort [j] [toy].
-            alive (bool): Whether the cohort is alive [True] or dead [False].
-            energy_max (flt): The maximum amount of energy that the cohort
-                                can have [j] [toy].
-
-        """
+        """The constructor for Plant class."""
         self.name = name
+        """The functional-type name of the plant cohort."""
+        self.mass = mass
+        """The mass of the plant cohort [g]."""
         self.energy = mass * 100
+        """The amount of energy in the plant cohort [j] [toy]."""
         self.alive = "alive"
+        """Whether the cohort is alive [True] or dead [False]."""
         self.energy_max = mass * 100
+        """The maximum amount of energy that the cohort can have [j] [toy]."""
         self.position = position
+        """The grid location of the cohort [0-8]."""
 
     def plant_growth(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value.
@@ -212,59 +198,48 @@ class Plant:
 
 
 class SoilPool:
-    """This is a dummy class of soil pools for testing the animal module.
-
-    Attributes:
-        energy (flt): The amount of energy in the soil pool [j].
-        position (int): The grid position of the soil pool [g0-g8].
-    """
+    """This is a dummy class of soil pools for testing the animal module."""
 
     def __init__(self, energy: float, position: int) -> None:
-        """The constructor for Soil class.
-
-        Args:
-            energy (flt): The amount of energy in the soil pool [j].
-            position (int): The grid position of the soil pool [0-8].
-        """
+        """The constructor for Soil class."""
         self.energy = energy
+        """The amount of energy in the soil pool [j]."""
         self.position = position
+        """The grid position of the soil pool [0-8]."""
 
 
 class Animal:
     """This is a class of animal cohorts."""
 
     def __init__(self, name: str, mass: float, age: int, position: int):
-        """The constructor for the Animal class.
-
-        Args:
-            name (str): The functional type name of the animal cohort.
-            mass (flt): The average mass of an individual in the animal cohort [g].
-            age (int): The age of the animal cohort [yrs].
-            position (int): The grid position of the plant cohort [0-8].
-            individuals (int): The number of individuals in the cohort [toy].
-            alive (bool): Whether the cohort is alive [True] or dead [False].
-            age_max (int): The maximum lifespan of the cohort [yrs].
-            intake_rate (flt): The rate of energy gain while foraging [j/s] [toy].
-            reproductive_threshold (flt): Thresh mass of a reproductive event [g].
-            metabolic_rate (flt): The rate at which energy is expended to [j/s] [toy].
-            stored_energy (flt): The current indiv energetic reserve [j] [toy].
-            waste_energy (flt): The  energetic content of an indivs excreta [j] [toy].
-        """
+        """The constructor for the Animal class."""
         self.name = name
+        """The functional type name of the animal cohort."""
         self.mass = mass
+        """The average mass of an individual in the animal cohort [g]."""
         self.individuals = ceil(4.23 * self.mass ** (-3 / 4) * 1000000)
+        """The number of individuals in the cohort [toy]."""
         self.alive = "alive"
+        """Whether the cohort is alive [True] or dead [False]."""
         self.age = age
+        """The age of the animal cohort [yrs]."""
         self.age_max = 30
+        """The maximum lifespan of the cohort [yrs]."""
         self.position = position
+        """The grid position of the plant cohort [0-8]."""
         # derived allometric parameters
         self.intake_rate = (10**-4) * self.mass ** (3 / 4)
+        """The rate of energy gain while foraging [j/s] [toy]."""
         self.reproductive_threshold = self.mass * 20
+        """Thresh mass of a reproductive event [g]."""
         self.metabolic_rate = (10**-5) * self.mass ** (3 / 4)
+        """The rate at which energy is expended to [j/s] [toy]."""
         # storage pool
         self.stored_energy = self.mass * 10.0
+        """The current indiv energetic reserve [j] [toy]."""
         # internal waste pools
         self.waste_energy = 0.0
+        """ The  energetic content of an indivs excreta [j] [toy]"""
 
     def details(self) -> str:
         """The function to provide a written description of current animal cohort state.
@@ -386,6 +361,7 @@ class Animal:
         Returns:
             Modifies the cohort's position by 1 random king-step.
         """
+
         # the following is commented out until disersal is reworked for Grid
         # adjacency = {
         #     "g0": ["g1", "g3"],
@@ -416,11 +392,8 @@ class CarcassPool:
     """This is a class of carcass pools."""
 
     def __init__(self, energy: float, position: int) -> None:
-        """The constructor for Carcass class.
-
-        Args:
-            energy (flt): The amount of energy in the carcass pool [j].
-            position (int): The grid position of carcass pool pool [0-8].
-        """
+        """The constructor for Carcass class."""
         self.energy = energy
+        """The amount of energy in the carcass pool [j]."""
         self.position = position
+        """The grid position of carcass pool pool [0-8]."""
