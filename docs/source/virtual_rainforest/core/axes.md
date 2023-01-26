@@ -66,9 +66,9 @@ The data has a `cell_id` dimension without coordinates, any grid geometry.
 The data has a `cell_id` dimension with coordinate values, any grid geometry.
 : In this case, the dataset associates `cell_id` values with positions along the
 `cell_id` dimension. Those might simply be `0` to `ncells`, but could be in a different
-order. Those values associated with the `cell_id` dimension must then include all of the
-`cell_id` values defined in the configured grid. The data is reordered to map onto the
-grid cell id values and any additional cell id values in the data are dropped.
+order. Those values associated with the `cell_id` dimension must then provide a
+one-to-one mapping onto the `cell_id` values defined in the configured grid. The data is
+reordered to map onto the grid cell id values.
 
 The data has `x` and `y` dimensions, square grid geometry.
 : In this case, the `x` and `y` dimensions provide the shape of the grid - for example -
@@ -77,8 +77,8 @@ the same shape as the square grid dimensions and the data is assumed to be in th
 order as the grid. The data is then mapped onto the internal cell id dimension.
 
 The data has `x` and `y` dimensions with coordinates, square grid geometry.
-: The `x` and `y` coordinates for each cell must map data values uniquely onto all
-cells in the grid. This will fail if more than one value falls in a cell or if the
-coordinates fall ambiguously on cell boundaries but the data input can have a larger
-spatial extent than the grid. The data is reordered to map values onto the internal cell
-id dimension.
+: The `x` and `y` coordinates must provide a one-to-one mapping of the data values onto
+the cell geometries in the grid. This will fail if: more than one value falls in a cell,
+the coordinates fall ambiguously on cell boundaries, or the data provide too few or too
+many coordinates for the data. The data is reordered to map values onto the internal
+cell id dimension.
