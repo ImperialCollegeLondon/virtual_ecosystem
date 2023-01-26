@@ -17,7 +17,7 @@ import json
 from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
-import numpy.typing as npt
+from numpy.typing import NDArray
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
@@ -195,15 +195,6 @@ class Grid:
         cell_ny: The number of cells in the grid along the y (northing) axis
         xoff: An offset for the grid x origin
         yoff: An offset for the grid y origin
-
-    Attributes:
-        cell_id: A list of unique integer ids for each cell.
-        polygons: A list of the polygons for each cell as shapely.geometry.Polygon
-            objects, in cell_id order.
-        centroids: A list of the centroid of each cell as shapely.geometry.Point
-            objects, in cell_id order.
-        n_cells: The number of cells in the grid
-        neighbours: A list giving the cell ids of the neighbours for each cell id.
     """
 
     def __init__(
@@ -218,11 +209,28 @@ class Grid:
 
         # Populate the attributes
         self.grid_type = grid_type
+        """The grid type used to create the instance"""
         self.cell_area = cell_area
+        """The area of the grid cells"""
         self.cell_nx = cell_nx
+        """The number of cells in the grid in the X dimension"""
         self.cell_ny = cell_ny
+        """The number of cells in the grid in the Y dimension"""
         self.xoff = xoff
+        """An offset for the cell X coordinates"""
         self.yoff = yoff
+        """An offset for the cell Y coordinates"""
+
+        self.cell_id: list[int]
+        """A list of unique integer ids for each cell."""
+        self.polygons: list[Polygon]
+        """A list of of the cell polygon geometries, as shapely.geometry.Polygon
+        objects, in cell_id order"""
+        self.ncells: int
+        """The total number of cells in the grid."""
+        self.centroids: NDArray
+        """A list of the centroid of each cell as shapely.geometry.Point objects, in
+        cell_id order."""
 
         # Retrieve the creator function from the grid registry and handle unknowns
         creator = GRID_REGISTRY.get(self.grid_type, None)
@@ -249,20 +257,20 @@ class Grid:
         # Get the centroids as a numpy array
         centroids = [cell.centroid for cell in self.polygons]
         self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
-        [cell.centroid for cell in self.polygons]
 
         # Get the bounds as a 4 tuple
-        self.bounds = GeometryCollection(self.polygons).bounds
+        self.bounds: GeometryCollection = GeometryCollection(self.polygons).bounds
+        """A GeometryCollection providing the bounds of the cell polygons."""
 
         # Define other attributes set by methods
         # TODO - this might become a networkx graph
-        self._neighbours: Optional[list[npt.NDArray[np.int_]]] = None
+        self._neighbours: Optional[list[NDArray[np.int_]]] = None
 
         # Do not by default store the full distance matrix
-        self._distances: Optional[npt.NDArray] = None
+        self._distances: Optional[NDArray] = None
 
     @property
-    def neighbours(self) -> list[npt.NDArray[np.int_]]:
+    def neighbours(self) -> list[NDArray[np.int_]]:
         """Return the neighbours property."""
 
         if self._neighbours is None:
