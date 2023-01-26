@@ -194,7 +194,7 @@ def test_validate_dataarray(
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
             DataArray(data=np.arange(6), coords={"cell_id": [1, 2, 3, 4, 5, 9]}),
             pytest.raises(ValueError),
-            "The data cell ids are not a superset of grid cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             None,
         ),
         (  # Duplicate ids in data
@@ -216,9 +216,9 @@ def test_validate_dataarray(
             DataArray(
                 data=np.arange(9), coords={"cell_id": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
             ),
-            does_not_raise(),
+            pytest.raises(ValueError),
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             None,
-            [0, 1, 2, 3, 4, 5],
         ),
         (  # - different order
             {"grid_type": "square", "cell_nx": 3, "cell_ny": 2},
@@ -236,9 +236,9 @@ def test_validate_dataarray(
                 data=np.array([6, 5, 7, 3, 1, 0, 4, 2, 8]),
                 coords={"cell_id": [6, 5, 7, 3, 1, 0, 4, 2, 8]},
             ),
-            does_not_raise(),
+            pytest.raises(ValueError),
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             None,
-            [0, 1, 2, 3, 4, 5],
         ),
     ],
 )
