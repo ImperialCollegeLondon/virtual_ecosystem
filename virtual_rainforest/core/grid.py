@@ -487,27 +487,30 @@ class Grid:
         y_coords: np.ndarray,
         x_idx: Optional[np.ndarray],
         y_idx: Optional[np.ndarray],
-        strict: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Returns indexing to map xy coordinates a single cell_id axis.
 
         This function maps the provided one-dimensional set of x and y points onto the
         grid (using `~virtual_rainforest.core.grid.Grid.map_xy_to_cell_id`) and then
-        checks that the mapped points uniquely identify all of the grid cells. If
-        `strict` is set to False, then extra points outside the grid are permitted.
+        checks that the mapped points provide a one-to-one mapping onto the grid cells.
 
         The function then returns a pair of arrays that give indices on the original
-        x and y data to extract data along a single cell id axis. If specific x and y
-        indexing data is not provided, they are assumed to be simple sequences along
-        `x_coords` and `y_coords`.
+        x and y data to extract data along a single cell id axis. Because the inputs are
+        expected to be flattened onto a single dimension, the function also accepts x
+        and y index values that allow the cells to be mapped back into original
+        dimensions. If these are not provided, the coordinates are are assumed to have
+        come from a one-dimensional structure and so these indices are simple sequences
+        along  `x_coords` and `y_coords`.
 
         Args:
-            cell_map: An existing mapping from points onto cell ids.
-            strict: Should points outside the grid be allowed
+            x_coords: A numpy array of x coordinates of points that should occur within
+                grid cells.
+            y_coords: A similar and equal-length array providing y coordinates.
+            x_idx: A numpy array providing original indices along the x-axis
+            y_idx: A numpy array providing original indices along the y-axis
 
         Returns:
-            A list showing the integer cell id for each pair of points. If strict is
-            False, the list element for points outside the grid is None.
+            A list giving the integer cell id for each pair of points.
         """
 
         # Get the coordinate mapping to cell ids
@@ -531,20 +534,19 @@ class Grid:
         # Find the set of total number of cell mappings per point
         cell_counts = set([len(mp) for mp in cell_map])
 
-        # If strict, raise an exception where not all coords fall in a grid cell
-        if strict and (0 in cell_counts):
+        # Raise an exception where not all coords fall in a grid cell
+        if 0 in cell_counts:
             raise ValueError("Mapped points fall outside grid.")
 
         # Values greater than 1 indicate coordinates on cell edges
         if any([c > 1 for c in cell_counts]):
             raise ValueError("Mapped points fall on cell boundaries.")
 
-        # Now all points are 1 to 1 with cells, or missing if strict = False, so
-        # collapse down to list of ints/None.
-        cell_id_map = [c[0] if len(c) else None for c in cell_map]
+        # Now all points are 1 to 1 with cells so collapse down to list of ints
+        cell_id_map = [c[0] for c in cell_map]
 
-        # Get a list of all non-None ids.
-        cells_found = [v for v in cell_id_map if v is not None]
+        # Get a list of all mapped cell ids.
+        cells_found = [v for v in cell_id_map]
 
         # Now check for cells with more than one point and cells with no points.
         if set(cells_found) != set(self.cell_id):
@@ -553,12 +555,8 @@ class Grid:
         if len(cells_found) != self.n_cells:
             raise ValueError("Some cells contain more than one point.")
 
-        # Reduce to matching cells in cell_id order
-        cells = [
-            (mp, x, y)
-            for (mp, x, y) in zip(cell_id_map, x_idx, y_idx)  # type: ignore
-            if mp is not None
-        ]
+        # Get a list of (cell_id, x, y) tuples
+        cells = list(zip(cell_id_map, x_idx, y_idx))  # type: ignore [arg-type]
         cells.sort()
         _, x_idx, y_idx = zip(*cells)
 
