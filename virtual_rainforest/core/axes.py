@@ -263,9 +263,10 @@ class Spat_CellId_Coord_Any(AxisValidator):
         An input DataArray that provides coordinate values along a ``cell_id`` dimension
         is assumed to map data onto the cells values defined in the
         :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation. The
-        coordinate values are assumed to map onto the ``cell_id`` values defined for
-        each cell in the ``Grid``. Because ``cell_id`` values are defined for cells in
-        all grid types, this validator does not require a particular grid geometry.
+        coordinate values are tested to check they provide a one-to-one map onto the
+        ``cell_id`` values defined for each cell in the ``Grid``. Because ``cell_id``
+        values are defined for cells in all grid types, this validator does not require
+        a particular grid geometry.
     """
 
     core_axis = "spatial"
@@ -289,15 +290,11 @@ class Spat_CellId_Coord_Any(AxisValidator):
     def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
         """Run validation on the inputs.
 
-        Validation will fail when the ``cell_id`` coordinate values:
+        Validation will fail if the ``cell_id`` coordinate values:
 
         * are not unique, or
-        * do not cover the full set of ``cell_id`` values defined in the configured
-          ``Grid`` object.
-
-        It is permitted for the input DataArray to include a larger set of ``cell_id``
-        coordinates than needed, and the DataArray ``cell_id`` dimension will be reduced
-        to match the ``Grid`` configuration and sorted if necessary.
+        * do not provide a one-to-one mapping onto the set of ``cell_id`` values defined
+          in the configured ``Grid`` object.
 
         Args:
             value: An input DataArray to check
@@ -316,8 +313,10 @@ class Spat_CellId_Coord_Any(AxisValidator):
         if len(np.unique(da_cell_ids)) != len(da_cell_ids):
             raise ValueError("The data cell ids contain duplicate values.")
 
-        if not set(grid.cell_id).issubset(da_cell_ids):
-            raise ValueError("The data cell ids are not a superset of grid cell ids.")
+        if not set(grid.cell_id) == set(da_cell_ids):
+            raise ValueError(
+                "The data cell ids do not provide a one-to-one map onto grid cell ids."
+            )
 
         # Now ensure sorting and any subsetting:
         # https://stackoverflow.com/questions/8251541
@@ -399,9 +398,8 @@ class Spat_XY_Coord_Square(AxisValidator):
         assumed to map data onto the cells defined in a
         :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation with a
         ``square`` cell geometry. The pairwise combinations of ``x`` and ``y``
-        coordinates in the data are expected to provide a one-to-one mapping onto the
-        all of the cell geometries. It is permitted for the DataArray to have a larger
-        spatial extent than the configured simulation.
+        coordinates in the data are expected to provide a one-to-one mapping onto  grid
+        cell geometries.
 
     This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
     dimension used in the :mod:`~virtual_rainforest.core.grid` module.
@@ -432,10 +430,9 @@ class Spat_XY_Coord_Square(AxisValidator):
 
         * Fall on cell geometry boundaries: unambiguous coordinates within the geometry,
           such as cell centroids, should be used.
-        * Are not at the same resolution, such that either multiple data cells map onto
-          a single grid cell or that some grid cells do not have matching data cells.
-        * Have too small an extent, so that again some grid cells do not have matching
-          data coordinates.
+        * The coordinate pairs do not provide a one-to-one mapping onto the cells:
+          multiple coordinates map onto a single cell, there is not a coordinate pair
+          for each cell, or some coordinate pairs do not map onto a cell.
 
         Args:
             value: An input DataArray to check
@@ -466,10 +463,7 @@ class Spat_XY_Coord_Square(AxisValidator):
             y_coords=xy_pairs["y"].values,
             x_idx=idx_pairs["x"].values,
             y_idx=idx_pairs["y"].values,
-            strict=False,
         )
-
-        # TODO - fine a way to enable strict = True - probably just kwargs.
 
         # Now remap the grids from xy to cell_id - this uses the rather under described
         # vectorized indexing feature in xarray:
