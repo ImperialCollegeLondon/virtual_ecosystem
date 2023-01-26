@@ -3,12 +3,12 @@
 The Virtual Rainforest is designed to be modular, meaning that the set of models to be
 used in a particular run is configurable at the start of the simulation. We are starting
 out by defining a core set of models (`abiotic`, `animals`, `plants` and `soil`), which
-will generally all be included for the vast majority of simulations. In the future, it might
-be desirable to include models for other aspects of rainforests (e.g. `freshwater`, `disturbance`), or
-to include multiple modelling approaches for a process. When this happens a new model
-should be created. This page will set out the process for adding a new model to the
-Virtual Rainforest in a manner that allows it to be used appropriately by the `core`
-simulation functionality.
+will generally all be included for the vast majority of simulations. In the future, it
+might be desirable to include models for other aspects of rainforests (e.g.
+`freshwater`, `disturbance`), or to include multiple modelling approaches for a process.
+When this happens a new model should be created. This page will set out the process for
+adding a new model to the Virtual Rainforest in a manner that allows it to be used
+appropriately by the `core` simulation functionality.
 
 ## Define a new `Model` class
 
