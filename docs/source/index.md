@@ -76,9 +76,10 @@ team.
   :maxdepth: 4
   :caption: API
   :hidden:
-
+  
   api/core.md
   api/soil.md
+  api/abiotic/radiation.md
 ```
 
 ```{eval-rst}
