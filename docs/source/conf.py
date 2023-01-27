@@ -10,8 +10,13 @@ If extensions (or modules to document with autodoc) are in another directory,
 add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
+import sys
 
 import virtual_rainforest as vr  # noqa: E402
+
+# This path is required for automodule to be able to find and render the docstring
+# example in the development section of the documentation.
+sys.path.append("source/development/documentation")
 
 version = vr.__version__
 release = version
