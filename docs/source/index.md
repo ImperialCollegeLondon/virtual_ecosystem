@@ -94,7 +94,7 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: Development
-  :glob:
+
   Strategy <development/code_development_strategy.md>
   Developer Setup <development/developer_setup.md>
   Documentation Overview <development/documentation/overview.md>
