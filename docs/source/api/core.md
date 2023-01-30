@@ -16,41 +16,23 @@ kernelspec:
 
 # API reference for `core` modules
 
-This page contains the detailed documentation of the functions and classes in the
-`virtual_rainforest.core` modules.
+The {mod}`~virtual_rainforest.core` module contains the key shared resources and
+building blocks used to develop the different component models of the Virtual Rainforest
+and then to configure them, populate them with data and provide logging.
 
-## The `virtual_rainforest.core.config` module
+Each of the core sub-modules has its own API reference page:
 
-```{eval-rst}
-.. automodule:: virtual_rainforest.core.config
-    :autosummary:
-    :members:
-    :special-members: __init__
-```
-
-## The `virtual_rainforest.core.grid` module
-
-```{eval-rst}
-.. automodule:: virtual_rainforest.core.grid
-    :autosummary:
-    :members:
-    :special-members: __init__
-```
-
-## The `virtual_rainforest.core.model` module
-
-```{eval-rst}
-.. automodule:: virtual_rainforest.core.model
-    :autosummary:
-    :members:
-    :special-members: __init__
-```
-
-## The `virtual_rainforest.core.logger` module
-
-```{eval-rst}
-.. automodule:: virtual_rainforest.core.logger
-    :autosummary:
-    :members:
-    :special-members: __init__
-```
+* The {mod}`~virtual_rainforest.core.config` submodule covers the
+  definition of formal configuration schema for components and the parsing and
+  validation of TOML configuration documents against those schema.
+* The {mod}`~virtual_rainforest.core.grid` submodule covers the
+  definition of the spatial layout to be used in a simulation and provides an interface
+  to the spatial relationships between cells.
+* The {mod}`~virtual_rainforest.core.data` submodule provides the
+  central data object used to store data required by the simulation and methods to
+  populate that data object for use in simulations.
+* The {mod}`~virtual_rainforest.core.model` submodule provides an Abstract
+  Base Class describing the shared API to be used by science models within the Virtual
+  Rainforest.
+* The {mod}`~virtual_rainforest.core.logger` configures the {class}`~logging.LOGGER`
+  instance used throughout the package.

@@ -19,12 +19,12 @@ python = ">=3.9,<3.12"
 numpy = "^1.23.0"
 tomli = { version = "^2.0.1", python = "<3.11" }
 dpath = "^2.0.6"
-pydantic = "^1.9.1"
 tomli-w = "^1.0.0"
 scipy = "^1.9.0"
 jsonschema = "^4.14.0"
 Shapely = "^1.8.4"
 pint = "^0.20.1"
+xarray = "^2022.11.0"
 
 [tool.poetry.group.types.dependencies]
 types-jsonschema = "^4.16.1"
@@ -32,6 +32,7 @@ types-jsonschema = "^4.16.1"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
+pytest-datadir = "^1.4.1"
 pytest-flake8 = "^1.1.1"
 pytest-mypy = "^0.9.1"
 pytest-mock = "^3.8.1"

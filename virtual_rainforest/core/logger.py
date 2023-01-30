@@ -1,5 +1,5 @@
 """API documentation for the :mod:`core.logger` module.
-************************************************** # noqa: D205
+****************************************************
 
 The :mod:`core.logging` module is used to setup the extend the standard logging setup to
 provide additional functionality relevant to the virtual rainforest model.
@@ -47,7 +47,7 @@ developers choice) and adds a developer specified ``CRITICAL`` message to the lo
 function is useful as it ensures that ``CRITICAL`` logging events are accompanied by a
 simulation ending exception. As such, this is probably the only means by which you
 should log a ``CRITICAL`` message.
-"""
+"""  # noqa: D205
 
 import logging
 from typing import Optional, Type
