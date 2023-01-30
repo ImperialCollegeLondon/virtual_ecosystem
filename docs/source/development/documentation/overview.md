@@ -92,6 +92,6 @@ not easy to use MyST Markdown with the `autodoc` extension, so unfortunately
   Python code
   style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
 
-* The [rendered docstrings](docstrings_render.md) page explains how to include the API
+* The [API generation](api_generation.md) page explains how to include the API
   for a new module in the project documentation. It also shows how the dummy code model
   mentioned above is rendered as HTML by that process.

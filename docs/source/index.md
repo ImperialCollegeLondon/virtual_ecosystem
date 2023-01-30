@@ -95,10 +95,13 @@ team.
   :maxdepth: 4
   :caption: Development
   :glob:
-  
-  development/*
-  development/documentation/*
-  development/design/*
+  Strategy <development/code_development_strategy.md>
+  Developer Setup <development/developer_setup.md>
+  Documentation Overview <development/documentation/overview.md>
+  Jupyter Notebooks <development/documentation/jupyter_notebooks.md>
+  Docstring Style <development/documentation/docstring_style.md>
+  API Generation <development/documentation/api_generation.md>
+  Core Design <development/design/core.md>
 ```
 
 ```{eval-rst}
