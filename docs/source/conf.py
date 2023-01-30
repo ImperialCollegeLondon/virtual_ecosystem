@@ -61,7 +61,9 @@ autosummary_generate = True
 autosectionlabel_prefix_document = True
 autosectionlabel_maxdepth = 2
 
+# Myst configuration
 myst_enable_extensions = ["dollarmath", "deflist"]
+myst_heading_anchors = 3
 
 # Enable mhchem for chemical formulae
 mathjax3_config = {

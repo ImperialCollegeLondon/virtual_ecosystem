@@ -46,7 +46,7 @@ currently active `poetry` virtual environment:
 - Type `interpreter` and find 'Python: Select Interpreter'
 - Enter the full path from the `poetry env list` output.
 
-### Jupyter kernel setup
+## Jupyter kernel setup
 
 The `jupyter` system can be setup to run notebooks in a number of different languages
 and even different versions of the same environment. Each option is setup as a

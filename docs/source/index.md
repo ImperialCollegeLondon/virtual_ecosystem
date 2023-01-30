@@ -94,12 +94,11 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: Development
-  :hidden:
-
-  development/code_development_strategy.md
-  development/jupyter_notebooks.md
-  development/developer_setup.md
-  development/design/core.md
+  :glob:
+  
+  development/*
+  development/documentation/*
+  development/design/*
 ```
 
 ```{eval-rst}
