@@ -20,11 +20,22 @@ pages using the `sphinx`
 extension. 
 
 The docstring content of a module is converted to HTML by including a small Markdown
-file in the `docs/source/api` folder. Typically, the file will start with the
-`jupytext` YAML metadata, then a markdown title and then an `automodule` instruction to
-insert all of the rest of the page content from the module docstrings. This text source
-of this page provides an example and can be seen using the 'View page source' link at 
-the top of the page.
+file in the `docs/source/api` folder. The source of this page provides an example and 
+can be seen following the 'Edit on GitHub' link at the top of the page to GitHub and 
+then clicking on the 'Raw' button to see the text.
+
+The file has three components:
+
+* The file will start with the `jupytext` YAML metadata, which just sets the Markdown 
+  format used in the file.
+  
+* A markdown header (`# A header`), which is shown as the page title. It is also used as
+  the text for links to this page from the table of contents, unless a shorter name is
+  provided in the `index.md` file. Typically, this is the only markdown content as the
+  point of the docstrings is to keep all module documentation alongside the code.
+
+* Lastly, an `automodule` instruction is included to instruct `autodoc` to render and 
+  insert content of the module docstrings. 
 
 The basic `automodule` declaration and options used are:
 
@@ -37,12 +48,17 @@ The basic `automodule` declaration and options used are:
 
 The `autosummary` option adds summary tables of the module objects below the module
 docstring content and above the docstrings for those objects. The `members` option
-includes all public module members in the documentation. These options can be extended 
-to include other members if required. Here, the `special-members` option is used here
-to document the `__repr__` method. 
+includes all public module members in the documentation. These settings can be
+extended from a [range of 
+options](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-automodule)
+if required. Here, for example, the `special-members` option is used to make sure the 
+`__repr__` and its docstrings are included method. This option covers all 'dunder' 
+methods (`__special__`) of classes. Similarly, the `private-members` allows private 
+functions and methods (`_func` or `__func`) to be included in the API documentation if
+needed.
 
-Note that we **do not** include `__init__` in documentation: creating a class instance
-is documented in the class docstring.
+Note that we **should not** include `:special-members: __init__` in the `automodule` 
+options: creating a class instance is documented by the class docstring.
 
 All of the content below this box is rendered from the example docstring code. 
 Obviously, this explanatory box should be removed from real API pages.
