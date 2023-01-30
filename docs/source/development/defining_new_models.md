@@ -49,18 +49,22 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 ```
 
-The new model class is created using a class method, this means that a model name must
-be provided when class inheritance occurs, so that the model can automatically be added
-to the registry under that name. It's worth noting that the `self.name` attribute for
-the class is automatically set to be this name.
+The new model class is created using a class method, which means that the model is
+automatically be added to the model registry when class inheritance occurs. The model is
+added to the registry under the name set by the `model_name` attribute. This means that
+this attribute should be populated (as a string) for every new model, and cannot be the
+`model_name` of an already existing model.
 
 ```python
-class FreshWaterModel(BaseModel, model_name="freshwater"):
+class FreshWaterModel(BaseModel):
     """Docstring describing model.
 
     Args:
         Describe arguments here
     """
+
+    model_name = "freshwater"
+    """The model name for use in registering the model and logging."""
 ```
 
 With the basic class now defined an `__init__` function should be added to the class.
