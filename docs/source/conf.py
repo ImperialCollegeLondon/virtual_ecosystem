@@ -15,7 +15,10 @@ import sys
 import virtual_rainforest as vr  # noqa: E402
 
 # This path is required for automodule to be able to find and render the docstring
-# example in the development section of the documentation.
+# example in the development section of the documentation. The path to the modules for
+# the virtual_rainforest package itself do not needed to be included here, providing
+# sphinx is run within the poetry shell.
+
 sys.path.append("source/development/documentation")
 
 version = vr.__version__

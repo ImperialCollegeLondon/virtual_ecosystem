@@ -10,22 +10,28 @@ jupytext:
     jupytext_version: 1.13.8
 ---
 
-# Using `jupyter` notebooks
+# Dynamic content using `jupyter` notebooks
 
-We are going to be making extensive use of Jupyter notebooks as a format for providing
-documentation and as a way of sharing design and troubleshooting notes.
+Jupyter notebooks are a literate-programming format that allows text and runnable code
+to be combined in a single document. They provide the ability to write documentation
+pages that show the actual use of the `virtual_rainforest` project along with outputs
+and figures. They are also an invaluable tool for sharing design and troubleshooting
+investigations.
 
 ## Running `jupyter-lab`
 
-The `poetry` development environment is already setup to include `jupyter`, so you can
-start a notebook browser either by using `jupyter-lab` in a terminal or simply by
-opening the notebook within VS Code and letting the Jupyter extension within VS Code
-handle it all.
+The `poetry` virtual environment for `virtual_rainforest` is already setup to
+include `jupyter` and `jupyter-lab`, which is a browser-based application for editing
+and running notebooks. As that virtual environment also has the `virtual_rainforest`
+package installed in development mode, a `jupyter` notebook running using this
+enviroment will be able to import and use `virtual_rainforest` code from the active
+branch.
 
-You do **have to make sure that `jupyter` is using the `poetry` python virtual
-environment**: this venv has all the development packages installed and also has the
-`virtual_rainforest` package installed in development mode, so that it can be used in
-code cells. The information you will need is produced from `poetry`:
+You can open `jupyter-lab` in a couple of ways. The simplest way is to use `poetry run
+jupyter-lab` from the terminal, but you can also open the notebook within VS Code use
+the Jupyter extension within VS Code. For this option, you will need to make sure that
+VS Code is using the right python environment. The information you will need is
+produced from `poetry`:
 
 ```zsh
 % poetry env list --full-path
@@ -33,21 +39,28 @@ code cells. The information you will need is produced from `poetry`:
 /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.9 (Activated)
 ```
 
-### VS Code
-
-In VS Code, you have to set the Python interpreter to the full path to the currently
-active `poetry` virtual environment:
+In VS Code, you then have to set the Python interpreter to the full path to the
+currently active `poetry` virtual environment:
 
 - View > Command Palette
 - Type `interpreter` and find 'Python: Select Interpreter'
 - Enter the full path from the `poetry env list` output.
 
-### Jupyter Lab
+### Jupyter kernel setup
 
-There is a good discussion of this
-[here](https://janakiev.com/blog/jupyter-virtual-envs/) but the take home is that you
-need to add a kernel specification to your local Jupyter installation that points to the
-venv created by `poetry`.
+The `jupyter` system can be setup to run notebooks in a number of different languages
+and even different versions of the same environment. Each option is setup as a
+**kernel**, which is basically a pointer to a particular programming environment or
+virtual environment.
+
+To make sure that `virtual_rainforest` project notebooks are always built using the
+correct virtual environment on all systems (including developer machines, ReadTheDocs
+and Github Actions), this project requires that `jupyter` is set up to use the virtual
+environment created by `poetry` under the `vr_python3` kernel name. There is a good
+discussion of the background for this
+[here](https://janakiev.com/blog/jupyter-virtual-envs/).
+
+In order to install that kernel, run the following line:
 
 ```zsh
 poetry run python -m ipykernel install --user --name=vr_python3
@@ -125,27 +138,14 @@ human-readable:
   changes.
 
 While there are tools (e.g. `nbdime` and `nbmerge`) that help manage those changes in a
-more coherent way, a simpler solution is simply _not to include `.ipynb` files within
-the repository at all_. The `jupytext` tool is a really powerful way to manage the
-content of Jupyter notebooks, including using markdown formats for notebooks and having
-paired (`ipynb` and `md`) files.
+more coherent way, a simpler solution is to use a different notebook format.
 
-There **is a downside**: `.ipynb` files contain code cell outputs, including any
-graphics created in the code. GitHub knows how to render those binary and output
-contents of `ipynb` files, so the rendered page you see on GitHub includes the most
-recent output runs.
+We instead use notebooks written in MyST Markdown, and the `jupytext` extension allows
+`jupyter` to load and run those files as notebooks. More broadly, `jupytext` is a really
+powerful tool for managing the content of Jupyter notebooks, including using markdown
+formats for notebooks.
 
-- We only commit notebooks in markdown format.
-- Notebooks should use the `vr_python3` kernel, so that they will hopefully run on any
-  machine that has set up the `kernelspec` correctly.
-- GitHub will render the markdown and code cells correctly but none of the executed
-  outputs will be shown.
-- However, the markdown files **will be executed** by the `sphinx` documentation system,
-  so fully rendered versions will be in the documentation website.
-- You can also simply launch your local copy in `jupyter-lab` and run it to get outputs.
-  This is a problem if the computation is particularly slow, though!
-
-## The `jupytext` package
+## Using `jupytext`
 
 The `jupytext` package works as an extension running within Jupyter Lab, adding some
 commands to the `jupyter` command palette, but also provides a command line tool with
@@ -180,6 +180,26 @@ header:
 % jupytext --set-format md:myst simple.md
 % jupytext --set-kernel vr_python3  simple.md
 ```
+
+There **is a downside** to using Markdown notebooks: `.ipynb` files contain code cell
+outputs, including any graphics created in the code. GitHub knows how to render those
+binary and output contents of `ipynb` files, so the rendered page you see on GitHub
+includes the most recent output runs.
+
+In summary:
+
+- We only commit notebooks in MyST Markdown format
+- Notebooks should use the `vr_python3` kernel, so that they will hopefully run on any
+  machine that has set up the `kernelspec` correctly.
+- GitHub will render the markdown and code cells correctly but none of the executed
+  outputs will be shown.
+- However, the markdown files **will be executed** by the `sphinx` documentation system,
+  so fully rendered versions will be in the documentation website.
+- You can develop notebook content locally using `jupyter-lab` and run it to get
+  outputs. You can also run `sphinx` to see how a notebook is rendered in the
+  documentation.
+- The code in notebooks should not take a long time to run - these pages have to be
+  built every time the documentation is built.
 
 ## Notebook pre-commit checking
 
