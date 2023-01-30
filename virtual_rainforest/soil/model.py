@@ -28,7 +28,7 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
-class SoilModel(BaseModel, model_name="soil"):
+class SoilModel(BaseModel):
     """A class describing the soil model.
 
     Describes the specific functions and attributes that the soil module should possess.
@@ -40,6 +40,9 @@ class SoilModel(BaseModel, model_name="soil"):
         update_interval: Time to wait between updates of the model state.
         no_layers: The number of soil layers to be modelled.
     """
+
+    model_name = "soil"
+    """The model name for use in registering the model and logging."""
 
     def __init__(
         self,
