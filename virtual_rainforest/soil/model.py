@@ -1,5 +1,5 @@
 """API documentation for the :mod:`soil.model` module.
-************************************************** # noqa: D205
+***************************************************
 
 The :mod:`soil.model` module creates a :class:`~virtual_rainforest.soil.model.SoilModel`
 class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
@@ -15,7 +15,7 @@ If errors crop here when converting the information from the config dictionary t
 required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and
 at the end of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
-"""
+"""  # noqa: D205
 
 from __future__ import annotations
 
