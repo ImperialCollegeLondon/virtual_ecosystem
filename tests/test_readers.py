@@ -168,5 +168,3 @@ def test_load_to_dataarray(
         assert str(err.value) == exp_msg
 
     log_check(caplog, exp_log)
-
-    return

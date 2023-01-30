@@ -15,7 +15,7 @@ can be retrieved and set using ``data_object['varname']`` - but also provide val
 for data being added to the object.
 
 All data added to the class is stored in a :class:`~xarray.DataSet` object, and data
-extracted from the object will be a :class:`~xarray.DataArray`. The `Dataset` can also
+extracted from the object will be a :class:`~xarray.DataArray`. The ``Dataset`` can also
 be accessed directly using the :attr:`~virtual_rainforest.core.data.Data.data` attribute
 of the class instance to use any of the :class:`~xarray.DataSet` class methods.
 
@@ -30,7 +30,7 @@ The core of the :class:`~virtual_rainforest.core.data.Data` class is the
 following functionality:
 
 * It allows a ``DataArray`` to be added to a :class:`~virtual_rainforest.core.data.Data`
-  instance using the `data['varname'] = data_array` syntax.
+  instance using the ``data['varname'] = data_array`` syntax.
 * It applies the validation step using the
   :func:`~virtual_rainforest.core.axes.validate_datarray` function. See the
   :mod:`~virtual_rainforest.core.axes` module for the details of the validation process,
