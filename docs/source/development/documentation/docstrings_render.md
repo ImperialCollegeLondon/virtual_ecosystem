@@ -19,10 +19,12 @@ pages using the `sphinx`
 [`autodoc`](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html)
 extension. 
 
-Typically, the file will start with some `jupytext` YAML metadata, then a markdown title
-and then an `automodule` instruction to insert all of the rest of the page content from
-the module docstrings. This page is rendered using this structure and the text source of
-can be seen using the 'View page source' link at the top of the page.
+The docstring content of a module is converted to HTML by including a small Markdown
+file in the `docs/source/api` folder. Typically, the file will start with the
+`jupytext` YAML metadata, then a markdown title and then an `automodule` instruction to
+insert all of the rest of the page content from the module docstrings. This text source
+of this page provides an example and can be seen using the 'View page source' link at 
+the top of the page.
 
 The basic `automodule` declaration and options used are:
 
