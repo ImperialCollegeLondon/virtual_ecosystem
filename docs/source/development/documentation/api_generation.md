@@ -10,7 +10,7 @@ jupytext:
     jupytext_version: 1.13.8
 ---
 
-# Rendered HTML for docstring example
+# Generating API documentation from docstrings
 
 ````{admonition} Rendering docstrings in the project web pages
 This page shows how the docstring example in our 

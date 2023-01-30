@@ -49,7 +49,7 @@ make clean
 make html
 ```
 
-The `make html` command will only builds pages for files that have changed recently, and
+The `make html` command will only build pages for files that have changed recently, and
 it can sometimes be necessary to use `make clean` to remove all of the existing built
 pages in order to rebuild  the documentation from scratch.
 
