@@ -54,7 +54,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 
 
 class AxisValidator(ABC):
@@ -210,6 +210,7 @@ def validate_dataarray(
     """
 
     validation_dict: dict[str, Optional[str]] = {}
+    to_raise: Exception
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
@@ -229,16 +230,19 @@ def validate_dataarray(
             validator_found = [v for v in validators if v().can_validate(value, grid)]
 
             if len(validator_found) == 0:
-                log_and_raise(
+                to_raise = ValueError(
                     f"DataArray uses '{axis}' axis dimension names but does "
-                    f"not match a validator: {','.join(matching_dims)}",
-                    ValueError,
+                    f"not match a validator: {','.join(matching_dims)}"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
             if len(validator_found) > 1:
-                log_and_raise(
-                    f"Validators on '{axis}' axis not mutually exclusive", RuntimeError
+                to_raise = RuntimeError(
+                    f"Validators on '{axis}' axis not mutually exclusive"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
             # Get the appropriate Validator class and then use it to update the data
             # array
@@ -246,7 +250,8 @@ def validate_dataarray(
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
             except Exception as excep:
-                log_and_raise(str(excep), excep.__class__)
+                LOGGER.critical(excep)
+                raise
 
             validation_dict[axis] = this_validator.__name__
 
