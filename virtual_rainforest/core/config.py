@@ -47,7 +47,7 @@ import sys
 from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional, Union, Generator
+from typing import Any, Callable, Generator, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
