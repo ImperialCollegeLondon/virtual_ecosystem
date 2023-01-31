@@ -20,5 +20,4 @@ kernelspec:
 .. automodule:: virtual_rainforest.core.config
     :autosummary:
     :members:
-    :special-members: __init__
 ```

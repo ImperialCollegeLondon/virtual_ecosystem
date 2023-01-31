@@ -25,5 +25,4 @@ This page contains the detailed documentation of the functions and classes in th
 .. automodule:: virtual_rainforest.soil.model
     :autosummary:
     :members:
-    :special-members: __init__
 ```

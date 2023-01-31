@@ -20,5 +20,5 @@ kernelspec:
 .. automodule:: virtual_rainforest.core.axes
     :autosummary:
     :members:
-    :special-members: __init__
+    :special-members: __init_subclass__
 ```

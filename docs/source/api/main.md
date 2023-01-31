@@ -30,7 +30,6 @@ Rainforest.
 .. automodule:: virtual_rainforest.main
     :autosummary:
     :members:
-    :special-members: __init__
 ```
 
 ## The {mod}`~virtual_rainforest.entry_points` module
@@ -39,5 +38,4 @@ Rainforest.
 .. automodule:: virtual_rainforest.entry_points
     :autosummary:
     :members:
-    :special-members: __init__
 ```

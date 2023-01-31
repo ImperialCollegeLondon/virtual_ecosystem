@@ -20,5 +20,5 @@ kernelspec:
 .. automodule:: virtual_rainforest.core.grid
     :autosummary:
     :members:
-    :special-members: __init__
+    :special-members: __repr__
 ```
