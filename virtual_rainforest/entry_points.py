@@ -1,9 +1,8 @@
-"""The `virtual_rainforest.entry_points` module.
-
-This module defines the entry points to the virtual_rainforest package. At the moment a
-single entry point is defined `vr_run`, which simply configures and runs a virtual
-rainforest simulation based on a set of configuration files.
-"""
+"""The :mod:`~virtual_rainforest.entry_points`  module defines the command line entry
+points to the virtual_rainforest package. At the moment a single entry point is defined
+`vr_run`, which simply configures and runs a virtual rainforest simulation based on a
+set of configuration files.
+"""  # noqa D210, D415
 
 import argparse
 import textwrap
