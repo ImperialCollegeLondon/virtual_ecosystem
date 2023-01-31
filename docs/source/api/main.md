@@ -38,4 +38,5 @@ Rainforest.
 .. automodule:: virtual_rainforest.entry_points
     :autosummary:
     :members:
+    :private-members:
 ```
