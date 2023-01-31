@@ -24,7 +24,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
@@ -55,14 +55,18 @@ class SoilModel(BaseModel, model_name="soil"):
     ):
 
         if no_layers < 1:
-            log_and_raise(
-                "There has to be at least one soil layer in the soil model!",
-                InitialisationError,
+            to_raise = InitialisationError(
+                "There has to be at least one soil layer in the soil model!"
             )
-        elif no_layers != int(no_layers):
-            log_and_raise(
-                "The number of soil layers must be an integer!", InitialisationError
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        if no_layers != int(no_layers):
+            to_raise = InitialisationError(
+                "The number of soil layers must be an integer!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
