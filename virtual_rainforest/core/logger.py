@@ -52,9 +52,9 @@ handling should always include a LOGGER call, using one of the following pattern
   .. code-block:: python
 
     if thing_has_gone_wrong:
-        excep = ValueError("It went wrong!")
-        LOGGER.critical(excep)
-        raise excep
+        to_raise = ValueError("It went wrong!")
+        LOGGER.critical(to_raise)
+        raise to_raise
 
 #. A ``try`` block results in an exception:
 

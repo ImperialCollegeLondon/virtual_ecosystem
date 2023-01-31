@@ -11,7 +11,7 @@ from pathlib import Path
 
 import virtual_rainforest as vr
 from virtual_rainforest.core.config import ConfigurationError
-from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.main import vr_run
 
 
@@ -57,19 +57,21 @@ def _vr_run_cli() -> None:
 
     try:
         args = parser.parse_args()
-    except SystemExit as e:
-        if e.code != 0:
+    except SystemExit as excep:
+        if excep.code != 0:
             # Catch unexpected args and similar problems
-            log_and_raise("For more information please run vr_run --help", SystemExit)
+            exit = SystemExit("For more information please run vr_run --help")
+            LOGGER.critical(exit)
+            raise exit
         else:
-            raise SystemExit
+            raise excep
 
     if not args.cfg_paths:
-        log_and_raise(
-            "No configuration paths must be provided! For more information please run "
-            "vr_run --help",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            "Configuration paths must be provided! See vr_run --help"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
     else:
         # Run the virtual rainforest run function
         vr_run(args.cfg_paths, Path(args.merge_file_path))
