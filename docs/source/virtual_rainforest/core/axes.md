@@ -19,11 +19,11 @@ The Virtual Rainforest uses a set of **core axes** which have dimensions and pos
 coordinates set by the configuration of a simulation.
 
 * The **dimensions** of an axis set the shape of the axis. For example, a simulation
-  might use a square 10 by 10 [grid](./grid.md), so spatial data might be expected to
+  might use a square 10 by 10 [grid](grid.md), so spatial data might be expected to
   have the same 10 by 10 shape along `x` and `y` dimensions.
 
 * The **coordinates** of an axis set the values of the intervals along the dimension.
-  For example, a spatial grid might be configured with [offsets](./grid.md#grid-origin)
+  For example, a spatial grid might be configured with [offsets](grid.md#grid-origin)
   to map data onto a projected coordinate system.
 
 When data is loaded into the simulation as it is first converted into a

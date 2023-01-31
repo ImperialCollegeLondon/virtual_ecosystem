@@ -87,7 +87,7 @@ class AxisValidator(ABC):
         """Adds new subclasses to the AxisValidator registry.
 
         When new subclasses are created this method automatically extends the
-        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
+        :attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
         are arranged in the registry dictionary as lists keyed under core axis names,
         and the core axis name for a given subclass is set in the  subclass
         :attr:`~virtual_rainforest.core.axes.AxisValidator.AxisValidator.core_axis`
