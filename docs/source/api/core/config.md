@@ -14,7 +14,7 @@ kernelspec:
   name: vr_python3
 ---
 
-<!-- markdownlint-disable MD041 -->
+# API documentation for the {mod}`~virtual_rainforest.core.config` module
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.core.config
