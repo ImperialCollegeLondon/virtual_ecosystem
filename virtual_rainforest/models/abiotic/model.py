@@ -31,7 +31,7 @@ class AbioticModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
 
     Attributes:
-        name: Names the model that is described
+        model_name: Names the model that is described
     """
 
     model_name = "abiotic"
