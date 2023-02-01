@@ -1,5 +1,5 @@
 """API documentation for the :mod:`soil.model` module.
-************************************************** # noqa: D205
+***************************************************
 
 The :mod:`soil.model` module creates a :class:`~virtual_rainforest.soil.model.SoilModel`
 class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
@@ -15,7 +15,7 @@ If errors crop here when converting the information from the config dictionary t
 required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and
 at the end of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
-"""
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
-class SoilModel(BaseModel, model_name="soil"):
+class SoilModel(BaseModel):
     """A class describing the soil model.
 
     Describes the specific functions and attributes that the soil module should possess.
@@ -39,12 +39,10 @@ class SoilModel(BaseModel, model_name="soil"):
     Args:
         update_interval: Time to wait between updates of the model state.
         no_layers: The number of soil layers to be modelled.
-
-    Attributes:
-        name: Names the model that is described
     """
 
-    name = "soil"
+    model_name = "soil"
+    """The model name for use in registering the model and logging."""
 
     def __init__(
         self,
@@ -75,10 +73,10 @@ class SoilModel(BaseModel, model_name="soil"):
 
         This function unpacks the relevant information from the configuration file, and
         then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance None is returned.
+        invalid rather than returning an initialised model instance an error is raised.
 
         Args:
-            config: The complete (and validated) virtual rainforest configuration.
+            config: The complete (and validated) Virtual Rainforest configuration.
 
         Raises:
             InitialisationError: If configuration data can't be properly converted
