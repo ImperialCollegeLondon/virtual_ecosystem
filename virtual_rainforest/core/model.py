@@ -90,12 +90,9 @@ class BaseModel(ABC):
         start_time: Point in time that the model simulation should be started.
         end_time: Time that the model simulation should end
         update_interval: Time to wait between updates of the model state.
-
-    Attributes:
-        name: Names the model that is described
     """
 
-    name = "base"
+    model_name: str
 
     def __init__(
         self, update_interval: timedelta64, start_time: datetime64, **kwargs: Any
@@ -104,6 +101,10 @@ class BaseModel(ABC):
         self.next_update = start_time + update_interval
         # Save variables names to be used by the __repr__
         self._repr = ["update_interval", "next_update"]
+
+    @abstractmethod
+    def setup(self) -> None:
+        """Function to use input data to set up the model."""
 
     @abstractmethod
     def spinup(self) -> None:
@@ -123,18 +124,32 @@ class BaseModel(ABC):
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod
-    def __init_subclass__(cls, model_name: str):
-        """Method that adds new model classes to the model registry."""
+    def __init_subclass__(cls) -> None:
+        """Method that adds new model classes to the model registry.
 
-        # Add the grid type to the registry
-        if model_name in MODEL_REGISTRY:
+        Raises:
+            ValueError: If model_name attribute isn't defined
+            TypeError: If model_name is not a string
+        """
+
+        # Check that model_name exists and is a string
+        if not hasattr(cls, "model_name"):
+            excep = ValueError("Models must have a model_name attribute!")
+            LOGGER.critical(excep)
+            raise excep
+        elif not isinstance(cls.model_name, str):
+            excep = TypeError("Models should only be named using strings!")
+            LOGGER.critical(excep)
+            raise excep
+
+        # Add the new model to the registry
+        if cls.model_name in MODEL_REGISTRY:
             LOGGER.warning(
-                "Model with name %s already exists and is being replaced", model_name
+                "Model with name %s already exists and is being replaced",
+                cls.model_name,
             )
-        MODEL_REGISTRY[model_name] = cls
 
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
+        MODEL_REGISTRY[cls.model_name] = cls
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""
@@ -146,4 +161,7 @@ class BaseModel(ABC):
 
     def __str__(self) -> str:
         """Inform user what the model type is."""
-        return f"A {self.name} model instance"
+        if hasattr(self, "model_name"):
+            return f"A {self.model_name} model instance"
+        else:
+            return "A base model instance"
