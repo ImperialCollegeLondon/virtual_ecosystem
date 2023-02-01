@@ -17,7 +17,7 @@ from virtual_rainforest.core.logger import LOGGER, log_and_raise
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
-class AbioticModel(BaseModel, model_name="abiotic"):
+class AbioticModel(BaseModel):
     """A class describing the abiotic model.
 
     Describes the specific functions and attributes that the abiotic module should
@@ -34,7 +34,7 @@ class AbioticModel(BaseModel, model_name="abiotic"):
         name: Names the model that is described
     """
 
-    name = "abiotic"
+    model_name = "abiotic"
 
     def __init__(
         self,
