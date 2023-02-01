@@ -2,8 +2,8 @@
 
 This module tests the functionality of grid.py
 """
-
 import json
+from contextlib import nullcontext as does_not_raise
 
 import numpy as np
 import numpy.linalg as LA
@@ -11,6 +11,12 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
+
+# Local constants
+# 100m2 hex: apothem = 5.373 m, side = 6.204 m
+hxA = 100
+hxs = np.sqrt(hxA / (1.5 * np.sqrt(3)))
+hxa = hxA / (3 * hxs)
 
 
 @settings(deadline=None)
@@ -101,6 +107,63 @@ def test_grid_exceptions(mocker, grid_type, excep_type, message):
         Grid(grid_type=grid_type)
 
     assert str(err.value) == message
+
+
+@pytest.mark.parametrize(
+    argnames=["grid_type", "exp_centroids", "exp_n_cells", "exp_bounds"],
+    argvalues=[
+        (
+            "square",
+            [
+                [
+                    [5, 25],
+                    [15, 25],
+                    [25, 25],
+                    [5, 15],
+                    [15, 15],
+                    [25, 15],
+                    [5, 5],
+                    [15, 5],
+                    [25, 5],
+                ],
+            ],
+            9,
+            (0, 0, 30, 30),
+        ),
+        (
+            "hexagon",
+            [
+                [
+                    [hxa, hxs * 4],
+                    [hxa * 3, hxs * 4],
+                    [hxa * 5, hxs * 4],
+                    [hxa * 2, hxs * 2.5],
+                    [hxa * 4, hxs * 2.5],
+                    [hxa * 6, hxs * 2.5],
+                    [hxa, hxs],
+                    [hxa * 3, hxs],
+                    [hxa * 5, hxs],
+                ],
+            ],
+            9,
+            (0, 0, hxa * 7, hxs * 5),
+        ),
+    ],
+)
+def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
+    """Test properties calculated within Grid.__init__.
+
+    Most properties are calculated by the individual grid type creator, not by the Grid
+    __init__ argument itself. Those few ones are tested here.
+    """
+
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid(grid_type=grid_type, cell_nx=3, cell_ny=3)
+
+    assert np.allclose(grid.centroids, exp_centroids)
+    assert grid.n_cells == exp_n_cells
+    assert np.allclose(grid.bounds, exp_bounds)
 
 
 @pytest.mark.parametrize(argnames=["preset_distances"], argvalues=[(True,), (False,)])
@@ -250,3 +313,224 @@ def test_grid_dumps():
 
     features = parsed.get("features")
     assert features is not None and len(features) == 100
+
+
+@pytest.mark.parametrize(
+    argnames=["x_coord", "y_coord", "exp_exception", "exp_message", "exp_map"],
+    argvalues=[
+        (
+            [0, 1, 2],
+            [[0, 1], [0, 1]],
+            pytest.raises(ValueError),
+            "The x/y coordinate arrays are not 1 dimensional",
+            None,
+        ),
+        (
+            [0, 1, 2],
+            [0, 1],
+            pytest.raises(ValueError),
+            "The x/y coordinates are of unequal length",
+            None,
+        ),
+        (
+            [0, 1, 2],
+            [0, 1, 2],
+            does_not_raise(),
+            None,
+            [[], [], []],
+        ),
+        (
+            [500000, 500100, 500200],
+            [200000, 200100, 200200],
+            does_not_raise(),
+            None,
+            [[90], [80, 81, 90, 91], [71, 72, 81, 82]],
+        ),
+        (
+            [500050, 500150, 500250],
+            [200050, 200150, 200250],
+            does_not_raise(),
+            None,
+            [[90], [81], [72]],
+        ),
+    ],
+)
+def test_map_xy_to_cell_ids(
+    fixture_square_grid, x_coord, y_coord, exp_exception, exp_message, exp_map
+):
+    """Test coordinate checking.
+
+    Tests the failure modes of coordinate mapping, along with return value on success.
+    """
+
+    with exp_exception as excep:
+
+        cell_map = fixture_square_grid.map_xy_to_cell_id(
+            np.array(x_coord), np.array(y_coord)
+        )
+
+    if exp_message is not None:
+        assert str(excep.value) == exp_message
+
+    if exp_map is not None:
+        assert cell_map == exp_map
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "x_coord",
+        "y_coord",
+        "x_idx",
+        "y_idx",
+        "exp_exception",
+        "exp_message",
+        "exp_idx",
+    ],
+    argvalues=[
+        (
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+            None,
+            None,
+            pytest.raises(ValueError),
+            "Mapped points fall outside grid.",
+            None,
+        ),
+        (
+            np.array([500000, 500100, 500200]),
+            np.array([200000, 200100, 200200]),
+            None,
+            None,
+            pytest.raises(ValueError),
+            "Mapped points fall on cell boundaries.",
+            None,
+        ),
+        (
+            np.array([500050, 500150, 500250]),
+            np.array([200050, 200150, 200250]),
+            None,
+            None,
+            pytest.raises(ValueError),
+            "Mapped points do not cover all cells.",
+            None,
+        ),
+        (
+            np.tile(np.arange(500050, 501000, 100), 10),
+            np.repeat(np.arange(200950, 200000, -100), 10),
+            None,
+            None,
+            does_not_raise(),
+            None,
+            tuple([np.arange(100), np.arange(100)]),
+        ),
+        (
+            np.tile(np.arange(500050, 501000, 100), 10),
+            np.repeat(np.arange(200950, 200000, -100), 10),
+            np.arange(50),
+            np.arange(50),
+            pytest.raises(ValueError),
+            "Dimensions of x/y indices do not match coordinates",
+            None,
+        ),
+        (
+            np.tile(np.arange(500050, 501000, 100), 10),
+            np.repeat(np.arange(200950, 200000, -100), 10),
+            np.arange(50),
+            None,
+            pytest.raises(ValueError),
+            "Only one of x/y indices provided.",
+            None,
+        ),
+        (
+            np.tile(np.arange(500050, 501000, 100), 10),
+            np.repeat(np.arange(200950, 200000, -100), 10),
+            np.arange(100),
+            np.arange(100),
+            does_not_raise(),
+            None,
+            tuple([np.arange(100), np.arange(100)]),
+        ),
+        (
+            np.concatenate([np.tile(np.arange(500050, 501000, 100), 10), [500050]]),
+            np.concatenate([np.repeat(np.arange(200950, 200000, -100), 10), [200050]]),
+            None,
+            None,
+            pytest.raises(ValueError),
+            "Some cells contain more than one point.",
+            None,
+        ),
+        (  # Grid covers but extends outside cells and strict = True
+            np.tile(np.arange(500050, 501000, 100), 11),
+            np.repeat(np.arange(200950, 199900, -100), 10),
+            None,
+            None,
+            pytest.raises(ValueError),
+            "Mapped points fall outside grid.",
+            None,
+        ),
+    ],
+)
+def test_map_xy_to_cell_indexing(
+    fixture_square_grid,
+    x_coord,
+    x_idx,
+    y_idx,
+    y_coord,
+    exp_exception,
+    exp_message,
+    exp_idx,
+):
+    """Test coordinate checking.
+
+    Tests the failure modes of coordinate mapping, along with return value on success.
+    """
+
+    with exp_exception as excep:
+
+        x_idx, y_idx = fixture_square_grid.map_xy_to_cell_indexing(
+            x_coord, y_coord, x_idx, y_idx
+        )
+
+    if exp_message is not None:
+        assert str(excep.value) == exp_message
+
+    if exp_idx is not None:
+        assert np.allclose(exp_idx[0], x_idx)
+        assert np.allclose(exp_idx[1], y_idx)
+
+
+@pytest.mark.parametrize(
+    argnames=["x_coord", "y_coord", "x_idx", "y_idx", "exp_x", "exp_y"],
+    argvalues=[
+        (
+            np.array([1, 2, 1, 2]),
+            np.array([2, 2, 1, 1]),
+            None,
+            None,
+            np.array([0, 1, 2, 3]),
+            np.array([0, 1, 2, 3]),
+        ),
+        (
+            np.array([1, 2, 1, 2]),
+            np.array([2, 2, 1, 1]),
+            np.array([0, 1, 0, 1]),
+            np.array([0, 0, 1, 1]),
+            np.array([0, 1, 0, 1]),
+            np.array([0, 0, 1, 1]),
+        ),
+    ],
+)
+def test_map_xy_to_cell_indexing_return(
+    fixture_square_grid_simple, x_coord, y_coord, x_idx, y_idx, exp_x, exp_y
+):
+    """Test xy to cell id index return values.
+
+    Uses a simple grid with easier to track return values
+    """
+
+    x_idx, y_idx = fixture_square_grid_simple.map_xy_to_cell_indexing(
+        x_coord, y_coord, x_idx, y_idx
+    )
+
+    assert np.allclose(exp_x, x_idx)
+    assert np.allclose(exp_y, y_idx)

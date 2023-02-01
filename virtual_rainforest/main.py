@@ -70,9 +70,9 @@ def configure_models(
     models_cfd = {}
     for model in model_list:
         try:
-            models_cfd[model.name] = model.from_config(config)
+            models_cfd[model.model_name] = model.from_config(config)
         except InitialisationError:
-            failed_models.append(model.name)
+            failed_models.append(model.model_name)
 
     # If any models fail to configure inform the user about it
     if failed_models:
@@ -167,7 +167,7 @@ def check_for_fast_models(
         update_interval: Time step of the main model loop
     """
     fast_models = [
-        model.name
+        model.model_name
         for model in models_cfd.values()
         if model.update_interval < update_interval
     ]
@@ -224,7 +224,7 @@ def vr_run(
     # TODO - Save model state
 
     # Get the list of date times of the next update.
-    update_due = {mod.name: mod.next_update for mod in models_cfd.values()}
+    update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
 
     # Setup the timing loop
     while current_time < end_time:
