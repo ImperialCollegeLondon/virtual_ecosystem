@@ -1,6 +1,6 @@
 """This is the documentation for the module. It does not start with a header line
 because a header is required at the top of the markdown source page where the API docs
-are will be inserted using the ``automodule`` declaration, so we do not repeat it here.
+will be inserted using the ``automodule`` declaration, so we do not repeat it here.
 
 That does mean that we need to stop ``flake8`` complaining about a missing blank line
 after the first line and a missing full stop at the end of that line, which we can do
