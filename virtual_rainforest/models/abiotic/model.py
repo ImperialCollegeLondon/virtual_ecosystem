@@ -3,20 +3,7 @@
 
 The :mod:`abiotic.model` module creates a
 :class:`~virtual_rainforest.abiotic.model.AbioticModel`
-class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
-present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.model.BaseModel.setup` and
-:func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-:mod:`virtual_rainforest` model develops. The factory method
-:func:`~virtual_rainforest.abiotic.model.AbioticModel.from_config` exists in a more
-complete state, and unpacks a small number of parameters from our currently pretty
-minimal configuration dictionary. These parameters are then used to generate a class
-instance. If errors crop here when converting the information from the config dictionary
-to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged
-and at the end of the unpacking an error is thrown. This error should be caught and
-handled by downstream functions so that all model configuration failures can be reported
-as one.
+class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class.
 """
 
 from __future__ import annotations
@@ -137,12 +124,12 @@ class AbioticModel(BaseModel, model_name="abiotic"):
 
     # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
     # SHOULD WORK
-    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
-    # STATE
     def setup(self) -> None:
-        """Function to set up the soil model."""
-        for layer in range(0, self.soil_layers, self.canopy_layers):
-            LOGGER.info("Setting up soil and canopy layer %s" % layer)
+        """Function to set up the abiotic model."""
+        for layer in range(0, self.soil_layers):
+            LOGGER.info("Setting up soil layer %s" % layer)
+        for layer in range(0, self.canopy_layers):
+            LOGGER.info("Setting up canopy layer %s" % layer)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
