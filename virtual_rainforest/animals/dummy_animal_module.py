@@ -53,21 +53,16 @@ class Plant:
             None: Toy implementation of growth is only a function of the
                   current energy state.
 
-        Returns:
-            Modified value of self.energy
         """
         self.energy += 1 * self.energy * (1 - self.energy / self.energy_max)
 
     def plant_death(self) -> None:
-        """The function to change the self.alive state from True to False.
+        """The function to kill a plant cohort.
 
         Parameters:
             None: Toy implementation of death is only a function of the
                     current aliveness state.
 
-        Returns:
-            Modified value of self.alive.
-            An alert informing you the cohort has died.
         """
         self.alive = False
         LOGGER.debug(f"A {self.name} cohort died")
