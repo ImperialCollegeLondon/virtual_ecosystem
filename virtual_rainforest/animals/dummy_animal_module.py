@@ -25,6 +25,8 @@ setting up and testing the early stages of the animal module.
 #   better to excrete directly to external pools
 # only elephants disperse atm
 
+from virtual_rainforest.core.logger import LOGGER
+
 
 class Plant:
     """This is a dummy class of plant cohorts for testing the animal module."""
@@ -37,9 +39,9 @@ class Plant:
         """The mass of the plant cohort [g]."""
         self.energy = mass * 100
         """The amount of energy in the plant cohort [j] [toy]."""
-        self.alive = "alive"
+        self.alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.energy_max = mass * 100
+        self.energy_max: float = mass * 100
         """The maximum amount of energy that the cohort can have [j] [toy]."""
         self.position = position
         """The grid location of the cohort [0-8]."""
@@ -56,7 +58,7 @@ class Plant:
         """
         self.energy += 1 * self.energy * (1 - self.energy / self.energy_max)
 
-    def plant_death(self) -> str:
+    def plant_death(self) -> None:
         """The function to change the self.alive state from True to False.
 
         Parameters:
@@ -65,10 +67,10 @@ class Plant:
 
         Returns:
             Modified value of self.alive.
-            An alert (str) informing you the cohort has died.
+            An alert informing you the cohort has died.
         """
-        self.alive = "dead"
-        return f"""A {self.name} cohort died"""
+        self.alive = False
+        LOGGER.debug(f"A {self.name} cohort died")
 
 
 class SoilPool:
