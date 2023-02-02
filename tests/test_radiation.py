@@ -5,15 +5,10 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
-# from core.constants import CONSTANTS as C  # this doesn't exist yet
-from virtual_rainforest.models.abiotic.radiation import ALBEDO_SHORTWAVE, ALBEDO_VIS
-
 
 @pytest.mark.parametrize(
     argnames=["cname"],
     argvalues=[
-        ("ALBEDO_SHORTWAVE",),
-        ("ALBEDO_VIS",),
         ("BEER_REGRESSION",),
         ("BOLZMAN_CONSTANT",),
         ("CANOPY_EMISSIVITY",),
@@ -25,7 +20,7 @@ from virtual_rainforest.models.abiotic.radiation import ALBEDO_SHORTWAVE, ALBEDO
         ("TRANSMISSIVITY_COEFFICIENT",),
     ],
 )
-def test_import_constants2(cname):
+def test_import_constants(cname):
     """Test constants can be imported."""
 
     # Get the module that should contain the constants
@@ -198,8 +193,8 @@ def test_radiation_balance(
         elevation=elev,
         shortwave_in=sw_in,
         sunshine_hours=sun_hours,
-        albedo_vis=ALBEDO_VIS,
-        albedo_shortwave=ALBEDO_SHORTWAVE,
+        albedo_vis=0.03,
+        albedo_shortwave=0.17,
         canopy_temperature=temp_canopy,
         surface_temperature=temp_soil,
         canopy_absorption=rad_absorbed,

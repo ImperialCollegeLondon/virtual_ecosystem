@@ -1,21 +1,20 @@
 """The `abiotic.radiation` module.
 
 The radiation module calculates the radiation balance of the Virtual Rainforest.
+
 The top of canopy net shortwave radiation at a given location depends on
-    1. extra-terrestrial radiation (affected by the earth's orbit, time of year and
-        day, and location on the earth),
-    2. terrestrial radiation (affected by atmospheric composition and clouds),
-    3. topography (elevation, slope and aspect),
-    4. surface albedo (vegetation type and fraction of vegetation/bare soil), and
-    5. emitted longwave radiation.
+1. extra-terrestrial radiation (affected by the earth's orbit, time of year and
+   day, and location on the earth),
+2. terrestrial radiation (affected by atmospheric composition and clouds),
+3. topography (elevation, slope and aspect),
+4. surface albedo (vegetation type and fraction of vegetation/bare soil), and
+5. emitted longwave radiation.
 
 The preprocessing module takes extra-terrestrial radiation as an input and adjusts for
 the effects of topography (slope and aspect). Here, the effects of atmospheric
-filtering (elevation-dependend) and cloud cover are added to calculate photosynthetic
+filtering (elevation-dependent) and cloud cover are added to calculate photosynthetic
 photon flux density (PPFD) at the top of the canopy which is a crucial input to the
-plant module. The implementation is based on David et al. (2017): Simple process-led
-algorithms for simulating habitats (SPLASH v.1.0): robust indices of radiation, evapo-
-transpiration and plant-available moisture, Geosci. Model Dev., 10, 689-708.
+plant module. The implementation is based on :cite:t:`Davis2017`.
 
 Cloud cover and surface albedo also determine how much of the shortwave radiation that
 reaches the top of the canopy is reflected and how much remains to be absorbed via
@@ -51,10 +50,6 @@ CANOPY_EMISSIVITY = 0.95
 BEER_REGRESSION = 2.67e-5
 """parameter in equation for atmospheric transmissivity based on regression of Beer’s
 radiation extinction function (Allen 1996)"""
-ALBEDO_VIS = np.array(0.03, dtype=np.float32)
-"""Albedo of visible light"""
-ALBEDO_SHORTWAVE = np.array(0.17, dtype=np.float32)
-"""Albedo of shortwave radiation"""
 CELSIUS_TO_KELVIN = 273.15
 """factor to convert temperature in Celsius to absolute temperature in Kelvin"""
 SECOND_TO_DAY = 86400
@@ -85,14 +80,14 @@ class Radiation:
     def calc_ppfd(
         self,
         shortwave_in: NDArray[np.float32],
-        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
-        albedo_vis: NDArray[np.float32] = ALBEDO_VIS,
+        sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
+        albedo_vis: NDArray[np.float32] = np.array(0.03, dtype=np.float32),
     ) -> NDArray[np.float32]:
         """Calculates top of canopy photosynthetic photon flux density [mol m-2].
 
         Args:
             shortwave_in: daily downward shortwave radiation [J m-2]
-            sunshine_hours: fraction of sunshine hours, between 0 (100% cloud cover)
+            sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
                 and 1 (cloud free sky)
             albedo_vis: visible light albedo, default = 0.03
 
@@ -105,7 +100,7 @@ class Radiation:
             available moisture, Geosci. Model Dev., 10, 689-708
         """
         # calculate transmissivity (tau), unitless
-        tau_o = CLOUDY_TRANSMISSIVITY + TRANSMISSIVITY_COEFFICIENT * sunshine_hours
+        tau_o = CLOUDY_TRANSMISSIVITY + TRANSMISSIVITY_COEFFICIENT * sunshine_fraction
         tau = tau_o * (1.0 + BEER_REGRESSION * self.elevation)
 
         # Calculate daily photosynth. photon flux density (ppfd_d), mol/m^2
@@ -116,15 +111,15 @@ class Radiation:
         self,
         tau: NDArray[np.float32],
         shortwave_in: NDArray[np.float32],
-        sunshine_hours: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
-        albedo_shortwave: NDArray[np.float32] = ALBEDO_SHORTWAVE,
+        sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
+        albedo_shortwave: NDArray[np.float32] = np.array(0.17, dtype=np.float32),
     ) -> None:
         """Calculate top of canopy shortwave radiation [J m-2].
 
         Args:
             tau: atmospheric transmissivity, unitless
             shortwave_in: daily downward shortwave radiation [J m-2]
-            sunshine_hours: fraction of sunshine hours, between 0 (100% cloud cover)
+            sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
                 and 1 (cloud free sky)
             albedo_shortwave: shortwave albedo, default = 0.17
         """
@@ -174,9 +169,8 @@ class Radiation:
 
     def radiation_balance(
         self,
-        elevation: NDArray[np.float32],
         shortwave_in: NDArray[np.float32],
-        sunshine_hours: NDArray[np.float32],
+        sunshine_fraction: NDArray[np.float32],
         albedo_vis: NDArray[np.float32],
         albedo_shortwave: NDArray[np.float32],
         canopy_temperature: NDArray[np.float32],
@@ -197,7 +191,7 @@ class Radiation:
         Args:
             elevation: elevation [m]
             shortwave_in: daily downward shortwave radiation[J m-2]
-            sunshine_hours: fraction of sunshine hours, between 0
+            sunshine_fraction: fraction of sunshine hours, between 0
                 (100% cloud cover) and 1 (cloud free sky)
             albedo_vis: visible light albedo, default = 0.03
             albedo_shortwave: shortwave albedo, default = 0.17
@@ -206,10 +200,9 @@ class Radiation:
             canopy_absorption: absorption by canopy [J m-2]
         """
 
-        tau = self.calc_ppfd(shortwave_in, sunshine_hours, albedo_vis)
+        tau = self.calc_ppfd(shortwave_in, sunshine_fraction, albedo_vis)
         self.calc_topofcanopy_radiation(
-            tau, shortwave_in, sunshine_hours, albedo_shortwave
+            tau, shortwave_in, sunshine_fraction, albedo_shortwave
         )
         self.calc_longwave_radiation(canopy_temperature, surface_temperature)
         self.calc_netradiation_surface(canopy_absorption)
-        del tau
