@@ -55,16 +55,7 @@ def _vr_run_cli() -> None:
         version="%(prog)s {version}".format(version=vr.__version__),
     )
 
-    try:
-        args = parser.parse_args()
-    except SystemExit as excep:
-        if excep.code != 0:
-            # Catch unexpected args and similar problems
-            exit = SystemExit("For more information please run vr_run --help")
-            LOGGER.critical(exit)
-            raise exit
-        else:
-            raise excep
+    args = parser.parse_args()
 
     if not args.cfg_paths:
         to_raise = ConfigurationError(
