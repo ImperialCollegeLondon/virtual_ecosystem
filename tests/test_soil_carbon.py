@@ -98,23 +98,24 @@ def test_update_pools(mocker, maom, lmwc, lmwc_to_maom, dt, end_maom, end_lmwc):
 
 
 @pytest.mark.parametrize(
-    "maom,lmwc,temp_scalar,moist_scalar,equib_maom,Q_max,output_l_to_m",
+    "maom,lmwc,pH,bulk_density,moistures,temperatures,percent_clay,output_l_to_m",
     [
         (
             [2.5, 1.7],
             [0.05, 0.02],
-            [1.27113, 1.27196],
-            [0.750035, 0.947787],
-            [19900.19, 969.4813],
-            [2.385207e6, 1.980259e6],
+            [3.0, 7.5],
+            [1350.0, 1800.0],
+            [0.5, 0.7],
+            [35.0, 37.5],
+            [80.0, 30.0],
             [0.000397665, 1.178336e-5],
         ),
-        ([4.5], [0.1], [1.27263], [0.880671], [832.6088], [647142.61], [0.0001434178]),
-        ([0.5], [0.005], [1.26344], [0.167814], [742.4128], [2.805371e6], [2.80359e-7]),
+        ([4.5], [0.1], [9.0], [1000.0], [0.6], [40.0], [10.0], [0.0001434178]),
+        ([0.5], [0.005], [5.7], [1500.0], [0.2], [25.0], [90.0], [2.80359e-7]),
     ],
 )
 def test_mineral_association(
-    mocker, maom, lmwc, temp_scalar, moist_scalar, equib_maom, Q_max, output_l_to_m
+    maom, lmwc, pH, bulk_density, moistures, temperatures, percent_clay, output_l_to_m
 ):
     """Test that mineral_association runs and generates the correct values."""
 
@@ -123,26 +124,16 @@ def test_mineral_association(
         maom=np.array(maom, dtype=np.float32), lmwc=np.array(lmwc, dtype=np.float32)
     )
 
-    # Mock required values
-    mock_t_scalar = mocker.patch(
-        "virtual_rainforest.models.soil.carbon.convert_temperature_to_scalar"
-    )
-    mock_t_scalar.return_value = np.array(temp_scalar, dtype=np.float32)
-    mock_m_scalar = mocker.patch(
-        "virtual_rainforest.models.soil.carbon.convert_moisture_to_scalar"
-    )
-    mock_m_scalar.return_value = np.array(moist_scalar, dtype=np.float32)
-    mock_equib_maom = mocker.patch(
-        "virtual_rainforest.models.soil.carbon.calculate_equilibrium_maom"
-    )
-    mock_equib_maom.return_value = np.array(equib_maom, dtype=np.float32)
-    mock_Q_max = mocker.patch(
-        "virtual_rainforest.models.soil.carbon.calculate_max_sorption_capacity"
-    )
-    mock_Q_max.return_value = np.array(Q_max, dtype=np.float32)
+    soil_pH = np.array(pH, dtype=np.float32)
+    soil_BD = np.array(bulk_density, dtype=np.float32)
+    soil_moisture = np.array(moistures, dtype=np.float32)
+    soil_temp = np.array(temperatures, dtype=np.float32)
+    soil_clay = np.array(percent_clay, dtype=np.float32)
 
     # Then calculate mineral association rate
-    lmwc_to_maom = soil_carbon.mineral_association([], [], [], [], [])
+    lmwc_to_maom = soil_carbon.mineral_association(
+        soil_pH, soil_BD, soil_moisture, soil_temp, soil_clay
+    )
 
     # Check that expected values are generated
     assert np.allclose(lmwc_to_maom, output_l_to_m)
