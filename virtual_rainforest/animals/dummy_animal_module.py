@@ -39,7 +39,7 @@ class Plant:
         """The mass of the plant cohort [g]."""
         self.energy = mass * 100
         """The amount of energy in the plant cohort [j] [toy]."""
-        self.alive: bool = True
+        self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.energy_max: float = mass * 100
         """The maximum amount of energy that the cohort can have [j] [toy]."""
@@ -64,7 +64,7 @@ class Plant:
                     current aliveness state.
 
         """
-        self.alive = False
+        self.is_alive = False
         LOGGER.debug(f"A {self.name} cohort died")
 
 

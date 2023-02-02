@@ -38,7 +38,7 @@ class TestPlant:
         """Testing plant_death."""
         p = am.Plant("tree", 10.0, 1)
         p.plant_death()
-        assert not p.alive
+        assert not p.is_alive
 
 
 class TestCarcassPool:
