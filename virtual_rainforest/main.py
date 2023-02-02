@@ -1,8 +1,7 @@
-"""Defines the function used to run a full simulation of the model.
-
-As well as setting up the function to run the overall virtual rainforest simulation,
-this script also defines the command line entry points for the model.
-"""
+"""The :mod:`~virtual_rainforest.main` module defines the function used to run a full
+simulation of the model, along with helper functions to validate and configure the
+model.
+"""  # noqa: D205, D415
 
 from math import ceil
 from pathlib import Path

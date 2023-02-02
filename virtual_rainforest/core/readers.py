@@ -1,7 +1,4 @@
-"""API documentation for the :mod:`core.readers` module.
-*****************************************************
-
-This module provides the function
+"""The :mod:`~virtual_rainforest.core.readers` module provides the function
 :func:`~virtual_rainforest.core.reader.load_to_dataarray`, which is used to load data
 from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
 can then be added to a :class:`~virtual_rainforest.core.data.Data` instance for use in a
@@ -32,7 +29,7 @@ using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
     @register_file_format_loader(('.tif', '.tiff'))
     def new_function_to_load_tif_data(...):
         # code to turn tif file into a data array
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from pathlib import Path
 from typing import Callable

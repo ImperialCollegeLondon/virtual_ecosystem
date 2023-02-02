@@ -1,10 +1,7 @@
-"""API documentation for the :mod:`core.axes` module.
-**************************************************
-
-This module handles the validation of data being loaded into the core data storage of
-the virtual rainforest simulation. The main functionality in this module is ensuring
-that any loaded data is congruent with the core axes of the simulation and the
-configuration of a given simulation.
+"""The :mod:`core.axes` module handles the validation of data being loaded into the core
+data storage of the virtual rainforest simulation. The main functionality in this module
+is ensuring that any loaded data is congruent with the core axes of the simulation and
+the configuration of a given simulation.
 
 The AxisValidator class
 =======================
@@ -45,7 +42,7 @@ The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for 
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
 :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation. `x`
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
@@ -90,7 +87,7 @@ class AxisValidator(ABC):
         """Adds new subclasses to the AxisValidator registry.
 
         When new subclasses are created this method automatically extends the
-        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
+        :attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
         are arranged in the registry dictionary as lists keyed under core axis names,
         and the core axis name for a given subclass is set in the  subclass
         :attr:`~virtual_rainforest.core.axes.AxisValidator.AxisValidator.core_axis`

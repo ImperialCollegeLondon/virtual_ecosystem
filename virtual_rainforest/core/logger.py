@@ -1,8 +1,6 @@
-"""API documentation for the :mod:`core.logger` module.
-****************************************************
-
-The :mod:`core.logging` module is used to setup the extend the standard logging setup to
-provide additional functionality relevant to the virtual rainforest model.
+"""The :mod:`~virtual_rainforest.core.logging` module is used to setup the extend the
+standard logging setup to provide additional functionality relevant to the virtual
+rainforest model.
 
 At the moment the module simply sets up the logger so that other modules can access it.
 It is very likely to be further extended in future.
@@ -75,7 +73,7 @@ handling should always include a LOGGER call, using one of the following pattern
     except ValueError as excep:
         LOGGER.critical(excep)
         raise ValueError("Bad input") from excep
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 import logging
 
