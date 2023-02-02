@@ -46,7 +46,7 @@ class Plant:
         self.position = position
         """The grid location of the cohort [0-8]."""
 
-    def plant_growth(self) -> None:
+    def grow(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value.
 
         Args:
@@ -56,7 +56,7 @@ class Plant:
         """
         self.energy += 1 * self.energy * (1 - self.energy / self.energy_max)
 
-    def plant_death(self) -> None:
+    def die(self) -> None:
         """The function to kill a plant cohort.
 
         Parameters:

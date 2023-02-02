@@ -14,30 +14,30 @@ import virtual_rainforest.animals.dummy_animal_module as am
 class TestPlant:
     """Test Plant class."""
 
-    def test_plant_growth1(self):
-        """Testing plant_growth at 100% energy."""
+    def test_grow1(self):
+        """Testing grow at 100% energy."""
         p = am.Plant("tree", 10.0, 1)
-        p.plant_growth()
+        p.grow()
         assert p.energy == 1000
 
-    def test_plant_growth2(self):
-        """Testing plant_growth at 50% energy."""
+    def test_grow2(self):
+        """Testing grow at 50% energy."""
         p = am.Plant("tree", 10.0, 1)
         p.energy = 500
-        p.plant_growth()
+        p.grow()
         assert p.energy == 750
 
-    def test_plant_growth3(self):
-        """Testing plant_growth at 0% energy."""
+    def test_grow3(self):
+        """Testing grow at 0% energy."""
         p = am.Plant("tree", 10.0, 1)
         p.energy = 0
-        p.plant_growth()
+        p.grow()
         assert p.energy == 0
 
-    def test_plant_death(self):
-        """Testing plant_death."""
+    def test_die(self):
+        """Testing die."""
         p = am.Plant("tree", 10.0, 1)
-        p.plant_death()
+        p.die()
         assert not p.is_alive
 
 
