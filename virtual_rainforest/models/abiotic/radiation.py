@@ -1,13 +1,16 @@
 """The `abiotic.radiation` module.
 
 The radiation module calculates the radiation balance of the Virtual Rainforest.
-
 The top of canopy net shortwave radiation at a given location depends on
-1. extra-terrestrial radiation (affected by the earth's orbit, time of year and
-   day, and location on the earth),
+
+1. extra-terrestrial radiation (affected by the earth's orbit, date, and location),
+
 2. terrestrial radiation (affected by atmospheric composition and clouds),
+
 3. topography (elevation, slope and aspect),
+
 4. surface albedo (vegetation type and fraction of vegetation/bare soil), and
+
 5. emitted longwave radiation.
 
 The preprocessing module takes extra-terrestrial radiation as an input and adjusts for
@@ -36,24 +39,24 @@ from numpy.typing import NDArray
 # from core.constants import CONSTANTS as C
 # this doesn't exist yet; optional scipy
 CLOUDY_TRANSMISSIVITY = 0.25
-"""cloudy transmittivity (Linacre, 1968)"""
+"""Cloudy transmittivity :cite:p:`Linacre1968`"""
 TRANSMISSIVITY_COEFFICIENT = 0.50
-"""angular coefficient of transmittivity (Linacre, 1968)"""
+"""Angular coefficient of transmittivity :cite:p:`Linacre1968`"""
 FLUX_TO_ENERGY = 2.04
-"""from flux to energy conversion, umol/J (Meek et al., 1984)"""
+"""From flux to energy conversion, umol/J :cite:p:`Meek1984`"""
 BOLZMAN_CONSTANT = 5.67e-8
 """Stephan Bolzman constant W m-2 K-4"""
 SOIL_EMISSIVITY = 0.95
 """Soil emissivity, default for tropical rainforest"""
 CANOPY_EMISSIVITY = 0.95
-"""canopy emissivity, default for tropical rainforest"""
+"""Canopy emissivity, default for tropical rainforest"""
 BEER_REGRESSION = 2.67e-5
-"""parameter in equation for atmospheric transmissivity based on regression of Beer’s
-radiation extinction function (Allen 1996)"""
+"""Parameter in equation for atmospheric transmissivity based on regression of Beer’s
+radiation extinction function :cite:p:`Allen1996`"""
 CELSIUS_TO_KELVIN = 273.15
-"""factor to convert temperature in Celsius to absolute temperature in Kelvin"""
+"""Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
 SECOND_TO_DAY = 86400
-"""factor to convert between days and seconds."""
+"""Factor to convert between days and seconds."""
 
 
 class Radiation:
@@ -94,10 +97,7 @@ class Radiation:
         Returns:
             tau: atmospheric transmissivity, unitless
 
-        Reference:
-            Davis et al. (2017): Simple process-led algorithms for simulating habitats
-            (SPLASH v.1.0): robust indices of radiation, evapotranspiration and plant-
-            available moisture, Geosci. Model Dev., 10, 689-708
+        Reference: :cite:t:`Davis2017`
         """
         # calculate transmissivity (tau), unitless
         tau_o = CLOUDY_TRANSMISSIVITY + TRANSMISSIVITY_COEFFICIENT * sunshine_fraction

@@ -41,22 +41,27 @@ def radiation_fixture():
 
 
 @pytest.mark.parametrize(
-    argnames="input, exp_tau, exp_ppfd",
+    argnames="input, exp_tau, exp_ppfd, exp_err",
     argvalues=[
-        (29376000, 0.752, 43.713),
-        (
+        pytest.param(
+            29376000, 0.752, 43.713, does_not_raise(), id="single_cell_should_get"
+        ),
+        pytest.param(
             np.array([29376000, 29376000]),
             np.array([0.752, 0.752]),
             np.array([43.713, 43.713]),
+            does_not_raise(),
+            id="standard_array_should_get",
         ),
     ],
 )
-def test_calc_ppfd(radiation_fixture, input, exp_tau, exp_ppfd):
+def test_calc_ppfd(radiation_fixture, input, exp_tau, exp_ppfd, exp_err):
     """Simple check for correct numbers, better test to be decided."""
 
-    tau = radiation_fixture.calc_ppfd(input, 1.0)
-    assert tau == pytest.approx(exp_tau, 0.1)
-    assert radiation_fixture.ppfd == pytest.approx(exp_ppfd, 0.1)
+    with exp_err:
+        tau = radiation_fixture.calc_ppfd(input, 1.0)
+        assert tau == pytest.approx(exp_tau, 0.1)
+        assert radiation_fixture.ppfd == pytest.approx(exp_ppfd, 0.1)
 
 
 @pytest.mark.parametrize(
@@ -132,9 +137,8 @@ def test_calc_netradiation_surface(
 
 @pytest.mark.parametrize(
     argnames=(
-        "elev",
         "sw_in",
-        "sun_hours",
+        "sun_frac",
         "temp_canopy",
         "temp_soil",
         "rad_absorbed",
@@ -146,7 +150,6 @@ def test_calc_netradiation_surface(
     ),
     argvalues=[
         (
-            100.0,
             29376000.0,
             1.0,
             25.0,
@@ -159,7 +162,6 @@ def test_calc_netradiation_surface(
             18334333.83,
         ),
         (
-            np.array([100.0, 100.0]),
             np.array([29376000.0, 29376000.0]),
             np.array([1.0, 1.0]),
             np.array([25.0, 25.0]),
@@ -175,9 +177,8 @@ def test_calc_netradiation_surface(
 )
 def test_radiation_balance(
     radiation_fixture,
-    elev,
     sw_in,
-    sun_hours,
+    sun_frac,
     temp_canopy,
     temp_soil,
     rad_absorbed,
@@ -190,9 +191,8 @@ def test_radiation_balance(
     """Simple check for correct numbers, better test to be decided."""
 
     radiation_fixture.radiation_balance(
-        elevation=elev,
         shortwave_in=sw_in,
-        sunshine_hours=sun_hours,
+        sunshine_fraction=sun_frac,
         albedo_vis=0.03,
         albedo_shortwave=0.17,
         canopy_temperature=temp_canopy,
