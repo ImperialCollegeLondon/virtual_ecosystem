@@ -4,7 +4,7 @@ This module tests the functionality of the soil carbon module
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL
+from logging import ERROR
 
 import numpy as np
 import pytest
@@ -30,7 +30,7 @@ from .conftest import log_check
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "Dimension mismatch for initial carbon pools!",
                 ),
             ),
@@ -41,7 +41,7 @@ from .conftest import log_check
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "Initial carbon pools contain at least one negative value!",
                 ),
             ),
@@ -197,14 +197,14 @@ def test_calculate_equilibrium_maom(
             [156.0],
             [],
             pytest.raises(ValueError),
-            ((CRITICAL, "Relative clay content must be expressed as a percentage!"),),
+            ((ERROR, "Relative clay content must be expressed as a percentage!"),),
         ),
         (
             [1500.0],
             [-9.0],
             [],
             pytest.raises(ValueError),
-            ((CRITICAL, "Relative clay content must be expressed as a percentage!"),),
+            ((ERROR, "Relative clay content must be expressed as a percentage!"),),
         ),
     ],
 )
@@ -267,13 +267,13 @@ def test_convert_temperature_to_scalar(temperatures, output_scalars):
             [-0.2],
             [],
             pytest.raises(ValueError),
-            ((CRITICAL, "Relative water content cannot go below zero or above one!"),),
+            ((ERROR, "Relative water content cannot go below zero or above one!"),),
         ),
         (
             [2.7],
             [],
             pytest.raises(ValueError),
-            ((CRITICAL, "Relative water content cannot go below zero or above one!"),),
+            ((ERROR, "Relative water content cannot go below zero or above one!"),),
         ),
     ],
 )

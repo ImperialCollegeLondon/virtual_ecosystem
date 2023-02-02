@@ -9,7 +9,7 @@ later date.
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import InitialisationError
 
 # TODO - I'm basically certain that the paper I've taken this model structure from has
@@ -58,17 +58,19 @@ class SoilCarbonPools:
 
         # Check that arrays are of equal size and shape
         if maom.shape != lmwc.shape:
-            log_and_raise(
+            to_raise = InitialisationError(
                 "Dimension mismatch for initial carbon pools!",
-                InitialisationError,
             )
+            LOGGER.error(to_raise)
+            raise to_raise
 
         # Check that negative initial values are not given
         if np.any(maom < 0) or np.any(lmwc < 0):
-            log_and_raise(
-                "Initial carbon pools contain at least one negative value!",
-                InitialisationError,
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
             )
+            LOGGER.error(to_raise)
+            raise to_raise
 
         self.maom = maom
         """Mineral associated organic matter pool (kg C m^-3)"""
@@ -164,10 +166,13 @@ def calculate_max_sorption_capacity(
         Maximum sorption capacity (kg m^-3)
     """
 
+    # Check that negative initial values are not given
     if np.any(percent_clay > 100.0) or np.any(percent_clay < 0.0):
-        log_and_raise(
-            "Relative clay content must be expressed as a percentage!", ValueError
+        to_raise = ValueError(
+            "Relative clay content must be expressed as a percentage!"
         )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     Q_max = bulk_density * 10 ** (
         MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
@@ -260,9 +265,11 @@ def convert_moisture_to_scalar(
     """
 
     if np.any(soil_moisture > 1.0) or np.any(soil_moisture < 0.0):
-        log_and_raise(
-            "Relative water content cannot go below zero or above one!", ValueError
+        to_raise = ValueError(
+            "Relative water content cannot go below zero or above one!"
         )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     # This expression is drawn from Abramoff et al. (2018)
     return 1 / (
