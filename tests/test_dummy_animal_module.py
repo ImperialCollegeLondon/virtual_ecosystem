@@ -17,21 +17,18 @@ class TestPlant:
     def test_plant_growth0(self):
         """Testing plant_growth at 100% energy."""
         p = am.Plant("tree", 10.0, 1)
-        print("testing plant growth : plant")
         p.plant_growth()
         assert p.energy == 1000
 
     def test_plant_growth1(self):
         """Testing plant_growth at 100% energy."""
         p = am.Plant("tree", 10.0, 1)
-        print("testing plant growth : plant")
         p.plant_growth()
         assert p.energy == 1000
 
     def test_plant_growth2(self):
         """Testing plant_growth at 50% energy."""
         p = am.Plant("tree", 10.0, 1)
-        print("testing plant growth : plant")
         p.energy = 500
         p.plant_growth()
         assert p.energy == 750
@@ -39,7 +36,6 @@ class TestPlant:
     def test_plant_growth3(self):
         """Testing plant_growth at 0% energy."""
         p = am.Plant("tree", 10.0, 1)
-        print("testing plant growth : plant")
         p.energy = 0
         p.plant_growth()
         assert p.energy == 0
@@ -47,7 +43,6 @@ class TestPlant:
     def test_plant_death(self):
         """Testing plant_death."""
         p = am.Plant("tree", 10.0, 1)
-        print("testing plant growth : plant")
         p.plant_death()
         assert not p.alive
 
