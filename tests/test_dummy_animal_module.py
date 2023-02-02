@@ -14,12 +14,6 @@ import virtual_rainforest.animals.dummy_animal_module as am
 class TestPlant:
     """Test Plant class."""
 
-    def test_plant_growth0(self):
-        """Testing plant_growth at 100% energy."""
-        p = am.Plant("tree", 10.0, 1)
-        p.plant_growth()
-        assert p.energy == 1000
-
     def test_plant_growth1(self):
         """Testing plant_growth at 100% energy."""
         p = am.Plant("tree", 10.0, 1)
