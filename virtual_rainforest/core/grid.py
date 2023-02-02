@@ -1,8 +1,5 @@
-"""API documentation for the :mod:`core.grid` module.
-**************************************************
-
-The :mod:`core.grid` module is used to create the grid of cells underlying the
-simulation and to identify the neighbourhood connections of cells.
+"""The :mod:`~virtual_rainforest.core.grid` module is used to create the grid of cells
+underlying the simulation and to identify the neighbourhood connections of cells.
 
 - set up neighbourhoods. ? store as graph (networkx - might only need a really
   lightweight graph description).
@@ -11,7 +8,7 @@ simulation and to identify the neighbourhood connections of cells.
   defining mappings though.
 - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
   https://pysal.org/libpysal/
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 import json
 from typing import Any, Callable, Optional, Sequence, Union

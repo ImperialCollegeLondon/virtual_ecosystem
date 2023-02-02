@@ -76,7 +76,8 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: API reference
-
+  
+  Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
   Logger <api/core/logger.md>
@@ -85,7 +86,8 @@ team.
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/model.md>
-  Soil <api/soil.md>
+  Soil Model <api/soil.md>
+
 ```
 
 ```{eval-rst}
