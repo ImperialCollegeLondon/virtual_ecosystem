@@ -65,8 +65,11 @@ class PlantCommunity:
                     current aliveness state.
 
         """
-        self.is_alive = False
-        LOGGER.debug("A Plant Community has died")
+        if self.is_alive:
+            self.is_alive = False
+            LOGGER.debug("A Plant Community has died")
+        elif not self.is_alive:
+            LOGGER.debug("A Plant Community which is dead cannot die.")
 
 
 class SoilPool:
