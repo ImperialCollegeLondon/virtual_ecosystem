@@ -25,24 +25,25 @@ setting up and testing the early stages of the animal module.
 #   better to excrete directly to external pools
 # only elephants disperse atm
 
+
 from virtual_rainforest.core.logger import LOGGER
 
 
-class Plant:
+class PlantCommunity:
     """This is a dummy class of plant cohorts for testing the animal module."""
 
-    def __init__(self, name: str, mass: float, position: int) -> None:
+    def __init__(self, mass: float, position: int) -> None:
         """The constructor for Plant class."""
-        self.name = name
-        """The functional-type name of the plant cohort."""
         self.mass = mass
-        """The mass of the plant cohort [g]."""
-        self.energy = mass * 100
-        """The amount of energy in the plant cohort [j] [toy]."""
+        """The mass of the plant cohort [kg]."""
+        self.energy_density: float = 1000.0
+        """The energy (J) in a kg of plant. [small toy J/kg value for convenience.]"""
+        self.energy_max: float = self.mass * self.energy_density
+        """The maximum amount of energy that the cohort can have [J] [toy]."""
+        self.energy = self.energy_max
+        """The amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.energy_max: float = mass * 100
-        """The maximum amount of energy that the cohort can have [j] [toy]."""
         self.position = position
         """The grid location of the cohort [0-8]."""
 
@@ -65,7 +66,7 @@ class Plant:
 
         """
         self.is_alive = False
-        LOGGER.debug(f"A {self.name} cohort died")
+        LOGGER.debug("A Plant Community has died")
 
 
 class SoilPool:
