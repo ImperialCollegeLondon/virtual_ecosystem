@@ -134,14 +134,8 @@ class SoilModel(BaseModel):
         else:
             raise InitialisationError()
 
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
-    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
-    # STATE
     def setup(self) -> None:
-        """Function to set up the soil model."""
-        for layer in range(0, self.no_layers):
-            LOGGER.info("Setting up soil layer %s" % layer)
+        """Placeholder function to setup up the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
