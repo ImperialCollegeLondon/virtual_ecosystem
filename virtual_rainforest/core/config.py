@@ -44,13 +44,13 @@ import sys
 from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional, Union
+from typing import Any, Callable, Generator, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
 from jsonschema import Draft202012Validator, FormatChecker, exceptions, validators
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -67,9 +67,11 @@ SCHEMA_REGISTRY: dict = {}
 class ConfigurationError(Exception):
     """Custom exception class for configuration failures."""
 
+    pass
+
 
 def log_all_validation_errors(
-    errors: list[exceptions.ValidationError], complete: bool
+    errors: Generator[Any, None, None], complete: bool
 ) -> None:
     """Logs all validation errors and raises an exception.
 
@@ -91,10 +93,11 @@ def log_all_validation_errors(
             tag += f"[{k}]"
         LOGGER.error("%s: %s" % (tag, error.message))
 
-    log_and_raise(
-        f"Validation of {conf} configuration files failed see above errors",
-        ConfigurationError,
+    to_raise = ConfigurationError(
+        f"Validation of {conf} configuration files failed see above errors"
     )
+    LOGGER.critical(to_raise)
+    raise to_raise
 
 
 def validate_and_add_defaults(
@@ -149,31 +152,38 @@ def register_schema(module_name: str) -> Callable:
     """
 
     def wrap(func: Callable) -> Callable:
+
+        # Type the exception raising with a general base class
+        to_raise: Exception
+
         if module_name in SCHEMA_REGISTRY:
-            log_and_raise(
+            to_raise = ValueError(
                 f"The module schema {module_name} is used multiple times, this "
                 f"shouldn't be the case!",
-                ValueError,
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
         else:
             # Check that this is a valid schema
             try:
                 Draft202012Validator.check_schema(func())
             except exceptions.SchemaError:
-                log_and_raise(
-                    f"Module schema {module_name} not valid JSON!",
-                    OSError,
-                )
+                to_raise = OSError(f"Module schema {module_name} not valid JSON!")
+                LOGGER.critical(to_raise)
+                raise to_raise
+
             # Check that relevant keys are included
             try:
                 func()["properties"][module_name]
                 func()["required"]
             except KeyError as err:
-                log_and_raise(
+                to_raise = KeyError(
                     f"Schema for {module_name} module incorrectly structured, {err} key"
-                    f" missing!",
-                    KeyError,
+                    f" missing!"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
+
             # If it is valid then add it to the registry
             SCHEMA_REGISTRY[module_name] = func()
 
@@ -232,25 +242,29 @@ def check_outfile(merge_file_path: Path) -> None:
 
     # Throw critical error if the output folder doesn't exist
     if not Path(parent_fold).exists():
-        log_and_raise(
-            f"The user specified output directory ({parent_fold}) doesn't exist!",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            f"The user specified output directory ({parent_fold}) doesn't exist!"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
     elif not Path(parent_fold).is_dir():
-        log_and_raise(
-            f"The user specified output folder ({parent_fold}) isn't a directory!",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            f"The user specified output folder ({parent_fold}) isn't a directory!"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Throw critical error if combined output file already exists
     for file in Path(parent_fold).iterdir():
         if file.name == f"{out_file_name}":
-            log_and_raise(
+            to_raise = ConfigurationError(
                 f"A config file in the user specified output folder ({parent_fold}) "
                 f"already makes use of the specified output file name ({out_file_name})"
-                f", this file should either be renamed or deleted!",
-                ConfigurationError,
+                f", this file should either be renamed or deleted!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
     return None
 
@@ -289,24 +303,29 @@ def collect_files(cfg_paths: list[str]) -> list[Path]:
 
     # Check for items that are not found
     if len(not_found) != 0:
-        log_and_raise(
-            f"The following (user provided) config paths do not exist:\n{not_found}",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            f"The following (user provided) config paths do not exist:\n{not_found}"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
     # And for empty folders
-    elif len(empty_fold) != 0:
-        log_and_raise(
+    if len(empty_fold) != 0:
+        to_raise = ConfigurationError(
             f"The following (user provided) config folders do not contain any toml "
-            f"files:\n{empty_fold}",
-            ConfigurationError,
+            f"files:\n{empty_fold}"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
     # Finally check that no files are pointed to twice
-    elif len(files) != len(set(files)):
-        log_and_raise(
+    if len(files) != len(set(files)):
+        to_raise = ConfigurationError(
             f"A total of {len(files) - len(set(files))} config files are specified more"
-            f" than once (possibly indirectly)",
-            ConfigurationError,
+            f" than once (possibly indirectly)"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     return files
 
@@ -341,11 +360,12 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
 
                 file_data[file] = toml_dict
             except tomllib.TOMLDecodeError as err:
-                log_and_raise(
+                to_raise = ConfigurationError(
                     f"Configuration file {file} is incorrectly formatted. Failed with "
-                    f"the following message:\n{err}",
-                    ConfigurationError,
+                    f"the following message:\n{err}"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
     # Check if any tags are repeated across files
     if len(conflicts) != 0:
@@ -354,7 +374,9 @@ def load_in_config_files(files: list[Path]) -> dict[str, Any]:
         for conf in conflicts:
             msg += f"{conf[0]} defined in both {conf[1]} and {conf[2]}\n"
         msg = msg[:-1]
-        log_and_raise(msg, ConfigurationError)
+        to_raise = ConfigurationError(msg)
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Merge everything into a single dictionary
     config_dict = dict(ChainMap(*file_data.values()))
@@ -381,10 +403,11 @@ def add_core_defaults(config_dict: dict[str, Any]) -> None:
     if "core" in SCHEMA_REGISTRY:
         core_schema = SCHEMA_REGISTRY["core"]
     else:
-        log_and_raise(
-            "Expected a schema for core module configuration, it was not provided!",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            "Expected a schema for core module configuration, it was not provided!"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     try:
         ValidatorWithDefaults(core_schema, format_checker=FormatChecker()).validate(
@@ -414,22 +437,24 @@ def find_schema(config_dict: dict[str, Any]) -> list[str]:
     try:
         modules = config_dict["core"]["modules"]
     except KeyError:
-        log_and_raise(
+        to_raise = ConfigurationError(
             "Core configuration does not specify which other modules should be "
-            "configured!",
-            ConfigurationError,
+            "configured!"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Add core to list of modules if its not already included
     if "core" not in modules:
         modules.append("core")
 
     if len(modules) != len(set(modules)):
-        log_and_raise(
+        to_raise = ConfigurationError(
             f"The list of modules to configure given in the core configuration file "
-            f"repeats {len(modules) - len(set(modules))} names!",
-            ConfigurationError,
+            f"repeats {len(modules) - len(set(modules))} names!"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     return modules
 
@@ -460,11 +485,12 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
                 # Add module name to list of required modules
                 comb_schema["required"].append(module)
         else:
-            log_and_raise(
+            to_raise = ConfigurationError(
                 f"Expected a schema for {module} module configuration, it was not "
-                f"provided!",
-                ConfigurationError,
+                f"provided!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
     p_paths = []
     # Recursively search for all instances of properties in the schema
