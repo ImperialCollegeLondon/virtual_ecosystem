@@ -48,23 +48,11 @@ class PlantCommunity:
         """The grid location of the cohort [0-8]."""
 
     def grow(self) -> None:
-        """The function to logistically modify cohort energy to the energy_max value.
-
-        Args:
-            None: Toy implementation of growth is only a function of the
-                  current energy state.
-
-        """
+        """The function to logistically modify cohort energy to the energy_max value."""
         self.energy += 1 * self.energy * (1 - self.energy / self.energy_max)
 
     def die(self) -> None:
-        """The function to kill a plant cohort.
-
-        Parameters:
-            None: Toy implementation of death is only a function of the
-                    current aliveness state.
-
-        """
+        """The function to kill a plant cohort."""
         if self.is_alive:
             self.is_alive = False
             LOGGER.debug("A Plant Community has died")
