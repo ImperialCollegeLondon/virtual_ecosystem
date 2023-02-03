@@ -158,7 +158,7 @@ def calculate_atmospheric_transmissivity(
     """
 
     # check sunshine fraction between 0 and 1
-    if 0 >= sunshine_fraction >= 1:
+    if 0 > np.any(sunshine_fraction) > 1:
         raise ValueError("The fraction of sunshine hours needs to be between 0 and 1!")
 
     # calculate transmissivity (tau), unitless
