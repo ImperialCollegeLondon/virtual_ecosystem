@@ -1,10 +1,8 @@
-"""The `models.soil.carbon` module.
-
-This module simulates the soil carbon cycle for the Virtual Rainforest. At the moment
-only two pools are modelled, these are low molecular weight carbon (LMWC) and mineral
-associated organic matter (MAOM). More pools and their interactions will be added at a
-later date.
-"""
+"""The `models.soil.carbon` module  simulates the soil carbon cycle for the Virtual
+Rainforest. At the moment only two pools are modelled, these are low molecular weight
+carbon (LMWC) and mineral associated organic matter (MAOM). More pools and their
+interactions will be added at a later date.
+"""  # noqa: D205, D415
 
 import numpy as np
 from numpy.typing import NDArray

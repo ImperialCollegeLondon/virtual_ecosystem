@@ -111,6 +111,7 @@ team.
   Docstring Style <development/documentation/docstring_style.md>
   API Generation <development/documentation/api_generation.md>
   Core Design <development/design/core.md>
+  Adding New Models <development/defining_new_models.md>
 ```
 
 ```{eval-rst}
