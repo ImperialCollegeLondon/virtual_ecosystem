@@ -38,17 +38,44 @@ are displayed. In practice, we are likely to generally set the logging level to 
 so that ``DEBUG`` messages are suppressed, except when we are actively trying to debug
 the model.
 
-The logging module also defines a function that we should generally make use of to kill
-the simulation when something goes wrong. This function
-:func:`~virtual_rainforest.core.logger.log_and_raise` raises an exception (of the
-developers choice) and adds a developer specified ``CRITICAL`` message to the log. This
-function is useful as it ensures that ``CRITICAL`` logging events are accompanied by a
-simulation ending exception. As such, this is probably the only means by which you
-should log a ``CRITICAL`` message.
+Logging and exceptions
+----------------------
+
+When an exception is allowed to halt the code, it is important for the reason to be
+written to the log, as well as producing any traceback to the console. So, exception
+handling should always include a LOGGER call, using one of the following patterns.
+
+#. A test in the code indicates that we should raise an exception:
+
+  .. code-block:: python
+
+    if thing_has_gone_wrong:
+        to_raise = ValueError("It went wrong!")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+#. A ``try`` block results in an exception:
+
+  .. code-block:: python
+
+    try:
+        doing_something_that_raises()
+    except ValueError as excep:
+        LOGGER.critical(excep)
+        raise
+
+#. A ``try`` block results in an exception and we want to change the exception type:
+
+  .. code-block:: python
+
+    try:
+        doing_something_that_raises()
+    except ValueError as excep:
+        LOGGER.critical(excep)
+        raise ValueError("Bad input") from excep
 """  # noqa: D205, D415
 
 import logging
-from typing import Optional, Type
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,23 +83,3 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger("virtual_rainforest")
-
-
-def log_and_raise(
-    msg: str, exception: Type[BaseException], extra: Optional[dict] = None
-) -> None:
-    """Emit a critical error message and raise an Exception.
-
-    This convenience function adds a critical level message to the logger and
-    then raises an exception with the same message. This is intended only for
-    use in loading resources: the package cannot run properly with misconfigured
-    resources but errors with the data checking should log and carry on.
-
-    Args:
-        msg: A message to add to the log
-        exception: An exception type to be raised
-        extra: A dictionary of extra information to be passed to the logger
-    """
-
-    LOGGER.critical(msg, extra=extra)
-    raise exception(msg)

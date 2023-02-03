@@ -26,7 +26,7 @@ touch virtual_rainforest/models/freshwater/model.py
 ```
 
 This script must import a number of things to be able to set up a new `Model` class
-correctly. It's worth noting that `log_and_raise` will be removed soon.
+correctly.
 
 ```python
 # One of the member functions of the Model class returns a class instance. mypy doesn't
@@ -42,7 +42,7 @@ import pint
 from numpy import datetime64, timedelta64
 
 # Logging of relevant information handled by Virtual Rainforest logger module
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 # New model class will inherit from BaseModel.
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
@@ -86,10 +86,11 @@ def __init__(
         
     # Sanity checking of input variables goes here
     if no_of_ponds < 0:
-        log_and_raise(
-        "There has to be at least one pond in the freshwater model!",
-            InitialisationError,
-        )
+        to_raise = InitialisationError(
+                "There has to be at least one pond in the freshwater model!"
+            )
+        LOGGER.critical(to_raise)
+        raise to_raise
         
     # Provide general attributes to the __init__ of the base class
     super().__init__(update_interval, start_time, **kwargs)
