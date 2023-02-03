@@ -1,7 +1,4 @@
-"""API documentation for the :mod:`core.config` module.
-****************************************************
-
-The :mod:`core.config` module is used to read in the various configuration files,
+"""The :mod:`core.config` module is used to read in the various configuration files,
 validate their contents, and then configure a ready to run instance of the virtual
 rainforest model. The basic details of how this system is used can be found
 :ref:`here<virtual_rainforest/core/config:the configuration module>`.
@@ -41,7 +38,7 @@ be imported. Currently this is tackled by importing all active modules in the to
 that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
 define schema, in turn ensuring that
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 import sys
 from collections import ChainMap

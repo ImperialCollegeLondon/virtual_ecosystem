@@ -27,7 +27,6 @@ def test_base_model_initialization(caplog, mocker):
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-    assert model.name == "base"
     assert str(model) == "A base model instance"
     assert (
         repr(model) == "BaseModel(update_interval = 1 weeks, next_update = 2022-11-08)"
@@ -73,7 +72,7 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-        assert model.name == "soil"
+        assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
         assert (
             repr(model)
@@ -85,19 +84,57 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
     log_check(caplog, expected_log_entries)
 
 
-def test_register_model_errors(caplog):
-    """Test that the schema registering models generates correct errors/warnings."""
+@pytest.mark.parametrize(
+    "name,raises,expected_log_entries",
+    [
+        (
+            27,
+            pytest.raises(TypeError),
+            ((CRITICAL, "Models should only be named using strings!"),),
+        ),
+        (
+            "soil",
+            does_not_raise(),
+            (
+                (
+                    WARNING,
+                    "Model with name soil already exists and is being replaced",
+                ),
+            ),
+        ),
+        (
+            "freshwater",
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_register_model_errors(caplog, name, raises, expected_log_entries):
+    """Test that the function registering models generates correct errors/warnings."""
 
-    class NewSoilModel(BaseModel, model_name="soil"):
-        """Test class for use in testing __init_subclass__."""
+    with raises:
+
+        class NewSoilModel(BaseModel):
+            """Test class for use in testing __init_subclass__."""
+
+            model_name = name
+            """The model name for use in registering the model and logging."""
 
     # Then check that the correct (warning) log messages are emitted
-    expected_log_entries = (
-        (
-            WARNING,
-            "Model with name soil already exists and is being replaced",
-        ),
-    )
+    log_check(caplog, expected_log_entries)
+
+
+def test_unnamed_model(caplog):
+    """Test that the registering a model without a name fails correctly."""
+
+    with pytest.raises(ValueError):
+
+        class UnnamedModel(BaseModel):
+            """Model where a model_name hasn't been included."""
+
+    expected_log_entries = ((CRITICAL, "Models must have a model_name attribute!"),)
+
+    # Then check that the correct (warning) log messages are emitted
     log_check(caplog, expected_log_entries)
 
 

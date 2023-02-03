@@ -14,11 +14,11 @@ kernelspec:
   name: vr_python3
 ---
 
-<!-- markdownlint-disable MD041 -->
+# API documentation for the {mod}`~virtual_rainforest.core.axes` module
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.core.axes
     :autosummary:
     :members:
-    :special-members: __init__
+    :special-members: __init_subclass__
 ```

@@ -1,8 +1,5 @@
-"""API documentation for the :mod:`core.data` module.
-**************************************************
-
-This module handles the population and storage of data sources used to run Virtual
-Rainforest simulations.
+"""The :mod:`~virtual_rainforest.core.data` module handles the population and storage of
+data sources used to run Virtual Rainforest simulations.
 
 The Data class
 ==============
@@ -117,7 +114,7 @@ Data configurations must not contain repeated data variable names.
     # Load configured datasets
     data.load_data_config(loaded_data_config_dict)
 
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from pathlib import Path
 from typing import Any, Optional
