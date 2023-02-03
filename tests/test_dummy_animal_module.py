@@ -37,7 +37,8 @@ class TestPlantCommunity:
     def test_die(self):
         """Testing die."""
         p = am.PlantCommunity(10.0, 1)
-        p.die()
+        if p.is_alive:
+            p.die()
         assert not p.is_alive
 
 
