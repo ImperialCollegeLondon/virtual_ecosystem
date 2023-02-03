@@ -4,6 +4,8 @@ carbon (LMWC) and mineral associated organic matter (MAOM). More pools and their
 interactions will be added at a later date.
 """  # noqa: D205, D415
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -14,33 +16,52 @@ from virtual_rainforest.core.model import InitialisationError
 # not used units consistently (in particular the BINDING_WITH_PH). Down the line I need
 # to track down a reliable parameterisation for this section.
 
-# from core.constants import CONSTANTS as C
-# but for meanwhile define all the constants needed here
-BINDING_WITH_PH = {
-    "slope": -0.186,  # unitless
-    "intercept": -0.216,  # unitless
-}
-"""From linear regression (Mayes et al. (2012))."""
-MAX_SORPTION_WITH_CLAY = {
-    "slope": 0.483,  # unitless
-    "intercept": 2.328,  # unitless
-}
-"""From linear regression (Mayes et al. (2012))."""
-MOISTURE_SCALAR = {
-    "coefficient": 30.0,  # unitless
-    "exponent": 9.0,  # unitless
-}
-"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete."""
-TEMP_SCALAR = np.array([15.4, 11.75, 29.7, 0.031, 30.0])
-"""Used in Abramoff et al. (2018), but can't trace it back to anything more concrete.
 
-Values:
-    t_1: (degrees C)
-    t_2: (unit unclear)
-    t_3: (unit unclear)
-    t_4: (unit unclear)
-    ref_temp: (degrees C)
-"""
+# For meanwhile define all the constants needed here as dataclasses
+@dataclass
+class BindingWithPH:
+    """From linear regression (Mayes et al. (2012))."""
+
+    slope: float = -0.186
+    """Units of pH^-1."""
+    intercept: float = -0.216
+    """Unit less."""
+
+
+@dataclass
+class MaxSorptionWithClay:
+    """From linear regression (Mayes et al. (2012))."""
+
+    slope: float = 0.483
+    """Units of (% clay)^-1."""
+    intercept: float = 2.328
+    """Unit less."""
+
+
+@dataclass
+class MoistureScalar:
+    """Used in Abramoff et al. (2018), but can't trace it back to anything concrete."""
+
+    coefficient: float = 30.0
+    """Value at zero relative water content (RWC) [unit less]."""
+    exponent: float = 9.0
+    """Units of (RWC)^-1"""
+
+
+@dataclass
+class TempScalar:
+    """Used in Abramoff et al. (2018), but can't trace it back to anything concrete."""
+
+    t_1: float = 15.4
+    """Unclear exactly what this parameter is [degrees C]"""
+    t_2: float = 11.75
+    """Unclear exactly what this parameter is [units unclear]"""
+    t_3: float = 29.7
+    """Unclear exactly what this parameter is [units unclear]"""
+    t_4: float = 0.031
+    """Unclear exactly what this parameter is [units unclear]"""
+    ref_temp: float = 30.0
+    """Reference temperature [degrees C]"""
 
 
 class SoilCarbonPools:
@@ -173,8 +194,8 @@ def calculate_max_sorption_capacity(
         raise to_raise
 
     Q_max = bulk_density * 10 ** (
-        MAX_SORPTION_WITH_CLAY["slope"] * np.log10(percent_clay)
-        + MAX_SORPTION_WITH_CLAY["intercept"]
+        MaxSorptionWithClay.slope * np.log10(percent_clay)
+        + MaxSorptionWithClay.intercept
     )
     return Q_max
 
@@ -216,7 +237,7 @@ def calculate_binding_coefficient(pH: NDArray[np.float32]) -> NDArray[np.float32
         kg^-1)
     """
 
-    return 10.0 ** (BINDING_WITH_PH["slope"] * pH + BINDING_WITH_PH["intercept"])
+    return 10.0 ** (BindingWithPH.slope * pH + BindingWithPH.intercept)
 
 
 def convert_temperature_to_scalar(
@@ -236,11 +257,13 @@ def convert_temperature_to_scalar(
         A scalar that captures the impact of soil temperature on process rates
     """
 
-    t_1, t_2, t_3, t_4, ref_temp = TEMP_SCALAR
-
     # This expression is drawn from Abramoff et al. (2018)
-    numerator = t_2 + (t_3 / np.pi) * np.arctan(np.pi * (soil_temp - t_1))
-    denominator = t_2 + (t_3 / np.pi) * np.arctan(np.pi * t_4 * (ref_temp - t_1))
+    numerator = TempScalar.t_2 + (TempScalar.t_3 / np.pi) * np.arctan(
+        np.pi * (soil_temp - TempScalar.t_1)
+    )
+    denominator = TempScalar.t_2 + (TempScalar.t_3 / np.pi) * np.arctan(
+        np.pi * TempScalar.t_4 * (TempScalar.ref_temp - TempScalar.t_1)
+    )
 
     return np.divide(numerator, denominator)
 
@@ -272,6 +295,5 @@ def convert_moisture_to_scalar(
     # This expression is drawn from Abramoff et al. (2018)
     return 1 / (
         1
-        + MOISTURE_SCALAR["coefficient"]
-        * np.exp(-MOISTURE_SCALAR["exponent"] * soil_moisture)
+        + MoistureScalar.coefficient * np.exp(-MoistureScalar.exponent * soil_moisture)
     )
