@@ -91,4 +91,4 @@ class CarcassPool:
         self.energy = energy
         """The amount of energy in the carcass pool [j]."""
         self.position = position
-        """The grid position of carcass pool pool [0-8]."""
+        """The grid position of the carcass pool [0-8]."""
