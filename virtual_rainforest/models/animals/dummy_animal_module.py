@@ -21,6 +21,8 @@ Notes to self:
 - waste_energy pool likely unnecessary, better to excrete directly to external pools
 """
 
+from dataclasses import dataclass
+
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -55,23 +57,21 @@ class PlantCommunity:
             LOGGER.debug("A Plant Community which is dead cannot die.")
 
 
+@dataclass
 class SoilPool:
     """This is a dummy class of soil pools for testing the animal module."""
 
-    def __init__(self, energy: float, position: int) -> None:
-        """The constructor for Soil class."""
-        self.energy = energy
-        """The amount of energy in the soil pool [j]."""
-        self.position = position
-        """The grid position of the soil pool [0-8]."""
+    energy: float
+    """The amount of energy in the soil pool [J]."""
+    position: int
+    """The grid position of the soil pool."""
 
 
+@dataclass
 class CarcassPool:
     """This is a class of carcass pools."""
 
-    def __init__(self, energy: float, position: int) -> None:
-        """The constructor for Carcass class."""
-        self.energy = energy
-        """The amount of energy in the carcass pool [j]."""
-        self.position = position
-        """The grid position of the carcass pool [0-8]."""
+    energy: float
+    """The amount of energy in the carcass pool [J]."""
+    position: int
+    """The grid position of the carcass pool."""
