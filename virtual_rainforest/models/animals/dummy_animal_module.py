@@ -3,28 +3,23 @@
 This file provides toy animal module functionality as well as self-contained
 dummy versions of the abiotic, soil, and plant modules that are required for
 setting up and testing the early stages of the animal module.
+
+Todo:
+- rework dispersal
+- send portion of dead to carcass pool
+
+Current simplifications:
+- only herbivory (want: carnivory and omnivory)
+- only endothermy (want: ectothermy)
+- only iteroparity (want: semelparity)
+- no development
+
+Notes to self:
+- assume each grid = 1 km2
+- assume each tick = 1 day (28800s)
+- damuth ~ 4.23*mass**(-3/4) indiv / km2
+- waste_energy pool likely unnecessary, better to excrete directly to external pools
 """
-
-# experimental file for figuring out how to make an animal module
-
-# to do
-# - rework dispersal
-# - send portion of dead to carcass pool
-
-# current simplifications
-# - only herbivory (want: carnivory and omnivory)
-# - only endothermy (want: ectothermy)
-# - only iteroparity (want: semelparity)
-# - no development
-
-# notes to self
-# assume each grid = 1 km2
-# assume each tick = 1 day (28800s)
-# damuth ~ 4.23*mass**(-3/4) indiv / km2
-# waste_energy pool likely unnecessary
-#   better to excrete directly to external pools
-# only elephants disperse atm
-
 
 from virtual_rainforest.core.logger import LOGGER
 
