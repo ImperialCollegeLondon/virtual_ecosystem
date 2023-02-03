@@ -8,7 +8,7 @@ This module tests the functionality of dummy_animal_module.py
 # handling initialization of animals with zero energy
 # test that eat can't drive energy negative
 
-import virtual_rainforest.animals.dummy_animal_module as am
+import virtual_rainforest.models.animals.dummy_animal_module as am
 
 
 class TestPlantCommunity:
