@@ -50,13 +50,22 @@ radiation extinction function :cite:p:`Allen1996`"""
 CELSIUS_TO_KELVIN = 273.15
 """Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
 
-# dummy data object
+# dummy data object, 2 grid cells, 3 canopy layers
 data: Dict[str, Any] = {
-    "elevation": 100,
-    "shortwave_in": 30000000,
-    "canopy_temperature": NDArray([25, 22, 20], dtype=np.float32),
-    "surface_temperature": 20,
-    "canopy_absorption": NDArray([300, 200, 100], dtype=np.float32),
+    "elevation": np.array([100, 100], dtype=np.float32),
+    "shortwave_in": np.array([100, 100], dtype=np.float32),
+    "canopy_temperature": np.array(
+        [
+            [25, 25],
+            [22, 22],
+            [20, 20],
+        ],
+        dtype=np.float32,
+    ),
+    "surface_temperature": np.array([20, 20], dtype=np.float32),
+    "canopy_absorption": np.array(
+        [[300, 300], [200, 200], [100, 100]], dtype=np.float32
+    ),
 }
 
 
@@ -267,7 +276,7 @@ def calculate_netradiation_surface(
     """
     return (
         topofcanopy_radiation
-        - canopy_absorption
+        - np.sum(canopy_absorption, axis=0)
         - longwave_soil
-        - np.sum(longwave_canopy)  # sum over vertical levels, not across cell_id
+        - np.sum(longwave_canopy, axis=0)  # sum over all canopy layers
     )
