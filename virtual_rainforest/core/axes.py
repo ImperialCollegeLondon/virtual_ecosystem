@@ -211,7 +211,6 @@ def validate_dataarray(
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
-
         validators: list[Type[AxisValidator]] = AXIS_VALIDATORS[axis]
 
         # Get the set of dim names across all of the validators for this axis
@@ -222,7 +221,6 @@ def validate_dataarray(
         # validation on this axis and return the input array.
         matching_dims = validator_dims.intersection(value.dims)
         if matching_dims:
-
             # There should be one and only validator that can validate for this axis.
             validator_found = [v for v in validators if v().can_validate(value, grid)]
 
