@@ -53,7 +53,24 @@ class SoilCarbonPools:
         self.lmwc = lmwc
         """Low molecular weight carbon pool (kg C m^-3)"""
 
-    def update_pools(
+    def update_soil_carbon_pools(self, delta_pools: NDArray[np.float32]) -> None:
+        """Update soil carbon pools based on previously calculated net change.
+
+        The state of the soil carbon pools will effect the rate of other processes in
+        the soil module. These processes in turn can effect the exchange rates between
+        the soil organic matter pools. Thus, separate update functions (like this one)
+        are necessary so that update increments for all soil module components can be
+        calculated on a single state, which is only then updated when all increments
+        have been calculated.
+
+        Args:
+            delta_pools: Array of updates for every pool
+        """
+
+        self.maom += delta_pools[0]
+        self.lmwc += delta_pools[1]
+
+    def calculate_soil_carbon_updates(
         self,
         pH: NDArray[np.float32],
         bulk_density: NDArray[np.float32],
@@ -61,12 +78,12 @@ class SoilCarbonPools:
         soil_temp: NDArray[np.float32],
         percent_clay: NDArray[np.float32],
         dt: float,
-    ) -> None:
-        """Update all soil carbon pools.
+    ) -> NDArray[np.float32]:
+        """Calculate net change for each carbon pool.
 
         This function calls lower level functions which calculate the transfers between
         pools. When all transfers have been calculated the net transfer is used to
-        update the soil pools.
+        calculate the net change for each pool.
 
         Args:
             pH: pH values for each soil grid cell
@@ -75,6 +92,9 @@ class SoilCarbonPools:
             soil_temp: soil temperature for each soil grid cell (degrees C)
             percent_clay: Percentage clay for each soil grid cell
             dt: time step (days)
+
+        Returns:
+            A vector containing net changes to each pool. Order [lmwc, moam].
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
@@ -82,9 +102,10 @@ class SoilCarbonPools:
             pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
-        # Once changes are determined update all pools
-        self.lmwc -= lmwc_to_maom * dt
-        self.maom += lmwc_to_maom * dt
+        # Determine net changes to the pools
+        delta_maom = lmwc_to_maom * dt
+        delta_lmwc = -lmwc_to_maom * dt
+        return np.array([delta_maom, delta_lmwc])
 
     def mineral_association(
         self,

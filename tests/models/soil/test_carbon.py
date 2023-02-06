@@ -70,6 +70,7 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
         "temperatures",
         "percent_clay",
         "dt",
+        "change_in_pools",
         "end_maom",
         "end_lmwc",
     ],
@@ -83,6 +84,7 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
             [35.0, 37.5],
             [80.0, 30.0],
             [2.0 / 24.0, 1.0 / 24.0],
+            [[3.313875e-5, 4.9097333e-7], [-3.313875e-5, -4.9097333e-7]],
             [2.500033, 1.70000049],
             [0.0499668, 0.0199995],
         ),
@@ -95,6 +97,7 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
             [40.0],
             [10.0],
             [0.5],
+            [[7.17089e-5], [-7.17089e-5]],
             [4.500071],
             [0.0999282],
         ),
@@ -107,12 +110,13 @@ def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
             [25.0],
             [90.0],
             [1.0 / 30.0],
+            [[9.345299e-9], [-9.345299e-9]],
             [0.500000],
             [0.00499999],
         ),
     ],
 )
-def test_update_pools(
+def test_pool_updates(
     maom,
     lmwc,
     pH,
@@ -121,10 +125,11 @@ def test_update_pools(
     temperatures,
     percent_clay,
     dt,
+    change_in_pools,
     end_maom,
     end_lmwc,
 ):
-    """Test that update_pools runs and generates the correct values."""
+    """Test that the two pool update functions work correctly."""
 
     # Initialise soil carbon class
     soil_carbon = SoilCarbonPools(
@@ -137,9 +142,17 @@ def test_update_pools(
     soil_temp = np.array(temperatures, dtype=np.float32)
     soil_clay = np.array(percent_clay, dtype=np.float32)
 
-    soil_carbon.update_pools(soil_pH, soil_BD, soil_moisture, soil_temp, soil_clay, dt)
+    delta_pools = soil_carbon.calculate_soil_carbon_updates(
+        soil_pH, soil_BD, soil_moisture, soil_temp, soil_clay, dt
+    )
 
-    # Check that pools are correctly incremented
+    # Check that the updates are correctly calculated
+    assert np.allclose(delta_pools, np.array(change_in_pools))
+
+    # Use this update to update the soil carbon pools
+    soil_carbon.update_soil_carbon_pools(delta_pools)
+
+    # Then check that pools are correctly incremented based on update
     assert np.allclose(soil_carbon.maom, np.array(end_maom))
     assert np.allclose(soil_carbon.lmwc, np.array(end_lmwc))
 
