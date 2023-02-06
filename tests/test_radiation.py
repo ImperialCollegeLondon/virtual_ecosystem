@@ -5,203 +5,146 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
-
-@pytest.mark.parametrize(
-    argnames=["cname"],
-    argvalues=[
-        ("BEER_REGRESSION",),
-        ("BOLZMAN_CONSTANT",),
-        ("CANOPY_EMISSIVITY",),
-        ("CELSIUS_TO_KELVIN",),
-        ("CLOUDY_TRANSMISSIVITY",),
-        ("FLUX_TO_ENERGY",),
-        ("SECOND_TO_DAY",),
-        ("SOIL_EMISSIVITY",),
-        ("TRANSMISSIVITY_COEFFICIENT",),
-    ],
-)
-def test_import_constants(cname):
-    """Test constants can be imported."""
-
-    # Get the module that should contain the constants
-    import virtual_rainforest.models.abiotic.radiation as rad
-
-    # Check that the constant can be retrieved from the module without
-    # raising an AttributeError.
-    with does_not_raise():
-        assert getattr(rad, cname)
-
-
-@pytest.fixture
-def radiation_fixture():
-    """Create a reusable radiation fixture."""
-    from virtual_rainforest.models.abiotic.radiation import Radiation
-
-    return Radiation(100)
+from virtual_rainforest.models.abiotic import radiation
 
 
 @pytest.mark.parametrize(
-    argnames="input, exp_tau, exp_ppfd, exp_err",
+    argnames="elev, sun_frac, exp_tau, exp_err",
     argvalues=[
         pytest.param(
-            29376000, 0.752, 43.713, does_not_raise(), id="single_cell_should_get"
+            np.array([100, 1000]),
+            np.array([0.5, 1.0]),
+            np.array([0.501335, 0.770025]),
+            does_not_raise(),
+            id="standard_array_should_get",
         ),
         pytest.param(
-            np.array([29376000, 29376000]),
-            np.array([0.752, 0.752]),
-            np.array([43.713, 43.713]),
+            np.array([100, 1000]),
+            np.array([-0.5, 1.5]),
+            (),
+            pytest.raises(ValueError),
+            id="value_error_sf",
+        ),
+    ],
+)
+def test_calculate_atmospheric_transmissivity(elev, sun_frac, exp_tau, exp_err):
+    """Test atmospheric tansmissivity across elevation and sunshine fractions."""
+
+    with exp_err as err:
+        result = radiation.calculate_atmospheric_transmissivity(elev, sun_frac)
+
+        # if no error is raised
+    if not err:
+        assert np.allclose(result, exp_tau)
+
+
+@pytest.mark.parametrize(
+    argnames="sw_in, elev, tau, exp_ppfd, exp_err",
+    argvalues=[
+        pytest.param(
+            np.array([100000, 10000000]),
+            np.array([100, 1000]),
+            np.array(
+                [
+                    0.75200,
+                    0.770025,
+                ]
+            ),
+            np.array([0.124203, 12.90113]),
             does_not_raise(),
             id="standard_array_should_get",
         ),
     ],
 )
-def test_calc_ppfd(radiation_fixture, input, exp_tau, exp_ppfd, exp_err):
+def test_calc_ppfd(sw_in, elev, tau, exp_ppfd, exp_err):
+    """Simple check for correct numbers, better test to be decided."""
+
+    with exp_err as err:
+        result = radiation.calculate_ppfd(sw_in, elev, tau)
+
+    if not err:
+        assert np.allclose(result, exp_ppfd)
+
+
+@pytest.mark.parametrize(
+    argnames="sw_in, tau, exp_toc_radiation, exp_err",
+    argvalues=[
+        pytest.param(
+            np.array([100000, 10000000]),
+            np.array([0.75200, 0.770025]),
+            np.array([62250.83312, 6225127.97052]),
+            does_not_raise(),
+            id="standard_array_should_get",
+        ),
+    ],
+)
+def test_calc_topofcanopy_radiation(sw_in, tau, exp_toc_radiation, exp_err):
+    """Simple check for correct numbers, better test to be decided."""
+
+    with exp_err as err:
+        result = radiation.calculate_topofcanopy_radiation(sw_in, tau)
+
+    if not err:
+        assert np.allclose(result, exp_toc_radiation)
+
+
+@pytest.mark.parametrize(
+    argnames="temp_canopy, temp_soil, result, exp_err",
+    argvalues=[
+        pytest.param(
+            np.array(
+                [
+                    [25, 25],
+                    [22, 22],
+                    [20, 20],
+                ]
+            ),
+            np.array([20, 20]),
+            np.array(
+                [
+                    [425.64341497, 425.64341497],
+                    [408.76886994, 408.76886994],
+                    [397.80135516, 397.80135516],
+                    [397.80135516, 397.80135516],
+                ],
+            ),
+            does_not_raise(),
+            id="standard_array_should_get",
+        ),
+    ],
+)
+def test_calc_longwave_radiation(temp_canopy, temp_soil, exp_lw, exp_err):
     """Simple check for correct numbers, better test to be decided."""
 
     with exp_err:
-        tau = radiation_fixture.calc_ppfd(input, 1.0)
-        assert tau == pytest.approx(exp_tau, 0.1)
-        assert radiation_fixture.ppfd == pytest.approx(exp_ppfd, 0.1)
+        result = radiation.calculate_longwave_radiation(temp_canopy, temp_soil)
+
+        assert np.allclose(result, exp_lw)
 
 
 @pytest.mark.parametrize(
-    argnames="input, exp_tau, exp_toc_radiation",
+    argnames="toc_radiation, lw_canopy, lw_soil, rad_absorbed, exp_netrad, exp_err",
     argvalues=[
-        (29376000, 0.752, 18335385.16),
-        (
-            np.array([29376000, 29376000]),
-            np.array([0.752, 0.752]),
-            np.array([18335385.16, 18335385.16]),
-        ),
-    ],
-)
-def test_calc_topofcanopy_radiation(
-    radiation_fixture, input, exp_tau, exp_toc_radiation
-):
-    """Simple check for correct numbers, better test to be decided."""
-
-    tau = radiation_fixture.calc_ppfd(input, 1.0)
-    assert tau == pytest.approx(exp_tau, 0.1)
-    radiation_fixture.calc_topofcanopy_radiation(tau, input, 1.0)
-    assert radiation_fixture.topofcanopy_radiation == pytest.approx(
-        exp_toc_radiation, 0.1
-    )
-
-
-@pytest.mark.parametrize(
-    argnames="temp_canopy, temp_soil, exp_lw_canopy, exp_lw_soil",
-    argvalues=[
-        (25, 25, 425.6434, 425.6434),
-        (
-            np.array([25, 25]),
-            np.array([25, 25]),
-            np.array([425.6434, 425.6434]),
-            np.array([425.6434, 425.6434]),
-        ),
-    ],
-)
-def test_calc_longwave_radiation(
-    radiation_fixture, temp_canopy, temp_soil, exp_lw_canopy, exp_lw_soil
-):
-    """Simple check for correct numbers, better test to be decided."""
-
-    radiation_fixture.calc_longwave_radiation(temp_canopy, temp_soil)
-    assert radiation_fixture.longwave_canopy == pytest.approx(exp_lw_canopy)
-    assert radiation_fixture.longwave_soil == pytest.approx(exp_lw_soil)
-
-
-@pytest.mark.parametrize(
-    argnames="toc_radiation, lw_canopy, lw_soil, rad_absorbed, exp_netrad",
-    argvalues=[
-        (10000, 100, 100, 200, 9600),
-        (
+        pytest.param(
             np.array([10000, 10000]),
             np.array([100, 100]),
             np.array([100, 100]),
             np.array([200, 200]),
             np.array([9600, 9600]),
+            does_not_raise(),
+            id="standard_array_should_get",
         ),
     ],
 )
 def test_calc_netradiation_surface(
-    radiation_fixture, toc_radiation, lw_canopy, lw_soil, rad_absorbed, exp_netrad
+    toc_radiation, lw_canopy, lw_soil, rad_absorbed, exp_netrad, exp_err
 ):
     """Simple check for correct numbers, better test to be decided."""
 
-    radiation_fixture.topofcanopy_radiation = toc_radiation
-    radiation_fixture.longwave_canopy = lw_canopy
-    radiation_fixture.longwave_soil = lw_soil
-    radiation_fixture.calc_netradiation_surface(rad_absorbed)
-    assert radiation_fixture.netradiation_surface == pytest.approx(exp_netrad)
+    with exp_err as err:
+        result = radiation.calculate_netradiation_surface(
+            toc_radiation, lw_canopy, lw_soil, rad_absorbed
+        )
 
-
-@pytest.mark.parametrize(
-    argnames=(
-        "sw_in",
-        "sun_frac",
-        "temp_canopy",
-        "temp_soil",
-        "rad_absorbed",
-        "exp_ppfd",
-        "exp_toc_rad",
-        "exp_lw_canopy",
-        "exp_lw_soil",
-        "exp_netrad",
-    ),
-    argvalues=[
-        (
-            29376000.0,
-            1.0,
-            25.0,
-            25.0,
-            200.0,
-            43.713,
-            18335385.16,
-            425.6434,
-            425.6434,
-            18334333.83,
-        ),
-        (
-            np.array([29376000.0, 29376000.0]),
-            np.array([1.0, 1.0]),
-            np.array([25.0, 25.0]),
-            np.array([25.0, 25.0]),
-            np.array([200.0, 200.0]),
-            np.array([43.713, 43.713]),
-            np.array([18335385.16, 18335385.16]),
-            np.array([425.6434, 425.6434]),
-            np.array([425.6434, 425.6434]),
-            np.array([18334333.83, 18334333.83]),
-        ),
-    ],
-)
-def test_radiation_balance(
-    radiation_fixture,
-    sw_in,
-    sun_frac,
-    temp_canopy,
-    temp_soil,
-    rad_absorbed,
-    exp_ppfd,
-    exp_toc_rad,
-    exp_lw_canopy,
-    exp_lw_soil,
-    exp_netrad,
-):
-    """Simple check for correct numbers, better test to be decided."""
-
-    radiation_fixture.radiation_balance(
-        shortwave_in=sw_in,
-        sunshine_fraction=sun_frac,
-        albedo_vis=0.03,
-        albedo_shortwave=0.17,
-        canopy_temperature=temp_canopy,
-        surface_temperature=temp_soil,
-        canopy_absorption=rad_absorbed,
-    )
-
-    assert radiation_fixture.ppfd == pytest.approx(exp_ppfd, 0.1)
-    assert radiation_fixture.topofcanopy_radiation == pytest.approx(exp_toc_rad, 0.1)
-    assert radiation_fixture.longwave_canopy == pytest.approx(exp_lw_canopy)
-    assert radiation_fixture.longwave_soil == pytest.approx(exp_lw_soil)
-    assert radiation_fixture.netradiation_surface == pytest.approx(exp_netrad, 0.1)
+    if not err:
+        assert np.allclose(result, exp_netrad)

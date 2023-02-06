@@ -23,13 +23,15 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 # the following structural components are not implemented yet
 # TODO include time dimension
 # TODO logging, raise errors
-# TODO sanity checks
+
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 import numpy as np
 from numpy.typing import NDArray
+
+from virtual_rainforest.core.logger import LOGGER
 
 # from some external source, could be core.constants or abiotic.config
 CLOUDY_TRANSMISSIVITY = 0.25
@@ -53,6 +55,7 @@ CELSIUS_TO_KELVIN = 273.15
 # dummy data object, 2 grid cells, 3 canopy layers
 data: Dict[str, Any] = {
     "elevation": np.array([100, 100], dtype=np.float32),
+    "sunshine_fraction": np.array([1.0, 1.0], dtype=np.float32),
     "shortwave_in": np.array([100, 100], dtype=np.float32),
     "canopy_temperature": np.array(
         [
@@ -73,18 +76,21 @@ data: Dict[str, Any] = {
 class Radiation:
     """Radiation balance dataclass.
 
-    This class uses the data object to populate and store radiation-related attributes
-    which serve as inputs to other modules. Elevation information from a digital
-    elevation model is used for the topographic adjustment of incoming shortwave
-    radiation. The gross radiation that reaches the top of the canopy is reduced as it
-    penetrates through the canopy (the absorption by individual canopy layers is
-    provided by the plants module). What remains is the net shortwave radiation at the
-    surface (= forest floor), which is an input to the Energy_balance class. Top of
-    canopy photosynthetic photon flux density is the key input for the plant module on
-    which the photosythesis is based. Longwave radiation from individual canopy layers
-    and longwave radiation from soil serve as inputs to the Energy_balance class.
+    This class uses a :class:`~virtual_rainforest.core.data.Data` object to populate
+    and store radiation-related attributes which serve as inputs to other modules.
+    Elevation information from a digital elevation model is used for the topographic
+    adjustment of incoming shortwave radiation. The gross radiation that reaches the top
+    of the canopy is reduced as it penetrates through the canopy (the absorption by
+    individual canopy layers is provided by the plants module). What remains is the net
+    shortwave radiation at the surface (= forest floor), which is an input to the
+    :class:`~virtual_rainforest.models.abiotic.Energy_balance` class. Top of canopy
+    photosynthetic photon flux density is the key input for
+    :mod:`~virtual_rainforest.models.plants` on which the photosythesis is based.
+    Longwave radiation from individual canopy layers and longwave radiation from soil
+    serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
+    class.
 
-    The dataclass populates the elevation attribute, the other attributes are
+    The dataclass populates the elevation attribute, further attributes are
     calculate in a __post_init__ functionality which calls a number of helper functions.
     """
 
@@ -94,10 +100,8 @@ class Radiation:
     """Top of canopy photosynthetic photon flux density, [mol m-2]"""
     topofcanopy_radiation: NDArray[np.float32] = field(init=False)
     """Top of canopy downward shortwave radiation, [J m-2]"""
-    longwave_canopy: NDArray[np.float32] = field(init=False)
-    """Longwave radiation from n individual canopy layers, [J m-2]"""
-    longwave_soil: NDArray[np.float32] = field(init=False)
-    """Longwave radiation from soil, [J m-2]"""
+    longwave_radiation: NDArray[np.float32] = field(init=False)
+    """Longwave radiation from canopy layers and soil, [J m-2]"""
     netradiation_surface: NDArray[np.float32] = field(init=False)
     """Net shortwave radiation at the surface (= forest floor), [J m-2]"""
 
@@ -120,14 +124,13 @@ class Radiation:
         self.topofcanopy_radiation = calculate_topofcanopy_radiation(
             data["shortwave_in"], data["elevation"]
         )
-        self.longwave_canopy, self.longwave_soil = calculate_longwave_radiation(
+        self.longwave_radiation = calculate_longwave_radiation(
             data["canopy_temperature"], data["surface_temperature"]
         )
         self.netradiation_surface = calculate_netradiation_surface(
             self.topofcanopy_radiation,
             data["canopy_absorption"],
-            self.longwave_canopy,
-            self.longwave_soil,
+            self.longwave_radiation,
         )
 
 
@@ -159,7 +162,11 @@ def calculate_atmospheric_transmissivity(
 
     # check sunshine fraction between 0 and 1
     if 0 > np.any(sunshine_fraction) > 1:
-        raise ValueError("The fraction of sunshine hours needs to be between 0 and 1!")
+        to_raise = ValueError(
+            "The fraction of sunshine hours needs to be between 0 and 1!"
+        )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # calculate transmissivity (tau), unitless
     tau_o = cloudy_transmissivity + transmissivity_coefficient * sunshine_fraction
@@ -189,6 +196,10 @@ def calculate_ppfd(
     Reference: :cite:t:`Davis2017`
     """
 
+    # check if sunshine fraction is in data object
+    if np.all(data["sunshine_fraction"]):
+        sunshine_fraction = data["sunshine_fraction"]
+
     tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0e-6) * flux_to_energy * (1.0 - albedo_vis) * tau * shortwave_in
 
@@ -211,6 +222,11 @@ def calculate_topofcanopy_radiation(
     Returns:
         top of canopy radiation shortwave radiation, [J m-2]
     """
+
+    # check if sunshine fraction is in data object
+    if np.all(data["sunshine_fraction"]):
+        sunshine_fraction = data["sunshine_fraction"]
+
     tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0 - albedo_shortwave) * tau * shortwave_in
 
@@ -222,7 +238,7 @@ def calculate_longwave_radiation(
     soil_emissivity: float = SOIL_EMISSIVITY,
     STEFAN_BOLTZMANN_CONSTANT: float = STEFAN_BOLTZMANN_CONSTANT,
     CELSIUS_TO_KELVIN: float = CELSIUS_TO_KELVIN,
-) -> Tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> NDArray[np.float32]:
     """Calculate longwave emission from canopy and forest floor, [J m-2].
 
     Args:
@@ -236,10 +252,7 @@ def calculate_longwave_radiation(
             temperature in Kelvin
 
     Returns:
-        longwave radiation from n individual canopy layers, [J m-2]
-
-        longwave radiation from soil, [J m-2]
-
+        longwave radiation from n individual canopy layers and soil, [J m-2]
     """
     # longwave emission canopy
     longwave_canopy = (
@@ -254,22 +267,20 @@ def calculate_longwave_radiation(
         * STEFAN_BOLTZMANN_CONSTANT
         * (CELSIUS_TO_KELVIN + surface_temperature) ** 4
     )
-    return longwave_canopy, longwave_soil
+    return np.array(longwave_canopy, longwave_soil)
 
 
 def calculate_netradiation_surface(
     topofcanopy_radiation: NDArray[np.float32],
     canopy_absorption: NDArray[np.float32],
-    longwave_canopy: NDArray[np.float32],
-    longwave_soil: NDArray[np.float32],
+    longwave_radiation: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate net shortwave radiation at the surface, [J m-2].
 
     Args:
         topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
         canopy_absorption: shortwave radiation absorbed by canopy layers, [J m-2]
-        longwave_canopy: longwave radiation from n individual canopy layers, [J m-2]
-        longwave_soil: longwave radiation from soil, [J m-2]
+        longwave_radiation: longwave radiation from canopy layers and soil, [J m-2]
 
     Returns:
         net shortwave radiation at the surface ( = forest floor), [J m-2]
@@ -277,6 +288,5 @@ def calculate_netradiation_surface(
     return (
         topofcanopy_radiation
         - np.sum(canopy_absorption, axis=0)
-        - longwave_soil
-        - np.sum(longwave_canopy, axis=0)  # sum over all canopy layers
+        - np.sum(longwave_radiation, axis=0)  # sum over all canopy layers
     )
