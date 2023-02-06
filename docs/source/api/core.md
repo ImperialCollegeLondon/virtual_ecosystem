@@ -31,6 +31,10 @@ Each of the core sub-modules has its own API reference page:
 * The {mod}`~virtual_rainforest.core.data` submodule provides the
   central data object used to store data required by the simulation and methods to
   populate that data object for use in simulations.
+* The {mod}`~virtual_rainforest.core.axes` submodule provides validation for data to
+  ensure that it is congruent with the model configuration.
+* The {mod}`~virtual_rainforest.core.readers` submodule provides functionality to read
+  external data files into a standard internal format.
 * The {mod}`~virtual_rainforest.core.model` submodule provides an Abstract
   Base Class describing the shared API to be used by science models within the Virtual
   Rainforest.

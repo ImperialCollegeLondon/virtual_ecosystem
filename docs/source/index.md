@@ -75,12 +75,17 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: API
-  :hidden:
-  
-  api/core.md
-  api/soil.md
-  api/abiotic/radiation.md
+  :caption: API reference
+
+  Core Overview <api/core.md>
+  Configuration <api/core/config.md>
+  Logger <api/core/logger.md>
+  Grid <api/core/grid.md>
+  Data <api/core/data.md>
+  File readers <api/core/readers.md>
+  Core axes <api/core/axes.md>
+  Base Model <api/core/model.md>
+  Soil <api/soil.md>
 ```
 
 ```{eval-rst}
@@ -96,10 +101,13 @@ team.
   :maxdepth: 4
   :caption: Development
 
-  development/code_development_strategy.md
-  development/jupyter_notebooks.md
-  development/developer_setup.md
-  development/design/core.md
+  Strategy <development/code_development_strategy.md>
+  Developer Setup <development/developer_setup.md>
+  Documentation Overview <development/documentation/overview.md>
+  Jupyter Notebooks <development/documentation/jupyter_notebooks.md>
+  Docstring Style <development/documentation/docstring_style.md>
+  API Generation <development/documentation/api_generation.md>
+  Core Design <development/design/core.md>
 ```
 
 ```{eval-rst}

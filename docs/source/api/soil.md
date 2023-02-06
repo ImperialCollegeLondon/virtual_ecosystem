@@ -19,11 +19,10 @@ kernelspec:
 This page contains the detailed documentation of the functions and classes in the
 `virtual_rainforest.soil` modules.
 
-## The `virtual_rainforest.soil.model` module
+## The {mod}`~virtual_rainforest.soil.model` module
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.soil.model
     :autosummary:
     :members:
-    :special-members: __init__
 ```

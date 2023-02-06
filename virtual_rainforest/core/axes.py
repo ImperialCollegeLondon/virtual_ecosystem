@@ -1,10 +1,7 @@
-"""API documentation for the :mod:`core.axes` module.
-**************************************************
-
-This module handles the validation of data being loaded into the core data storage of
-the virtual rainforest simulation. The main functionality in this module is ensuring
-that any loaded data is congruent with the core axes of the simulation and the
-configuration of a given simulation.
+"""The :mod:`core.axes` module handles the validation of data being loaded into the core
+data storage of the virtual rainforest simulation. The main functionality in this module
+is ensuring that any loaded data is congruent with the core axes of the simulation and
+the configuration of a given simulation.
 
 The AxisValidator class
 =======================
@@ -45,7 +42,7 @@ The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for 
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
 :class:`~virtual_rainforest.core.grid.Grid` instance for the simulation. `x`
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
@@ -54,7 +51,7 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 
 
 class AxisValidator(ABC):
@@ -90,7 +87,7 @@ class AxisValidator(ABC):
         """Adds new subclasses to the AxisValidator registry.
 
         When new subclasses are created this method automatically extends the
-        :var:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
+        :attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
         are arranged in the registry dictionary as lists keyed under core axis names,
         and the core axis name for a given subclass is set in the  subclass
         :attr:`~virtual_rainforest.core.axes.AxisValidator.AxisValidator.core_axis`
@@ -210,6 +207,7 @@ def validate_dataarray(
     """
 
     validation_dict: dict[str, Optional[str]] = {}
+    to_raise: Exception
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
@@ -229,16 +227,19 @@ def validate_dataarray(
             validator_found = [v for v in validators if v().can_validate(value, grid)]
 
             if len(validator_found) == 0:
-                log_and_raise(
+                to_raise = ValueError(
                     f"DataArray uses '{axis}' axis dimension names but does "
-                    f"not match a validator: {','.join(matching_dims)}",
-                    ValueError,
+                    f"not match a validator: {','.join(matching_dims)}"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
             if len(validator_found) > 1:
-                log_and_raise(
-                    f"Validators on '{axis}' axis not mutually exclusive", RuntimeError
+                to_raise = RuntimeError(
+                    f"Validators on '{axis}' axis not mutually exclusive"
                 )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
             # Get the appropriate Validator class and then use it to update the data
             # array
@@ -246,7 +247,8 @@ def validate_dataarray(
             try:
                 value = this_validator().run_validation(value, grid, **kwargs)
             except Exception as excep:
-                log_and_raise(str(excep), excep.__class__)
+                LOGGER.critical(excep)
+                raise
 
             validation_dict[axis] = this_validator.__name__
 

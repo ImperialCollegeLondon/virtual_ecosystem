@@ -1,9 +1,7 @@
-"""API documentation for the :mod:`soil.model` module.
-***************************************************
-
-The :mod:`soil.model` module creates a :class:`~virtual_rainforest.soil.model.SoilModel`
-class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class. At
-present a lot of the abstract methods of the parent class (e.g.
+"""The :mod:`~virtual_rainforest.soil.model` module creates a
+:class:`~virtual_rainforest.soil.model.SoilModel` class as a child of the
+:class:`~virtual_rainforest.core.model.BaseModel` class. At present a lot of the
+abstract methods of the parent class (e.g.
 :func:`~virtual_rainforest.core.model.BaseModel.setup` and
 :func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
@@ -15,7 +13,7 @@ If errors crop here when converting the information from the config dictionary t
 required types (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and
 at the end of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from __future__ import annotations
 
@@ -24,7 +22,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
@@ -53,14 +51,18 @@ class SoilModel(BaseModel):
     ):
 
         if no_layers < 1:
-            log_and_raise(
-                "There has to be at least one soil layer in the soil model!",
-                InitialisationError,
+            to_raise = InitialisationError(
+                "There has to be at least one soil layer in the soil model!"
             )
-        elif no_layers != int(no_layers):
-            log_and_raise(
-                "The number of soil layers must be an integer!", InitialisationError
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        if no_layers != int(no_layers):
+            to_raise = InitialisationError(
+                "The number of soil layers must be an integer!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
