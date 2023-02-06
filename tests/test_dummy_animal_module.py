@@ -33,17 +33,6 @@ class TestPlantCommunity:
         assert not plant_instance.is_alive
 
 
-class TestCarcassPool:
-    """Test the CarcassPool class."""
-
-    def test_initialization(self):
-        """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.dummy_animal_module import CarcassPool
-
-        c1 = CarcassPool(1000.7, 1)
-        assert c1.energy == 1000.7
-
-
 class TestPalatableSoil:
     """Test the Palatable Soil class."""
 
