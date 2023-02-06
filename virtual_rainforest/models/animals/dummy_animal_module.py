@@ -42,7 +42,7 @@ class PlantCommunity:
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.position = position
-        """The grid location of the cohort [0-8]."""
+        """The grid location of the cohort."""
 
     def grow(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value."""
@@ -52,13 +52,13 @@ class PlantCommunity:
         """The function to kill a plant cohort."""
         if self.is_alive:
             self.is_alive = False
-            LOGGER.debug("A Plant Community has died")
+            LOGGER.warning("A Plant Community has died")
         elif not self.is_alive:
-            LOGGER.debug("A Plant Community which is dead cannot die.")
+            LOGGER.warning("A Plant Community which is dead cannot die.")
 
 
 @dataclass
-class SoilPool:
+class PalatableSoil:
     """This is a dummy class of soil pools for testing the animal module."""
 
     energy: float

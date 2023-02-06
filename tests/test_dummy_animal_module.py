@@ -28,9 +28,9 @@ class TestPlantCommunity:
 
     def test_die(self, plant_instance):
         """Testing die."""
-        if plant_instance.is_alive:
-            plant_instance.die()
-            assert not plant_instance.is_alive
+        assert plant_instance.is_alive
+        plant_instance.die()
+        assert not plant_instance.is_alive
 
 
 class TestCarcassPool:
@@ -44,12 +44,12 @@ class TestCarcassPool:
         assert c1.energy == 1000.7
 
 
-class TestSoilPool:
-    """Test the Soil Pool class."""
+class TestPalatableSoil:
+    """Test the Palatable Soil class."""
 
     def test_initialization(self):
         """Testing initialization of soil pool."""
-        from virtual_rainforest.models.animals.dummy_animal_module import SoilPool
+        from virtual_rainforest.models.animals.dummy_animal_module import PalatableSoil
 
-        s1 = SoilPool(1000.7, 1)
+        s1 = PalatableSoil(1000.7, 1)
         assert s1.energy == 1000.7
