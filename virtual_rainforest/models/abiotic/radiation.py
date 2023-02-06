@@ -32,6 +32,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.model import InitialisationError
 
 # from some external source, could be core.constants or abiotic.config
 CLOUDY_TRANSMISSIVITY = 0.25
@@ -55,7 +56,7 @@ CELSIUS_TO_KELVIN = 273.15
 # dummy data object, 2 grid cells, 3 canopy layers
 data: Dict[str, Any] = {
     "elevation": np.array([100, 100], dtype=np.float32),
-    "sunshine_fraction": np.array([1.0, 1.0], dtype=np.float32),
+    "sunshine_fraction": np.array([0.5, 1.0], dtype=np.float32),
     "shortwave_in": np.array([100, 100], dtype=np.float32),
     "canopy_temperature": np.array(
         [
@@ -94,8 +95,17 @@ class Radiation:
     calculate in a __post_init__ functionality which calls a number of helper functions.
     """
 
+    # check that elevation is above sea level
+    if np.any(data["elevation"] < 0):
+        to_raise = InitialisationError(
+            "Initial elevation contains at least one negative value!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
     elevation: NDArray[np.float32] = data["elevation"]
     """Elevation above sea level, [m]"""
+
     ppfd: NDArray[np.float32] = field(init=False)
     """Top of canopy photosynthetic photon flux density, [mol m-2]"""
     topofcanopy_radiation: NDArray[np.float32] = field(init=False)
@@ -196,9 +206,12 @@ def calculate_ppfd(
     Reference: :cite:t:`Davis2017`
     """
 
-    # check if sunshine fraction is in data object
+    # check if sunshine fraction is in data object, if not set to 1
     if np.all(data["sunshine_fraction"]):
         sunshine_fraction = data["sunshine_fraction"]
+    else:
+        sunshine_fraction = np.ones(elevation, dtype=np.float32)
+        LOGGER.info("The sunshine fraction is set to default = 1")
 
     tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0e-6) * flux_to_energy * (1.0 - albedo_vis) * tau * shortwave_in
@@ -287,6 +300,6 @@ def calculate_netradiation_surface(
     """
     return (
         topofcanopy_radiation
-        - np.sum(canopy_absorption, axis=0)
-        - np.sum(longwave_radiation, axis=0)  # sum over all canopy layers
+        - np.sum(canopy_absorption, axis=0)  # sum over all canopy layers
+        - np.sum(longwave_radiation, axis=0)  # sum over all canopy layers and topsoil
     )
