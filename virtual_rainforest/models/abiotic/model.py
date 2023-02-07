@@ -123,10 +123,6 @@ class AbioticModel(BaseModel):
 
     def setup(self) -> None:
         """Function to set up the abiotic model."""
-        for layer in range(0, self.soil_layers):
-            LOGGER.info("Setting up soil layer %s" % layer)
-        for layer in range(0, self.canopy_layers):
-            LOGGER.info("Setting up canopy layer %s" % layer)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
