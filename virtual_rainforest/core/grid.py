@@ -1,8 +1,5 @@
-"""API documentation for the :mod:`core.grid` module.
-************************************************** # noqa: D205
-
-The :mod:`core.grid` module is used to create the grid of cells underlying the
-simulation and to identify the neighbourhood connections of cells.
+"""The :mod:`~virtual_rainforest.core.grid` module is used to create the grid of cells
+underlying the simulation and to identify the neighbourhood connections of cells.
 
 - set up neighbourhoods. ? store as graph (networkx - might only need a really
   lightweight graph description).
@@ -11,16 +8,16 @@ simulation and to identify the neighbourhood connections of cells.
   defining mappings though.
 - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
   https://pysal.org/libpysal/
-"""
+"""  # noqa: D205, D415
 
 import json
 from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
-import numpy.typing as npt
+from numpy.typing import NDArray
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
-from shapely.geometry import Polygon  # type: ignore
+from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
 from virtual_rainforest.core.logger import LOGGER
 
@@ -32,16 +29,21 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG = tuple[tuple[int, ...], tuple[Polygon, ...]]
-"""Signature of the data structure to be returned from grid creator functions."""
+GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
+"""Signature of the data structure to be returned from grid creator functions.
+
+The first value is a list of integer cell ids, the second is a matching list of the
+polygons for each cell id. Although cell ids could be a numpy array, the numpy int types
+then need handling in arguments and json representation.
+"""
 
 
 def register_grid(grid_type: str) -> Callable:
     """Add a grid type and creator function to the grid registry.
 
     This decorator is used to add a function creating a grid layout to the registry of
-    accepted grids. The function must return equal-length tuples of integer polygon ids
-    and Polygon objects, following the GRID_STRUCTURE_SIG signature.
+    accepted grids. The function must return a numpy array of integer polygon ids and an
+    equal length list of Polygon objects, following the GRID_STRUCTURE_SIG signature.
 
     The grid_type argument is used to identify the grid creation function to be used by
     the Grid class and in configuration files.
@@ -94,20 +96,19 @@ def make_square_grid(
     prototype = scale(prototype, xfact=scale_factor, yfact=scale_factor, origin=(0, 0))
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
-    # Tile the prototypes to create the grid
-    cell_list = [None] * (cell_nx * cell_ny)
+    # Get the cell ids and centres of the cells
+    idx_y, idx_x = np.indices((cell_ny, cell_nx))
+    cell_ids = idx_x + idx_y * cell_nx
+    cell_x = idx_x * scale_factor
+    cell_y = np.flipud(idx_y) * scale_factor
 
-    # Loop over columns and rows of cells, incrementing the base coordinates
-    for y_idx in range(cell_nx):
-        for x_idx in range(cell_ny):
-            # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_nx
-            # Store shifted geometry under cell id
-            cell_list[cell_id] = translate(
-                prototype, xoff=scale_factor * x_idx, yoff=scale_factor * y_idx
-            )
+    # Get the list of polygons
+    cell_list = [
+        translate(prototype, xoff=xf, yoff=yf)
+        for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
+    ]
 
-    return tuple(range(len(cell_list))), tuple(cell_list)
+    return cell_ids.flatten().tolist(), cell_list
 
 
 @register_grid(grid_type="hexagon")
@@ -158,45 +159,19 @@ def make_hex_grid(
     prototype = scale(prototype, xfact=scale_factor, yfact=scale_factor, origin=(0, 0))
     prototype = translate(prototype, xoff=xoff, yoff=yoff)
 
-    # Tile the prototypes to create the grid
-    cell_list = [None] * (cell_nx * cell_ny)
+    # Get the cell ids and centres of the cells
+    idx_y, idx_x = np.indices((cell_ny, cell_nx))
+    cell_ids = idx_x + idx_y * cell_nx
+    cell_x = 2 * apothem * idx_x + apothem * (idx_y % 2)
+    cell_y = 1.5 * side_length * np.flipud(idx_y)
 
-    # Loop over columns and rows of cells, incrementing the base coordinates
-    for y_idx in range(cell_ny):
-        for x_idx in range(cell_nx):
-            # Define the cell id as integer count starting lower left by row
-            cell_id = x_idx + (y_idx) * cell_nx
-            # Store shifted geometry under cell id
-            cell_list[cell_id] = translate(
-                prototype,
-                xoff=2 * apothem * x_idx + apothem * (y_idx % 2),
-                yoff=1.5 * side_length * y_idx,
-            )
+    # Get the list of polygons
+    cell_list = [
+        translate(prototype, xoff=xf, yoff=yf)
+        for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
+    ]
 
-    return tuple(range(len(cell_list))), tuple(cell_list)
-
-
-@register_grid(grid_type="triangle")
-def make_triangular_grid(
-    cell_area: float,
-    cell_nx: int,
-    cell_ny: int,
-    xoff: float = 0,
-    yoff: float = 0,
-) -> GRID_STRUCTURE_SIG:
-    """Create a equilateral triangular grid.
-
-    Args:
-        cell_area: The area of each triangular cell
-        cell_nx: The number of grid cells in the X direction.
-        cell_ny: The number of grid cells in the Y direction.
-        xoff: An offset to use for the grid origin in the X direction.
-        yoff: An offset to use for the grid origin in the Y direction.
-    """
-
-    # Note shapely.affinity.rotate for inversion
-
-    raise NotImplementedError()
+    return cell_ids.flatten().tolist(), cell_list
 
 
 class Grid:
@@ -217,15 +192,6 @@ class Grid:
         cell_ny: The number of cells in the grid along the y (northing) axis
         xoff: An offset for the grid x origin
         yoff: An offset for the grid y origin
-
-    Attributes:
-        cell_id: A list of unique integer ids for each cell.
-        polygons: A list of the polygons for each cell as shapely.geometry.Polygon
-            objects, in cell_id order.
-        centroids: A list of the centroid of each cell as shapely.geometry.Point
-            objects, in cell_id order.
-        n_cells: The number of cells in the grid
-        neighbours: A list giving the cell ids of the neighbours for each cell id.
     """
 
     def __init__(
@@ -240,11 +206,28 @@ class Grid:
 
         # Populate the attributes
         self.grid_type = grid_type
+        """The grid type used to create the instance"""
         self.cell_area = cell_area
+        """The area of the grid cells"""
         self.cell_nx = cell_nx
+        """The number of cells in the grid in the X dimension"""
         self.cell_ny = cell_ny
+        """The number of cells in the grid in the Y dimension"""
         self.xoff = xoff
+        """An offset for the cell X coordinates"""
         self.yoff = yoff
+        """An offset for the cell Y coordinates"""
+
+        self.cell_id: list[int]
+        """A list of unique integer ids for each cell."""
+        self.polygons: list[Polygon]
+        """A list of of the cell polygon geometries, as shapely.geometry.Polygon
+        objects, in cell_id order"""
+        self.ncells: int
+        """The total number of cells in the grid."""
+        self.centroids: NDArray
+        """A list of the centroid of each cell as shapely.geometry.Point objects, in
+        cell_id order."""
 
         # Retrieve the creator function from the grid registry and handle unknowns
         creator = GRID_REGISTRY.get(self.grid_type, None)
@@ -271,17 +254,20 @@ class Grid:
         # Get the centroids as a numpy array
         centroids = [cell.centroid for cell in self.polygons]
         self.centroids = np.array([(gm.xy[0][0], gm.xy[1][0]) for gm in centroids])
-        [cell.centroid for cell in self.polygons]
+
+        # Get the bounds as a 4 tuple
+        self.bounds: GeometryCollection = GeometryCollection(self.polygons).bounds
+        """A GeometryCollection providing the bounds of the cell polygons."""
 
         # Define other attributes set by methods
         # TODO - this might become a networkx graph
-        self._neighbours: Optional[list[npt.NDArray[np.int_]]] = None
+        self._neighbours: Optional[list[NDArray[np.int_]]] = None
 
         # Do not by default store the full distance matrix
-        self._distances: Optional[npt.NDArray] = None
+        self._distances: Optional[NDArray] = None
 
     @property
-    def neighbours(self) -> list[npt.NDArray[np.int_]]:
+    def neighbours(self) -> list[NDArray[np.int_]]:
         """Return the neighbours property."""
 
         if self._neighbours is None:
@@ -293,10 +279,12 @@ class Grid:
         """Represent a CoreGrid as a string."""
         return (
             "CoreGrid("
-            f"grid_type={self.grid_type}, "
-            f"cell_area={self.cell_area}, "
-            f"cell_nx={self.cell_nx}, "
-            f"cell_ny={self.cell_ny})"
+            f"{self.grid_type}, "
+            f"A={self.cell_area}, "
+            f"nx={self.cell_nx}, "
+            f"ny={self.cell_ny}, "
+            f"n={self.n_cells}, "
+            f"bounds={self.bounds})"
         )
 
     def dumps(self, dp: int = 2, **kwargs: Any) -> str:
@@ -446,3 +434,127 @@ class Grid:
         """
 
         self._distances = squareform(pdist(self.centroids))
+
+    def map_xy_to_cell_id(
+        self,
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+    ) -> list[list[Optional[int]]]:
+        """Map a set of coordinates onto grid cells.
+
+        This function loops over points defined by pairs of x and y coordinates and maps
+        the coordinates onto the cell_ids of the grid. The method also checks to see
+        that each point intersects one and only one of the cell polygons defined in the
+        grid. Points that intersect no cells fall outside the grid polygons and points
+        that intersect more than one cell fall ambiguously on cell borders.
+
+        Args:
+            x_coords: A numpy array of x coordinates of points that should occur within
+                grid cells.
+            y_coords: A similar and equal-length array providing y coordinates.
+
+        Returns:
+            A list of lists showing the cell ids that map onto each point. The list for
+            a given point can be empty - when the point falls in no cell - or of length
+            > 1 when a point falls on adjoining cell boundaries.
+        """
+
+        if (x_coords.ndim != 1) or (y_coords.ndim != 1):
+            raise ValueError("The x/y coordinate arrays are not 1 dimensional")
+
+        if x_coords.shape != y_coords.shape:
+            raise ValueError("The x/y coordinates are of unequal length")
+
+        # Get shapely points for the coordinates
+        xyp = [Point(x, y) for x, y in zip(x_coords, y_coords)]
+
+        # Map the Cell ID of each point - this is doing all pairs of points and cells,
+        # which is a computational choke point. Might be able to use a spatial search
+        # option, if this gets problematic, possibly including an STRTree in the grid
+        #    object https://shapely.readthedocs.io/en/latest/strtree.html
+
+        return [
+            [id for id, ply in zip(self.cell_id, self.polygons) if ply.intersects(pt)]
+            for pt in xyp
+        ]
+
+    def map_xy_to_cell_indexing(
+        self,
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+        x_idx: Optional[np.ndarray],
+        y_idx: Optional[np.ndarray],
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Returns indexing to map xy coordinates a single cell_id axis.
+
+        This function maps the provided one-dimensional set of x and y points onto the
+        grid (using `~virtual_rainforest.core.grid.Grid.map_xy_to_cell_id`) and then
+        checks that the mapped points provide a one-to-one mapping onto the grid cells.
+
+        The function then returns a pair of arrays that give indices on the original
+        x and y data to extract data along a single cell id axis. Because the inputs are
+        expected to be flattened onto a single dimension, the function also accepts x
+        and y index values that allow the cells to be mapped back into original
+        dimensions. If these are not provided, the coordinates are are assumed to have
+        come from a one-dimensional structure and so these indices are simple sequences
+        along  `x_coords` and `y_coords`.
+
+        Args:
+            x_coords: A numpy array of x coordinates of points that should occur within
+                grid cells.
+            y_coords: A similar and equal-length array providing y coordinates.
+            x_idx: A numpy array providing original indices along the x-axis
+            y_idx: A numpy array providing original indices along the y-axis
+
+        Returns:
+            A list giving the integer cell id for each pair of points.
+        """
+
+        # Get the coordinate mapping to cell ids
+        cell_map = self.map_xy_to_cell_id(x_coords=x_coords, y_coords=y_coords)
+
+        # Set indexing to sequence along coords if missing
+        if (x_idx is None) ^ (y_idx is None):  # Note: ^ is xor
+            raise ValueError("Only one of x/y indices provided.")
+
+        if (x_idx is None) and (y_idx is None):
+            x_idx = np.arange(x_coords.shape[0])
+            y_idx = np.arange(y_coords.shape[0])
+
+        # Check the shapes of the indices.
+        # x_idx and y_idx cannot now be None, so type ignore.
+        if (x_idx.shape != x_coords.shape) or (  # type: ignore [union-attr]
+            y_idx.shape != y_coords.shape  # type: ignore [union-attr]
+        ):
+            raise ValueError("Dimensions of x/y indices do not match coordinates")
+
+        # Find the set of total number of cell mappings per point
+        cell_counts = set([len(mp) for mp in cell_map])
+
+        # Raise an exception where not all coords fall in a grid cell
+        if 0 in cell_counts:
+            raise ValueError("Mapped points fall outside grid.")
+
+        # Values greater than 1 indicate coordinates on cell edges
+        if any([c > 1 for c in cell_counts]):
+            raise ValueError("Mapped points fall on cell boundaries.")
+
+        # Now all points are 1 to 1 with cells so collapse down to list of ints
+        cell_id_map = [c[0] for c in cell_map]
+
+        # Get a list of all mapped cell ids.
+        cells_found = [v for v in cell_id_map]
+
+        # Now check for cells with more than one point and cells with no points.
+        if set(cells_found) != set(self.cell_id):
+            raise ValueError("Mapped points do not cover all cells.")
+
+        if len(cells_found) != self.n_cells:
+            raise ValueError("Some cells contain more than one point.")
+
+        # Get a list of (cell_id, x, y) tuples
+        cells = list(zip(cell_id_map, x_idx, y_idx))  # type: ignore [arg-type]
+        cells.sort()
+        _, x_idx, y_idx = zip(*cells)
+
+        return np.array(x_idx), np.array(y_idx)

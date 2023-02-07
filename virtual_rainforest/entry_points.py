@@ -1,9 +1,8 @@
-"""The `virtual_rainforest.entry_points` module.
-
-This module defines the entry points to the virtual_rainforest package. At the moment a
-single entry point is defined `vr_run`, which simply configures and runs a virtual
-rainforest simulation based on a set of configuration files.
-"""
+"""The :mod:`~virtual_rainforest.entry_points`  module defines the command line entry
+points to the virtual_rainforest package. At the moment a single entry point is defined
+`vr_run`, which simply configures and runs a virtual rainforest simulation based on a
+set of configuration files.
+"""  # noqa D210, D415
 
 import argparse
 import textwrap
@@ -11,7 +10,7 @@ from pathlib import Path
 
 import virtual_rainforest as vr
 from virtual_rainforest.core.config import ConfigurationError
-from virtual_rainforest.core.logger import log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.main import vr_run
 
 
@@ -55,21 +54,14 @@ def _vr_run_cli() -> None:
         version="%(prog)s {version}".format(version=vr.__version__),
     )
 
-    try:
-        args = parser.parse_args()
-    except SystemExit as e:
-        if e.code != 0:
-            # Catch unexpected args and similar problems
-            log_and_raise("For more information please run vr_run --help", SystemExit)
-        else:
-            raise SystemExit
+    args = parser.parse_args()
 
     if not args.cfg_paths:
-        log_and_raise(
-            "No configuration paths must be provided! For more information please run "
-            "vr_run --help",
-            ConfigurationError,
+        to_raise = ConfigurationError(
+            "Configuration paths must be provided! See vr_run --help"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
     else:
         # Run the virtual rainforest run function
         vr_run(args.cfg_paths, Path(args.merge_file_path))
