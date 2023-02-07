@@ -13,7 +13,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
@@ -29,9 +29,6 @@ class AbioticModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-
-    Attributes:
-        model_name: Names the model that is described
     """
 
     model_name = "abiotic"
@@ -46,33 +43,38 @@ class AbioticModel(BaseModel):
     ):
 
         if soil_layers < 1:
-            log_and_raise(
-                "There has to be at least one soil layer in the abiotic model!",
-                InitialisationError,
+            to_raise = InitialisationError(
+                "There has to be at least one soil layer in the abiotic model!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
         elif soil_layers != int(soil_layers):
-            log_and_raise(
-                "The number of soil layers must be an integer!", InitialisationError
+            to_raise = InitialisationError(
+                "The number of soil layers must be an integer!"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        if canopy_layers < 1:
+            to_raise = InitialisationError(
+                "There has to be at least one canopy layer in the abiotic model!"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        elif canopy_layers != int(canopy_layers):
+            to_raise = InitialisationError(
+                "The number of canopy layers must be an integer!"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)
         self.soil_layers = int(soil_layers)
-        # Save variables names to be used by the __repr__
-        self._repr.append("soil_layers")
-
-        if canopy_layers < 1:
-            log_and_raise(
-                "There has to be at least one canopy layer in the abiotic model!",
-                InitialisationError,
-            )
-        elif canopy_layers != int(canopy_layers):
-            log_and_raise(
-                "The number of canopy layers must be an integer!", InitialisationError
-            )
-
-        super().__init__(update_interval, start_time, **kwargs)
         self.canopy_layers = int(canopy_layers)
         # Save variables names to be used by the __repr__
+        self._repr.append("soil_layers")
         self._repr.append("canopy_layers")
 
     @classmethod
