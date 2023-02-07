@@ -11,7 +11,27 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
-import virtual_rainforest as vr  # noqa: E402
+import os
+import sys
+
+# Import Matplotlib to avoid this message in notebooks:
+# "Matplotlib is building the font cache; this may take a moment."
+import matplotlib.pyplot  # noqa: F401
+
+import virtual_rainforest as vr
+
+# This path is required for automodule to be able to find and render the docstring
+# example in the development section of the documentation. The path to the modules for
+# the virtual_rainforest package itself do not needed to be included here, providing
+# sphinx is run within the poetry shell. RTD runs sphinx-build in the same directory
+# as this conf.py file, where we currently run it from the parent `docs` folder.
+
+on_rtd = os.environ.get("READTHEDOCS") == "True"
+if on_rtd:
+    sys.path.append("development/documentation")
+else:
+    sys.path.append("source/development/documentation")
+
 
 version = vr.__version__
 release = version
@@ -40,7 +60,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
-    "sphinx.ext.autosectionlabel",
+    # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
     "sphinxcontrib.bibtex",
     "myst_nb",
     # "sphinx_astrorefs",  # Gives author year references
@@ -53,7 +73,9 @@ autosummary_generate = True
 autosectionlabel_prefix_document = True
 autosectionlabel_maxdepth = 2
 
+# Myst configuration
 myst_enable_extensions = ["dollarmath", "deflist"]
+myst_heading_anchors = 3
 
 # Enable mhchem for chemical formulae
 mathjax3_config = {
@@ -99,9 +121,9 @@ html_theme_options = {
     # Toc options
     "collapse_navigation": False,
     "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    "titles_only": False,
+    "navigation_depth": 0,
+    "includehidden": False,
+    "titles_only": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
