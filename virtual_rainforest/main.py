@@ -1,8 +1,7 @@
-"""Defines the function used to run a full simulation of the model.
-
-As well as setting up the function to run the overall virtual rainforest simulation,
-this script also defines the command line entry points for the model.
-"""
+"""The :mod:`~virtual_rainforest.main` module defines the function used to run a full
+simulation of the model, along with helper functions to validate and configure the
+model.
+"""  # noqa: D205, D415
 
 from math import ceil
 from pathlib import Path
@@ -12,7 +11,7 @@ import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.config import validate_config
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
 
 
@@ -40,11 +39,12 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     # Make list of missing models, and return an error if necessary
     miss_model = [model for model in model_list_ if model not in MODEL_REGISTRY.keys()]
     if miss_model:
-        log_and_raise(
+        to_raise = InitialisationError(
             f"The following models cannot be configured as they are not found in the "
-            f"registry: {miss_model}",
-            InitialisationError,
+            f"registry: {miss_model}"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Then extract each model from the registry
     modules = [MODEL_REGISTRY[model] for model in model_list_]
@@ -76,11 +76,12 @@ def configure_models(
 
     # If any models fail to configure inform the user about it
     if failed_models:
-        log_and_raise(
+        to_raise = InitialisationError(
             f"Could not configure all the desired models, ending the simulation. The "
-            f"following models failed: {failed_models}.",
-            InitialisationError,
+            f"following models failed: {failed_models}."
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     return models_cfd
 
@@ -112,11 +113,12 @@ def extract_timing_details(
     try:
         raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("minutes")
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
-        log_and_raise(
+        to_raise = InitialisationError(
             "Units for core.timing.run_length are not valid time units: %s"
-            % config["core"]["timing"]["run_length"],
-            InitialisationError,
+            % config["core"]["timing"]["run_length"]
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
     else:
         # Round raw time interval to nearest minute
         run_length = timedelta64(int(round(raw_length.magnitude)), "m")
@@ -127,21 +129,24 @@ def extract_timing_details(
             "minutes"
         )
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
-        log_and_raise(
+        to_raise = InitialisationError(
             "Units for core.timing.update_interval are not valid time units: %s"
-            % config["core"]["timing"]["update_interval"],
-            InitialisationError,
+            % config["core"]["timing"]["update_interval"]
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
     else:
         # Round raw time interval to nearest minute
         update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
 
     if run_length < update_interval:
-        log_and_raise(
+        to_raise = InitialisationError(
             f"Models will never update as the update interval ({update_interval}) is "
-            f"larger than the run length ({run_length})",
-            InitialisationError,
+            f"larger than the run length ({run_length})"
         )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Calculate when the simulation should stop based on principle that it should run at
     # least as long as the user requests rather than shorter

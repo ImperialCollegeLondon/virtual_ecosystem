@@ -1,8 +1,5 @@
-"""API documentation for the :mod:`core.data` module.
-**************************************************
-
-This module handles the population and storage of data sources used to run Virtual
-Rainforest simulations.
+"""The :mod:`~virtual_rainforest.core.data` module handles the population and storage of
+data sources used to run Virtual Rainforest simulations.
 
 The Data class
 ==============
@@ -117,7 +114,7 @@ Data configurations must not contain repeated data variable names.
     # Load configured datasets
     data.load_data_config(loaded_data_config_dict)
 
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from pathlib import Path
 from typing import Any, Optional
@@ -128,7 +125,7 @@ from xarray import DataArray, Dataset
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.readers import load_to_dataarray
 
 
@@ -142,13 +139,18 @@ class Data:
 
     Args:
         grid: The Grid instance that will be used for simulation.
+
+    Raises:
+        TypeError: when grid is not a Grid object
     """
 
     def __init__(self, grid: Grid) -> None:
 
         # Set up the instance properties
         if not isinstance(grid, Grid):
-            log_and_raise("Data must be initialised with a Grid object", TypeError)
+            to_raise = TypeError("Data must be initialised with a Grid object")
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         self.grid: Grid = grid
         """The configured Grid to be used in a simulation."""
@@ -188,12 +190,17 @@ class Data:
         Args:
             key: The name to store the data under
             value: The DataArray to be stored
+
+        Raises:
+            TypeError: when the value is not a DataArray.
         """
 
         if not isinstance(value, DataArray):
-            log_and_raise(
-                "Only DataArray objects can be added to Data instances", TypeError
+            to_raise = TypeError(
+                "Only DataArray objects can be added to Data instances"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         if key not in self.data.data_vars:
             LOGGER.info(f"Adding data array for '{key}'")

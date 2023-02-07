@@ -1,7 +1,4 @@
-"""API documentation for the :mod:`core.readers` module.
-*****************************************************
-
-This module provides the function
+"""The :mod:`~virtual_rainforest.core.readers` module provides the function
 :func:`~virtual_rainforest.core.reader.load_to_dataarray`, which is used to load data
 from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
 can then be added to a :class:`~virtual_rainforest.core.data.Data` instance for use in a
@@ -32,14 +29,14 @@ using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
     @register_file_format_loader(('.tif', '.tiff'))
     def new_function_to_load_tif_data(...):
         # code to turn tif file into a data array
-"""  # noqa: D205
+"""  # noqa: D205, D415
 
 from pathlib import Path
 from typing import Callable
 
 from xarray import DataArray, load_dataset
 
-from virtual_rainforest.core.logger import LOGGER, log_and_raise
+from virtual_rainforest.core.logger import LOGGER
 
 FILE_FORMAT_REGISTRY: dict[str, Callable] = {}
 """A registry for different file format loaders
@@ -106,23 +103,35 @@ def load_netcdf(file: Path, var_name: str) -> DataArray:
     Args:
         file: A Path for a NetCDF file containing the variable to load.
         var_name: A string providing the name of the variable in the file.
+
+    Raises:
+        FileNotFoundError: with bad file path names.
+        ValueError: if the file data is not readable.
+        KeyError: if the named variable is not present in the data.
     """
 
     # Note that this deliberately doesn't contain any INFO logging messages to maintain
     # a simple logging sequence without unnecessary logger noise about the specific
     # format unless there is an exception.
+    to_raise: Exception
 
     # Try and load the provided file
     try:
         dataset = load_dataset(file)
     except FileNotFoundError:
-        log_and_raise(f"Data file not found: {file}", FileNotFoundError)
+        to_raise = FileNotFoundError(f"Data file not found: {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
     except ValueError as err:
-        log_and_raise(f"Could not load data from {file}: {err}.", ValueError)
+        to_raise = ValueError(f"Could not load data from {file}: {err}.")
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # Check if file var is in the dataset
     if var_name not in dataset:
-        log_and_raise(f"Variable {var_name} not found in {file}", KeyError)
+        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     return dataset[var_name]
 
@@ -142,6 +151,9 @@ def load_to_dataarray(
     Args:
         file: A Path for the file containing the variable to load.
         var_name: A string providing the name of the variable in the file.
+
+    Raises:
+        ValueError: if there is no loader provided for the file format.
     """
 
     # Detect file type
@@ -149,7 +161,9 @@ def load_to_dataarray(
 
     # Can the data mapper handle this grid and file type combination?
     if file_type not in FILE_FORMAT_REGISTRY:
-        log_and_raise(f"No file format loader provided for {file_type}", ValueError)
+        to_raise = ValueError(f"No file format loader provided for {file_type}")
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     # If so, load the data
     LOGGER.info("Loading variable '%s' from file: %s", var_name, file)
