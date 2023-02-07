@@ -60,15 +60,18 @@ data: Dict[str, Any] = {
     "shortwave_in": np.array([100, 100], dtype=np.float32),
     "canopy_temperature": np.array(
         [
-            [25, 25],
-            [22, 22],
-            [20, 20],
+            [25, 22, 20],
+            [25, 22, 20],
         ],
         dtype=np.float32,
     ),
     "surface_temperature": np.array([20, 20], dtype=np.float32),
     "canopy_absorption": np.array(
-        [[300, 300], [200, 200], [100, 100]], dtype=np.float32
+        [
+            [300, 200, 100],
+            [300, 200, 100],
+        ],
+        dtype=np.float32,
     ),
 }
 
@@ -207,10 +210,10 @@ def calculate_ppfd(
     """
 
     # check if sunshine fraction is in data object, if not set to 1
-    if np.all(data["sunshine_fraction"]):
+    if sunshine_fraction.size > 1:
         sunshine_fraction = data["sunshine_fraction"]
     else:
-        sunshine_fraction = np.ones(elevation, dtype=np.float32)
+        sunshine_fraction = np.ones(len(elevation), dtype=np.float32)
         LOGGER.info("The sunshine fraction is set to default = 1")
 
     tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
@@ -237,8 +240,11 @@ def calculate_topofcanopy_radiation(
     """
 
     # check if sunshine fraction is in data object
-    if np.all(data["sunshine_fraction"]):
+    if sunshine_fraction.size > 1:
         sunshine_fraction = data["sunshine_fraction"]
+    else:
+        sunshine_fraction = np.ones(len(elevation), dtype=np.float32)
+        LOGGER.info("The sunshine fraction is set to default = 1")
 
     tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0 - albedo_shortwave) * tau * shortwave_in
@@ -280,7 +286,13 @@ def calculate_longwave_radiation(
         * STEFAN_BOLTZMANN_CONSTANT
         * (CELSIUS_TO_KELVIN + surface_temperature) ** 4
     )
-    return np.array(longwave_canopy, longwave_soil)
+
+    # return array of longwave radiation for all canopy layers and surface
+    return np.append(
+        longwave_canopy.transpose(),
+        longwave_soil.reshape([1, len(surface_temperature)]),
+        axis=0,
+    ).transpose()
 
 
 def calculate_netradiation_surface(
@@ -300,6 +312,6 @@ def calculate_netradiation_surface(
     """
     return (
         topofcanopy_radiation
-        - np.sum(canopy_absorption, axis=0)  # sum over all canopy layers
-        - np.sum(longwave_radiation, axis=0)  # sum over all canopy layers and topsoil
+        - np.sum(canopy_absorption, axis=1)  # sum over all canopy layers
+        - np.sum(longwave_radiation, axis=1)  # sum over all canopy layers and topsoil
     )
