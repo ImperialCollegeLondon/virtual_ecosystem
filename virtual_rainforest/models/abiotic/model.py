@@ -1,10 +1,7 @@
-"""API documentation for the :mod:`abiotic.model` module.
-************************************************** # noqa: D205
-
-The :mod:`abiotic.model` module creates a
-:class:`~virtual_rainforest.abiotic.model.AbioticModel`
-class as a child of the :class:`~virtual_rainforest.core.model.BaseModel` class.
-"""
+"""The :mod:`abiotic.model` module creates a
+:class:`~virtual_rainforest.abiotic.model.AbioticModel` class as a child of the
+:class:`~virtual_rainforest.core.model.BaseModel` class.
+"""  # noqa: D205, D415
 
 from __future__ import annotations
 
@@ -49,7 +46,7 @@ class AbioticModel(BaseModel):
             LOGGER.critical(to_raise)
             raise to_raise
 
-        elif soil_layers != int(soil_layers):
+        if soil_layers != int(soil_layers):
             to_raise = InitialisationError(
                 "The number of soil layers must be an integer!"
             )
@@ -63,7 +60,7 @@ class AbioticModel(BaseModel):
             LOGGER.critical(to_raise)
             raise to_raise
 
-        elif canopy_layers != int(canopy_layers):
+        if canopy_layers != int(canopy_layers):
             to_raise = InitialisationError(
                 "The number of canopy layers must be an integer!"
             )
@@ -124,8 +121,6 @@ class AbioticModel(BaseModel):
         else:
             raise InitialisationError()
 
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
     def setup(self) -> None:
         """Function to set up the abiotic model."""
         for layer in range(0, self.soil_layers):

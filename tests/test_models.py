@@ -280,6 +280,9 @@ def test_abiotic_model_initialization(
             f"soil_layers = {int(soil_layers)}, "
             f"canopy_layers = {int(canopy_layers)})"
         )
+        assert model.soil_layers == soil_layers
+        assert model.canopy_layers == canopy_layers
+
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
