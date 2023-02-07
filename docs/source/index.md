@@ -86,8 +86,9 @@ team.
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/model.md>
-  Soil Model <api/soil.md>
-
+  Soil Overview <api/soil.md>
+  Soil Model <api/soil/model.md>
+  Soil Carbon <api/soil/carbon.md>
 ```
 
 ```{eval-rst}
@@ -110,6 +111,7 @@ team.
   Docstring Style <development/documentation/docstring_style.md>
   API Generation <development/documentation/api_generation.md>
   Core Design <development/design/core.md>
+  Adding New Models <development/defining_new_models.md>
 ```
 
 ```{eval-rst}

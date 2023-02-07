@@ -1,7 +1,7 @@
 """The :mod:`core.config` module is used to read in the various configuration files,
 validate their contents, and then configure a ready to run instance of the virtual
 rainforest model. The basic details of how this system is used can be found
-:ref:`here<virtual_rainforest/core/config:the configuration module>`.
+:doc:`here </virtual_rainforest/core/config>`.
 
 When a new module is defined a ``JSON`` file should be written, which includes the
 expected configuration tags, their expected types, and any constraints on their values
@@ -518,7 +518,7 @@ def validate_with_defaults(
     This function also adds default values into the configuration dictionary where it is
     appropriate.
 
-     Args:
+    Args:
         config_dict: The complete configuration settings for the particular model
             instance
         comb_schema: Combined schema for all modules that are being configured
