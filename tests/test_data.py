@@ -509,7 +509,6 @@ def test_Data_load_to_dataarray_data_handling(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-
         data["temp"] = load_to_dataarray(file=datafile, var_name="temp")
 
         # Check the data is in fact loaded and that a simple sum of values matches
