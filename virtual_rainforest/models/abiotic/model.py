@@ -38,7 +38,6 @@ class AbioticModel(BaseModel):
         canopy_layers: int,
         **kwargs: Any,
     ):
-
         if soil_layers < 1:
             to_raise = InitialisationError(
                 "There has to be at least one soil layer in the abiotic model!"
