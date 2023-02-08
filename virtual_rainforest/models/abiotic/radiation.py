@@ -69,7 +69,7 @@ class Radiation:
     shortwave radiation at the surface (= forest floor), which is an input to the
     :class:`~virtual_rainforest.models.abiotic.Energy_balance` class. Top of canopy
     photosynthetic photon flux density (PPFD) is the key input for
-    :mod:`~virtual_rainforest.models.plants` on which the photosythesis is based.
+    :mod:`~virtual_rainforest.models.plants` which calculates photosythesis and GPP.
     Longwave radiation from individual canopy layers and longwave radiation from soil
     serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
     class.
@@ -215,7 +215,7 @@ def calculate_atmospheric_transmissivity(
     """
 
     # check sunshine fraction between 0 and 1
-    if 0 > np.any(sunshine_fraction) > 1:
+    if 0 >= np.any(sunshine_fraction) >= 1:
         to_raise = ValueError(
             "The fraction of sunshine hours needs to be between 0 and 1!"
         )
@@ -342,8 +342,9 @@ def calculate_netradiation_surface(
     """
     return (
         topofcanopy_radiation
-        - np.sum(canopy_absorption, axis="canopy_layers")  # sum over all canopy layers
+        - np.sum(canopy_absorption, axis="canopy_layers")
         - np.sum(
             longwave_radiation, axis="canopy_layers"
-        )  # sum over all canopy layers and topsoil
+        )  # sum over all canopy layers and topsoil, this will depend on how the data is
+        # structured in the data object
     )
