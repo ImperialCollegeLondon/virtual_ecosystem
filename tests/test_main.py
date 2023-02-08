@@ -114,7 +114,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "extracted.",
                 ),
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the soil model!",
                 ),
                 (
