@@ -58,7 +58,7 @@ class RadiationConstants:
 
 
 class Radiation:
-    """Radiation balance dataclass.
+    """Radiation class.
 
     This class uses a :class:`~virtual_rainforest.core.data.Data` object to populate
     and store radiation-related attributes which serve as inputs to other modules.
@@ -68,11 +68,16 @@ class Radiation:
     individual canopy layers is provided by the plants module). What remains is the net
     shortwave radiation at the surface (= forest floor), which is an input to the
     :class:`~virtual_rainforest.models.abiotic.Energy_balance` class. Top of canopy
-    photosynthetic photon flux density is the key input for
+    photosynthetic photon flux density (PPFD) is the key input for
     :mod:`~virtual_rainforest.models.plants` on which the photosythesis is based.
     Longwave radiation from individual canopy layers and longwave radiation from soil
     serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
     class.
+
+    PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
+    for all timesteps provided in data. Something like a `calculate_radiation_balance`
+    function could then update the `longwave_radiation` and `netsurface_radiation`
+    attributes with each time step. This is currently not fully implemented.
 
     Creating an instance of this class expects a data object that contains the following
     variables:
@@ -89,10 +94,17 @@ class Radiation:
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
         and 1 (cloud free sky), default = 1
 
-    PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
-    for all timesteps provided in data. Something like a `calculate_radiation_balance`
-    function could then update the `longwave_radiation` and `netsurface_radiation`
-    attributes with each time step. This is currently not fully implemented.
+    Further, the class expects a dataclass that contains the following constants:
+    * cloudy_transmissivity: Cloudy transmittivity
+    * transmissivity_coefficient: Angular coefficient of transmittivity
+    * flux_to_energy: float From flux to energy conversion, umol J-1
+    * stefan_boltzmann_constant: Stefan-Boltzmann constant = 5.67e-8 W m-2 K-4
+    * soil_emissivity: Soil emissivity
+    * canopy_emissivity: Canopy emissivity
+    * beer_regression: Parameter in equation for atmospheric transmissivity based on
+        regression of Beer's radiation extinction function
+    * celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+        temperature in Kelvin= 273.15
 
     Args:
         data: A Virtual Rainforest Data object.
@@ -129,12 +141,20 @@ class Radiation:
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
+        # calculate atmospheric transmissivity (tau), unitless
+        tau = calculate_atmospheric_transmissivity(
+            data["elevation"],
+            sunshine_fraction,
+            const.cloudy_transmissivity,
+            const.transmissivity_coefficient,
+            const.beer_regression,
+        )
+
         # ppfd and topofcanopy_radiation radiation could be calculated across all time
         # steps in the abiotic module __init__. Leaving here for now.
         self.ppfd: NDArray[np.float32] = calculate_ppfd(
+            tau=tau,
             shortwave_in=data["shortwave_in"],
-            elevation=data["elevation"],
-            sunshine_fraction=sunshine_fraction,
             albedo_vis=albedo_vis,
             flux_to_energy=const.flux_to_energy,
         )
@@ -143,9 +163,8 @@ class Radiation:
         self.topofcanopy_radiation: NDArray[
             np.float32
         ] = calculate_topofcanopy_radiation(
+            tau=tau,
             shortwave_in=data["shortwave_in"],
-            elevation=data["elevation"],
-            sunshine_fraction=sunshine_fraction,
             albedo_shortwave=albedo_shortwave,
         )
         """Top of canopy downward shortwave radiation, [J m-2]"""
@@ -209,19 +228,16 @@ def calculate_atmospheric_transmissivity(
 
 
 def calculate_ppfd(
+    tau: NDArray[np.float32],
     shortwave_in: NDArray[np.float32],
-    elevation: NDArray[np.float32],
-    sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
     albedo_vis: NDArray[np.float32] = np.array(0.03, dtype=np.float32),
     flux_to_energy: float = RadiationConstants.flux_to_energy,
 ) -> NDArray[np.float32]:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
 
     Args:
+        tau: atmospheric transmissivity, unitless
         shortwave_in: downward shortwave radiation, [J m-2]
-        elevation: elevation above sea level, [m]
-        sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
-            and 1 (cloud free sky), default = 1
         albedo_vis: visible light albedo, default = 0.03
         flux_to_energy: flux to energy conversion factor, [umol J-1],default from config
 
@@ -231,30 +247,25 @@ def calculate_ppfd(
     Reference: :cite:t:`Davis2017`
     """
 
-    tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0e-6) * flux_to_energy * (1.0 - albedo_vis) * tau * shortwave_in
 
 
 def calculate_topofcanopy_radiation(
+    tau: NDArray[np.float32],
     shortwave_in: NDArray[np.float32],
-    elevation: NDArray[np.float32],
-    sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
     albedo_shortwave: NDArray[np.float32] = np.array(0.17, dtype=np.float32),
 ) -> NDArray[np.float32]:
     """Calculate top of canopy shortwave radiation, [J m-2].
 
     Args:
+        tau: atmospheric transmissivity, unitless
         shortwave_in: downward shortwave radiation, [J m-2]
-        elevation: elevation above sea level, [m]
-        sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
-            and 1 (cloud free sky), default = 1
         albedo_shortwave: shortwave albedo, default = 0.17
 
     Returns:
         top of canopy radiation shortwave radiation, [J m-2]
     """
 
-    tau = calculate_atmospheric_transmissivity(elevation, sunshine_fraction)
     return (1.0 - albedo_shortwave) * tau * shortwave_in
 
 
@@ -295,7 +306,9 @@ def calculate_longwave_radiation(
         * (celsius_to_kelvin + surface_temperature) ** 4
     )
 
-    # return array of longwave radiation for all canopy layers and surface
+    # return array of longwave radiation for all canopy layers and surface, this could
+    # also be a tuple or one array that combines canopy and soil layers along one axis
+    # from the beginning
 
     # temporary hack pending resolution of dicussion of NDArray/DataArray
     # - assuming that if these are not numpy arrays, then they are DataArrays
@@ -329,6 +342,8 @@ def calculate_netradiation_surface(
     """
     return (
         topofcanopy_radiation
-        - np.sum(canopy_absorption, axis=1)  # sum over all canopy layers
-        - np.sum(longwave_radiation, axis=1)  # sum over all canopy layers and topsoil
+        - np.sum(canopy_absorption, axis="canopy_layers")  # sum over all canopy layers
+        - np.sum(
+            longwave_radiation, axis="canopy_layers"
+        )  # sum over all canopy layers and topsoil
     )
