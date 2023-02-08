@@ -22,7 +22,6 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 """
 # the following structural components are not implemented yet
 # TODO include time dimension
-# TODO logging, raise errors
 
 from dataclasses import dataclass
 
@@ -34,27 +33,27 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import InitialisationError
 
 
-# from some external source, could be core.constants or abiotic.config
+# In the future, we want to import the RadiationConstants dataclass here
 @dataclass
 class RadiationConstants:
     """Radiation constants dataclass."""
 
-    CLOUDY_TRANSMISSIVITY: float = 0.25
+    cloudy_transmissivity: float = 0.25
     """Cloudy transmittivity :cite:p:`Linacre1968`"""
-    TRANSMISSIVITY_COEFFICIENT: float = 0.50
+    transmissivity_coefficient: float = 0.50
     """Angular coefficient of transmittivity :cite:p:`Linacre1968`"""
-    FLUX_TO_ENERGY: float = 2.04
+    flux_to_energy: float = 2.04
     """From flux to energy conversion, umol J-1 :cite:p:`Meek1984`"""
-    STEFAN_BOLTZMANN_CONSTANT: float = 5.67e-8
+    stefan_boltzmann_constant: float = 5.67e-8
     """Stefan-Boltzmann constant W m-2 K-4"""
-    SOIL_EMISSIVITY: float = 0.95
+    soil_emissivity: float = 0.95
     """Soil emissivity, default for tropical rainforest"""
-    CANOPY_EMISSIVITY: float = 0.95
+    canopy_emissivity: float = 0.95
     """Canopy emissivity, default for tropical rainforest"""
-    BEER_REGRESSION: float = 2.67e-5
+    beer_regression: float = 2.67e-5
     """Parameter in equation for atmospheric transmissivity based on regression of
     Beer's radiation extinction function :cite:p:`Allen1996`"""
-    CELSIUS_TO_KELVIN: float = 273.15
+    celsius_to_kelvin: float = 273.15
     """Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
 
 
@@ -75,11 +74,6 @@ class Radiation:
     serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
     class.
 
-    The dataclass populates the elevation attribute, further attributes are
-    calculate in a __post_init__ functionality which calls a number of helper functions.
-
-    Init method populates radiation balance attributes from data object.
-
     Creating an instance of this class expects a data object that contains the following
     variables:
     * elevation: elevation above sea level, [m]
@@ -94,6 +88,11 @@ class Radiation:
     * albedo_shortwave: shortwave albedo, default = 0.17
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
         and 1 (cloud free sky), default = 1
+
+    PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
+    for all timesteps provided in data. Something like a `calculate_radiation_balance`
+    function could then update the `longwave_radiation` and `netsurface_radiation`
+    attributes with each time step. This is currently not fully implemented.
 
     Args:
         data: A Virtual Rainforest Data object.
@@ -130,7 +129,6 @@ class Radiation:
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
-        # ** arraylike? **
         # ppfd and topofcanopy_radiation radiation could be calculated across all time
         # steps in the abiotic module __init__. Leaving here for now.
         self.ppfd: NDArray[np.float32] = calculate_ppfd(
@@ -138,7 +136,7 @@ class Radiation:
             elevation=data["elevation"],
             sunshine_fraction=sunshine_fraction,
             albedo_vis=albedo_vis,
-            flux_to_energy=const.FLUX_TO_ENERGY,
+            flux_to_energy=const.flux_to_energy,
         )
         """Top of canopy photosynthetic photon flux density, [mol m-2]"""
 
@@ -155,10 +153,10 @@ class Radiation:
         self.longwave_radiation: NDArray[np.float32] = calculate_longwave_radiation(
             canopy_temperature=data["canopy_temperature"],
             surface_temperature=data["surface_temperature"],
-            canopy_emissivity=const.CANOPY_EMISSIVITY,
-            soil_emissivity=const.SOIL_EMISSIVITY,
-            STEFAN_BOLTZMANN_CONSTANT=const.STEFAN_BOLTZMANN_CONSTANT,
-            CELSIUS_TO_KELVIN=const.CELSIUS_TO_KELVIN,
+            canopy_emissivity=const.canopy_emissivity,
+            soil_emissivity=const.soil_emissivity,
+            stefan_boltzmann_constant=const.stefan_boltzmann_constant,
+            celsius_to_kelvin=const.celsius_to_kelvin,
         )
         """Longwave radiation from canopy layers and soil, [J m-2]"""
 
@@ -174,9 +172,9 @@ class Radiation:
 def calculate_atmospheric_transmissivity(
     elevation: NDArray[np.float32],
     sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
-    cloudy_transmissivity: float = RadiationConstants.CLOUDY_TRANSMISSIVITY,
-    transmissivity_coefficient: float = RadiationConstants.TRANSMISSIVITY_COEFFICIENT,
-    beer_regression: float = RadiationConstants.BEER_REGRESSION,
+    cloudy_transmissivity: float = RadiationConstants.cloudy_transmissivity,
+    transmissivity_coefficient: float = RadiationConstants.transmissivity_coefficient,
+    beer_regression: float = RadiationConstants.beer_regression,
     # const: RadiationConstants = RadiationConstants() ## alternative approach
 ) -> NDArray[np.float32]:
     """Calculate atmospheric transmissivity (tau).
@@ -215,7 +213,7 @@ def calculate_ppfd(
     elevation: NDArray[np.float32],
     sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
     albedo_vis: NDArray[np.float32] = np.array(0.03, dtype=np.float32),
-    flux_to_energy: float = RadiationConstants.FLUX_TO_ENERGY,
+    flux_to_energy: float = RadiationConstants.flux_to_energy,
 ) -> NDArray[np.float32]:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
 
@@ -263,10 +261,10 @@ def calculate_topofcanopy_radiation(
 def calculate_longwave_radiation(
     canopy_temperature: NDArray[np.float32],
     surface_temperature: NDArray[np.float32],
-    canopy_emissivity: float = RadiationConstants.CANOPY_EMISSIVITY,
-    soil_emissivity: float = RadiationConstants.SOIL_EMISSIVITY,
-    STEFAN_BOLTZMANN_CONSTANT: float = RadiationConstants.STEFAN_BOLTZMANN_CONSTANT,
-    CELSIUS_TO_KELVIN: float = RadiationConstants.CELSIUS_TO_KELVIN,
+    canopy_emissivity: float = RadiationConstants.canopy_emissivity,
+    soil_emissivity: float = RadiationConstants.soil_emissivity,
+    stefan_boltzmann_constant: float = RadiationConstants.stefan_boltzmann_constant,
+    celsius_to_kelvin: float = RadiationConstants.celsius_to_kelvin,
 ) -> NDArray[np.float32]:
     """Calculate longwave emission from canopy and forest floor, [J m-2].
 
@@ -276,8 +274,8 @@ def calculate_longwave_radiation(
         surface_temperature: surface soil temperature, [C]
         canopy_emissivity: canopy emissivity, default set in config
         soil_emissivity: soil emissivity, default set in config
-        STEFAN_BOLTZMANN_CONSTANT: Stefan-Boltzmann constant [W m-2 K-4]
-        CELSIUS_TO_KELVIN: factor to convert temperature in Celsius to absolute
+        stefan_boltzmann_constant: Stefan-Boltzmann constant [W m-2 K-4]
+        celsius_to_kelvin: factor to convert temperature in Celsius to absolute
             temperature in Kelvin
 
     Returns:
@@ -286,15 +284,15 @@ def calculate_longwave_radiation(
     # longwave emission canopy
     longwave_canopy = (
         canopy_emissivity
-        * STEFAN_BOLTZMANN_CONSTANT
-        * (CELSIUS_TO_KELVIN + canopy_temperature) ** 4
+        * stefan_boltzmann_constant
+        * (celsius_to_kelvin + canopy_temperature) ** 4
     )
 
     # longwave emission surface
     longwave_soil = (
         soil_emissivity
-        * STEFAN_BOLTZMANN_CONSTANT
-        * (CELSIUS_TO_KELVIN + surface_temperature) ** 4
+        * stefan_boltzmann_constant
+        * (celsius_to_kelvin + surface_temperature) ** 4
     )
 
     # return array of longwave radiation for all canopy layers and surface
