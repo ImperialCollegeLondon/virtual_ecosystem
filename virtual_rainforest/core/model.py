@@ -133,11 +133,11 @@ class BaseModel(ABC):
         # Check that model_name exists and is a string
         if not hasattr(cls, "model_name"):
             excep = ValueError("Models must have a model_name attribute!")
-            LOGGER.critical(excep)
+            LOGGER.error(excep)
             raise excep
         elif not isinstance(cls.model_name, str):
             excep = TypeError("Models should only be named using strings!")
-            LOGGER.critical(excep)
+            LOGGER.error(excep)
             raise excep
 
         # Add the new model to the registry

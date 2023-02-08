@@ -42,28 +42,28 @@ class AbioticModel(BaseModel):
             to_raise = InitialisationError(
                 "There has to be at least one soil layer in the abiotic model!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if soil_layers != int(soil_layers):
             to_raise = InitialisationError(
                 "The number of soil layers must be an integer!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if canopy_layers < 1:
             to_raise = InitialisationError(
                 "There has to be at least one canopy layer in the abiotic model!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if canopy_layers != int(canopy_layers):
             to_raise = InitialisationError(
                 "The number of canopy layers must be an integer!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)
