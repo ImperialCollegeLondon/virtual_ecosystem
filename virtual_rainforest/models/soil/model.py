@@ -49,7 +49,6 @@ class SoilModel(BaseModel):
         no_layers: int,
         **kwargs: Any,
     ):
-
         if no_layers < 1:
             to_raise = InitialisationError(
                 "There has to be at least one soil layer in the soil model!"

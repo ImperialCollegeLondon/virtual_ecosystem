@@ -145,7 +145,6 @@ class Data:
     """
 
     def __init__(self, grid: Grid) -> None:
-
         # Set up the instance properties
         if not isinstance(grid, Grid):
             to_raise = TypeError("Data must be initialised with a Grid object")
@@ -294,7 +293,6 @@ class Data:
 
         # Handle variables
         if "variable" in data_config:
-
             # Check what name the data will be saved under but do then carry on to check
             # for other loading problems
             data_var_names = [v["var_name"] for v in data_config["variable"]]
@@ -308,7 +306,6 @@ class Data:
 
             # Load data from each data source
             for each_var in data_config["variable"]:
-
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
@@ -347,5 +344,4 @@ class DataGenerator:
         method: str,  # one of the numpy.random.Generator methods
         **kwargs: Any,
     ) -> None:
-
         pass

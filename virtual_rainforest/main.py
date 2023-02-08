@@ -233,7 +233,6 @@ def vr_run(
 
     # Setup the timing loop
     while current_time < end_time:
-
         current_time += update_interval
 
         # Get the names of models that have expired due dates

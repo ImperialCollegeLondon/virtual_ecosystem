@@ -15,10 +15,8 @@ def test_AxisValidator_registration_coreaxis_not_set():
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
-
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
-
             dim_names = {"valid"}
 
             def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
@@ -39,10 +37,8 @@ def test_AxisValidator_registration_dimnames_not_set():
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
-
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
-
             core_axis = "valid"
 
             def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
@@ -88,10 +84,8 @@ def test_AxisValidator_registration_exceptions(axis_val, dimnames_val, excep_str
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
-
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
-
             core_axis = axis_val
             dim_names = dimnames_val
 

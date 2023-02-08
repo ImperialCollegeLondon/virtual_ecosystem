@@ -152,7 +152,6 @@ def register_schema(module_name: str) -> Callable:
     """
 
     def wrap(func: Callable) -> Callable:
-
         # Type the exception raising with a general base class
         to_raise: Exception
 
@@ -494,7 +493,7 @@ def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
 
     p_paths = []
     # Recursively search for all instances of properties in the schema
-    for (path, value) in dpath.util.search(comb_schema, "**/properties", yielded=True):
+    for path, value in dpath.util.search(comb_schema, "**/properties", yielded=True):
         # Remove final properties instance from path so that additionalProperties ends
         # up in the right place
         p_paths.append(
