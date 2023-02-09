@@ -77,13 +77,15 @@ class InitialisationError(Exception):
 
 
 class BaseModel(ABC):
-    """A superclass for all `vr` models.
+    """A superclass for all Virtual Rainforest models.
 
-    Describes the common functions and attributes that all `vr` models should have. This
-    includes functions to setup, spin up and update the specific model, as well as a
-    function to cleanup redundant model data. At this level these functions are not
-    define and are mere placeholders to be overwritten (where appropriate) by the
-    inheriting classes.
+    This abstract base class defines the shared common methods and attributes used as an
+    API across all Virtual Rainforest models. This includes functions to setup, spin up
+    and update the specific model, as well as a function to cleanup redundant model
+    data.
+
+    The base class defines the core abstract methods that must be defined in subclasses
+    as well as shared helper functions.
 
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance containing
