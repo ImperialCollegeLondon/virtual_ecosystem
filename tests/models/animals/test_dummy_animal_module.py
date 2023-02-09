@@ -42,3 +42,24 @@ class TestPalatableSoil:
 
         s1 = PalatableSoil(1000.7, 1)
         assert s1.energy == 1000.7
+
+
+@pytest.fixture
+def animal_instance():
+    """Fixutre for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
+
+    return AnimalCohort("Testasaurus", 10000.0, 1, 4)
+
+
+class TestAnimalCohort:
+    """Test Animal class."""
+
+    @pytest.mark.parametrize(
+        "initial, final", [(10000.0, 10000.0), (500.0, 975.0), (0.0, 0.0)]
+    )
+    def test_metabolize(self, animal_instance, initial, final):
+        """Testing metabolize at varying energy levels."""
+        animal_instance.energy = initial
+        animal_instance.metabolize()
+        assert animal_instance.energy == final
