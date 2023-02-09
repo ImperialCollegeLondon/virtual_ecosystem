@@ -1,5 +1,59 @@
-"""The :mod:`~virtual_rainforest.core.model` module provides a consistent API across
-models for the Virtual Rainforest model: that is, a common set of functions which work
+"""The :mod:`~virtual_rainforest.core.model` module defines the high level API for the
+different models within the Virtual Rainforest. The module creates the
+:class:`~virtual_rainforest.core.models.BaseModel` abstract base class (ABC) which
+defines a consistent API for subclasses defining an actual model. The API defines
+abstract methods for each of the key stages in the workflow of running a model;
+individual subclasses will then need to implement the specific model behaviour within
+each stage. The stages are:
+
+* Creating a model instance (:class:`~virtual_rainforest.core.models.BaseModel`).
+* Setup a model instance (:meth:`~virtual_rainforest.core.models.BaseModel.setup`).
+* Perform any spinup required to get a model state to equilibrate
+  (:meth:`~virtual_rainforest.core.models.BaseModel.spinup`).
+* Update the model from one time step to the next
+  :meth:`~virtual_rainforest.core.models.BaseModel.update`).
+* Cleanup any unneeded resources at the end of a simulation
+  (:meth:`~virtual_rainforest.core.models.BaseModel.cleanup`).
+
+As well as those methods representing workflow stages, the
+:class:`~virtual_rainforest.core.models.BaseModel` also provides
+
+
+Creating a new model subclass
+-----------------------------
+
+
+Model configuration
+-------------------
+
+As in the case of configuration schema, we make ``Model`` classes generally accessible
+by adding them to a registry
+
+Model registration
+------------------
+
+The :class:`~virtual_rainforest.core.models.BaseModel` abstract base class also defines
+the :func:`~virtual_rainforest.core.model.BaseModel.__init_subclass__` class method.
+This method is called automatically whenever a subclass of the ABC is defined: it
+validates the class attributes for the new class and then registers the model name and
+model class in the called :attr:`~virtual_rainforest.core.model.MODEL_REGISTRY`
+register. This registry allows the configuration of a Virtual Rainforest simulation to
+look up and configure the required model components.
+
+
+, but that in every case a ``model_name`` has to be provided to register it under. This
+model name should be unique. Although registration is automatic, it only happens when
+class definition happens, which requires the module which defines the child class to be
+imported somewhere. At the moment, we import all child models in the top level
+``__init__.py`` to ensure that they are added to the registry.
+
+
+The :func:`~virtual_rainforest.core.model.BaseModel.from_config` factory method
+-------------------------------------------------------------------------------
+
+
+
+ model: that is, a common set of functions which work
 the same across all modules. This cannot exist at a low level, as the basic classes and
 functions will differ massively between modules (e.g. :mod:`~virtual_rainforest.abiotic`
 will not have functions to handle consumption). So, this common api has to be high level
