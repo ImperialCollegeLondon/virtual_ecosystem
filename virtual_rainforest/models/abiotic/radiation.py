@@ -20,13 +20,15 @@ photosynthesis and re-emitted as longwave radiation by vegetation and forest flo
 At this stage, scattering and re-absorption of longwave radiation are not considered.
 
 """
-# the following structural components are not implemented yet
-# TODO include time dimension
+# TODO include time dimension, i.e. calculate toc radiation and ppdf for full time
+# series (possibly as part of AbioticModel) and update other variables for each time
+# step with inputs from other modules via the data object (for example absorbed
+# radiation from the plant module)
 
 from dataclasses import dataclass
 
-import numpy as np
-from numpy.typing import NDArray
+import xarray as xr
+from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -76,35 +78,28 @@ class Radiation:
 
     PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
     for all timesteps provided in data. Something like a `calculate_radiation_balance`
-    function could then update the `longwave_radiation` and `netsurface_radiation`
-    attributes with each time step. This is currently not fully implemented.
+    function could then update the `longwave_canopy`,`longwave_soil` and
+    `netsurface_radiation` attributes with each time step. This is currently not fully
+    implemented.
 
-    Creating an instance of this class expects a data object that contains the following
-    variables:
+    Creating an instance of this class expects a `data` object that contains the
+    following variables:
     * elevation: elevation above sea level, [m]
     * shortwave_in: downward shortwave radiation, [J m-2]
     * canopy_temperature: canopy temperature of individual layers, [C]
     * surface_temperature: surface soil temperature, [C]
     * canopy_absorption: absorption by canopy, [J m-2]
 
-    The data object can also optionally provide these variables, but will default to the
-    values given below:
+    The `data` object can also optionally provide these variables, but will default to
+    the values given below:
     * albedo_vis: visible light albedo, default = 0.03
     * albedo_shortwave: shortwave albedo, default = 0.17
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
         and 1 (cloud free sky), default = 1
 
-    Further, the class expects a dataclass that contains the following constants:
-    * cloudy_transmissivity: Cloudy transmittivity
-    * transmissivity_coefficient: Angular coefficient of transmittivity
-    * flux_to_energy: float From flux to energy conversion, umol J-1
-    * stefan_boltzmann_constant: Stefan-Boltzmann constant = 5.67e-8 W m-2 K-4
-    * soil_emissivity: Soil emissivity
-    * canopy_emissivity: Canopy emissivity
-    * beer_regression: Parameter in equation for atmospheric transmissivity based on
-        regression of Beer's radiation extinction function
-    * celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
-        temperature in Kelvin= 273.15
+    The ``const`` argument takes an instance of class
+    :class:`~virtual_rainforest.models.abiotic.radiation.RadiationConstants`, which
+    provides a user modifiable set of required constants.
 
     Args:
         data: A Virtual Rainforest Data object.
@@ -116,7 +111,8 @@ class Radiation:
     ) -> None:
 
         # check that elevation is above sea level
-        if np.any(data["elevation"] < 0):
+        # TODO check if equation permits negative values
+        if data["elevation"].any() < 0:
             to_raise = InitialisationError(
                 "Initial elevation contains at least one negative value!"
             )
@@ -127,17 +123,17 @@ class Radiation:
 
         # Set the default values if variables not provided in data
         if "sunshine_fraction" not in data:
-            sunshine_fraction = np.array(1.0, dtype=np.float32)
+            sunshine_fraction: DataArray = xr.DataArray(1.0, dims=["cell_id"])
         else:
             sunshine_fraction = data["sunshine_fraction"]
 
         if "albedo_vis" not in data:
-            albedo_vis = np.array(0.03, dtype=np.float32)
+            albedo_vis: DataArray = xr.DataArray(0.03, dims=["cell_id"])
         else:
             albedo_vis = data["albedo_vis"]
 
         if "albedo_shortwave" not in data:
-            albedo_shortwave = np.array(0.17, dtype=np.float32)
+            albedo_shortwave: DataArray = xr.DataArray(0.17, dims=["cell_id"])
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
@@ -152,7 +148,7 @@ class Radiation:
 
         # ppfd and topofcanopy_radiation radiation could be calculated across all time
         # steps in the abiotic module __init__. Leaving here for now.
-        self.ppfd: NDArray[np.float32] = calculate_ppfd(
+        self.ppfd: DataArray = calculate_ppfd(
             tau=tau,
             shortwave_in=data["shortwave_in"],
             albedo_vis=albedo_vis,
@@ -160,42 +156,47 @@ class Radiation:
         )
         """Top of canopy photosynthetic photon flux density, [mol m-2]"""
 
-        self.topofcanopy_radiation: NDArray[
-            np.float32
-        ] = calculate_topofcanopy_radiation(
+        self.topofcanopy_radiation: DataArray = calculate_topofcanopy_radiation(
             tau=tau,
             shortwave_in=data["shortwave_in"],
             albedo_shortwave=albedo_shortwave,
         )
         """Top of canopy downward shortwave radiation, [J m-2]"""
 
-        self.longwave_radiation: NDArray[np.float32] = calculate_longwave_radiation(
-            canopy_temperature=data["canopy_temperature"],
-            surface_temperature=data["surface_temperature"],
-            canopy_emissivity=const.canopy_emissivity,
-            soil_emissivity=const.soil_emissivity,
+        self.longwave_canopy: DataArray = calculate_longwave_radiation(
+            temperature=data["canopy_temperature"],
+            emissivity=const.canopy_emissivity,
             stefan_boltzmann_constant=const.stefan_boltzmann_constant,
             celsius_to_kelvin=const.celsius_to_kelvin,
         )
-        """Longwave radiation from canopy layers and soil, [J m-2]"""
+        """Longwave radiation from canopy layers, [J m-2]"""
 
-        self.netradiation_surface: NDArray[np.float32] = calculate_netradiation_surface(
+        self.longwave_soil: DataArray = calculate_longwave_radiation(
+            temperature=data["surface_temperature"],
+            emissivity=const.soil_emissivity,
+            stefan_boltzmann_constant=const.stefan_boltzmann_constant,
+            celsius_to_kelvin=const.celsius_to_kelvin,
+        )
+        """Longwave radiation from soil, [J m-2]"""
+
+        self.netradiation_surface: DataArray = calculate_netradiation_surface(
             topofcanopy_radiation=self.topofcanopy_radiation,
             canopy_absorption=data["canopy_absorption"],
-            longwave_radiation=self.longwave_radiation,
+            longwave_canopy=self.longwave_canopy,
+            longwave_soil=self.longwave_soil,
         )
         """Net shortwave radiation at the surface (= forest floor), [J m-2]"""
 
 
 # helper functions
 def calculate_atmospheric_transmissivity(
-    elevation: NDArray[np.float32],
-    sunshine_fraction: NDArray[np.float32] = np.array(1.0, dtype=np.float32),
+    elevation: DataArray,
+    sunshine_fraction: DataArray = xr.DataArray(1.0, dims=["cell_id"]),
     cloudy_transmissivity: float = RadiationConstants.cloudy_transmissivity,
     transmissivity_coefficient: float = RadiationConstants.transmissivity_coefficient,
     beer_regression: float = RadiationConstants.beer_regression,
     # const: RadiationConstants = RadiationConstants() ## alternative approach
-) -> NDArray[np.float32]:
+) -> DataArray:
     """Calculate atmospheric transmissivity (tau).
 
     Args:
@@ -215,7 +216,7 @@ def calculate_atmospheric_transmissivity(
     """
 
     # check sunshine fraction between 0 and 1
-    if 0 >= np.any(sunshine_fraction) >= 1:
+    if 0 >= sunshine_fraction.any() >= 1:
         to_raise = ValueError(
             "The fraction of sunshine hours needs to be between 0 and 1!"
         )
@@ -228,11 +229,11 @@ def calculate_atmospheric_transmissivity(
 
 
 def calculate_ppfd(
-    tau: NDArray[np.float32],
-    shortwave_in: NDArray[np.float32],
-    albedo_vis: NDArray[np.float32] = np.array(0.03, dtype=np.float32),
+    tau: DataArray,
+    shortwave_in: DataArray,
+    albedo_vis: DataArray = xr.DataArray(0.03, dims=["cell_id"]),
     flux_to_energy: float = RadiationConstants.flux_to_energy,
-) -> NDArray[np.float32]:
+) -> DataArray:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
 
     Args:
@@ -251,10 +252,10 @@ def calculate_ppfd(
 
 
 def calculate_topofcanopy_radiation(
-    tau: NDArray[np.float32],
-    shortwave_in: NDArray[np.float32],
-    albedo_shortwave: NDArray[np.float32] = np.array(0.17, dtype=np.float32),
-) -> NDArray[np.float32]:
+    tau: DataArray,
+    shortwave_in: DataArray,
+    albedo_shortwave: DataArray = xr.DataArray(0.17, dims=["cell_id"]),
+) -> DataArray:
     """Calculate top of canopy shortwave radiation, [J m-2].
 
     Args:
@@ -270,81 +271,68 @@ def calculate_topofcanopy_radiation(
 
 
 def calculate_longwave_radiation(
-    canopy_temperature: NDArray[np.float32],
-    surface_temperature: NDArray[np.float32],
-    canopy_emissivity: float = RadiationConstants.canopy_emissivity,
-    soil_emissivity: float = RadiationConstants.soil_emissivity,
+    temperature: DataArray,
+    emissivity: float = 0.95,
     stefan_boltzmann_constant: float = RadiationConstants.stefan_boltzmann_constant,
     celsius_to_kelvin: float = RadiationConstants.celsius_to_kelvin,
-) -> NDArray[np.float32]:
-    """Calculate longwave emission from canopy and forest floor, [J m-2].
+) -> DataArray:
+    """Calculate longwave emission, [J m-2].
 
     Args:
-        canopy_temperature: canopy temperature of n layers, [C]; the array size is
+        temperature: canopy or soil temperature of n layers, [C]; the array size is
             set to max number of layers (n_max) and filled with NaN where n < n_max
-        surface_temperature: surface soil temperature, [C]
-        canopy_emissivity: canopy emissivity, default set in config
-        soil_emissivity: soil emissivity, default set in config
+        emissivity: canopy or soil emissivity, default=0.95
         stefan_boltzmann_constant: Stefan-Boltzmann constant [W m-2 K-4]
         celsius_to_kelvin: factor to convert temperature in Celsius to absolute
             temperature in Kelvin
 
     Returns:
-        longwave radiation from n individual canopy layers and soil, [J m-2]
+        longwave radiation from n individual canopy layers or soil, [J m-2]
     """
     # longwave emission canopy
-    longwave_canopy = (
-        canopy_emissivity
-        * stefan_boltzmann_constant
-        * (celsius_to_kelvin + canopy_temperature) ** 4
+    return (
+        emissivity * stefan_boltzmann_constant * (celsius_to_kelvin + temperature) ** 4
     )
-
-    # longwave emission surface
-    longwave_soil = (
-        soil_emissivity
-        * stefan_boltzmann_constant
-        * (celsius_to_kelvin + surface_temperature) ** 4
-    )
-
-    # return array of longwave radiation for all canopy layers and surface, this could
-    # also be a tuple or one array that combines canopy and soil layers along one axis
-    # from the beginning
 
     # temporary hack pending resolution of dicussion of NDArray/DataArray
     # - assuming that if these are not numpy arrays, then they are DataArrays
     #   which we then need to coerce to numpy arrays to use the nparray.reshape API
-    if not isinstance(longwave_canopy, np.ndarray):
-        longwave_canopy = longwave_canopy.to_numpy()
-    if not isinstance(longwave_soil, np.ndarray):
-        longwave_soil = longwave_soil.to_numpy()
+    # if not isinstance(longwave_canopy, np.ndarray):
+    #    longwave_canopy = longwave_canopy.to_numpy()
+    # if not isinstance(longwave_soil, np.ndarray):
+    #    longwave_soil = longwave_soil.to_numpy()
 
-    return np.append(
-        longwave_canopy.transpose(),
-        longwave_soil.reshape([1, len(surface_temperature)]),
-        axis=0,
-    ).transpose()
+    # return np.append(
+    #    longwave_canopy.transpose(),
+    #    longwave_soil.reshape([1, len(surface_temperature)]),
+    #    axis=0,
+    # ).transpose()
 
 
 def calculate_netradiation_surface(
-    topofcanopy_radiation: NDArray[np.float32],
-    canopy_absorption: NDArray[np.float32],
-    longwave_radiation: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    topofcanopy_radiation: DataArray,
+    canopy_absorption: DataArray,
+    longwave_canopy: DataArray,
+    longwave_soil: DataArray,
+) -> DataArray:
     """Calculate net shortwave radiation at the surface, [J m-2].
+
+    The net shortwave radiation RN at the forest floor is calculated as
+    `topofcanopy_radiation` - `canopy_absorption` (summed over all canopy layers)
+    - `longwave_canopy` (summed over all canopy layers) - `longwave_soil`.
 
     Args:
         topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
         canopy_absorption: shortwave radiation absorbed by canopy layers, [J m-2]
-        longwave_radiation: longwave radiation from canopy layers and soil, [J m-2]
+        longwave_canopy: longwave radiation from canopy layers, [J m-2]
+        longwave_canopy: longwave radiation from canopy layers, [J m-2]
 
     Returns:
         net shortwave radiation at the surface ( = forest floor), [J m-2]
     """
     return (
         topofcanopy_radiation
-        - np.sum(canopy_absorption, axis="canopy_layers")
-        - np.sum(
-            longwave_radiation, axis="canopy_layers"
-        )  # sum over all canopy layers and topsoil, this will depend on how the data is
-        # structured in the data object
+        - canopy_absorption.sum(dim="canopy_layers")
+        - longwave_canopy.sum(dim="canopy_layers")
+        - longwave_soil
     )
