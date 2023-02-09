@@ -65,6 +65,7 @@ from typing import Any, Type
 
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 
 MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
@@ -85,6 +86,8 @@ class BaseModel(ABC):
     inheriting classes.
 
     Args:
+        data: A :class:`~virtual_rainforest.core.data.Data` instance containing
+            variables to be used in the model.
         start_time: Point in time that the model simulation should be started.
         end_time: Time that the model simulation should end
         update_interval: Time to wait between updates of the model state.
@@ -93,8 +96,14 @@ class BaseModel(ABC):
     model_name: str
 
     def __init__(
-        self, update_interval: timedelta64, start_time: datetime64, **kwargs: Any
+        self,
+        data: Data,
+        update_interval: timedelta64,
+        start_time: datetime64,
+        **kwargs: Any,
     ):
+        self.data = data
+        """A Data instance providing access to the shared simulation data."""
         self.update_interval = update_interval
         self.next_update = start_time + update_interval
         # Save variables names to be used by the __repr__
