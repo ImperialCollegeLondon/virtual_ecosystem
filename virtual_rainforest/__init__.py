@@ -1,13 +1,11 @@
 import importlib.metadata
+import pkgutil
+from importlib import import_module
 
-# Import all module schema here to ensure that they are added to the registry
-from virtual_rainforest.core import schema  # noqa
-from virtual_rainforest.models.abiotic import schema  # noqa
-from virtual_rainforest.models.abiotic.model import AbioticModel  # noqa
-from virtual_rainforest.models.plants import schema  # noqa
-from virtual_rainforest.models.soil import schema  # noqa
+# Autodiscover models in the models module
+import virtual_rainforest.models as vfm
 
-# Import models here so that they also end up in the registry
-from virtual_rainforest.models.soil.model import SoilModel  # noqa
+for module_info in pkgutil.iter_modules(vfm.__path__):
+    import_module(f"virtual_rainforest.models.{module_info.name}")
 
 __version__ = importlib.metadata.version("virtual_rainforest")

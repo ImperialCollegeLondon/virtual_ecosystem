@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.models.abiotic.model import AbioticModel  # noqa: F401
 
 
 @register_schema("abiotic")
