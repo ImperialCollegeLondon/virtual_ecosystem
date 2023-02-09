@@ -125,6 +125,10 @@ class BaseModel(ABC):
         self.next_update = start_time + update_interval
         """The simulation time at which the model should next run the update method"""
         self._repr = ["update_interval", "next_update"]
+        """A list of attributes to be included in the class __repr__ output"""
+
+        # Check the required init variables
+        self.check_required_init_vars()
 
     @abstractmethod
     def setup(self) -> None:
@@ -196,3 +200,50 @@ class BaseModel(ABC):
             return f"A {self.model_name} model instance"
         else:
             return "A base model instance"
+
+    def check_required_init_vars(self) -> None:
+        """Check the required set of variables is present.
+
+        This method is used to check that the set of variables defined in the
+        :attr:`~virtual_rainforest.core.model.BaseModel.required_init_vars` class
+        attribute are present in the :attr:`~virtual_rainforest.core.data.Data` instance
+        used to create a new instance of the class.
+
+        Raises:
+            ValueError: If the Data instance does not contain all the required variables
+                or if those variables do not map onto the required axes.
+        """
+
+        # Sentinel variables
+        all_axes_ok: bool = True
+        all_vars_found: bool = True
+
+        # Loop over the required  and axes
+        for var, axes in self.required_init_vars:
+            # Record when a variable is missing
+            if var not in self.data:
+                LOGGER.error(
+                    f"Required init variable '{var}' missing from data in "
+                    "{self.model_name} model."
+                )
+                all_vars_found = False
+                continue
+
+            # Check for required axes
+            for axis in axes:
+                axis_ok = self.data.on_core_axis(var, axis)
+
+                if not axis_ok:
+                    LOGGER.error(
+                        f"Required init variable '{var}' not on core axis '{axis}' in "
+                        "{self.model_name} model."
+                    )
+
+                    all_axes_ok = False
+
+        # Raise if any problems found
+        if not (all_axes_ok and all_vars_found):
+            raise ValueError(
+                "Required init variables missing or not on core axes in "
+                f"{self.model_name} model: see log"
+            )
