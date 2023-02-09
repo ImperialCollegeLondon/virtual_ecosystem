@@ -94,6 +94,22 @@ class BaseModel(ABC):
     """
 
     model_name: str
+    """The model name.
+
+    This class attribute sets the name used to refer to identify the model class in the
+    :data:`~virtual_rainforest.core.model.MODEL_REGISTRY`, within the configuration
+    settings and in logging messages."""
+
+    required_init_vars: list[tuple[str, tuple[str]]]
+    """Required variables for model initialisation.
+
+    This class attribute defines a set of variable names that must be present in the
+    :class:`~virtual_rainforest.core.data.Data` instance used to initialise an instance
+    of this class. It is a list of variable names and then optionally the names of any
+    core axes which the variable must map onto.
+
+    For example: ``[('temperature', ('spatial', 'temporal'))]``
+    """
 
     def __init__(
         self,
@@ -105,8 +121,9 @@ class BaseModel(ABC):
         self.data = data
         """A Data instance providing access to the shared simulation data."""
         self.update_interval = update_interval
+        """The time interval between model updates."""
         self.next_update = start_time + update_interval
-        # Save variables names to be used by the __repr__
+        """The simulation time at which the model should next run the update method"""
         self._repr = ["update_interval", "next_update"]
 
     @abstractmethod
@@ -142,11 +159,18 @@ class BaseModel(ABC):
         # Check that model_name exists and is a string
         if not hasattr(cls, "model_name"):
             excep = ValueError("Models must have a model_name attribute!")
-            LOGGER.critical(excep)
+            LOGGER.error(excep)
             raise excep
-        elif not isinstance(cls.model_name, str):
+
+        if not isinstance(cls.model_name, str):
             excep = TypeError("Models should only be named using strings!")
-            LOGGER.critical(excep)
+            LOGGER.error(excep)
+            raise excep
+
+        # Check that required_init_vars is set - not testing structure here
+        if not hasattr(cls, "required_init_vars"):
+            excep = ValueError("BaseModel subclasses must define required_init_vars")
+            LOGGER.error(excep)
             raise excep
 
         # Add the new model to the registry
