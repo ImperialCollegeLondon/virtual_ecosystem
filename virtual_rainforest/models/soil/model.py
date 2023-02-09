@@ -53,14 +53,14 @@ class SoilModel(BaseModel):
             to_raise = InitialisationError(
                 "There has to be at least one soil layer in the soil model!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if no_layers != int(no_layers):
             to_raise = InitialisationError(
                 "The number of soil layers must be an integer!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)

@@ -89,7 +89,7 @@ def __init__(
         to_raise = InitialisationError(
                 "There has to be at least one pond in the freshwater model!"
             )
-        LOGGER.critical(to_raise)
+        LOGGER.error(to_raise)
         raise to_raise
         
     # Provide general attributes to the __init__ of the base class

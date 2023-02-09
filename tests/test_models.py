@@ -5,7 +5,7 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO, WARNING
+from logging import CRITICAL, ERROR, INFO, WARNING
 
 import pytest
 from numpy import datetime64, timedelta64
@@ -47,7 +47,7 @@ def test_base_model_initialization(caplog, mocker):
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the soil model!",
                 ),
             ),
@@ -57,7 +57,7 @@ def test_base_model_initialization(caplog, mocker):
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "The number of soil layers must be an integer!",
                 ),
             ),
@@ -220,7 +220,7 @@ def test_generate_soil_model(
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the abiotic model!",
                 ),
             ),
@@ -231,7 +231,7 @@ def test_generate_soil_model(
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one canopy layer in the abiotic model!",
                 ),
             ),
@@ -242,7 +242,7 @@ def test_generate_soil_model(
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "The number of soil layers must be an integer!",
                 ),
             ),
@@ -253,7 +253,7 @@ def test_generate_soil_model(
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "The number of canopy layers must be an integer!",
                 ),
             ),
