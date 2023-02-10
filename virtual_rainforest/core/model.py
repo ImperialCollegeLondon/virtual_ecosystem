@@ -102,23 +102,28 @@ class BaseModel(ABC):
         update_interval: Time to wait between updates of the model state.
     """
 
-    model_name: str
-    """The model name.
+    @property
+    @abstractmethod
+    def model_name(cls) -> str:
+        """The model name.
 
-    This class attribute sets the name used to refer to identify the model class in the
-    :data:`~virtual_rainforest.core.model.MODEL_REGISTRY`, within the configuration
-    settings and in logging messages."""
+        This class property sets the name used to refer to identify the model class in
+        the :data:`~virtual_rainforest.core.model.MODEL_REGISTRY`, within the
+        configuration settings and in logging messages.
+        """
 
-    required_init_vars: list[tuple[str, tuple[str]]]
-    """Required variables for model initialisation.
+    @property
+    @abstractmethod
+    def required_init_vars(cls) -> list[tuple[str, tuple[str]]]:
+        """Required variables for model initialisation.
 
-    This class attribute defines a set of variable names that must be present in the
-    :class:`~virtual_rainforest.core.data.Data` instance used to initialise an instance
-    of this class. It is a list of variable names and then optionally the names of any
-    core axes which the variable must map onto.
+        This class property defines a set of variable names that must be present in the
+        :class:`~virtual_rainforest.core.data.Data` instance used to initialise an
+        instance of this class. It is a list of variable names and then optionally the
+        names of any core axes which the variable must map onto.
 
-    For example: ``[('temperature', ('spatial', 'temporal'))]``
-    """
+        For example: ``[('temperature', ('spatial', 'temporal'))]``
+        """
 
     def __init__(
         self,
@@ -168,6 +173,8 @@ class BaseModel(ABC):
             ValueError: If model_name attribute isn't defined
             TypeError: If model_name is not a string
         """
+
+        excep: Exception
 
         # Check that model_name exists and is a string
         if not hasattr(cls, "model_name"):
