@@ -120,8 +120,6 @@ class Radiation:
             LOGGER.error(to_raise)
             raise to_raise
 
-        # TODO - think about xarray/numpy array and ArrayLike typing
-
         # Set the default values if variables not provided in data
         sunshine_fraction: Union[DataArray, float]
         if "sunshine_fraction" not in data:
@@ -298,20 +296,6 @@ def calculate_longwave_radiation(
     return (
         emissivity * stefan_boltzmann_constant * (celsius_to_kelvin + temperature) ** 4
     )
-
-    # temporary hack pending resolution of dicussion of NDArray/DataArray
-    # - assuming that if these are not numpy arrays, then they are DataArrays
-    #   which we then need to coerce to numpy arrays to use the nparray.reshape API
-    # if not isinstance(longwave_canopy, np.ndarray):
-    #    longwave_canopy = longwave_canopy.to_numpy()
-    # if not isinstance(longwave_soil, np.ndarray):
-    #    longwave_soil = longwave_soil.to_numpy()
-
-    # return np.append(
-    #    longwave_canopy.transpose(),
-    #    longwave_soil.reshape([1, len(surface_temperature)]),
-    #    axis=0,
-    # ).transpose()
 
 
 def calculate_netradiation_surface(

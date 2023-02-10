@@ -9,6 +9,51 @@ from xarray import DataArray
 from virtual_rainforest.core.model import InitialisationError
 
 
+@pytest.fixture
+def dummy_data():
+    """Creates a dummy data object for use in tests."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with two cells.
+    grid = Grid(cell_nx=2, cell_ny=1)
+    data = Data(grid)
+
+    # Add the required data.
+    data["elevation"] = DataArray([100, 1000], dims=["cell_id"])
+    data["shortwave_in"] = DataArray([100000, 100000], dims=["cell_id"])
+    data["sunshine_fraction"] = DataArray([0.5, 1.0], dims=["cell_id"])
+    data["canopy_temperature"] = DataArray(
+        [
+            [25, 22, 20],
+            [25, 22, 20],
+        ],
+        dims=["cell_id", "canopy_layers"],
+    )
+    data["surface_temperature"] = DataArray([20, 20], dims=["cell_id"])
+    data["canopy_absorption"] = DataArray(
+        [
+            [300, 200, 100],
+            [300, 200, 100],
+        ],
+        dims=["cell_id", "canopy_layers"],
+    )
+
+    return data
+
+
+def test_class_ini(dummy_data):
+    """Test class initialisation with dummy data object."""
+
+    from virtual_rainforest.models.abiotic import radiation
+
+    result = radiation.Radiation(dummy_data)
+    xr.testing.assert_allclose(
+        result.ppfd, DataArray([0.099204, 0.1523725], dims="cell_id")
+    )
+
+
 def test_simple_atmospheric_transmissivity():
     """Test atmospheric tansmissivity across elevation and sunshine fractions."""
 
