@@ -11,8 +11,8 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.model import BaseModel, InitialisationError
-from virtual_rainforest.models.abiotic.model import AbioticModel
-from virtual_rainforest.models.soil.model import SoilModel
+from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
 

@@ -19,7 +19,7 @@ from virtual_rainforest.main import (
     select_models,
     vr_run,
 )
-from virtual_rainforest.models.soil.model import SoilModel
+from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
 
