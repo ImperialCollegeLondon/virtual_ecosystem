@@ -27,7 +27,7 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 
 from dataclasses import dataclass
 
-import xarray as xr
+import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
@@ -123,17 +123,17 @@ class Radiation:
 
         # Set the default values if variables not provided in data
         if "sunshine_fraction" not in data:
-            sunshine_fraction: DataArray = xr.DataArray([1.0], dims=["cell_id"])
+            sunshine_fraction: DataArray = DataArray([1.0], dims=["cell_id"])
         else:
             sunshine_fraction = data["sunshine_fraction"]
 
         if "albedo_vis" not in data:
-            albedo_vis: DataArray = xr.DataArray([0.03], dims=["cell_id"])
+            albedo_vis: DataArray = DataArray([0.03], dims=["cell_id"])
         else:
             albedo_vis = data["albedo_vis"]
 
         if "albedo_shortwave" not in data:
-            albedo_shortwave: DataArray = xr.DataArray([0.17], dims=["cell_id"])
+            albedo_shortwave: DataArray = DataArray([0.17], dims=["cell_id"])
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
@@ -191,7 +191,7 @@ class Radiation:
 # helper functions
 def calculate_atmospheric_transmissivity(
     elevation: DataArray,
-    sunshine_fraction: DataArray = xr.DataArray([1.0], dims=["cell_id"]),
+    sunshine_fraction: DataArray = DataArray([1.0], dims=["cell_id"]),
     cloudy_transmissivity: float = RadiationConstants.cloudy_transmissivity,
     transmissivity_coefficient: float = RadiationConstants.transmissivity_coefficient,
     beer_regression: float = RadiationConstants.beer_regression,
@@ -216,11 +216,11 @@ def calculate_atmospheric_transmissivity(
     """
 
     # check sunshine fraction between 0 and 1
-    if 0 >= sunshine_fraction.any() >= 1:
-        to_raise = ValueError(
+    if not np.all(np.logical_and(0 <= sunshine_fraction, sunshine_fraction <= 1)):
+        to_raise = InitialisationError(
             "The fraction of sunshine hours needs to be between 0 and 1!"
         )
-        LOGGER.critical(to_raise)
+        LOGGER.error(to_raise)
         raise to_raise
 
     # calculate transmissivity (tau), unitless
@@ -231,7 +231,7 @@ def calculate_atmospheric_transmissivity(
 def calculate_ppfd(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_vis: DataArray = xr.DataArray([0.03], dims=["cell_id"]),
+    albedo_vis: DataArray = DataArray([0.03], dims=["cell_id"]),
     flux_to_energy: float = RadiationConstants.flux_to_energy,
 ) -> DataArray:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
@@ -254,7 +254,7 @@ def calculate_ppfd(
 def calculate_topofcanopy_radiation(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_shortwave: DataArray = xr.DataArray([0.17], dims=["cell_id"]),
+    albedo_shortwave: DataArray = DataArray([0.17], dims=["cell_id"]),
 ) -> DataArray:
     """Calculate top of canopy shortwave radiation, [J m-2].
 
