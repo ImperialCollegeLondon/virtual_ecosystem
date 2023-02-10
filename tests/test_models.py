@@ -10,7 +10,7 @@ from logging import CRITICAL, ERROR, INFO, WARNING
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.model import InitialisationError
 from virtual_rainforest.models.abiotic.model import AbioticModel
 from virtual_rainforest.models.soil.model import SoilModel
 
@@ -36,12 +36,24 @@ def data_instance():
 
 def test_base_model_initialization(data_instance, mocker):
     """Test `BaseModel` initialization."""
+    from virtual_rainforest.core.model import BaseModel
 
     # Patch abstract methods so that BaseModel can be instantiated for testing
     mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
-    # Patch attributes defined but not set in ABC
-    mocker.patch.object(BaseModel, "required_init_vars", [])
+    # Patch properties defined but not set in ABC
+    mocker.patch.object(
+        BaseModel,
+        "required_init_vars",
+        new_callable=mocker.PropertyMock,
+        return_value=[],
+    )
+    mocker.patch.object(
+        BaseModel,
+        "model_name",
+        new_callable=mocker.PropertyMock,
+        return_value="base",
+    )
 
     # Initialise model
     model = BaseModel(
@@ -146,6 +158,7 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
 )
 def test_register_model_errors(caplog, name, raises, expected_log_entries):
     """Test that the function registering models generates correct errors/warnings."""
+    from virtual_rainforest.core.model import BaseModel
 
     with raises:
 
@@ -161,6 +174,7 @@ def test_register_model_errors(caplog, name, raises, expected_log_entries):
 
 def test_unnamed_model(caplog):
     """Test that the registering a model without a name fails correctly."""
+    from virtual_rainforest.core.model import BaseModel
 
     with pytest.raises(ValueError):
 
