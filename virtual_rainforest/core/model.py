@@ -167,10 +167,15 @@ class BaseModel(ABC):
 
     @classmethod
     def __init_subclass__(cls) -> None:
-        """Method that adds new model classes to the model registry.
+        """Initialise subclasses deriving from BaseModel.
+
+        This method runs when a new BaseModel subclass is imported. It adds the new
+        subclasses to the model registry and validates the values of the class
+        properties.
 
         Raises:
-            ValueError: If model_name attribute isn't defined
+            ValueError: If the model_name or required_init_vars properties are not
+                defined
             TypeError: If model_name is not a string
         """
 
