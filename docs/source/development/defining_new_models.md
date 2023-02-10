@@ -19,10 +19,11 @@ You should first start by defining a new folder for your model (within
 mkdir virtual_rainforest/models/freshwater
 ```
 
-Within this folder a `python` script defining the model should be created.
+Within this folder a `python` script defining the model should be created. This script
+should be called "{MODEL_NAME}_model.py".
 
 ```bash
-touch virtual_rainforest/models/freshwater/model.py
+touch virtual_rainforest/models/freshwater/freshwater_model.py
 ```
 
 This script must import a number of things to be able to set up a new `Model` class
