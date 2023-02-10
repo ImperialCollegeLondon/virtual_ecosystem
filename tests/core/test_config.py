@@ -251,41 +251,30 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     "file_path,expected_log_entries",
     [
         (
-            "tests/fixtures/default_config.toml",  # File entirely of defaults
+            "default_config.toml",  # File entirely of defaults
             (
-                (
-                    INFO,
-                    "Configuration files successfully validated!",
-                ),
-                (
-                    INFO,
-                    "Saving all configuration details to complete_config.toml",
-                ),
+                (INFO, "Configuration files successfully validated!"),
+                (INFO, "Saving all configuration details to"),
             ),
         ),
         (
-            "tests/fixtures/all_config.toml",  # File with no defaults
+            "all_config.toml",  # File with no defaults
             (
-                (
-                    INFO,
-                    "Configuration files successfully validated!",
-                ),
-                (
-                    INFO,
-                    "Saving all configuration details to complete_config.toml",
-                ),
+                (INFO, "Configuration files successfully validated!"),
+                (INFO, "Saving all configuration details to"),
             ),
         ),
     ],
 )
-def test_final_validation_log(caplog, file_path, expected_log_entries):
+def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    config.validate_config([file_path], Path("./complete_config.toml"))
+    outfile = shared_datadir / "complete_config.toml"
+    config.validate_config([shared_datadir / file_path], outfile)
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
-    Path("./complete_config.toml").unlink()
+    outfile.unlink()
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
