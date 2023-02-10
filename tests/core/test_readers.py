@@ -77,19 +77,19 @@ def test_file_format_loader(caplog, file_types, expected_log):
             ((CRITICAL, "Data file not found"),),
         ),
         (
-            "test_data/garbage.nc",
+            "garbage.nc",
             "irrelevant",
             pytest.raises(ValueError),
             ((CRITICAL, "Could not load data from"),),
         ),
         (
-            "test_data/xy_dim.nc",
+            "xy_dim.nc",
             "missing",
             pytest.raises(KeyError),
             ((CRITICAL, "Variable missing not found in"),),
         ),
         (
-            "test_data/xy_dim.nc",
+            "xy_dim.nc",
             "temp",
             does_not_raise(),
             (),
@@ -127,7 +127,7 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
             id="unhandled file format",
         ),
         pytest.param(
-            "test_data/cellid_dims.nc",
+            "cellid_dims.nc",
             does_not_raise(),
             None,
             ((INFO, "Loading variable 'temp' from file:"),),
@@ -151,7 +151,7 @@ def test_load_to_dataarray(
     and the test methods for individual readers should test failure modes.
     """
 
-    # Setup a Data instance to match the example files generated in test_data/
+    # Setup a Data instance to match the example files generated in tests/core/data
 
     from virtual_rainforest.core.readers import load_to_dataarray
 
