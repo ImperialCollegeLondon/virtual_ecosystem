@@ -97,8 +97,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     CRITICAL,
-                    "The following (user provided) config paths do not exist:\n"
-                    "['Nonsense/file/location']",
+                    "The following (user provided) config paths do not exist:",
                 ),
             ),
         ),
@@ -110,13 +109,13 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
                 (
                     CRITICAL,
                     "The following (user provided) config folders do not contain any "
-                    "toml files:\n['.']",
+                    "toml files:",
                 ),
             ),
         ),
         (
-            ["tests/fixtures/", "tests/fixtures/all_config.toml"],
-            [Path("tests/fixtures/all_config.toml")],
+            ["", "all_config.toml"],
+            ["all_config.toml"],
             config.ConfigurationError,
             (
                 (
@@ -129,17 +128,23 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     ],
 )
 def test_collect_files(
-    caplog, mocker, cfg_paths, contents, expected_exception, expected_log_entries
+    caplog,
+    mocker,
+    shared_datadir,
+    cfg_paths,
+    contents,
+    expected_exception,
+    expected_log_entries,
 ):
     """Checks errors for missing config files."""
 
-    # Configure the mock to return a specific list of files
+    # Configure the mock to return a specific list of files when globbing a directory
     mock_get = mocker.patch("virtual_rainforest.core.config.Path.glob")
-    mock_get.return_value = contents
+    mock_get.return_value = [shared_datadir / fn for fn in contents]
 
     # Check that file collection fails as expected
     with pytest.raises(expected_exception):
-        config.collect_files(cfg_paths)
+        config.collect_files([shared_datadir / fn for fn in cfg_paths])
 
     log_check(caplog, expected_log_entries)
 
