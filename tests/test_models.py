@@ -17,14 +17,38 @@ from virtual_rainforest.models.soil.model import SoilModel
 from .conftest import log_check
 
 
-def test_base_model_initialization(caplog, mocker):
+@pytest.fixture(scope="module")
+def data_instance():
+    """Creates a simple data instance for use in testing."""
+    from xarray import DataArray
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid()
+    data = Data(grid=grid)
+
+    data["temperature"] = DataArray([20] * 100, dims="cell_id")
+    data["precipitation"] = DataArray([20] * 100, dims="not_cell_id")
+
+    return data
+
+
+def test_base_model_initialization(data_instance, mocker):
     """Test `BaseModel` initialization."""
 
     # Patch abstract methods so that BaseModel can be instantiated for testing
     mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
+    # Patch attributes defined but not set in ABC
+    mocker.patch.object(BaseModel, "required_init_vars", [])
+
     # Initialise model
-    model = BaseModel(timedelta64(1, "W"), datetime64("2022-11-01"))
+    model = BaseModel(
+        data=data_instance,
+        update_interval=timedelta64(1, "W"),
+        start_time=datetime64("2022-11-01"),
+    )
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
