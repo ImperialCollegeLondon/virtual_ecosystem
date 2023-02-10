@@ -26,6 +26,7 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 # radiation from the plant module)
 
 from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 from xarray import DataArray
@@ -122,18 +123,21 @@ class Radiation:
         # TODO - think about xarray/numpy array and ArrayLike typing
 
         # Set the default values if variables not provided in data
+        sunshine_fraction: Union[DataArray, float]
         if "sunshine_fraction" not in data:
-            sunshine_fraction: DataArray = DataArray([1.0], dims=["cell_id"])
+            sunshine_fraction = 1
         else:
             sunshine_fraction = data["sunshine_fraction"]
 
+        albedo_vis: Union[DataArray, float]
         if "albedo_vis" not in data:
-            albedo_vis: DataArray = DataArray([0.03], dims=["cell_id"])
+            albedo_vis = 0.03
         else:
             albedo_vis = data["albedo_vis"]
 
+        albedo_shortwave: Union[DataArray, float]
         if "albedo_shortwave" not in data:
-            albedo_shortwave: DataArray = DataArray([0.17], dims=["cell_id"])
+            albedo_shortwave = 0.17
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
@@ -231,7 +235,7 @@ def calculate_atmospheric_transmissivity(
 def calculate_ppfd(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_vis: DataArray = DataArray([0.03], dims=["cell_id"]),
+    albedo_vis: Union[DataArray, float] = 0.03,
     flux_to_energy: float = RadiationConstants.flux_to_energy,
 ) -> DataArray:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
@@ -254,7 +258,7 @@ def calculate_ppfd(
 def calculate_topofcanopy_radiation(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_shortwave: DataArray = DataArray([0.17], dims=["cell_id"]),
+    albedo_shortwave: Union[DataArray, float] = 0.17,
 ) -> DataArray:
     """Calculate top of canopy shortwave radiation, [J m-2].
 
@@ -321,11 +325,14 @@ def calculate_netradiation_surface(
     `topofcanopy_radiation` - `canopy_absorption` (summed over all canopy layers)
     - `longwave_canopy` (summed over all canopy layers) - `longwave_soil`.
 
+    Canopy_absorption and longwave_canopy must include the dimension `canopy_layers` and
+    have the correct length.
+
     Args:
         topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
         canopy_absorption: shortwave radiation absorbed by canopy layers, [J m-2]
         longwave_canopy: longwave radiation from canopy layers, [J m-2]
-        longwave_canopy: longwave radiation from canopy layers, [J m-2]
+        longwave_soil: longwave radiation from soil layers, [J m-2]
 
     Returns:
         net shortwave radiation at the surface ( = forest floor), [J m-2]
