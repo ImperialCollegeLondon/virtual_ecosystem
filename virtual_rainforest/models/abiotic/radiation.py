@@ -293,6 +293,7 @@ def calculate_longwave_radiation(
     Returns:
         longwave radiation from n individual canopy layers or soil, [J m-2]
     """
+    # TODO add sanity check for temperature and in celsius?
     # longwave emission canopy
     return (
         emissivity * stefan_boltzmann_constant * (celsius_to_kelvin + temperature) ** 4

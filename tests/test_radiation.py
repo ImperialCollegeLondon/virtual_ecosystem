@@ -2,250 +2,163 @@
 
 from contextlib import nullcontext as does_not_raise
 
-import numpy as np
 import pytest
+import xarray as xr
+from xarray import DataArray
 
-# from virtual_rainforest.core.model import InitialisationError
+from virtual_rainforest.core.model import InitialisationError
 
 
-@pytest.fixture
-def dummy_data():
-    """Creates a dummy data object for use in tests."""
+def test_simple_atmospheric_transmissivity():
+    """Test atmospheric tansmissivity across elevation and sunshine fractions."""
 
-    from xarray import DataArray
+    from virtual_rainforest.models.abiotic import radiation
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    # Setup the data object with two cells.
-    grid = Grid(cell_nx=2, cell_ny=1)
-    data = Data(grid)
-
-    # Add the required data.
-    data["elevation"] = DataArray([100, 1000], dims=["cell_id"])
-    data["shortwave_in"] = DataArray([100000, 100000], dims=["cell_id"])
-    data["sunshine_fraction"] = DataArray([0.5, 1.0], dims=["cell_id"])
-    data["canopy_temperature"] = DataArray(
-        [
-            [25, 22, 20],
-            [25, 22, 20],
-        ],
-        dims=["cell_id", "canopy_layer"],
+    result = radiation.calculate_atmospheric_transmissivity(
+        DataArray([100, 1000], dims="cell_id"), DataArray([0.5, 1.0], dims="cell_id")
     )
-    data["surface_temperature"] = DataArray([20, 20], dims=["cell_id"])
-    data["canopy_absorption"] = DataArray(
-        [
-            [300, 200, 100],
-            [300, 200, 100],
-        ],
-        dims=["cell_id", "canopy_layer"],
-    )
-
-    return data
-
-
-def test_radiation_class(dummy_data):
-    """Test elevation above zero."""
-
-    from virtual_rainforest.models.abiotic.radiation import Radiation
-
-    result = Radiation(dummy_data)
-
-    # Extremely circular test that checks that the results are what they were when we
-    # ran this the first time
-    assert np.allclose(
-        result.netradiation_surface, np.array([39380.78991513, 61682.05986709])
-    )
-
-
-# @pytest.mark.parametrize(
-#     argnames="elev, exp_err, exp_message",
-#     argvalues=[
-#         pytest.param(np.array([100.0, 1000.0]), does_not_raise(), ()),
-#         pytest.param(
-#             np.array([-100.0, 1000.0]),
-#             pytest.raises(InitialisationError),
-#             ("Initial elevation contains at least one negative value!"),
-#         ),
-#     ],
-# )
-# def test_radiation_class_errors(elev, exp_err, exp_message):
-#     """Test elevation above zero."""
-
-#     from virtual_rainforest.models.abiotic.radiation import Radiation
-
-#     with exp_err:
-#         result = Radiation()
-
-#         assert result.elevation.all() == elev.all()
+    xr.testing.assert_allclose(result, DataArray([0.501335, 0.770025], dims="cell_id"))
 
 
 @pytest.mark.parametrize(
-    argnames="elev, sun_frac, exp_tau, exp_err",
+    argnames="elev, sun_frac, exp_err",
     argvalues=[
         pytest.param(
-            np.array([100, 1000]),
-            np.array([0.5, 1.0]),
-            np.array([0.501335, 0.770025]),
+            DataArray([100, 1000], dims="cell_id"),
+            DataArray([0.5, 1.0], dims="cell_id"),
             does_not_raise(),
             id="standard_array_should_get",
         ),
         pytest.param(
-            np.array([100, 1000]),
-            np.array([-0.5, 1.5]),
-            (),
-            pytest.raises(ValueError),
-            id="value_error_sf",
+            DataArray([100, 1000], dims="cell_id"),
+            DataArray([-0.5, 1.5], dims="cell_id"),
+            pytest.raises(InitialisationError),
+            id="InitialisationError_error",
         ),
     ],
 )
-def test_calculate_atmospheric_transmissivity(elev, sun_frac, exp_tau, exp_err):
-    """Test atmospheric tansmissivity across elevation and sunshine fractions."""
+def test_calculate_atmospheric_transmissivity(elev, sun_frac, exp_err):
+    """Test sunshine fractions in range or raise error."""
 
     from virtual_rainforest.models.abiotic import radiation
 
     with exp_err:
-        result = radiation.calculate_atmospheric_transmissivity(elev, sun_frac)
-
-        assert np.allclose(result, exp_tau)
-
-
-@pytest.mark.parametrize(
-    argnames="exp_tau, exp_err",
-    argvalues=[
-        pytest.param(
-            np.array([0.501335, 0.770025]),
-            does_not_raise(),
-            id="using_data_object_should_get",
-        ),
-    ],
-)
-def test_calculate_atmospheric_transmissivity_data(dummy_data, exp_tau, exp_err):
-    """Test atmospheric tansmissivity across elevation and sunshine fractions."""
-
-    from virtual_rainforest.models.abiotic import radiation
-
-    with exp_err:
-        result = radiation.calculate_atmospheric_transmissivity(
-            dummy_data["elevation"], dummy_data["sunshine_fraction"]
+        radiation.calculate_atmospheric_transmissivity(
+            elevation=elev, sunshine_fraction=sun_frac
         )
 
-        assert np.allclose(result, exp_tau)
-
 
 @pytest.mark.parametrize(
-    argnames="input_args, exp_ppfd, exp_err, exp_message",
+    argnames="input, exp_ppfd",
     argvalues=[
         pytest.param(
             {
-                "shortwave_in": np.array([100000, 100000]),
-                "elevation": np.array([100, 100]),
-                "sunshine_fraction": np.array([0.5, 1.0]),
+                "tau": DataArray([0.501335, 0.770025], dims="cell_id"),
+                "shortwave_in": DataArray([100000, 1000000], dims="cell_id"),
+                "albedo_vis": DataArray([0.03, 0.03], dims="cell_id"),
             },
-            np.array([0.09920417, 0.14880625]),
-            does_not_raise(),
-            (),
+            DataArray([0.099204, 1.523725], dims="cell_id"),
             id="standard_array_should_get",
         ),
         pytest.param(
             {
-                "shortwave_in": np.array([100000, 100000]),
-                "elevation": np.array([100, 100]),
+                "tau": DataArray([0.501335, 0.770025], dims="cell_id"),
+                "shortwave_in": DataArray([100000, 1000000], dims="cell_id"),
             },
-            np.array([0.14880625, 0.14880625]),
-            does_not_raise(),
-            ("The sunshine fraction is set to default = 1"),
-            id="no_sf_should_get",
+            DataArray([0.099204, 1.523725], dims="cell_id"),
+            id="check_default",
         ),
     ],
 )
-def test_calc_ppfd(input_args, exp_ppfd, exp_err, exp_message):
-    """Test default sunshine fraction and correct ppfd."""
+def test_calc_ppfd(input, exp_ppfd):
+    """Test default albedo_vis and correct ppfd."""
+
     from virtual_rainforest.models.abiotic import radiation
 
-    with exp_err:
-
-        result = radiation.calculate_ppfd(**input_args)
-        assert np.allclose(result, exp_ppfd)
+    result = radiation.calculate_ppfd(**input)
+    xr.testing.assert_allclose(result, exp_ppfd)
 
 
 @pytest.mark.parametrize(
-    argnames="sw_in, tau, exp_toc_radiation, exp_err",
+    argnames="input, exp_toc",
     argvalues=[
         pytest.param(
-            np.array([100000, 10000000]),
-            np.array([0.75200, 0.770025]),
-            np.array([62251.24974629, 6225127.97051887]),
-            does_not_raise(),
+            {
+                "tau": DataArray([0.501335, 0.770025], dims="cell_id"),
+                "shortwave_in": DataArray([100000, 1000000], dims="cell_id"),
+                "albedo_shortwave": DataArray([0.2, 0.2], dims="cell_id"),
+            },
+            DataArray([40106.8, 616020.0], dims="cell_id"),
             id="standard_array_should_get",
         ),
+        pytest.param(
+            {
+                "tau": DataArray([0.501335, 0.770025], dims="cell_id"),
+                "shortwave_in": DataArray([100000, 1000000], dims="cell_id"),
+            },
+            DataArray([41610.805, 639120.75], dims="cell_id"),
+            id="check_default",
+        ),
     ],
 )
-def test_calc_topofcanopy_radiation(sw_in, tau, exp_toc_radiation, exp_err):
-    """Simple check for correct numbers, better test to be decided."""
+def test_calc_tocradiation(input, exp_toc):
+    """Test default albedo_shortwave and correct top of canopy radiation."""
+
     from virtual_rainforest.models.abiotic import radiation
 
-    with exp_err as err:
-        result = radiation.calculate_topofcanopy_radiation(sw_in, tau)
-
-    if not err:
-        assert np.allclose(result, exp_toc_radiation)
+    result = radiation.calculate_topofcanopy_radiation(**input)
+    xr.testing.assert_allclose(result, exp_toc)
 
 
 @pytest.mark.parametrize(
-    argnames="temp_canopy, temp_soil, exp_lw, exp_err",
+    argnames="input, exp_result",
     argvalues=[
         pytest.param(
-            np.array(
+            DataArray([20, 20], dims="cell_id"),
+            DataArray([397.80135516, 397.80135516], dims="cell_id"),
+            id="soil_longwave",
+        ),
+        pytest.param(
+            DataArray([[25, 22, 20], [25, 22, 20]], dims=["cell_id", "canopy_layers"]),
+            DataArray(
                 [
-                    [25, 22, 20],
-                    [25, 22, 20],
-                ]
-            ),
-            np.array([20, 20]),
-            np.array(
-                [
-                    [425.64341497, 408.76886994, 397.80135516, 397.80135516],
-                    [425.64341497, 408.76886994, 397.80135516, 397.80135516],
+                    [425.64341497, 408.76886994, 397.80135516],
+                    [425.64341497, 408.76886994, 397.80135516],
                 ],
+                dims=["cell_id", "canopy_layers"],
             ),
-            does_not_raise(),
-            id="standard_array_should_get",
+            id="canopy_longwave",
         ),
     ],
 )
-def test_calc_longwave_radiation(temp_canopy, temp_soil, exp_lw, exp_err):
-    """Simple check for correct numbers, better test to be decided."""
+def calc_longwave_radiation(input, exp_result):
+    """Test longwave radiation calculated with correct dimensions."""
+
     from virtual_rainforest.models.abiotic import radiation
 
-    with exp_err:
-        result = radiation.calculate_longwave_radiation(temp_canopy, temp_soil)
-
-        assert np.allclose(result, exp_lw)
+    result = radiation.calculate_longwave_radiation(input)
+    xr.testing.assert_allclose(result, exp_result)
 
 
 @pytest.mark.parametrize(
-    argnames="toc_radiation, lw_rad, rad_absorbed, exp_netrad, exp_err",
+    argnames="toc_rad, canopy_abs, lw_canopy, lw_soil, exp_result",
     argvalues=[
         pytest.param(
-            np.array([10000, 100000]),
-            np.array([[25, 25, 25, 25], [25, 25, 25, 25]]),
-            np.array([[20, 20, 20], [20, 20, 20]]),
-            np.array([9840, 99840]),
-            does_not_raise(),
-            id="standard_array_should_get",
+            DataArray([100000, 100000], dims="cell_id"),
+            DataArray([[25, 25, 25], [25, 25, 25]], dims=["cell_id", "canopy_layers"]),
+            DataArray([[20, 20, 20], [20, 20, 20]], dims=["cell_id", "canopy_layers"]),
+            DataArray([20, 20], dims="cell_id"),
+            DataArray([99845, 99845], dims=["cell_id"]),
+            id="soil_longwave",
         ),
     ],
 )
-def test_calc_netradiation_surface(
-    toc_radiation, lw_rad, rad_absorbed, exp_netrad, exp_err
-):
-    """Simple check for correct numbers, better test to be decided."""
+def test_calculate_netradiation(toc_rad, canopy_abs, lw_canopy, lw_soil, exp_result):
+    """Test sum across canopy layers."""
+
     from virtual_rainforest.models.abiotic import radiation
 
-    with exp_err:
-        result = radiation.calculate_netradiation_surface(
-            toc_radiation, lw_rad, rad_absorbed
-        )
-
-        assert np.allclose(result, exp_netrad)
+    result = radiation.calculate_netradiation_surface(
+        toc_rad, canopy_abs, lw_canopy, lw_soil
+    )
+    xr.testing.assert_allclose(result, exp_result)
