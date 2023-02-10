@@ -6,7 +6,7 @@ from logging import CRITICAL, DEBUG, INFO
 import pytest
 from xarray import DataArray
 
-from .conftest import log_check
+from tests.conftest import log_check
 
 
 @pytest.mark.parametrize(

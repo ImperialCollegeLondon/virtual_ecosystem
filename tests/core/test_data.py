@@ -7,9 +7,8 @@ import numpy as np
 import pytest
 from xarray import DataArray, Dataset
 
+from tests.conftest import log_check
 from virtual_rainforest.core.config import ConfigurationError
-
-from .conftest import log_check
 
 
 @pytest.mark.parametrize(

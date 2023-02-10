@@ -13,9 +13,8 @@ from pathlib import Path
 import pytest
 
 import virtual_rainforest.core.config as config
+from tests.conftest import log_check
 from virtual_rainforest.core.config import register_schema
-
-from .conftest import log_check
 
 
 @pytest.mark.parametrize(
