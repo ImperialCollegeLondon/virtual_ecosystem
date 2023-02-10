@@ -22,6 +22,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
@@ -41,9 +42,11 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """The model name for use in registering the model and logging."""
+    required_init_vars = []
 
     def __init__(
         self,
+        data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
         no_layers: int,
@@ -63,13 +66,13 @@ class SoilModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
         # Save variables names to be used by the __repr__
         self._repr.append("no_layers")
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> SoilModel:
+    def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -77,6 +80,7 @@ class SoilModel(BaseModel):
         invalid rather than returning an initialised model instance an error is raised.
 
         Args:
+            data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) Virtual Rainforest configuration.
 
         Raises:
@@ -110,7 +114,7 @@ class SoilModel(BaseModel):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(update_interval, start_time, no_layers)
+            return cls(data, update_interval, start_time, no_layers)
         else:
             raise InitialisationError()
 

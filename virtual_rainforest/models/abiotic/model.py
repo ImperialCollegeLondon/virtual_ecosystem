@@ -10,6 +10,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import BaseModel, InitialisationError
 
@@ -29,9 +30,11 @@ class AbioticModel(BaseModel):
     """
 
     model_name = "abiotic"
+    required_init_vars = []
 
     def __init__(
         self,
+        data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
         soil_layers: int,
@@ -66,7 +69,7 @@ class AbioticModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, start_time, **kwargs)
         self.soil_layers = int(soil_layers)
         self.canopy_layers = int(canopy_layers)
         # Save variables names to be used by the __repr__
@@ -74,7 +77,7 @@ class AbioticModel(BaseModel):
         self._repr.append("canopy_layers")
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> AbioticModel:
+    def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -82,6 +85,7 @@ class AbioticModel(BaseModel):
         invalid rather than returning an initialised model instance None is returned.
 
         Args:
+            data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
 
         Raises:
@@ -116,7 +120,7 @@ class AbioticModel(BaseModel):
                 "Information required to initialise the abiotic model successfully "
                 "extracted."
             )
-            return cls(update_interval, start_time, soil_layers, canopy_layers)
+            return cls(data, update_interval, start_time, soil_layers, canopy_layers)
         else:
             raise InitialisationError()
 
