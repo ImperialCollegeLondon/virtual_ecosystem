@@ -205,10 +205,15 @@ class BaseModel(ABC):
 
         # Add the new model to the registry
         if cls.model_name in MODEL_REGISTRY:
+            old_class_name = MODEL_REGISTRY[cls.model_name].__name__
             LOGGER.warning(
-                "Model with name %s already exists and is being replaced",
+                "%s already registered under name '%s', replaced with %s",
+                old_class_name,
                 cls.model_name,
+                cls.__name__,
             )
+        else:
+            LOGGER.info("%s registered under name '%s'", cls.__name__, cls.model_name)
 
         MODEL_REGISTRY[cls.model_name] = cls
 
