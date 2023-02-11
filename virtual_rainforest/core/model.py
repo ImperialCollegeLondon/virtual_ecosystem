@@ -73,6 +73,7 @@ from typing import Any, Type
 
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 
@@ -261,23 +262,39 @@ class BaseModel(ABC):
 
             # Get a list of missing axes
             bad_axes = []
+            unknown_axes = []
+            # Could use try: here and let on_core_axis report errors but easier to
+            # provide more clearly structured feedback this way
             for axis in axes:
-                if not self.data.on_core_axis(var, axis):
+                if axis not in AXIS_VALIDATORS:
+                    unknown_axes.append(axis)
+                elif not self.data.on_core_axis(var, axis):
                     bad_axes.append(axis)
 
             # Log the outcome
             if bad_axes:
                 LOGGER.error(
                     f"{self.model_name} model: required var '{var}' "
-                    f"not on axes {','.join(bad_axes)}"
+                    f"not on required axes: {','.join(bad_axes)}"
                 )
                 all_axes_ok = False
-            else:
+
+            # This is not a user error but a programming error in the model - could be
+            # CRITICAL or maybe we want a specific error level for this kind of issue.
+            if unknown_axes:
+                LOGGER.error(
+                    f"{self.model_name} model: unknown axis names set in model "
+                    f"definition for var '{var}': {','.join(unknown_axes)}"
+                )
+                all_axes_ok = False
+
+            if not (bad_axes or unknown_axes):
                 LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
 
         # Raise if any problems found
         if not (all_axes_ok and all_vars_found):
-            raise ValueError(
-                "Required init variables missing or not on core axes in "
-                f"{self.model_name} model: see log"
+            error = ValueError(
+                f"{self.model_name} model: error checking required_init_vars, see log."
             )
+            LOGGER.error(error)
+            raise error
