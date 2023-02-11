@@ -24,6 +24,16 @@ from virtual_rainforest.models.soil.model import SoilModel
 from .conftest import log_check
 
 
+@pytest.fixture
+def data_instance():
+    """Creates an emmpty data instance."""
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid()
+    return Data(grid)
+
+
 @pytest.mark.parametrize(
     "model_list,no_models,raises,expected_log_entries",
     [
@@ -155,13 +165,15 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         ),
     ],
 )
-def test_configure_models(caplog, config, output, raises, expected_log_entries):
+def test_configure_models(
+    caplog, data_instance, config, output, raises, expected_log_entries
+):
     """Test the function that configures the models."""
 
     with raises:
         model_list = select_models(["soil"])
 
-        models = configure_models(config, model_list)
+        models = configure_models(config, data_instance, model_list)
 
         if output is None:
             assert models == [None]
@@ -175,7 +187,7 @@ def test_vr_run_miss_model(mocker, caplog):
     """Test the main `vr_run` function handles missing models correctly."""
 
     mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
-    mock_conf.return_value = {"core": {"modules": ["topsoil"]}}
+    mock_conf.return_value = {"core": {"modules": ["topsoil"], "data": []}}
 
     with pytest.raises(InitialisationError):
         vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
@@ -183,6 +195,7 @@ def test_vr_run_miss_model(mocker, caplog):
         Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
+        (INFO, "Loading data from configuration"),
         (INFO, "Attempting to configure the following models: ['topsoil']"),
         (
             CRITICAL,
@@ -205,6 +218,7 @@ def test_vr_run_bad_model(mocker, caplog):
                 "start_date": "2020-01-01",
                 "end_date": "2120-01-01",
             },
+            "data": [],
         },
         "soil": {
             "model_time_step": "0.5 martian days",
@@ -217,6 +231,7 @@ def test_vr_run_bad_model(mocker, caplog):
         Path("./delete_me.toml").unlink()
 
     expected_log_entries = (
+        (INFO, "Loading data from configuration"),
         (INFO, "Attempting to configure the following models: ['soil']"),
         (
             INFO,
