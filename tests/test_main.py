@@ -27,7 +27,7 @@ from .conftest import log_check
 @pytest.mark.parametrize(
     "model_list,no_models,raises,expected_log_entries",
     [
-        (
+        pytest.param(
             ["soil"],  # valid input
             1,
             does_not_raise(),
@@ -37,8 +37,9 @@ from .conftest import log_check
                     "Attempting to configure the following models: ['soil']",
                 ),
             ),
+            id="valid input",
         ),
-        (
+        pytest.param(
             ["soil", "core"],
             1,
             does_not_raise(),
@@ -48,8 +49,9 @@ from .conftest import log_check
                     "Attempting to configure the following models: ['soil']",
                 ),
             ),
+            id="ignores core",
         ),
-        (
+        pytest.param(
             ["soil", "freshwater"],  # Model that hasn't been defined
             0,
             pytest.raises(InitialisationError),
@@ -65,6 +67,7 @@ from .conftest import log_check
                     " the registry: ['freshwater']",
                 ),
             ),
+            id="undefined model",
         ),
     ],
 )
@@ -82,7 +85,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
 @pytest.mark.parametrize(
     "config,output,raises,expected_log_entries",
     [
-        (
+        pytest.param(
             {  # valid config
                 "soil": {"no_layers": 1, "model_time_step": "7 days"},
                 "core": {"timing": {"start_time": "2020-01-01"}},
@@ -98,8 +101,9 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "extracted.",
                 ),
             ),
+            id="valid config",
         ),
-        (
+        pytest.param(
             {  # invalid soil config tag
                 "soil": {"no_layers": -1, "model_time_step": "7 days"},
                 "core": {"timing": {"start_time": "2020-01-01"}},
@@ -123,8 +127,9 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "simulation.",
                 ),
             ),
+            id="invalid soil config tag",
         ),
-        (
+        pytest.param(
             {  # model_time_step missing units
                 "soil": {"no_layers": 1, "model_time_step": "7"},
                 "core": {"timing": {}},
@@ -146,6 +151,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "simulation.",
                 ),
             ),
+            id="model_time_step missing units",
         ),
     ],
 )
@@ -235,7 +241,7 @@ def test_vr_run_bad_model(mocker, caplog):
 @pytest.mark.parametrize(
     "config,output,raises,expected_log_entries",
     [
-        (
+        pytest.param(
             {
                 "core": {
                     "timing": {
@@ -259,8 +265,9 @@ def test_vr_run_bad_model(mocker, caplog):
                     "requested 15778800 minutes",
                 ),
             ),
+            id="timing correct",
         ),
-        (
+        pytest.param(
             {
                 "core": {
                     "timing": {
@@ -279,8 +286,9 @@ def test_vr_run_bad_model(mocker, caplog):
                     "larger than the run length (1 minutes)",
                 ),
             ),
+            id="run length < update interval",
         ),
-        (
+        pytest.param(
             {
                 "core": {
                     "timing": {
@@ -299,8 +307,9 @@ def test_vr_run_bad_model(mocker, caplog):
                     " days",
                 ),
             ),
+            id="invalid run length units",
         ),
-        (
+        pytest.param(
             {
                 "core": {
                     "timing": {
@@ -319,6 +328,7 @@ def test_vr_run_bad_model(mocker, caplog):
                     " long minutes",
                 ),
             ),
+            id="invalid update_interval units",
         ),
     ],
 )
@@ -337,8 +347,8 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
 @pytest.mark.parametrize(
     "update_interval,expected_log_entries",
     [
-        (timedelta64(2, "W"), ()),
-        (
+        pytest.param(timedelta64(2, "W"), (), id="valid"),
+        pytest.param(
             timedelta64(5, "W"),
             (
                 (
@@ -347,10 +357,11 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
                     "['soil']",
                 ),
             ),
+            id="fast model",
         ),
     ],
 )
-def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_entries):
+def test_check_for_fast_models(caplog, update_interval, expected_log_entries):
     """Test that function to warn user about short module time steps works."""
 
     # Create SoilModel instance and then populate the update_interval
