@@ -254,23 +254,26 @@ class BaseModel(ABC):
             # Record when a variable is missing
             if var not in self.data:
                 LOGGER.error(
-                    f"Required init variable '{var}' missing from data in "
-                    "{self.model_name} model."
+                    f"{self.model_name} model: init data missing required var '{var}'"
                 )
                 all_vars_found = False
                 continue
 
-            # Check for required axes
+            # Get a list of missing axes
+            bad_axes = []
             for axis in axes:
-                axis_ok = self.data.on_core_axis(var, axis)
+                if not self.data.on_core_axis(var, axis):
+                    bad_axes.append(axis)
 
-                if not axis_ok:
-                    LOGGER.error(
-                        f"Required init variable '{var}' not on core axis '{axis}' in "
-                        "{self.model_name} model."
-                    )
-
-                    all_axes_ok = False
+            # Log the outcome
+            if bad_axes:
+                LOGGER.error(
+                    f"{self.model_name} model: required var '{var}' "
+                    f"not on axes {','.join(bad_axes)}"
+                )
+                all_axes_ok = False
+            else:
+                LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
 
         # Raise if any problems found
         if not (all_axes_ok and all_vars_found):
