@@ -181,20 +181,25 @@ class BaseModel(ABC):
 
         excep: Exception
 
-        # Check that model_name exists and is a string
-        if not hasattr(cls, "model_name"):
-            excep = ValueError("Models must have a model_name attribute!")
+        # Check that model_name exists and is a string - if it is not implemented in the
+        # subclass then the object will be of type property
+        if isinstance(cls.model_name, property):
+            excep = NotImplementedError(
+                f"Property model_name is not implemented in {cls.__name__}"
+            )
             LOGGER.error(excep)
             raise excep
 
         if not isinstance(cls.model_name, str):
-            excep = TypeError("Models should only be named using strings!")
+            excep = TypeError(f"Property model_name in {cls.__name__} is not a string")
             LOGGER.error(excep)
             raise excep
 
-        # Check that required_init_vars is set - not testing structure here
-        if not hasattr(cls, "required_init_vars"):
-            excep = ValueError("BaseModel subclasses must define required_init_vars")
+        # Check that required_init_vars is set - TODO - not testing structure here
+        if isinstance(cls.required_init_vars, property):
+            excep = NotImplementedError(
+                f"Property required_init_vars is not implemented in {cls.__name__}"
+            )
             LOGGER.error(excep)
             raise excep
 
