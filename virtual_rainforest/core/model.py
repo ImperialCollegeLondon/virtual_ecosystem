@@ -228,10 +228,7 @@ class BaseModel(ABC):
 
     def __str__(self) -> str:
         """Inform user what the model type is."""
-        if hasattr(self, "model_name"):
-            return f"A {self.model_name} model instance"
-        else:
-            return "A base model instance"
+        return f"A {self.model_name} model instance"
 
     def check_required_init_vars(self) -> None:
         """Check the required set of variables is present.
