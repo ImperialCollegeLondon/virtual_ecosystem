@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.core.base_model`module provides a consistent API across
+"""The :mod:`~virtual_rainforest.core.base_model` module provides a consistent API across
 models for the Virtual Rainforest model: that is, a common set of functions which work
 the same across all modules. This cannot exist at a low level, as the basic classes and
 functions will differ massively between modules (e.g. :mod:`~virtual_rainforest.abiotic`
