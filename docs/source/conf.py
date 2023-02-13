@@ -58,6 +58,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "autodocsumm",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
     # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
@@ -68,6 +69,16 @@ extensions = [
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+
+# Reference checking
+nitpicky = True
+intersphinx_mapping = {
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
+    "shapely": ("https://shapely.readthedocs.io/en/latest/", None),
+}
+
 
 # Set auto labelling to section level
 autosectionlabel_prefix_document = True
