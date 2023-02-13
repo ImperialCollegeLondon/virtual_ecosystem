@@ -14,27 +14,58 @@ temperatures, and radiative fluxes.
 """
 
 
-import dummy_constants as C
-import dummy_data as data  # external driving data at reference height/depth
-import numpy as np
-from numpy.typing import NDArray
+from dataclasses import dataclass
 
-from virtual_rainforest.core.logger import log_and_raise
+import numpy as np
+from xarray import DataArray
+
+from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.model import InitialisationError
 
-# this will link to other modules via the `data` object
-# at the moment 1 cell_id, 3 canopy layers, 2 soil layers
-# from plants get leaf_area_index, canopy_height, absorbed_radiation
-leaf_area_index = np.ones(3, dtype=np.float32)
-canopy_height = np.array(20.0, dtype=np.float32)
-absorbed_radiation = np.array(100.0, dtype=np.float32)  # NOT for initialisation
+# from typing import Union
 
-# from radiation get topofcanopy_radiation
-topofcanopy_radiation = np.array(350.0, dtype=np.float32)
 
-# from wind get wind_above_canopy, wind_below_canopy
-wind_above_canopy = np.array(2.0, dtype=np.float32)
-wind_below_canopy = np.ones(3, dtype=np.float32)
+@dataclass
+class EnergyBalanceConstants:
+    """Energy balance constants class."""
+
+    LEAF_TEMPERATURE_INI_FACTOR = 0.01
+    """Factor used to initialise leaf temperature."""
+    SOIL_DIVISION_FACTOR = 2.42
+    """Factor defines how to divide soil into layers with increasing thickness,
+    alternative value 1.2."""
+    MIN_LEAF_CONDUCTIVITY = 0.25
+    """Minimum leaf conductivity, typical value for decidious forest with wind above
+    canopy 2 m/s."""
+    MAX_LEAF_CONDUCTIVITY = 0.32
+    """Maximum leaf conductivity, typical value for decidious forest with wind above
+    canopy 2 m/s."""  # add reference
+    AIR_CONDUCTIVITY = 50.0
+    """Initial air conductivity, typical value for decidious forest with wind above
+    canopy 2 m/s."""  # add reference
+    MIN_LEAF_AIR_CONDUCTIVITY = 0.13
+    """Minimum conductivity between leaf and air, typical value for decidious forest
+    with wind above canopy 2 m/s."""  # add reference
+    MAX_LEAF_AIR_CONDUCTIVITY = 0.19
+    """Maximum conductivity between leaf and air, typical value for decidious forest
+    with wind above canopy 2 m/s."""  # add reference
+    KARMANS_CONSTANT = 0.4
+    """Constant to calculate mixing length."""
+    CELSIUS_TO_KELVIN = 273.15
+    """Factor to convert temperature in Celsius to absolute temperature in Kelvin."""
+    STANDARD_MOLE = 44.6
+    """Moles of ideal gas in 1 m3 air at standard atmosphere."""
+    MOLAR_HEAT_CAPACITY_AIR = 29.19
+    """Molar heat capacity of air [J mol-1 C-1]."""
+    VAPOR_PRESSURE_FACTOR1 = 0.6108
+    """Constant in calculation of vapor pressure."""
+    VAPOR_PRESSURE_FACTOR2 = 17.27
+    """Constant in calculation of vapor pressure."""
+    VAPOR_PRESSURE_FACTOR3 = 237.7
+    """Constant in calculation of vapor pressure."""
+    LIGHT_EXCTINCTION_COEFFICIENT = 0.01
+    """Default light extinction coefficient for canopy."""
 
 
 class EnergyBalance:
@@ -42,78 +73,75 @@ class EnergyBalance:
 
     def __init__(
         self,
-        soil_type: NDArray[np.string_],
-        soil_layers: int = 2,  # TODO from config
-        canopy_layers: int = 3,  # TODO from config
-        initial_canopy_height: NDArray[np.float32] = np.array(20.0, dtype=np.float32),
+        data: Data,
+        const: EnergyBalanceConstants = EnergyBalanceConstants(),
     ) -> None:
         """Initializes point-based energy_balance method.
 
         This function sets the boundary conditions for the vertical profile and loads
-        the soil parameters.
+        the soil parameters. Creating an instance of this class expects a `data` object
+        that contains the following variables:
+
+        # from plants get leaf_area_index, canopy_height, absorbed_radiation
+        leaf_area_index = np.ones(3, dtype=np.float32)
+        canopy_height = np.array(20.0, dtype=np.float32)
+        absorbed_radiation = np.array(100.0, dtype=np.float32)  # NOT for initialisation
+
+        # from radiation get topofcanopy_radiation
+        topofcanopy_radiation = np.array(350.0, dtype=np.float32)
+
+        # from wind get wind_above_canopy, wind_below_canopy
+        wind_above_canopy = np.array(2.0, dtype=np.float32)
+        wind_below_canopy = np.ones(3, dtype=np.float32)
+
+        # soil type and soil parameters
+        soil depth
         """
 
-        # set boundary conditions for vertical profile
-        self.soil_type = soil_type
-        """Soil type"""
-        self.soil_parameters = data.soil_parameters[soil_type]
-        """Dict of soil type specific soil parameters."""
-        self.soil_depth = data.data["soil_depth"]
-        """Soil depth [m]"""
-        self.soil_layers = soil_layers
-        """Number of soil layers. Currently static."""
-        self.canopy_layers = canopy_layers
-        """Number of canopy layers."""
-        self.canopy_height = initial_canopy_height
-        """Canopy height [m]"""
-
         # populated later:
-        self.soil_temperature: NDArray[np.float32]
+        self.soil_temperature: DataArray(dims=["soil_layers", "cell_id"])
         """Vertical profile of soil temperatures [C]."""
-        self.absorbed_radiation: NDArray[np.float32]
-        """Radiation absorbed by canopy [W m-2]"""
-        self.air_temperature: NDArray[np.float32]
+        self.air_temperature: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of atmospheric temperatures [C]."""
-        self.canopy_temperature: NDArray[np.float32]
+        self.canopy_temperature: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of canopy temperatures [C]."""
-        self.relative_humidity: NDArray[np.float32]
+        self.relative_humidity: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of atmospheric relative humidity [%]."""
-        self.atmospheric_pressure: NDArray[np.float32]
+        self.atmospheric_pressure: DataArray(dims=["cell_id"])
         """Atmospheric pressure [kPa]"""
-        self.air_conductivity: NDArray[np.float32]
+        self.air_conductivity: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of air conductivities [mol m-2 s-1]"""
-        self.leaf_conductivity: NDArray[np.float32]
+        self.leaf_conductivity: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of leaf conductivities [mol m-2 s-1]"""
-        self.air_leaf_conductivity: NDArray[np.float32]
+        self.air_leaf_conductivity: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of air-leaf conductivities [mol m-2 s-1]"""
-        self.canopy_node_heights: NDArray[np.float32]
+        self.canopy_node_heights: DataArray(dims=["canopy_layers", "cell_id"])
         """Canopy node heights [m]"""
-        self.soil_node_depths: NDArray[np.float32]
+        self.soil_node_depths: DataArray(dims=["soil_layers", "cell_id"])
         """Soil node depths [m]"""
-        self.height_of_above_canopy: NDArray[np.float32]
+        self.height_of_above_canopy: DataArray(dims=["cell_id"])
         """Height defined as 'height above canopy' [m]"""
-        self.canopy_wind_speed: NDArray[np.float32]
+        self.canopy_wind_speed: DataArray(dims=["canopy_layers", "cell_id"])
         """Vertical profile of canopy wind speed [m s-1]"""
-        self.sensible_heat_flux: NDArray[np.float32]
+        self.sensible_heat_flux: DataArray(dims=["cell_id"])
         """Sensible Heat flux [J m-2]"""
-        self.latent_heat_flux: NDArray[np.float32]
+        self.latent_heat_flux: DataArray(dims=["cell_id"])
         """Latent Heat flux [J m-2]"""
-        self.ground_heat_flux: NDArray[np.float32]
+        self.ground_heat_flux: DataArray(dims=["cell_id"])
         """Ground Heat flux [J m-2]"""
-        self.diabatic_correction_factor: NDArray[np.float32]
+        self.diabatic_correction_factor: DataArray(dims=["cell_id"])
         """Diabatic correction factor [-]"""
 
     def initialise_vertical_profile(  # this could later move to AbioticModel ini step
         self,
-        leaf_area_index: NDArray[np.float32],
-        topofcanopy_radiation: NDArray[np.float32],
+        leaf_area_index: DataArray(dims=["cell_id"]),
+        topofcanopy_radiation: DataArray(dims=["cell_id"]),
         interpolation_method: str = "linear",
     ) -> None:
         """Generates a set of initial climate, conductivity, and soil parameters.
 
         This function populates the following attributes for running the first time step
         of the energy balance:
-        * data_t (climate input data at current time step),
         * absorbed_radiation (after the first time step, this is an input from the plant
             module), [J m-2]
         * air_temperature, soil_temperature, canopy_temperature, [C]
