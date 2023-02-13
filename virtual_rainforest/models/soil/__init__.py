@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.models.soil.model import SoilModel  # noqa: F401
+from virtual_rainforest.models.soil.soil_model import SoilModel  # noqa: F401
 
 
 @register_schema("soil")
