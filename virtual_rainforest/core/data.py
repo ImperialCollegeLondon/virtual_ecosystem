@@ -29,9 +29,9 @@ following functionality:
 * It allows a ``DataArray`` to be added to a :class:`~virtual_rainforest.core.data.Data`
   instance using the ``data['varname'] = data_array`` syntax.
 * It applies the validation step using the
-  :func:`~virtual_rainforest.core.axes.validate_datarray` function. See the
+  :func:`~virtual_rainforest.core.axes.validate_dataarray` function. See the
   :mod:`~virtual_rainforest.core.axes` module for the details of the validation process,
-  including the :class:`~virtual_rainforest.core.axes.AxisValidators` class and the
+  including the :class:`~virtual_rainforest.core.axes.AxisValidator` class and the
   concept of core axes.
 * It inserts the data into the :class:`~xarray.DataSet` instance stored in the
   :attr:`~virtual_rainforest.core.data.Data.data` attribute.
@@ -160,7 +160,7 @@ class Data:
 
         The validation details for each variable is stored in this dictionary using the
         variable name as a key. The validation details are a dictionary, keyed using
-        core axis names, of the :class:`~virtual_rainforest.core.axis.AxisValidator`
+        core axis names, of the :class:`~virtual_rainforest.core.axes.AxisValidator`
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """
