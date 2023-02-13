@@ -1,37 +1,14 @@
-"""Test module for model.py (and associated functionality).
-
-This module tests the functionality of model.py, as well as other bits of code that
-define models based on the class defined in model.py
-"""
+"""Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO, WARNING
+from logging import ERROR, INFO
 
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, InitialisationError
-from virtual_rainforest.soil.model import SoilModel
-
-from .conftest import log_check
-
-
-def test_base_model_initialization(caplog, mocker):
-    """Test `BaseModel` initialization."""
-
-    # Patch abstract methods so that BaseModel can be instantiated for testing
-    mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
-
-    # Initialise model
-    model = BaseModel(timedelta64(1, "W"), datetime64("2022-11-01"))
-
-    # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-    assert model.name == "base"
-    assert str(model) == "A base model instance"
-    assert (
-        repr(model) == "BaseModel(update_interval = 1 weeks, next_update = 2022-11-08)"
-    )
+from tests.conftest import log_check
+from virtual_rainforest.core.model import InitialisationError
+from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
 @pytest.mark.parametrize(
@@ -47,7 +24,7 @@ def test_base_model_initialization(caplog, mocker):
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the soil model!",
                 ),
             ),
@@ -57,7 +34,7 @@ def test_base_model_initialization(caplog, mocker):
             pytest.raises(InitialisationError),
             (
                 (
-                    CRITICAL,
+                    ERROR,
                     "The number of soil layers must be an integer!",
                 ),
             ),
@@ -73,7 +50,7 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-        assert model.name == "soil"
+        assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
         assert (
             repr(model)
@@ -82,22 +59,6 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
         )
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
-
-
-def test_register_model_errors(caplog):
-    """Test that the schema registering models generates correct errors/warnings."""
-
-    class NewSoilModel(BaseModel, model_name="soil"):
-        """Test class for use in testing __init_subclass__."""
-
-    # Then check that the correct (warning) log messages are emitted
-    expected_log_entries = (
-        (
-            WARNING,
-            "Model with name soil already exists and is being replaced",
-        ),
-    )
     log_check(caplog, expected_log_entries)
 
 

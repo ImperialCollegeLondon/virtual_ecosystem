@@ -19,7 +19,7 @@ from virtual_rainforest.main import (
     select_models,
     vr_run,
 )
-from virtual_rainforest.soil.model import SoilModel
+from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
 
@@ -114,7 +114,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "extracted.",
                 ),
                 (
-                    CRITICAL,
+                    ERROR,
                     "There has to be at least one soil layer in the soil model!",
                 ),
                 (
@@ -172,7 +172,7 @@ def test_vr_run_miss_model(mocker, caplog):
     mock_conf.return_value = {"core": {"modules": ["topsoil"]}}
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        vr_run("path/does/not/need/to/exist", Path("./delete_me.toml"))
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
 
@@ -206,7 +206,7 @@ def test_vr_run_bad_model(mocker, caplog):
     }
 
     with pytest.raises(InitialisationError):
-        vr_run("tests/fixtures/all_config.toml", Path("./delete_me.toml"))
+        vr_run("path/does/not/need/to/exist", Path("./delete_me.toml"))
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
 
@@ -350,7 +350,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         ),
     ],
 )
-def test_check_for_fast_models(caplog, mocker, update_interval, expected_log_entries):
+def test_check_for_fast_models(caplog, update_interval, expected_log_entries):
     """Test that function to warn user about short module time steps works."""
 
     # Create SoilModel instance and then populate the update_interval
