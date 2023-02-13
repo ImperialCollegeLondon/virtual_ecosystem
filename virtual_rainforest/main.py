@@ -10,9 +10,13 @@ from typing import Any, Type, Union
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.base_model import (
+    MODEL_REGISTRY,
+    BaseModel,
+    InitialisationError,
+)
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import MODEL_REGISTRY, BaseModel, InitialisationError
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:

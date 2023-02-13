@@ -1,9 +1,9 @@
 """The :mod:`~virtual_rainforest.models.soil.soil_model` module creates a
 :class:`~virtual_rainforest.models.soil.soil_model.SoilModel` class as a child of the
-:class:`~virtual_rainforest.core.model.BaseModel` class. At present a lot of the
+:class:`~virtual_rainforest.core.base_model.BaseModel` class. At present a lot of the
 abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.model.BaseModel.setup` and
-:func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
+:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
+:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
 :mod:`virtual_rainforest` model develops. The factory method
 :func:`~virtual_rainforest.models.soil.soil_model.SoilModel.from_config` exists in a
@@ -23,8 +23,8 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class SoilModel(BaseModel):
