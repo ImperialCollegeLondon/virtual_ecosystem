@@ -1,7 +1,7 @@
 """Test module for model.py (and associated functionality).
 
-This module tests the functionality of model.py, as well as other bits of code that
-define models based on the class defined in model.py
+This module tests the functionality of model.py, which defines the basic model API that
+specific models (e.g. `soil_model.py`) utilise.
 """
 
 from contextlib import nullcontext as does_not_raise

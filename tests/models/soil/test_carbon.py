@@ -9,10 +9,9 @@ from logging import ERROR
 import numpy as np
 import pytest
 
+from tests.conftest import log_check
 from virtual_rainforest.core.model import InitialisationError
 from virtual_rainforest.models.soil.carbon import SoilCarbonPools
-
-from .conftest import log_check
 
 
 @pytest.mark.parametrize(
