@@ -188,12 +188,12 @@ class BaseModel(ABC):
             excep = NotImplementedError(
                 f"Property model_name is not implemented in {cls.__name__}"
             )
-            LOGGER.error(excep)
+            LOGGER.critical(excep)
             raise excep
 
         if not isinstance(cls.model_name, str):
             excep = TypeError(f"Property model_name in {cls.__name__} is not a string")
-            LOGGER.error(excep)
+            LOGGER.critical(excep)
             raise excep
 
         # Check that required_init_vars is set - TODO - not testing structure here
@@ -201,7 +201,7 @@ class BaseModel(ABC):
             excep = NotImplementedError(
                 f"Property required_init_vars is not implemented in {cls.__name__}"
             )
-            LOGGER.error(excep)
+            LOGGER.critical(excep)
             raise excep
 
         # Add the new model to the registry
