@@ -35,7 +35,7 @@ Each of the core sub-modules has its own API reference page:
   ensure that it is congruent with the model configuration.
 * The {mod}`~virtual_rainforest.core.readers` submodule provides functionality to read
   external data files into a standard internal format.
-* The {mod}`~virtual_rainforest.core.model` submodule provides an Abstract
+* The {mod}`~virtual_rainforest.core.base_model` submodule provides an Abstract
   Base Class describing the shared API to be used by science models within the Virtual
   Rainforest.
 * The {mod}`~virtual_rainforest.core.logger` configures the {class}`~logging.LOGGER`

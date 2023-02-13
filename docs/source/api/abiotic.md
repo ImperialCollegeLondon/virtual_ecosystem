@@ -23,6 +23,6 @@ balance.
 
 Each of the abiotic sub-modules has its own API reference page:
 
-* The {mod}`~virtual_rainforest.models.abiotic.model` submodule instantiates the
+* The {mod}`~virtual_rainforest.models.abiotic.abiotic_model` submodule instantiates the
   AbioticModel class which consolidates the functionality of the abiotic module into a
   single class, which the high level functions of the Virtual Rainforest can then use.

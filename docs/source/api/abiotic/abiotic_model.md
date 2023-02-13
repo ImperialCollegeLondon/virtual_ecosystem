@@ -17,7 +17,7 @@ kernelspec:
 # API documentation for the {mod}`~virtual_rainforest.models.abiotic.model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic.model
+.. automodule:: virtual_rainforest.models.abiotic.abiotic_model
     :autosummary:
     :members:
     :special-members: __init_subclass__, __repr__, __str__
