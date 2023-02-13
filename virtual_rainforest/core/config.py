@@ -235,8 +235,12 @@ def check_outfile(merge_file_path: Path) -> None:
             directory, or the final output file already exists.
     """
 
-    # Extract parent folder name and output file name
-    parent_fold = merge_file_path.parent.relative_to(".")
+    # Extract parent folder name and output file name. If this is a relative path, it is
+    # expected to be relative to where the command is being run.
+    if not merge_file_path.is_absolute():
+        parent_fold = merge_file_path.parent.relative_to(".")
+    else:
+        parent_fold = merge_file_path.parent
     out_file_name = merge_file_path.name
 
     # Throw critical error if the output folder doesn't exist
