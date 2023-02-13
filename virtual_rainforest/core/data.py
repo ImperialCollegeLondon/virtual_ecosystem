@@ -74,7 +74,7 @@ The general solution for programmatically adding data from a file is to:
 * use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_rainforest.core.data.Data` instance.
 
-The  :meth:`~virtual_rainforest.core.reader.load_to_dataarray` implements data loading
+The  :func:`~virtual_rainforest.core.reader.load_to_dataarray` implements data loading
 to a DataArray for some known file formats, using file reader functions described in the
 :mod:`~virtual_rainforest.core.readers` module. See the details of that module for
 supported formats and for extending the system to additional file formats.
@@ -91,7 +91,7 @@ Using a data configuration
 --------------------------
 
 A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
-:meth:`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to
+:meth:`~virtual_rainforest.core.data.Data.load_data_config` method. This is expecting to
 take a properly validated configuration dictionary, typically loaded from a TOML file
 during configuration (see :class:`~virtual_rainforest.core.config`). The expected
 structure is as follows:

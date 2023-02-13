@@ -14,7 +14,7 @@ The FILE_FORMAT_REGISTRY
 
 The :attr:`~virtual_rainforest.core.reader.FILE_FORMAT_REGISTRY` is used to register a
 set of known file formats for use in
-:meth:`~virtual_rainforest.core.reader.load_to_dataarray`. This registry is extendable,
+:func:`~virtual_rainforest.core.reader.load_to_dataarray`. This registry is extendable,
 so that new functions that implement data loading for a given file format can be added.
 
 New file format readers are made available using the
