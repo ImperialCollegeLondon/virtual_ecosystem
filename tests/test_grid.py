@@ -103,7 +103,6 @@ def test_grid_exceptions(mocker, grid_type, excep_type, message):
     )
 
     with pytest.raises(excep_type) as err:
-
         Grid(grid_type=grid_type)
 
     assert str(err.value) == message
@@ -364,7 +363,6 @@ def test_map_xy_to_cell_ids(
     """
 
     with exp_exception as excep:
-
         cell_map = fixture_square_grid.map_xy_to_cell_id(
             np.array(x_coord), np.array(y_coord)
         )
@@ -486,7 +484,6 @@ def test_map_xy_to_cell_indexing(
     """
 
     with exp_exception as excep:
-
         x_idx, y_idx = fixture_square_grid.map_xy_to_cell_indexing(
             x_coord, y_coord, x_idx, y_idx
         )

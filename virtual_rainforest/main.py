@@ -233,7 +233,6 @@ def vr_run(
 
     # Setup the timing loop
     while current_time < end_time:
-
         current_time += update_interval
 
         # Get the names of models that have expired due dates
@@ -242,7 +241,7 @@ def vr_run(
         # Run their update() method and update due dates for all expired models
         for mod_nm in update_needed:
             models_cfd[mod_nm].update()
-            update_due[mod_nm] = models_cfd[mod_nm].next_update()
+            update_due[mod_nm] = models_cfd[mod_nm].next_update
 
         # TODO - Save model state
 

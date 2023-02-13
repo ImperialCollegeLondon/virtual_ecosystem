@@ -53,7 +53,6 @@ def register_grid(grid_type: str) -> Callable:
     """
 
     def decorator_register_grid(func: Callable) -> Callable:
-
         # Add the grid type to the registry
         if grid_type in GRID_REGISTRY:
             LOGGER.warning(
@@ -203,7 +202,6 @@ class Grid:
         xoff: float = 0,
         yoff: float = 0,
     ) -> None:
-
         # Populate the attributes
         self.grid_type = grid_type
         """The grid type used to create the instance"""
@@ -335,7 +333,6 @@ class Grid:
         features = []
 
         for idx, poly in zip(self.cell_id, self.polygons):
-
             # Get the coordinates of the outer ring - we are not expecting any holes in
             # grid cell polygons - and wrap in a list to provide Polygon structure.
             coords = [np.round(poly.exterior.coords, decimals=dp).tolist()]

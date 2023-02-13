@@ -68,7 +68,6 @@ def register_file_format_loader(file_types: tuple[str]) -> Callable:
     """
 
     def decorator_file_format_loader(func: Callable) -> Callable:
-
         # Ensure file_type is an iterable
         if isinstance(file_types, str):
             _file_types = (file_types,)
@@ -77,7 +76,6 @@ def register_file_format_loader(file_types: tuple[str]) -> Callable:
 
         # Register the mapper function for each combination of grid type and file type
         for this_ft in _file_types:
-
             if this_ft in FILE_FORMAT_REGISTRY:
                 LOGGER.debug(
                     "Replacing existing data loader function for %s",
