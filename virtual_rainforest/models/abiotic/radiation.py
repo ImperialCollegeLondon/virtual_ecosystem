@@ -110,9 +110,8 @@ class Radiation:
     def __init__(
         self, data: Data, const: RadiationConstants = RadiationConstants()
     ) -> None:
-
         # check that elevation is above sea level
-        # TODO check if equation permits negative values
+        # TODO check if equation permits negative values -> set to sea level
         if data["elevation"].any() < 0:
             to_raise = InitialisationError(
                 "Initial elevation contains at least one negative value!"
@@ -201,6 +200,12 @@ def calculate_atmospheric_transmissivity(
 ) -> DataArray:
     """Calculate atmospheric transmissivity (tau).
 
+    Atmospheric transmissivity (tau)influences the surface energy balance by determining
+    the fraction of incoming solar radiation reaching the surface to the one at the top
+    of the atmosphere. The main factors affecting tau are fraction of sunshine hours and
+    elevation, and atmospheric composition (represented by transmissivity coefficients
+    here).
+
     Args:
         elevation: elevation above sea level, [m]
         sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
@@ -225,7 +230,7 @@ def calculate_atmospheric_transmissivity(
         LOGGER.error(to_raise)
         raise to_raise
 
-    # calculate transmissivity (tau), unitless
+    # calculate transmissivity
     tau_o = cloudy_transmissivity + transmissivity_coefficient * sunshine_fraction
     return tau_o * (1.0 + beer_regression * elevation)
 
@@ -280,6 +285,9 @@ def calculate_longwave_radiation(
 ) -> DataArray:
     """Calculate longwave emission, [J m-2].
 
+    Longwave radiation is calculated following the Stefan-Boltzmann law as a function of
+    surface temperature (in Kelvin) to the fourth power.
+
     Args:
         temperature: canopy or soil temperature of n layers, [C]; the array size is
             set to max number of layers (n_max) and filled with NaN where n < n_max
@@ -306,12 +314,12 @@ def calculate_netradiation_surface(
 ) -> DataArray:
     """Calculate net shortwave radiation at the surface, [J m-2].
 
-    The net shortwave radiation RN at the forest floor is calculated as
+    The net shortwave radiation (RN) at the forest floor is calculated as
     `topofcanopy_radiation` - `canopy_absorption` (summed over all canopy layers)
     - `longwave_canopy` (summed over all canopy layers) - `longwave_soil`.
 
     Canopy_absorption and longwave_canopy must include the dimension `canopy_layers` and
-    have the correct length.
+    have the correct length (length of cell_id).
 
     Args:
         topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
@@ -322,6 +330,8 @@ def calculate_netradiation_surface(
     Returns:
         net shortwave radiation at the surface ( = forest floor), [J m-2]
     """
+
+    # TODO raise error if canopy_layers don't have correct dimensions, not here?
     return (
         topofcanopy_radiation
         - canopy_absorption.sum(dim="canopy_layers")
