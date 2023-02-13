@@ -1,4 +1,4 @@
-"""Test module for model.py (and associated functionality).
+"""Test module for model.py.
 
 This module tests the functionality of model.py, which defines the basic model API that
 specific models (e.g. `soil_model.py`) utilise.

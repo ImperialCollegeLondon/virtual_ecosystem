@@ -1,4 +1,4 @@
-"""Test module for soil_model.py (and associated functionality)."""
+"""Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
