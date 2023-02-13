@@ -15,4 +15,4 @@ from virtual_rainforest.core import schema  # noqa: F401
 for module_info in pkgutil.iter_modules(vfm.__path__):
     import_module(f"virtual_rainforest.models.{module_info.name}")
 
-    __version__ = importlib.metadata.version("virtual_rainforest")
+__version__ = importlib.metadata.version("virtual_rainforest")
