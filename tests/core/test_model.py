@@ -5,7 +5,7 @@ specific models (e.g. `soil_model.py`) utilise.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from typing import Any
 
 import pytest
@@ -42,7 +42,7 @@ def data_instance():
             "UnnamedModel",
             pytest.raises(NotImplementedError),
             "Property model_name is not implemented in UnnamedModel",
-            [(ERROR, "Property model_name is not implemented in UnnamedModel")],
+            [(CRITICAL, "Property model_name is not implemented in UnnamedModel")],
             id="undefined model_name",
         ),
         pytest.param(
@@ -53,7 +53,7 @@ def data_instance():
             "UnnamedModel",
             pytest.raises(TypeError),
             "Property model_name in UnnamedModel is not a string",
-            [(ERROR, "Property model_name in UnnamedModel is not a string")],
+            [(CRITICAL, "Property model_name in UnnamedModel is not a string")],
             id="nonstring model_name",
         ),
         pytest.param(
@@ -64,7 +64,12 @@ def data_instance():
             "UnnamedModel",
             pytest.raises(NotImplementedError),
             "Property required_init_vars is not implemented in UnnamedModel",
-            [(ERROR, "Property required_init_vars is not implemented in UnnamedModel")],
+            [
+                (
+                    CRITICAL,
+                    "Property required_init_vars is not implemented in UnnamedModel",
+                )
+            ],
             id="Undefined required_init_vars",
         ),
         pytest.param(
