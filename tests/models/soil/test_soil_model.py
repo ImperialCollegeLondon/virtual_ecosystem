@@ -11,6 +11,16 @@ from virtual_rainforest.core.model import InitialisationError
 from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
+@pytest.fixture
+def data_instance():
+    """Simple data instance to use in model init."""
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid()
+    return Data(grid)
+
+
 @pytest.mark.parametrize(
     "no_layers,raises,expected_log_entries",
     [
@@ -41,12 +51,16 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
         ),
     ],
 )
-def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entries):
+def test_soil_model_initialization(
+    caplog, data_instance, no_layers, raises, expected_log_entries
+):
     """Test `SoilModel` initialization."""
 
     with raises:
         # Initialize model
-        model = SoilModel(timedelta64(1, "W"), datetime64("2022-11-01"), no_layers)
+        model = SoilModel(
+            data_instance, timedelta64(1, "W"), datetime64("2022-11-01"), no_layers
+        )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
@@ -89,13 +103,13 @@ def test_soil_model_initialization(caplog, no_layers, raises, expected_log_entri
     ],
 )
 def test_generate_soil_model(
-    caplog, config, time_interval, raises, expected_log_entries
+    caplog, data_instance, config, time_interval, raises, expected_log_entries
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = SoilModel.from_config(config)
+        model = SoilModel.from_config(data_instance, config)
         assert model.no_layers == config["soil"]["no_layers"]
         assert model.update_interval == time_interval
         assert (
