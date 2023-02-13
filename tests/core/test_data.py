@@ -7,9 +7,8 @@ import numpy as np
 import pytest
 from xarray import DataArray, Dataset
 
+from tests.conftest import log_check
 from virtual_rainforest.core.config import ConfigurationError
-
-from .conftest import log_check
 
 
 @pytest.mark.parametrize(
@@ -251,7 +250,7 @@ def test_Data_contains(fixture_data, var_name, expected):
 def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     """Test the coding of the name handling and replacement."""
 
-    # Setup a Data instance to match the example files generated in test_data/
+    # Setup a Data instance to match the example files generated in tests/core/data
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
@@ -272,7 +271,7 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     caplog.clear()
 
     # Load the data from file
-    datafile = shared_datadir / "test_data/cellid_coords.nc"
+    datafile = shared_datadir / "cellid_coords.nc"
 
     data[name] = load_to_dataarray(file=datafile, var_name=name)
 
@@ -323,7 +322,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_dims.nc",
+            "cellid_dims.nc",
             does_not_raise(),
             None,
             (
@@ -335,7 +334,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_dim_too_few.nc",
+            "cellid_dim_too_few.nc",
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 60",
             (
@@ -348,7 +347,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_dim_too_many.nc",
+            "cellid_dim_too_many.nc",
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 200",
             (
@@ -361,7 +360,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_coords.nc",
+            "cellid_coords.nc",
             does_not_raise(),
             None,
             (
@@ -373,7 +372,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_coords_too_few.nc",
+            "cellid_coords_too_few.nc",
             pytest.raises(ValueError),
             "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
             (
@@ -390,7 +389,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["__any__"],
-            "test_data/cellid_coords_bad_cellid.nc",
+            "cellid_coords_bad_cellid.nc",
             pytest.raises(ValueError),
             "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
             (
@@ -407,7 +406,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["square"],
-            "test_data/xy_dim.nc",
+            "xy_dim.nc",
             does_not_raise(),
             None,
             (
@@ -419,7 +418,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["square"],
-            "test_data/xy_dim_small.nc",
+            "xy_dim_small.nc",
             pytest.raises(ValueError),
             "Data XY dimensions do not match square grid",
             (
@@ -432,7 +431,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["square"],
-            "test_data/xy_coords.nc",
+            "xy_coords.nc",
             does_not_raise(),
             None,
             (
@@ -444,7 +443,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["square"],
-            "test_data/xy_coords_small.nc",
+            "xy_coords_small.nc",
             pytest.raises(ValueError),
             "Mapped points do not cover all cells.",
             (
@@ -457,7 +456,7 @@ def fixture_load_data_grids(request):
         ),
         pytest.param(
             ["square"],
-            "test_data/xy_coords_shifted.nc",
+            "xy_coords_shifted.nc",
             pytest.raises(ValueError),
             "Mapped points fall outside grid.",
             (
@@ -493,7 +492,7 @@ def test_Data_load_to_dataarray_data_handling(
     data name and name replacement functionality
     """
 
-    # Setup a Data instance to match the example files generated in test_data/
+    # Setup a Data instance to match the example files generated in tests/core/data
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.readers import load_to_dataarray
@@ -527,7 +526,7 @@ def test_Data_load_to_dataarray_data_handling(
     argnames=["file", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            "test_data/test.toml",
+            "test.toml",
             does_not_raise(),
             None,
             (
@@ -544,7 +543,7 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            "test_data/test_dupes.toml",
+            "test_dupes.toml",
             pytest.raises(ConfigurationError),
             "Data configuration did not load cleanly",
             (
@@ -578,7 +577,7 @@ def test_Data_load_from_config(
            config loader part of the mechanism
     """
 
-    # Setup a Data instance to match the example files generated in test_data/
+    # Setup a Data instance to match the example files generated in tests/core/data
 
     from virtual_rainforest.core.config import load_in_config_files
     from virtual_rainforest.core.data import Data
