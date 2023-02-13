@@ -73,52 +73,52 @@ class EnergyBalance:
         const: EnergyBalanceConstants = EnergyBalanceConstants(),
         soil_layers: int = 2,  # will come from config
         canopy_layers: int = 3,  # will come from config
-        interpolation_method: str = 'linear',
+        interpolation_method: str = "linear",
     ) -> None:
         """Initializes point-based energy balance method.
 
-        This function generates a set of initial climate, conductivities, and soil
-        parameters and populates the following attributes of a
-        :class:`~virtual_rainforest.models.abiotic.Energy_Balance` instance for running
-        the first time step of the energy balance:
+         This function generates a set of initial climate, conductivities, and soil
+         parameters and populates the following attributes of a
+         :class:`~virtual_rainforest.models.abiotic.Energy_Balance` instance for running
+         the first time step of the energy balance:
 
-        * air_temperature, soil_temperature, canopy_temperature, [C]
-        * relative_humidity, [%]; atmospheric_pressure, [kPa],
-        * air_conductivity, leaf_conductivity, air_leaf_conductivity,
-        * canopy_node_heights, soil_node_depths, height_of_above_canopy, [m]
-        * canopy_wind_speed, [m s-1]
-        * sensible/latent/ground heat flux, [J m-2]
-        * adiabatic correction factor, [-]
+         * air_temperature, soil_temperature, canopy_temperature, [C]
+         * relative_humidity, [%]; atmospheric_pressure, [kPa],
+         * air_conductivity, leaf_conductivity, air_leaf_conductivity,
+         * canopy_node_heights, soil_node_depths, height_of_above_canopy, [m]
+         * canopy_wind_speed, [m s-1]
+         * sensible/latent/ground heat flux, [J m-2]
+         * adiabatic correction factor, [-]
 
-       Creating an instance of this class expects a
-        :class:`~virtual_rainforest.core.data.Data` object that contains the following
-        variables:
+        Creating an instance of this class expects a
+         :class:`~virtual_rainforest.core.data.Data` object that contains the following
+         variables:
 
-        1. from plants:
-        * leaf_area_index: DataArray(dims=['cell_id'])
-        * canopy_height: DataArray(dims=['cell_id'])
-        * absorbed_radiation: DataArray(dims=['canopy_layers', 'cell_id'])
+         1. from plants:
+         * leaf_area_index: DataArray(dims=['cell_id'])
+         * canopy_height: DataArray(dims=['cell_id'])
+         * absorbed_radiation: DataArray(dims=['canopy_layers', 'cell_id'])
 
-        2. from radiation:
-        * topofcanopy_radiation: DataArray(dims=['cell_id'])
+         2. from radiation:
+         * topofcanopy_radiation: DataArray(dims=['cell_id'])
 
-        3. from wind:
-        * wind_above_canopy: DataArray(dims=['cell_id'])
-        * wind_below_canopy: DataArray(dims=['canopy_layers', 'cell_id'])
+         3. from wind:
+         * wind_above_canopy: DataArray(dims=['cell_id'])
+         * wind_below_canopy: DataArray(dims=['canopy_layers', 'cell_id'])
 
-        4. from soil:
-        * soil_type: DataArray(dims=['cell_id'])
-        * soil_parameters: DataArray(dims=['cell_id'])
-        * soil_depth: DataArray(dims=['cell_id'])
+         4. from soil:
+         * soil_type: DataArray(dims=['cell_id'])
+         * soil_parameters: DataArray(dims=['cell_id'])
+         * soil_depth: DataArray(dims=['cell_id'])
 
-        Args:
-            data: A Virtual Rainforest Data object.
-            const: A EnergieBalanceConstants instance.
-            soil_layers: number of soil layers, currently constant
-            canopy_layers: number of canopy layers, currently constant
-            interpolation_method: method to interpolate air and soil temperature profile
-                default = 'linear'
-    
+         Args:
+             data: A Virtual Rainforest Data object.
+             const: A EnergieBalanceConstants instance.
+             soil_layers: number of soil layers, currently constant
+             canopy_layers: number of canopy layers, currently constant
+             interpolation_method: method to interpolate air and soil temperature profile
+                 default = 'linear'
+
         """
 
         # Initialise attributes
@@ -155,8 +155,8 @@ class EnergyBalance:
         self.diabatic_correction_factor: DataArray
         """Diabatic correction factor [-]"""
 
-    # The following could later move to AbioticModel ini step
-    # check that leaf area index has correct number of layers
+        # The following could later move to AbioticModel ini step
+        # check that leaf area index has correct number of layers
         if len(data["leaf_area_index"]) != canopy_layers:
             to_raise = InitialisationError(
                 "Dimension mismatch for initial leaf area index and canopy layers!"
@@ -172,25 +172,25 @@ class EnergyBalance:
 
         # interpolate initial temperature profile
         self.air_temperature = temperature_interpolation(
-            temperature_top = data["air_temperature_2m"],
-            temperature_bottom= data["mean_annual_temperature"],
-            canopy_layers = canopy_layers,
-            soil_layers = soil_layers,
-            option = interpolation_method,
+            temperature_top=data["air_temperature_2m"],
+            temperature_bottom=data["mean_annual_temperature"],
+            canopy_layers=canopy_layers,
+            soil_layers=soil_layers,
+            option=interpolation_method,
         )[int(soil_layers) :]
 
         self.soil_temperature = temperature_interpolation(
-            temperature_top = data["air_temperature_2m"],
-            temperature_bottom= data["mean_annual_temperature"],
-            canopy_layers = canopy_layers,
-            soil_layers = soil_layers,
-            option = interpolation_method,
+            temperature_top=data["air_temperature_2m"],
+            temperature_bottom=data["mean_annual_temperature"],
+            canopy_layers=canopy_layers,
+            soil_layers=soil_layers,
+            option=interpolation_method,
         )[int(self.soil_layers) - 1 :: -1]
 
         self.canopy_temperature = calc_initial_canopy_temperature(
-            air_temperature = data["air_temperature_2m"],
-            leaf_temperature_ini_factor = const.leaf_temperature_ini_factor,
-            absorbed_radiation = data["absorbed_radiation"]
+            air_temperature=data["air_temperature_2m"],
+            leaf_temperature_ini_factor=const.leaf_temperature_ini_factor,
+            absorbed_radiation=data["absorbed_radiation"],
         )
 
         # initiate relative humidity and atmospheric pressure
@@ -336,14 +336,14 @@ def temperature_interpolation(
     temperature_bottom: DataArray,
     canopy_layers: int = 3,
     soil_layers: int = 2,
-    interpolation_option: str = "linear",
+    option: str = "linear",
 ) -> DataArray:
     """Interpolation of initial temperature profile.
 
     Args:
         temperature_top: temperature of the highest layer, [K]
         temperature_bottom: temperature of the lowest layer, [K]
-        interpolation_method:
+        option: interpolation method
 
     Returns:
         vertical temperature profile of length canopy_layers+1
@@ -352,7 +352,7 @@ def temperature_interpolation(
         linear (default)
     """
 
-    if interpolation_option != "linear":
+    if option != "linear":
         NotImplementedError("This interpolation method is not available.")
 
     else:
@@ -361,6 +361,7 @@ def temperature_interpolation(
             temperature_top,
             canopy_layers + soil_layers,
         )
+
 
 def temp_conductivity_interpolation(
     self, min_conductivity: float, max_conductivity: float, option: str = "linear"
@@ -381,11 +382,12 @@ def temp_conductivity_interpolation(
 
     return temp_conductivity_interpolation
 
+
 def calc_initial_absorbed_radiation(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
     canopy_layers: int = 3,
-    light_extinction_coefficient: float = EnergyBalanceConstants.light_extinction_coefficient
+    light_extinction_coefficient: float = EnergyBalanceConstants.light_extinction_coefficient,
 ) -> DataArray:
     """Calculate initial light absorption profile."""
 
@@ -395,38 +397,35 @@ def calc_initial_absorbed_radiation(
         initial_absorbed_radiation[i] = topofcanopy_radiation * (
             1 - np.exp(-light_extinction_coefficient * leaf_area_index[i])
         )
-        topofcanopy_radiation = (
-            topofcanopy_radiation - initial_absorbed_radiation[i]
-        )
+        topofcanopy_radiation = topofcanopy_radiation - initial_absorbed_radiation[i]
     return initial_absorbed_radiation
+
 
 def calc_initial_canopy_temperature(
     air_temperature: DataArray,
     absorbed_radiation: DataArray,
-    leaf_temperature_ini_factor = EnergyBalanceConstants.leaf_temperature_ini_factor,
-    )-> DataArray:
+    leaf_temperature_ini_factor=EnergyBalanceConstants.leaf_temperature_ini_factor,
+) -> DataArray:
     """Calculate initial canopy temperature.
-    
+
     Args:
         air_temperature
         absorbed_radiation
         leaf_temperature_ini_factor
-        
+
     Returns:
         initial vertical canopy temperature profile"""
-    
+
     return air_temperature + leaf_temperature_ini_factor * absorbed_radiation
 
 
-
-
-
-
-
+# not used small functions
 def calc_molar_density_air(
-    temperature: NDArray[np.float32] = np.array(20.0, dtype=np.float32),
-    atmospheric_pressure: NDArray[np.float32] = np.array(101.3, dtype=np.float32),
-) -> NDArray[np.float32]:
+    temperature: DataArray,
+    atmospheric_pressure: DataArray = np.array(101.3, dtype=np.float32),
+    celsius_to_kelvin: float = EnergyBalanceConstants.celsius_to_kelvin,
+    standard_mole: float = EnergyBalanceConstants.standard_mole,
+) -> DataArray:
     """Calculate temperature-dependent molar density of air.
 
     Args:
@@ -436,24 +435,26 @@ def calc_molar_density_air(
     Returns:
         molar_density_air
     """
-    temperature_kelvin = temperature + C.CELSIUS_TO_KELVIN
+    temperature_kelvin = temperature + celsius_to_kelvin
     molar_density_air = (
-        C.STANDARD_MOLE
+        standard_mole
         * (temperature_kelvin / atmospheric_pressure)
-        * (C.CELSIUS_TO_KELVIN / temperature_kelvin)
+        * (celsius_to_kelvin / temperature_kelvin)
     )
     return molar_density_air
 
+
 def calc_specific_heat_air(
-    temperature: NDArray[np.float32] = np.array(20.0, dtype=float)
-) -> NDArray[np.float32]:
+    temperature: DataArray,
+    molar_heat_capacity_air: float = EnergyBalanceConstants.molar_heat_capacity_air,
+) -> DataArray:
     """Calculate molar temperature-dependent specific heat of air.
 
     Args:
         temperature
 
     Returns:
-            specific_heat_air, specific heat of air at constant pressure (J mol-1 K-1)
+        specific heat of air at constant pressure (J mol-1 K-1)
 
     Reference:
             Maclean et al, 2021: Microclimc: A mechanistic model of above, below and
@@ -461,27 +462,26 @@ def calc_specific_heat_air(
             https://doi.org/10.1016/j.ecolmodel.2021.109567.
 
     TODO identify remaining constants
-        """
-        return (
-            2e-05 * temperature**2 + 0.0002 * temperature + C.MOLAR_HEAT_CAPACITY_AIR
-        )
+    """
+    return 2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
 
-    def calc_latent_heat_of_vaporisation(
-        self, temperature: NDArray[np.float32] = np.array(20.0, dtype=float)
-    ) -> NDArray[np.float32]:
-        """Calculate latent heat of vaporisation.
 
-        Args:
-            temperature
+def calc_latent_heat_of_vaporisation(
+    temperature: DataArray,
+) -> DataArray:
+    """Calculate latent heat of vaporisation.
 
-        Returns:
-            Latent heat of vaporisation [J mol-1]
+    Args:
+        temperature, [K]
 
-        Reference:
-            Maclean et al, 2021: Microclimc: A mechanistic model of above, below and
-            within-canopy microclimate. Ecological Modelling Volume 451, 109567.
-            https://doi.org/10.1016/j.ecolmodel.2021.109567.
+    Returns:
+        Latent heat of vaporisation [J mol-1]
 
-        TODO identify remaining constants
-        """
-        return -42.575 * temperature + 44994
+    Reference:
+        Maclean et al, 2021: Microclimc: A mechanistic model of above, below and
+        within-canopy microclimate. Ecological Modelling Volume 451, 109567.
+        https://doi.org/10.1016/j.ecolmodel.2021.109567.
+
+    TODO identify remaining constants
+    """
+    return -42.575 * temperature + 44994
