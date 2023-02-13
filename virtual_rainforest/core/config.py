@@ -1,7 +1,7 @@
-"""The :mod:`core.config` module is used to read in the various configuration files,
-validate their contents, and then configure a ready to run instance of the virtual
-rainforest model. The basic details of how this system is used can be found
-:doc:`here </virtual_rainforest/core/config>`.
+"""The :mod:`~virtual_rainforest.core.config` module is used to read in the various
+configuration files, validate their contents, and then configure a ready to run instance
+of the virtual rainforest model. The basic details of how this system is used can be
+found :doc:`here </virtual_rainforest/core/config>`.
 
 When a new module is defined a ``JSON`` file should be written, which includes the
 expected configuration tags, their expected types, and any constraints on their values
@@ -34,8 +34,8 @@ just be the module name. An example of decorator usage is shown below:
 It's important to note that the schema will only be added to the registry if the module
 ``__init__`` is run. This means that somewhere in your chain of imports the module must
 be imported. Currently this is tackled by importing all active modules in the top level
-``__init__``, i.e. :mod:`virtual_rainforest.__init__.py`. This ensures that any script
-that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
+``__init__``, i.e. ``virtual_rainforest.__init__.py``. This ensures that any script
+that imports ``virtual_rainforest`` will have implicitly imported all modules which
 define schema, in turn ensuring that
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
 """  # noqa: D205, D415
@@ -107,6 +107,9 @@ def validate_and_add_defaults(
 
     Args:
         validator_class: Validator to be extended
+
+    Returns:
+        An extended validator class
     """
 
     validate_properties = validator_class.VALIDATORS["properties"]
@@ -206,7 +209,7 @@ def check_dict_leaves(
         conflicts: List of variables that are defined in multiple places
 
     Returns:
-        conflicts: List of variables that are defined in multiple places
+        List of variables that are defined in multiple places
     """
 
     if conflicts is None:
