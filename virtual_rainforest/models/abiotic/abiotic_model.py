@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.models.abiotic_model` module creates a
-:class:`~virtual_rainforest.models.abiotic_model.AbioticModel` class as a child of the
-:class:`~virtual_rainforest.core.base_model.BaseModel` class.
+"""The :mod:`~virtual_rainforest.models.abiotic.abiotic_model` module creates a
+:class:`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel` class as a child
+of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
 """  # noqa: D205, D415
 
 from __future__ import annotations
