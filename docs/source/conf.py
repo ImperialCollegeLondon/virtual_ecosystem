@@ -76,7 +76,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
-    "shapely": ("https://shapely.readthedocs.io/en/latest/", None),
+    "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
+    "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
 }
 
 
