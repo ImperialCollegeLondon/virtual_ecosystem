@@ -1,5 +1,5 @@
 """The :mod:`abiotic.model` module creates a
-:class:`~virtual_rainforest.abiotic.model.AbioticModel` class as a child of the
+:class:`~virtual_rainforest.abiotic.abiotic_model.AbioticModel` class as a child of the
 :class:`~virtual_rainforest.core.model.BaseModel` class.
 """  # noqa: D205, D415
 
