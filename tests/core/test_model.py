@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from numpy import datetime64, timedelta64
 
-from .conftest import log_check
+from tests.conftest import log_check
 
 
 @pytest.fixture(scope="module")
