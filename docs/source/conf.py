@@ -72,6 +72,9 @@ autosummary_generate = True
 
 # Reference checking
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "jsonschema.validators.Draft202012Validator"),
+]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
