@@ -2,13 +2,14 @@
 across models for the Virtual Rainforest model: that is, a common set of functions which
 work the same across all modules. This cannot exist at a low level, as the basic classes
 and functions will differ massively between modules (e.g.
-:mod:`~virtual_rainforest.abiotic` will not have functions to handle consumption). So,
-this common api has to be high level and define a basic set of functions to set up and
-run each model. These functions effectively convert a general instruction (i.e. "setup
-the model") into the steps needed to carry out that instruction for a specific model.
+:mod:`~virtual_rainforest.models.abiotic` will not have functions to handle
+consumption). So, this common api has to be high level and define a basic set of
+functions to set up and run each model. These functions effectively convert a general
+instruction (i.e. "setup the model") into the steps needed to carry out that instruction
+for a specific model.
 
-The :mod:`core.base_model` module defines the api that all individual models (e.g. the
-soil model) should conform to. This consists of a class
+The :mod:`~virtual_rainforest.core.base_model` module defines the api that all
+individual models (e.g. the soil model) should conform to. This consists of a class
 (:class:`~virtual_rainforest.core.base_model.BaseModel`), which defines the expected
 functions. Some functions of this class will be inherited and used by its child classes
 (e.g. :func:`~virtual_rainforest.core.base_model.BaseModel.__repr__` and
@@ -55,7 +56,7 @@ ensure that they are added to the registry.
 
 An example of ``Model`` inheritance from
 :class:`~virtual_rainforest.core.base_model.BaseModel` can been seen in the
-:mod:`soil.soil_model` module.
+:mod:`~virtual_rainforest.models.soil.soil_model` module.
 """  # noqa: D205, D415
 
 from __future__ import annotations
