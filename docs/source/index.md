@@ -91,6 +91,7 @@ team.
   Soil Carbon <api/soil/carbon.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/model.md>
+  Abiotic Energy balance <api/abiotic/energy_balance.md>
 ```
 
 ```{eval-rst}

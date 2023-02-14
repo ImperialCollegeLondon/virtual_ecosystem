@@ -17,7 +17,7 @@ kernelspec:
 # API documentation for the {mod}`~virtual_rainforest.soil.model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.soil.model
+.. automodule:: virtual_rainforest.models.soil.soil_model
     :autosummary:
     :members:
 ```

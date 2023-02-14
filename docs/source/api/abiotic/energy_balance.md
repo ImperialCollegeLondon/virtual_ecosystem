@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.models.abiotic.model` module
+# API documentation for the {mod}`~virtual_rainforest.models.abiotic.energy_balance` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic.abiotic_model
+.. automodule:: virtual_rainforest.models.abiotic.energy_balance
     :autosummary:
     :members:
     :special-members: __init_subclass__, __repr__, __str__
