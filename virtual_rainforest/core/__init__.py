@@ -20,7 +20,7 @@ Each of the core sub-modules has its own API reference page:
 * The :mod:`~virtual_rainforest.core.base_model` submodule provides an Abstract
   Base Class describing the shared API to be used by science models within the Virtual
   Rainforest.
-* The :mod:`~virtual_rainforest.core.logger` configures the :data:`~logging.LOGGER`
+* The :mod:`~virtual_rainforest.core.logger` configures the :class:`~logging.Logger`
   instance used throughout the package.
 
 The :mod:`~virtual_rainforest.core` module itself is only responsible for loading the
