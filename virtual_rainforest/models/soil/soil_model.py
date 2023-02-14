@@ -4,8 +4,8 @@
 abstract methods of the parent class (e.g.
 :func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
 :func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-:mod:`virtual_rainforest` model develops. The factory method
+placeholder functions that don't do anything. This will change as the Virtual Rainforest
+model develops. The factory method
 :func:`~virtual_rainforest.models.soil.soil_model.SoilModel.from_config` exists in a
 more complete state, and unpacks a small number of parameters from our currently pretty
 minimal configuration dictionary. These parameters are then used to generate a class
