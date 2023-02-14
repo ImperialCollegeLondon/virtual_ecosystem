@@ -89,6 +89,7 @@ team.
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
+  Soil Constants <api/soil/constants.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
 ```
