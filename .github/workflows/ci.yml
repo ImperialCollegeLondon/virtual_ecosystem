@@ -61,6 +61,9 @@ jobs:
 
       - name: Install dependencies
         run: poetry install
+
+      - name: Set ipython kernel
+        run: poetry run python -m ipykernel install --user --name=vr_python3
       
       - name: Build docs using sphinx
         run: poetry run sphinx-build -W --keep-going docs/source build
