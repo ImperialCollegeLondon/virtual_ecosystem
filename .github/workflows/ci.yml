@@ -58,9 +58,10 @@ jobs:
         uses: abatilo/actions-poetry@v2.1.6
         with:
           poetry-version: 1.2.2
-
-      - name: Install dependencies
-        run: poetry install
-
+      
       - name: Build docs using sphinx
-        run: poetry sphinx-build -W --keep-going docs/source build 
+        uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
+          pre-build-command: "poetry install"
+          build-command: "sphinx-build -W --keep-going docs/source build"
