@@ -63,4 +63,4 @@ jobs:
         run: poetry install
       
       - name: Build docs using sphinx
-          run: "poetry sphinx-build -W --keep-going . build"
+          run: poetry sphinx-build -W --keep-going docs/source build
