@@ -7,7 +7,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.model import InitialisationError
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
 
 

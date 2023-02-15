@@ -1,7 +1,6 @@
-"""The `models.soil.carbon` module  simulates the soil carbon cycle for the Virtual
-Rainforest. At the moment only two pools are modelled, these are low molecular weight
-carbon (LMWC) and mineral associated organic matter (MAOM). More pools and their
-interactions will be added at a later date.
+"""The `models.soil.constants` module contains a set of dataclasses containing
+constants" (fitting relationships taken from the literature) required by the broader
+:mod:`~virtual_rainforest.models.soil` module
 """  # noqa: D205, D415
 
 from dataclasses import dataclass

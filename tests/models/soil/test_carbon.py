@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.core.model import InitialisationError
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 

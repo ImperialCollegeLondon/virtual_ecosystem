@@ -1,7 +1,7 @@
-"""Test module for model.py.
+"""Test module for base_model.py.
 
-This module tests the functionality of model.py, which defines the basic model API that
-specific models (e.g. `soil_model.py`) utilise.
+This module tests the functionality of base_model.py, which defines the basic model API
+that specific models (e.g. `soil_model.py`) utilise.
 """
 
 from contextlib import nullcontext as does_not_raise
@@ -11,7 +11,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.model import BaseModel
+from virtual_rainforest.core.base_model import BaseModel
 
 
 def test_base_model_initialization(caplog, mocker):
