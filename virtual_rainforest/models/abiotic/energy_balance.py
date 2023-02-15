@@ -238,7 +238,7 @@ class EnergyBalance:
             canopy_layers=canopy_layers,
         )
 
-        # set initial fluxes TODO set correct dimensions
+        # set initial fluxes TODO set correct dimensions, brackets
         self.sensible_heat_flux = DataArray(
             [np.zeros()], dims=["canopy_layers", "cell_id"]
         )
@@ -279,7 +279,8 @@ def initialise_absorbed_radiation(
     """
 
     initial_absorbed_radiation = DataArray(
-        np.zeros([3, 2]), dims=["canopy_layers", "cell_id"]  # generalise dimensions
+        np.zeros([canopy_layers, topofcanopy_radiation.size]),
+        dims=["canopy_layers", "cell_id"],  # generalise dimensions
     )
 
     for i in range(0, canopy_layers):
@@ -449,8 +450,10 @@ def set_canopy_node_heights(
     Returns:
         array of initial canopy node heights
     """
-    # TODO variable dimensions
-    canopy_node_heights = DataArray(np.zeros([3, 2]), dims=["canopy_layers", "cell_id"])
+
+    canopy_node_heights = DataArray(
+        np.zeros([canopy_layers, canopy_height.size]), dims=["canopy_layers", "cell_id"]
+    )
 
     for i in range(0, canopy_height.size):
         canopy_node_heights[:, i] = (np.arange(canopy_layers) + 0.5) / (
@@ -482,16 +485,18 @@ def set_soil_node_depths(
         array of initial soil node depths
     """
 
-    return DataArray(
-        [
-            np.array(
-                soil_depth
-                / (float(soil_layers) ** soil_division_factor)
-                * (x**soil_division_factor)
-                for x in range(1, soil_layers + 1)
-            )
-        ]
+    soil_node_depths = DataArray(
+        np.zeros([soil_layers, soil_depth.size]), dims=["soil_layers", "cell_id"]
     )
+
+    for i in range(0, soil_depth.size):
+        soil_node_depths[:, i] = (
+            soil_depth.values[i]
+            / (float(soil_layers) ** soil_division_factor)
+            * (i**soil_division_factor)
+        )
+
+    return soil_node_depths
 
 
 def set_initial_canopy_windspeed(
@@ -500,6 +505,17 @@ def set_initial_canopy_windspeed(
 ) -> DataArray:
     """Initialise canopy wind profile."""
 
-    return DataArray(
-        [np.array((np.arange(canopy_layers) + 1) / canopy_layers * wind_speed_10m)]
+    canopy_wind_speed = DataArray(
+        np.zeros([canopy_layers, wind_speed_10m.size]),
+        dims=["canopy_layers", "cell_id"],
     )
+
+    for i in range(0, wind_speed_10m.size):
+        canopy_wind_speed[:, i] = (np.arange(canopy_layers) + 1) / (
+            canopy_layers
+            * wind_speed_10m.values[
+                i,
+            ]
+        )
+
+    return canopy_wind_speed

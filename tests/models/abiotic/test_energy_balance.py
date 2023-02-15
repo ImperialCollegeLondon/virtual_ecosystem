@@ -155,12 +155,36 @@ def test_set_canopy_node_heights():
 
 def test_set_soil_node_depths():
     """Test."""
-    pass
+    from virtual_rainforest.models.abiotic import energy_balance
+
+    result = energy_balance.set_soil_node_depths(
+        soil_depth=DataArray([1.0, 2.0], dims="cell_id")
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[0.0, 0.37371231], [0.0, 0.37371231]],
+            dims=["soil_layers", "cell_id"],
+        ),
+    )
 
 
 def test_set_initial_canopy_windspeed():
     """Test."""
-    pass
+    from virtual_rainforest.models.abiotic import energy_balance
+
+    result = energy_balance.set_initial_canopy_windspeed(
+        wind_speed_10m=DataArray([1.0, 2.0], dims="cell_id")
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[0.33333333, 0.16666667], [0.66666667, 0.33333333], [1.0, 0.5]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
 
 
 def test_class():
