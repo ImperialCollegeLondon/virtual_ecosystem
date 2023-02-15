@@ -63,7 +63,4 @@ jobs:
         run: poetry install
       
       - name: Build docs using sphinx
-        uses: ammaraskar/sphinx-action@master
-        with:
-          docs-folder: "docs/source"
-          build-command: "poetry sphinx-build -W --keep-going . build"
+          run: "poetry sphinx-build -W --keep-going . build"
