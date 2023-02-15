@@ -4,7 +4,7 @@ This module calculates the energy balance for the Virtual Rainforest. The basic
 assumption of this approach is that below-canopy heat and vapor exchange attain steady
 state, and that temperatures and soil moisture are determined using energy balance
 equations that sum to zero. The approach is based on :cite:t:`MACLEAN2021`; the details
-are described here [link to general documentation here].
+are described here [link to general documentation will follow here].
 
 The module contains the :class:`~virtual_rainforest.models.abiotic.Energy_Balance` class
 and associated functions to calculate above and below canopy atmospheric temperature and
@@ -19,9 +19,9 @@ from dataclasses import dataclass
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.model import InitialisationError  # change to base_model
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.model import InitialisationError  # change to base_model
 
 
 # In the future, we want to import the EnergyBalanceConstants dataclass here
@@ -33,7 +33,7 @@ class EnergyBalanceConstants:
     """Factor used to initialise leaf temperature."""
     soil_division_factor = 2.42
     """Factor defines how to divide soil into layers with increasing thickness,
-    alternative value 1.2."""
+    alternative value 1.2 :cite:p:`MACLEAN2021`."""
     min_leaf_conductivity = 0.25
     """Minimum leaf conductivity, typical value for decidious forest with wind above
     canopy 2 m/s."""
@@ -89,23 +89,12 @@ class EnergyBalance:
     :class:`~virtual_rainforest.core.data.Data` object that contains the following
     variables:
 
-    *from `plants`:*
-
     * leaf_area_index: leaf area index, [m m-1]
     * canopy_height: canopy height, [m]
     * absorbed_radiation: shortwave radiation absorbed by each canopy layer, [J m-2]
-
-    *from `radiation`:*
-
     * topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
-
-    *from `wind`:*
-
     * wind_above_canopy: wind profile above canopy, [m s-1]
     * wind_below_canopy: wind profile below canopy, [m s-1]
-
-    *from `soil`:*
-
     * soil_type: soil type (proportion of sand, clay)
     * soil_parameters: dictionnary of soil parameters (list and link to more info)
     * soil_depth: depth of deepest soil layer, [m]
@@ -114,8 +103,8 @@ class EnergyBalance:
     :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalanceConstants`,
     which provides a user modifiable set of required constants.
 
-    `run_energy_balance()` funds the full energy balance per grid cell which updates
-    attributes of :class:`~virtual_rainforest.models.abiotic.Energy_Balance` class which
+    `run_energy_balance()` runs the full energy balance per grid cell which updates
+    attributes of :class:`~virtual_rainforest.models.abiotic.Energy_Balance` class. This
     will be used to update the :class:`~virtual_rainforest.core.data.Data` object.
 
     Args:
@@ -181,7 +170,7 @@ class EnergyBalance:
             raise to_raise
 
         # set initial absorbed radiation
-        self.absorbed_radiation = calculate_initial_absorbed_radiation(
+        self.absorbed_radiation = initialise_absorbed_radiation(
             topofcanopy_radiation=data["topofcanopy_radiation"],
             leaf_area_index=data["leaf_area_index"],
         )
@@ -194,11 +183,11 @@ class EnergyBalance:
             soil_layers=soil_layers,
             option=interpolation_method,
         )
-        self.air_temperature = temperature_profile[int(soil_layers) :]
+        self.air_temperature = temperature_profile[int(soil_layers) :]  # test
 
         self.soil_temperature = temperature_profile[soil_layers - 1 :: -1]
 
-        self.canopy_temperature = calc_initial_canopy_temperature(
+        self.canopy_temperature = initialise_canopy_temperature(
             air_temperature=data["air_temperature_2m"],
             leaf_temperature_ini_factor=const.leaf_temperature_ini_factor,
             absorbed_radiation=data["absorbed_radiation"],
@@ -211,59 +200,42 @@ class EnergyBalance:
         self.atmospheric_pressure = data["atmospheric_pressure_2m"]
 
         # set initial conductivities
-        self.air_conductivity = DataArray(
-            [
-                np.repeat(const.air_conductivity, canopy_layers + 1)
-                * (canopy_layers / data["canopy_height"])
-                * (2 / canopy_layers)
-            ]
+        self.air_conductivity = initialise_air_temperature_conductivity(
+            canopy_height=data["canopy_height"],
+            canopy_layers=canopy_layers,
+            air_conductivity=const.air_conductivity,
         )
 
-        self.air_conductivity[0] = 2 * self.air_conductivity[0]
-        self.air_conductivity[canopy_layers] = (
-            self.air_conductivity[canopy_layers]
-            * (data["canopy_height"] / canopy_layers)
-            * 0.5
-        )
-
-        self.leaf_conductivity = temp_conductivity_interpolation(
+        self.leaf_conductivity = temperature_conductivity_interpolation(
             const.min_leaf_conductivity,
             const.max_leaf_conductivity,
             option=interpolation_method,
         )
 
-        self.air_leaf_conductivity = temp_conductivity_interpolation(
+        self.air_leaf_conductivity = temperature_conductivity_interpolation(
             const.min_leaf_air_conductivity,
             const.max_leaf_air_conductivity,
             option=interpolation_method,
         )
 
         # set initial heights
-        self.canopy_node_heights = DataArray(
-            [(np.arange(canopy_layers) + 0.5) / canopy_layers * data["canopy_height"]]
+        self.canopy_node_heights = set_canopy_node_heights(
+            canopy_height=data["canopy_height"],
+            canopy_layers=canopy_layers,
         )
 
-        self.soil_node_depths = DataArray(
-            [
-                np.array(
-                    data["soil_depth"]
-                    / (float(soil_layers) ** const.soil_division_factor)
-                    * (x**const.soil_division_factor)
-                    for x in range(1, soil_layers + 1)
-                )
-            ]
+        self.soil_node_depths = set_soil_node_depths(
+            soil_depth=data["soil_depth"],
+            soil_layers=soil_layers,
+            soil_division_factor=const.soil_division_factor,
         )
 
         self.height_of_above_canopy = data["canopy_height"]
 
-        self.canopy_wind_speed = DataArray(
-            [
-                np.array(
-                    (np.arange(canopy_layers) + 1)
-                    / canopy_layers
-                    * data["wind_speed_10m"]
-                )
-            ]
+        # the wind component will likely move to a separate submodule
+        self.canopy_wind_speed = set_initial_canopy_windspeed(
+            wind_speed_10m=data["wind_speed_10m"],
+            canopy_layers=canopy_layers,
         )
 
         # set initial fluxes TODO set correct dimensions
@@ -282,7 +254,7 @@ class EnergyBalance:
 
 
 # pure functions
-def calculate_initial_absorbed_radiation(
+def initialise_absorbed_radiation(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
     canopy_layers: int = 3,
@@ -371,46 +343,12 @@ def temperature_interpolation(
     return temperature_profile
 
 
-def temp_conductivity_interpolation(
-    min_conductivity: float,
-    max_conductivity: float,
-    canopy_layers: float = 3,
-    option: str = "linear",
-) -> DataArray:
-    """Interpolation of initial temperature conductivity profile.
-
-    Args:
-        min_conductivity: minimum conductivity for specific medium
-        max_conductivity: maximum conductivity for specific medium
-        canopy_layers: number of canopy layers
-        option: interpolation mothod, default = 'linear
-
-    Returns:
-        vertical profile of conductivities
-
-    Options:
-        linear (default)
-    """
-    if option == "linear":
-        temp_conductivity_profile: DataArray = DataArray(
-            [
-                np.linspace(
-                    min_conductivity,
-                    max_conductivity,
-                    canopy_layers,
-                )
-            ]
-        )
-    else:
-        NotImplementedError("This interpolation method is not available.")
-
-    return temp_conductivity_profile
-
-
-def calc_initial_canopy_temperature(
+def initialise_canopy_temperature(
     air_temperature: DataArray,
     absorbed_radiation: DataArray,
-    leaf_temperature_ini_factor=EnergyBalanceConstants.leaf_temperature_ini_factor,
+    leaf_temperature_ini_factor: float = (
+        EnergyBalanceConstants.leaf_temperature_ini_factor
+    ),
 ) -> DataArray:
     """Calculate initial canopy temperature.
 
@@ -423,140 +361,145 @@ def calc_initial_canopy_temperature(
         initial vertical canopy temperature profile
     """
 
-    return air_temperature + leaf_temperature_ini_factor * absorbed_radiation
+    return (
+        air_temperature + leaf_temperature_ini_factor * absorbed_radiation
+    ).transpose()
 
-    # def update_canopy(
-    #    self,
-    #    canopy_height: NDArray[np.float32],
-    #    leaf_area_index: NDArray[np.float32],
-    #    absorbed_radiation: NDArray[np.float32],
-    # ) -> None:
-    #    """Update canopy height, leaf area index and absorption at each time step."""
-    #    self.latent_heat_flux = leaf_area_index
-    #    self.canopy_height = canopy_height
-    #    self.absorbed_radiation = absorbed_radiation
 
-    def calc_temperature_above_canopy(args) -> None:
-        """Calculates temperature above canopy based on logarithmic height profile."""
-        raise NotImplementedError
+def initialise_air_temperature_conductivity(
+    canopy_height: DataArray,
+    canopy_layers: int = 3,
+    air_conductivity: float = EnergyBalanceConstants.air_conductivity,
+) -> DataArray:
+    """Calculate initial air conductivity profile.
 
-    def calc_humidity_above_canopy(args) -> None:
-        """Calculates humidity above canopy based on logarithmic height profile."""
-        raise NotImplementedError
+    Args:
+        canopy_height: canopy height, [m]
+        canopy_layers: number of canopy layers
+        air_conductivity: Initial air conductivity, default = 50.0; typical value for
+            decidious forest with wind above canopy 2 m/s :cite:p:`MACLEAN2021`.
 
-    def calc_diabatic_correction(args) -> None:
-        """Calculates diabatic correction factor."""
-        raise NotImplementedError
+    Returns:
+        initial air conductivity profile
+    """
 
-    def calc_topofcanopy_conductivity(args) -> None:
-        """Calculate conductivity to top of canopy and merge."""
-        raise NotImplementedError
+    air_conductivity_ini = (
+        air_conductivity * (canopy_layers / canopy_height) * (2 / canopy_layers)
+    )
+    air_conductivity_profile = DataArray(
+        np.full((canopy_layers + 1, int(canopy_height.size)), air_conductivity_ini),
+        dims=["canopy_layers", "cell_id"],
+    )
+    air_conductivity_profile[0,] = (
+        air_conductivity_ini * 2
+    )
+    air_conductivity_profile[-1,] = (
+        air_conductivity_ini * (canopy_height / canopy_layers) * 0.5
+    )
 
-    def calc_vapor_conductivity(args) -> None:
-        """Calculate vapor conductivity."""
-        raise NotImplementedError
+    return air_conductivity_profile
 
-    def calc_leaf_conductivity(args) -> None:
-        """Calculate leaf conductivity."""
-        raise NotImplementedError
 
-    def calc_soil_conductivity(args) -> None:
-        """Calculate soil conductivity."""
-        raise NotImplementedError
+def temperature_conductivity_interpolation(
+    min_conductivity: float,
+    max_conductivity: float,
+    canopy_layers: float = 3,
+    option: str = "linear",
+) -> DataArray:
+    """Interpolation of initial temperature conductivity profile.
 
-    def calc_soil_specific_heat(args) -> None:
-        """Calculate soil specific_heat."""
-        raise NotImplementedError
+    Args:
+        min_conductivity: minimum conductivity for specific medium
+        max_conductivity: maximum conductivity for specific medium
+        canopy_layers: number of canopy layers
+        option: interpolation method, default = 'linear
 
-    def calc_soil_heat_flux(args) -> None:
-        """Calculate soil heat flux."""
-        raise NotImplementedError
+    Returns:
+        vertical profile of conductivities
 
-    def calc_soil_temperature(args) -> None:
-        """Calculate soil temperature."""
-        raise NotImplementedError
-
-    def calc_sensible_heat_flux(args) -> None:
-        """Calculate sensible heat flux."""
-        raise NotImplementedError
-
-    def calc_latent_heat_flux(args) -> None:
-        """Calculate latent heat flux."""
-        raise NotImplementedError
-
-    def calc_canopy_temperature(args) -> None:
-        """Calculates canopy temperature from rad. fluxes and reference temperatures."""
-        raise NotImplementedError
-
-    def calc_temperature_mixing(args) -> None:
-        """Solves simultanious heat fluxes between soil and air layers."""
-        raise NotImplementedError
-
-    def calc_vapor_mixing(args) -> None:
-        """Solves simultanious vapor fluxes between air layers."""
-        raise NotImplementedError
-
-    # not used small functions
-    def calc_molar_density_air(
-        temperature: DataArray,
-        atmospheric_pressure: DataArray,
-        celsius_to_kelvin: float = EnergyBalanceConstants.celsius_to_kelvin,
-        standard_mole: float = EnergyBalanceConstants.standard_mole,
-    ) -> DataArray:
-        """Calculate temperature-dependent molar density of air.
-
-        Args:
-            temperature
-            atmospheric_pressure
-
-        Returns:
-            molar_density_air
-        """
-        temperature_kelvin = temperature + celsius_to_kelvin
-        molar_density_air = (
-            standard_mole
-            * (temperature_kelvin / atmospheric_pressure)
-            * (celsius_to_kelvin / temperature_kelvin)
+    Options:
+        linear (default)
+    """
+    if option == "linear":
+        temp_conductivity_profile = DataArray(
+            np.linspace(
+                min_conductivity,
+                max_conductivity,
+                canopy_layers,
+            ),
+            dims="canopy_layers",
         )
-        return molar_density_air
+    else:
+        NotImplementedError("This interpolation method is not available.")
 
-    def calc_specific_heat_air(
-        temperature: DataArray,
-        molar_heat_capacity_air: float = EnergyBalanceConstants.molar_heat_capacity_air,
-    ) -> DataArray:
-        """Calculate molar temperature-dependent specific heat of air.
+    return temp_conductivity_profile
 
-        Args:
-            temperature
 
-        Returns:
-            specific heat of air at constant pressure (J mol-1 K-1)
+def set_canopy_node_heights(
+    canopy_height: DataArray,
+    canopy_layers: int = 3,
+) -> DataArray:
+    """Set initial canopy node heights.
 
-        Reference:
-                Maclean et al, 2021: Microclimc: A mechanistic model of above, below and
-                within-canopy microclimate. Ecological Modelling Volume 451, 109567.
-                https://doi.org/10.1016/j.ecolmodel.2021.109567.
+    *Describe how this will be used in the following*
 
-        TODO identify remaining constants
-        """
-        return 2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
+    Args:
+        canopy_height: canopy height, [m]
+        canopy_layers: number of canopy layers
+    Returns:
+        array of initial canopy node heights
+    """
+    # TODO variable dimensions
+    canopy_node_heights = DataArray(np.zeros([3, 2]), dims=["canopy_layers", "cell_id"])
 
-    def calc_latent_heat_of_vaporisation(
-        temperature: DataArray,
-    ) -> DataArray:
-        """Calculate latent heat of vaporisation.
+    for i in range(0, canopy_height.size):
+        canopy_node_heights[:, i] = (np.arange(canopy_layers) + 0.5) / (
+            canopy_layers
+            * canopy_height.values[
+                i,
+            ]
+        )
 
-        Args:
-            temperature, [K]
+    return canopy_node_heights
 
-        Returns:
-            Latent heat of vaporisation [J mol-1]
 
-        Reference:
-            Maclean et al, 2021: Microclimc: A mechanistic model of above, below and
-            within-canopy microclimate. Ecological Modelling Volume 451, 109567.
-            https://doi.org/10.1016/j.ecolmodel.2021.109567.
+def set_soil_node_depths(
+    soil_depth: DataArray,
+    soil_layers: int = 2,
+    soil_division_factor: float = EnergyBalanceConstants.soil_division_factor,
+) -> DataArray:
+    """Set initial soil node depths.
 
-        TODO identify remaining constants
-        """
-        return -42.575 * temperature + 44994
+    *Describe how this will be used in the following*
+
+    Args:
+        soil_depth: soil depth, [m]
+        soil_layers: number of soil layers
+        soil_division_factor: Factor defines how to divide soil into layers with
+        increasing thickness, alternative value 1.2 :cite:p:`MACLEAN2021`.
+
+    Returns:
+        array of initial soil node depths
+    """
+
+    return DataArray(
+        [
+            np.array(
+                soil_depth
+                / (float(soil_layers) ** soil_division_factor)
+                * (x**soil_division_factor)
+                for x in range(1, soil_layers + 1)
+            )
+        ]
+    )
+
+
+def set_initial_canopy_windspeed(
+    wind_speed_10m: DataArray,
+    canopy_layers: int = 3,
+) -> DataArray:
+    """Initialise canopy wind profile."""
+
+    return DataArray(
+        [np.array((np.arange(canopy_layers) + 1) / canopy_layers * wind_speed_10m)]
+    )

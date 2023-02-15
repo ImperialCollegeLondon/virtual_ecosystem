@@ -7,8 +7,8 @@ import xarray as xr
 from xarray import DataArray
 
 
-# TODO introduce error
-def test_calculate_initial_absorbed_radiation():
+# TODO test error
+def test_initialise_absorbed_radiation():
     """Test initial absorbed radiation."""
 
     from virtual_rainforest.models.abiotic import energy_balance
@@ -16,7 +16,7 @@ def test_calculate_initial_absorbed_radiation():
         EnergyBalanceConstants as const,
     )
 
-    result = energy_balance.calculate_initial_absorbed_radiation(
+    result = energy_balance.initialise_absorbed_radiation(
         topofcanopy_radiation=DataArray([100, 100], dims=["cell_id"]),
         leaf_area_index=DataArray(
             [[3, 3], [2, 2], [1, 1]], dims=["canopy_layers", "cell_id"]
@@ -76,8 +76,48 @@ def test_temperature_interpolation(input, exp_output, exp_err):
     xr.testing.assert_allclose(result1, exp_output)
 
 
-# TODO sort out types
-def test_temp_conductivity_interpolation():
+def test_initialise_canopy_temperature():
+    """Test initialisation of canopy temperature profile."""
+
+    from virtual_rainforest.models.abiotic import energy_balance
+
+    result = energy_balance.initialise_canopy_temperature(
+        air_temperature=DataArray([20, 10], dims="cell_id"),
+        absorbed_radiation=DataArray(
+            [[100, 100], [100, 100], [100, 100]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray([[21, 11], [21, 11], [21, 11]], dims=["canopy_layers", "cell_id"]),
+    )
+
+
+# -----------------------------------------
+# the following tests are not complete or functions are not correct
+
+
+def test_initialise_air_temperature_conductivity():
+    """Test."""
+    from virtual_rainforest.models.abiotic import energy_balance
+
+    result = energy_balance.initialise_air_temperature_conductivity(
+        canopy_height=DataArray([20, 20], dims="cell_id")
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[10.0, 10.0], [5.0, 5.0], [5.0, 5.0], [16.666667, 16.666667]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+
+
+# TODO test error for not implemented method
+def test_temperature_conductivity_interpolation():
     """Test for temp conductivity interpolation."""
 
     from virtual_rainforest.models.abiotic import energy_balance
@@ -85,9 +125,49 @@ def test_temp_conductivity_interpolation():
         EnergyBalanceConstants as const,
     )
 
-    result2 = energy_balance.temp_conductivity_interpolation(
+    result2 = energy_balance.temperature_conductivity_interpolation(
         min_conductivity=const.max_leaf_conductivity,
         max_conductivity=const.max_leaf_air_conductivity,
     )
 
-    xr.testing.assert_allclose(result2, DataArray[[1, 1, 1]])
+    xr.testing.assert_allclose(
+        result2, DataArray([0.32, 0.255, 0.19], dims="canopy_layers")
+    )
+
+
+def test_set_canopy_node_heights():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic import energy_balance
+
+    result = energy_balance.set_canopy_node_heights(
+        canopy_height=DataArray([20, 10], dims="cell_id")
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[0.00833333, 0.01666667], [0.025, 0.05], [0.04166667, 0.08333333]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+
+
+def test_set_soil_node_depths():
+    """Test."""
+    pass
+
+
+def test_set_initial_canopy_windspeed():
+    """Test."""
+    pass
+
+
+def test_class():
+    """Test initialisation of EnergyBalance class."""
+    pass
+
+
+def test_run_energy_balance():
+    """Test run energy balance."""
+    pass
