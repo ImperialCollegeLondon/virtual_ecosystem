@@ -68,4 +68,4 @@ jobs:
       - name: Build docs using sphinx
         run: |
           cd docs
-          poetry run sphinx-build -W --keep-going docs/source build
+          poetry run sphinx-build -W --keep-going source build
