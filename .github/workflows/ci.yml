@@ -62,6 +62,6 @@ jobs:
       - name: Build docs using sphinx
         uses: ammaraskar/sphinx-action@master
         with:
-          docs-folder: "docs/"
+          docs-folder: "docs/source"
           pre-build-command: "poetry install"
-          build-command: "sphinx-build -W --keep-going docs/source build"
+          build-command: "sphinx-build -W --keep-going . build"
