@@ -44,3 +44,12 @@ jobs:
       run: |
         pip install codecov
         codecov
+
+  docs_build:
+    needs: qa
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
