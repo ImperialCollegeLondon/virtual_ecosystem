@@ -1,6 +1,6 @@
-"""The :mod:`abiotic.model` module creates a
-:class:`~virtual_rainforest.abiotic.abiotic_model.AbioticModel` class as a child of the
-:class:`~virtual_rainforest.core.model.BaseModel` class.
+"""The :mod:`~virtual_rainforest.models.abiotic.abiotic_model` module creates a
+:class:`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel` class as a child
+of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class AbioticModel(BaseModel):

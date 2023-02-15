@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.core.logging` module is used to setup the extend the
+"""The :mod:`~virtual_rainforest.core.logger` module is used to setup the extend the
 standard logging setup to provide additional functionality relevant to the virtual
 rainforest model.
 

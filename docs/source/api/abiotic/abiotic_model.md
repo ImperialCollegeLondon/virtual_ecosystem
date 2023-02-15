@@ -14,10 +14,11 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.soil.model` module
+# API documentation for the {mod}`~virtual_rainforest.models.abiotic.abiotic_model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.soil.soil_model
+.. automodule:: virtual_rainforest.models.abiotic.abiotic_model
     :autosummary:
     :members:
+    :special-members: __init_subclass__, __repr__, __str__
 ```
