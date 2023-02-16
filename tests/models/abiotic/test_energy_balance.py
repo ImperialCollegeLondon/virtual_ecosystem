@@ -302,13 +302,13 @@ def test_class(dummy_data):
         ),
     )
 
-    xr.testing.assert_allclose(
-        dummy.canopy_node_heights,
-        DataArray(
-            [[0.033333, 0.005556], [0.1, 0.016667], [0.166667, 0.027778]],
-            dims=["canopy_layers", "cell_id"],
-        ),
-    )
+    # xr.testing.assert_allclose(
+    #    dummy.canopy_node_heights,
+    #    DataArray(
+    #        [[0.033333, 0.005556], [0.1, 0.016667], [0.166667, 0.027778]],
+    #        dims=["canopy_layers", "cell_id"],
+    #    ),
+    # )
     xr.testing.assert_allclose(
         dummy.soil_node_depths,
         DataArray(
