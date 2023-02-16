@@ -31,9 +31,9 @@ from typing import Union
 import numpy as np
 from xarray import DataArray
 
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import InitialisationError
 
 
 # In the future, we want to import the RadiationConstants dataclass here
@@ -72,7 +72,7 @@ class Radiation:
     shortwave radiation at the surface (= forest floor), which is an input to the
     :class:`~virtual_rainforest.models.abiotic.Energy_balance` class. Top of canopy
     photosynthetic photon flux density (PPFD) is the key input for
-    :mod:`~virtual_rainforest.models.plants` which calculates photosythesis and GPP.
+    `virtual_rainforest.models.plants` which calculates photosythesis and GPP.
     Longwave radiation from individual canopy layers and longwave radiation from soil
     serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
     class.
@@ -96,7 +96,7 @@ class Radiation:
     * albedo_vis: visible light albedo, default = 0.03
     * albedo_shortwave: shortwave albedo, default = 0.17
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
-        and 1 (cloud free sky), default = 1
+    and 1 (cloud free sky), default = 1
 
     The ``const`` argument takes an instance of class
     :class:`~virtual_rainforest.models.abiotic.radiation.RadiationConstants`, which

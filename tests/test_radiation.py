@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from virtual_rainforest.core.model import InitialisationError
+from virtual_rainforest.core.base_model import InitialisationError
 
 
 @pytest.fixture
