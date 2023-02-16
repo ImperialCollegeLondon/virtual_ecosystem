@@ -1,16 +1,6 @@
-import json
-from pathlib import Path
+from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
 
-
-@register_schema("core")
-def schema() -> dict:
-    """Defines the schema that the core module configuration should conform to."""
-
-    schema_file = Path(__file__).parent.resolve() / "core_schema.json"
-
-    with schema_file.open() as f:
-        config_schema = json.load(f)
-
-    return config_schema
+with resources.path("virtual_rainforest.core", "core_schema.json") as schema_file_path:
+    register_schema(module_name="core", schema_file_path=schema_file_path)

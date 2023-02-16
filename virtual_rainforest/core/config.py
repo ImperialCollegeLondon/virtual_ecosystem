@@ -40,11 +40,12 @@ define schema, in turn ensuring that
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
 """  # noqa: D205, D415
 
+import json
 import sys
 from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+from typing import Any, Generator, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -140,55 +141,75 @@ def validate_and_add_defaults(
 ValidatorWithDefaults = validate_and_add_defaults(Draft202012Validator)
 
 
-def register_schema(module_name: str) -> Callable:
-    """Decorator function to add configuration schema to the registry.
+def register_schema(module_name: str, schema_file_path: Path) -> None:
+    """Simple function to add configuration schema to the registry.
 
     Args:
         module_name: The name to register the schema under
+        schema_file_path: The file path to the JSON Schema file for the model
+
     Raises:
-        ValueError: If the schema name has already been used
-        OSError: If the module schema is not valid JSON
-        KeyError: If a module schema is missing one of the required keys
+        ValueError: If the module name has already been used to register a schema
     """
 
-    def wrap(func: Callable) -> Callable:
-        # Type the exception raising with a general base class
-        to_raise: Exception
+    if module_name in SCHEMA_REGISTRY:
+        excep = ValueError("The module schema for {module_name} is already registered")
+        LOGGER.critical(excep)
+        raise
 
-        if module_name in SCHEMA_REGISTRY:
-            to_raise = ValueError(
-                f"The module schema {module_name} is used multiple times, this "
-                f"shouldn't be the case!",
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-        else:
-            # Check that this is a valid schema
-            try:
-                Draft202012Validator.check_schema(func())
-            except exceptions.SchemaError:
-                to_raise = OSError(f"Module schema {module_name} not valid JSON!")
-                LOGGER.critical(to_raise)
-                raise to_raise
+    LOGGER.info(
+        "Schema file registered for module %s: %s ", module_name, schema_file_path
+    )
+    SCHEMA_REGISTRY[module_name] = get_schema(module_name, schema_file_path)
 
-            # Check that relevant keys are included
-            try:
-                func()["properties"][module_name]
-                func()["required"]
-            except KeyError as err:
-                to_raise = KeyError(
-                    f"Schema for {module_name} module incorrectly structured, {err} key"
-                    f" missing!"
-                )
-                LOGGER.critical(to_raise)
-                raise to_raise
 
-            # If it is valid then add it to the registry
-            SCHEMA_REGISTRY[module_name] = func()
+def get_schema(module_name: str, schema_file_path: Path) -> dict:
+    """Function to load the JSON schema for a module.
 
-        return func
+    This function tries to load a JSON schema file and then - if the JSON loaded
+    correctly - checks that the JSON provides a valid JSON Schema.
 
-    return wrap
+    Args:
+        module_name: The name to register the schema under
+        schema_file_path: The file path to the JSON Schema file
+
+    Raises:
+        ValueError: the module name has no registered schema path
+        FileNotFoundError: the schema path does not exist
+        JSONDecodeError: the file at the schema path is not valid JSON
+        SchemaError: the file contents are not valid JSON Schema
+        KeyError: the JSON Schema is missing required keys
+    """
+
+    try:
+        json_schema = json.load(open(schema_file_path))
+    except FileNotFoundError as excep:
+        LOGGER.critical(excep)
+        raise
+    except json.JSONDecodeError as excep:
+        LOGGER.critical(excep)
+        raise
+
+    # Check that this is a valid schema - deliberately log a separate message and let
+    # the schema traceback output rather than replacing it.
+    try:
+        Draft202012Validator.check_schema(json_schema)
+    except exceptions.SchemaError as excep:
+        LOGGER.critical(f"Module schema {schema_file_path} invalid")
+        raise excep
+
+    # Check that relevant keys are included
+    try:
+        json_schema["properties"][module_name]
+        json_schema["required"]
+    except KeyError as excep:
+        to_raise = KeyError(f"Missing key in module schema {module_name}: {excep}")
+        LOGGER.critical(to_raise)
+        raise
+
+    LOGGER.info("Module schema for %s loaded", module_name)
+
+    return json_schema
 
 
 def check_dict_leaves(
