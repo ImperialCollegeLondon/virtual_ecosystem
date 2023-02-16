@@ -224,19 +224,29 @@ All model directories need to include an `__init__.py` file. The simple presence
 but then the file needs to contain code to do two things:
 
 1. The `__init__.py` file needs to register the JSONSchema file for the module. The
-  {meth}`~virtual_rainforest.core.config.register_schema` function takes a module name
-  and the path to the schema file and then, after checking the file can be loaded and is
-  valid, adds the schema to the schema registry
-  {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
-1. It also needs to import the main BaseModel subclass. This is not going to be used
-   within the file, so needs `#noqa: 401` to surpress a `flake8` error. This step is
-   primarily to ensure that the subclass is always loaded from the same location but
-   also means that the model class can now be imported more directly from the module
-   root: ``virtual_rainforest.models.freshwater.FreshWaterModel``.
+    {meth}`~virtual_rainforest.core.config.register_schema` function takes a module name
+    and the path to the schema file and then, after checking the file can be loaded and is
+    valid, adds the schema to the schema registry
+    {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
 
-The `__init__.py` file will then look something like this:
+1. It also needs to import the main BaseModel subclass. So for example, it should import
+    `FreshwaterModel` from the `virtual_rainforest.models.freshwater.freshwater_model`
+    module. This gives a shorter reference for a commonly used object
+    (`virtual_rainforest.models.freshwater.FreshwaterModel`) but it also means
+    that the BaseModel class is always imported when the model module
+    (`virtual_rainforest.models.freshwater`) is imported. This is used when the package
+    is loaded to automatically discover all the BaseModel classes and register them.
+
+    The class is not going to actually be used within the file, so needs `#noqa: 401`
+    to suppress a `flake8` error.
+
+The resulting `__init__.py` file should then look something like this:
 
 ```python
+"""This is the freshwater model module. The module level docstring should contain a 
+short description of the overall model design and purpose.
+"""  # noqa: D204, D415
+
 from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
