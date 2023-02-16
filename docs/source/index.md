@@ -92,6 +92,7 @@ team.
   Soil Constants <api/soil/constants.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
+  Abiotic Radiation <api/abiotic/radiation.md>
   Abiotic Energy balance <api/abiotic/energy_balance.md>
 ```
 

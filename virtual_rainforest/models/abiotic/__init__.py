@@ -10,10 +10,12 @@ Each of the abiotic sub-modules has its own API reference page:
   single class, which the high level functions of the Virtual Rainforest can then use.
 
 * The :mod:`~virtual_rainforest.models.abiotic.radiation` submodule instantiates
-  the :class:`~virtual_rainforest.models.abiotic.energy_balance.Radiation` class.
+  the :class:`~virtual_rainforest.models.abiotic.radiation.Radiation` class. This class
+  calculates the radiation balance of the Virtual Rainforest.
 
 * The :mod:`~virtual_rainforest.models.abiotic.energy_balance` submodule instantiates
   the :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalance` class.
+  This class calculates the energy balance of the Virtual Rainforest.
 """  # noqa: D205, D415
 
 import json

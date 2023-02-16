@@ -51,13 +51,11 @@ def test_initialise_absorbed_radiation():
             },
             DataArray(
                 [
-                    [
-                        [15.0, -5.0],
-                        [16.25, 1.25],
-                        [17.5, 7.5],
-                        [18.75, 13.75],
-                        [20.0, 20.0],
-                    ]
+                    [20.0, 20.0],
+                    [18.75, 13.75],
+                    [17.5, 7.5],
+                    [16.25, 1.25],
+                    [15.0, -5.0],
                 ]
             ),
             does_not_raise(),
@@ -93,10 +91,6 @@ def test_initialise_canopy_temperature():
         result,
         DataArray([[21, 11], [21, 11], [21, 11]], dims=["canopy_layers", "cell_id"]),
     )
-
-
-# -----------------------------------------
-# the following tests are not complete or functions are not correct
 
 
 def test_initialise_air_temperature_conductivity():
@@ -187,11 +181,122 @@ def test_set_initial_canopy_windspeed():
     )
 
 
-def test_class():
+# ----------------------------------------------------------------------------
+@pytest.fixture
+def dummy_data():
+    """Creates a dummy data object for use in tests."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with two cells.
+    grid = Grid(cell_nx=2, cell_ny=1)
+    data = Data(grid)
+
+    # Add the required data.
+    data["leaf_area_index"] = DataArray(
+        [[3, 3], [2, 2], [1, 1]], dims=["canopy_layers", "cell_id"]
+    )
+    data["canopy_height"] = DataArray([5, 30], dims=["cell_id"])
+    data["absorbed_radiation"] = DataArray(
+        [[30, 30], [20, 20], [10, 10]], dims=["canopy_layers", "cell_id"]
+    )
+    data["topofcanopy_radiation"] = DataArray([1000, 10000], dims=["cell_id"])
+    data["air_temperature_2m"] = DataArray([20, 20], dims=["cell_id"])
+
+    data["mean_annual_temperature"] = DataArray([10, 10], dims=["cell_id"])
+    data["relative_humidity_2m"] = DataArray([80, 90], dims=["cell_id"])
+    data["atmospheric_pressure_2m"] = DataArray([100, 100], dims=["cell_id"])
+    data["soil_depth"] = DataArray([1, 2], dims=["cell_id"])
+    data["wind_speed_10m"] = DataArray([1, 10], dims=["cell_id"])
+
+    return data
+
+
+def test_class(dummy_data):
     """Test initialisation of EnergyBalance class."""
-    pass
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        EnergyBalance,
+        EnergyBalanceConstants,
+    )
+
+    dummy = EnergyBalance(data=dummy_data, const=EnergyBalanceConstants)
+
+    xr.testing.assert_allclose(
+        dummy.absorbed_radiation,
+        DataArray(
+            [[29.554466, 295.544665], [19.216109, 192.16109], [9.464891, 94.648909]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.atmospheric_pressure, dummy_data["atmospheric_pressure_2m"]
+    )
+    xr.testing.assert_allclose(
+        dummy.sensible_heat_flux,
+        DataArray([[0, 0], [0, 0], [0, 0]], dims=["canopy_layers", "cell_id"]),
+    )
+    xr.testing.assert_allclose(
+        dummy.latent_heat_flux,
+        DataArray([[0, 0], [0, 0], [0, 0]], dims=["canopy_layers", "cell_id"]),
+    )
+    xr.testing.assert_allclose(
+        dummy.ground_heat_flux, DataArray([0, 0], dims=["cell_id"])
+    )
+    xr.testing.assert_allclose(
+        dummy.diabatic_correction_factor, DataArray([0, 0], dims=["cell_id"])
+    )
+    xr.testing.assert_allclose(
+        dummy.air_temperature,
+        DataArray(
+            [[20, 20], [17.5, 17.5], [15.0, 15.0]],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.soil_temperature,
+        DataArray(
+            [[12.5, 12.5], [10.0, 10]],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.canopy_temperature,
+        DataArray(
+            [[20.3, 20.3], [20.2, 20.2], [20.1, 20.1]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.height_of_above_canopy, dummy_data["canopy_height"]
+    )
+    xr.testing.assert_allclose(
+        dummy.relative_humidity,
+        DataArray(
+            [[80, 90], [80, 90], [80, 90]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.air_conductivity,
+        DataArray(
+            [
+                [40.0, 6.666667],
+                [20.0, 3.333333],
+                [20.0, 3.333333],
+                [16.666667, 16.666667],
+            ],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.leaf_conductivity,
+        DataArray(
+            [0.25, 0.285, 0.32],
+            dims=["canopy_layers"],
+        ),
+    )
 
 
-def test_run_energy_balance():
-    """Test run energy balance."""
-    pass
+# Initialise attributes
+#   self.canopy_node_heights: DataArray
+#  self.soil_node_depths: DataArray
+# self.canopy_wind_speed: DataArray
