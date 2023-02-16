@@ -101,44 +101,45 @@ def log_all_validation_errors(
     raise to_raise
 
 
-def validate_and_add_defaults(
-    validator_class: type[Draft202012Validator],
-) -> type[Draft202012Validator]:
-    """Extend validator so that it can populate default values from the schema.
+#  Set up a JSON Schema validator that fills in default values
+
+
+def set_defaults(
+    validator: type[Draft202012Validator],
+    properties: dict[str, Any],
+    instance: dict[str, Any],
+    schema: dict[str, Any],
+) -> Iterator:
+    """Generate an iterator to populate schema defaults.
+
+    This function is used to extend the Draft202012Validator to include automatic
+    insertion of default values from a schema where values are not specified. The
+    function signature follows the required JSON schema pattern:
+
+    https://python-jsonschema.readthedocs.io/en/latest/creating/
 
     Args:
-        validator_class: Validator to be extended
+        validator: a validator instance,
+        properties: the value of the property being validated within the instance
+        instance: the instance
+        schema: the schema
     """
+    for property, subschema in properties.items():
+        if "default" in subschema:
+            instance.setdefault(property, subschema["default"])
 
-    validate_properties = validator_class.VALIDATORS["properties"]
-
-    def set_defaults(
-        validator: type[Draft202012Validator],
-        properties: dict[str, Any],
-        instance: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> Iterator:
-        """Generate an iterator to populate defaults."""
-        for property, subschema in properties.items():
-            if "default" in subschema:
-                instance.setdefault(property, subschema["default"])
-
-        for error in validate_properties(
-            validator,
-            properties,
-            instance,
-            schema,
-        ):
-            yield error
-
-    return validators.extend(
-        validator_class,
-        {"properties": set_defaults},
-    )
+    for error in Draft202012Validator.VALIDATORS["properties"](
+        validator,
+        properties,
+        instance,
+        schema,
+    ):
+        yield error
 
 
-# Make a global validator using the above function to allow for the adding of defaults
-ValidatorWithDefaults = validate_and_add_defaults(Draft202012Validator)
+ValidatorWithDefaults = validators.extend(
+    Draft202012Validator, {"properties": set_defaults}
+)
 
 
 def register_schema(module_name: str, schema_file_path: Path) -> None:
@@ -155,12 +156,15 @@ def register_schema(module_name: str, schema_file_path: Path) -> None:
     if module_name in SCHEMA_REGISTRY:
         excep = ValueError(f"The module schema for {module_name} is already registered")
         LOGGER.critical(excep)
-        raise
+        raise excep
 
-    LOGGER.info(
-        "Schema file registered for module %s: %s ", module_name, schema_file_path
-    )
-    SCHEMA_REGISTRY[module_name] = get_schema(module_name, schema_file_path)
+    try:
+        SCHEMA_REGISTRY[module_name] = get_schema(module_name, schema_file_path)
+    except Exception as excep:
+        LOGGER.critical(f"Schema registration for {module_name} failed: check log")
+        raise excep
+
+    LOGGER.info("Schema registered for module %s: %s ", module_name, schema_file_path)
 
 
 def get_schema(module_name: str, schema_file_path: Path) -> dict:
@@ -178,34 +182,37 @@ def get_schema(module_name: str, schema_file_path: Path) -> dict:
         FileNotFoundError: the schema path does not exist
         JSONDecodeError: the file at the schema path is not valid JSON
         SchemaError: the file contents are not valid JSON Schema
-        KeyError: the JSON Schema is missing required keys
+        ValueError: the JSON Schema is missing required keys
     """
 
     try:
-        json_schema = json.load(open(schema_file_path))
+        fobj = open(schema_file_path)
+        json_schema = json.load(fobj)
     except FileNotFoundError as excep:
-        LOGGER.critical(excep)
-        raise
+        LOGGER.error(excep)
+        raise excep
     except json.JSONDecodeError as excep:
-        LOGGER.critical(excep)
-        raise
+        LOGGER.error(f"JSON error in schema file {schema_file_path}")
+        raise excep
 
     # Check that this is a valid schema - deliberately log a separate message and let
     # the schema traceback output rather than replacing it.
     try:
-        Draft202012Validator.check_schema(json_schema)
+        ValidatorWithDefaults.check_schema(json_schema)
     except exceptions.SchemaError as excep:
-        LOGGER.critical(f"Module schema {schema_file_path} invalid")
+        LOGGER.error(f"Module schema invalid in: {schema_file_path}")
         raise excep
 
-    # Check that relevant keys are included
+    # Check that relevant keys are included - deliberately re-raising as ValueError here
+    # as the KeyError has built in quoting and is expecting to provide simple missing
+    # key messages.
     try:
         json_schema["properties"][module_name]
         json_schema["required"]
     except KeyError as excep:
-        to_raise = KeyError(f"Missing key in module schema {module_name}: {excep}")
-        LOGGER.critical(to_raise)
-        raise
+        to_raise = ValueError(f"Missing key in module schema {module_name}: {excep}")
+        LOGGER.error(to_raise)
+        raise to_raise
 
     LOGGER.info("Module schema for %s loaded", module_name)
 
