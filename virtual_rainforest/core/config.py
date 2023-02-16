@@ -153,7 +153,7 @@ def register_schema(module_name: str, schema_file_path: Path) -> None:
     """
 
     if module_name in SCHEMA_REGISTRY:
-        excep = ValueError("The module schema for {module_name} is already registered")
+        excep = ValueError(f"The module schema for {module_name} is already registered")
         LOGGER.critical(excep)
         raise
 
