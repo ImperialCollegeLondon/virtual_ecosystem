@@ -6,10 +6,12 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
+import json
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
+import jsonschema
 import pytest
 
 import virtual_rainforest.core.config as config
@@ -290,72 +292,64 @@ def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_en
     [
         (
             "core",
-            {},
+            "",
             ValueError,
             (
                 (
                     CRITICAL,
-                    "The module schema core is used multiple times, this shouldn't"
-                    " be the case!",
+                    "The module schema for core is already registered",
                 ),
             ),
         ),
         (
             "test",
             "najsnjasnda",
-            OSError,
-            ((CRITICAL, "Module schema test not valid JSON!"),),
+            json.JSONDecodeError,
+            (
+                (ERROR, "JSON error in schema file"),
+                (CRITICAL, "Schema registration for test failed: check log"),
+            ),
         ),
         (
             "bad_module_1",
-            {"type": "object", "propertie": {"bad_module_1": {}}},
-            KeyError,
+            '{"type": "hobbit", "properties": {"bad_module_1": {}}}',
+            jsonschema.SchemaError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_1 module incorrectly structured, "
-                    "'properties' key missing!",
-                ),
+                (ERROR, "Module schema invalid in: "),
+                (CRITICAL, "Schema registration for bad_module_1 failed: check log"),
             ),
         ),
         (
             "bad_module_2",
-            {"type": "object", "properties": {"bad_module_1": {}}},
-            KeyError,
+            '{"type": "object", "properties": {"bad_module_1": {}}}',
+            ValueError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_2 module incorrectly structured, "
-                    "'bad_module_2' key missing!",
-                ),
+                (ERROR, "Missing key in module schema bad_module_2:"),
+                (CRITICAL, "Schema registration for bad_module_2 failed: check log"),
             ),
         ),
         (
             "bad_module_3",
-            {"type": "object", "properties": {"bad_module_3": {}}},
-            KeyError,
+            '{"type": "object", "properties": {"bad_module_3": {}}}',
+            ValueError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_3 module incorrectly structured, 'required'"
-                    " key missing!",
-                ),
+                (ERROR, "Missing key in module schema bad_module_3"),
+                (CRITICAL, "Schema registration for bad_module_3 failed: check log"),
             ),
         ),
     ],
 )
 def test_register_schema_errors(
-    caplog, schema_name, schema, expected_exception, expected_log_entries
+    caplog, mocker, schema_name, schema, expected_exception, expected_log_entries
 ):
     """Test that the schema registering decorator throws the correct errors."""
+
+    data = mocker.mock_open(read_data=schema)
+    mocker.patch("builtins.open", data)
+
     # Check that construct_combined_schema fails as expected
     with pytest.raises(expected_exception):
-
-        @register_schema(schema_name)
-        def to_be_decorated() -> dict:
-            return schema
-
-        to_be_decorated()
+        register_schema(schema_name, "file_path")
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
