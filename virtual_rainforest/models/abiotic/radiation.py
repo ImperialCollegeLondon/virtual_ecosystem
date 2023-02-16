@@ -331,7 +331,6 @@ def calculate_netradiation_surface(
         net shortwave radiation at the surface ( = forest floor), [J m-2]
     """
 
-    # TODO raise error if canopy_layers don't have correct dimensions, not here?
     return (
         topofcanopy_radiation
         - canopy_absorption.sum(dim="canopy_layers")
