@@ -19,11 +19,11 @@ reaches the top of the canopy is reflected and how much remains to be absorbed v
 photosynthesis and re-emitted as longwave radiation by vegetation and forest floor.
 At this stage, scattering and re-absorption of longwave radiation are not considered.
 
-"""
 # TODO include time dimension, i.e. calculate toc radiation and ppdf for full time
 # series (possibly as part of AbioticModel) and update other variables for each time
 # step with inputs from other modules via the data object (for example absorbed
 # radiation from the plant module)
+"""
 
 from dataclasses import dataclass
 from typing import Union
