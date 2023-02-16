@@ -214,7 +214,7 @@ def dummy_data():
 
 
 def test_class(dummy_data):
-    """Test initialisation of EnergyBalance class."""
+    """Test initialisation of EnergyBalance class attributes."""
     from virtual_rainforest.models.abiotic.energy_balance import (
         EnergyBalance,
         EnergyBalanceConstants,
@@ -294,9 +294,25 @@ def test_class(dummy_data):
             dims=["canopy_layers"],
         ),
     )
+    xr.testing.assert_allclose(
+        dummy.canopy_wind_speed,
+        DataArray(
+            [[0.333333, 0.033333], [0.666667, 0.066667], [1.0, 0.1]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
 
-
-# Initialise attributes
-#   self.canopy_node_heights: DataArray
-#  self.soil_node_depths: DataArray
-# self.canopy_wind_speed: DataArray
+    xr.testing.assert_allclose(
+        dummy.canopy_node_heights,
+        DataArray(
+            [[0.033333, 0.005556], [0.1, 0.016667], [0.166667, 0.027778]],
+            dims=["canopy_layers", "cell_id"],
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy.soil_node_depths,
+        DataArray(
+            [[0.0, 0.373712], [0.0, 0.373712]],
+            dims=["soil_layers", "cell_id"],
+        ),
+    )

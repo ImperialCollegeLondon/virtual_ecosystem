@@ -277,7 +277,7 @@ class EnergyBalance:
         raise NotImplementedError
 
 
-# helper functions
+# helper functions for initalisation
 def initialise_absorbed_radiation(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
@@ -309,9 +309,20 @@ def initialise_absorbed_radiation(
 
     for i in range(0, canopy_layers):
         initial_absorbed_radiation[i,] = topofcanopy_radiation * (
-            1 - np.exp(-light_extinction_coefficient * leaf_area_index[i,])
+            1
+            - np.exp(
+                -light_extinction_coefficient
+                * leaf_area_index[
+                    i,
+                ]
+            )
         )
-        topofcanopy_radiation = topofcanopy_radiation - initial_absorbed_radiation[i,]
+        topofcanopy_radiation = (
+            topofcanopy_radiation
+            - initial_absorbed_radiation[
+                i,
+            ]
+        )
 
     return initial_absorbed_radiation
 
@@ -402,7 +413,9 @@ def initialise_air_temperature_conductivity(
         np.full((canopy_layers + 1, int(canopy_height.size)), air_conductivity_ini),
         dims=["canopy_layers", "cell_id"],
     )
-    air_conductivity_profile[0,] = air_conductivity_ini * 2
+    air_conductivity_profile[0,] = (
+        air_conductivity_ini * 2
+    )
     air_conductivity_profile[-1,] = (
         air_conductivity_ini * (canopy_height / canopy_layers) * 0.5
     )
@@ -466,7 +479,10 @@ def set_canopy_node_heights(
 
     for i in range(0, canopy_height.size):
         canopy_node_heights[:, i] = (np.arange(canopy_layers) + 0.5) / (
-            canopy_layers * canopy_height.values[i,]
+            canopy_layers
+            * canopy_height.values[
+                i,
+            ]
         )
 
     return canopy_node_heights
@@ -518,7 +534,13 @@ def set_initial_canopy_windspeed(
 
     for i in range(0, wind_speed_10m.size):
         canopy_wind_speed[:, i] = (np.arange(canopy_layers) + 1) / (
-            canopy_layers * wind_speed_10m.values[i,]
+            canopy_layers
+            * wind_speed_10m.values[
+                i,
+            ]
         )
 
     return canopy_wind_speed
+
+
+# helper functions to run energy balance
