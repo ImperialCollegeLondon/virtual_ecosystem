@@ -9,7 +9,7 @@ are described here [link to general documentation will follow here].
 The module contains the :class:`~virtual_rainforest.models.abiotic.Energy_Balance` class
 and associated functions to calculate above and below canopy atmospheric temperature and
 humidity profiles, soil temperatures, and radiative fluxes.
-"""
+"""  # noqa: D205, D415
 # TODO include time dimension, i.e. initialise vertical profile and update other
 # variables for each time step with inputs from other modules via the data object (for
 # example leaf area index from `plants`)
@@ -21,7 +21,9 @@ from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import InitialisationError  # change to base_model
+from virtual_rainforest.core.base_model import (
+    InitialisationError,
+)  # change to base_model
 
 
 # In the future, we want to import the EnergyBalanceConstants dataclass here
@@ -253,7 +255,7 @@ class EnergyBalance:
         raise NotImplementedError
 
 
-# pure functions
+# helper functions
 def initialise_absorbed_radiation(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
