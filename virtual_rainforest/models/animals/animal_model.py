@@ -1,19 +1,19 @@
-"""The :mod:`~virtual_rainforest.animal.model` module creates a
-:class:`~virtual_rainforest.animal.model.AnimalModel` class as a child of the
-:class:`~virtual_rainforest.core.model.BaseModel` class. At present a lot of the
-abstract methods of the parent class (e.g.
+"""The :mod:`~virtual_rainforest.models.animal.animal_model` module creates a
+:class:`~virtual_rainforest.models.animal.animal_model.AnimalModel` class as a
+child of the :class:`~virtual_rainforest.core.model.BaseModel` class.
+At present a lot of the abstract methods of the parent class (e.g.
 :func:`~virtual_rainforest.core.model.BaseModel.setup` and
 :func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
 :mod:`virtual_rainforest` model develops. The factory method
-:func:`~virtual_rainforest.animals.model.AnimalModel.from_config` exists in a more
-complete state, and unpacks a small number of parameters from our currently pretty
-minimal configuration dictionary. These parameters are then used to generate a class
-instance. If errors crop here when converting the information from the config dictionary
-to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and then
-logged, and at the end of the unpacking an error is thrown. This error should be
-caught and handled by downstream functions so that all model configuration failures
-can be reported as one.
+:func:`~virtual_rainforest.models.animal.animal_model.AnimalModel.from_config`
+exists in a more complete state, and unpacks a small number of parameters
+from our currently pretty minimal configuration dictionary. These parameters are
+then used to generate a class instance. If errors crop here when converting the
+information from the config dictionary to the required types
+(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
+of the unpacking an error is thrown. This error should be caught and handled
+by downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
 
@@ -37,8 +37,6 @@ class AnimalModel(BaseModel):
 
     Args:
         update_interval: Time to wait between updates of the model state.
-
-
     """
 
     model_name = "animal"
@@ -98,10 +96,6 @@ class AnimalModel(BaseModel):
         else:
             raise InitialisationError()
 
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
-    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
-    # STATE
     def setup(self) -> None:
         """Function to set up the animal model."""
 

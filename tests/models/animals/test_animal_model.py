@@ -11,7 +11,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.models.animals.model import AnimalModel
+from virtual_rainforest.models.animals.animal_model import AnimalModel
 
 
 def test_animal_model_initialization(caplog):
