@@ -14,14 +14,14 @@ from tests.conftest import log_check
 from virtual_rainforest.core.base_model import BaseModel
 
 
-def test_base_model_initialization(caplog, mocker):
+def test_base_model_initialization(caplog, mocker, data_instance):
     """Test `BaseModel` initialization."""
 
     # Patch abstract methods so that BaseModel can be instantiated for testing
     mocker.patch.object(BaseModel, "__abstractmethods__", new_callable=set)
 
     # Initialise model
-    model = BaseModel(timedelta64(1, "W"), datetime64("2022-11-01"))
+    model = BaseModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))

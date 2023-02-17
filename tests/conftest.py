@@ -88,6 +88,16 @@ def fixture_data(fixture_square_grid_simple):
 
 
 @pytest.fixture
+def data_instance():
+    """Creates an empty data instance."""
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    grid = Grid()
+    return Data(grid)
+
+
+@pytest.fixture
 def new_axis_validators():
     """Create new axis validators to test methods and registration."""
     from virtual_rainforest.core.axes import AxisValidator

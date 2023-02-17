@@ -24,16 +24,6 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
 from .conftest import log_check
 
 
-@pytest.fixture
-def data_instance():
-    """Creates an emmpty data instance."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    grid = Grid()
-    return Data(grid)
-
-
 @pytest.mark.parametrize(
     "model_list,no_models,raises,expected_log_entries",
     [
