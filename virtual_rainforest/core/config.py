@@ -165,7 +165,6 @@ def get_schema(module_name: str, schema_file_path: Path) -> dict:
         schema_file_path: The file path to the JSON Schema file
 
     Raises:
-        ValueError: the module name has no registered schema path
         FileNotFoundError: the schema path does not exist
         JSONDecodeError: the file at the schema path is not valid JSON
         SchemaError: the file contents are not valid JSON Schema
