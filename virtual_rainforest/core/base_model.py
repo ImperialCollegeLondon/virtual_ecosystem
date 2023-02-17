@@ -114,7 +114,7 @@ class BaseModel(ABC):
 
     @property
     @abstractmethod
-    def required_init_vars(cls) -> list[tuple[str, tuple[str]]]:
+    def required_init_vars(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         """Required variables for model initialisation.
 
         This class property defines a set of variable names that must be present in the

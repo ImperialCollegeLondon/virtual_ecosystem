@@ -43,7 +43,7 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """The model name for use in registering the model and logging."""
-    required_init_vars = []
+    required_init_vars = ()
 
     def __init__(
         self,

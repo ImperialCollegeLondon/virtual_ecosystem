@@ -30,7 +30,7 @@ class AbioticModel(BaseModel):
     """
 
     model_name = "abiotic"
-    required_init_vars = []
+    required_init_vars = ()
 
     def __init__(
         self,
