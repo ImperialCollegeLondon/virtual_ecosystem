@@ -1,16 +1,8 @@
-import json
-from pathlib import Path
+from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
 
-
-@register_schema("plants")
-def schema() -> dict:
-    """Defines the schema that the plant module configuration should conform to."""
-
-    schema_file = Path(__file__).parent.resolve() / "plants_schema.json"
-
-    with schema_file.open() as f:
-        config_schema = json.load(f)
-
-    return config_schema
+with resources.path(
+    "virtual_rainforest.models.plants", "plants_schema.json"
+) as schema_file_path:
+    register_schema(module_name="plants", schema_file_path=schema_file_path)

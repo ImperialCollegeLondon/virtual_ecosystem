@@ -47,7 +47,7 @@ from virtual_rainforest.core.logger import LOGGER
 # New model class will inherit from BaseModel.
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 ```
 
 The new model class is created using a class method, which means that the model is
@@ -193,47 +193,73 @@ def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
 ```
 
-## Including a configuration schema
+## Writing a schema for the module configuration
 
-A detailed description of the configuration system can be found
-[here](../virtual_rainforest/core/config.md). The key thing to note is that a `JSON`
-schema file should be saved within your model folder. This file should have a name of
-the format "{MODEL_NAME}_schema.json". In order for this schema to be generally
-accessible, it needs to be registered in the model's `__init__.py` (i.e. the
-`__init__.py` in the model folder). This means that when the model is imported, it's
-schema is automatically added to the schema registry.
+The root module directory **must** also contain a [JSONSchema](https://json-schema.org/)
+document that defines the configuration options for the model.  A detailed description
+of the configuration system works can be found
+[here](../virtual_rainforest/core/config.md) but the schema definition is used to
+validate configuration files for a Virtual Rainforest simulation that uses your model.
+
+So the example model used here would need to provide the file:
+`virtual_rainforest/models/freshwater/freshwater_schema.json`
+
+Writing JSONSchema documents can be very tedious. The following tools may be of use:
+
+* [https://www.jsonschema.net/app](https://www.jsonschema.net/app): this is a web
+  application that takes a data document - which is what the configuration file - and
+  automatically generates a JSON schema to validate it. You will need to then edit it
+  but you'll be starting with a valid schema!
+* [https://jsonschemalint.com/](https://jsonschemalint.com/) works the other way. It
+  takes a data document and a schema and checks whether the data is compliant. This can
+  be useful for checking errors.
+
+Both of those tools take data documents formatted as JSON as inputs, where we use TOML
+configuration files, but there are lots of web tools to convert TOML to JSON and back.
+
+## Setting up the model `__init__.py` file
+
+All model directories need to include an `__init__.py` file. The simple presence of the
+`__init__.py` file tells Python that the directory content should be treated as module,
+but then the file needs to contain code to do two things:
+
+1. The `__init__.py` file needs to register the JSONSchema file for the module. The
+    {meth}`~virtual_rainforest.core.config.register_schema` function takes a module name
+    and the path to the schema file and then, after checking the file can be loaded and is
+    valid, adds the schema to the schema registry
+    {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
+
+1. It also needs to import the main BaseModel subclass. So for example, it should import
+    `FreshwaterModel` from the `virtual_rainforest.models.freshwater.freshwater_model`
+    module. This gives a shorter reference for a commonly used object
+    (`virtual_rainforest.models.freshwater.FreshwaterModel`) but it also means
+    that the BaseModel class is always imported when the model module
+    (`virtual_rainforest.models.freshwater`) is imported. This is used when the package
+    is loaded to automatically discover all the BaseModel classes and register them.
+
+    The class is not going to actually be used within the file, so needs `#noqa: 401`
+    to suppress a `flake8` error.
+
+The resulting `__init__.py` file should then look something like this:
 
 ```python
+"""This is the freshwater model module. The module level docstring should contain a 
+short description of the overall model design and purpose.
+"""  # noqa: D204, D415
+
+from importlib import resources
+
 from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.models.freshwater.freshwater_model import (
+    FreshWaterModel  
+) # noqa: 401
 
-@register_schema("freshwater")
-def schema() -> dict:
-    """Defines the schema that the freshwater module configuration should conform to."""
-
-    schema_file = Path(__file__).parent.resolve() / "freshwater_schema.json"
-
-    with schema_file.open() as f:
-        config_schema = json.load(f)
-
-    return config_schema
+with resources.path(
+    "virtual_rainforest.models.freshwater", "freshwater_schema.json"
+) as schema_file_path:
+    register_schema(module_name="freshwater", schema_file_path=schema_file_path)
 ```
 
-## Ensuring that schema and models are always added to the registry
-
-At the moment, a configuration schema only gets added to the schema registry when the
-model it belongs to is imported, and a `Model` class only gets added to the registry
-when the class itself is imported. This is a problem because the script that runs the
-main Virtual Rainforest simulation does not import these things directly. To circumvent
-this these imports needed to be placed in the top level `__init__.py` file (the one in
-the same folder as `main.py`). This won't pass the `pre-commit` checks unless `flake8`
-checks are turned off for the relevant lines. It's only strictly necessary to import the
-`Model` class, as this implicitly entails importing the specific model as a whole.
-However, for the sake of clarity we currently include both imports.
-
-```python
-# Import all module schema here to ensure that they are added to the registry
-from virtual_rainforest.models.freshwater import schema  # noqa
-
-# Import models here so that they also end up in the registry
-from virtual_rainforest.models.freshwater.model import FreshWaterModel  # noqa
-```
+When the `virtual_rainforest` package is loaded, it will automatically import
+`virtual_rainforest.models.freshwater`. That will cause both the model and the schema to
+be loaded and registered.

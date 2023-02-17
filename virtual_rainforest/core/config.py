@@ -1,50 +1,38 @@
-"""The :mod:`core.config` module is used to read in the various configuration files,
-validate their contents, and then configure a ready to run instance of the virtual
-rainforest model. The basic details of how this system is used can be found
-:doc:`here </virtual_rainforest/core/config>`.
+"""The :mod:`~virtual_rainforest.core.config` module is used to read in the various
+configuration files, validate their contents, and then configure a ready to run instance
+of the virtual rainforest model. The basic details of how this system is used can be
+found :doc:`here </virtual_rainforest/core/config>`.
 
-When a new module is defined a ``JSON`` file should be written, which includes the
+When a new module is defined a ``JSONSchema`` file should be written, which includes the
 expected configuration tags, their expected types, and any constraints on their values
 (e.g. the number of soil layers being strictly positive). Additionally, where sensible
 default values exist (e.g. 1 week for the model time step) they should also be included
 in the schema. This schema should be saved in the folder of the module that it relates
-to. In order to make this schema generally accessible to the ``vr`` package, it should
-then be added to the schema registry. The
-:func:`~virtual_rainforest.core.config.register_schema` decorator is used for this
-purpose.
-
-Schema registration for each module takes place in the module's ``__init__.py``. Here, a
-function is written that reads in the ``JSON`` file describing the schema. This function
-is then decorated using :func:`~virtual_rainforest.core.config.register_schema`, which
-results in the schema being added to the registry. The user provides a schema name to
-the decorator to register the schema under, this should be unique, and generally should
-just be the module name. An example of decorator usage is shown below:
+to. In order to make this schema generally accessible the module's ``__init__.py``
+should call the :func:`~virtual_rainforest.core.config.register_schema` function, which
+will load and validate the schema before adding it to the registry. You will need to
+provides a module name to register the schema under, which should be unique to that
+model. The function also requires the path to the schema file, which should be located
+using the :meth:`importlib.resources.path()` context manager:
 
 .. code-block:: python
 
-    @register_schema("example_module")
-    def schema() -> dict:
-        schema_file = Path(__file__).parent.resolve() / "example_module_schema.json"
+    with resources.path(
+        "virtual_rainforest.models.soil", "soil_schema.json"
+    ) as schema_file_path:
+        register_schema(module_name="soil", schema_file_path=schema_file_path)
 
-        with schema_file.open() as f:
-            config_schema = json.load(f)
-
-        return config_schema
-
-It's important to note that the schema will only be added to the registry if the module
-``__init__`` is run. This means that somewhere in your chain of imports the module must
-be imported. Currently this is tackled by importing all active modules in the top level
-``__init__``, i.e. :mod:`virtual_rainforest.__init__.py`. This ensures that any script
-that imports :mod:`virtual_rainforest` will have implicitly imported all modules which
-define schema, in turn ensuring that
-:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` contains all necessary schema.
+The base :mod:`virtual_rainforest` module will automatically import modules when it is
+imported, which ensures that all modules schemas are registered in
+:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
 """  # noqa: D205, D415
 
+import json
 import sys
 from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+from typing import Any, Generator, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -100,95 +88,124 @@ def log_all_validation_errors(
     raise to_raise
 
 
-def validate_and_add_defaults(
-    validator_class: type[Draft202012Validator],
-) -> type[Draft202012Validator]:
-    """Extend validator so that it can populate default values from the schema.
+#  Set up a JSON Schema validator that fills in default values
+
+
+def set_defaults(
+    validator: type[Draft202012Validator],
+    properties: dict[str, Any],
+    instance: dict[str, Any],
+    schema: dict[str, Any],
+) -> Iterator:
+    """Generate an iterator to populate schema defaults.
+
+    This function is used to extend the Draft202012Validator to include automatic
+    insertion of default values from a schema where values are not specified. The
+    function signature follows the required JSON schema pattern:
+
+    https://python-jsonschema.readthedocs.io/en/latest/creating/
 
     Args:
-        validator_class: Validator to be extended
+        validator: a validator instance,
+        properties: the value of the property being validated within the instance
+        instance: the instance
+        schema: the schema
+
+    Returns:
+        An iterator to be applied to JSON schema entries.
     """
+    for property, subschema in properties.items():
+        if "default" in subschema:
+            instance.setdefault(property, subschema["default"])
 
-    validate_properties = validator_class.VALIDATORS["properties"]
-
-    def set_defaults(
-        validator: type[Draft202012Validator],
-        properties: dict[str, Any],
-        instance: dict[str, Any],
-        schema: dict[str, Any],
-    ) -> Iterator:
-        """Generate an iterator to populate defaults."""
-        for property, subschema in properties.items():
-            if "default" in subschema:
-                instance.setdefault(property, subschema["default"])
-
-        for error in validate_properties(
-            validator,
-            properties,
-            instance,
-            schema,
-        ):
-            yield error
-
-    return validators.extend(
-        validator_class,
-        {"properties": set_defaults},
-    )
+    for error in Draft202012Validator.VALIDATORS["properties"](
+        validator,
+        properties,
+        instance,
+        schema,
+    ):
+        yield error
 
 
-# Make a global validator using the above function to allow for the adding of defaults
-ValidatorWithDefaults = validate_and_add_defaults(Draft202012Validator)
+ValidatorWithDefaults = validators.extend(
+    Draft202012Validator, {"properties": set_defaults}
+)
 
 
-def register_schema(module_name: str) -> Callable:
-    """Decorator function to add configuration schema to the registry.
+def register_schema(module_name: str, schema_file_path: Path) -> None:
+    """Simple function to add configuration schema to the registry.
 
     Args:
         module_name: The name to register the schema under
+        schema_file_path: The file path to the JSON Schema file for the model
+
     Raises:
-        ValueError: If the schema name has already been used
-        OSError: If the module schema is not valid JSON
-        KeyError: If a module schema is missing one of the required keys
+        ValueError: If the module name has already been used to register a schema
     """
 
-    def wrap(func: Callable) -> Callable:
-        # Type the exception raising with a general base class
-        to_raise: Exception
+    if module_name in SCHEMA_REGISTRY:
+        excep = ValueError(f"The module schema for {module_name} is already registered")
+        LOGGER.critical(excep)
+        raise excep
 
-        if module_name in SCHEMA_REGISTRY:
-            to_raise = ValueError(
-                f"The module schema {module_name} is used multiple times, this "
-                f"shouldn't be the case!",
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-        else:
-            # Check that this is a valid schema
-            try:
-                Draft202012Validator.check_schema(func())
-            except exceptions.SchemaError:
-                to_raise = OSError(f"Module schema {module_name} not valid JSON!")
-                LOGGER.critical(to_raise)
-                raise to_raise
+    try:
+        SCHEMA_REGISTRY[module_name] = get_schema(module_name, schema_file_path)
+    except Exception as excep:
+        LOGGER.critical(f"Schema registration for {module_name} failed: check log")
+        raise excep
 
-            # Check that relevant keys are included
-            try:
-                func()["properties"][module_name]
-                func()["required"]
-            except KeyError as err:
-                to_raise = KeyError(
-                    f"Schema for {module_name} module incorrectly structured, {err} key"
-                    f" missing!"
-                )
-                LOGGER.critical(to_raise)
-                raise to_raise
+    LOGGER.info("Schema registered for module %s: %s ", module_name, schema_file_path)
 
-            # If it is valid then add it to the registry
-            SCHEMA_REGISTRY[module_name] = func()
 
-        return func
+def get_schema(module_name: str, schema_file_path: Path) -> dict:
+    """Function to load the JSON schema for a module.
 
-    return wrap
+    This function tries to load a JSON schema file and then - if the JSON loaded
+    correctly - checks that the JSON provides a valid JSON Schema.
+
+    Args:
+        module_name: The name to register the schema under
+        schema_file_path: The file path to the JSON Schema file
+
+    Raises:
+        FileNotFoundError: the schema path does not exist
+        JSONDecodeError: the file at the schema path is not valid JSON
+        SchemaError: the file contents are not valid JSON Schema
+        ValueError: the JSON Schema is missing required keys
+    """
+
+    try:
+        fobj = open(schema_file_path)
+        json_schema = json.load(fobj)
+    except FileNotFoundError as excep:
+        LOGGER.error(excep)
+        raise excep
+    except json.JSONDecodeError as excep:
+        LOGGER.error(f"JSON error in schema file {schema_file_path}")
+        raise excep
+
+    # Check that this is a valid schema - deliberately log a separate message and let
+    # the schema traceback output rather than replacing it.
+    try:
+        ValidatorWithDefaults.check_schema(json_schema)
+    except exceptions.SchemaError as excep:
+        LOGGER.error(f"Module schema invalid in: {schema_file_path}")
+        raise excep
+
+    # Check that relevant keys are included - deliberately re-raising as ValueError here
+    # as the KeyError has built in quoting and is expecting to provide simple missing
+    # key messages.
+    try:
+        json_schema["properties"][module_name]
+        json_schema["required"]
+    except KeyError as excep:
+        to_raise = ValueError(f"Missing key in module schema {module_name}: {excep}")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    LOGGER.info("Module schema for %s loaded", module_name)
+
+    return json_schema
 
 
 def check_dict_leaves(
@@ -206,7 +223,7 @@ def check_dict_leaves(
         conflicts: List of variables that are defined in multiple places
 
     Returns:
-        conflicts: List of variables that are defined in multiple places
+        List of variables that are defined in multiple places
     """
 
     if conflicts is None:

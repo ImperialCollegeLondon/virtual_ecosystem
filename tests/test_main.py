@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.main import (
     check_for_fast_models,
     configure_models,

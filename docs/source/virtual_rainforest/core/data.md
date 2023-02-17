@@ -103,7 +103,7 @@ two methods:
 data['var_name'] = load_to_dataarray('path/to/file.nc', var='temperature')
 ```
 
-1. The  {meth}`~virtual_rainforest.core.data.Data.load_from_config` method takes a
+1. The  {meth}`~virtual_rainforest.core.data.Data.load_data_config` method takes a
    loaded Data configuration - which is a set of named variables and source files - and
    then just uses {func}`~virtual_rainforest.core.readers.load_to_dataarray` to try and
    load each one.
