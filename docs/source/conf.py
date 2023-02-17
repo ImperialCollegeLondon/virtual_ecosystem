@@ -76,6 +76,8 @@ nitpick_ignore = [
     ("py:class", "jsonschema.validators.Draft202012Validator"),
     ("py:class", "numpy.float32"),
     ("py:class", "numpy.int64"),
+    # TODO - Delete this once Vivienne has merged this feature into develop
+    ("py:class", "virtual_rainforest.models.abiotic.Energy_balance"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
