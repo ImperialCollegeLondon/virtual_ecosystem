@@ -76,7 +76,7 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: API reference
-  
+
   Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
@@ -92,6 +92,7 @@ team.
   Soil Constants <api/soil/constants.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
+  Abiotic Radiation <api/abiotic/radiation.md>
 ```
 
 ```{eval-rst}
