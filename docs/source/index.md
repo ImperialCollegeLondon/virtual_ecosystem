@@ -76,7 +76,7 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: API reference
-  
+
   Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
@@ -85,12 +85,14 @@ team.
   Data <api/core/data.md>
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
-  Base Model <api/core/model.md>
+  Base Model <api/core/base_model.md>
   Soil Overview <api/soil.md>
-  Soil Model <api/soil/model.md>
+  Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
+  Soil Constants <api/soil/constants.md>
   Abiotic Overview <api/abiotic.md>
-  Abiotic Model <api/abiotic/model.md>
+  Abiotic Model <api/abiotic/abiotic_model.md>
+  Abiotic Radiation <api/abiotic/radiation.md>
 ```
 
 ```{eval-rst}

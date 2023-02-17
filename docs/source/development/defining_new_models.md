@@ -47,7 +47,7 @@ from virtual_rainforest.core.logger import LOGGER
 # New model class will inherit from BaseModel.
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
-from virtual_rainforest.core.model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 ```
 
 The new model class is created using a class method, which means that the model is

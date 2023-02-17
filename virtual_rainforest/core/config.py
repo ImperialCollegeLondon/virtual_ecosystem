@@ -1,7 +1,7 @@
-"""The :mod:`core.config` module is used to read in the various configuration files,
-validate their contents, and then configure a ready to run instance of the virtual
-rainforest model. The basic details of how this system is used can be found :doc:`here
-</virtual_rainforest/core/config>`.
+"""The :mod:`~virtual_rainforest.core.config` module is used to read in the various
+configuration files, validate their contents, and then configure a ready to run instance
+of the virtual rainforest model. The basic details of how this system is used can be
+found :doc:`here </virtual_rainforest/core/config>`.
 
 When a new module is defined a ``JSONSchema`` file should be written, which includes the
 expected configuration tags, their expected types, and any constraints on their values
@@ -110,6 +110,9 @@ def set_defaults(
         properties: the value of the property being validated within the instance
         instance: the instance
         schema: the schema
+
+    Returns:
+        An iterator to be applied to JSON schema entries.
     """
     for property, subschema in properties.items():
         if "default" in subschema:
@@ -220,7 +223,7 @@ def check_dict_leaves(
         conflicts: List of variables that are defined in multiple places
 
     Returns:
-        conflicts: List of variables that are defined in multiple places
+        List of variables that are defined in multiple places
     """
 
     if conflicts is None:

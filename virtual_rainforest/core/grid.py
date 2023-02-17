@@ -223,7 +223,7 @@ class Grid:
         objects, in cell_id order"""
         self.ncells: int
         """The total number of cells in the grid."""
-        self.centroids: NDArray
+        self.centroids: np.ndarray
         """A list of the centroid of each cell as shapely.geometry.Point objects, in
         cell_id order."""
 
