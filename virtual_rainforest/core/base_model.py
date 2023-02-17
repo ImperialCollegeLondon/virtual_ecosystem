@@ -18,7 +18,7 @@ at that stage. The stages are:
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides default
 implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
-and :meth:`~virtual_rainforest.core.model.BaseModel.__str__` special methods.
+and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` has two class attributes that
 must be defined in subclasses:
@@ -43,18 +43,15 @@ configuration details from  Virtual Rainforest simulation.
 The ``BaseModel.__init__`` method
 ----------------------------------
 
-All subclasses **must** call the
-:meth:`~virtual_rainforest.core.base_model.BaseModel.__init__` method. This method does
-two things:
+The ``__init__`` method for subclasses **must** call the ``BaseModel``
+:meth:`~virtual_rainforest.core.base_model.BaseModel.__init__` method as shown below.
+This method carries out some core initialisation steps: see the method description for
+details.
 
-* It populates the shared instance attributes
-  :attr:`~virtual_rainforest.core.base_model.BaseModel.data`,
-  :attr:`~virtual_rainforest.core.base_model.BaseModel.start_time` and
-  :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
-* It uses the
-  :meth:`~virtual_rainforest.core.base_model.BaseModel.check_required_init_vars` to
-  confirm that the required variables for the model are present in the ``data``
-  attribute.
+.. code-block:: python
+
+    super().__init__(data, update_interval, start_time, **kwargs)
+
 
 The ``from_config`` factory method
 ----------------------------------
@@ -135,6 +132,20 @@ class BaseModel(ABC):
         start_time: datetime64,
         **kwargs: Any,
     ):
+        """Performs core initialisation for BaseModel subclasses.
+
+        This method should be called by the ``__init__`` method of all subclasses and
+        performs the following core steps:
+
+        * It populates the shared instance attributes
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.data`,
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.next_update` and
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
+        * It uses the
+          :meth:`~virtual_rainforest.core.base_model.BaseModel.check_required_init_vars`
+          to confirm that the required variables for the model are present in the
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
+        """
         self.data = data
         """A Data instance providing access to the shared simulation data."""
         self.update_interval = update_interval
@@ -236,7 +247,7 @@ class BaseModel(ABC):
         """Check the required set of variables is present.
 
         This method is used to check that the set of variables defined in the
-        :attr:`~virtual_rainforest.core.model.BaseModel.required_init_vars` class
+        :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` class
         attribute are present in the :attr:`~virtual_rainforest.core.data.Data` instance
         used to create a new instance of the class.
 
