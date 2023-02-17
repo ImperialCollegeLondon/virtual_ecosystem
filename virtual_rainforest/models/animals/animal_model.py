@@ -24,8 +24,8 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class AnimalModel(BaseModel):
@@ -48,7 +48,6 @@ class AnimalModel(BaseModel):
         start_time: datetime64,
         **kwargs: Any,
     ):
-
         super().__init__(update_interval, start_time, **kwargs)
 
     @classmethod
