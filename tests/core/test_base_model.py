@@ -5,7 +5,7 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from typing import Any
 
 import pytest
@@ -32,47 +32,52 @@ def data_instance():
 
 
 @pytest.mark.parametrize(
-    argnames="code, cls_name, exp_raise, exp_msg, exp_log",
+    argnames="code, reg_name, cls_name, exp_raise, exp_msg, exp_log",
     argvalues=[
         pytest.param(
             """class UnnamedModel(BaseModel):
-                # Model where a model_name has not been included.
                 pass
             """,
+            None,
             "UnnamedModel",
             pytest.raises(NotImplementedError),
             "Property model_name is not implemented in UnnamedModel",
-            [(ERROR, "Property model_name is not implemented in UnnamedModel")],
+            [(CRITICAL, "Property model_name is not implemented in UnnamedModel")],
             id="undefined model_name",
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
-                # Model where a model_name has not been included.
                 model_name = 9
             """,
+            None,
             "UnnamedModel",
             pytest.raises(TypeError),
             "Property model_name in UnnamedModel is not a string",
-            [(ERROR, "Property model_name in UnnamedModel is not a string")],
+            [(CRITICAL, "Property model_name in UnnamedModel is not a string")],
             id="nonstring model_name",
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
-                # Model where a model_name has not been included.
                 model_name = 'should_pass'
             """,
+            None,
             "UnnamedModel",
             pytest.raises(NotImplementedError),
             "Property required_init_vars is not implemented in UnnamedModel",
-            [(ERROR, "Property required_init_vars is not implemented in UnnamedModel")],
+            [
+                (
+                    CRITICAL,
+                    "Property required_init_vars is not implemented in UnnamedModel",
+                )
+            ],
             id="Undefined required_init_vars",
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
-                # Model where a model_name has not been included.
                 model_name = 'should_pass'
                 required_init_vars = tuple()
             """,
+            "should_pass",
             "UnnamedModel",
             does_not_raise(),
             None,
@@ -81,10 +86,10 @@ def data_instance():
         ),
         pytest.param(
             """class UnnamedModel2(BaseModel):
-                # Model where a model_name has not been included.
                 model_name = 'should_pass'
                 required_init_vars = tuple()
             """,
+            "should_pass",
             "UnnamedModel2",
             does_not_raise(),
             None,
@@ -97,9 +102,23 @@ def data_instance():
             ],
             id="should pass and replace",
         ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_also_pass'
+                required_init_vars = (('temperature', ('spatial',),),)
+            """,
+            "should_also_pass",
+            "UnnamedModel",
+            does_not_raise(),
+            None,
+            [
+                (INFO, "UnnamedModel registered under name 'should_also_pass'"),
+            ],
+            id="should pass - RIV not empty",
+        ),
     ],
 )
-def test_init_subclass(caplog, code, cls_name, exp_raise, exp_msg, exp_log):
+def test_init_subclass(caplog, code, reg_name, cls_name, exp_raise, exp_msg, exp_log):
     """Test that  __init_subclass__ gives expected behaviours.
 
     This test uses exec() to concisely pass in a bunch of different model definitions.
@@ -119,10 +138,83 @@ def test_init_subclass(caplog, code, cls_name, exp_raise, exp_msg, exp_log):
         assert str(err.value) == exp_msg
     else:
         # Check the model is registered as expected.
-        assert "should_pass" in MODEL_REGISTRY
-        assert MODEL_REGISTRY["should_pass"].__name__ == cls_name
+        assert reg_name in MODEL_REGISTRY
+        assert MODEL_REGISTRY[reg_name].__name__ == cls_name
 
     log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames="riv_value, exp_raise, exp_msg",
+    argvalues=[
+        pytest.param(
+            "1",
+            pytest.raises(TypeError),
+            "Property required_init_vars has the wrong structure in UM",
+            id="RIV is integer",
+        ),
+        pytest.param(
+            "['temperature', (1, 2)]",
+            pytest.raises(TypeError),
+            "Property required_init_vars has the wrong structure in UM",
+            id="RIV is list",
+        ),
+        pytest.param(
+            "('temperature', ('spatial',))",
+            pytest.raises(TypeError),
+            "Property required_init_vars has the wrong structure in UM",
+            id="RIV is not nested enough",
+        ),
+        pytest.param(
+            "(('temperature', (1,)),)",
+            pytest.raises(TypeError),
+            "Property required_init_vars has the wrong structure in UM",
+            id="RIV axis is not string",
+        ),
+        pytest.param(
+            "(('temperature', (1,), (2,)),)",
+            pytest.raises(TypeError),
+            "Property required_init_vars has the wrong structure in UM",
+            id="RIV entry is too long",
+        ),
+        pytest.param(
+            "(('temperature', ('special',)),)",
+            pytest.raises(ValueError),
+            "Property required_init_vars uses unknown core axes in UM: special",
+            id="RIV entry has bad axis name",
+        ),
+        pytest.param(
+            "(('temperature', ('spatial',)),)",
+            does_not_raise(),
+            None,
+            id="RIV ok",
+        ),
+    ],
+)
+def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg):
+    """Test that  __init_subclass__ traps different bad values for required_init_vars.
+
+    This test uses exec() to concisely pass in a bunch of different model definitions.
+    Although exec() can be harmful, should be ok here.
+    """
+
+    # BaseModel is required here in the code being exec'd from the params.
+    from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
+
+    code = f"""class UM(BaseModel):
+        model_name = 'should_also_pass'
+        required_init_vars = {riv_value}
+    """
+
+    with exp_raise as err:
+        # Run the code to define the model
+        exec(code)
+
+    if err:
+        # Check any error message
+        assert str(err.value) == exp_msg
+
+    # log_check(caplog, exp_log)
 
 
 def test_check_failure_on_missing_methods(data_instance):
@@ -178,23 +270,6 @@ def test_check_failure_on_missing_methods(data_instance):
             id="multivar ok",
         ),
         pytest.param(
-            [("temperature", ("special",))],
-            pytest.raises(ValueError),
-            "init_var model: error checking required_init_vars, see log.",
-            (
-                (
-                    ERROR,
-                    "init_var model: unknown axis names set in model definition for "
-                    "var 'temperature': special",
-                ),
-                (
-                    ERROR,
-                    "init_var model: error checking required_init_vars, see log.",
-                ),
-            ),
-            id="unknown axis",
-        ),
-        pytest.param(
             [("precipitation", ("spatial",))],
             pytest.raises(ValueError),
             "init_var model: error checking required_init_vars, see log.",
@@ -210,31 +285,6 @@ def test_check_failure_on_missing_methods(data_instance):
                 ),
             ),
             id="missing axis",
-        ),
-        pytest.param(
-            [
-                ("temperature", ("special",)),
-                ("precipitation", ("spatial",)),
-            ],
-            pytest.raises(ValueError),
-            "init_var model: error checking required_init_vars, see log.",
-            (
-                (
-                    ERROR,
-                    "init_var model: unknown axis names set in model definition for "
-                    "var 'temperature': special",
-                ),
-                (
-                    ERROR,
-                    "init_var model: required var 'precipitation' not on required "
-                    "axes: spatial",
-                ),
-                (
-                    ERROR,
-                    "init_var model: error checking required_init_vars, see log.",
-                ),
-            ),
-            id="both unknown and missing",
         ),
     ],
 )
@@ -252,12 +302,12 @@ def test_check_required_init_vars(
     from virtual_rainforest.core.logger import LOGGER
 
     # Class uses DEBUG
-    # TODO - might want to do this centrally in conf_test.py
+    # TODO - might want to do this centrally in conftest.py
     LOGGER.setLevel(DEBUG)
 
     class TestCaseModel(BaseModel):
         model_name = "init_var"
-        required_init_vars = []
+        required_init_vars = ()
 
         def setup(self) -> None:
             return super().setup()
