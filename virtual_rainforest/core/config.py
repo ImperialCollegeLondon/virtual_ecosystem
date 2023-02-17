@@ -13,7 +13,7 @@ should call the :func:`~virtual_rainforest.core.config.register_schema` function
 will load and validate the schema before adding it to the registry. You will need to
 provides a module name to register the schema under, which should be unique to that
 model. The function also requires the path to the schema file, which should be located
-using the :meth:`importlib.resources.path()` context manager:
+using the :func:`importlib.resources.path` context manager:
 
 .. code-block:: python
 
@@ -22,7 +22,7 @@ using the :meth:`importlib.resources.path()` context manager:
     ) as schema_file_path:
         register_schema(module_name="soil", schema_file_path=schema_file_path)
 
-The base :mod:`virtual_rainforest` module will automatically import modules when it is
+The base Virtual Rainforest module will automatically import modules when it is
 imported, which ensures that all modules schemas are registered in
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
 """  # noqa: D205, D415
@@ -169,7 +169,7 @@ def get_schema(module_name: str, schema_file_path: Path) -> dict:
 
     Raises:
         FileNotFoundError: the schema path does not exist
-        JSONDecodeError: the file at the schema path is not valid JSON
+        json.JSONDecodeError: the file at the schema path is not valid JSON
         jsonschema.SchemaError: the file contents are not valid JSON Schema
         ValueError: the JSON Schema is missing required keys
     """
