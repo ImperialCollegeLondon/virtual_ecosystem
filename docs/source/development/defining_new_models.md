@@ -48,6 +48,7 @@ For example:
 ```bash
 touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
+touch virtual_rainforest/models/freshwater/freshwater_schema.json
 ```
 
 ## Defining the new model class
