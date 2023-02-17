@@ -209,13 +209,33 @@ class BaseModel(ABC):
             LOGGER.critical(excep)
             raise excep
 
-        # Check that required_init_vars is set - TODO - not testing structure here
+        # Check that required_init_vars is set
         if isinstance(cls.required_init_vars, property):
             excep = NotImplementedError(
                 f"Property required_init_vars is not implemented in {cls.__name__}"
             )
             LOGGER.critical(excep)
             raise excep
+
+        # Check the structure
+        try:
+            assert isinstance(cls.required_init_vars, tuple)
+            for vname, axes in cls.required_init_vars:
+                assert isinstance(vname, str)
+                assert isinstance(axes, tuple)
+                assert all([isinstance(a, str) for a in axes])
+        except (AssertionError, ValueError):
+            raise ValueError(
+                f"Property required_init_vars has the wrong structure in {cls.__name__}"
+            )
+
+        try:
+            for _, axes in cls.required_init_vars:
+                assert set(axes).issubset(AXIS_VALIDATORS)
+        except AssertionError:
+            raise ValueError(
+                f"Property required_init_vars uses unknown core axes in {cls.__name__}"
+            )
 
         # Add the new model to the registry
         if cls.model_name in MODEL_REGISTRY:
