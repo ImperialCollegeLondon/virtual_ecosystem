@@ -1,33 +1,65 @@
-# How to add a new model to the Virtual Rainforest
+---
+jupytext:
+  formats: md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.13.8
+kernelspec:
+  display_name: vr_python3
+  language: python
+  name: vr_python3
+---
 
-The Virtual Rainforest is designed to be modular, meaning that the set of models to be
-used in a particular run is configurable at the start of the simulation. We are starting
-out by defining a core set of models (`abiotic`, `animals`, `plants` and `soil`), which
-will generally all be included for the vast majority of simulations. In the future, it
-might be desirable to include models for other aspects of rainforests (e.g.
-`freshwater`, `disturbance`), or to include multiple modelling approaches for a process.
-When this happens a new model should be created. This page will set out the process for
-adding a new model to the Virtual Rainforest in a manner that allows it to be used
-appropriately by the `core` simulation functionality.
+# Creating new Virtual Rainforest models
 
-## Define a new `Model` class
+The Virtual Rainforest initially contains a set of models defining four core components
+of the rainforest: the `abiotic`, `animals`, `plants` and `soil` models. However, the
+simulation is designed to be modular:
 
-You should first start by defining a new folder for your model (within
-`virtual_rainforest/models/`).
+* Different combinations of models can be configured for a particular simulation, and
+* New models can be defined in order to extend the simulation or alter the implemention:
+  examples of new functionality might be `freshwater` or `disturbance` models.
+
+This page sets out the steps needed to add a new model to the Virtual Rainforest and
+ensure that it can be accessed by the `core` processes in the simulation.
+
+## Create a new submodule folder
+
+Start by creating  a new folder for your model, within the `virtual_rainforest/models/` directory.
 
 ```bash
 mkdir virtual_rainforest/models/freshwater
 ```
 
-Within this folder a `python` script defining the model should be created. This script
-should be called "{MODEL_NAME}_model.py".
+You will need to create at least three files within this folder, although you may choose
+to add other python modules containing different parts of the module functionality.
+
+* An `__init__.py` file, which tells Python that the folder is a submodule within the
+  `virtual_rainforest` package.
+* A python module  `{model_name}_model.py` that will contain the main model
+  object.
+* A JSON Schema file defining the model configuration, called
+  `{model_name}_schema.json`.
+
+For example:
 
 ```bash
+touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
 ```
 
-This script must import a number of things to be able to set up a new `Model` class
-correctly.
+## Defining the new model class
+
+The model file will define a new subclass of the
+{mod}`~virtual_rainforest.core.base_model.BaseModel` class.
+
+### Required package imports
+
+Before you create this subclass, you will need to import some packages are required by
+the `BaseModel` class. You may of course need to import other packages to support your
+model code, but you will need the following:
 
 ```python
 # One of the member functions of the Model class returns a class instance. mypy doesn't
@@ -42,19 +74,41 @@ import pint
 # Used by timing loop to store date times, and time intervals, respectively
 from numpy import datetime64, timedelta64
 
+# The core data storage object
+from virtual_rainforest.core.data import Data
+
 # Logging of relevant information handled by Virtual Rainforest logger module
 from virtual_rainforest.core.logger import LOGGER
+
 # New model class will inherit from BaseModel.
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 ```
 
-The new model class is created using a class method, which means that the model is
-automatically be added to the model registry when class inheritance occurs. The model is
-added to the registry under the name set by the `model_name` attribute. This means that
-this attribute should be populated (as a string) for every new model, and cannot be the
-`model_name` of an already existing model.
+### Defining the new class and class attributes
+
+Now create a new class, that derives from the
+{mod}`~virtual_rainforest.core.base_model.BaseModel`. To begin with, choose a class name
+for the model and define the following two class attributes.
+
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
+: This is a string providing a shorter, lower case  name that is used to refer to this
+model class in configuration files. It must be unique and model loading will fail if two
+model classes share a `model_name`.
+
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` attribute
+: This is a tuple that sets which variables must be present in the data used to create a
+new instance of the model. Each entry should provide a variable name and then another
+tuple that sets any required axes for the variable. For example:
+
+```python
+()  # no required variables
+(('temperature', ()),) # temperature must be present, no core axes
+(('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
+```
+
+You will end up with something like the following:
 
 ```python
 class FreshWaterModel(BaseModel):
@@ -66,21 +120,40 @@ class FreshWaterModel(BaseModel):
 
     model_name = "freshwater"
     """The model name for use in registering the model and logging."""
+    required_init_vars = (('temperature', ('spatial', )), )
+    """The required variables and axes for the Freshwater Model"""
 ```
 
-With the basic class now defined an `__init__` function should be added to the class.
-This should do a few things. Firstly, it should check that the provided initialisation
-values are sane (e.g. number of ponds is not negative). Secondly, any model specific
-attributes (e.g. number of ponds) should be stored, and general attributes should be
-passed to the `__init__` of the base class. Finally, names of model specific attributes
-should be appended to `__repr` so that they can be found (and printed) by `BaseModel`'s
-`__repr__` function.
+### Defining the model `__init__` method
+
+The next step is to define the `__init__` method for the class. This needs to do a few
+things.
+
+1. It should define any specific attributes of the new model class. For example, the
+  class might require that the user set a number of ponds. These should be added to the
+  signature of the `__init__` method, alongside the required parameters of the base
+  class, and then stored as attributes of the class.
+
+1. It _must_ call the {meth}`~virtual_rainforest.core.base_model.BaseModel.__init__`
+   method. This method runs all of the shared functionality across models, such as
+   setting the update intervals and validating the input data. This method can be
+   accessed by using the `super()` method, which calls methods from the super (or
+   parent) class.
+
+1. The method should check that the provided initialisation values are sane, for example
+  that the number of ponds is not negative.
+
+1. The names of model specific attributes should be appended to `__repr` so that they
+  are included in the representation of the model, using the  `__repr__` method.
+
+You should end up with something like this:
 
 ```python
 def __init__(
     self,
-    update_interval: timedelta64,
+    data: Data,
     start_time: datetime64,
+    update_interval: timedelta64,
     no_of_ponds: int,
     **kwargs: Any,
 ):
@@ -93,23 +166,116 @@ def __init__(
         LOGGER.error(to_raise)
         raise to_raise
         
-    # Provide general attributes to the __init__ of the base class
-    super().__init__(update_interval, start_time, **kwargs)
+    # Call the __init__() method of the base class
+    super().__init__(data, update_interval, start_time, **kwargs)
+
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
+
     # Save attribute names to be used by the __repr__
     self._repr.append("no_of_ponds")
 ```
 
-Generally, `__init__` functions should only handle the most basic sanity checking and
-should take in fairly simple variables. However, our configuration is stored in a
-complex configuration object (a dictionary at the moment), which needs to be unpacked.
-Furthermore, some of the information contained in the configuration has to be converted
-to a more usable form (particularly time/date information). To accomplish this a
-`from_config` factory method has to be defined. This function unpacks the configuration,
-performs more complex sanity checks, and if necessary converts the information from the
-configuration to a more usable form. This is a class method, and so creates a
-initialised instance of the `Model` (and if it can't is raises an error).
+## Model configuration
+
+The arguments to the model `__init__` method define the **model configuration**: a
+collection of settings that set how the model runs. To allow the model to be defined and
+run from a set of configuration files, the model now needs to define two things:
+
+1. The model configuration schema, which is a JSONSchema document that defines the
+   structure of the model configuration and can also be used to validate an input
+   configuration.
+
+1. A `from_config` factory method, which should take a dictionary containing
+   configuration data and return an instance of the class configured using that data.
+
+### The model configuration schema
+
+The [JSONSchema](https://json-schema.org/) document in the module root directory defines
+the configuration options for the model. A detailed description of the configuration
+system works can be found [here](../virtual_rainforest/core/config.md) but the schema
+definition is used to validate configuration files for a Virtual Rainforest simulation
+that uses your model. Essentially, it defines all of the `__init__` arguments that are
+unique to your model.
+
+Writing JSONSchema documents can be very tedious. The following tools may be of use:
+
+* [https://www.jsonschema.net/app](https://www.jsonschema.net/app): this is a web
+  application that takes a data document - which is what the configuration file - and
+  automatically generates a JSON schema to validate it. You will need to then edit it
+  but you'll be starting with a valid schema!
+* [https://jsonschemalint.com/](https://jsonschemalint.com/) works the other way. It
+  takes a data document and a schema and checks whether the data is compliant. This can
+  be useful for checking errors.
+
+Both of those tools take data documents formatted as JSON as inputs, where we use TOML
+configuration files, but there are lots of web tools to convert TOML to JSON and back.
+
+As an example, the `FreshwaterModel` above might need two configuration options.
+
+```toml
+[freshwater]
+update_interval = "1 month"
+no_of_ponds = 3
+```
+
+A JSON Schema document to validate those settings, along with some default values, might
+look like this:
+
+```json
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "title": "Root Schema",
+    "required": [
+        "update_interval",
+        "no_of_ponds"
+    ],
+    "properties": {
+        "update_interval": {
+            "type": "string",
+            "default": "",
+            "title": "The update_interval Schema",
+            "examples": [
+                "1 month"
+            ]
+        },
+        "no_of_ponds": {
+            "type": "integer",
+            "default": 0,
+            "title": "The no_of_ponds Schema",
+            "examples": [
+                3
+            ]
+        }
+    },
+    "examples": [{
+        "update_interval": "1 month",
+        "no_of_ponds": 3
+    }]
+}
+```
+
+### The `from_config` factory method
+
+When a configuration file is read in, it is converted into a Python dictionary. So, the
+example above might result in:
+
+```python
+{'freshwater': {'update_interval': "1 month",  "no_of_ponds": 3}}
+```
+
+The job of the `from_config` method is to take that dictionary, along with the shared
+`data` and `start_time` inputs, and then do any processing and validating to convert the
+configuration into the arguments required by the `__init__` method.
+
+The method then uses those parsed arguments to actually call the `__init__` method and
+return an initialised instance of the model using the setttings. The `from_config`
+method should raise an `InitialisationError` if the configuration fails.
+
+As an example:
 
 ```python
 @classmethod
@@ -163,7 +329,9 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
         raise InitialisationError()
 ```
 
-Every model class needs to include a function to update its Model state. The exact
+## Other model steps
+
+Every model class needs to include a function to update its model state. The exact
 details of what should be in this `update` function are yet to be decided, apart from
 how to update the internal model timing loop.
 
@@ -193,33 +361,9 @@ def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
 ```
 
-## Writing a schema for the module configuration
-
-The root module directory **must** also contain a [JSONSchema](https://json-schema.org/)
-document that defines the configuration options for the model.  A detailed description
-of the configuration system works can be found
-[here](../virtual_rainforest/core/config.md) but the schema definition is used to
-validate configuration files for a Virtual Rainforest simulation that uses your model.
-
-So the example model used here would need to provide the file:
-`virtual_rainforest/models/freshwater/freshwater_schema.json`
-
-Writing JSONSchema documents can be very tedious. The following tools may be of use:
-
-* [https://www.jsonschema.net/app](https://www.jsonschema.net/app): this is a web
-  application that takes a data document - which is what the configuration file - and
-  automatically generates a JSON schema to validate it. You will need to then edit it
-  but you'll be starting with a valid schema!
-* [https://jsonschemalint.com/](https://jsonschemalint.com/) works the other way. It
-  takes a data document and a schema and checks whether the data is compliant. This can
-  be useful for checking errors.
-
-Both of those tools take data documents formatted as JSON as inputs, where we use TOML
-configuration files, but there are lots of web tools to convert TOML to JSON and back.
-
 ## Setting up the model `__init__.py` file
 
-All model directories need to include an `__init__.py` file. The simple presence of the
+Lastly, you will need to set up the `__init__.py` file. The simple presence of the
 `__init__.py` file tells Python that the directory content should be treated as module,
 but then the file needs to contain code to do two things:
 
