@@ -1,64 +1,66 @@
-"""The :mod:`~virtual_rainforest.core.model` module defines the high level API for the
-different models within the Virtual Rainforest. The module creates the
-:class:`~virtual_rainforest.core.models.BaseModel` abstract base class (ABC) which
+"""The :mod:`~virtual_rainforest.core.base_model` module defines the high level API for
+the different models within the Virtual Rainforest. The module creates the
+:class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class (ABC) which
 defines a consistent API for subclasses defining an actual model. The API defines
 abstract methods for each of the key stages in the workflow of running a model:
 individual subclasses are **required** to provide model specific implementations for
 each stage, although the specific methods may simply do nothing if no action is needed
 at that stage. The stages are:
 
-* Creating a model instance (:class:`~virtual_rainforest.core.models.BaseModel`).
-* Setup a model instance (:meth:`~virtual_rainforest.core.models.BaseModel.setup`).
+* Creating a model instance (:class:`~virtual_rainforest.core.base_model.BaseModel`).
+* Setup a model instance (:meth:`~virtual_rainforest.core.base_model.BaseModel.setup`).
 * Perform any spinup required to get a model state to equilibrate
-  (:meth:`~virtual_rainforest.core.models.BaseModel.spinup`).
+  (:meth:`~virtual_rainforest.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
-  :meth:`~virtual_rainforest.core.models.BaseModel.update`).
+  :meth:`~virtual_rainforest.core.base_model.BaseModel.update`).
 * Cleanup any unneeded resources at the end of a simulation
-  (:meth:`~virtual_rainforest.core.models.BaseModel.cleanup`).
+  (:meth:`~virtual_rainforest.core.base_model.BaseModel.cleanup`).
 
-The :class:`~virtual_rainforest.core.models.BaseModel` class also provides default
-implementations for the :func:`~virtual_rainforest.core.model.BaseModel.__repr__` and
-:func:`~virtual_rainforest.core.model.BaseModel.__str__` special methods.
+The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides default
+implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
+and :meth:`~virtual_rainforest.core.model.BaseModel.__str__` special methods.
 
-The :class:`~virtual_rainforest.core.models.BaseModel` has two class attributes that
+The :class:`~virtual_rainforest.core.base_model.BaseModel` has two class attributes that
 must be defined in subclasses:
 
-* The :attr:`~virtual_rainforest.core.models.BaseModel.model_name` atttribute and
-* The :attr:`~virtual_rainforest.core.models.BaseModel.required_init_vars` attribute.
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` atttribute and
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
+  attribute.
 
 The usage of these two attributes is described in their docstrings.
 
 Model registration
 ------------------
 
-The :class:`~virtual_rainforest.core.models.BaseModel` abstract base class defines the
-:func:`~virtual_rainforest.core.model.BaseModel.__init_subclass__` class method. This
-method is called automatically whenever a subclass of the ABC is imported: it validates
-the class attributes for the new class and then registers the model name and model class
-in the called :attr:`~virtual_rainforest.core.model.MODEL_REGISTRY` register. This
-registry is used to identify requested model subclasses from the configuration details
-from  Virtual Rainforest simulation.
+The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
+the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
+method. This method is called automatically whenever a subclass of the ABC is imported:
+it validates the class attributes for the new class and then registers the model name
+and model class in the called :attr:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`
+register. This registry is used to identify requested model subclasses from the
+configuration details from  Virtual Rainforest simulation.
 
 The ``BaseModel.__init__`` method
 ----------------------------------
 
 All subclasses **must** call the
-:meth:`~virtual_rainforest.core.models.BaseModel.__init__` method. This method does two
-things:
+:meth:`~virtual_rainforest.core.base_model.BaseModel.__init__` method. This method does
+two things:
 
 * It populates the shared instance attributes
-  :attr:`~virtual_rainforest.core.models.BaseModel.data`,
-  :attr:`~virtual_rainforest.core.models.BaseModel.start_time` and
-  :attr:`~virtual_rainforest.core.models.BaseModel.update_interval`.
-* It uses the :meth:`~virtual_rainforest.core.models.BaseModel.check_required_init_vars`
-  to confirm that the required variables for the model are present in the ``data``
+  :attr:`~virtual_rainforest.core.base_model.BaseModel.data`,
+  :attr:`~virtual_rainforest.core.base_model.BaseModel.start_time` and
+  :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
+* It uses the
+  :meth:`~virtual_rainforest.core.base_model.BaseModel.check_required_init_vars` to
+  confirm that the required variables for the model are present in the ``data``
   attribute.
 
 The ``from_config`` factory method
 ----------------------------------
 
 The ABC also defines the abstract class method
-:func:`~virtual_rainforest.core.model.BaseModel.from_config`. This method must be
+:func:`~virtual_rainforest.core.base_model.BaseModel.from_config`. This method must be
 defined by subclasses and must be a factory method that takes a
 :class:`~virtual_rainforest.core.data.Data` instance and  a model specific configuration
 dictionary and returns an instance of the subclass. For any given model, the method
@@ -109,7 +111,7 @@ class BaseModel(ABC):
         """The model name.
 
         This class property sets the name used to refer to identify the model class in
-        the :data:`~virtual_rainforest.core.model.MODEL_REGISTRY`, within the
+        the :data:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, within the
         configuration settings and in logging messages.
         """
 
