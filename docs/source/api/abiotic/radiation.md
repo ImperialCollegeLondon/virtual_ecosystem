@@ -14,8 +14,11 @@ kernelspec:
   name: vr_python3
 ---
 
-# API reference for `soil` modules
+#  API for the {mod}`~virtual_rainforest.models.abiotic.radiation` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.soil
+.. automodule:: virtual_rainforest.models.abiotic.radiation
+    :autosummary:
+    :members:
+    :special-members: __init__
 ```

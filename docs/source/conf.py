@@ -58,6 +58,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "autodocsumm",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
     # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
@@ -68,6 +69,24 @@ extensions = [
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+
+# Reference checking
+nitpicky = True
+nitpick_ignore = [
+    ("py:class", "jsonschema.validators.Draft202012Validator"),
+    ("py:class", "numpy.float32"),
+    ("py:class", "numpy.int64"),
+    # TODO - Delete this once Vivienne has merged this feature into develop
+    ("py:class", "virtual_rainforest.models.abiotic.Energy_balance"),
+]
+intersphinx_mapping = {
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
+    "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
+    "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
+}
+
 
 # Set auto labelling to section level
 autosectionlabel_prefix_document = True

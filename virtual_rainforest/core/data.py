@@ -11,10 +11,10 @@ internal variables used in the simulation. The class behaves like a dictionary -
 can be retrieved and set using ``data_object['varname']`` - but also provide validation
 for data being added to the object.
 
-All data added to the class is stored in a :class:`~xarray.DataSet` object, and data
+All data added to the class is stored in a :class:`~xarray.Dataset` object, and data
 extracted from the object will be a :class:`~xarray.DataArray`. The ``Dataset`` can also
 be accessed directly using the :attr:`~virtual_rainforest.core.data.Data.data` attribute
-of the class instance to use any of the :class:`~xarray.DataSet` class methods.
+of the class instance to use any of the :class:`~xarray.Dataset` class methods.
 
 When data is added to a :class:`~virtual_rainforest.core.data.Data` instance, it is
 automatically validated against the configuration of a simulation before being added to
@@ -23,17 +23,17 @@ also stores information that allows models to can confirm that a given variable 
 successfully validated.
 
 The core of the :class:`~virtual_rainforest.core.data.Data` class is the
-:class:`~virtual_rainforest.core.data.Data.__setitem__` method. This method provides the
+:meth:`~virtual_rainforest.core.data.Data.__setitem__` method. This method provides the
 following functionality:
 
 * It allows a ``DataArray`` to be added to a :class:`~virtual_rainforest.core.data.Data`
   instance using the ``data['varname'] = data_array`` syntax.
 * It applies the validation step using the
-  :func:`~virtual_rainforest.core.axes.validate_datarray` function. See the
+  :func:`~virtual_rainforest.core.axes.validate_dataarray` function. See the
   :mod:`~virtual_rainforest.core.axes` module for the details of the validation process,
-  including the :class:`~virtual_rainforest.core.axes.AxisValidators` class and the
+  including the :class:`~virtual_rainforest.core.axes.AxisValidator` class and the
   concept of core axes.
-* It inserts the data into the :class:`~xarray.DataSet` instance stored in the
+* It inserts the data into the :class:`~xarray.Dataset` instance stored in the
   :attr:`~virtual_rainforest.core.data.Data.data` attribute.
 * Lastly, it records the data validation details in the
   :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute.
@@ -42,14 +42,14 @@ The :class:`~virtual_rainforest.core.data.Data` class also provides three shorth
 methods to get information and data from an instance.
 
 * The :meth:`~virtual_rainforest.core.data.Data.__contains__` method tests if a named
-  variable is included in the internal :class:`~xarray.DataSet` instance.
+  variable is included in the internal :class:`~xarray.Dataset` instance.
 
     .. code-block:: python
 
         # Equivalent code 'varname' in data 'varname' in data.data
 
 * The :meth:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
-  a named variable from the internal :class:`~xarray.DataSet` instance.
+  a named variable from the internal :class:`~xarray.Dataset` instance.
 
     .. code-block:: python
 
@@ -74,7 +74,7 @@ The general solution for programmatically adding data from a file is to:
 * use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_rainforest.core.data.Data` instance.
 
-The  :meth:`~virtual_rainforest.core.reader.load_to_dataarray` implements data loading
+The  :func:`~virtual_rainforest.core.readers.load_to_dataarray` implements data loading
 to a DataArray for some known file formats, using file reader functions described in the
 :mod:`~virtual_rainforest.core.readers` module. See the details of that module for
 supported formats and for extending the system to additional file formats.
@@ -91,7 +91,7 @@ Using a data configuration
 --------------------------
 
 A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
-:meth:`~virtual_rainforest.core.data.Data.load_from_config` method. This is expecting to
+:meth:`~virtual_rainforest.core.data.Data.load_data_config` method. This is expecting to
 take a properly validated configuration dictionary, typically loaded from a TOML file
 during configuration (see :class:`~virtual_rainforest.core.config`). The expected
 structure is as follows:
@@ -160,7 +160,7 @@ class Data:
 
         The validation details for each variable is stored in this dictionary using the
         variable name as a key. The validation details are a dictionary, keyed using
-        core axis names, of the :class:`~virtual_rainforest.core.axis.AxisValidator`
+        core axis names, of the :class:`~virtual_rainforest.core.axes.AxisValidator`
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """

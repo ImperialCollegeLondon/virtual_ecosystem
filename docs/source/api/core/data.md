@@ -20,5 +20,5 @@ kernelspec:
 .. automodule:: virtual_rainforest.core.data
     :autosummary:
     :members:
-    :special-members: __repr__, __set_item__, __get_item__, __contains__
+    :special-members: __repr__, __setitem__, __getitem__, __contains__
 ```

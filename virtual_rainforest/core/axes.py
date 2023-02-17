@@ -1,7 +1,7 @@
-"""The :mod:`core.axes` module handles the validation of data being loaded into the core
-data storage of the virtual rainforest simulation. The main functionality in this module
-is ensuring that any loaded data is congruent with the core axes of the simulation and
-the configuration of a given simulation.
+"""The :mod:`~virtual_rainforest.core.axes` module handles the validation of data being
+loaded into the core data storage of the virtual rainforest simulation. The main
+functionality in this module is ensuring that any loaded data is congruent with the core
+axes of the simulation and the configuration of a given simulation.
 
 The AxisValidator class
 =======================
@@ -16,8 +16,8 @@ then a validation routine to apply when it can.
 
 When new :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses are defined,
 they are automatically added to the
-:attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. This maintains a list
-of the validators defined for each core axis.
+:attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. This maintains a list of
+the validators defined for each core axis.
 
 Note that the set of validators defined for a specific core axis should be mutually
 exclusive: only one should be applicable to any given dataset being tested on that axis.
@@ -25,12 +25,12 @@ exclusive: only one should be applicable to any given dataset being tested on th
 DataArray validation
 ====================
 
-The :func:`~virtual_rainforest.core.axes.validate_datarray` function takes an input Data
-Array and applies validation where applicable across all the core axes. The function
-returns the validated input (possibly altered to align with the core axes) along with a
-dictionary using the set of core axes as names: the value associated with each axis name
-is the name of the AxisValidator applied or None if the input did not match a validator
-on that axis.
+The :func:`~virtual_rainforest.core.axes.validate_dataarray` function takes an input
+Data Array and applies validation where applicable across all the core axes. The
+function returns the validated input (possibly altered to align with the core axes)
+along with a dictionary using the set of core axes as names: the value associated with
+each axis name is the name of the AxisValidator applied or None if the input did not
+match a validator on that axis.
 
 Core axes
 =========
@@ -90,11 +90,11 @@ class AxisValidator(ABC):
         :attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
         are arranged in the registry dictionary as lists keyed under core axis names,
         and the core axis name for a given subclass is set in the  subclass
-        :attr:`~virtual_rainforest.core.axes.AxisValidator.AxisValidator.core_axis`
+        :attr:`~virtual_rainforest.core.axes.AxisValidator.core_axis`
         class attribute.
 
         Raises:
-            Value Error: if the subclass attributes are invalid.
+            ValueError: if the subclass attributes are invalid.
         """
 
         if not hasattr(cls, "core_axis"):

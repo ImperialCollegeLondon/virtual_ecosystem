@@ -6,16 +6,17 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
+import json
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
+import jsonschema
 import pytest
 
 import virtual_rainforest.core.config as config
+from tests.conftest import log_check
 from virtual_rainforest.core.config import register_schema
-
-from .conftest import log_check
 
 
 @pytest.mark.parametrize(
@@ -98,8 +99,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     CRITICAL,
-                    "The following (user provided) config paths do not exist:\n"
-                    "['Nonsense/file/location']",
+                    "The following (user provided) config paths do not exist:",
                 ),
             ),
         ),
@@ -111,13 +111,13 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
                 (
                     CRITICAL,
                     "The following (user provided) config folders do not contain any "
-                    "toml files:\n['.']",
+                    "toml files:",
                 ),
             ),
         ),
         (
-            ["tests/fixtures/", "tests/fixtures/all_config.toml"],
-            [Path("tests/fixtures/all_config.toml")],
+            ["", "all_config.toml"],
+            ["all_config.toml"],
             config.ConfigurationError,
             (
                 (
@@ -130,17 +130,23 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     ],
 )
 def test_collect_files(
-    caplog, mocker, cfg_paths, contents, expected_exception, expected_log_entries
+    caplog,
+    mocker,
+    shared_datadir,
+    cfg_paths,
+    contents,
+    expected_exception,
+    expected_log_entries,
 ):
     """Checks errors for missing config files."""
 
-    # Configure the mock to return a specific list of files
+    # Configure the mock to return a specific list of files when globbing a directory
     mock_get = mocker.patch("virtual_rainforest.core.config.Path.glob")
-    mock_get.return_value = contents
+    mock_get.return_value = [shared_datadir / fn for fn in contents]
 
     # Check that file collection fails as expected
     with pytest.raises(expected_exception):
-        config.collect_files(cfg_paths)
+        config.collect_files([shared_datadir / fn for fn in cfg_paths])
 
     log_check(caplog, expected_log_entries)
 
@@ -252,41 +258,30 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     "file_path,expected_log_entries",
     [
         (
-            "tests/fixtures/default_config.toml",  # File entirely of defaults
+            "default_config.toml",  # File entirely of defaults
             (
-                (
-                    INFO,
-                    "Configuration files successfully validated!",
-                ),
-                (
-                    INFO,
-                    "Saving all configuration details to complete_config.toml",
-                ),
+                (INFO, "Configuration files successfully validated!"),
+                (INFO, "Saving all configuration details to"),
             ),
         ),
         (
-            "tests/fixtures/all_config.toml",  # File with no defaults
+            "all_config.toml",  # File with no defaults
             (
-                (
-                    INFO,
-                    "Configuration files successfully validated!",
-                ),
-                (
-                    INFO,
-                    "Saving all configuration details to complete_config.toml",
-                ),
+                (INFO, "Configuration files successfully validated!"),
+                (INFO, "Saving all configuration details to"),
             ),
         ),
     ],
 )
-def test_final_validation_log(caplog, file_path, expected_log_entries):
+def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
 
-    config.validate_config([file_path], Path("./complete_config.toml"))
+    outfile = shared_datadir / "complete_config.toml"
+    config.validate_config([shared_datadir / file_path], outfile)
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
-    Path("./complete_config.toml").unlink()
+    outfile.unlink()
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
@@ -297,72 +292,64 @@ def test_final_validation_log(caplog, file_path, expected_log_entries):
     [
         (
             "core",
-            {},
+            "",
             ValueError,
             (
                 (
                     CRITICAL,
-                    "The module schema core is used multiple times, this shouldn't"
-                    " be the case!",
+                    "The module schema for core is already registered",
                 ),
             ),
         ),
         (
             "test",
             "najsnjasnda",
-            OSError,
-            ((CRITICAL, "Module schema test not valid JSON!"),),
+            json.JSONDecodeError,
+            (
+                (ERROR, "JSON error in schema file"),
+                (CRITICAL, "Schema registration for test failed: check log"),
+            ),
         ),
         (
             "bad_module_1",
-            {"type": "object", "propertie": {"bad_module_1": {}}},
-            KeyError,
+            '{"type": "hobbit", "properties": {"bad_module_1": {}}}',
+            jsonschema.SchemaError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_1 module incorrectly structured, "
-                    "'properties' key missing!",
-                ),
+                (ERROR, "Module schema invalid in: "),
+                (CRITICAL, "Schema registration for bad_module_1 failed: check log"),
             ),
         ),
         (
             "bad_module_2",
-            {"type": "object", "properties": {"bad_module_1": {}}},
-            KeyError,
+            '{"type": "object", "properties": {"bad_module_1": {}}}',
+            ValueError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_2 module incorrectly structured, "
-                    "'bad_module_2' key missing!",
-                ),
+                (ERROR, "Missing key in module schema bad_module_2:"),
+                (CRITICAL, "Schema registration for bad_module_2 failed: check log"),
             ),
         ),
         (
             "bad_module_3",
-            {"type": "object", "properties": {"bad_module_3": {}}},
-            KeyError,
+            '{"type": "object", "properties": {"bad_module_3": {}}}',
+            ValueError,
             (
-                (
-                    CRITICAL,
-                    "Schema for bad_module_3 module incorrectly structured, 'required'"
-                    " key missing!",
-                ),
+                (ERROR, "Missing key in module schema bad_module_3"),
+                (CRITICAL, "Schema registration for bad_module_3 failed: check log"),
             ),
         ),
     ],
 )
 def test_register_schema_errors(
-    caplog, schema_name, schema, expected_exception, expected_log_entries
+    caplog, mocker, schema_name, schema, expected_exception, expected_log_entries
 ):
     """Test that the schema registering decorator throws the correct errors."""
+
+    data = mocker.mock_open(read_data=schema)
+    mocker.patch("builtins.open", data)
+
     # Check that construct_combined_schema fails as expected
     with pytest.raises(expected_exception):
-
-        @register_schema(schema_name)
-        def to_be_decorated() -> dict:
-            return schema
-
-        to_be_decorated()
+        register_schema(schema_name, "file_path")
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)

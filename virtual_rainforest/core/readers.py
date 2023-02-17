@@ -1,24 +1,24 @@
 """The :mod:`~virtual_rainforest.core.readers` module provides the function
-:func:`~virtual_rainforest.core.reader.load_to_dataarray`, which is used to load data
+:func:`~virtual_rainforest.core.readers.load_to_dataarray`, which is used to load data
 from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
 can then be added to a :class:`~virtual_rainforest.core.data.Data` instance for use in a
 Virtual Rainforest simulation.
 
 The module also supports the registration of different reader functions, used to convert
 files in different storage formats into a ``DataArray``. The
-:func:`~virtual_rainforest.core.reader.load_to_dataarray` automatically uses an
+:func:`~virtual_rainforest.core.readers.load_to_dataarray` automatically uses an
 appropriate reader based on the file suffix.
 
 The FILE_FORMAT_REGISTRY
 ========================
 
-The :attr:`~virtual_rainforest.core.reader.FILE_FORMAT_REGISTRY` is used to register a
+The :attr:`~virtual_rainforest.core.readers.FILE_FORMAT_REGISTRY` is used to register a
 set of known file formats for use in
-:meth:`~virtual_rainforest.core.reader.load_to_dataarray`. This registry is extendable,
+:func:`~virtual_rainforest.core.readers.load_to_dataarray`. This registry is extendable,
 so that new functions that implement data loading for a given file format can be added.
 
 New file format readers are made available using the
-:func:`~virtual_rainforest.core.reader.register_file_format_loader` decorator, which
+:func:`~virtual_rainforest.core.readers.register_file_format_loader` decorator, which
 needs to specify the file formats supported (as a tuple of file suffixes) and then
 decorates a function that returns a :class:`~xarray.DataArray` that can be added to a
 :class:`~virtual_rainforest.core.data.Data` instance and validated
@@ -45,7 +45,7 @@ This dictionary maps a tuple of file format suffixes onto a function that allows
 data to be loaded. That loader function should coerce the data into an xarray DataArray.
 
 Users can register their own functions to load from a particular file format using the
-:func:`~virtual_rainforest.core.data.register_file_format_loader` decorator. The
+:func:`~virtual_rainforest.core.readers.register_file_format_loader` decorator. The
 function itself should have the following signature:
 
 .. code-block:: python

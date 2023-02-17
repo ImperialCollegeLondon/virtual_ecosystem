@@ -1,6 +1,6 @@
-"""The :mod:`abiotic.model` module creates a
-:class:`~virtual_rainforest.abiotic.model.AbioticModel` class as a child of the
-:class:`~virtual_rainforest.core.model.BaseModel` class.
+"""The :mod:`~virtual_rainforest.models.abiotic.abiotic_model` module creates a
+:class:`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel` class as a child
+of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.model import BaseModel, InitialisationError
 
 
 class AbioticModel(BaseModel):
@@ -42,28 +42,28 @@ class AbioticModel(BaseModel):
             to_raise = InitialisationError(
                 "There has to be at least one soil layer in the abiotic model!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if soil_layers != int(soil_layers):
             to_raise = InitialisationError(
                 "The number of soil layers must be an integer!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if canopy_layers < 1:
             to_raise = InitialisationError(
                 "There has to be at least one canopy layer in the abiotic model!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         if canopy_layers != int(canopy_layers):
             to_raise = InitialisationError(
                 "The number of canopy layers must be an integer!"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         super().__init__(update_interval, start_time, **kwargs)
