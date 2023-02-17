@@ -310,13 +310,10 @@ class BaseModel(ABC):
 
             # Get a list of missing axes
             bad_axes = []
-            unknown_axes = []
             # Could use try: here and let on_core_axis report errors but easier to
             # provide more clearly structured feedback this way
             for axis in axes:
-                if axis not in AXIS_VALIDATORS:
-                    unknown_axes.append(axis)
-                elif not self.data.on_core_axis(var, axis):
+                if not self.data.on_core_axis(var, axis):
                     bad_axes.append(axis)
 
             # Log the outcome
@@ -326,17 +323,7 @@ class BaseModel(ABC):
                     f"not on required axes: {','.join(bad_axes)}"
                 )
                 all_axes_ok = False
-
-            # This is not a user error but a programming error in the model - could be
-            # CRITICAL or maybe we want a specific error level for this kind of issue.
-            if unknown_axes:
-                LOGGER.error(
-                    f"{self.model_name} model: unknown axis names set in model "
-                    f"definition for var '{var}': {','.join(unknown_axes)}"
-                )
-                all_axes_ok = False
-
-            if not (bad_axes or unknown_axes):
+            else:
                 LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
 
         # Raise if any problems found
