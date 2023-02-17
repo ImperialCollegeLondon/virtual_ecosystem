@@ -218,24 +218,42 @@ class BaseModel(ABC):
             raise excep
 
         # Check the structure
-        try:
-            assert isinstance(cls.required_init_vars, tuple)
-            for vname, axes in cls.required_init_vars:
-                assert isinstance(vname, str)
-                assert isinstance(axes, tuple)
-                assert all([isinstance(a, str) for a in axes])
-        except (AssertionError, ValueError):
-            raise ValueError(
+        required_init_vars_ok = True
+
+        if not isinstance(cls.required_init_vars, tuple):
+            required_init_vars_ok = False
+        else:
+            for entry in cls.required_init_vars:
+                # entry is a 2 tuple
+                if not (isinstance(entry, tuple) and len(entry) == 2):
+                    required_init_vars_ok = False
+                    continue
+                # and entry contains (str, tuple(str,...))
+                vname, axes = entry
+                if not (
+                    isinstance(vname, str)
+                    and isinstance(axes, tuple)
+                    and all([isinstance(a, str) for a in axes])
+                ):
+                    required_init_vars_ok = False
+
+        if not required_init_vars_ok:
+            to_raise = TypeError(
                 f"Property required_init_vars has the wrong structure in {cls.__name__}"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
-        try:
-            for _, axes in cls.required_init_vars:
-                assert set(axes).issubset(AXIS_VALIDATORS)
-        except AssertionError:
-            raise ValueError(
-                f"Property required_init_vars uses unknown core axes in {cls.__name__}"
+        # Check the axes are known
+        all_axes = set([ax for nm, ax in cls.required_init_vars for ax in ax])
+        unknown_axes = all_axes.difference(AXIS_VALIDATORS)
+        if unknown_axes:
+            to_raise = ValueError(
+                f"Property required_init_vars uses unknown core "
+                f"axes in {cls.__name__}: {','.join(unknown_axes)}"
             )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
         # Add the new model to the registry
         if cls.model_name in MODEL_REGISTRY:
