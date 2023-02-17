@@ -170,7 +170,7 @@ def get_schema(module_name: str, schema_file_path: Path) -> dict:
     Raises:
         FileNotFoundError: the schema path does not exist
         JSONDecodeError: the file at the schema path is not valid JSON
-        SchemaError: the file contents are not valid JSON Schema
+        jsonschema.SchemaError: the file contents are not valid JSON Schema
         ValueError: the JSON Schema is missing required keys
     """
 
