@@ -58,6 +58,10 @@ class RadiationConstants:
     Beer's radiation extinction function :cite:p:`Allen1996`"""
     celsius_to_kelvin: float = 273.15
     """Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
+    albedo_vis_default: float = 0.03
+    """Default value for visible light albedo."""
+    albedo_shortwave_default: float = 0.17
+    """Default value for shortwave light albedo."""
 
 
 class Radiation:
@@ -93,8 +97,8 @@ class Radiation:
 
     The `data` object can also optionally provide these variables, but will default to
     the values given below:
-    * albedo_vis: visible light albedo, default = 0.03
-    * albedo_shortwave: shortwave albedo, default = 0.17
+    * albedo_vis: visible light albedo, albeoo_vis_default = 0.03
+    * albedo_shortwave: shortwave albedo, albedo_shortwave_default = 0.17
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
     and 1 (cloud free sky), default = 1
 
@@ -128,13 +132,13 @@ class Radiation:
 
         albedo_vis: Union[DataArray, float]
         if "albedo_vis" not in data:
-            albedo_vis = 0.03
+            albedo_vis = const.albedo_vis_default
         else:
             albedo_vis = data["albedo_vis"]
 
         albedo_shortwave: Union[DataArray, float]
         if "albedo_shortwave" not in data:
-            albedo_shortwave = 0.17
+            albedo_shortwave = const.albedo_shortwave_default
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
@@ -238,7 +242,7 @@ def calculate_atmospheric_transmissivity(
 def calculate_ppfd(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_vis: Union[DataArray, float] = 0.03,
+    albedo_vis: Union[DataArray, float] = RadiationConstants.albedo_vis_default,
     flux_to_energy: float = RadiationConstants.flux_to_energy,
 ) -> DataArray:
     """Calculate top of canopy photosynthetic photon flux density, [mol m-2].
@@ -246,7 +250,7 @@ def calculate_ppfd(
     Args:
         tau: atmospheric transmissivity, unitless
         shortwave_in: downward shortwave radiation, [J m-2]
-        albedo_vis: visible light albedo, default = 0.03
+        albedo_vis: visible light albedo, albedo_vis_default = 0.03
         flux_to_energy: flux to energy conversion factor, [umol J-1],default from config
 
     Returns:
@@ -261,14 +265,16 @@ def calculate_ppfd(
 def calculate_topofcanopy_radiation(
     tau: DataArray,
     shortwave_in: DataArray,
-    albedo_shortwave: Union[DataArray, float] = 0.17,
+    albedo_shortwave: Union[
+        DataArray, float
+    ] = RadiationConstants.albedo_shortwave_default,
 ) -> DataArray:
     """Calculate top of canopy shortwave radiation, [J m-2].
 
     Args:
         tau: atmospheric transmissivity, unitless
         shortwave_in: downward shortwave radiation, [J m-2]
-        albedo_shortwave: shortwave albedo, default = 0.17
+        albedo_shortwave: shortwave albedo, albedo_shortwave_default = 0.17
 
     Returns:
         top of canopy radiation shortwave radiation, [J m-2]
