@@ -19,18 +19,11 @@ Notes to self:
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
 - waste_energy pool likely unnecessary, better to excrete directly to external pools
-"""  # noqa: D205, D415
-
+"""
 
 from dataclasses import dataclass
-from math import ceil
 
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.constants import (
-    DamuthsLaw,
-    MetabolicRate,
-    StoredEnergy,
-)
 
 
 class PlantCommunity:
@@ -72,41 +65,3 @@ class PalatableSoil:
     """The amount of energy in the soil pool [J]."""
     position: int
     """The grid position of the soil pool."""
-
-
-class AnimalCohort:
-    """This is a class of animal cohorts."""
-
-    def __init__(self, name: str, mass: float, age: float, position: int) -> None:
-        """The constructor for the Animal class."""
-        self.name = name
-        """The functional type name of the animal cohort."""
-        self.mass = mass
-        """The average mass of an individual in the animal cohort [kg]."""
-        self.age = age
-        """The age of the animal cohort [days]."""
-        self.position = position
-        """The grid position of the plant cohort."""
-        self.individuals: int = ceil(
-            DamuthsLaw.intercept * self.mass ** (DamuthsLaw.slope)
-        )
-        """The number of individuals in the cohort."""
-        self.is_alive: bool = True
-        """Whether the cohort is alive [True] or dead [False]."""
-        self.metabolic_rate: float = (
-            MetabolicRate.intercept * self.mass**MetabolicRate.slope
-        )
-        """The rate at which energy is expended to [J/s]."""
-        self.stored_energy: float = (
-            StoredEnergy.intercept * self.mass**StoredEnergy.slope
-        )
-        """The current indiv energetic reserve [J]."""
-
-    def metabolize(self) -> None:
-        """The function to reduce stored_energy through metabolism."""
-        energy_burned = 28800 * self.metabolic_rate
-        """Number of seconds in a day * J/s metabolic rate, consider daily rate."""
-        if self.stored_energy >= energy_burned:
-            self.stored_energy -= energy_burned
-        elif self.stored_energy < energy_burned:
-            self.stored_energy = 0.0
