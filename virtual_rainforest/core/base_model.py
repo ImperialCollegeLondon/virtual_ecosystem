@@ -119,10 +119,11 @@ class BaseModel(ABC):
 
         This class property defines a set of variable names that must be present in the
         :class:`~virtual_rainforest.core.data.Data` instance used to initialise an
-        instance of this class. It is a list of variable names and then optionally the
-        names of any core axes which the variable must map onto.
+        instance of this class. It is a tuple containing zero or more tuples, each
+        providing a variable name and then a tuple of zero or more core axes that the
+        variable must map onto.
 
-        For example: ``[('temperature', ('spatial', 'temporal'))]``
+        For example: ``(('temperature', ('spatial', 'temporal')),)``
         """
 
     def __init__(
