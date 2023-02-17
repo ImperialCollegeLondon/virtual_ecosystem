@@ -18,7 +18,13 @@ kernelspec:
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.models.abiotic.abiotic_model
+```
+
+## The {mod}`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel` class
+
+```{eval-rst}
+.. autoclass:: virtual_rainforest.models.abiotic.abiotic_model.AbioticModel
     :autosummary:
     :members:
-    :special-members: __init_subclass__, __repr__, __str__
+    :exclude-members: model_name
 ```

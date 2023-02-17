@@ -37,13 +37,20 @@ class SoilModel(BaseModel):
     inheritance should be handled for the model classes.
 
     Args:
+        data: The data object to be used in the model.
+        start_time: A datetime64 value setting the start time of the model.
         update_interval: Time to wait between updates of the model state.
         no_layers: The number of soil layers to be modelled.
     """
 
     model_name = "soil"
-    """The model name for use in registering the model and logging."""
+    """An internal name used to register the model and schema"""
     required_init_vars = ()
+    """Required initialisation variables for the soil model.
+
+    This is a set of variables that must be present in the data object used to create a
+    SoilModel , along with any core axes that those variables must map on
+    to."""
 
     def __init__(
         self,
@@ -69,8 +76,16 @@ class SoilModel(BaseModel):
 
         super().__init__(data, update_interval, start_time, **kwargs)
         self.no_layers = int(no_layers)
+        """The number of soil layers to be modelled."""
         # Save variables names to be used by the __repr__
         self._repr.append("no_layers")
+
+        self.data
+        """A Data instance providing access to the shared simulation data."""
+        self.update_interval
+        """The time interval between model updates."""
+        self.next_update
+        """The simulation time at which the model should next run the update method"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
