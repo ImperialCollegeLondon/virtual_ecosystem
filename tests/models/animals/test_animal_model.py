@@ -5,12 +5,13 @@ define models based on the class defined in model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import INFO
+from logging import ERROR, INFO
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.animals.animal_model import AnimalModel
 
 
@@ -51,6 +52,23 @@ def test_animal_model_initialization(caplog):
                     INFO,
                     "Information required to initialise the animal model successfully "
                     "extracted.",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {"timing": {"start_time": "2020-01-01"}},
+                "animal": {"model_time_step": "20 interminable minutes"},
+            },
+            None,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "Configuration types appear not to have been properly validated. "
+                    "This problem prevents initialisation of the animal model. "
+                    "The firstinstance of this problem is as follows: "
+                    "'interminable' is not defined in the unit registry",
                 ),
             ),
         ),
