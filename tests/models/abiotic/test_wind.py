@@ -75,7 +75,7 @@ def test_calculate_mixing_length(dummy_data):
     result = wind.calculate_mixing_length(
         canopy_height=dummy_data.data["canopy_height"],
         zero_plane_displacement=DataArray([10, 20], dims="cell_id"),
-        roughness_length_momentum=1,
+        roughness_length_momentum=DataArray([1, 1], dims="cell_id"),
     )
 
     xr.testing.assert_allclose(result, DataArray([0, 2.822535], dims=["cell_id"]))
@@ -119,9 +119,30 @@ def test_calc_specific_heat_air(dummy_data):
     xr.testing.assert_allclose(result, DataArray([29.194, 29.202], dims=["cell_id"]))
 
 
-def test_calculate_wind_above_canopy():
+def test_calculate_wind_above_canopy(dummy_data):
     """Test wind above canopy."""
-    pass
+
+    from virtual_rainforest.models.abiotic import wind
+
+    result = wind.calculate_wind_above_canopy(
+        wind_heights=DataArray(
+            [[50, 70], [50, 80], [50, 100]], dims=["heights", "cell_id"]
+        ),
+        zero_plane_displacement=DataArray([10, 20], dims="cell_id"),
+        roughness_length_momentum=DataArray([1, 1], dims="cell_id"),
+        diabatic_correction_momentum_above=DataArray(
+            [[1, 1], [1, 1], [1, 1]], dims=["heights", "cell_id"]
+        ),
+        friction_velocity=dummy_data["friction_velocity"],
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[111.666384, 111.666384, 111.666384], [20.560115, 21.471723, 22.910133]],
+            dims=["cell_id", "heights"],
+        ),
+    )
 
 
 def test_calculate_wind_below_canopy():
