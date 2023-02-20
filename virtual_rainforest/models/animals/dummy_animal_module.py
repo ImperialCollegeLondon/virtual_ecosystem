@@ -1,4 +1,4 @@
-"""The 'dummy_animal_module.
+"""The ''dummy animal'' module.
 
 This file provides toy animal module functionality as well as self-contained
 dummy versions of the abiotic, soil, and plant modules that are required for

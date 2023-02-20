@@ -8,7 +8,7 @@ import pytest
 
 @pytest.fixture
 def plant_instance():
-    """Fixutre for a plant community used in tests."""
+    """Fixture for a plant community used in tests."""
     from virtual_rainforest.models.animals.dummy_animal_module import PlantCommunity
 
     return PlantCommunity(10.0, 1)
