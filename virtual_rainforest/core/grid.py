@@ -11,7 +11,7 @@ underlying the simulation and to identify the neighbourhood connections of cells
 """  # noqa: D205, D415
 
 import json
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -29,7 +29,7 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
+GRID_STRUCTURE_SIG = Tuple[list[int], list[Polygon]]
 """Signature of the data structure to be returned from grid creator functions.
 
 The first value is a list of integer cell ids, the second is a matching list of the

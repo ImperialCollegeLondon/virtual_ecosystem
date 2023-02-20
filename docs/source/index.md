@@ -76,7 +76,7 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: API reference
-  
+
   Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
