@@ -67,7 +67,7 @@ def test_animal_model_initialization(caplog):
                     ERROR,
                     "Configuration types appear not to have been properly validated. "
                     "This problem prevents initialisation of the animal model. "
-                    "The firstinstance of this problem is as follows: "
+                    "The first instance of this problem is as follows: "
                     "'interminable' is not defined in the unit registry",
                 ),
             ),

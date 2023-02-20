@@ -82,7 +82,7 @@ class AnimalModel(BaseModel):
             valid_input = False
             LOGGER.error(
                 "Configuration types appear not to have been properly validated. This "
-                "problem prevents initialisation of the animal model. The first"
+                "problem prevents initialisation of the animal model. The first "
                 "instance of this problem is as follows: %s" % str(e)
             )
 
