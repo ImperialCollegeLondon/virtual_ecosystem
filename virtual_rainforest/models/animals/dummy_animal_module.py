@@ -46,7 +46,7 @@ class PlantCommunity:
 
     def grow(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value."""
-        self.energy += 1 * self.energy * (1 - self.energy / self.energy_max)
+        self.energy += self.energy * (1 - self.energy / self.energy_max)
 
     def die(self) -> None:
         """The function to kill a plant cohort."""
