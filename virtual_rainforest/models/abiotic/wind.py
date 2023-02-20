@@ -3,7 +3,16 @@
 This module calculates the above- and within-canopy wind profiles for the Virtual
 Rainforest. These profiles will determine the exchange of heat, water, and CO2 between
 soil and atmosphere below the canopy as well as the exchange with the atmsophere above
-the canopy."""
+the canopy.
+
+Campbell and Norman (2012) the wind profile above the canopy is described as follows 
+(following :cite:t:`Campbell2012` as implemented in 'cite:t:`MACLEAN2021`):
+
+:math: `u_z = 1+b`
+where uz is wind speed at height z, d is the height above ground within the canopy where
+the wind profile extrapolates to zero, zm the roughness length for momentum, ψM is a
+diabatic correction for momentum and u* is the friction velocity, which gives the wind
+speed at height d + zm."""
 
 from dataclasses import dataclass
 
@@ -22,7 +31,8 @@ class WindConstants:
     """Wind constants class."""
 
     zero_plane_scaling_parameter: float = 7.5
-    """Control parameter for scaling d/h :cite:p:`Raupach1994`."""
+    """Control parameter for scaling d/h (d = zero plane displacement, h = height)
+        :cite:p:`Raupach1994`."""
     substrate_surface_drag_coefficient: float = 0.003
     """Substrate-surface drag coefficient :cite:p:`MACLEAN2021`."""
     roughness_element_drag_coefficient: float = 0.3
@@ -36,7 +46,7 @@ class WindConstants:
     relative_turbulence_intensity: float = 0.5
     """Relative turbulence intensity :cite:p:`MACLEAN2021`."""
     diabatic_correction_factor_below: float = 1
-    "Diabatic correction factor below canopy"
+    "Diabatic correction factor below canopy."
     mixing_length_factor: float = 0.32
     """Factor in calculation of mixing length :cite:p:`MACLEAN2021`."""
     celsius_to_kelvin = 273.15
@@ -58,8 +68,11 @@ def calculate_wind_profile(
     argument that contains the following variables:
 
     * friction velocity
-    * canopy height
     * 10m wind speed
+    * temperature
+    * atmopheric pressure
+    * canopy height
+    * leaf area index
 
     The ``const`` argument takes an instance of class
     :class:`~virtual_rainforest.models.abiotic.radiation.RadiationConstants`, which
@@ -81,7 +94,7 @@ def calculate_wind_profile(
     zero_plane_displacement = calculate_zero_plane_displacement(
         canopy_height=data["canopy_height"],
         leaf_area_index=data["leaf_area_index"],
-        zero_plane_scaling_parameter=WindConstants.zero_plane_scaling_parameter,
+        zero_plane_scaling_parameter=const.zero_plane_scaling_parameter,
     )
     roughness_length_momentum = calculate_roughness_length_momentum(
         canopy_height=data["canopy_height"],
@@ -279,8 +292,6 @@ def calculate_roughness_length_momentum(
         roughness_length = roughness_length
 
     return roughness_length
-
-
 
 def calculate_diabatic_correction_momentum_above(
     temperature: DataArray,
