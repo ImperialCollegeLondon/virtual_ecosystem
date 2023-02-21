@@ -74,12 +74,12 @@ class Radiation:
     of the canopy is reduced as it penetrates through the canopy (the absorption by
     individual canopy layers is provided by the plants module). What remains is the net
     shortwave radiation at the surface (= forest floor), which is an input to the
-    :class:`~virtual_rainforest.models.abiotic.Energy_balance` class. Top of canopy
-    photosynthetic photon flux density (PPFD) is the key input for
+    :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalance` class.
+    Top of canopy photosynthetic photon flux density (PPFD) is the key input for
     `virtual_rainforest.models.plants` which calculates photosythesis and GPP.
     Longwave radiation from individual canopy layers and longwave radiation from soil
     serve as inputs to the
-    :class:`~virtual_rainforest.models.abiotic.energy_balance.Energy_balance` class.
+    :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalance` class.
 
     PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
     for all timesteps provided in data. Something like a `calculate_radiation_balance`
