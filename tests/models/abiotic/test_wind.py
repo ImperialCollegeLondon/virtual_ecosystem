@@ -9,7 +9,7 @@ from xarray import DataArray
 
 @pytest.fixture
 def dummy_data():
-    """Creates a dummy data object for use in tests."""
+    """Creates a dummy data object for use in wind tests."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
@@ -21,7 +21,7 @@ def dummy_data():
     # Add the required data.
     data["canopy_height"] = DataArray([10, 50], dims=["cell_id"])
     data["canopy_node_heights"] = DataArray(
-        [[1, 5, 10], [1, 5, 10]], dims=["cell_id", "canopy_layers"]
+        [[1, 5, 10], [1, 15, 25]], dims=["cell_id", "canopy_layers"]
     )
     data["leaf_area_index"] = DataArray(
         [
@@ -30,8 +30,8 @@ def dummy_data():
         ],
         dims=["cell_id", "canopy_layers"],
     )
-    data["temperature_2m"] = DataArray([10, 20], dims=["cell_id"])
-    data["atmospheric_pressure"] = DataArray([101, 101], dims=["cell_id"])
+    data["temperature_2m"] = DataArray([10, 30], dims=["cell_id"])
+    data["atmospheric_pressure"] = DataArray([101, 103], dims=["cell_id"])
     data["sensible_heat_flux_top"] = DataArray([50, 10], dims=["cell_id"])
     data["friction_velocity"] = DataArray([12, 2], dims=["cell_id"])
 
@@ -39,7 +39,7 @@ def dummy_data():
 
 
 def test_calculate_zero_plane_displacement(dummy_data):
-    """Test zero plane displacement."""
+    """Test zero plane displacement calculated correctly."""
 
     from virtual_rainforest.models.abiotic import wind
 
@@ -48,9 +48,7 @@ def test_calculate_zero_plane_displacement(dummy_data):
         leaf_area_index=dummy_data.data["leaf_area_index"],
     )
 
-    xr.testing.assert_allclose(
-        result, DataArray([8.51110796, 42.55553979], dims=["cell_id"])
-    )
+    xr.testing.assert_allclose(result, DataArray([8.51111, 42.55554], dims=["cell_id"]))
 
 
 def test_calculate_roughness_length_momentum(dummy_data):
@@ -108,7 +106,7 @@ def test_calc_molar_density_air(dummy_data):
         atmospheric_pressure=dummy_data.data["atmospheric_pressure"],
     )
     xr.testing.assert_allclose(
-        result, DataArray([120.618713, 120.618713], dims=["cell_id"])
+        result, DataArray([120.618713, 118.276602], dims=["cell_id"])
     )
 
 
@@ -119,7 +117,7 @@ def test_calc_specific_heat_air(dummy_data):
 
     result = wind.calc_specific_heat_air(temperature=dummy_data.data["temperature_2m"])
 
-    xr.testing.assert_allclose(result, DataArray([29.194, 29.202], dims=["cell_id"]))
+    xr.testing.assert_allclose(result, DataArray([29.194, 29.214], dims=["cell_id"]))
 
 
 def test_calculate_wind_above_canopy(dummy_data):
@@ -166,7 +164,7 @@ def test_calculate_wind_below_canopy(dummy_data):
     xr.testing.assert_allclose(
         result,
         DataArray(
-            [[1.219709, 1.819592, 3.0], [0.845151, 0.991793, 1.211379]],
+            [[1.219709, 1.819592, 3.0], [0.845151, 1.479582, 2.207277]],
             dims=["cell_id", "canopy_layers"],
         ),
     )
@@ -197,7 +195,7 @@ def test_calculate_wind_profile(dummy_data):
     xr.testing.assert_allclose(
         result[1],
         DataArray(
-            [[3.230525, 15.573346, 111.241788], [0.49757, 0.681516, 1.009842]],
+            [[3.230525, 15.573346, 111.241788], [0.49757, 1.496341, 3.285374]],
             dims=["cell_id", "canopy_layers"],
         ),
     )

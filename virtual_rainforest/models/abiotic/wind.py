@@ -476,7 +476,7 @@ def calc_molar_density_air(
 
     Args:
         temperature: temperature, [C]
-        atmospheric_pressure, atmospheric pressure, [kPa]
+        atmospheric_pressure: atmospheric pressure, [kPa]
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
 
