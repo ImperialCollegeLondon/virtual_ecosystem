@@ -12,7 +12,7 @@ The preprocessing module takes extra-terrestrial radiation as an input and adjus
 the effects of topography (slope and aspect). Here, the effects of atmospheric
 filtering (elevation-dependent) and cloud cover are added to calculate photosynthetic
 photon flux density (PPFD) at the top of the canopy which is a crucial input to the
-plant module. The implementation is based on :cite:t:`Davis2017`.
+plant module. The implementation is based on :cite:t:`Davis:2017`.
 
 Cloud cover and surface albedo also determine how much of the shortwave radiation that
 reaches the top of the canopy is reflected and how much remains to be absorbed via
@@ -78,8 +78,8 @@ class Radiation:
     photosynthetic photon flux density (PPFD) is the key input for
     `virtual_rainforest.models.plants` which calculates photosythesis and GPP.
     Longwave radiation from individual canopy layers and longwave radiation from soil
-    serve as inputs to the :class:`~virtual_rainforest.models.abiotic.Energy_balance`
-    class.
+    serve as inputs to the
+    :class:`~virtual_rainforest.models.abiotic.energy_balance.Energy_balance` class.
 
     PPFD and top-of-canopy radiation could be calculated in the AbioticModel __init__
     for all timesteps provided in data. Something like a `calculate_radiation_balance`
@@ -256,7 +256,7 @@ def calculate_ppfd(
     Returns:
         photosynthetic photon flux density, [mol m-2]
 
-    Reference: :cite:t:`Davis2017`
+    Reference: :cite:t:`Davis:2017`
     """
 
     return (1.0e-6) * flux_to_energy * (1.0 - albedo_vis) * tau * shortwave_in
