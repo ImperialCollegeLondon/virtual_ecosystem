@@ -5,20 +5,14 @@ Rainforest. These profiles will determine the exchange of heat, water, and CO2 b
 soil and atmosphere below the canopy as well as the exchange with the atmsophere above
 the canopy.
 
-The wind profile above the canopy is described as follows (following
-:cite:t:`Campbell2012` as implemented in :cite:t:`MACLEAN2021`).
-
-**Add equation!**
-
+The wind profile above the canopy is described as follows (:cite:p:`Campbell2012` as
+implemented in :cite:t:`MACLEAN2021`). **Add equation!**
 uz is wind speed at height z, d is the height above ground within the canopy where
 the wind profile extrapolates to zero, zm the roughness length for momentum, ψM is a
 diabatic correction for momentum and u* is the friction velocity, which gives the wind
 speed at height d + zm.
 
-The wind profile below canopy is derived as follows:
-
-***add equation**
-
+The wind profile below canopy is derived as follows: ***Add equation!**
 where uz is wind speed at height z within the canopy, uh is wind speed at
 the top of the canopy at height h, and a is a wind attenuation coefficient
 given by a = 2lmiw , where cd is a drag coefficient that varies with leaf
@@ -26,13 +20,10 @@ inclination and shape, iw is a coefficient describing relative turbulence
 intensity and lm is the mean mixing length, equivalent to the free space
 between the leaves and stems. For details, see :cite:t:`MACLEAN2021`.
 
-TODO fix equation for diabatic correction factor for momentum, currently set to 1
-
-TODO add sanity checks, errors and logging
-
-TODO vertical axis, currently "heights" and "wind_heights" above canopy and
-    "canopy_layers" and "canopy_node_heights" below canopy
-
+# TODO fix equation for diabatic correction factor for momentum, currently set to 1
+# TODO add sanity checks, errors and logging
+# TODO vertical axis, currently "heights" and "wind_heights" above canopy and
+# "canopy_layers" and "canopy_node_heights" below canopy
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
@@ -311,6 +302,7 @@ def calculate_roughness_length_momentum(
             sublayer depth
         max_ratio_wind_to_friction_velocity: Maximum ratio of wind velocity to friction
             velocity
+
     Returns:
         momentum roughness length, [m]
     """
