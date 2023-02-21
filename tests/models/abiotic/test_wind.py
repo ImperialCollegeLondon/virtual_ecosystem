@@ -20,6 +20,9 @@ def dummy_data():
 
     # Add the required data.
     data["canopy_height"] = DataArray([10, 50], dims=["cell_id"])
+    data["canopy_node_heights"] = DataArray(
+        [[1, 5, 10], [1, 5, 10]], dims=["cell_id", "canopy_layers"]
+    )
     data["leaf_area_index"] = DataArray(
         [
             [1, 2, 3],
@@ -145,11 +148,56 @@ def test_calculate_wind_above_canopy(dummy_data):
     )
 
 
-def test_calculate_wind_below_canopy():
+def test_calculate_wind_below_canopy(dummy_data):
     """Test wind below canopy."""
-    pass
+
+    from virtual_rainforest.models.abiotic import wind
+
+    result = wind.calculate_wind_below_canopy(
+        canopy_node_heights=dummy_data.data["canopy_node_heights"],
+        wind_profile_above=DataArray(
+            [[1, 2, 3], [4, 5, 6]],
+            dims=["cell_id", "heights"],
+        ),
+        wind_attenuation_coefficient=DataArray([1, 2], dims=["cell_id"]),
+        canopy_height=dummy_data.data["canopy_height"],
+    )
+
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [[1.219709, 1.819592, 3.0], [0.845151, 0.991793, 1.211379]],
+            dims=["cell_id", "canopy_layers"],
+        ),
+    )
 
 
-def test_calculate_wind_profile():
+def test_calculate_wind_profile(dummy_data):
     """Test wind profile."""
-    pass
+
+    from virtual_rainforest.models.abiotic import wind
+
+    result = wind.calculate_wind_profile(
+        wind_heights=DataArray(
+            [[50, 70], [50, 80], [50, 100]], dims=["heights", "cell_id"]
+        ),
+        canopy_node_heights=dummy_data.data["canopy_node_heights"],
+        data=dummy_data,
+    )
+
+    # check wind above canopy
+    xr.testing.assert_allclose(
+        result[0],
+        DataArray(
+            [[111.241788, 111.241788, 111.241788], [21.424657, 22.202161, 23.46772]],
+            dims=["cell_id", "heights"],
+        ),
+    )
+    # check wind below canopy
+    xr.testing.assert_allclose(
+        result[1],
+        DataArray(
+            [[3.230525, 15.573346, 111.241788], [0.49757, 0.681516, 1.009842]],
+            dims=["cell_id", "canopy_layers"],
+        ),
+    )

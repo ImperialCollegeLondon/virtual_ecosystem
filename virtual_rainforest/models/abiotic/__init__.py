@@ -16,6 +16,11 @@ Each of the abiotic sub-modules has its own API reference page:
 * The :mod:`~virtual_rainforest.models.abiotic.energy_balance` submodule instantiates
   the :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalance` class.
   This class calculates the energy balance of the Virtual Rainforest.
+
+* The :mod:`~virtual_rainforest.models.abiotic.wind` submodule calculates the above- and
+  within-canopy wind profiles of the Virtual Rainforest. These profiles will determine
+  the exchange of heat, water, and CO2 between soil and atmosphere below the canopy as
+  well as the exchange with the atmsophere above the canopy.
 """  # noqa: D205, D415
 
 from importlib import resources

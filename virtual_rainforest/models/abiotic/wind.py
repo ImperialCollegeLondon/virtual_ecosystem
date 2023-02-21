@@ -64,7 +64,7 @@ class WindConstants:
 def calculate_wind_profile(
     wind_heights: DataArray,
     canopy_node_heights: DataArray,
-    data=Data,
+    data: Data,
     const: WindConstants = WindConstants(),
 ) -> Tuple[DataArray, DataArray]:
     """Calculate wind profile above and below canopy.
@@ -114,8 +114,10 @@ def calculate_wind_profile(
 
     diabatic_correction_momentum_above = DataArray(  # place holder
         np.ones(
-            int(wind_heights.shape / data["temperature_2m"].shape),
-            data["temperature_2m"].shape,
+            (
+                int(wind_heights.shape[0]),
+                int(data["temperature_2m"].shape[0]),
+            )
         ),
         dims=["heights", "cell_id"],
     )
@@ -190,8 +192,6 @@ def calculate_wind_above_canopy(
 
     Returns:
         vertical wind profile above canopy, [m s-1]
-
-    # TODO check that this is scientifially correct
     """
 
     return (friction_velocity / 0.4) * np.log(
@@ -220,7 +220,7 @@ def calculate_wind_below_canopy(
     Returns:
         wind profile below canopy, [m s-1]
     """
-    topofcanopy_wind_speed = wind_profile_above[-1, :]
+    topofcanopy_wind_speed = wind_profile_above[:, -1]
 
     return topofcanopy_wind_speed * np.exp(
         wind_attenuation_coefficient * ((canopy_node_heights / canopy_height) - 1)

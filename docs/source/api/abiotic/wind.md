@@ -20,5 +20,5 @@ kernelspec:
 .. automodule:: virtual_rainforest.models.abiotic.wind
     :autosummary:
     :members:
-    :special-members: __init_subclass__, __repr__, __str__
+    :special-members:
 ```
