@@ -6,15 +6,18 @@ soil and atmosphere below the canopy as well as the exchange with the atmsophere
 the canopy.
 
 The wind profile above the canopy is described as follows (following
-:cite:t:`Campbell2012` as implemented in :cite:t:`MACLEAN2021`). **Add equation!**
+:cite:t:`Campbell2012` as implemented in :cite:t:`MACLEAN2021`).
+
+**Add equation!**
 
 uz is wind speed at height z, d is the height above ground within the canopy where
 the wind profile extrapolates to zero, zm the roughness length for momentum, ψM is a
 diabatic correction for momentum and u* is the friction velocity, which gives the wind
 speed at height d + zm.
 
-# TODO equation for diabatic correction factor for momentum, currently set to 1
-# TODO errors and logging
+TODO fix equation for diabatic correction factor for momentum, currently set to 1
+
+TODO add sanity checks, errors and logging
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
@@ -56,7 +59,7 @@ class WindConstants:
     standard_mole = 44.6
     """Moles of ideal gas in 1 m3 air at standard atmosphere."""
     molar_heat_capacity_air = 29.19
-    """Molar heat capacity of air [J mol-1 C-1]."""
+    """Molar heat capacity of air, [J mol-1 C-1]."""
     gravity = 9.81
     """Gravity, [m s-1]."""
 
@@ -439,7 +442,7 @@ def calculate_wind_attenuation_coefficient(
         canopy_height: canopy height, [m]
         leaf_area_index: leaf area index, [m m-1]
         mixing_length: mixing length for canopy air transport, [m]
-        drag_coefficient:drag coefficient
+        drag_coefficient: drag coefficient
         relative_turbulence_intensity: relative turbulence intensity
         diabatic_correction_factor_below: diabatic correction factor below canopy
 
@@ -469,9 +472,10 @@ def calc_molar_density_air(
     Implementation after :cite:t:`MACLEAN2021`.
 
     Args:
-        temperature
-        atmospheric_pressure
-        celsius_to_kelvin
+        temperature: temperature, [C]
+        atmospheric_pressure, atmospheric pressure, [kPa]
+        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+            temperature in Kelvin
 
     Returns:
         molar_density_air
@@ -495,8 +499,8 @@ def calc_specific_heat_air(
     Implementation after :cite:t:`MACLEAN2021`.
 
     Args:
-        temperature
-        molar_heat_capacity_air
+        temperature: temperature, [C]
+        molar_heat_capacity_air: molar heat capacity, [J mol-1 C-1]
 
     Returns:
             specific_heat_air, specific heat of air at constant pressure (J mol-1 K-1)
