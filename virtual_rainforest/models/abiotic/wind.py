@@ -18,6 +18,9 @@ speed at height d + zm.
 TODO fix equation for diabatic correction factor for momentum, currently set to 1
 
 TODO add sanity checks, errors and logging
+
+TODO vertical axis, currently "heights" and "wind_heights" above canopy and
+    "canopy_layers" and "canopy_node_heights" below canopy
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
@@ -77,8 +80,8 @@ def calculate_wind_profile(
 
     * friction velocity
     * 10m wind speed
-    * 2m temperature?
-    * atmopheric pressure
+    * 2m temperature
+    * atmospheric pressure
     * canopy height
     * leaf area index
     * sensible heat flux at the top of the canopy
