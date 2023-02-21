@@ -136,16 +136,23 @@ things.
   class, and then stored as attributes of the class.
 
 1. It _must_ call the {meth}`~virtual_rainforest.core.base_model.BaseModel.__init__`
-   method. This method runs all of the shared functionality across models, such as
-   setting the update intervals and validating the input data. This method can be
-   accessed by using the `super()` method, which calls methods from the super (or
-   parent) class.
+   method of the {meth}`~virtual_rainforest.core.base_model.BaseModel` parent class,
+   also known as the superclass:
+
+   ```python
+   super().__init__(data, update_interval, start_time, **kwargs)
+   ```
+
+   Calling this method runs all of the shared functionality across models, such as
+   setting the update intervals and validating the input data.
 
 1. The method should check that the provided initialisation values are sane, for example
   that the number of ponds is not negative.
 
-1. The names of model specific attributes should be appended to `__repr` so that they
-  are included in the representation of the model, using the  `__repr__` method.
+1. The {meth}`~virtual_rainforest.core.base_model.BaseModel` provides a basic `__repr__`
+   to provide a simple text representation of a class object. This just prints the class
+   name and a set of properties. You can add some or all of your custom model properties
+   to the `__repr` property to include them in the representation.
 
 You should end up with something like this:
 
@@ -220,8 +227,11 @@ update_interval = "1 month"
 no_of_ponds = 3
 ```
 
-A JSON Schema document to validate those settings, along with some default values, might
-look like this:
+The JSON Schema document generated from the JSON Schema app above is shown below. Some
+of the fields - such as the `title` and `examples` entries - are not required in the
+Virtual Rainforest configuration and so can be deleted. You may also need to edit which
+properties are required and which provide defaults that will be used to fill missing
+properties.
 
 ```json
 {
