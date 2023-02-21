@@ -93,7 +93,6 @@ team.
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Radiation <api/abiotic/radiation.md>
-  Abiotic Energy balance <api/abiotic/energy_balance.md>
   Abiotic Wind <api/abiotic/wind.md>
 ```
 
