@@ -15,6 +15,17 @@ the wind profile extrapolates to zero, zm the roughness length for momentum, ψM
 diabatic correction for momentum and u* is the friction velocity, which gives the wind
 speed at height d + zm.
 
+The wind profile below canopy is derived as follows:
+
+***add equation**
+
+where uz is wind speed at height z within the canopy, uh is wind speed at
+the top of the canopy at height h, and a is a wind attenuation coefficient
+given by a = 2lmiw , where cd is a drag coefficient that varies with leaf
+inclination and shape, iw is a coefficient describing relative turbulence
+intensity and lm is the mean mixing length, equivalent to the free space
+between the leaves and stems. For details, see :cite:t:`MACLEAN2021`.
+
 TODO fix equation for diabatic correction factor for momentum, currently set to 1
 
 TODO add sanity checks, errors and logging
@@ -215,7 +226,8 @@ def calculate_wind_below_canopy(
 
     Implementation after :cite:t:`MACLEAN2021`.
     The top of canopy windspeed is taken from the above canopy wind profile, which must
-    be in the order ...
+    be ordered from highest to lowest level. The lowest level is used here as the
+    top-of-canopy wind speed.
 
     Args:
         copy_node_heights: heights of canopy nodes, [m]
@@ -365,9 +377,9 @@ def calculate_diabatic_correction_momentum_above(
         gravity: Gravity
 
     Returns:
-        diabatic correction factor for momentum transfer,
+        diabatic correction factor for momentum transfer
     """
-    raise NotImplementedError()
+
     temperature_kelvin = temperature * celsius_to_kelvin
 
     molar_density_air = calc_molar_density_air(
@@ -375,25 +387,28 @@ def calculate_diabatic_correction_momentum_above(
     )
     specific_heat_air = calc_specific_heat_air(temperature=temperature)
 
-    # calculate atmospheric stability?
+    # calculate atmospheric stability
     stability = -(
         0.4 * gravity * (wind_heights - zero_plane_displacement) * sensible_heat_flux
     ) / (
-        molar_density_air * specific_heat_air * temperature_kelvin * friction_velocity
-        ^ 3
+        molar_density_air
+        * specific_heat_air
+        * temperature_kelvin
+        * np.power(friction_velocity, 3)
     )
 
-    # Stable flow
-    stable = stability.where(stability < 0)
-
-    # Stable
+    stable = stability.where(stability > 0)
     diabatic_correction_momentum_above = DataArray(6 * np.log(1 + stable))
 
     # Unstable
-    diabatic_correction_momentum_above[stable] = -2 * np.log(
-        (1 + (1 - 16 * stability[stable]) ^ 0.5) / 2
+    unstable = stability.where(stability < 0)
+    unstable_coefficient = -2 * np.log((1 + np.power((1 - 16 * unstable), 0.5)) / 2)
+    diabatic_correction_momentum_above.fillna(0) + unstable_coefficient.fillna(0)
+
+    # set upper threshold
+    diabatic_correction_momentum_above = DataArray(
+        np.minimum(diabatic_correction_momentum_above, 5)
     )
-    diabatic_correction_momentum_above.where(diabatic_correction_momentum_above > 5, 5)
 
     return diabatic_correction_momentum_above
 
