@@ -27,7 +27,10 @@ must be defined in subclasses:
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
   attribute.
 
-The usage of these two attributes is described in their docstrings.
+The usage of these two attributes is described in their docstrings and two private
+methods are provided to validate that the properties are set and valid in subclasses
+(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name` and
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`).
 
 Model registration
 ------------------
@@ -143,7 +146,7 @@ class BaseModel(ABC):
           :attr:`~virtual_rainforest.core.base_model.BaseModel.next_update` and
           :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
         * It uses the
-          :meth:`~virtual_rainforest.core.base_model.BaseModel.check_required_init_vars`
+          :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data`
           to confirm that the required variables for the model are present in the
           :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
         """
