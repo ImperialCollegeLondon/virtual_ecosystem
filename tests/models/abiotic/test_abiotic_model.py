@@ -11,16 +11,6 @@ from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
 
 
-@pytest.fixture
-def data_instance():
-    """Simple data instance to use in model init."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    grid = Grid()
-    return Data(grid)
-
-
 @pytest.mark.parametrize(
     "soil_layers,canopy_layers,raises,expected_log_entries",
     [
