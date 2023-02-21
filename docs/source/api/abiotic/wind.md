@@ -20,5 +20,4 @@ kernelspec:
 .. automodule:: virtual_rainforest.models.abiotic.wind
     :autosummary:
     :members:
-    :special-members:
 ```

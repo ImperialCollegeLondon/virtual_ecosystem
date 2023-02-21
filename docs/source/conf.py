@@ -78,7 +78,7 @@ nitpick_ignore = [
     ("py:class", "numpy.int64"),
     # TODO - Delete this once Vivienne has merged this feature into develop
     ("py:class", "virtual_rainforest.models.abiotic.Energy_balance"),
-    ("py:class", "virtual_rainforest.models.abiotic.energy_balance.Energy_balance"),
+    ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
