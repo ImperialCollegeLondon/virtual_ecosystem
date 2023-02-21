@@ -157,7 +157,7 @@ class BaseModel(ABC):
         """A list of attributes to be included in the class __repr__ output"""
 
         # Check the required init variables
-        self.check_required_init_vars()
+        self.check_init_data()
 
     @abstractmethod
     def setup(self) -> None:
@@ -282,8 +282,8 @@ class BaseModel(ABC):
         """Inform user what the model type is."""
         return f"A {self.model_name} model instance"
 
-    def check_required_init_vars(self) -> None:
-        """Check the required set of variables is present.
+    def check_init_data(self) -> None:
+        """Check the init data contains the required variables.
 
         This method is used to check that the set of variables defined in the
         :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` class
