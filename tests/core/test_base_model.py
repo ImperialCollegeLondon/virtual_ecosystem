@@ -42,7 +42,10 @@ def data_instance():
             "UnnamedModel",
             pytest.raises(NotImplementedError),
             "Property model_name is not implemented in UnnamedModel",
-            [(CRITICAL, "Property model_name is not implemented in UnnamedModel")],
+            [
+                (ERROR, "Property model_name is not implemented in UnnamedModel"),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
             id="undefined model_name",
         ),
         pytest.param(
@@ -53,7 +56,10 @@ def data_instance():
             "UnnamedModel",
             pytest.raises(TypeError),
             "Property model_name in UnnamedModel is not a string",
-            [(CRITICAL, "Property model_name in UnnamedModel is not a string")],
+            [
+                (ERROR, "Property model_name in UnnamedModel is not a string"),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
             id="nonstring model_name",
         ),
         pytest.param(
@@ -66,9 +72,10 @@ def data_instance():
             "Property required_init_vars is not implemented in UnnamedModel",
             [
                 (
-                    CRITICAL,
+                    ERROR,
                     "Property required_init_vars is not implemented in UnnamedModel",
-                )
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
             ],
             id="Undefined required_init_vars",
         ),
@@ -213,8 +220,6 @@ def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg
     if err:
         # Check any error message
         assert str(err.value) == exp_msg
-
-    # log_check(caplog, exp_log)
 
 
 def test_check_failure_on_missing_methods(data_instance):

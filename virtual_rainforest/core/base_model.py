@@ -181,6 +181,89 @@ class BaseModel(ABC):
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod
+    def _check_model_name(cls) -> None:
+        """Check the model_name property is set and valid.
+
+        Raises:
+            NotImplementedError: model_name has not been set in a subclass
+            ValueError: the model_name is not a string.
+        """
+
+        # Check that model_name exists and is a string - if it is not implemented in the
+        # subclass then the object will be of type property
+        if isinstance(cls.model_name, property):
+            excep = NotImplementedError(
+                f"Property model_name is not implemented in {cls.__name__}"
+            )
+            LOGGER.error(excep)
+            raise excep
+
+        if not isinstance(cls.model_name, str):
+            excep = TypeError(f"Property model_name in {cls.__name__} is not a string")
+            LOGGER.error(excep)
+            raise excep
+
+    @classmethod
+    def _check_required_init_vars(cls) -> None:
+        """Check the required_init_vars property is set and valid.
+
+        Raises:
+            NotImplementedError: required_init_vars has not been set in a subclass.
+            TypeError: the value of required_init_vars has the wrong type structure.
+            ValueError: required_init_vars uses unknown core axis names.
+        """
+
+        to_raise: Exception
+
+        # Check that required_init_vars is set
+        if isinstance(cls.required_init_vars, property):
+            to_raise = NotImplementedError(
+                f"Property required_init_vars is not implemented in {cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check the structure
+        required_init_vars_ok = True
+        unknown_axes: list[str] = []
+
+        if not isinstance(cls.required_init_vars, tuple):
+            required_init_vars_ok = False
+        else:
+            for entry in cls.required_init_vars:
+                # entry is a 2 tuple
+                if not (isinstance(entry, tuple) and len(entry) == 2):
+                    required_init_vars_ok = False
+                    continue
+
+                # and entry contains (str, tuple(str,...))
+                vname, axes = entry
+                if not (
+                    isinstance(vname, str)
+                    and isinstance(axes, tuple)
+                    and all([isinstance(a, str) for a in axes])
+                ):
+                    required_init_vars_ok = False
+                else:
+                    # Add any unknown axes
+                    unknown_axes.extend(set(axes).difference(AXIS_VALIDATORS))
+
+        if not required_init_vars_ok:
+            to_raise = TypeError(
+                f"Property required_init_vars has the wrong structure in {cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        if unknown_axes:
+            to_raise = ValueError(
+                f"Property required_init_vars uses unknown core "
+                f"axes in {cls.__name__}: {','.join(unknown_axes)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -194,71 +277,17 @@ class BaseModel(ABC):
             TypeError: If model_name is not a string
         """
 
-        excep: Exception
-
-        # Check that model_name exists and is a string - if it is not implemented in the
-        # subclass then the object will be of type property
-        if isinstance(cls.model_name, property):
-            excep = NotImplementedError(
-                f"Property model_name is not implemented in {cls.__name__}"
-            )
-            LOGGER.critical(excep)
+        try:
+            cls._check_model_name()
+            cls._check_required_init_vars()
+        except (NotImplementedError, TypeError, ValueError) as excep:
+            LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
 
-        if not isinstance(cls.model_name, str):
-            excep = TypeError(f"Property model_name in {cls.__name__} is not a string")
-            LOGGER.critical(excep)
-            raise excep
-
-        # Check that required_init_vars is set
-        if isinstance(cls.required_init_vars, property):
-            excep = NotImplementedError(
-                f"Property required_init_vars is not implemented in {cls.__name__}"
-            )
-            LOGGER.critical(excep)
-            raise excep
-
-        # Check the structure
-        required_init_vars_ok = True
-
-        if not isinstance(cls.required_init_vars, tuple):
-            required_init_vars_ok = False
-        else:
-            for entry in cls.required_init_vars:
-                # entry is a 2 tuple
-                if not (isinstance(entry, tuple) and len(entry) == 2):
-                    required_init_vars_ok = False
-                    continue
-                # and entry contains (str, tuple(str,...))
-                vname, axes = entry
-                if not (
-                    isinstance(vname, str)
-                    and isinstance(axes, tuple)
-                    and all([isinstance(a, str) for a in axes])
-                ):
-                    required_init_vars_ok = False
-
-        if not required_init_vars_ok:
-            to_raise = TypeError(
-                f"Property required_init_vars has the wrong structure in {cls.__name__}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-        # Check the axes are known
-        all_axes = set([ax for nm, ax in cls.required_init_vars for ax in ax])
-        unknown_axes = all_axes.difference(AXIS_VALIDATORS)
-        if unknown_axes:
-            to_raise = ValueError(
-                f"Property required_init_vars uses unknown core "
-                f"axes in {cls.__name__}: {','.join(unknown_axes)}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-        # Add the new model to the registry
+        # Add the new model to the registry - and yes, mypy, cls.model_name is
+        # definitely a string at this point.
         if cls.model_name in MODEL_REGISTRY:
-            old_class_name = MODEL_REGISTRY[cls.model_name].__name__
+            old_class_name = MODEL_REGISTRY[cls.model_name].__name__  # type: ignore
             LOGGER.warning(
                 "%s already registered under name '%s', replaced with %s",
                 old_class_name,
@@ -268,7 +297,7 @@ class BaseModel(ABC):
         else:
             LOGGER.info("%s registered under name '%s'", cls.__name__, cls.model_name)
 
-        MODEL_REGISTRY[cls.model_name] = cls
+        MODEL_REGISTRY[cls.model_name] = cls  # type: ignore
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""
