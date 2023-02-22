@@ -1,4 +1,4 @@
-"""The `models.soil.carbon` module  simulates the soil carbon cycle for the Virtual
+"""The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
 Rainforest. At the moment only two pools are modelled, these are low molecular weight
 carbon (LMWC) and mineral associated organic matter (MAOM). More pools and their
 interactions will be added at a later date.
@@ -96,11 +96,12 @@ class SoilCarbonPools:
     ) -> NDArray[np.float32]:
         """Calculates net rate of LMWC association with soil minerals.
 
-        Following Abramoff et al. (2018), mineral adsorption of carbon is controlled by
-        a Langmuir saturation function. At present, binding affinity and Q_max are
-        recalculated on every function called based on pH, bulk density and clay
-        content. Once a decision has been reached as to how fast pH and bulk density
-        will change (if at all), this calculation may need to be moved elsewhere.
+        Following :cite:t:`abramoff_millennial_2018`, mineral adsorption of carbon is
+        controlled by a Langmuir saturation function. At present, binding affinity and
+        Q_max are recalculated on every function called based on pH, bulk density and
+        clay content. Once a decision has been reached as to how fast pH and bulk
+        density will change (if at all), this calculation may need to be moved
+        elsewhere.
 
         Args:
             pH: pH values for each soil grid cell
@@ -133,8 +134,8 @@ def calculate_max_sorption_capacity(
 
     The maximum sorption capacity is the maximum amount of mineral associated organic
     matter that can exist per unit volume. This expression and its parameters are also
-    drawn from Mayes et al. (2012). In that paper max sorption also depends on Fe
-    content, but we are ignoring this for now.
+    drawn from :cite:t:`mayes_relation_2012`. In that paper max sorption also depends on
+    Fe content, but we are ignoring this for now.
 
     Args:
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
@@ -185,7 +186,8 @@ def calculate_binding_coefficient(
 ) -> NDArray[np.float32]:
     """Calculate Langmuir binding coefficient based on pH.
 
-    This specific expression and its parameters are drawn from (Mayes et al. (2012)).
+    This specific expression and its parameters are drawn from
+    :cite:t:`mayes_relation_2012`.
 
     Args:
         pH: pH values for each soil grid cell
@@ -203,8 +205,8 @@ def convert_temperature_to_scalar(
 ) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
-    This form is used in Abramoff et al. (2018) to minimise differences with the
-    CENTURY model. We very likely want to define our own functional form here. I'm
+    This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
+    the CENTURY model. We very likely want to define our own functional form here. I'm
     also a bit unsure how this form was even obtained, so further work here is very
     needed.
 
@@ -232,8 +234,8 @@ def convert_moisture_to_scalar(
 ) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
-    This form is used in Abramoff et al. (2018) to minimise differences with the
-    CENTURY model. We very likely want to define our own functional form here. I'm
+    This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
+    the CENTURY model. We very likely want to define our own functional form here. I'm
     also a bit unsure how this form was even obtained, so further work here is very
     needed.
 

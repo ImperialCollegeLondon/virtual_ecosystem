@@ -87,7 +87,7 @@ simulations:
   [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/satellite-carbon-dioxide?tab=overview)
   . Alternatively, reconstructed gridded monthly CO2 data for the historical period
   (1953 - 2013) and future CMIP6 scenarios (2015 - 2150) can be downloaded
-  [here](https://zenodo.org/record/5021361){cite:p}`cheng_wei_2021`.
+  [here](https://zenodo.org/record/5021361){cite:p}`cheng_wei_global_2021`.
   
 ## Step-by-step example
 

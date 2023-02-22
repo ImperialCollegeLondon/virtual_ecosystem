@@ -11,6 +11,7 @@ import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -23,15 +24,25 @@ class AbioticModel(BaseModel):
     inheritance should be handled for the model classes.
 
     Args:
+        data: The data object to be used in the model.
+        start_time: A datetime64 value setting the start time of the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
     """
 
     model_name = "abiotic"
+    """An internal name used to register the model and schema"""
+    required_init_vars = ()
+    """Required initialisation variables for the abiotic model.
+
+    This is a set of variables that must be present in the data object used to create an
+    AbioticModel instance, along with any core axes that those variables must map on
+    to."""
 
     def __init__(
         self,
+        data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
         soil_layers: int,
@@ -66,15 +77,25 @@ class AbioticModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, start_time, **kwargs)
         self.soil_layers = int(soil_layers)
+        """The number of soil layers to be modelled."""
         self.canopy_layers = int(canopy_layers)
+        """The initial number of canopy layers to be modelled."""
+
         # Save variables names to be used by the __repr__
         self._repr.append("soil_layers")
         self._repr.append("canopy_layers")
 
+        self.data
+        """A Data instance providing access to the shared simulation data."""
+        self.update_interval
+        """The time interval between model updates."""
+        self.next_update
+        """The simulation time at which the model should next run the update method"""
+
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> AbioticModel:
+    def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -82,6 +103,7 @@ class AbioticModel(BaseModel):
         invalid rather than returning an initialised model instance None is returned.
 
         Args:
+            data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
 
         Raises:
@@ -116,7 +138,7 @@ class AbioticModel(BaseModel):
                 "Information required to initialise the abiotic model successfully "
                 "extracted."
             )
-            return cls(update_interval, start_time, soil_layers, canopy_layers)
+            return cls(data, update_interval, start_time, soil_layers, canopy_layers)
         else:
             raise InitialisationError()
 
