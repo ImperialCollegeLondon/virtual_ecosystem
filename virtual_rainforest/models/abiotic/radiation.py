@@ -1,6 +1,4 @@
-"""The `abiotic.radiation` module.
-
-The radiation balance at the top of the canopy at a given location depends on
+"""The radiation balance at the top of the canopy at a given location depends on
 
 1. extra-terrestrial radiation (affected by the earth's orbit, date, and location),
 2. terrestrial radiation (affected by atmospheric composition and clouds),
@@ -12,7 +10,7 @@ The preprocessing module takes extra-terrestrial radiation as an input and adjus
 the effects of topography (slope and aspect). Here, the effects of atmospheric
 filtering (elevation-dependent) and cloud cover are added to calculate photosynthetic
 photon flux density (PPFD) at the top of the canopy which is a crucial input to the
-plant module. The implementation is based on :cite:t:`Davis2017`.
+plant module. The implementation is based on :cite:t:`davis_simple_2017`.
 
 Cloud cover and surface albedo also determine how much of the shortwave radiation that
 reaches the top of the canopy is reflected and how much remains to be absorbed via
@@ -23,7 +21,7 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 # series (possibly as part of AbioticModel) and update other variables for each time
 # step with inputs from other modules via the data object (for example absorbed
 # radiation from the plant module)
-"""
+"""  # noqa: D205, D415
 
 from dataclasses import dataclass
 from typing import Union
@@ -42,11 +40,11 @@ class RadiationConstants:
     """Radiation constants dataclass."""
 
     cloudy_transmissivity: float = 0.25
-    """Cloudy transmittivity :cite:p:`Linacre1968`"""
+    """Cloudy transmittivity :cite:p:`linacre_estimating_1968`"""
     transmissivity_coefficient: float = 0.50
-    """Angular coefficient of transmittivity :cite:p:`Linacre1968`"""
+    """Angular coefficient of transmittivity :cite:p:`linacre_estimating_1968`"""
     flux_to_energy: float = 2.04
-    """From flux to energy conversion, umol J-1 :cite:p:`Meek1984`"""
+    """From flux to energy conversion, umol J-1 :cite:p:`meek_generalized_1984`"""
     stefan_boltzmann_constant: float = 5.67e-8
     """Stefan-Boltzmann constant W m-2 K-4"""
     soil_emissivity: float = 0.95
@@ -55,7 +53,7 @@ class RadiationConstants:
     """Canopy emissivity, default for tropical rainforest"""
     beer_regression: float = 2.67e-5
     """Parameter in equation for atmospheric transmissivity based on regression of
-    Beer's radiation extinction function :cite:p:`Allen1996`"""
+    Beer's radiation extinction function :cite:p:`allen_assessing_1996`"""
     celsius_to_kelvin: float = 273.15
     """Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
     albedo_vis_default: float = 0.03
@@ -214,13 +212,13 @@ def calculate_atmospheric_transmissivity(
         elevation: elevation above sea level, [m]
         sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
             and 1 (cloud free sky), default = 1
-        cloudy_transmissivity: cloudy transmittivity :cite:p:`Linacre1968`, default set
-            in config
-        transmissivity_coefficient: angular coefficient of transmittivity
-            :cite:p:`Linacre1968`, default set in config
-        beer_regression: parameter in equation for atmospheric transmissivity based on
-            regression of Beer's radiation extinction function :cite:p:`Allen1996`,
+        cloudy_transmissivity: cloudy transmittivity :cite:p:`linacre_estimating_1968`,
             default set in config
+        transmissivity_coefficient: angular coefficient of transmittivity
+            :cite:p:`linacre_estimating_1968`, default set in config
+        beer_regression: parameter in equation for atmospheric transmissivity based on
+            regression of Beer's radiation extinction function
+            :cite:p:`allen_assessing_1996`, default set in config
 
     Returns:
         atmospheric transmissivity, unitless
@@ -256,7 +254,7 @@ def calculate_ppfd(
     Returns:
         photosynthetic photon flux density, [mol m-2]
 
-    Reference: :cite:t:`Davis2017`
+    Reference: :cite:t:`davis_simple_2017`
     """
 
     return (1.0e-6) * flux_to_energy * (1.0 - albedo_vis) * tau * shortwave_in

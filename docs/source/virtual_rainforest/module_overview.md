@@ -32,9 +32,9 @@ The `core` module is responsible for:
 ## Plant Module
 
 The Plant Module models the primary production from plants in the Virtual Rainforest. We
-use the P Model ({cite}`Prentice:2014bc,Wang:2017go`), to estimate the optimal balance
-between water loss and photosynthetic productivity and hence gross primary productivity
-(GPP). The P Model requires estimates of the following drivers:
+use the P Model {cite}`prentice_balancing_2014,wang_towards_2017`, to estimate the
+optimal balance between water loss and photosynthetic productivity and hence gross
+primary productivity (GPP). The P Model requires estimates of the following drivers:
 
 - Air temperature (°C)
 - Vapour pressure deficit (VPD, Pa)
@@ -44,14 +44,14 @@ between water loss and photosynthetic productivity and hence gross primary produ
 - Photosynthetic photon flux density (PPFD, $\mu \text{mol}, m^{-2}, s^{-1}$)
 
 GPP is then allocated to plant maintenance, respiration and growth using the T Model
-({cite}`Li:2014bc`).
+{cite}`li_simulation_2014`.
 
 This growth model is used to simulate the demographics of cohorts of key plant
 functional types (PFTs) under physiologically structured population models developed in
 the [Plant-FATE](https://jaideep777.github.io/libpspm/) framework. The framework uses
-the perfect-plasticity approximation (PPA, {cite}`purves:2008a`) to model the canopy
-structure of the plant community, the light environments of different PFTs and hence the
-change in the size-structured demography of each PFT through time.
+the perfect-plasticity approximation (PPA, {cite:t}`purves_predicting_2008`) to model the
+canopy structure of the plant community, the light environments of different PFTs and
+hence the change in the size-structured demography of each PFT through time.
 
 ## Soil Module
 
@@ -65,12 +65,12 @@ incorporated into this module:
 ### Carbon cycle
 
 The Carbon cycle uses as its basic structure a recently described soil-pool model termed
-the Millennial model ({cite}`abramoff_millennial_2018`). This model splits carbon into
+the Millennial model {cite}`abramoff_millennial_2018`. This model splits carbon into
 five separate pools: particulate organic matter, low molecular weight carbon (LMWC),
 mineral associated organic matter, aggregates and microbial biomass. Though plant root
 exudates feed directly into the LMWC pool, most biomass input will less direct and occur
 via litter decomposition. Thus, we utilize a common set of litter pools
-({cite}`kirschbaum_modelling_2002`), that are divided between above- and below-ground
+{cite}`kirschbaum_modelling_2002`, that are divided between above- and below-ground
 pools, and by biomass source (e.g. deadwood).
 
 ### Nitrogen cycle
@@ -101,11 +101,11 @@ Further theoretical background for the soil module can be found
 
 The abiotic module provides the microclimate and hydrology for the Virtual Rainforest.
 Using a small set of input variables from external sources such as WFDE5
-({cite}`WFDE5-2020`) or regional climate models, the module calculates atmospheric and
-soil parameters that drive the dynamics of plants, animals, and microbes at different
-vertical levels. Four subroutines - the radiation balance, the energy balance, the water
-balance, and the atmospheric $\ce{CO_{2}}$ balance - provide the following variables at
-different vertical levels:
+{cite}`cucchi_wfde5_2020` or regional climate models, the module calculates
+atmospheric and soil parameters that drive the dynamics of plants, animals, and microbes
+at different vertical levels. Four subroutines - the radiation balance, the energy
+balance, the water balance, and the atmospheric $\ce{CO_{2}}$ balance - provide the
+following variables at different vertical levels:
 
 - Net radiation and Photosynthetic photon flux density
 - Air temperature, relative humidity, and vapor pressure deficit
@@ -144,8 +144,9 @@ The Energy balance submodule derives sensible and latent heat fluxes from canopy
 surface to the atmosphere, and updates air temperature, relative humidity, and vapor
 pressure deficit at each level. The vertical mixing between levels is assumed to be
 driven by heat conductance because turbulence is typically low below the canopy
-({cite}`MACLEAN2021`). Part of the net radiation is converted into soil heat flux. The
-vertical exchange of heat between soil levels is coupled to the atmospheric mixing.
+{cite}`maclean_microclimc_2021`. Part of the net radiation is converted into soil heat
+flux. The vertical exchange of heat between soil levels is coupled to the atmospheric
+mixing.
 
 ### The Water balance
 
@@ -156,8 +157,8 @@ infiltration, percolation (= vertical flow), soil moisture profile, water table 
 and subsurface flow out of the grid cell.
 
 The second part of the module caluclates the water balance across the full model grid
-based on the TOPMODEL (e.g. {cite}`Metcalfe2015`)
-including surface runoff, subsurface flow, return flow, and streamflow.
+based on the TOPMODEL (e.g. {cite:t}`metcalfe_dynamic_2015`) including surface runoff,
+subsurface flow, return flow, and streamflow.
 
 ### The atmospheric $\ce{CO_{2}}$ balance
 

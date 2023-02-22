@@ -7,14 +7,14 @@ should probably be split into multiple pages.
 
 The fundamental basis of this module are carbon pools. Historically, the predominant
 framework for modelling soil carbon has been the CENTURY model
-({cite}`parton_analysis_1987`), which divides soil organic matter into three pools
+{cite}`parton_analysis_1987`, which divides soil organic matter into three pools
 (active, slow and passive). These pools are characterised primarily by their turnover
 rates, but are also differentiated by lignin content of the organic matter that flows
 into each pool. This framework has come under sustained criticism as these pools are
 conceptual and not directly measurable. In response to this there has been a movement
 towards using soil carbon pool definitions that defined by measurable physical and
 chemical properties. The Millennial model combines the most commonly used of these soil
-carbon pools into a single model ({cite}`abramoff_millennial_2018`). This model
+carbon pools into a single model {cite}`abramoff_millennial_2018`. This model
 framework is both comprehensive and defines measurable pools, and for this reason we
 make use of it in our soil module.
 
@@ -64,10 +64,10 @@ microbial respiration is one of the major sources of carbon loss to the system.
 ## Litter pools
 
 We also select our litter pools from a pre-existing framework
-({cite}`kirschbaum_modelling_2002`). Here, pools are principally defined by input type,
+{cite}`kirschbaum_modelling_2002`. Here, pools are principally defined by input type,
 e.g. coarse wood, fine wood, structural and metabolic. They are then further subdivided
 into above- and below-ground pools. Some of these pools cannot be fully characterised
-due to insufficient data and so following ({cite}`fatichi_mechanistic_2019`), we neglect
+due to insufficient data and so following {cite}`fatichi_mechanistic_2019`, we neglect
 them. This means that we use a single above-ground woody litter pool, rather than coarse
 and fine woody, and we do not include any below-ground woody pool. This leaves us with
 the following pools
