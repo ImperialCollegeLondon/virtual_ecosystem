@@ -16,6 +16,8 @@ from virtual_rainforest.core.base_model import (
     InitialisationError,
 )
 from virtual_rainforest.core.config import validate_config
+from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -57,12 +59,13 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any], model_list: list[Type[BaseModel]]
+    config: dict[str, Any], data: Data, model_list: list[Type[BaseModel]]
 ) -> dict[str, BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
         config: The full virtual rainforest configuration
+        data: A Data instance.
         modules: A set of models to be configured
 
     Raises:
@@ -74,7 +77,8 @@ def configure_models(
     models_cfd = {}
     for model in model_list:
         try:
-            models_cfd[model.model_name] = model.from_config(config)
+            this_model = model.from_config(data, config)
+            models_cfd[this_model.model_name] = this_model
         except InitialisationError:
             failed_models.append(model.model_name)
 
@@ -205,11 +209,15 @@ def vr_run(
 
     config = validate_config(cfg_paths, merge_file_path)
 
+    grid = Grid()  # TODO - this needs a Grid.from_config factory function
+    data = Data(grid)
+    data.load_data_config(config["core"]["data"])
+
     model_list = select_models(config["core"]["modules"])
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
-    models_cfd = configure_models(config, model_list)
+    models_cfd = configure_models(config, data, model_list)
 
     LOGGER.info(
         "All models successfully configured, now attempting to initialise them."
