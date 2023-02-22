@@ -5,7 +5,7 @@ Rainforest. These profiles will determine the exchange of heat, water, and CO2 b
 soil and atmosphere below the canopy as well as the exchange with the atmsophere above
 the canopy.
 
-The wind profile above the canopy is described as follows (:cite:p:`Campbell2012` as
+The wind profile above the canopy is described as follows (:cite:p:`Campbell1998` as
 implemented in :cite:t:`MACLEAN2021`). **Add equation!** uz is wind speed at height z,
 d is the height above ground within the canopy where the wind profile extrapolates to
 zero, zm the roughness length for momentum, ψM is a diabatic correction for momentum and
