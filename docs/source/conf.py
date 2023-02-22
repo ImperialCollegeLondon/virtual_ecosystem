@@ -13,10 +13,14 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
 import sys
+from dataclasses import dataclass, field
 
 # Import Matplotlib to avoid this message in notebooks:
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
+import sphinxcontrib.bibtex.plugin
+from sphinxcontrib.bibtex.style.referencing import BracketStyle
+from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_rainforest as vr
 
@@ -69,8 +73,32 @@ extensions = [
 autodoc_default_flags = ["members"]
 autosummary_generate = True
 
+
+def bracket_style() -> BracketStyle:
+    """Function that defines round brackets citation style."""
+    return BracketStyle(
+        left="(",
+        right=")",
+    )
+
+
+@dataclass
+class MyReferenceStyle(AuthorYearReferenceStyle):
+    """Dataclass that allows new bracket style to be passed to the constructor."""
+
+    bracket_parenthetical: BracketStyle = field(default_factory=bracket_style)
+    bracket_textual: BracketStyle = field(default_factory=bracket_style)
+    bracket_author: BracketStyle = field(default_factory=bracket_style)
+    bracket_label: BracketStyle = field(default_factory=bracket_style)
+    bracket_year: BracketStyle = field(default_factory=bracket_style)
+
+
+sphinxcontrib.bibtex.plugin.register_plugin(
+    "sphinxcontrib.bibtex.style.referencing", "author_year_round", MyReferenceStyle
+)
+
 # Configure referencing style
-bibtex_reference_style = "author_year"
+bibtex_reference_style = "author_year_round"
 
 # Reference checking
 nitpicky = True
