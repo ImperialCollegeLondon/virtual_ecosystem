@@ -1,6 +1,4 @@
-"""The `abiotic.radiation` module.
-
-The radiation balance at the top of the canopy at a given location depends on
+"""The radiation balance at the top of the canopy at a given location depends on
 
 1. extra-terrestrial radiation (affected by the earth's orbit, date, and location),
 2. terrestrial radiation (affected by atmospheric composition and clouds),
@@ -23,7 +21,7 @@ At this stage, scattering and re-absorption of longwave radiation are not consid
 # series (possibly as part of AbioticModel) and update other variables for each time
 # step with inputs from other modules via the data object (for example absorbed
 # radiation from the plant module)
-"""
+"""  # noqa: D205, D415
 
 from dataclasses import dataclass
 from typing import Union
