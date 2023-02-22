@@ -10,12 +10,12 @@ from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
 
 
-def test_animal_model_initialization(caplog):
+def test_animal_model_initialization(caplog, data_instance):
     """Test `AnimalModel` initialization."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
-    model = AnimalModel(timedelta64(1, "W"), datetime64("2022-11-01"))
+    model = AnimalModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
@@ -71,14 +71,14 @@ def test_animal_model_initialization(caplog):
     ],
 )
 def test_generate_animal_model(
-    caplog, config, time_interval, raises, expected_log_entries
+    caplog, data_instance, config, time_interval, raises, expected_log_entries
 ):
     """Test that the function to initialise the animal model behaves as expected."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AnimalModel.from_config(config)
+        model = AnimalModel.from_config(data_instance, config)
         assert model.update_interval == time_interval
         assert (
             model.next_update

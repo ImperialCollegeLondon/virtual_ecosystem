@@ -25,6 +25,7 @@ import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -36,23 +37,27 @@ class AnimalModel(BaseModel):
     in AnimalModel.
 
     Args:
+        data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
         start_time: Time at which the model is initialized.
     """
 
     model_name = "animal"
     """The model name for use in registering the model and logging."""
+    required_init_vars = ()
+    """Required initialisation variables for the animal model."""
 
     def __init__(
         self,
+        data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
         **kwargs: Any,
     ):
-        super().__init__(update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, start_time, **kwargs)
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> AnimalModel:
+    def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -92,7 +97,7 @@ class AnimalModel(BaseModel):
                 "Information required to initialise the animal model successfully "
                 "extracted."
             )
-            return cls(update_interval, start_time)
+            return cls(data, update_interval, start_time)
         else:
             raise InitialisationError()
 
