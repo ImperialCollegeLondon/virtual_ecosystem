@@ -20,5 +20,6 @@ kernelspec:
 .. automodule:: virtual_rainforest.core.base_model
     :autosummary:
     :members:
-    :special-members: __init_subclass__, __repr__, __str__
+    :special-members: __init_subclass__, __repr__, __str__, __init__
+    :private-members: _check_required_init_vars, _check_model_name
 ```

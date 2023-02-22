@@ -67,14 +67,18 @@ from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
     ],
 )
 def test_abiotic_model_initialization(
-    caplog, soil_layers, canopy_layers, raises, expected_log_entries
+    caplog, data_instance, soil_layers, canopy_layers, raises, expected_log_entries
 ):
     """Test `AbioticModel` initialization."""
 
     with raises:
         # Initialize model
         model = AbioticModel(
-            timedelta64(1, "W"), datetime64("2022-11-01"), soil_layers, canopy_layers
+            data_instance,
+            timedelta64(1, "W"),
+            datetime64("2022-11-01"),
+            soil_layers,
+            canopy_layers,
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -124,13 +128,13 @@ def test_abiotic_model_initialization(
     ],
 )
 def test_generate_abiotic_model(
-    caplog, config, time_interval, raises, expected_log_entries
+    caplog, data_instance, config, time_interval, raises, expected_log_entries
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AbioticModel.from_config(config)
+        model = AbioticModel.from_config(data_instance, config)
         assert model.soil_layers == config["abiotic"]["soil_layers"]
         assert model.canopy_layers == config["abiotic"]["canopy_layers"]
         assert model.update_interval == time_interval
