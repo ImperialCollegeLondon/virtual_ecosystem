@@ -1,10 +1,11 @@
-"""This module calculates the above- and within-canopy wind profiles for the Virtual
-Rainforest. These profiles will determine the exchange of heat, water, and CO2 between
-soil and atmosphere below the canopy as well as the exchange with the atmsophere above
-the canopy.
+"""The ``models.abiotic.wind`` module calculates the above- and within-canopy wind
+profiles for the Virtual Rainforest. These profiles will determine the exchange of heat,
+water, and CO2 between soil and atmosphere below the canopy as well as the exchange with
+the atmsophere above the canopy.
 
-The wind profile above the canopy is described as follows (:cite:p:`Campbell1998` as
-implemented in :cite:t:`MACLEAN2021`). **Add equation!** uz is wind speed at height z,
+The wind profile above the canopy is described as follows
+(based on :cite:p:`campbell_introduction_1998` as implemented in
+:cite:t:`maclean_microclimc_2021`). **Add equation!** uz is wind speed at height z,
 d is the height above ground within the canopy where the wind profile extrapolates to
 zero, zm the roughness length for momentum, ψM is a diabatic correction for momentum and
 u-star is the friction velocity, which gives the wind speed at height d + zm.
@@ -15,7 +16,7 @@ the top of the canopy at height h, and a is a wind attenuation coefficient
 given by a = 2lmiw , where cd is a drag coefficient that varies with leaf
 inclination and shape, iw is a coefficient describing relative turbulence
 intensity and lm is the mean mixing length, equivalent to the free space
-between the leaves and stems. For details, see :cite:t:`MACLEAN2021`.
+between the leaves and stems. For details, see :cite:t:`maclean_microclimc_2021`.
 
 TODO: add sanity checks, errors and logging
 TODO: vertical axis, currently "heights" and "wind_heights" above canopy and
@@ -37,23 +38,26 @@ class WindConstants:
     """Wind constants class."""
 
     zero_plane_scaling_parameter: float = 7.5
-    """Control parameter for scaling zero displacement/height :cite:p:`raupach1994`."""
+    """Control parameter for scaling zero displacement/height
+        :cite:p:`raupach_simplified_1994`."""
     substrate_surface_drag_coefficient: float = 0.003
-    """Substrate-surface drag coefficient :cite:p:`MACLEAN2021`."""
+    """Substrate-surface drag coefficient :cite:p:`maclean_microclimc_2021`."""
     roughness_element_drag_coefficient: float = 0.3
-    """Roughness-element drag coefficient :cite:p:`MACLEAN2021`."""
+    """Roughness-element drag coefficient :cite:p:`maclean_microclimc_2021`."""
     roughness_sublayer_depth_parameter: float = 0.193
-    """Parameter characterizes the roughness sublayer depth :cite:p:`MACLEAN2021`."""
+    """Parameter characterizes the roughness sublayer depth
+        :cite:p:`maclean_microclimc_2021`."""
     max_ratio_wind_to_friction_velocity: float = 0.3
-    """Maximum ratio of wind velocity to friction velocity :cite:p:`MACLEAN2021`."""
+    """Maximum ratio of wind velocity to friction velocity
+        :cite:p:`maclean_microclimc_2021`."""
     drag_coefficient: float = 0.2
-    """Drag coefficient :cite:p:`MACLEAN2021`."""
+    """Drag coefficient :cite:p:`maclean_microclimc_2021`."""
     relative_turbulence_intensity: float = 0.5
-    """Relative turbulence intensity :cite:p:`MACLEAN2021`."""
+    """Relative turbulence intensity :cite:p:`maclean_microclimc_2021`."""
     diabatic_correction_factor_below: float = 1
     "Diabatic correction factor below canopy."
     mixing_length_factor: float = 0.32
-    """Factor in calculation of mixing length :cite:p:`MACLEAN2021`."""
+    """Factor in calculation of mixing length :cite:p:`maclean_microclimc_2021`."""
     celsius_to_kelvin = 273.15
     """Factor to convert temperature in Celsius to absolute temperature in Kelvin."""
     standard_mole = 44.6
@@ -174,8 +178,8 @@ def calculate_wind_above_canopy(
 
     Wind profiles above the canopy dictate heat and vapor exchange between the canopy
     and air above it, and therefore ultimately determine temperature and vapor profiles.
-    We follow the implementation by :cite:t:`Campbell1998` as described in
-    :cite:t:`MACLEAN2021`.
+    We follow the implementation by :cite:t:`campbell_introduction_1998` as described in
+    :cite:t:`maclean_microclimc_2021`.
 
     Args:
         wind_heights: vector of heights above canopy for which wind speed is calculated,
@@ -208,7 +212,7 @@ def calculate_wind_below_canopy(
 ) -> DataArray:
     """Calculate wind profile below canopy.
 
-    Implementation after :cite:t:`MACLEAN2021`.
+    Implementation after :cite:t:`maclean_microclimc_2021`.
     The top of canopy windspeed is taken from the above canopy wind profile, which must
     be ordered from highest to lowest level. The lowest level is used here as the
     top-of-canopy wind speed.
@@ -245,13 +249,13 @@ def calculate_zero_plane_displacement(
     wind speed would go to zero if the logarithmic wind profile was maintained from the
     outer flow all the way down to the surface (that is, in the absence of the
     vegetation when the value is set to zero). Implementation after
-    :cite:t:`MACLEAN2021`.
+    :cite:t:`maclean_microclimc_2021`.
 
     Args:
         canopy_height: canopy height, [m]
         leaf_area_index: leaf area index, [m m-1]
         zero_plane_scaling_parameter: Control parameter for scaling d/h
-            :cite:p:`raupach1994`
+            :cite:p:`raupach_simplified_1994`
 
     Returns:
         zero place displacement height, [m]
@@ -302,7 +306,7 @@ def calculate_roughness_length_momentum(
     Roughness length is defined as the height at which the mean velocity is zero due to
     substrate roughness. Real surfaces such as the ground or vegetation are not smooth
     and often have varying degrees of roughness. Roughness length accounts for that
-    effect. Implementation after :cite:t:`MACLEAN2021`.
+    effect. Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         canopy_height: canopy height, [m]
@@ -370,7 +374,7 @@ def calculate_diabatic_correction_momentum_above(
     """Calculates the diabatic correction factors.
 
     Diabatic correction factor for momentum isused in adjustment of wind profiles after
-    :cite:t:`MACLEAN2021`.
+    :cite:t:`maclean_microclimc_2021`.
 
     Args:
         temperature: 2m temperature # TODO: find out at which height
@@ -435,7 +439,7 @@ def calculate_mixing_length(
     The mixing length is used to calculate turbulent air transport inside vegetated
     canopies. It is made equivalent to the above canopy value at the canopy surface. In
     absence of vegetation, it is set to zero.
-    Implementation after :cite:t:`MACLEAN2021`.
+    Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         canopy_height: canopy height, [m]
@@ -470,7 +474,7 @@ def calculate_wind_attenuation_coefficient(
 
     The wind attenuation coefficient describes how wind is slowed down by the presence
     of vegetation. In absence of vegetation, the coefficient is set to zero.
-    Implementation after :cite:t:`MACLEAN2021`.
+    Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         canopy_height: canopy height, [m]
@@ -510,7 +514,7 @@ def calc_molar_density_air(
 ) -> DataArray:
     """Calculate temperature-dependent molar density of air.
 
-    Implementation after :cite:t:`MACLEAN2021`.
+    Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         temperature: temperature, [C]
@@ -537,7 +541,7 @@ def calc_specific_heat_air(
 ) -> DataArray:
     """Calculate molar temperature-dependent specific heat of air.
 
-    Implementation after :cite:t:`MACLEAN2021`.
+    Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         temperature: temperature, [C]
