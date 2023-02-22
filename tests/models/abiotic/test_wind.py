@@ -1,6 +1,5 @@
 """Test module for wind.py."""
 
-# from contextlib import nullcontext as does_not_raise
 
 import pytest
 import xarray as xr
