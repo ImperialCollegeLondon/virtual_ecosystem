@@ -1,6 +1,4 @@
-"""The `abiotic.wind` module.
-
-This module calculates the above- and within-canopy wind profiles for the Virtual
+"""This module calculates the above- and within-canopy wind profiles for the Virtual
 Rainforest. These profiles will determine the exchange of heat, water, and CO2 between
 soil and atmosphere below the canopy as well as the exchange with the atmsophere above
 the canopy.
@@ -176,7 +174,7 @@ def calculate_wind_above_canopy(
 
     Wind profiles above the canopy dictate heat and vapor exchange between the canopy
     and air above it, and therefore ultimately determine temperature and vapor profiles.
-    We follow the implementation by :cite:t:`Campbell2012` as described in
+    We follow the implementation by :cite:t:`Campbell1998` as described in
     :cite:t:`MACLEAN2021`.
 
     Args:
@@ -226,10 +224,10 @@ def calculate_wind_below_canopy(
 
     # TODO: find correct fill value
     """
-    topofcanopy_wind_speed = wind_profile_above[:, -1]
+    top_of_canopy_wind_speed = wind_profile_above[:, -1]
 
     return (
-        topofcanopy_wind_speed
+        top_of_canopy_wind_speed
         * np.exp(
             wind_attenuation_coefficient * ((canopy_node_heights / canopy_height) - 1)
         )
@@ -377,8 +375,8 @@ def calculate_diabatic_correction_momentum_above(
     Args:
         temperature: 2m temperature # TODO: find out at which height
         atmospheric_pressure: atmospheric pressure, [kPa]
-        sensible_heat_flux_top: sensible heat flux from canopy to atmosphere above,
-            [J m-2]
+        sensible_heat_flux: sensible heat flux from canopy to atmosphere above,
+            [J m-2], # TODO: could be the top entry of the general sensible heat flux
         friction_velocity: friction velocity
         wind_heights: vector of heights for which wind speed is calculated, [m]
         zero_plane_displacement: height above ground within the canopy where the wind
