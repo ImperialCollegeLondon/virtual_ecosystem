@@ -1,8 +1,4 @@
-"""Test module for model.py (and associated functionality).
-
-This module tests the functionality of model.py, as well as other bits of code that
-define models based on the class defined in model.py
-"""
+"""Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
@@ -12,11 +8,11 @@ from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
-from virtual_rainforest.models.animals.animal_model import AnimalModel
 
 
 def test_animal_model_initialization(caplog):
     """Test `AnimalModel` initialization."""
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
     model = AnimalModel(timedelta64(1, "W"), datetime64("2022-11-01"))
@@ -78,6 +74,7 @@ def test_generate_animal_model(
     caplog, config, time_interval, raises, expected_log_entries
 ):
     """Test that the function to initialise the animal model behaves as expected."""
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Check whether model is initialised (or not) as expected
     with raises:

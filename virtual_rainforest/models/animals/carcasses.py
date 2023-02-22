@@ -1,4 +1,4 @@
-"""The 'carcass_module.
+"""The ''carcass'' module.
 
 This file provides toy carcass module functionality for developing the animal and soil
 modules.
