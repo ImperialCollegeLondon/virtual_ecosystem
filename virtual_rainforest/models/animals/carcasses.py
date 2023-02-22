@@ -1,8 +1,7 @@
-"""The ''carcass'' module.
+"""The ''carcass'' module provides toy carcass module functionality for developing
+the animal and soil modules.
+"""  # noqa: #D205, D415
 
-This file provides toy carcass module functionality for developing the animal and soil
-modules.
-"""
 
 from dataclasses import dataclass
 

@@ -37,6 +37,7 @@ class AnimalModel(BaseModel):
 
     Args:
         update_interval: Time to wait between updates of the model state.
+        start_time: Time at which the model is initialized.
     """
 
     model_name = "animal"

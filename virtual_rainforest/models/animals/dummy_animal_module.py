@@ -1,8 +1,6 @@
-"""The ''dummy animal'' module.
-
-This file provides toy animal module functionality as well as self-contained
-dummy versions of the abiotic, soil, and plant modules that are required for
-setting up and testing the early stages of the animal module.
+"""The ''dummy animal'' module provides toy animal module functionality as well 
+as self-contained dummy versions of the abiotic, soil, and plant modules that 
+are required for setting up and testing the early stages of the animal module.
 
 Todo:
 - rework dispersal
@@ -19,7 +17,7 @@ Notes to self:
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
 - waste_energy pool likely unnecessary, better to excrete directly to external pools
-"""
+"""  # noqa: #D205, D415
 
 from dataclasses import dataclass
 
