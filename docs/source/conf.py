@@ -64,11 +64,13 @@ extensions = [
     # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
     "sphinxcontrib.bibtex",
     "myst_nb",
-    # "sphinx_astrorefs",  # Gives author year references
     "sphinx_rtd_theme",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+
+# Configure referencing style
+bibtex_reference_style = "author_year"
 
 # Reference checking
 nitpicky = True
