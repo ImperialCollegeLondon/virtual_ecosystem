@@ -191,10 +191,7 @@ def test_calculate_wind_below_canopy(dummy_data):
 
 
 def test_calculate_wind_profile(dummy_data):
-    """Test wind profile above and within canopy.
-
-    PROBLEM: all wind profiles go to zero with this set of data, need to find out why.
-    """
+    """Test wind profile above and within canopy."""
 
     from virtual_rainforest.models.abiotic import wind
 
@@ -211,7 +208,11 @@ def test_calculate_wind_profile(dummy_data):
         result[0],
         DataArray(
             DataArray(
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [
+                    [244.351842, 265.146258, 285.940673],
+                    [46.458135, 54.341054, 62.595567],
+                    [0.0, 0.0, 13.311866],
+                ],
                 dims=["cell_id", "heights"],
             ),
         ),
@@ -220,7 +221,11 @@ def test_calculate_wind_profile(dummy_data):
     xr.testing.assert_allclose(
         result[1],
         DataArray(
-            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [
+                [0.0, 0.0, 0.0],
+                [5.950523e-02, 2.030195e03, 2.135631e06],
+                [6.086929e-03, 2.846548e-01, 1.325216e00],
+            ],
             dims=["cell_id", "canopy_layers"],
         ),
     )

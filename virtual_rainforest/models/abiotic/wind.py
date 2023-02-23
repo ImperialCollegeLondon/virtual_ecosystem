@@ -20,7 +20,7 @@ between the leaves and stems. For details, see :cite:t:`maclean_microclimc_2021`
 
 TODO: add sanity checks, errors and logging
 TODO: vertical axis, currently "heights" and "wind_heights" above canopy and
-"canopy_layers" and "canopy_node_heights" below canopy, might make sense to caclulate
+"canopy_layers" and "canopy_node_heights" below canopy, might make sense to calculate
 wind heights as a function of canopy height to avoid it being below canopy
 """  # noqa: D205, D415
 
@@ -128,8 +128,8 @@ def calculate_wind_profile(
         friction_velocity=data["friction_velocity"],
         wind_heights=wind_heights,
         zero_plane_displacement=zero_plane_displacement,
-        celsius_to_kelvin=WindConstants.celsius_to_kelvin,
-        gravity=WindConstants.gravity,
+        celsius_to_kelvin=const.celsius_to_kelvin,
+        gravity=const.gravity,
     )
 
     mixing_length = calculate_mixing_length(
@@ -418,14 +418,14 @@ def calculate_diabatic_correction_momentum_above(
     unstable_coefficient = DataArray(
         -2 * np.log((1 + np.power((1 - 16 * unstable), 0.5)) / 2)
     )
-    diabatic_correction_momentum_above.fillna(0) + unstable_coefficient.fillna(0)
+    diabatic_correction_momentum_above.fillna(1) + unstable_coefficient.fillna(1)
 
     # set upper threshold
     diabatic_correction_momentum_above = DataArray(
         np.minimum(diabatic_correction_momentum_above, 5)
     )
 
-    return diabatic_correction_momentum_above
+    return diabatic_correction_momentum_above.fillna(1)
 
 
 def calculate_mixing_length(
