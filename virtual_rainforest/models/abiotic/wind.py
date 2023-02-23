@@ -88,7 +88,7 @@ def calculate_wind_profile(
     * sensible heat flux at the top of the canopy
 
     The ``const`` argument takes an instance of class
-    :class:`~virtual_rainforest.models.abiotic.radiation.RadiationConstants`, which
+    :class:`~virtual_rainforest.models.abiotic.wind.WindConstants`, which
     provides a user modifiable set of required constants.
 
     Args:
@@ -122,7 +122,7 @@ def calculate_wind_profile(
     )
 
     diabatic_correction_momentum_above = calculate_diabatic_correction_momentum_above(
-        temperature=data["temperature_2m"],  # TODO: not sure which temperature here
+        temperature=data["temperature_2m"],
         atmospheric_pressure=data["atmospheric_pressure"],
         sensible_heat_flux=data["sensible_heat_flux"],
         friction_velocity=data["friction_velocity"],
@@ -264,20 +264,13 @@ def calculate_zero_plane_displacement(
 
     # calculate in presence of vegetation
     plant_area_index_displacement = plant_area_index.where(plant_area_index > 0)
+
+    scale_displacement = np.sqrt(
+        zero_plane_scaling_parameter * plant_area_index_displacement
+    )
+
     zero_place_displacement = DataArray(
-        (
-            1
-            - (
-                1
-                - np.exp(
-                    -np.sqrt(
-                        zero_plane_scaling_parameter * plant_area_index_displacement
-                    )
-                )
-            )
-            / np.sqrt(zero_plane_scaling_parameter * plant_area_index_displacement)
-        )
-        * canopy_height,
+        (1 - (1 - np.exp(-scale_displacement)) / scale_displacement) * canopy_height,
         dims="cell_id",
     )
 
@@ -377,7 +370,7 @@ def calculate_diabatic_correction_momentum_above(
     :cite:t:`maclean_microclimc_2021`.
 
     Args:
-        temperature: 2m temperature # TODO: find out at which height
+        temperature: 2m temperature
         atmospheric_pressure: atmospheric pressure, [kPa]
         sensible_heat_flux: sensible heat flux from canopy to atmosphere above,
             [J m-2], # TODO: could be the top entry of the general sensible heat flux
