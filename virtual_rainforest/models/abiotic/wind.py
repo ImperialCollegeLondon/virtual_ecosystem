@@ -1,22 +1,31 @@
-"""The ``models.abiotic.wind`` module calculates the above- and within-canopy wind
+r"""The ``models.abiotic.wind`` module calculates the above- and within-canopy wind
 profiles for the Virtual Rainforest. These profiles will determine the exchange of heat,
 water, and CO2 between soil and atmosphere below the canopy as well as the exchange with
 the atmsophere above the canopy.
 
 The wind profile above the canopy is described as follows
 (based on :cite:p:`campbell_introduction_1998` as implemented in
-:cite:t:`maclean_microclimc_2021`). **Add equation!** uz is wind speed at height z,
-d is the height above ground within the canopy where the wind profile extrapolates to
-zero, zm the roughness length for momentum, ψM is a diabatic correction for momentum and
-u-star is the friction velocity, which gives the wind speed at height d + zm.
+:cite:t:`maclean_microclimc_2021`):
 
-The wind profile below canopy is derived as follows: **Add equation!**
-where uz is wind speed at height z within the canopy, uh is wind speed at
-the top of the canopy at height h, and a is a wind attenuation coefficient
-given by a = 2lmiw , where cd is a drag coefficient that varies with leaf
-inclination and shape, iw is a coefficient describing relative turbulence
-intensity and lm is the mean mixing length, equivalent to the free space
-between the leaves and stems. For details, see :cite:t:`maclean_microclimc_2021`.
+:math:`u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \phi_M`
+
+where :math:`u_z` is wind speed at height :math:`z` above the canopy, :math:`d` is the
+height above ground within the canopy where the wind profile extrapolates to zero,
+:math:`z_m` the roughness length for momentum, :math:`\phi_M` is a diabatic correction
+for momentum and :math:`u^{*}` is the friction velocity, which gives the wind speed at
+height :math:`d + z_m`.
+
+The wind profile below canopy is derived as follows:
+
+:math:`u_z = u_h exp(a(\frac{z}{h} - 1))`
+
+where :math:`u_z` is wind speed at height :math:`z` within the canopy, :math:`u_h` is
+wind speed at the top of the canopy at height :math:`h`, and :math:`a` is a wind
+attenuation coefficient given by :math:`a = 2 l_m i_w`, where :math:`c_d` is a drag
+coefficient that varies with leaf inclination and shape, :math:`i_w` is a coefficient
+describing relative turbulence intensity and :math:`l_m` is the mean mixing length,
+equivalent to the free space between the leaves and stems. For details, see
+:cite:t:`maclean_microclimc_2021`.
 
 TODO: add sanity checks, errors and logging
 TODO: vertical axis, currently "heights" and "wind_heights" above canopy and
