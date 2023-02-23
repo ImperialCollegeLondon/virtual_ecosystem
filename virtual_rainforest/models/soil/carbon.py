@@ -5,7 +5,7 @@ interactions will be added at a later date.
 """  # noqa: D205, D415
 
 import numpy as np
-from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -29,7 +29,7 @@ class SoilCarbonPools:
     carbon pools, other pools in the soil module, or other modules.
     """
 
-    def __init__(self, maom: NDArray[np.float32], lmwc: NDArray[np.float32]) -> None:
+    def __init__(self, maom: DataArray, lmwc: DataArray) -> None:
         """Initialise set of carbon pools."""
 
         # Check that arrays are of equal size and shape
@@ -53,7 +53,7 @@ class SoilCarbonPools:
         self.lmwc = lmwc
         """Low molecular weight carbon pool (kg C m^-3)"""
 
-    def update_soil_carbon_pools(self, delta_pools: NDArray[np.float32]) -> None:
+    def update_soil_carbon_pools(self, delta_pools: DataArray) -> None:
         """Update soil carbon pools based on previously calculated net change.
 
         The state of the soil carbon pools will effect the rate of other processes in
@@ -72,13 +72,13 @@ class SoilCarbonPools:
 
     def calculate_soil_carbon_updates(
         self,
-        pH: NDArray[np.float32],
-        bulk_density: NDArray[np.float32],
-        soil_moisture: NDArray[np.float32],
-        soil_temp: NDArray[np.float32],
-        percent_clay: NDArray[np.float32],
+        pH: DataArray,
+        bulk_density: DataArray,
+        soil_moisture: DataArray,
+        soil_temp: DataArray,
+        percent_clay: DataArray,
         dt: float,
-    ) -> NDArray[np.float32]:
+    ) -> DataArray:
         """Calculate net change for each carbon pool.
 
         This function calls lower level functions which calculate the transfers between
@@ -105,16 +105,16 @@ class SoilCarbonPools:
         # Determine net changes to the pools
         delta_maom = lmwc_to_maom * dt
         delta_lmwc = -lmwc_to_maom * dt
-        return np.array([delta_maom, delta_lmwc])
+        return DataArray([delta_maom, delta_lmwc], dims="cell_id")
 
     def mineral_association(
         self,
-        pH: NDArray[np.float32],
-        bulk_density: NDArray[np.float32],
-        soil_moisture: NDArray[np.float32],
-        soil_temp: NDArray[np.float32],
-        percent_clay: NDArray[np.float32],
-    ) -> NDArray[np.float32]:
+        pH: DataArray,
+        bulk_density: DataArray,
+        soil_moisture: DataArray,
+        soil_temp: DataArray,
+        percent_clay: DataArray,
+    ) -> DataArray:
         """Calculates net rate of LMWC association with soil minerals.
 
         Following :cite:t:`abramoff_millennial_2018`, mineral adsorption of carbon is
@@ -147,10 +147,10 @@ class SoilCarbonPools:
 
 
 def calculate_max_sorption_capacity(
-    bulk_density: NDArray[np.float32],
-    percent_clay: NDArray[np.float32],
+    bulk_density: DataArray,
+    percent_clay: DataArray,
     coef: MaxSorptionWithClay = MaxSorptionWithClay(),
-) -> NDArray[np.float32]:
+) -> DataArray:
     """Calculate maximum sorption capacity based on bulk density and clay content.
 
     The maximum sorption capacity is the maximum amount of mineral associated organic
@@ -179,10 +179,10 @@ def calculate_max_sorption_capacity(
 
 
 def calculate_equilibrium_maom(
-    pH: NDArray[np.float32],
-    Q_max: NDArray[np.float32],
-    lmwc: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    pH: DataArray,
+    Q_max: DataArray,
+    lmwc: DataArray,
+) -> DataArray:
     """Calculate equilibrium MAOM concentration based on Langmuir coefficients.
 
     Equilibrium concentration of mineral associated organic matter (MAOM) is calculated
@@ -203,8 +203,8 @@ def calculate_equilibrium_maom(
 
 
 def calculate_binding_coefficient(
-    pH: NDArray[np.float32], coef: BindingWithPH = BindingWithPH()
-) -> NDArray[np.float32]:
+    pH: DataArray, coef: BindingWithPH = BindingWithPH()
+) -> DataArray:
     """Calculate Langmuir binding coefficient based on pH.
 
     This specific expression and its parameters are drawn from
@@ -222,8 +222,8 @@ def calculate_binding_coefficient(
 
 
 def convert_temperature_to_scalar(
-    soil_temp: NDArray[np.float32], coef: TempScalar = TempScalar()
-) -> NDArray[np.float32]:
+    soil_temp: DataArray, coef: TempScalar = TempScalar()
+) -> DataArray:
     """Convert soil temperature into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -246,13 +246,13 @@ def convert_temperature_to_scalar(
         np.pi * coef.t_4 * (coef.ref_temp - coef.t_1)
     )
 
-    return np.divide(numerator, denominator)
+    return DataArray(np.divide(numerator, denominator), dims="cell_id")
 
 
 def convert_moisture_to_scalar(
-    soil_moisture: NDArray[np.float32],
+    soil_moisture: DataArray,
     coef: MoistureScalar = MoistureScalar(),
-) -> NDArray[np.float32]:
+) -> DataArray:
     """Convert soil moisture into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -275,4 +275,7 @@ def convert_moisture_to_scalar(
         raise to_raise
 
     # This expression is drawn from Abramoff et al. (2018)
-    return 1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture))
+    return DataArray(
+        1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture)),
+        dims="cell_id",
+    )
