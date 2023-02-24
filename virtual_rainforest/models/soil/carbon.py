@@ -8,6 +8,7 @@ import numpy as np
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.base_model import InitialisationError
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     BindingWithPH,
@@ -29,28 +30,19 @@ class SoilCarbonPools:
     carbon pools, other pools in the soil module, or other modules.
     """
 
-    def __init__(self, maom: DataArray, lmwc: DataArray) -> None:
+    def __init__(self, data: Data) -> None:
         """Initialise set of carbon pools."""
 
-        # Check that arrays are of equal size and shape
-        if maom.shape != lmwc.shape:
-            to_raise = InitialisationError(
-                "Dimension mismatch for initial carbon pools!",
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Check that negative initial values are not given
-        if np.any(maom < 0) or np.any(lmwc < 0):
+        if np.any(data["maom"] < 0.0) or np.any(data["lmwc"] < 0.0):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
             )
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.maom = maom
+        self.maom = data["maom"]
         """Mineral associated organic matter pool (kg C m^-3)"""
-        self.lmwc = lmwc
+        self.lmwc = data["lmwc"]
         """Low molecular weight carbon pool (kg C m^-3)"""
 
     def update_soil_carbon_pools(self, delta_pools: Dataset) -> None:

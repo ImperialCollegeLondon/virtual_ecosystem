@@ -4,146 +4,107 @@ This module tests the functionality of the soil carbon module
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR
+from logging import ERROR, INFO
 
 import numpy as np
 import pytest
+from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 
-@pytest.mark.parametrize(
-    "maom,lmwc,raises,expected_log_entries",
-    [
-        (
-            np.array([23.0, 12.0], dtype=np.float32),
-            np.array([98.0, 7.0], dtype=np.float32),
-            does_not_raise(),
-            (),
-        ),
-        (
-            np.array([23.0, 12.0], dtype=np.float32),
-            np.array([98.0], dtype=np.float32),
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Dimension mismatch for initial carbon pools!",
-                ),
-            ),
-        ),
-        (
-            np.array([23.0, 12.0], dtype=np.float32),
-            np.array([98.0, -24.0], dtype=np.float32),
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Initial carbon pools contain at least one negative value!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_soil_carbon_class(caplog, maom, lmwc, raises, expected_log_entries):
-    """Test SoilCarbon class initialisation."""
+@pytest.fixture
+def dummy_carbon_data():
+    """Creates a dummy carbon data object for use in tests."""
 
-    # Check that initialisation fails (or doesn't) as expected
-    with raises:
-        soil_carbon = SoilCarbonPools(maom, lmwc)
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
 
-        assert (soil_carbon.maom == maom).all()
-        assert (soil_carbon.lmwc == lmwc).all()
+    # Setup the data object with four cells.
+    grid = Grid(cell_nx=4, cell_ny=1)
+    data = Data(grid)
+
+    # Add the required data.
+    data["maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
+    data["lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
+    data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
+    data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
+    data["soil_moisture"] = DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"])
+    data["soil_temperature"] = DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"])
+    data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+
+    return data
+
+
+def test_soil_carbon_class(dummy_carbon_data):
+    """Test SoilCarbon class can be initialised."""
+
+    # Check that initialisation succeeds as expected
+    soil_carbon = SoilCarbonPools(dummy_carbon_data)
+
+    assert (soil_carbon.maom == dummy_carbon_data["maom"]).all()
+    assert (soil_carbon.lmwc == dummy_carbon_data["lmwc"]).all()
+
+
+def test_bad_soil_carbon_class(caplog):
+    """Test that negative soil pool values prevent class initialisation."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with a single cells.
+    grid = Grid(cell_nx=1, cell_ny=1)
+    data = Data(grid)
+
+    # Add the required data.
+    data["maom"] = DataArray([2.5], dims=["cell_id"])
+    data["lmwc"] = DataArray([-0.05], dims=["cell_id"])
+
+    # Check that initialisation fails as expected
+    with pytest.raises(InitialisationError):
+        _ = SoilCarbonPools(data)
+
+    expected_log_entries = (
+        (
+            INFO,
+            "Adding data array for 'maom'",
+        ),
+        (
+            INFO,
+            "Adding data array for 'lmwc'",
+        ),
+        (
+            ERROR,
+            "Initial carbon pools contain at least one negative value!",
+        ),
+    )
 
     log_check(caplog, expected_log_entries)
 
 
-@pytest.mark.parametrize(
-    argnames=[
-        "maom",
-        "lmwc",
-        "pH",
-        "bulk_density",
-        "moistures",
-        "temperatures",
-        "percent_clay",
-        "dt",
-        "change_in_pools",
-        "end_maom",
-        "end_lmwc",
-    ],
-    argvalues=[
-        (
-            [2.5, 1.7],
-            [0.05, 0.02],
-            [3.0, 7.5],
-            [1350.0, 1800.0],
-            [0.5, 0.7],
-            [35.0, 37.5],
-            [80.0, 30.0],
-            [2.0 / 24.0, 1.0 / 24.0],
-            [[3.313875e-5, 4.9097333e-7], [-3.313875e-5, -4.9097333e-7]],
-            [2.500033, 1.70000049],
-            [0.0499668, 0.0199995],
-        ),
-        (
-            [4.5],
-            [0.1],
-            [9.0],
-            [1000.0],
-            [0.6],
-            [40.0],
-            [10.0],
-            [0.5],
-            [[7.17089e-5], [-7.17089e-5]],
-            [4.500071],
-            [0.0999282],
-        ),
-        (
-            [0.5],
-            [0.005],
-            [5.7],
-            [1500.0],
-            [0.2],
-            [25.0],
-            [90.0],
-            [1.0 / 30.0],
-            [[9.345299e-9], [-9.345299e-9]],
-            [0.500000],
-            [0.00499999],
-        ),
-    ],
-)
-def test_pool_updates(
-    maom,
-    lmwc,
-    pH,
-    bulk_density,
-    moistures,
-    temperatures,
-    percent_clay,
-    dt,
-    change_in_pools,
-    end_maom,
-    end_lmwc,
-):
+def test_pool_updates(dummy_carbon_data):
     """Test that the two pool update functions work correctly."""
 
     # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(
-        maom=np.array(maom, dtype=np.float32), lmwc=np.array(lmwc, dtype=np.float32)
-    )
+    soil_carbon = SoilCarbonPools(dummy_carbon_data)
 
-    soil_pH = np.array(pH, dtype=np.float32)
-    soil_BD = np.array(bulk_density, dtype=np.float32)
-    soil_moisture = np.array(moistures, dtype=np.float32)
-    soil_temp = np.array(temperatures, dtype=np.float32)
-    soil_clay = np.array(percent_clay, dtype=np.float32)
+    dt = 0.5
+    change_in_pools = [
+        [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7],
+        [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7],
+    ]
+    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
+    end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
     delta_pools = soil_carbon.calculate_soil_carbon_updates(
-        soil_pH, soil_BD, soil_moisture, soil_temp, soil_clay, dt
+        dummy_carbon_data["pH"],
+        dummy_carbon_data["bulk_density"],
+        dummy_carbon_data["soil_moisture"],
+        dummy_carbon_data["soil_temperature"],
+        dummy_carbon_data["percent_clay"],
+        dt,
     )
 
     # Check that the updates are correctly calculated
@@ -158,94 +119,56 @@ def test_pool_updates(
     assert np.allclose(soil_carbon.lmwc, np.array(end_lmwc))
 
 
-@pytest.mark.parametrize(
-    "maom,lmwc,pH,bulk_density,moistures,temperatures,percent_clay,output_l_to_m",
-    [
-        (
-            [2.5, 1.7],
-            [0.05, 0.02],
-            [3.0, 7.5],
-            [1350.0, 1800.0],
-            [0.5, 0.7],
-            [35.0, 37.5],
-            [80.0, 30.0],
-            [0.000397665, 1.178336e-5],
-        ),
-        ([4.5], [0.1], [9.0], [1000.0], [0.6], [40.0], [10.0], [0.0001434178]),
-        ([0.5], [0.005], [5.7], [1500.0], [0.2], [25.0], [90.0], [2.80359e-7]),
-    ],
-)
-def test_mineral_association(
-    maom, lmwc, pH, bulk_density, moistures, temperatures, percent_clay, output_l_to_m
-):
+def test_mineral_association(dummy_carbon_data):
     """Test that mineral_association runs and generates the correct values."""
 
-    # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(
-        maom=np.array(maom, dtype=np.float32), lmwc=np.array(lmwc, dtype=np.float32)
-    )
+    output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
 
-    soil_pH = np.array(pH, dtype=np.float32)
-    soil_BD = np.array(bulk_density, dtype=np.float32)
-    soil_moisture = np.array(moistures, dtype=np.float32)
-    soil_temp = np.array(temperatures, dtype=np.float32)
-    soil_clay = np.array(percent_clay, dtype=np.float32)
+    # Initialise soil carbon class
+    soil_carbon = SoilCarbonPools(dummy_carbon_data)
 
     # Then calculate mineral association rate
     lmwc_to_maom = soil_carbon.mineral_association(
-        soil_pH, soil_BD, soil_moisture, soil_temp, soil_clay
+        dummy_carbon_data["pH"],
+        dummy_carbon_data["bulk_density"],
+        dummy_carbon_data["soil_moisture"],
+        dummy_carbon_data["soil_temperature"],
+        dummy_carbon_data["percent_clay"],
     )
 
     # Check that expected values are generated
     assert np.allclose(lmwc_to_maom, output_l_to_m)
 
 
-@pytest.mark.parametrize(
-    "pH,Q_max,lmwc,output_eqb_maoms",
-    [
-        (
-            [3.0, 7.5],
-            [2.385207e6, 1.980259e6],
-            [0.05, 0.02],
-            [19900.19, 969.4813],
-        ),
-        ([9.0], [647142.61], [0.1], [832.6088]),
-        ([5.7], [2.805371e6], [0.005], [742.4128]),
-    ],
-)
-def test_calculate_equilibrium_maom(pH, Q_max, lmwc, output_eqb_maoms):
+def test_calculate_equilibrium_maom(dummy_carbon_data):
     """Test that equilibrium maom calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
 
-    soil_pH = np.array(pH, dtype=np.float32)
-    soil_Q_max = np.array(Q_max, dtype=np.float32)
-    soil_lmwc = np.array(lmwc, dtype=np.float32)
+    Q_max = [2.385207e6, 1.980259e6, 647142.61, 2.805371e6]
+    output_eqb_maoms = [19900.19, 969.4813, 832.6088, 742.4128]
 
-    equib_maoms = calculate_equilibrium_maom(soil_pH, soil_Q_max, soil_lmwc)
+    equib_maoms = calculate_equilibrium_maom(
+        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["lmwc"]
+    )
     assert np.allclose(equib_maoms, np.array(output_eqb_maoms))
 
 
 @pytest.mark.parametrize(
-    "bulk_density,percent_clay,output_capacities,raises,expected_log_entries",
+    "alternative,output_capacities,raises,expected_log_entries",
     [
         (
-            [1350.0, 1800.0],
-            [80.0, 30.0],
-            [2.385207e6, 1.980259e6],
+            None,
+            [2.385207e6, 1.980259e6, 647142.61, 2.805371e6],
             does_not_raise(),
             (),
         ),
-        ([1000.0], [10.0], [647142.61], does_not_raise(), ()),
-        ([1500.0], [90.0], [2.805371e6], does_not_raise(), ()),
         (
-            [1500.0],
             [156.0],
             [],
             pytest.raises(ValueError),
             ((ERROR, "Relative clay content must be expressed as a percentage!"),),
         ),
         (
-            [1500.0],
             [-9.0],
             [],
             pytest.raises(ValueError),
@@ -254,60 +177,59 @@ def test_calculate_equilibrium_maom(pH, Q_max, lmwc, output_eqb_maoms):
     ],
 )
 def test_calculate_max_sorption_capacity(
-    caplog, bulk_density, percent_clay, output_capacities, raises, expected_log_entries
+    caplog,
+    dummy_carbon_data,
+    alternative,
+    output_capacities,
+    raises,
+    expected_log_entries,
 ):
     """Test that max sorption capacity calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_max_sorption_capacity
 
     # Check that initialisation fails (or doesn't) as expected
     with raises:
-        soil_BD = np.array(bulk_density, dtype=np.float32)
-        soil_clay = np.array(percent_clay, dtype=np.float32)
-        max_capacities = calculate_max_sorption_capacity(soil_BD, soil_clay)
+        if alternative:
+            max_capacities = calculate_max_sorption_capacity(
+                dummy_carbon_data["bulk_density"],
+                np.array(alternative, dtype=np.float32),
+            )
+        else:
+            max_capacities = calculate_max_sorption_capacity(
+                dummy_carbon_data["bulk_density"], dummy_carbon_data["percent_clay"]
+            )
 
         assert np.allclose(max_capacities, np.array(output_capacities))
 
     log_check(caplog, expected_log_entries)
 
 
-@pytest.mark.parametrize(
-    "pH,output_coefs",
-    [
-        ([3.0, 7.5], [0.16826738, 0.02449064]),
-        ([9.0], [0.0128825]),
-        ([5.7], [0.05294197]),
-    ],
-)
-def test_calculate_binding_coefficient(pH, output_coefs):
+def test_calculate_binding_coefficient(dummy_carbon_data):
     """Test that Langmuir binding coefficient calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_binding_coefficient
 
-    soil_pH = np.array(pH, dtype=np.float32)
-    binding_coefs = calculate_binding_coefficient(soil_pH)
+    output_coefs = [0.16826738, 0.02449064, 0.0128825, 0.05294197]
+
+    binding_coefs = calculate_binding_coefficient(dummy_carbon_data["pH"])
 
     assert np.allclose(binding_coefs, np.array(output_coefs))
 
 
-@pytest.mark.parametrize(
-    "temperatures,output_scalars",
-    [([35.0, 37.5], [1.27113, 1.27196]), ([40.0], [1.27263]), ([25.0], [1.26344])],
-)
-def test_convert_temperature_to_scalar(temperatures, output_scalars):
+def test_convert_temperature_to_scalar(dummy_carbon_data):
     """Test that scalar_temperature runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_temperature_to_scalar
 
-    soil_temperature = np.array(temperatures, dtype=np.float32)
-    temp_scalar = convert_temperature_to_scalar(soil_temperature)
+    output_scalars = [1.27113, 1.27196, 1.27263, 1.26344]
+
+    temp_scalar = convert_temperature_to_scalar(dummy_carbon_data["soil_temperature"])
 
     assert np.allclose(temp_scalar, np.array(output_scalars))
 
 
 @pytest.mark.parametrize(
-    "moistures,output_scalars,raises,expected_log_entries",
+    "alternative,output_scalars,raises,expected_log_entries",
     [
-        ([0.5, 0.7], [0.750035, 0.947787], does_not_raise(), ()),
-        ([0.6], [0.880671], does_not_raise(), ()),
-        ([0.2], [0.167814], does_not_raise(), ()),
+        (None, [0.750035, 0.947787, 0.880671, 0.167814], does_not_raise(), ()),
         (
             [-0.2],
             [],
@@ -323,15 +245,21 @@ def test_convert_temperature_to_scalar(temperatures, output_scalars):
     ],
 )
 def test_convert_moisture_to_scalar(
-    caplog, moistures, output_scalars, raises, expected_log_entries
+    caplog, dummy_carbon_data, alternative, output_scalars, raises, expected_log_entries
 ):
     """Test that scalar_moisture runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
     # Check that initialisation fails (or doesn't) as expected
     with raises:
-        soil_moisture = np.array(moistures, dtype=np.float32)
-        moist_scalar = convert_moisture_to_scalar(soil_moisture)
+        if alternative:
+            moist_scalar = convert_moisture_to_scalar(
+                np.array(alternative, dtype=np.float32)
+            )
+        else:
+            moist_scalar = convert_moisture_to_scalar(
+                dummy_carbon_data["soil_moisture"]
+            )
 
         assert np.allclose(moist_scalar, np.array(output_scalars))
 
