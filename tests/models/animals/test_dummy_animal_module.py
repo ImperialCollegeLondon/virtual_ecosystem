@@ -1,7 +1,4 @@
-"""Test module for dummy_animal_module.py.
-
-This module tests the functionality of dummy_animal_module.py
-"""
+"""Test module for dummy_animal_module.py."""
 
 import pytest
 
