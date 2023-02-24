@@ -93,6 +93,7 @@ team.
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Radiation <api/abiotic/radiation.md>
+  Abiotic Wind <api/abiotic/wind.md>
 ```
 
 ```{eval-rst}
