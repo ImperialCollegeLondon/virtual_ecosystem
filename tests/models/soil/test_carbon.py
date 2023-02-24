@@ -147,7 +147,8 @@ def test_pool_updates(
     )
 
     # Check that the updates are correctly calculated
-    assert np.allclose(delta_pools, np.array(change_in_pools))
+    assert np.allclose(delta_pools.delta_maom, np.array(change_in_pools[0]))
+    assert np.allclose(delta_pools.delta_lmwc, np.array(change_in_pools[1]))
 
     # Use this update to update the soil carbon pools
     soil_carbon.update_soil_carbon_pools(delta_pools)

@@ -5,7 +5,7 @@ interactions will be added at a later date.
 """  # noqa: D205, D415
 
 import numpy as np
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -53,7 +53,7 @@ class SoilCarbonPools:
         self.lmwc = lmwc
         """Low molecular weight carbon pool (kg C m^-3)"""
 
-    def update_soil_carbon_pools(self, delta_pools: DataArray) -> None:
+    def update_soil_carbon_pools(self, delta_pools: Dataset) -> None:
         """Update soil carbon pools based on previously calculated net change.
 
         The state of the soil carbon pools will effect the rate of other processes in
@@ -67,8 +67,8 @@ class SoilCarbonPools:
             delta_pools: Array of updates for every pool
         """
 
-        self.maom += delta_pools[0]
-        self.lmwc += delta_pools[1]
+        self.maom += delta_pools["delta_maom"]
+        self.lmwc += delta_pools["delta_lmwc"]
 
     def calculate_soil_carbon_updates(
         self,
@@ -78,7 +78,7 @@ class SoilCarbonPools:
         soil_temp: DataArray,
         percent_clay: DataArray,
         dt: float,
-    ) -> DataArray:
+    ) -> Dataset:
         """Calculate net change for each carbon pool.
 
         This function calls lower level functions which calculate the transfers between
@@ -105,7 +105,13 @@ class SoilCarbonPools:
         # Determine net changes to the pools
         delta_maom = lmwc_to_maom * dt
         delta_lmwc = -lmwc_to_maom * dt
-        return DataArray([delta_maom, delta_lmwc], dims="cell_id")
+
+        return Dataset(
+            data_vars=dict(
+                delta_maom=DataArray(delta_maom, dims="cell_id"),
+                delta_lmwc=DataArray(delta_lmwc, dims="cell_id"),
+            )
+        )
 
     def mineral_association(
         self,
