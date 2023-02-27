@@ -1,7 +1,7 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import INFO
+from logging import DEBUG, INFO
 
 import pytest
 from numpy import datetime64, timedelta64
@@ -16,7 +16,36 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
         (
             2,
             does_not_raise(),
-            (),
+            (
+                (
+                    DEBUG,
+                    "soil model: required var 'maom' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'lmwc' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_moisture' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_temperature' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
+                ),
+            ),
         ),
     ],
 )
@@ -65,6 +94,34 @@ def test_soil_model_initialization(
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'maom' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'lmwc' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_moisture' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_temperature' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
                 ),
             ),
         ),

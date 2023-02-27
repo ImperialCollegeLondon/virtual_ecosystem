@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from pathlib import Path
 
 import pytest
@@ -94,6 +94,34 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'maom' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'lmwc' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_moisture' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_temperature' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
                 ),
             ),
             id="valid config",

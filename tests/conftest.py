@@ -1,4 +1,5 @@
 """Collection of fixtures to assist the testing scripts."""
+from logging import DEBUG
 from typing import Any
 
 import pytest
@@ -6,7 +7,10 @@ from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
-import virtual_rainforest.core.logger  # noqa
+from virtual_rainforest.core.logger import LOGGER
+
+# Class uses DEBUG
+LOGGER.setLevel(DEBUG)
 
 
 def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> None:
