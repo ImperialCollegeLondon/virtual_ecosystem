@@ -458,7 +458,8 @@ def test_missing_core_schema(caplog, mocker):
                 ),
                 (
                     ERROR,
-                    "[soil][no_layers]: -1 is less than or equal to the minimum of 0",
+                    "[soil]: Additional properties are not allowed ('no_layers' was "
+                    "unexpected)",
                 ),
                 (
                     CRITICAL,

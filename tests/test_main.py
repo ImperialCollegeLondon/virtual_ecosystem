@@ -87,11 +87,11 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     [
         pytest.param(
             {  # valid config
-                "soil": {"no_layers": 1, "model_time_step": "7 days"},
+                "soil": {"model_time_step": "7 days"},
                 "core": {"timing": {"start_time": "2020-01-01"}},
             },
-            "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
-            " no_layers = 1)",
+            "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00"
+            ")",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -104,34 +104,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="valid config",
         ),
         pytest.param(
-            {  # invalid soil config tag
-                "soil": {"no_layers": -1, "model_time_step": "7 days"},
-                "core": {"timing": {"start_time": "2020-01-01"}},
-            },
-            None,
-            pytest.raises(InitialisationError),
-            (
-                (INFO, "Attempting to configure the following models: ['soil']"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (
-                    ERROR,
-                    "There has to be at least one soil layer in the soil model!",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
-            ),
-            id="invalid soil config tag",
-        ),
-        pytest.param(
             {  # model_time_step missing units
-                "soil": {"no_layers": 1, "model_time_step": "7"},
+                "soil": {"model_time_step": "7"},
                 "core": {"timing": {}},
             },
             None,

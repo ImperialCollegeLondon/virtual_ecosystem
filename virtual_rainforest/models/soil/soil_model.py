@@ -57,28 +57,11 @@ class SoilModel(BaseModel):
         data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
-        no_layers: int,
         **kwargs: Any,
     ):
-        if no_layers < 1:
-            to_raise = InitialisationError(
-                "There has to be at least one soil layer in the soil model!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if no_layers != int(no_layers):
-            to_raise = InitialisationError(
-                "The number of soil layers must be an integer!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
         super().__init__(data, update_interval, start_time, **kwargs)
-        self.no_layers = int(no_layers)
-        """The number of soil layers to be modelled."""
         # Save variables names to be used by the __repr__
-        self._repr.append("no_layers")
+        # self._repr.append("")
 
         self.data
         """A Data instance providing access to the shared simulation data."""
@@ -112,7 +95,6 @@ class SoilModel(BaseModel):
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
             start_time = datetime64(config["core"]["timing"]["start_time"])
-            no_layers = config["soil"]["no_layers"]
         except (
             ValueError,
             pint.errors.DimensionalityError,
@@ -130,7 +112,7 @@ class SoilModel(BaseModel):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(data, update_interval, start_time, no_layers)
+            return cls(data, update_interval, start_time)
         else:
             raise InitialisationError()
 

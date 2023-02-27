@@ -22,5 +22,4 @@ pft_name = "broadleaf"
 maxh = 50.0
 
 [soil]
-no_layers = 1
 model_time_step = "5 days"

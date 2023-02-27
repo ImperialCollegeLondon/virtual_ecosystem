@@ -1,13 +1,12 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import INFO
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
@@ -19,26 +18,6 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
             does_not_raise(),
             (),
         ),
-        (
-            -2,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "There has to be at least one soil layer in the soil model!",
-                ),
-            ),
-        ),
-        (
-            2.5,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "The number of soil layers must be an integer!",
-                ),
-            ),
-        ),
     ],
 )
 def test_soil_model_initialization(
@@ -48,9 +27,7 @@ def test_soil_model_initialization(
 
     with raises:
         # Initialize model
-        model = SoilModel(
-            data_instance, timedelta64(1, "W"), datetime64("2022-11-01"), no_layers
-        )
+        model = SoilModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
@@ -58,8 +35,7 @@ def test_soil_model_initialization(
         assert str(model) == "A soil model instance"
         assert (
             repr(model)
-            == f"SoilModel(update_interval = 1 weeks, next_update = 2022-11-08, "
-            f"no_layers = {int(no_layers)})"
+            == "SoilModel(update_interval = 1 weeks, next_update = 2022-11-08)"
         )
 
     # Final check that expected logging entries are produced
@@ -78,7 +54,7 @@ def test_soil_model_initialization(
         (
             {
                 "core": {"timing": {"start_time": "2020-01-01"}},
-                "soil": {"no_layers": 2, "model_time_step": "12 hours"},
+                "soil": {"model_time_step": "12 hours"},
             },
             timedelta64(12, "h"),
             does_not_raise(),
@@ -100,7 +76,6 @@ def test_generate_soil_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = SoilModel.from_config(data_instance, config)
-        assert model.no_layers == config["soil"]["no_layers"]
         assert model.update_interval == time_interval
         assert (
             model.next_update
