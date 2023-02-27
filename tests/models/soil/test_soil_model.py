@@ -21,13 +21,15 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
     ],
 )
 def test_soil_model_initialization(
-    caplog, data_instance, no_layers, raises, expected_log_entries
+    caplog, dummy_carbon_data, no_layers, raises, expected_log_entries
 ):
     """Test `SoilModel` initialization."""
 
     with raises:
         # Initialize model
-        model = SoilModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
+        model = SoilModel(
+            dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+        )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
@@ -69,13 +71,13 @@ def test_soil_model_initialization(
     ],
 )
 def test_generate_soil_model(
-    caplog, data_instance, config, time_interval, raises, expected_log_entries
+    caplog, dummy_carbon_data, config, time_interval, raises, expected_log_entries
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = SoilModel.from_config(data_instance, config)
+        model = SoilModel.from_config(dummy_carbon_data, config)
         assert model.update_interval == time_interval
         assert (
             model.next_update

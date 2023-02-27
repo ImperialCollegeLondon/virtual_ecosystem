@@ -45,7 +45,15 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """An internal name used to register the model and schema"""
-    required_init_vars = ()
+    required_init_vars = (
+        ("maom", ("spatial",)),
+        ("lmwc", ("spatial",)),
+        ("pH", ("spatial",)),
+        ("bulk_density", ("spatial",)),
+        ("soil_moisture", ("spatial",)),
+        ("soil_temperature", ("spatial",)),
+        ("percent_clay", ("spatial",)),
+    )
     """Required initialisation variables for the soil model.
 
     This is a set of variables that must be present in the data object used to create a
