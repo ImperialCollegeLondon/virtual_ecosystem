@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 @dataclass
 class DamuthsLaw:
-    """From (Damuth 1987)."""
+    """Mammalian herbivore population density, observed allometry (Damuth 1987)."""
 
     exponent: float = -0.75
     """"""
@@ -33,4 +33,33 @@ class StoredEnergy:
     exponent: float = 0.75
     """"""
     coefficienct: float = 10
+    """"""
+    """ fat mass scaling = 0.02 * M ** 1.19 g"""
+    """ muscle mass scaling = 0.38 * M ** 1.0 g"""
+    """ Energy in unit mass = 7000 J/g"""
+
+
+@dataclass
+class IntakeRate:
+    """Mammalian maximum intake rate (kg/day) from (Shipley 1994)."""
+
+    exponent: float = 0.71
+    """"""
+    coefficienct: float = (0.63 * 480) * (1 / 1000)
+    """ Converts original g/min rate to kg/day where 'day' is an 8hr foraging window."""
+
+
+@dataclass
+class ConversionEfficiency:
+    """Toy values."""
+
+    value: float = 0.1
+    """Unitless."""
+
+
+@dataclass
+class PlantEnergyDensity:
+    """Alfalfa ¬ 18,200,000 J/kg DM."""
+
+    value: float = 18200000.0
     """"""

@@ -3,6 +3,7 @@ as self-contained dummy versions of the abiotic, soil, and plant modules that
 are required for setting up and testing the early stages of the animal module.
 
 Todo:
+- update stored_energy to vaguely realistic values (notes in constants.py)
 - rework dispersal
 - send portion of dead to carcass pool
 
@@ -24,8 +25,11 @@ from math import ceil
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.constants import (
+    ConversionEfficiency,
     DamuthsLaw,
+    IntakeRate,
     MetabolicRate,
+    PlantEnergyDensity,
     StoredEnergy,
 )
 
@@ -37,12 +41,12 @@ class PlantCommunity:
         """The constructor for Plant class."""
         self.mass = mass
         """The mass of the plant cohort [kg]."""
-        self.energy_density: float = 1000.0
-        """The energy (J) in a kg of plant. [small toy J/kg value for convenience.]"""
+        self.energy_density: float = PlantEnergyDensity.value
+        """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
         self.energy_max: float = self.mass * self.energy_density
-        """The maximum amount of energy that the cohort can have [J] [toy]."""
+        """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
         self.energy = self.energy_max
-        """The amount of energy in the plant cohort [J] [toy]."""
+        """The initial amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.position = position
@@ -97,7 +101,11 @@ class AnimalCohort:
         self.stored_energy: float = (
             StoredEnergy.coefficienct * self.mass**StoredEnergy.exponent
         )
-        """The current indiv energetic reserve [J]."""
+        """The initialized individual energetic reserve [J]."""
+        self.intake_rate: float = (IntakeRate.coefficienct) * self.mass ** (
+            IntakeRate.exponent
+        )
+        """The rate of plant mass consumption over an 8hr foraging day [kg/day]."""
 
     def metabolize(self) -> None:
         """The function to reduce stored_energy through basal metabolism."""
@@ -107,3 +115,20 @@ class AnimalCohort:
             self.stored_energy -= energy_burned
         elif self.stored_energy < energy_burned:
             self.stored_energy = 0.0
+
+    def eat(self, food: PlantCommunity) -> None:
+        """The function to transfer energy from a food source to the animal cohort.
+
+        Args:
+            food: The targeted PlantCommunity instance from which energy is
+                            transferred.
+        """
+        consumed_energy = min(food.energy, self.intake_rate * food.energy_density)
+        """Minimum of the energy available and amount that can be consumed in an 8 hour
+        foraging window ."""
+        food.energy -= consumed_energy
+        self.stored_energy += (
+            consumed_energy * ConversionEfficiency.value
+        ) / self.individuals
+        """The energy [J] extracted from the PlantCommunity adjusted for energetic
+        conversion efficiency and divided by the number of individuals in the cohort."""
