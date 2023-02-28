@@ -26,6 +26,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 
 class SoilModel(BaseModel):
@@ -68,8 +69,6 @@ class SoilModel(BaseModel):
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, start_time, **kwargs)
-        # Save variables names to be used by the __repr__
-        # self._repr.append("")
 
         self.data
         """A Data instance providing access to the shared simulation data."""
@@ -77,6 +76,11 @@ class SoilModel(BaseModel):
         """The time interval between model updates."""
         self.next_update
         """The simulation time at which the model should next run the update method"""
+        self.carbon = SoilCarbonPools(data)
+        """Set of soil carbon pools used by the model"""
+
+        # Save variables names to be used by the __repr__
+        # self._repr.append("")
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
