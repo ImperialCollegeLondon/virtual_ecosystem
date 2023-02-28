@@ -40,6 +40,11 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.models.abiotic.abiotic_tools import (
+    AbioticConstants,
+    calc_molar_density_air,
+    calc_specific_heat_air,
+)
 
 
 @dataclass
@@ -67,21 +72,14 @@ class WindConstants:
     "Diabatic correction factor below canopy."
     mixing_length_factor: float = 0.32
     """Factor in calculation of mixing length :cite:p:`maclean_microclimc_2021`."""
-    celsius_to_kelvin = 273.15
-    """Factor to convert temperature in Celsius to absolute temperature in Kelvin."""
-    standard_mole = 44.6
-    """Moles of ideal gas in 1 m3 air at standard atmosphere."""
-    molar_heat_capacity_air = 29.19
-    """Molar heat capacity of air, [J mol-1 C-1]."""
-    gravity = 9.81
-    """Gravity, [m s-1]."""
 
 
 def calculate_wind_profile(
     wind_heights: DataArray,
     canopy_node_heights: DataArray,
     data: Data,
-    const: WindConstants = WindConstants(),
+    wind_const: WindConstants = WindConstants(),
+    abiotic_const: AbioticConstants = AbioticConstants(),
 ) -> Tuple[DataArray, DataArray]:
     """Calculate wind profile above and below canopy.
 
@@ -96,9 +94,13 @@ def calculate_wind_profile(
     * leaf area index
     * sensible heat flux at the top of the canopy
 
-    The ``const`` argument takes an instance of class
+    The ``wind_const`` argument takes an instance of class
     :class:`~virtual_rainforest.models.abiotic.wind.WindConstants`, which
     provides a user modifiable set of required constants.
+
+    The ``abiotic_const`` argument takes an instance of class
+    :class:`~virtual_rainforest.models.abiotic.abiotic_tools.AbioticConstants`, which
+    provides a set of universal constants that are used across the abiotic module.
 
     Args:
         wind_heights: vector of heights above canopy for which wind speed is calculated,
@@ -107,7 +109,8 @@ def calculate_wind_profile(
             :class:`~virtual_rainforest.models.abiotic.energy_balance.EnergyBalance`
             class.
         data: A Virtual Rainforest Data object.
-        const: A WindConstants instance.
+        wind_const: A WindConstants instance.
+        abiotic_const: An AbioticConstants instance.
 
     Returns:
         vertical wind profile above canopy, [m -1]
@@ -118,16 +121,24 @@ def calculate_wind_profile(
     zero_plane_displacement = calculate_zero_plane_displacement(
         canopy_height=data["canopy_height"],
         leaf_area_index=data["leaf_area_index"],
-        zero_plane_scaling_parameter=const.zero_plane_scaling_parameter,
+        zero_plane_scaling_parameter=wind_const.zero_plane_scaling_parameter,
     )
     roughness_length_momentum = calculate_roughness_length_momentum(
         canopy_height=data["canopy_height"],
         leaf_area_index=data["leaf_area_index"],
         zero_plane_displacement=zero_plane_displacement,
-        substrate_surface_drag_coefficient=const.substrate_surface_drag_coefficient,
-        roughness_element_drag_coefficient=const.roughness_element_drag_coefficient,
-        roughness_sublayer_depth_parameter=const.roughness_sublayer_depth_parameter,
-        max_ratio_wind_to_friction_velocity=const.max_ratio_wind_to_friction_velocity,
+        substrate_surface_drag_coefficient=(
+            wind_const.substrate_surface_drag_coefficient
+        ),
+        roughness_element_drag_coefficient=(
+            wind_const.roughness_element_drag_coefficient
+        ),
+        roughness_sublayer_depth_parameter=(
+            wind_const.roughness_sublayer_depth_parameter
+        ),
+        max_ratio_wind_to_friction_velocity=(
+            wind_const.max_ratio_wind_to_friction_velocity
+        ),
     )
 
     diabatic_correction_momentum_above = calculate_diabatic_correction_momentum_above(
@@ -137,24 +148,24 @@ def calculate_wind_profile(
         friction_velocity=data["friction_velocity"],
         wind_heights=wind_heights,
         zero_plane_displacement=zero_plane_displacement,
-        celsius_to_kelvin=const.celsius_to_kelvin,
-        gravity=const.gravity,
+        celsius_to_kelvin=abiotic_const.celsius_to_kelvin,
+        gravity=abiotic_const.gravity,
     )
 
     mixing_length = calculate_mixing_length(
         canopy_height=data["canopy_height"],
         zero_plane_displacement=zero_plane_displacement,
         roughness_length_momentum=roughness_length_momentum,
-        mixing_length_factor=const.mixing_length_factor,
+        mixing_length_factor=wind_const.mixing_length_factor,
     )
 
     wind_attenuation_coefficient = calculate_wind_attenuation_coefficient(
         canopy_height=data["canopy_height"],
         leaf_area_index=data["leaf_area_index"],
         mixing_length=mixing_length,
-        drag_coefficient=const.drag_coefficient,
-        relative_turbulence_intensity=const.relative_turbulence_intensity,
-        diabatic_correction_factor_below=const.diabatic_correction_factor_below,
+        drag_coefficient=wind_const.drag_coefficient,
+        relative_turbulence_intensity=wind_const.relative_turbulence_intensity,
+        diabatic_correction_factor_below=wind_const.diabatic_correction_factor_below,
     )
 
     # Calculate wind profiles and return as Tuple
@@ -370,8 +381,8 @@ def calculate_diabatic_correction_momentum_above(
     friction_velocity: DataArray,
     wind_heights: DataArray,
     zero_plane_displacement: DataArray,
-    celsius_to_kelvin: float = WindConstants.celsius_to_kelvin,
-    gravity: float = WindConstants.gravity,
+    celsius_to_kelvin: float = AbioticConstants.celsius_to_kelvin,
+    gravity: float = AbioticConstants.gravity,
 ) -> DataArray:
     """Calculates the diabatic correction factors.
 
@@ -506,50 +517,3 @@ def calculate_wind_attenuation_coefficient(
         (intermediate_coefficient2 * np.power(diabatic_correction_factor_below, 0.5)),
         dims="cell_id",
     ).fillna(0)
-
-
-def calc_molar_density_air(
-    temperature: DataArray,
-    atmospheric_pressure: DataArray,
-    standard_mole: float = WindConstants.standard_mole,
-    celsius_to_kelvin: float = WindConstants.celsius_to_kelvin,
-) -> DataArray:
-    """Calculate temperature-dependent molar density of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`.
-
-    Args:
-        temperature: temperature, [C]
-        atmospheric_pressure: atmospheric pressure, [kPa]
-        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
-            temperature in Kelvin
-
-    Returns:
-        molar density of air
-    """
-
-    temperature_kelvin = temperature + celsius_to_kelvin
-    molar_density_air = (
-        standard_mole
-        * (temperature_kelvin / atmospheric_pressure)
-        * (celsius_to_kelvin / temperature_kelvin)
-    )
-    return molar_density_air
-
-
-def calc_specific_heat_air(
-    temperature: DataArray,
-    molar_heat_capacity_air: float = WindConstants.molar_heat_capacity_air,
-) -> DataArray:
-    """Calculate molar temperature-dependent specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`.
-
-    Args:
-        temperature: temperature, [C]
-        molar_heat_capacity_air: molar heat capacity, [J mol-1 C-1]
-
-    Returns:
-        specific heat of air at constant pressure (J mol-1 K-1)
-    """
-    return 2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
