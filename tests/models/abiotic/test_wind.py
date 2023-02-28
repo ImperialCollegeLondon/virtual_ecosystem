@@ -102,32 +102,6 @@ def test_calculate_wind_attenuation_coefficient(dummy_data):
     )
 
 
-def test_calc_molar_density_air(dummy_data):
-    """Test calculate molar desity of air."""
-
-    from virtual_rainforest.models.abiotic import wind
-
-    result = wind.calc_molar_density_air(
-        temperature=dummy_data.data["temperature_2m"],
-        atmospheric_pressure=dummy_data.data["atmospheric_pressure"],
-    )
-    xr.testing.assert_allclose(
-        result, DataArray([120.618713, 119.436176, 118.276602], dims=["cell_id"])
-    )
-
-
-def test_calc_specific_heat_air(dummy_data):
-    """Test canclualte specific heat of air."""
-
-    from virtual_rainforest.models.abiotic import wind
-
-    result = wind.calc_specific_heat_air(temperature=dummy_data.data["temperature_2m"])
-
-    xr.testing.assert_allclose(
-        result, DataArray([29.214, 29.202, 29.214], dims=["cell_id"])
-    )
-
-
 def test_calculate_wind_above_canopy(dummy_data):
     """Test wind above canopy."""
 

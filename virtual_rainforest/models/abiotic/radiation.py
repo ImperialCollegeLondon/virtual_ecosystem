@@ -32,6 +32,7 @@ from xarray import DataArray
 from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.abiotic.abiotic_tools import AbioticConstants
 
 
 # In the future, we want to import the RadiationConstants dataclass here
@@ -45,8 +46,6 @@ class RadiationConstants:
     """Angular coefficient of transmittivity :cite:p:`linacre_estimating_1968`"""
     flux_to_energy: float = 2.04
     """From flux to energy conversion, umol J-1 :cite:p:`meek_generalized_1984`"""
-    stefan_boltzmann_constant: float = 5.67e-8
-    """Stefan-Boltzmann constant W m-2 K-4"""
     soil_emissivity: float = 0.95
     """Soil emissivity, default for tropical rainforest"""
     canopy_emissivity: float = 0.95
@@ -54,8 +53,6 @@ class RadiationConstants:
     beer_regression: float = 2.67e-5
     """Parameter in equation for atmospheric transmissivity based on regression of
     Beer's radiation extinction function :cite:p:`allen_assessing_1996`"""
-    celsius_to_kelvin: float = 273.15
-    """Factor to convert temperature in Celsius to absolute temperature in Kelvin"""
     albedo_vis_default: float = 0.03
     """Default value for visible light albedo."""
     albedo_shortwave_default: float = 0.17
@@ -100,17 +97,25 @@ class Radiation:
     * sunshine_fraction: fraction of sunshine hours, between 0 (100% cloud cover)
     and 1 (cloud free sky), default = 1
 
-    The ``const`` argument takes an instance of class
+    The ``radiation_const`` argument takes an instance of class
     :class:`~virtual_rainforest.models.abiotic.radiation.RadiationConstants`, which
     provides a user modifiable set of required constants.
 
+    The ``abiotic_const`` argument takes an instance of class
+    :class:`~virtual_rainforest.models.abiotic.abiotic_tools.AbioticConstants`, which
+    provides a set of universal constants that are used across the abiotic module.
+
     Args:
         data: A Virtual Rainforest Data object.
-        const: A RadiationConstants instance.
+        radiation_const: A RadiationConstants instance.
+        abiotic_const: An AbioticConstants instance.
     """
 
     def __init__(
-        self, data: Data, const: RadiationConstants = RadiationConstants()
+        self,
+        data: Data,
+        radiation_const: RadiationConstants = RadiationConstants(),
+        abiotic_const: AbioticConstants = AbioticConstants(),
     ) -> None:
         # check that elevation is above sea level
         # TODO check if equation permits negative values -> set to sea level
@@ -130,13 +135,13 @@ class Radiation:
 
         albedo_vis: Union[DataArray, float]
         if "albedo_vis" not in data:
-            albedo_vis = const.albedo_vis_default
+            albedo_vis = radiation_const.albedo_vis_default
         else:
             albedo_vis = data["albedo_vis"]
 
         albedo_shortwave: Union[DataArray, float]
         if "albedo_shortwave" not in data:
-            albedo_shortwave = const.albedo_shortwave_default
+            albedo_shortwave = radiation_const.albedo_shortwave_default
         else:
             albedo_shortwave = data["albedo_shortwave"]
 
@@ -144,9 +149,9 @@ class Radiation:
         tau = calculate_atmospheric_transmissivity(
             data["elevation"],
             sunshine_fraction,
-            const.cloudy_transmissivity,
-            const.transmissivity_coefficient,
-            const.beer_regression,
+            radiation_const.cloudy_transmissivity,
+            radiation_const.transmissivity_coefficient,
+            radiation_const.beer_regression,
         )
 
         # ppfd and topofcanopy_radiation radiation could be calculated across all time
@@ -155,7 +160,7 @@ class Radiation:
             tau=tau,
             shortwave_in=data["shortwave_in"],
             albedo_vis=albedo_vis,
-            flux_to_energy=const.flux_to_energy,
+            flux_to_energy=radiation_const.flux_to_energy,
         )
         """Top of canopy photosynthetic photon flux density, [mol m-2]"""
 
@@ -168,17 +173,17 @@ class Radiation:
 
         self.longwave_canopy: DataArray = calculate_longwave_radiation(
             temperature=data["canopy_temperature"],
-            emissivity=const.canopy_emissivity,
-            stefan_boltzmann_constant=const.stefan_boltzmann_constant,
-            celsius_to_kelvin=const.celsius_to_kelvin,
+            emissivity=radiation_const.canopy_emissivity,
+            stefan_boltzmann_constant=abiotic_const.stefan_boltzmann_constant,
+            celsius_to_kelvin=abiotic_const.celsius_to_kelvin,
         )
         """Longwave radiation from canopy layers, [J m-2]"""
 
         self.longwave_soil: DataArray = calculate_longwave_radiation(
             temperature=data["surface_temperature"],
-            emissivity=const.soil_emissivity,
-            stefan_boltzmann_constant=const.stefan_boltzmann_constant,
-            celsius_to_kelvin=const.celsius_to_kelvin,
+            emissivity=radiation_const.soil_emissivity,
+            stefan_boltzmann_constant=abiotic_const.stefan_boltzmann_constant,
+            celsius_to_kelvin=abiotic_const.celsius_to_kelvin,
         )
         """Longwave radiation from soil, [J m-2]"""
 
@@ -284,8 +289,8 @@ def calculate_topofcanopy_radiation(
 def calculate_longwave_radiation(
     temperature: DataArray,
     emissivity: float = 0.95,
-    stefan_boltzmann_constant: float = RadiationConstants.stefan_boltzmann_constant,
-    celsius_to_kelvin: float = RadiationConstants.celsius_to_kelvin,
+    stefan_boltzmann_constant: float = AbioticConstants.stefan_boltzmann_constant,
+    celsius_to_kelvin: float = AbioticConstants.celsius_to_kelvin,
 ) -> DataArray:
     """Calculate longwave emission, [J m-2].
 
