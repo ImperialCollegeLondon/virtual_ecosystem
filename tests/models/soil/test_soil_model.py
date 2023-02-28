@@ -4,7 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import DEBUG, ERROR, INFO
 
 import pytest
-from numpy import datetime64, timedelta64
+from numpy import allclose, datetime64, timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.models.soil.soil_model import SoilModel
@@ -119,13 +119,14 @@ def test_soil_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries",
+    "config,time_interval,raises,expected_log_entries,end_carbon",
     [
         (
             {},
             None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
+            [],
         ),
         (
             {
@@ -169,11 +170,21 @@ def test_soil_model_initialization(
                     "soil model: required var 'percent_clay' checked",
                 ),
             ),
+            [
+                [2.50019883, 1.70000589, 4.50007171, 0.50000014],
+                [0.04980117, 0.01999411, 0.09992829, 0.00499986],
+            ],
         ),
     ],
 )
 def test_generate_soil_model(
-    caplog, dummy_carbon_data, config, time_interval, raises, expected_log_entries
+    caplog,
+    dummy_carbon_data,
+    config,
+    time_interval,
+    raises,
+    expected_log_entries,
+    end_carbon,
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
@@ -191,6 +202,10 @@ def test_generate_soil_model(
             model.next_update
             == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
         )
+        # Check that updates are correct
+        assert allclose(model.carbon.maom, end_carbon[0])
+        assert allclose(model.carbon.lmwc, end_carbon[1])
+        # TODO - Check what has happened with the data fixture
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
