@@ -169,6 +169,8 @@ def test_soil_model_initialization(
                     DEBUG,
                     "soil model: required var 'percent_clay' checked",
                 ),
+                (INFO, "Replacing data array for 'maom'"),
+                (INFO, "Replacing data array for 'lmwc'"),
             ),
             [
                 [2.50019883, 1.70000589, 4.50007171, 0.50000014],
@@ -202,10 +204,7 @@ def test_generate_soil_model(
             model.next_update
             == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
         )
-        # Check that updates are correct
-        assert allclose(model.carbon.maom, end_carbon[0])
-        assert allclose(model.carbon.lmwc, end_carbon[1])
-        # Check that the data fixture has also been updated
+        # Check that updates to data fixture are correct
         assert allclose(dummy_carbon_data["maom"], end_carbon[0])
         assert allclose(dummy_carbon_data["lmwc"], end_carbon[1])
 

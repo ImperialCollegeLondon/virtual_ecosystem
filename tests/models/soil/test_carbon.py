@@ -19,10 +19,7 @@ def test_soil_carbon_class(dummy_carbon_data):
     """Test SoilCarbon class can be initialised."""
 
     # Check that initialisation succeeds as expected
-    soil_carbon = SoilCarbonPools(dummy_carbon_data)
-
-    assert (soil_carbon.maom == dummy_carbon_data["maom"]).all()
-    assert (soil_carbon.lmwc == dummy_carbon_data["lmwc"]).all()
+    _ = SoilCarbonPools(dummy_carbon_data)
 
 
 def test_bad_soil_carbon_class(caplog):
@@ -76,6 +73,7 @@ def test_pool_updates(dummy_carbon_data):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
     delta_pools = soil_carbon.calculate_soil_carbon_updates(
+        dummy_carbon_data,
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -89,11 +87,11 @@ def test_pool_updates(dummy_carbon_data):
     assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
 
     # Use this update to update the soil carbon pools
-    soil_carbon.update_soil_carbon_pools(delta_pools)
+    soil_carbon.update_soil_carbon_pools(dummy_carbon_data, delta_pools)
 
     # Then check that pools are correctly incremented based on update
-    assert np.allclose(soil_carbon.maom, end_maom)
-    assert np.allclose(soil_carbon.lmwc, end_lmwc)
+    assert np.allclose(dummy_carbon_data["maom"], end_maom)
+    assert np.allclose(dummy_carbon_data["lmwc"], end_lmwc)
 
 
 def test_mineral_association(dummy_carbon_data):
@@ -106,6 +104,7 @@ def test_mineral_association(dummy_carbon_data):
 
     # Then calculate mineral association rate
     lmwc_to_maom = soil_carbon.mineral_association(
+        dummy_carbon_data,
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],

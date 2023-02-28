@@ -143,6 +143,7 @@ class SoilModel(BaseModel):
         )
 
         carbon_pool_updates = self.carbon.calculate_soil_carbon_updates(
+            self.data,
             self.data["pH"],
             self.data["bulk_density"],
             self.data["soil_moisture"],
@@ -153,7 +154,7 @@ class SoilModel(BaseModel):
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.carbon.update_soil_carbon_pools(carbon_pool_updates)
+        self.carbon.update_soil_carbon_pools(self.data, carbon_pool_updates)
 
         # Finally increment timing
         self.next_update += self.update_interval

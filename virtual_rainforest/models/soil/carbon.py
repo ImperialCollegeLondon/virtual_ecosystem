@@ -40,12 +40,7 @@ class SoilCarbonPools:
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.maom = data["maom"]
-        """Mineral associated organic matter pool (kg C m^-3)"""
-        self.lmwc = data["lmwc"]
-        """Low molecular weight carbon pool (kg C m^-3)"""
-
-    def update_soil_carbon_pools(self, delta_pools: Dataset) -> None:
+    def update_soil_carbon_pools(self, data: Data, delta_pools: Dataset) -> None:
         """Update soil carbon pools based on previously calculated net change.
 
         The state of the soil carbon pools will effect the rate of other processes in
@@ -56,14 +51,16 @@ class SoilCarbonPools:
         have been calculated.
 
         Args:
+            data: The data object to be used in the model.
             delta_pools: Array of updates for every pool
         """
 
-        self.maom += delta_pools["delta_maom"]
-        self.lmwc += delta_pools["delta_lmwc"]
+        data["maom"] += delta_pools["delta_maom"]
+        data["lmwc"] += delta_pools["delta_lmwc"]
 
     def calculate_soil_carbon_updates(
         self,
+        data: Data,
         pH: DataArray,
         bulk_density: DataArray,
         soil_moisture: DataArray,
@@ -78,6 +75,7 @@ class SoilCarbonPools:
         calculate the net change for each pool.
 
         Args:
+            data: The data object to be used in the model.
             pH: pH values for each soil grid cell
             bulk_density: bulk density values for each soil grid cell (kg m^-3)
             soil_moisture: relative water content for each soil grid cell (unitless)
@@ -91,7 +89,7 @@ class SoilCarbonPools:
         # TODO - Add interactions which involve the three missing carbon pools
 
         lmwc_to_maom = self.mineral_association(
-            pH, bulk_density, soil_moisture, soil_temp, percent_clay
+            data, pH, bulk_density, soil_moisture, soil_temp, percent_clay
         )
 
         # Determine net changes to the pools
@@ -107,6 +105,7 @@ class SoilCarbonPools:
 
     def mineral_association(
         self,
+        data: Data,
         pH: DataArray,
         bulk_density: DataArray,
         soil_moisture: DataArray,
@@ -123,6 +122,7 @@ class SoilCarbonPools:
         elsewhere.
 
         Args:
+            data: The data object to be used in the model.
             pH: pH values for each soil grid cell
             bulk_density: bulk density values for each soil grid cell (kg m^-3)
             soil_moisture: relative water content for each soil grid cell (unitless)
@@ -135,13 +135,19 @@ class SoilCarbonPools:
 
         # Calculate
         Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
-        equib_maom = calculate_equilibrium_maom(pH, Q_max, self.lmwc)
+        equib_maom = calculate_equilibrium_maom(pH, Q_max, data["lmwc"])
 
         # Find scalar factors that multiple rates
         temp_scalar = convert_temperature_to_scalar(soil_temp)
         moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-        return temp_scalar * moist_scalar * self.lmwc * (equib_maom - self.maom) / Q_max
+        return (
+            temp_scalar
+            * moist_scalar
+            * data["lmwc"]
+            * (equib_maom - data["maom"])
+            / Q_max
+        )
 
 
 def calculate_max_sorption_capacity(
