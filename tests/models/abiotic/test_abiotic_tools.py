@@ -7,7 +7,7 @@ from xarray import DataArray
 
 @pytest.fixture
 def dummy_data():
-    """Creates a dummy data object for use in wind tests.
+    """Creates a dummy data object for use in abiotic tools tests.
 
     One grid cell has no vegetation, two grid cells represent a range of values.
     """
