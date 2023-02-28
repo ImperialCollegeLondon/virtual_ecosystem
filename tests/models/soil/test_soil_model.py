@@ -1,7 +1,7 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, INFO
+from logging import DEBUG, ERROR, INFO
 
 import pytest
 from numpy import datetime64, timedelta64
@@ -11,10 +11,10 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
 @pytest.mark.parametrize(
-    "no_layers,raises,expected_log_entries",
+    "bad_data,raises,expected_log_entries",
     [
         (
-            2,
+            False,
             does_not_raise(),
             (
                 (
@@ -47,18 +47,63 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
                 ),
             ),
         ),
+        (
+            True,
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'maom'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'lmwc'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'pH'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'bulk_density'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'soil_moisture'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'soil_temperature'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'percent_clay'",
+                ),
+                (
+                    ERROR,
+                    "soil model: error checking required_init_vars, see log.",
+                ),
+            ),
+        ),
     ],
 )
 def test_soil_model_initialization(
-    caplog, dummy_carbon_data, no_layers, raises, expected_log_entries
+    caplog, dummy_carbon_data, bad_data, raises, expected_log_entries
 ):
     """Test `SoilModel` initialization."""
 
     with raises:
         # Initialize model
-        model = SoilModel(
-            dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
-        )
+        if bad_data:
+            model = SoilModel(
+                [3.0, 4.0],
+                timedelta64(1, "W"),
+                datetime64("2022-11-01"),
+            )
+        else:
+            model = SoilModel(
+                dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+            )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
