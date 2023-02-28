@@ -1,4 +1,4 @@
-"""The ``models.abiotic.models`` module contains a set of general functions and
+"""The ``models.abiotic.abiotic_tools`` module contains a set of general functions and
 universal constants that are shared across submodels in the abiotic model.
 """  # noqa: D205, D415
 
