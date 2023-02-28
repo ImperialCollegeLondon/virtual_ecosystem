@@ -137,6 +137,24 @@ class SoilModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the soil model."""
 
+        # Convert time step from seconds to days
+        dt = self.update_interval.astype("timedelta64[s]").astype(float) / (
+            60.0 * 60.0 * 24.0
+        )
+
+        carbon_pool_updates = self.carbon.calculate_soil_carbon_updates(
+            self.data["pH"],
+            self.data["bulk_density"],
+            self.data["soil_moisture"],
+            self.data["soil_temperature"],
+            self.data["percent_clay"],
+            dt,
+        )
+
+        # Update carbon pools (attributes and data object)
+        self.carbon.update_soil_carbon_pools(carbon_pool_updates)
+        # UPDATE DATA (OR DOES THE ABOVE ACTUALLY DO THIS?)
+
         # Finally increment timing
         self.next_update += self.update_interval
 
