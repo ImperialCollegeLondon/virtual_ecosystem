@@ -13,30 +13,45 @@ class DamuthsLaw:
     exponent: float = -0.75
     """"""
     coefficienct: float = 4.23
-    """"""
+    """indiv/(km2*kg)"""
 
 
 @dataclass
 class MetabolicRate:
-    """Toy values."""
+    """Temporary basal metabolic rate values for mammals (citation from Rallings)."""
 
     exponent: float = 0.75
     """"""
-    coefficienct: float = 10**-5
-    """"""
+    coefficienct: float = 0.047
+    """ 0.047 J/sg"""
 
 
 @dataclass
-class StoredEnergy:
-    """Toy values."""
+class FatMass:
+    """Scaling of mammalian herbivore fat mass (citation from Rallings)."""
 
-    exponent: float = 0.75
+    exponent: float = 1.19
     """"""
-    coefficienct: float = 10
+    coefficient: float = 0.02
+    """[g/g]"""
+
+
+@dataclass
+class MuscleMass:
+    """Scaling of mammalian herbivore muscle mass (citation from Rallings)."""
+
+    exponent: float = 1.0
     """"""
-    """ fat mass scaling = 0.02 * M ** 1.19 g"""
-    """ muscle mass scaling = 0.38 * M ** 1.0 g"""
-    """ Energy in unit mass = 7000 J/g"""
+    coefficient: float = 0.38
+    """[g/g]"""
+
+
+@dataclass
+class MeatEnergy:
+    """The energy of a unit mass of mammal meat (check citation from Rallings)."""
+
+    value: float = 7000.0
+    """[J/g] """
 
 
 @dataclass

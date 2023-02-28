@@ -27,10 +27,12 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.constants import (
     ConversionEfficiency,
     DamuthsLaw,
+    FatMass,
     IntakeRate,
+    MeatEnergy,
     MetabolicRate,
+    MuscleMass,
     PlantEnergyDensity,
-    StoredEnergy,
 )
 
 
@@ -95,13 +97,20 @@ class AnimalCohort:
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = (
-            MetabolicRate.coefficienct * self.mass**MetabolicRate.exponent
-        )
-        """The rate at which energy is expended to [J/s]."""
+            MetabolicRate.coefficienct * (self.mass * 1000) ** MetabolicRate.exponent
+        ) * 86400
+        """The per-gram rate at which energy is expended modified
+        to kg rate in [J/day]."""
         self.stored_energy: float = (
-            StoredEnergy.coefficienct * self.mass**StoredEnergy.exponent
+            (
+                (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
+                + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
+            )
+            * (1 / 1000)
+            * MeatEnergy.value
         )
-        """The initialized individual energetic reserve [J]."""
+        """The initialized individual energetic reserve [J] as the sum of muscle
+        mass [g] and fat mass [g] multiplied by its average energetic value."""
         self.intake_rate: float = (IntakeRate.coefficienct) * self.mass ** (
             IntakeRate.exponent
         )
@@ -109,8 +118,8 @@ class AnimalCohort:
 
     def metabolize(self) -> None:
         """The function to reduce stored_energy through basal metabolism."""
-        energy_burned = 28800 * self.metabolic_rate
-        """Number of seconds in a day * J/s metabolic rate, consider daily rate."""
+        energy_burned = self.metabolic_rate
+        """ J/day metabolic rate."""
         if self.stored_energy >= energy_burned:
             self.stored_energy -= energy_burned
         elif self.stored_energy < energy_burned:
