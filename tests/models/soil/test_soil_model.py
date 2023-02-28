@@ -205,7 +205,9 @@ def test_generate_soil_model(
         # Check that updates are correct
         assert allclose(model.carbon.maom, end_carbon[0])
         assert allclose(model.carbon.lmwc, end_carbon[1])
-        # TODO - Check what has happened with the data fixture
+        # Check that the data fixture has also been updated
+        assert allclose(dummy_carbon_data["maom"], end_carbon[0])
+        assert allclose(dummy_carbon_data["lmwc"], end_carbon[1])
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

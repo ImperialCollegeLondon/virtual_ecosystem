@@ -152,8 +152,8 @@ class SoilModel(BaseModel):
         )
 
         # Update carbon pools (attributes and data object)
+        # n.b. this also updates the data object automatically
         self.carbon.update_soil_carbon_pools(carbon_pool_updates)
-        # UPDATE DATA (OR DOES THE ABOVE ACTUALLY DO THIS?)
 
         # Finally increment timing
         self.next_update += self.update_interval
