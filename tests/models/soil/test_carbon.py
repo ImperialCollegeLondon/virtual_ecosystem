@@ -85,15 +85,15 @@ def test_pool_updates(dummy_carbon_data):
     )
 
     # Check that the updates are correctly calculated
-    assert np.allclose(delta_pools.delta_maom, np.array(change_in_pools[0]))
-    assert np.allclose(delta_pools.delta_lmwc, np.array(change_in_pools[1]))
+    assert np.allclose(delta_pools.delta_maom, change_in_pools[0])
+    assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
 
     # Use this update to update the soil carbon pools
     soil_carbon.update_soil_carbon_pools(delta_pools)
 
     # Then check that pools are correctly incremented based on update
-    assert np.allclose(soil_carbon.maom, np.array(end_maom))
-    assert np.allclose(soil_carbon.lmwc, np.array(end_lmwc))
+    assert np.allclose(soil_carbon.maom, end_maom)
+    assert np.allclose(soil_carbon.lmwc, end_lmwc)
 
 
 def test_mineral_association(dummy_carbon_data):
@@ -127,7 +127,7 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     equib_maoms = calculate_equilibrium_maom(
         dummy_carbon_data["pH"], Q_max, dummy_carbon_data["lmwc"]
     )
-    assert np.allclose(equib_maoms, np.array(output_eqb_maoms))
+    assert np.allclose(equib_maoms, output_eqb_maoms)
 
 
 @pytest.mark.parametrize(
@@ -176,7 +176,7 @@ def test_calculate_max_sorption_capacity(
                 dummy_carbon_data["bulk_density"], dummy_carbon_data["percent_clay"]
             )
 
-        assert np.allclose(max_capacities, np.array(output_capacities))
+        assert np.allclose(max_capacities, output_capacities)
 
     log_check(caplog, expected_log_entries)
 
@@ -189,7 +189,7 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
 
     binding_coefs = calculate_binding_coefficient(dummy_carbon_data["pH"])
 
-    assert np.allclose(binding_coefs, np.array(output_coefs))
+    assert np.allclose(binding_coefs, output_coefs)
 
 
 def test_convert_temperature_to_scalar(dummy_carbon_data):
@@ -200,7 +200,7 @@ def test_convert_temperature_to_scalar(dummy_carbon_data):
 
     temp_scalar = convert_temperature_to_scalar(dummy_carbon_data["soil_temperature"])
 
-    assert np.allclose(temp_scalar, np.array(output_scalars))
+    assert np.allclose(temp_scalar, output_scalars)
 
 
 @pytest.mark.parametrize(
@@ -238,6 +238,6 @@ def test_convert_moisture_to_scalar(
                 dummy_carbon_data["soil_moisture"]
             )
 
-        assert np.allclose(moist_scalar, np.array(output_scalars))
+        assert np.allclose(moist_scalar, output_scalars)
 
     log_check(caplog, expected_log_entries)
