@@ -10,8 +10,8 @@ Each of the abiotic sub-modules has its own API reference page:
   single class, which the high level functions of the Virtual Rainforest can then use.
 
 * The :mod:`~virtual_rainforest.models.abiotic.abiotic_tools` submodule contains a set
-  of general functions and constants that are shared across submodels in the abiotic
-  model.
+  of general functions and universal constants that are shared across submodels in the
+  abiotic model.
 
 * The :mod:`~virtual_rainforest.models.abiotic.radiation` submodule instantiates
   the :class:`~virtual_rainforest.models.abiotic.radiation.Radiation` class. This class
