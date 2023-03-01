@@ -209,6 +209,7 @@ class Data:
         # Validate and store the data array
         value, valid_dict = validate_dataarray(value=value, grid=self.grid)
         self.data[key] = value
+        self.data[key].data.setflags(write=False)
         self.variable_validation[key] = valid_dict
 
     def __getitem__(self, key: str) -> DataArray:
