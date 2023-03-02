@@ -26,6 +26,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utility_functions import extract_model_time_details
 
 
 class SoilModel(BaseModel):
@@ -106,12 +107,9 @@ class SoilModel(BaseModel):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["soil"]["model_time_step"]).to(
-                "minutes"
+            start_date, update_interval = extract_model_time_details(
+                config, cls.model_name
             )
-            # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-            start_time = datetime64(config["core"]["timing"]["start_time"])
             no_layers = config["soil"]["no_layers"]
         except (
             ValueError,
@@ -130,7 +128,7 @@ class SoilModel(BaseModel):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(data, update_interval, start_time, no_layers)
+            return cls(data, update_interval, start_date, no_layers)
         else:
             raise InitialisationError()
 
