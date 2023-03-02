@@ -82,13 +82,13 @@ def test_generate_animal_model(
         assert model.update_interval == time_interval
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + time_interval
+            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
         )
         # Run the update step and check that next_update has incremented properly
         model.update()
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
+            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
         )
 
     # Final check that expected logging entries are produced
