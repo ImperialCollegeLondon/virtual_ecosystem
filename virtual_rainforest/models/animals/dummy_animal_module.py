@@ -91,13 +91,13 @@ class AnimalCohort:
         self.position = position
         """The grid position of the animal cohort."""
         self.individuals: int = ceil(
-            DamuthsLaw.coefficienct * self.mass ** (DamuthsLaw.exponent)
+            DamuthsLaw.coefficient * self.mass ** (DamuthsLaw.exponent)
         )
         """The number of individuals in the cohort."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = (
-            MetabolicRate.coefficienct * (self.mass * 1000) ** MetabolicRate.exponent
+            MetabolicRate.coefficient * (self.mass * 1000) ** MetabolicRate.exponent
         ) * 86400
         """The per-gram rate at which energy is expended modified
         to kg rate in [J/day]."""
@@ -111,7 +111,7 @@ class AnimalCohort:
         )
         """The initialized individual energetic reserve [J] as the sum of muscle
         mass [g] and fat mass [g] multiplied by its average energetic value."""
-        self.intake_rate: float = (IntakeRate.coefficienct) * self.mass ** (
+        self.intake_rate: float = (IntakeRate.coefficient) * self.mass ** (
             IntakeRate.exponent
         )
         """The rate of plant mass consumption over an 8hr foraging day [kg/day]."""

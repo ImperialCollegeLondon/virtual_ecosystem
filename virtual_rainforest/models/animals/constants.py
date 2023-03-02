@@ -7,74 +7,45 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DamuthsLaw:
-    """Mammalian herbivore population density, observed allometry (Damuth 1987)."""
+class ScalingTerms:
+    """Dataclass for handling the terms of scaling equations."""
 
-    exponent: float = -0.75
-    """"""
-    coefficienct: float = 4.23
-    """indiv/(km2*kg)"""
-
-
-@dataclass
-class MetabolicRate:
-    """Temporary basal metabolic rate values for mammals (citation from Rallings)."""
-
-    exponent: float = 0.75
-    """"""
-    coefficienct: float = 0.047
-    """ 0.047 J/sg"""
+    exponent: float
+    """Handles the exponent on body-mass for scaling equations."""
+    coefficient: float
+    """Handles the coefficient of scaling equations"""
 
 
-@dataclass
-class FatMass:
-    """Scaling of mammalian herbivore fat mass (citation from Rallings)."""
+"""Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]"""
+DamuthsLaw = ScalingTerms(-0.75, 4.23)
 
-    exponent: float = 1.19
-    """"""
-    coefficient: float = 0.02
-    """[g/g]"""
+"""Temporary basal metabolic rate values for mammals (citation from Rallings). [g]"""
+MetabolicRate = ScalingTerms(0.75, 0.047)
+
+"""Scaling of mammalian herbivore fat mass (citation from Rallings). [g]"""
+FatMass = ScalingTerms(1.19, 0.02)
+
+"""Scaling of mammalian herbivore muscle mass (citation from Rallings).[g]"""
+MuscleMass = ScalingTerms(1.0, 0.38)
+
+"""Mammalian maximum intake rate (kg/day) from (Shipley 1994)."""
+IntakeRate = ScalingTerms(0.71, (0.63 * 480) * (1 / 1000))
+""" Converts original g/min rate to kg/day where 'day' is an 8hr foraging window."""
 
 
 @dataclass
-class MuscleMass:
-    """Scaling of mammalian herbivore muscle mass (citation from Rallings)."""
+class Term:
+    """Dataclass for handling fixed parameter values."""
 
-    exponent: float = 1.0
-    """"""
-    coefficient: float = 0.38
-    """[g/g]"""
+    value: float
+    """Contains the float value of the parameter"""
 
 
-@dataclass
-class MeatEnergy:
-    """The energy of a unit mass of mammal meat (check citation from Rallings)."""
+"""The energy of a unit mass of mammal meat (check citation from Rallings). [J/g]"""
+MeatEnergy = Term(7000.0)
 
-    value: float = 7000.0
-    """[J/g] """
+"""Toy value expressing how much of a consumed food is absorbed as energy. [unitless]"""
+ConversionEfficiency = Term(0.1)
 
-
-@dataclass
-class IntakeRate:
-    """Mammalian maximum intake rate (kg/day) from (Shipley 1994)."""
-
-    exponent: float = 0.71
-    """"""
-    coefficienct: float = (0.63 * 480) * (1 / 1000)
-    """ Converts original g/min rate to kg/day where 'day' is an 8hr foraging window."""
-
-
-@dataclass
-class ConversionEfficiency:
-    """Toy values."""
-
-    value: float = 0.1
-    """Unitless."""
-
-
-@dataclass
-class PlantEnergyDensity:
-    """Alfalfa ¬ 18,200,000 J/kg DM."""
-
-    value: float = 18200000.0
-    """"""
+"""Temporary realistic plant food value: Alfalfa ¬ 18,200,000 J/kg DM."""
+PlantEnergyDensity = Term(18200000.0)
