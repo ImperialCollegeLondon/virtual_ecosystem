@@ -27,7 +27,7 @@ def extract_model_time_details(
 
     Raises:
         pint.errors.DimensionalityError: If the desired conversion between units isn't
-        possible, e.g. kg to s.
+            possible, e.g. kg to s.
         pint.errors.UndefinedUnitError: If the unit is not known to pint.
     """
 
