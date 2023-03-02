@@ -11,8 +11,6 @@ import pint
 from numpy import datetime64, timedelta64
 
 
-# TODO - WRITE TEST FOR THIS
-# TODO - IMPROVE MODEL SETUP DOCUMENTATION TO REFLECT THIS
 def extract_model_time_details(
     config: dict[str, Any], model_name: str
 ) -> tuple[datetime64, timedelta64]:
