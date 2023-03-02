@@ -77,7 +77,7 @@ def test_soil_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"no_layers": 2, "model_time_step": "12 hours"},
             },
             timedelta64(12, "h"),
@@ -104,13 +104,13 @@ def test_generate_soil_model(
         assert model.update_interval == time_interval
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + time_interval
+            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
         )
         # Run the update step and check that next_update has incremented properly
         model.update()
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
+            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
         )
 
     # Final check that expected logging entries are produced

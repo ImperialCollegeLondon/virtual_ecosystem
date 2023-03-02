@@ -88,7 +88,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         pytest.param(
             {  # valid config
                 "soil": {"no_layers": 1, "model_time_step": "7 days"},
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
             },
             "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
             " no_layers = 1)",
@@ -106,7 +106,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         pytest.param(
             {  # invalid soil config tag
                 "soil": {"no_layers": -1, "model_time_step": "7 days"},
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
             },
             None,
             pytest.raises(InitialisationError),
