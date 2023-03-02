@@ -27,6 +27,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utility_functions import extract_model_time_details
 
 
 class AnimalModel(BaseModel):
@@ -74,12 +75,9 @@ class AnimalModel(BaseModel):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            raw_interval = pint.Quantity(config["animal"]["model_time_step"]).to(
-                "minutes"
+            start_time, update_interval = extract_model_time_details(
+                config, cls.model_name
             )
-            # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-            start_time = datetime64(config["core"]["timing"]["start_time"])
         except (
             ValueError,
             pint.errors.DimensionalityError,

@@ -38,7 +38,7 @@ def test_animal_model_initialization(caplog, data_instance):
         ),
         (
             {
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
                 "animal": {"model_time_step": "12 hours"},
             },
             timedelta64(12, "h"),
@@ -53,7 +53,7 @@ def test_animal_model_initialization(caplog, data_instance):
         ),
         (
             {
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
                 "animal": {"model_time_step": "20 interminable minutes"},
             },
             None,

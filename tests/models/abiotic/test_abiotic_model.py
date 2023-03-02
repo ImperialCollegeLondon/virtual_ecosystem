@@ -108,7 +108,7 @@ def test_abiotic_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
                 "abiotic": {
                     "soil_layers": 2,
                     "canopy_layers": 3,
