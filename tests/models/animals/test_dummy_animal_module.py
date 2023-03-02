@@ -43,7 +43,7 @@ class TestPalatableSoil:
 
 @pytest.fixture
 def animal_instance():
-    """Fixutre for an animal cohort used in tests."""
+    """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
     return AnimalCohort("Testasaurus", 10000.0, 1, 4)

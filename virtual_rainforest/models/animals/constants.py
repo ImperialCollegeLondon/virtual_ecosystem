@@ -12,7 +12,7 @@ class DamuthsLaw:
 
     exponent: float = -0.75
     """"""
-    coefficienct: float = 4.23
+    coefficient: float = 4.23
     """"""
 
 
@@ -22,7 +22,7 @@ class MetabolicRate:
 
     exponent: float = 0.75
     """"""
-    coefficienct: float = 10**-5
+    coefficient: float = 10**-5
     """"""
 
 
@@ -32,5 +32,5 @@ class StoredEnergy:
 
     exponent: float = 0.75
     """"""
-    coefficienct: float = 10
+    coefficient: float = 10
     """"""

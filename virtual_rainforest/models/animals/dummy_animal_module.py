@@ -85,17 +85,17 @@ class AnimalCohort:
         self.position = position
         """The grid position of the animal cohort."""
         self.individuals: int = ceil(
-            DamuthsLaw.coefficienct * self.mass ** (DamuthsLaw.exponent)
+            DamuthsLaw.coefficient * self.mass ** (DamuthsLaw.exponent)
         )
         """The number of individuals in the cohort."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = (
-            MetabolicRate.coefficienct * self.mass**MetabolicRate.exponent
+            MetabolicRate.coefficient * self.mass**MetabolicRate.exponent
         )
         """The rate at which energy is expended to [J/s]."""
         self.stored_energy: float = (
-            StoredEnergy.coefficienct * self.mass**StoredEnergy.exponent
+            StoredEnergy.coefficient * self.mass**StoredEnergy.exponent
         )
         """The current indiv energetic reserve [J]."""
 
