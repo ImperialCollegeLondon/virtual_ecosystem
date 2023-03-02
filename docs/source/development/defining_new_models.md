@@ -85,6 +85,9 @@ from virtual_rainforest.core.logger import LOGGER
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+
+# A utility function to unpack the model specific timing details from the config
+from virtual_rainforest.core.utility_functions import extract_model_time_details
 ```
 
 ### Defining the new class and class attributes
@@ -283,7 +286,7 @@ The job of the `from_config` method is to take that dictionary, along with the s
 configuration into the arguments required by the `__init__` method.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
-return an initialised instance of the model using the setttings. The `from_config`
+return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
 As an example:
@@ -311,10 +314,9 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
         raw_interval = pint.Quantity(config["freshwater"]["model_time_step"]).to(
             "minutes"
         )
-        # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-        start_time = datetime64(config["core"]["timing"]["start_time"])
-        no_of_pools = config["freshwater"]["no_of_pools"]
+        start_date, update_interval = extract_model_time_details(
+                config, cls.model_name
+            )
     # Catch cases where Values or dimensions are wrong
     except (
         ValueError,
