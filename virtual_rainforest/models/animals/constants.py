@@ -7,30 +7,20 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DamuthsLaw:
-    """From (Damuth 1987)."""
+class Term:
+    """Dataclass for handling the terms of scaling equations."""
 
-    exponent: float = -0.75
-    """"""
-    coefficient: float = 4.23
-    """"""
-
-
-@dataclass
-class MetabolicRate:
-    """Toy values."""
-
-    exponent: float = 0.75
-    """"""
-    coefficient: float = 10**-5
-    """"""
+    exponent: float
+    """Handles the exponent on body-mass for scaling equations."""
+    coefficient: float
+    """Handles the coefficient of scaling equations"""
 
 
-@dataclass
-class StoredEnergy:
-    """Toy values."""
+"""From (Damuth 1987)."""
+DamuthsLaw = Term(-0.75, 4.23)
 
-    exponent: float = 0.75
-    """"""
-    coefficient: float = 10
-    """"""
+"""Toy values."""
+MetabolicRate = Term(0.75, 10**-5)
+
+"""Toy values."""
+StoredEnergy = Term(0.75, 10)
