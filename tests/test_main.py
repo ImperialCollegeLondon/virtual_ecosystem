@@ -90,8 +90,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "soil": {"no_layers": 1, "model_time_step": "7 days"},
                 "core": {"timing": {"start_date": "2020-01-01"}},
             },
-            "SoilModel(update_interval = 10080 minutes, next_update = 2020-01-08T00:00,"
-            " no_layers = 1)",
+            "SoilModel(update_interval = 604800 seconds, next_update = "
+            "2020-01-08T00:00:00, no_layers = 1)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -143,7 +143,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "Configuration types appear not to have been properly validated. "
                     "This problem prevents initialisation of the soil model. The first "
                     "instance of this problem is as follows: Cannot convert from "
-                    "'dimensionless' (dimensionless) to 'minute' ([time])",
+                    "'dimensionless' (dimensionless) to 'second' ([time])",
                 ),
                 (
                     CRITICAL,

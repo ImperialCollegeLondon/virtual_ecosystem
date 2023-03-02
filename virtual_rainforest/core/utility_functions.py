@@ -29,9 +29,9 @@ def extract_model_time_details(
         pint.errors.UndefinedUnitError: If the unit is not known to pint.
     """
 
-    raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to("minutes")
+    raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to("seconds")
     # Round raw time interval to nearest minute
-    update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+    update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
 
     start_date = datetime64(config["core"]["timing"]["start_date"])
 
