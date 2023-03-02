@@ -22,6 +22,8 @@ Notes to self:
 from dataclasses import dataclass
 from math import ceil
 
+from numpy import timedelta64
+
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.constants import (
     DamuthsLaw,
@@ -97,11 +99,17 @@ class AnimalCohort:
         self.stored_energy: float = (
             StoredEnergy.coefficient * self.mass**StoredEnergy.exponent
         )
-        """The current indiv energetic reserve [J]."""
+        """The current individual energetic reserve [J]."""
 
-    def metabolize(self) -> None:
-        """The function to reduce stored_energy through basal metabolism."""
-        energy_burned = 28800 * self.metabolic_rate
+    def metabolize(self, dt: timedelta64) -> None:
+        """The function to reduce stored_energy through basal metabolism.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
+
+        energy_burned = float(dt / timedelta64(1, "s")) * self.metabolic_rate
         """Number of seconds in a day * J/s metabolic rate, consider daily rate."""
         if self.stored_energy >= energy_burned:
             self.stored_energy -= energy_burned

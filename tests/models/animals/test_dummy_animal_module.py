@@ -1,6 +1,7 @@
 """Test module for dummy_animal_module.py."""
 
 import pytest
+from numpy import timedelta64
 
 
 @pytest.fixture
@@ -59,10 +60,16 @@ class TestAnimalCohort:
         assert animal_instance.stored_energy == 10000.0
 
     @pytest.mark.parametrize(
-        "initial, final", [(10000.0, 9712.0), (500.0, 212.0), (0.0, 0.0)]
+        "dt, initial, final",
+        [
+            (timedelta64(1, "D"), 10000.0, 9136.0),
+            (timedelta64(1, "D"), 500.0, 0.0),
+            (timedelta64(1, "D"), 0.0, 0.0),
+            (timedelta64(5, "D"), 10000.0, 5680.0),
+        ],
     )
-    def test_metabolize(self, animal_instance, initial, final):
+    def test_metabolize(self, animal_instance, dt, initial, final):
         """Testing metabolize at varying energy levels."""
         animal_instance.stored_energy = initial
-        animal_instance.metabolize()
+        animal_instance.metabolize(dt)
         assert animal_instance.stored_energy == final
