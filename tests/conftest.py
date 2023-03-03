@@ -18,8 +18,7 @@ def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> N
 
     Arguments:
         caplog: An instance of the caplog fixture
-        expected_log: An iterable of 2-tuples containing the
-            log level and message.
+        expected_log: An iterable of 2-tuples containing the log level and message.
     """
 
     assert len(expected_log) == len(caplog.records)
@@ -112,7 +111,10 @@ def dummy_carbon_data():
     grid = Grid(cell_nx=4, cell_ny=1)
     data = Data(grid)
 
-    # Add the required data.
+    # The required data is now added. This includes the two carbon pools: mineral
+    # associated organic matter and low molecular weight carbon. It also includes
+    # various factors of the physical environment: pH, bulk density, soil moisture, soil
+    # temperature, percentage clay in soil.
     data["mineral_associated_om"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
     """Mineral associated organic matter pool (kg C m^-3)"""
     data["low_molecular_weight_c"] = DataArray(
