@@ -3,7 +3,7 @@ as self-contained dummy versions of the abiotic, soil, and plant modules that
 are required for setting up and testing the early stages of the animal module.
 
 Todo:
-- update stored_energy to vaguely realistic values (notes in constants.py)
+- food intake, needs to be modified by number of indiv in cohort
 - rework dispersal
 - send portion of dead to carcass pool
 
@@ -121,12 +121,15 @@ class AnimalCohort:
         elif self.stored_energy < energy_burned:
             self.stored_energy = 0.0
 
-    def eat(self, food: PlantCommunity) -> None:
+    def eat(self, food: PlantCommunity) -> float:
         """The function to transfer energy from a food source to the animal cohort.
 
         Args:
             food: The targeted PlantCommunity instance from which energy is
                             transferred.
+
+        Returns:
+            A float containing the amount of energy consumed in the foraging bout.
         """
         consumed_energy = min(food.energy, self.intake_rate * food.energy_density)
         """Minimum of the energy available and amount that can be consumed in an 8 hour
@@ -137,3 +140,31 @@ class AnimalCohort:
         ) / self.individuals
         """The energy [J] extracted from the PlantCommunity adjusted for energetic
         conversion efficiency and divided by the number of individuals in the cohort."""
+        return consumed_energy
+
+    def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
+        """The function to transfer waste energy from an animal cohort to the soil.
+
+        Args:
+            soil: The local PalatableSoil pool in which waste is deposited.
+            consumed_energy: The amount of energy flowing through cohort digestion.
+
+        """
+        waste_energy = consumed_energy * ConversionEfficiency.value
+        soil.energy += waste_energy
+
+    def forage(self, food: PlantCommunity, soil: PalatableSoil) -> None:
+        """The function to enact multi-step foraging behaviors.
+
+        Currently, this wraps the acts of consuming plants and excreting wastes. It will
+        later wrap additional functions for selecting a food choice and navigating
+        predation interactions.
+
+        Args:
+            food: The targeted PlantCommunity instance from which energy is
+                            transferred.
+            soil: The local PalatableSoil pool in which waste is deposited.
+
+        """
+        consumed_energy = self.eat(food)
+        self.excrete(soil, consumed_energy)

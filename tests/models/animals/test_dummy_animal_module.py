@@ -43,8 +43,16 @@ class TestPalatableSoil:
 
 
 @pytest.fixture
+def soil_instance():
+    """Fixture for a soil pool used in tests."""
+    from virtual_rainforest.models.animals.dummy_animal_module import PalatableSoil
+
+    return PalatableSoil(100000.0, 4)
+
+
+@pytest.fixture
 def animal_instance():
-    """Fixutre for an animal cohort used in tests."""
+    """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
     return AnimalCohort("Testasaurus", 10000.0, 1, 4)
@@ -94,3 +102,20 @@ class TestAnimalCohort:
         animal_instance.eat(plant_instance)
         assert animal_instance.stored_energy == animal_final
         assert plant_instance.energy == plant_final
+
+    @pytest.mark.parametrize(
+        "soil_initial, soil_final, consumed_energy",
+        [
+            (1000.0, 1100.0, 1000.0),
+            (0.0, 100.0, 1000.0),
+            (1000.0, 1000.0, 0.0),
+            (0.0, 0.0, 0.0),
+        ],
+    )
+    def test_excrete(
+        self, animal_instance, soil_instance, soil_initial, soil_final, consumed_energy
+    ):
+        """Testing excrete() for varying soil energy levels."""
+        soil_instance.energy = soil_initial
+        animal_instance.excrete(soil_instance, consumed_energy)
+        assert soil_instance.energy == soil_final
