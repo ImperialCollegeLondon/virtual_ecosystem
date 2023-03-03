@@ -79,9 +79,6 @@ class SoilModel(BaseModel):
         self.carbon = SoilCarbonPools(data)
         """Set of soil carbon pools used by the model"""
 
-        # Save variables names to be used by the __repr__
-        # self._repr.append("")
-
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
