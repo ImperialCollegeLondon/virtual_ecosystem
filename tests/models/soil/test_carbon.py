@@ -10,21 +10,15 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.models.soil.carbon import SoilCarbonPools
-
-
-def test_soil_carbon_class(dummy_carbon_data):
-    """Test SoilCarbon class can be initialised."""
-
-    # Check that initialisation succeeds as expected
-    _ = SoilCarbonPools(dummy_carbon_data)
 
 
 def test_pool_updates(dummy_carbon_data):
     """Test that the two pool update functions work correctly."""
 
-    # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(dummy_carbon_data)
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_soil_carbon_updates,
+        update_soil_carbon_pools,
+    )
 
     dt = 0.5
     change_in_pools = [
@@ -34,7 +28,7 @@ def test_pool_updates(dummy_carbon_data):
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
-    delta_pools = soil_carbon.calculate_soil_carbon_updates(
+    delta_pools = calculate_soil_carbon_updates(
         dummy_carbon_data,
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
@@ -49,7 +43,7 @@ def test_pool_updates(dummy_carbon_data):
     assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
 
     # Use this update to update the soil carbon pools
-    soil_carbon.update_soil_carbon_pools(dummy_carbon_data, delta_pools)
+    update_soil_carbon_pools(dummy_carbon_data, delta_pools)
 
     # Then check that pools are correctly incremented based on update
     assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
@@ -59,13 +53,12 @@ def test_pool_updates(dummy_carbon_data):
 def test_mineral_association(dummy_carbon_data):
     """Test that mineral_association runs and generates the correct values."""
 
+    from virtual_rainforest.models.soil.carbon import mineral_association
+
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
 
-    # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(dummy_carbon_data)
-
     # Then calculate mineral association rate
-    lmwc_to_maom = soil_carbon.mineral_association(
+    lmwc_to_maom = mineral_association(
         dummy_carbon_data,
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],

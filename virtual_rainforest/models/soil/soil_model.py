@@ -27,7 +27,10 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.soil.carbon import SoilCarbonPools
+from virtual_rainforest.models.soil.carbon import (
+    calculate_soil_carbon_updates,
+    update_soil_carbon_pools,
+)
 
 
 class SoilModel(BaseModel):
@@ -87,8 +90,6 @@ class SoilModel(BaseModel):
         """The time interval between model updates."""
         self.next_update
         """The simulation time at which the model should next run the update method"""
-        self.carbon = SoilCarbonPools(data)
-        """Set of soil carbon pools used by the model"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
@@ -150,7 +151,7 @@ class SoilModel(BaseModel):
             60.0 * 60.0 * 24.0
         )
 
-        carbon_pool_updates = self.carbon.calculate_soil_carbon_updates(
+        carbon_pool_updates = calculate_soil_carbon_updates(
             self.data,
             self.data["pH"],
             self.data["bulk_density"],
@@ -162,7 +163,7 @@ class SoilModel(BaseModel):
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.carbon.update_soil_carbon_pools(self.data, carbon_pool_updates)
+        update_soil_carbon_pools(self.data, carbon_pool_updates)
 
         # Finally increment timing
         self.next_update += self.update_interval
