@@ -12,21 +12,16 @@ import pytest
 from tests.conftest import log_check
 
 
-def test_pool_updates(dummy_carbon_data):
+def test_calculate_soil_carbon_updates(dummy_carbon_data):
     """Test that the two pool update functions work correctly."""
 
-    from virtual_rainforest.models.soil.carbon import (
-        calculate_soil_carbon_updates,
-        update_soil_carbon_pools,
-    )
+    from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     dt = 0.5
     change_in_pools = [
         [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7],
         [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7],
     ]
-    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
-    end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
     delta_pools = calculate_soil_carbon_updates(
         dummy_carbon_data,
@@ -41,13 +36,6 @@ def test_pool_updates(dummy_carbon_data):
     # Check that the updates are correctly calculated
     assert np.allclose(delta_pools.delta_maom, change_in_pools[0])
     assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
-
-    # Use this update to update the soil carbon pools
-    update_soil_carbon_pools(dummy_carbon_data, delta_pools)
-
-    # Then check that pools are correctly incremented based on update
-    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
-    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
 
 
 def test_mineral_association(dummy_carbon_data):

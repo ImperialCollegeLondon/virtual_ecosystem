@@ -5,6 +5,7 @@ from logging import DEBUG, INFO
 
 import pytest
 from numpy import allclose, datetime64, timedelta64
+from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
 from virtual_rainforest.models.soil.soil_model import SoilModel
@@ -167,3 +168,29 @@ def test_generate_soil_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_update_soil_pools(dummy_carbon_data):
+    """Test function to update soil pools."""
+
+    from virtual_rainforest.models.soil.soil_model import update_soil_pools
+
+    delta_maom = [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7]
+    delta_lmwc = [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7]
+
+    delta_pools = Dataset(
+        data_vars=dict(
+            delta_maom=DataArray(delta_maom, dims="cell_id"),
+            delta_lmwc=DataArray(delta_lmwc, dims="cell_id"),
+        )
+    )
+
+    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
+    end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
+
+    # Use this update to update the soil carbon pools
+    update_soil_pools(dummy_carbon_data, delta_pools)
+
+    # Then check that pools are correctly incremented based on update
+    assert allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
+    assert allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)

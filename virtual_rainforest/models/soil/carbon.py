@@ -21,25 +21,6 @@ from virtual_rainforest.models.soil.constants import (
 # to track down a reliable parameterisation for this section.
 
 
-def update_soil_carbon_pools(data: Data, delta_pools: Dataset) -> None:
-    """Update soil carbon pools based on previously calculated net change.
-
-    The state of the soil carbon pools will effect the rate of other processes in
-    the soil module. These processes in turn can effect the exchange rates between
-    the soil organic matter pools. Thus, separate update functions (like this one)
-    are necessary so that update increments for all soil module components can be
-    calculated on a single state, which is only then updated when all increments
-    have been calculated.
-
-    Args:
-        data: The data object to be used in the model.
-        delta_pools: Array of updates for every pool
-    """
-
-    data["mineral_associated_om"] += delta_pools["delta_maom"]
-    data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
-
-
 def calculate_soil_carbon_updates(
     data: Data,
     pH: DataArray,
