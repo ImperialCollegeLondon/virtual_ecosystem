@@ -7,7 +7,6 @@ interactions will be added at a later date.
 import numpy as np
 from xarray import DataArray, Dataset
 
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
@@ -32,15 +31,6 @@ class SoilCarbonPools:
 
     def __init__(self, data: Data) -> None:
         """Initialise set of carbon pools."""
-
-        if np.any(data["mineral_associated_om"] < 0.0) or np.any(
-            data["low_molecular_weight_c"] < 0.0
-        ):
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
 
     def update_soil_carbon_pools(self, data: Data, delta_pools: Dataset) -> None:
         """Update soil carbon pools based on previously calculated net change.

@@ -4,14 +4,12 @@ This module tests the functionality of the soil carbon module
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import ERROR
 
 import numpy as np
 import pytest
-from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 
@@ -20,42 +18,6 @@ def test_soil_carbon_class(dummy_carbon_data):
 
     # Check that initialisation succeeds as expected
     _ = SoilCarbonPools(dummy_carbon_data)
-
-
-def test_bad_soil_carbon_class(caplog):
-    """Test that negative soil pool values prevent class initialisation."""
-
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    # Setup the data object with a single cells.
-    grid = Grid(cell_nx=1, cell_ny=1)
-    data = Data(grid)
-
-    # Add the required data.
-    data["mineral_associated_om"] = DataArray([2.5], dims=["cell_id"])
-    data["low_molecular_weight_c"] = DataArray([-0.05], dims=["cell_id"])
-
-    # Check that initialisation fails as expected
-    with pytest.raises(InitialisationError):
-        _ = SoilCarbonPools(data)
-
-    expected_log_entries = (
-        (
-            INFO,
-            "Adding data array for 'mineral_associated_om'",
-        ),
-        (
-            INFO,
-            "Adding data array for 'low_molecular_weight_c'",
-        ),
-        (
-            ERROR,
-            "Initial carbon pools contain at least one negative value!",
-        ),
-    )
-
-    log_check(caplog, expected_log_entries)
 
 
 def test_pool_updates(dummy_carbon_data):

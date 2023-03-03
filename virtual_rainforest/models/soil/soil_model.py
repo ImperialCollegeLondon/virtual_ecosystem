@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pint
 from numpy import datetime64, timedelta64
 
@@ -68,6 +69,16 @@ class SoilModel(BaseModel):
         start_time: datetime64,
         **kwargs: Any,
     ):
+        # Check that soil pool data is appropriately bounded
+        if np.any(data["mineral_associated_om"] < 0.0) or np.any(
+            data["low_molecular_weight_c"] < 0.0
+        ):
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
         super().__init__(data, update_interval, start_time, **kwargs)
 
         self.data
