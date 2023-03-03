@@ -33,8 +33,8 @@ def test_bad_soil_carbon_class(caplog):
     data = Data(grid)
 
     # Add the required data.
-    data["maom"] = DataArray([2.5], dims=["cell_id"])
-    data["lmwc"] = DataArray([-0.05], dims=["cell_id"])
+    data["mineral_associated_om"] = DataArray([2.5], dims=["cell_id"])
+    data["low_molecular_weight_c"] = DataArray([-0.05], dims=["cell_id"])
 
     # Check that initialisation fails as expected
     with pytest.raises(InitialisationError):
@@ -43,11 +43,11 @@ def test_bad_soil_carbon_class(caplog):
     expected_log_entries = (
         (
             INFO,
-            "Adding data array for 'maom'",
+            "Adding data array for 'mineral_associated_om'",
         ),
         (
             INFO,
-            "Adding data array for 'lmwc'",
+            "Adding data array for 'low_molecular_weight_c'",
         ),
         (
             ERROR,
@@ -90,8 +90,8 @@ def test_pool_updates(dummy_carbon_data):
     soil_carbon.update_soil_carbon_pools(dummy_carbon_data, delta_pools)
 
     # Then check that pools are correctly incremented based on update
-    assert np.allclose(dummy_carbon_data["maom"], end_maom)
-    assert np.allclose(dummy_carbon_data["lmwc"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
+    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
 
 
 def test_mineral_association(dummy_carbon_data):
@@ -124,7 +124,7 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     output_eqb_maoms = [19900.19, 969.4813, 832.6088, 742.4128]
 
     equib_maoms = calculate_equilibrium_maom(
-        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["lmwc"]
+        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["low_molecular_weight_c"]
     )
     assert np.allclose(equib_maoms, output_eqb_maoms)
 

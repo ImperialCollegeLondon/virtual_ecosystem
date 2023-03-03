@@ -19,11 +19,11 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
             (
                 (
                     DEBUG,
-                    "soil model: required var 'maom' checked",
+                    "soil model: required var 'mineral_associated_om' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'lmwc' checked",
+                    "soil model: required var 'low_molecular_weight_c' checked",
                 ),
                 (
                     DEBUG,
@@ -53,11 +53,13 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
             (
                 (
                     ERROR,
-                    "soil model: init data missing required var 'maom'",
+                    "soil model: init data missing required var "
+                    "'mineral_associated_om'",
                 ),
                 (
                     ERROR,
-                    "soil model: init data missing required var 'lmwc'",
+                    "soil model: init data missing required var "
+                    "'low_molecular_weight_c'",
                 ),
                 (
                     ERROR,
@@ -143,11 +145,11 @@ def test_soil_model_initialization(
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'maom' checked",
+                    "soil model: required var 'mineral_associated_om' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'lmwc' checked",
+                    "soil model: required var 'low_molecular_weight_c' checked",
                 ),
                 (
                     DEBUG,
@@ -169,8 +171,8 @@ def test_soil_model_initialization(
                     DEBUG,
                     "soil model: required var 'percent_clay' checked",
                 ),
-                (INFO, "Replacing data array for 'maom'"),
-                (INFO, "Replacing data array for 'lmwc'"),
+                (INFO, "Replacing data array for 'mineral_associated_om'"),
+                (INFO, "Replacing data array for 'low_molecular_weight_c'"),
             ),
             [
                 [2.50019883, 1.70000589, 4.50007171, 0.50000014],
@@ -205,8 +207,8 @@ def test_generate_soil_model(
             == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
         )
         # Check that updates to data fixture are correct
-        assert allclose(dummy_carbon_data["maom"], end_carbon[0])
-        assert allclose(dummy_carbon_data["lmwc"], end_carbon[1])
+        assert allclose(dummy_carbon_data["mineral_associated_om"], end_carbon[0])
+        assert allclose(dummy_carbon_data["low_molecular_weight_c"], end_carbon[1])
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

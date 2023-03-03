@@ -47,8 +47,8 @@ class SoilModel(BaseModel):
     model_name = "soil"
     """An internal name used to register the model and schema"""
     required_init_vars = (
-        ("maom", ("spatial",)),
-        ("lmwc", ("spatial",)),
+        ("mineral_associated_om", ("spatial",)),
+        ("low_molecular_weight_c", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
         ("soil_moisture", ("spatial",)),

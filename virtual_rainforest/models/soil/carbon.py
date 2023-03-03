@@ -33,7 +33,9 @@ class SoilCarbonPools:
     def __init__(self, data: Data) -> None:
         """Initialise set of carbon pools."""
 
-        if np.any(data["maom"] < 0.0) or np.any(data["lmwc"] < 0.0):
+        if np.any(data["mineral_associated_om"] < 0.0) or np.any(
+            data["low_molecular_weight_c"] < 0.0
+        ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
             )
@@ -55,8 +57,8 @@ class SoilCarbonPools:
             delta_pools: Array of updates for every pool
         """
 
-        data["maom"] += delta_pools["delta_maom"]
-        data["lmwc"] += delta_pools["delta_lmwc"]
+        data["mineral_associated_om"] += delta_pools["delta_maom"]
+        data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
 
     def calculate_soil_carbon_updates(
         self,
@@ -84,7 +86,7 @@ class SoilCarbonPools:
             dt: time step (days)
 
         Returns:
-            A vector containing net changes to each pool. Order [lmwc, moam].
+            A vector containing net changes to each pool. Order [lmwc, maom].
         """
         # TODO - Add interactions which involve the three missing carbon pools
 
@@ -135,7 +137,9 @@ class SoilCarbonPools:
 
         # Calculate
         Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
-        equib_maom = calculate_equilibrium_maom(pH, Q_max, data["lmwc"])
+        equib_maom = calculate_equilibrium_maom(
+            pH, Q_max, data["low_molecular_weight_c"]
+        )
 
         # Find scalar factors that multiple rates
         temp_scalar = convert_temperature_to_scalar(soil_temp)
@@ -144,8 +148,8 @@ class SoilCarbonPools:
         return (
             temp_scalar
             * moist_scalar
-            * data["lmwc"]
-            * (equib_maom - data["maom"])
+            * data["low_molecular_weight_c"]
+            * (equib_maom - data["mineral_associated_om"])
             / Q_max
         )
 

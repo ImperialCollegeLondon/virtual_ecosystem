@@ -113,9 +113,11 @@ def dummy_carbon_data():
     data = Data(grid)
 
     # Add the required data.
-    data["maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
+    data["mineral_associated_om"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
     """Mineral associated organic matter pool (kg C m^-3)"""
-    data["lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
+    data["low_molecular_weight_c"] = DataArray(
+        [0.05, 0.02, 0.1, 0.005], dims=["cell_id"]
+    )
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
