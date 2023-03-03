@@ -102,13 +102,9 @@ class AnimalCohort:
         """The per-gram rate at which energy is expended modified
         to kg rate in [J/day]."""
         self.stored_energy: float = (
-            (
-                (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
-                + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
-            )
-            * (1 / 1000)
-            * MeatEnergy.value
-        )
+            (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
+            + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
+        ) * MeatEnergy.value
         """The initialized individual energetic reserve [J] as the sum of muscle
         mass [g] and fat mass [g] multiplied by its average energetic value."""
         self.intake_rate: float = (IntakeRate.coefficient) * self.mass ** (
