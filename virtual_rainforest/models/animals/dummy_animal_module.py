@@ -3,6 +3,7 @@ as self-contained dummy versions of the abiotic, soil, and plant modules that
 are required for setting up and testing the early stages of the animal module.
 
 Todo:
+- food intake, needs to be modified by number of indiv in cohort
 - rework dispersal
 - send portion of dead to carcass pool
 
@@ -26,9 +27,14 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.constants import (
+    ConversionEfficiency,
     DamuthsLaw,
+    FatMass,
+    IntakeRate,
+    MeatEnergy,
     MetabolicRate,
-    StoredEnergy,
+    MuscleMass,
+    PlantEnergyDensity,
 )
 
 
@@ -39,12 +45,12 @@ class PlantCommunity:
         """The constructor for Plant class."""
         self.mass = mass
         """The mass of the plant cohort [kg]."""
-        self.energy_density: float = 1000.0
-        """The energy (J) in a kg of plant. [small toy J/kg value for convenience.]"""
+        self.energy_density: float = PlantEnergyDensity.value
+        """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
         self.energy_max: float = self.mass * self.energy_density
-        """The maximum amount of energy that the cohort can have [J] [toy]."""
+        """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
         self.energy = self.energy_max
-        """The amount of energy in the plant cohort [J] [toy]."""
+        """The initial amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.position = position
@@ -93,12 +99,21 @@ class AnimalCohort:
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = (
-            MetabolicRate.coefficient * self.mass**MetabolicRate.exponent
-        )
-        """The rate at which energy is expended to [J/s]."""
+            MetabolicRate.coefficient * (self.mass * 1000) ** MetabolicRate.exponent
+        ) * 86400
+        """The per-gram rate at which energy is expended modified
+        to kg rate in [J/day]."""
         self.stored_energy: float = (
-            StoredEnergy.coefficient * self.mass**StoredEnergy.exponent
+            (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
+            + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
+        ) * MeatEnergy.value
+        """The initialized individual energetic reserve [J] as the sum of muscle
+        mass [g] and fat mass [g] multiplied by its average energetic value."""
+        self.intake_rate: float = (IntakeRate.coefficient) * self.mass ** (
+            IntakeRate.exponent
         )
+        """The individual rate of plant mass consumption over an 8hr foraging day
+        [kg/day]."""
         """The current individual energetic reserve [J]."""
 
     def metabolize(self, dt: timedelta64) -> None:
@@ -115,3 +130,53 @@ class AnimalCohort:
             self.stored_energy -= energy_burned
         elif self.stored_energy < energy_burned:
             self.stored_energy = 0.0
+
+    def eat(self, food: PlantCommunity) -> float:
+        """The function to transfer energy from a food source to the animal cohort.
+
+        Args:
+            food: The targeted PlantCommunity instance from which energy is
+                            transferred.
+
+        Returns:
+            A float containing the amount of energy consumed in the foraging bout.
+        """
+        consumed_energy = min(food.energy, self.intake_rate * food.energy_density)
+        """Minimum of the energy available and amount that can be consumed in an 8 hour
+        foraging window ."""
+        food.energy -= consumed_energy * self.individuals
+        """The amount of energy consumed by the average member * number of
+        individuals."""
+        self.stored_energy += consumed_energy * ConversionEfficiency.value
+        """The energy [J] extracted from the PlantCommunity adjusted for energetic
+        conversion efficiency and divided by the number of individuals in the cohort."""
+        return consumed_energy
+
+    def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
+        """The function to transfer waste energy from an animal cohort to the soil.
+
+        Args:
+            soil: The local PalatableSoil pool in which waste is deposited.
+            consumed_energy: The amount of energy flowing through cohort digestion.
+
+        """
+        waste_energy = consumed_energy * ConversionEfficiency.value
+        soil.energy += waste_energy * self.individuals
+        """The amount of waste deposited by the average cohort member * number
+        individuals."""
+
+    def forage(self, food: PlantCommunity, soil: PalatableSoil) -> None:
+        """The function to enact multi-step foraging behaviors.
+
+        Currently, this wraps the acts of consuming plants and excreting wastes. It will
+        later wrap additional functions for selecting a food choice and navigating
+        predation interactions.
+
+        Args:
+            food: The targeted PlantCommunity instance from which energy is
+                            transferred.
+            soil: The local PalatableSoil pool in which waste is deposited.
+
+        """
+        consumed_energy = self.eat(food)
+        self.excrete(soil, consumed_energy)
