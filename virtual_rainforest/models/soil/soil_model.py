@@ -70,6 +70,8 @@ class SoilModel(BaseModel):
         start_time: datetime64,
         **kwargs: Any,
     ):
+        super().__init__(data, update_interval, start_time, **kwargs)
+
         # Check that soil pool data is appropriately bounded
         if np.any(data["mineral_associated_om"] < 0.0) or np.any(
             data["low_molecular_weight_c"] < 0.0
@@ -79,8 +81,6 @@ class SoilModel(BaseModel):
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        super().__init__(data, update_interval, start_time, **kwargs)
 
         self.data
         """A Data instance providing access to the shared simulation data."""

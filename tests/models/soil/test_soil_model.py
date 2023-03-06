@@ -1,23 +1,23 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, INFO
+from copy import deepcopy
+from logging import DEBUG, ERROR, INFO
 
 import pytest
 from numpy import allclose, datetime64, timedelta64
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
-# TODO - Add a this has initialised badly test here
-# Slightly tricky as I don't want to make a ton of fixtures
-# Or overwrite the one I have
 @pytest.mark.parametrize(
-    "raises,expected_log_entries",
+    "bad_data,raises,expected_log_entries",
     [
         (
+            [],
             does_not_raise(),
             (
                 (
@@ -50,18 +50,119 @@ from virtual_rainforest.models.soil.soil_model import SoilModel
                 ),
             ),
         ),
+        (
+            1,
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "soil model: init data missing required var "
+                    "'mineral_associated_om'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var "
+                    "'low_molecular_weight_c'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'pH'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'bulk_density'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'soil_moisture'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'soil_temperature'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var 'percent_clay'",
+                ),
+                (
+                    ERROR,
+                    "soil model: error checking required_init_vars, see log.",
+                ),
+            ),
+        ),
+        (
+            2,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    INFO,
+                    "Replacing data array for 'low_molecular_weight_c'",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'mineral_associated_om' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'low_molecular_weight_c' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_moisture' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_temperature' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
+                ),
+                (
+                    ERROR,
+                    "Initial carbon pools contain at least one negative value!",
+                ),
+            ),
+        ),
     ],
 )
 def test_soil_model_initialization(
-    caplog, dummy_carbon_data, raises, expected_log_entries
+    caplog, dummy_carbon_data, bad_data, raises, expected_log_entries
 ):
     """Test `SoilModel` initialization."""
 
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
     with raises:
         # Initialize model
-        model = SoilModel(
-            dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
-        )
+        if bad_data:
+            # Make four cell grid
+            grid = Grid(cell_nx=4, cell_ny=1)
+            carbon_data = Data(grid)
+            # On second test actually populate this data to test bounds
+            if bad_data == 2:
+                carbon_data = deepcopy(dummy_carbon_data)
+                # Put incorrect data in for lmwc
+                carbon_data["low_molecular_weight_c"] = DataArray(
+                    [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
+                )
+            # Initialise model with bad data object
+            model = SoilModel(
+                carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+            )
+        else:
+            model = SoilModel(
+                dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+            )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
