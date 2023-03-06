@@ -142,7 +142,7 @@ class SoilModel(BaseModel):
         """Placeholder function to spin up the soil model."""
 
     def update(self) -> None:
-        """Placeholder function to update the soil model."""
+        """Function to update the soil model."""
 
         # Convert time step from seconds to days
         dt = self.update_interval.astype("timedelta64[s]").astype(float) / (
@@ -161,7 +161,7 @@ class SoilModel(BaseModel):
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        update_soil_pools(self.data, carbon_pool_updates)
+        self.increment_soil_pools(carbon_pool_updates)
 
         # Finally increment timing
         self.next_update += self.update_interval
@@ -169,20 +169,20 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
+    def increment_soil_pools(self, delta_pools: Dataset) -> None:
+        """Increment soil pools based on previously calculated net change.
 
-def update_soil_pools(data: Data, delta_pools: Dataset) -> None:
-    """Update soil pools based on previously calculated net change.
+        The state of particular soil pools will effect the rate of other processes in
+        the soil module. These processes in turn can effect the exchange rates between
+        the original soil pools. Thus, a separate update function is necessary so that
+        update increments for all soil module components can be calculated on a single
+        state, which is then updated (using this function) when all increments have been
+        calculated.
 
-    The state of particular soil pools will effect the rate of other processes in the
-    soil module. These processes in turn can effect the exchange rates between the
-    original soil pools. Thus, a separate update function is necessary so that update
-    increments for all soil module components can be calculated on a single state, which
-    is then updated (using this function) when all increments have been calculated.
+        Args:
+            data: The data object to be used in the model.
+            delta_pools: Array of updates for every pool
+        """
 
-    Args:
-        data: The data object to be used in the model.
-        delta_pools: Array of updates for every pool
-    """
-
-    data["mineral_associated_om"] += delta_pools["delta_maom"]
-    data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
+        self.data["mineral_associated_om"] += delta_pools["delta_maom"]
+        self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]

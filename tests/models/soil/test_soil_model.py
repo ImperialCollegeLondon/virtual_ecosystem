@@ -165,7 +165,9 @@ def test_soil_model_initialization(
             )
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+        assert set(
+            ["setup", "spinup", "update", "cleanup", "increment_soil_pools"]
+        ).issubset(dir(model))
         assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
         assert (
@@ -271,10 +273,16 @@ def test_generate_soil_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_update_soil_pools(dummy_carbon_data):
+def test_increment_soil_pools(dummy_carbon_data):
     """Test function to update soil pools."""
 
-    from virtual_rainforest.models.soil.soil_model import update_soil_pools
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    config = {
+        "core": {"timing": {"start_time": "2020-01-01"}},
+        "soil": {"model_time_step": "12 hours"},
+    }
+    model = SoilModel.from_config(dummy_carbon_data, config)
 
     delta_maom = [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7]
     delta_lmwc = [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7]
@@ -290,7 +298,7 @@ def test_update_soil_pools(dummy_carbon_data):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
     # Use this update to update the soil carbon pools
-    update_soil_pools(dummy_carbon_data, delta_pools)
+    model.increment_soil_pools(delta_pools)
 
     # Then check that pools are correctly incremented based on update
     assert allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
