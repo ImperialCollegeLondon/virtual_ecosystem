@@ -210,8 +210,13 @@ class SoilModel(BaseModel):
         # Convert from second to day units
         t_span = (0.0, update_time / (60.0 * 60.0 * 24.0))
 
-        # TODO - Construct vector of initial values y0
-        y0: list[float] = []
+        # Construct vector of initial values y0
+        y0 = np.concatenate(
+            [
+                self.data["low_molecular_weight_c"].to_numpy(),
+                self.data["mineral_associated_om"].to_numpy(),
+            ]
+        )
 
         # TODO - Add actual integration here
         solve_ivp(construct_full_soil_model, t_span, y0)
@@ -226,12 +231,15 @@ def construct_full_soil_model(pools: np.ndarray, data: Data) -> np.ndarray:
     Args:
         pools: And area containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
+
+    Returns:
+        The rate of change for each soil pool
     """
     # Find number of pools of each type
     # TODO - Check that this order is documented somewhere
     no_cells = int(pools.size / 2)
 
-    pool_updates = calculate_soil_carbon_updates(
+    pool_rate_of_changes = calculate_soil_carbon_updates(
         pools[: no_cells - 1],
         pools[no_cells:],
         data["pH"],
@@ -241,4 +249,4 @@ def construct_full_soil_model(pools: np.ndarray, data: Data) -> np.ndarray:
         data["percent_clay"],
     )
 
-    return pool_updates
+    return pool_rate_of_changes
