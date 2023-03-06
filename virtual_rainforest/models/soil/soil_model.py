@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 import pint
 from numpy import datetime64, timedelta64
+from scipy.integrate import solve_ivp
 from xarray import Dataset
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
@@ -196,6 +197,20 @@ class SoilModel(BaseModel):
         that is feasible).
         """
 
+        # Extract update interval
+        update_time = self.update_interval.astype("timedelta64[s]").astype(float)
+        # Convert from second to day units
+        t_span = (0.0, update_time / (60.0 * 60.0 * 24.0))
+
+        # TODO - Construct vector of initial values y0
+        y0: list[float] = []
+
         # TODO - Add actual integration here
+        solve_ivp(construct_full_soil_model, t_span, y0)
 
         return Dataset()
+
+
+# TODO - Work out how to test this function
+def construct_full_soil_model() -> None:
+    """Function that constructs the full soil model in a solve_ivp friendly form."""
