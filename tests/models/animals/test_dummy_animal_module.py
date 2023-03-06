@@ -1,9 +1,7 @@
-"""Test module for dummy_animal_module.py.
-
-This module tests the functionality of dummy_animal_module.py
-"""
+"""Test module for dummy_animal_module.py."""
 
 import pytest
+from numpy import timedelta64
 
 
 @pytest.fixture
@@ -42,3 +40,36 @@ class TestPalatableSoil:
 
         s1 = PalatableSoil(1000.7, 1)
         assert s1.energy == 1000.7
+
+
+@pytest.fixture
+def animal_instance():
+    """Fixture for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
+
+    return AnimalCohort("Testasaurus", 10000.0, 1, 4)
+
+
+class TestAnimalCohort:
+    """Test Animal class."""
+
+    def test_initialization(self, animal_instance):
+        """Testing initialization of derived parameters for animal cohorts."""
+        assert animal_instance.individuals == 1
+        assert animal_instance.metabolic_rate == 0.01
+        assert animal_instance.stored_energy == 10000.0
+
+    @pytest.mark.parametrize(
+        "dt, initial, final",
+        [
+            (timedelta64(1, "D"), 10000.0, 9136.0),
+            (timedelta64(1, "D"), 500.0, 0.0),
+            (timedelta64(1, "D"), 0.0, 0.0),
+            (timedelta64(5, "D"), 10000.0, 5680.0),
+        ],
+    )
+    def test_metabolize(self, animal_instance, dt, initial, final):
+        """Testing metabolize at varying energy levels."""
+        animal_instance.stored_energy = initial
+        animal_instance.metabolize(dt)
+        assert animal_instance.stored_energy == final
