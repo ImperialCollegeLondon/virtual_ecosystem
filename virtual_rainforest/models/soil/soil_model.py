@@ -186,3 +186,16 @@ class SoilModel(BaseModel):
 
         self.data["mineral_associated_om"] += delta_pools["delta_maom"]
         self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
+
+    # TODO - Add appropriate testing for this
+    def integrate_soil_model(self) -> Dataset:
+        """Function to integrate the soil model.
+
+        For now a single integration will be used to advance the entire soil module.
+        However, this might get split into several separate integrations in future (if
+        that is feasible).
+        """
+
+        # TODO - Add actual integration here
+
+        return Dataset()
