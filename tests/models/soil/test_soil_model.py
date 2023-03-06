@@ -4,9 +4,9 @@ from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG, ERROR, INFO
 
+import numpy as np
 import pytest
-from numpy import allclose, datetime64, timedelta64
-from xarray import DataArray, Dataset
+from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
@@ -157,11 +157,11 @@ def test_soil_model_initialization(
                 )
             # Initialise model with bad data object
             model = SoilModel(
-                carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+                carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
             )
         else:
             model = SoilModel(
-                dummy_carbon_data, timedelta64(1, "W"), datetime64("2022-11-01")
+                dummy_carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
             )
 
         # In cases where it passes then checks that the object has the right properties
@@ -194,7 +194,7 @@ def test_soil_model_initialization(
                 "core": {"timing": {"start_time": "2020-01-01"}},
                 "soil": {"model_time_step": "12 hours"},
             },
-            timedelta64(12, "h"),
+            np.timedelta64(12, "h"),
             does_not_raise(),
             (
                 (
@@ -230,8 +230,8 @@ def test_soil_model_initialization(
                     DEBUG,
                     "soil model: required var 'percent_clay' checked",
                 ),
-                (INFO, "Replacing data array for 'mineral_associated_om'"),
                 (INFO, "Replacing data array for 'low_molecular_weight_c'"),
+                (INFO, "Replacing data array for 'mineral_associated_om'"),
             ),
             [
                 [2.50019883, 1.70000589, 4.50007171, 0.50000014],
@@ -257,17 +257,17 @@ def test_generate_soil_model(
         assert model.update_interval == time_interval
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + time_interval
+            == np.datetime64(config["core"]["timing"]["start_time"]) + time_interval
         )
         # Run the update step and check that next_update has incremented properly
         model.update()
         assert (
             model.next_update
-            == datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
+            == np.datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
         )
         # Check that updates to data fixture are correct
-        assert allclose(dummy_carbon_data["mineral_associated_om"], end_carbon[0])
-        assert allclose(dummy_carbon_data["low_molecular_weight_c"], end_carbon[1])
+        assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_carbon[0])
+        assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_carbon[1])
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -284,15 +284,10 @@ def test_increment_soil_pools(dummy_carbon_data):
     }
     model = SoilModel.from_config(dummy_carbon_data, config)
 
-    delta_maom = [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7]
-    delta_lmwc = [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7]
+    delta_lmwc = np.array([-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7])
+    delta_maom = np.array([3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7])
 
-    delta_pools = Dataset(
-        data_vars=dict(
-            delta_maom=DataArray(delta_maom, dims="cell_id"),
-            delta_lmwc=DataArray(delta_lmwc, dims="cell_id"),
-        )
-    )
+    delta_pools = np.concatenate([delta_lmwc, delta_maom])
 
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
@@ -303,5 +298,5 @@ def test_increment_soil_pools(dummy_carbon_data):
     model.increment_soil_pools(delta_pools, dt)
 
     # Then check that pools are correctly incremented based on update
-    assert allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
-    assert allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
+    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)

@@ -18,13 +18,13 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
         [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7],
+        [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
-        dummy_carbon_data["low_molecular_weight_c"],
-        dummy_carbon_data["mineral_associated_om"],
+        dummy_carbon_data["low_molecular_weight_c"].to_numpy(),
+        dummy_carbon_data["mineral_associated_om"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -33,8 +33,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     )
 
     # Check that the updates are correctly calculated
-    assert np.allclose(delta_pools.delta_maom, change_in_pools[0])
-    assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
+    assert np.allclose(delta_pools[:4], change_in_pools[0])
+    assert np.allclose(delta_pools[4:], change_in_pools[1])
 
 
 def test_mineral_association(dummy_carbon_data):

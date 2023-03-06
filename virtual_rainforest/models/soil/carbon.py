@@ -5,7 +5,7 @@ interactions will be added at a later date.
 """  # noqa: D205, D415
 
 import numpy as np
-from xarray import DataArray, Dataset
+from xarray import DataArray
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
@@ -28,7 +28,7 @@ def calculate_soil_carbon_updates(
     soil_moisture: DataArray,
     soil_temp: DataArray,
     percent_clay: DataArray,
-) -> Dataset:
+) -> np.ndarray:
     """Calculate net change for each carbon pool.
 
     This function calls lower level functions which calculate the transfers between
@@ -60,15 +60,12 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    delta_maom = lmwc_to_maom
-    delta_lmwc = -lmwc_to_maom
+    delta_lmwc = -lmwc_to_maom.to_numpy()
+    delta_maom = lmwc_to_maom.to_numpy()
 
-    return Dataset(
-        data_vars=dict(
-            delta_maom=DataArray(delta_maom, dims="cell_id"),
-            delta_lmwc=DataArray(delta_lmwc, dims="cell_id"),
-        )
-    )
+    delta_pools = np.concatenate([delta_lmwc, delta_maom])
+
+    return delta_pools
 
 
 def mineral_association(

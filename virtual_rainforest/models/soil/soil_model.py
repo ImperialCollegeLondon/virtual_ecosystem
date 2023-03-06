@@ -174,7 +174,7 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    def increment_soil_pools(self, delta_pools: Dataset, dt: float) -> None:
+    def increment_soil_pools(self, delta_pools: np.ndarray, dt: float) -> None:
         """Increment soil pools based on previously calculated net change.
 
         The state of particular soil pools will effect the rate of other processes in
@@ -190,8 +190,11 @@ class SoilModel(BaseModel):
             dt: time step (days)
         """
 
-        self.data["mineral_associated_om"] += delta_pools["delta_maom"] * dt
-        self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"] * dt
+        # TODO - DECIDE WHETHER TO CALCULATE THIS GLOBALLY
+        no_cells = int(delta_pools.size / 2)
+
+        self.data["low_molecular_weight_c"] += delta_pools[:no_cells] * dt
+        self.data["mineral_associated_om"] += delta_pools[no_cells:] * dt
 
     # TODO - Add appropriate testing for this once it's completed
     def integrate_soil_model(self) -> Dataset:
@@ -217,7 +220,7 @@ class SoilModel(BaseModel):
 
 
 # TODO - Work out how to test this function
-def construct_full_soil_model(pools: np.ndarray, data: Data) -> None:
+def construct_full_soil_model(pools: np.ndarray, data: Data) -> np.ndarray:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
@@ -228,8 +231,7 @@ def construct_full_soil_model(pools: np.ndarray, data: Data) -> None:
     # TODO - Check that this order is documented somewhere
     no_cells = int(pools.size / 2)
 
-    # TODO - EXTRACT RESULTS
-    calculate_soil_carbon_updates(
+    pool_updates = calculate_soil_carbon_updates(
         pools[: no_cells - 1],
         pools[no_cells:],
         data["pH"],
@@ -239,4 +241,4 @@ def construct_full_soil_model(pools: np.ndarray, data: Data) -> None:
         data["percent_clay"],
     )
 
-    # TODO - RETURN THE RESULTS
+    return pool_updates
