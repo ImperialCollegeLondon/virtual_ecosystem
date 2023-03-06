@@ -17,10 +17,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
 
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
-    dt = 0.5
     change_in_pools = [
-        [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7],
-        [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7],
+        [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
+        [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
@@ -30,7 +29,6 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
         dummy_carbon_data["soil_moisture"],
         dummy_carbon_data["soil_temperature"],
         dummy_carbon_data["percent_clay"],
-        dt,
     )
 
     # Check that the updates are correctly calculated

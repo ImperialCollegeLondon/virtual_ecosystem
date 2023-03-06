@@ -284,8 +284,8 @@ def test_increment_soil_pools(dummy_carbon_data):
     }
     model = SoilModel.from_config(dummy_carbon_data, config)
 
-    delta_maom = [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7]
-    delta_lmwc = [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7]
+    delta_maom = [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7]
+    delta_lmwc = [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7]
 
     delta_pools = Dataset(
         data_vars=dict(
@@ -297,8 +297,10 @@ def test_increment_soil_pools(dummy_carbon_data):
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
+    dt = 0.5
+
     # Use this update to update the soil carbon pools
-    model.increment_soil_pools(delta_pools)
+    model.increment_soil_pools(delta_pools, dt)
 
     # Then check that pools are correctly incremented based on update
     assert allclose(dummy_carbon_data["mineral_associated_om"], end_maom)

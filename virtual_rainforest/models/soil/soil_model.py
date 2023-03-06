@@ -157,12 +157,11 @@ class SoilModel(BaseModel):
             self.data["soil_moisture"],
             self.data["soil_temperature"],
             self.data["percent_clay"],
-            dt,
         )
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.increment_soil_pools(carbon_pool_updates)
+        self.increment_soil_pools(carbon_pool_updates, dt)
 
         # Finally increment timing
         self.next_update += self.update_interval
@@ -170,7 +169,7 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    def increment_soil_pools(self, delta_pools: Dataset) -> None:
+    def increment_soil_pools(self, delta_pools: Dataset, dt: float) -> None:
         """Increment soil pools based on previously calculated net change.
 
         The state of particular soil pools will effect the rate of other processes in
@@ -183,10 +182,11 @@ class SoilModel(BaseModel):
         Args:
             data: The data object to be used in the model.
             delta_pools: Array of updates for every pool
+            dt: time step (days)
         """
 
-        self.data["mineral_associated_om"] += delta_pools["delta_maom"]
-        self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
+        self.data["mineral_associated_om"] += delta_pools["delta_maom"] * dt
+        self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"] * dt
 
     # TODO - Add appropriate testing for this
     def integrate_soil_model(self) -> Dataset:
@@ -212,5 +212,11 @@ class SoilModel(BaseModel):
 
 
 # TODO - Work out how to test this function
+# This takes and returns an array of numpy values
+# Also a load of arguments, e.g. constants, pH, etc, etc
 def construct_full_soil_model() -> None:
     """Function that constructs the full soil model in a solve_ivp friendly form."""
+    # TODO - UNPACK DATA, IS THERE A WAY TO ESTABLISH VECTOR LENGTH?
+
+    # TODO - RUN HIGHEST LEVEL FUNCTION
+    # e.g. calculate_soil_carbon_updates()

@@ -28,7 +28,6 @@ def calculate_soil_carbon_updates(
     soil_moisture: DataArray,
     soil_temp: DataArray,
     percent_clay: DataArray,
-    dt: float,
 ) -> Dataset:
     """Calculate net change for each carbon pool.
 
@@ -43,7 +42,6 @@ def calculate_soil_carbon_updates(
         soil_moisture: relative water content for each soil grid cell (unitless)
         soil_temp: soil temperature for each soil grid cell (degrees C)
         percent_clay: Percentage clay for each soil grid cell
-        dt: time step (days)
 
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
@@ -55,8 +53,8 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    delta_maom = lmwc_to_maom * dt
-    delta_lmwc = -lmwc_to_maom * dt
+    delta_maom = lmwc_to_maom
+    delta_lmwc = -lmwc_to_maom
 
     return Dataset(
         data_vars=dict(
