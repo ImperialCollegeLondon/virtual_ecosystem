@@ -21,8 +21,8 @@ from virtual_rainforest.models.soil.constants import (
 
 
 def calculate_soil_carbon_updates(
-    low_molecular_weight_c: DataArray,
-    mineral_associated_om: DataArray,
+    low_molecular_weight_c: np.ndarray,
+    mineral_associated_om: np.ndarray,
     pH: DataArray,
     bulk_density: DataArray,
     soil_moisture: DataArray,
@@ -72,8 +72,8 @@ def calculate_soil_carbon_updates(
 
 
 def mineral_association(
-    low_molecular_weight_c: DataArray,
-    mineral_associated_om: DataArray,
+    low_molecular_weight_c: np.ndarray,
+    mineral_associated_om: np.ndarray,
     pH: DataArray,
     bulk_density: DataArray,
     soil_moisture: DataArray,
@@ -154,7 +154,7 @@ def calculate_max_sorption_capacity(
 def calculate_equilibrium_maom(
     pH: DataArray,
     Q_max: DataArray,
-    lmwc: DataArray,
+    lmwc: np.ndarray,
 ) -> DataArray:
     """Calculate equilibrium MAOM concentration based on Langmuir coefficients.
 

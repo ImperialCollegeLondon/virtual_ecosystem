@@ -150,9 +150,13 @@ class SoilModel(BaseModel):
             60.0 * 60.0 * 24.0
         )
 
+        # Convert DataArrays to numpy arrays
+        low_molecular_weight_c = self.data["low_molecular_weight_c"].to_numpy()
+        mineral_associated_om = self.data["mineral_associated_om"].to_numpy()
+
         carbon_pool_updates = calculate_soil_carbon_updates(
-            self.data["low_molecular_weight_c"],
-            self.data["mineral_associated_om"],
+            low_molecular_weight_c,
+            mineral_associated_om,
             self.data["pH"],
             self.data["bulk_density"],
             self.data["soil_moisture"],
@@ -213,23 +217,26 @@ class SoilModel(BaseModel):
 
 
 # TODO - Work out how to test this function
-def construct_full_soil_model(data: Data) -> None:
+def construct_full_soil_model(pools: np.ndarray, data: Data) -> None:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
+        pools: And area containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
     """
-    # TODO - UNPACK DATA, IS THERE A WAY TO ESTABLISH VECTOR LENGTH?
-    # Basically need to settle on a good layout
+    # Find number of pools of each type
+    # TODO - Check that this order is documented somewhere
+    no_cells = int(pools.size / 2)
 
-    # TODO - RUN HIGHEST LEVEL FUNCTION
-    # e.g. calculate_soil_carbon_updates()
+    # TODO - EXTRACT RESULTS
     calculate_soil_carbon_updates(
-        data["low_molecular_weight_c"],  # THESE FIRST 2 SHOULDN'T BE COMING FROM DATA!
-        data["mineral_associated_om"],
+        pools[: no_cells - 1],
+        pools[no_cells:],
         data["pH"],
         data["bulk_density"],
         data["soil_moisture"],
         data["soil_temperature"],
         data["percent_clay"],
     )
+
+    # TODO - RETURN THE RESULTS
