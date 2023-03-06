@@ -23,7 +23,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     ]
 
     delta_pools = calculate_soil_carbon_updates(
-        dummy_carbon_data,
+        dummy_carbon_data["low_molecular_weight_c"],
+        dummy_carbon_data["mineral_associated_om"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -45,7 +46,8 @@ def test_mineral_association(dummy_carbon_data):
 
     # Then calculate mineral association rate
     lmwc_to_maom = mineral_association(
-        dummy_carbon_data,
+        dummy_carbon_data["low_molecular_weight_c"],
+        dummy_carbon_data["mineral_associated_om"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],

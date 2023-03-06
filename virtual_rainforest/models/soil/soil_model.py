@@ -151,7 +151,8 @@ class SoilModel(BaseModel):
         )
 
         carbon_pool_updates = calculate_soil_carbon_updates(
-            self.data,
+            self.data["low_molecular_weight_c"],
+            self.data["mineral_associated_om"],
             self.data["pH"],
             self.data["bulk_density"],
             self.data["soil_moisture"],
@@ -188,7 +189,7 @@ class SoilModel(BaseModel):
         self.data["mineral_associated_om"] += delta_pools["delta_maom"] * dt
         self.data["low_molecular_weight_c"] += delta_pools["delta_lmwc"] * dt
 
-    # TODO - Add appropriate testing for this
+    # TODO - Add appropriate testing for this once it's completed
     def integrate_soil_model(self) -> Dataset:
         """Function to integrate the soil model.
 
@@ -212,11 +213,23 @@ class SoilModel(BaseModel):
 
 
 # TODO - Work out how to test this function
-# This takes and returns an array of numpy values
-# Also a load of arguments, e.g. constants, pH, etc, etc
-def construct_full_soil_model() -> None:
-    """Function that constructs the full soil model in a solve_ivp friendly form."""
+def construct_full_soil_model(data: Data) -> None:
+    """Function that constructs the full soil model in a solve_ivp friendly form.
+
+    Args:
+        data: The data object, used to populate the arguments i.e. pH and bulk density
+    """
     # TODO - UNPACK DATA, IS THERE A WAY TO ESTABLISH VECTOR LENGTH?
+    # Basically need to settle on a good layout
 
     # TODO - RUN HIGHEST LEVEL FUNCTION
     # e.g. calculate_soil_carbon_updates()
+    calculate_soil_carbon_updates(
+        data["low_molecular_weight_c"],  # THESE FIRST 2 SHOULDN'T BE COMING FROM DATA!
+        data["mineral_associated_om"],
+        data["pH"],
+        data["bulk_density"],
+        data["soil_moisture"],
+        data["soil_temperature"],
+        data["percent_clay"],
+    )
