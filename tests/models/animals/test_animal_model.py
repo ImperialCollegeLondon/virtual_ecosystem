@@ -33,7 +33,7 @@ def test_animal_model_initialization(caplog, data_instance):
         (
             {},
             None,
-            pytest.raises(KeyError),
+            pytest.raises(InitialisationError),
             (),  # This error isn't handled so doesn't generate logging
         ),
         (
@@ -61,10 +61,8 @@ def test_animal_model_initialization(caplog, data_instance):
             (
                 (
                     ERROR,
-                    "Configuration types appear not to have been properly validated. "
-                    "This problem prevents initialisation of the animal model. "
-                    "The first instance of this problem is as follows: "
-                    "'interminable' is not defined in the unit registry",
+                    "Model timing error: 'interminable' is not defined in the unit "
+                    "registry",
                 ),
             ),
         ),

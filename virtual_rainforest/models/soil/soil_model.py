@@ -98,7 +98,7 @@ class SoilModel(BaseModel):
         # Assume input is valid until we learn otherwise
         valid_input = True
         try:
-            start_date, update_interval = extract_model_time_details(
+            start_time, update_interval = extract_model_time_details(
                 config, cls.model_name
             )
         except Exception:
@@ -109,7 +109,7 @@ class SoilModel(BaseModel):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(data, update_interval, start_date)
+            return cls(data, update_interval, start_time)
         else:
             raise InitialisationError()
 
