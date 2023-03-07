@@ -87,7 +87,7 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 
 # A utility function to unpack the model specific timing details from the config
-from virtual_rainforest.core.utility_functions import extract_model_time_details
+from virtual_rainforest.core.utils import extract_model_time_details
 ```
 
 ### Defining the new class and class attributes

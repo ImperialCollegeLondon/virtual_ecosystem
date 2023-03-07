@@ -42,7 +42,7 @@ from numpy import datetime64, timedelta64
 def test_extract_model_time_details(config, raises, timestep, initial_time):
     """Tests timing details extraction utility."""
 
-    from virtual_rainforest.core.utility_functions import extract_model_time_details
+    from virtual_rainforest.core.utils import extract_model_time_details
 
     with raises:
         start_time, update_interval = extract_model_time_details(config, "soil")

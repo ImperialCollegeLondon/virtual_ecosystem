@@ -27,7 +27,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utility_functions import extract_model_time_details
+from virtual_rainforest.core.utils import extract_model_time_details
 
 
 class AnimalModel(BaseModel):
