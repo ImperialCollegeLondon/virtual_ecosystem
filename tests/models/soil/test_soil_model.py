@@ -300,3 +300,32 @@ def test_increment_soil_pools(dummy_carbon_data):
     # Then check that pools are correctly incremented based on update
     assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
     assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+
+
+def test_construct_full_soil_model(dummy_carbon_data):
+    """Test that the function that creates the object to integrate exists and works."""
+
+    from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
+
+    delta_pools = [
+        -3.976666e-4,
+        -1.1783424e-5,
+        -1.434178e-4,
+        -2.80362e-7,
+        3.976666e-4,
+        1.1783424e-5,
+        1.434178e-4,
+        2.80362e-7,
+    ]
+
+    # make pools
+    pools = np.concatenate(
+        [
+            dummy_carbon_data["low_molecular_weight_c"].to_numpy(),
+            dummy_carbon_data["mineral_associated_om"].to_numpy(),
+        ]
+    )
+
+    rate_of_change = construct_full_soil_model(0.0, pools, dummy_carbon_data)
+
+    assert np.allclose(delta_pools, rate_of_change)

@@ -235,6 +235,7 @@ class SoilModel(BaseModel):
 
         # Check whether or not integration succeeded
         if output.success:
+            # TODO - CONVERT STUFF HERE?
             return Dataset()
         else:
             LOGGER.error(
@@ -244,7 +245,6 @@ class SoilModel(BaseModel):
             raise IntegrationError()
 
 
-# TODO - Work out how to test this function
 def construct_full_soil_model(t: float, pools: np.ndarray, data: Data) -> np.ndarray:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
