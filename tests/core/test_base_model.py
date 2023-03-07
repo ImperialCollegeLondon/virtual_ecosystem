@@ -303,11 +303,6 @@ def test_check_required_init_vars(
 
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.logger import LOGGER
-
-    # Class uses DEBUG
-    # TODO - might want to do this centrally in conftest.py
-    LOGGER.setLevel(DEBUG)
 
     class TestCaseModel(BaseModel):
         model_name = "init_var"

@@ -45,11 +45,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
 
     # Import register_data_loader - this triggers the registration of existing data
     # loaders so need to clear those log messages before trying new ones
-    from virtual_rainforest.core.logger import LOGGER
     from virtual_rainforest.core.readers import register_file_format_loader
-
-    # Capture debug/setup messages
-    LOGGER.setLevel("DEBUG")
 
     # Create an existing one to test replace modes
     @register_file_format_loader(file_types=".ghi")

@@ -26,6 +26,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 
 class SoilModel(BaseModel):
@@ -45,7 +46,15 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """An internal name used to register the model and schema"""
-    required_init_vars = ()
+    required_init_vars = (
+        ("mineral_associated_om", ("spatial",)),
+        ("low_molecular_weight_c", ("spatial",)),
+        ("pH", ("spatial",)),
+        ("bulk_density", ("spatial",)),
+        ("soil_moisture", ("spatial",)),
+        ("soil_temperature", ("spatial",)),
+        ("percent_clay", ("spatial",)),
+    )
     """Required initialisation variables for the soil model.
 
     This is a set of variables that must be present in the data object used to create a
@@ -57,28 +66,9 @@ class SoilModel(BaseModel):
         data: Data,
         update_interval: timedelta64,
         start_time: datetime64,
-        no_layers: int,
         **kwargs: Any,
     ):
-        if no_layers < 1:
-            to_raise = InitialisationError(
-                "There has to be at least one soil layer in the soil model!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if no_layers != int(no_layers):
-            to_raise = InitialisationError(
-                "The number of soil layers must be an integer!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
         super().__init__(data, update_interval, start_time, **kwargs)
-        self.no_layers = int(no_layers)
-        """The number of soil layers to be modelled."""
-        # Save variables names to be used by the __repr__
-        self._repr.append("no_layers")
 
         self.data
         """A Data instance providing access to the shared simulation data."""
@@ -86,6 +76,8 @@ class SoilModel(BaseModel):
         """The time interval between model updates."""
         self.next_update
         """The simulation time at which the model should next run the update method"""
+        self.carbon = SoilCarbonPools(data)
+        """Set of soil carbon pools used by the model"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
@@ -112,7 +104,6 @@ class SoilModel(BaseModel):
             # Round raw time interval to nearest minute
             update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
             start_time = datetime64(config["core"]["timing"]["start_time"])
-            no_layers = config["soil"]["no_layers"]
         except (
             ValueError,
             pint.errors.DimensionalityError,
@@ -130,24 +121,37 @@ class SoilModel(BaseModel):
                 "Information required to initialise the soil model successfully "
                 "extracted."
             )
-            return cls(data, update_interval, start_time, no_layers)
+            return cls(data, update_interval, start_time)
         else:
             raise InitialisationError()
 
-    # THIS IS BASICALLY JUST A PLACEHOLDER TO DEMONSTRATE HOW THE FUNCTION OVERWRITING
-    # SHOULD WORK
-    # AT THIS STEP COMMUNICATION BETWEEN MODELS CAN OCCUR IN ORDER TO DEFINE INITIAL
-    # STATE
     def setup(self) -> None:
-        """Function to set up the soil model."""
-        for layer in range(0, self.no_layers):
-            LOGGER.info("Setting up soil layer %s" % layer)
+        """Placeholder function to setup up the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
     def update(self) -> None:
         """Placeholder function to update the soil model."""
+
+        # Convert time step from seconds to days
+        dt = self.update_interval.astype("timedelta64[s]").astype(float) / (
+            60.0 * 60.0 * 24.0
+        )
+
+        carbon_pool_updates = self.carbon.calculate_soil_carbon_updates(
+            self.data,
+            self.data["pH"],
+            self.data["bulk_density"],
+            self.data["soil_moisture"],
+            self.data["soil_temperature"],
+            self.data["percent_clay"],
+            dt,
+        )
+
+        # Update carbon pools (attributes and data object)
+        # n.b. this also updates the data object automatically
+        self.carbon.update_soil_carbon_pools(self.data, carbon_pool_updates)
 
         # Finally increment timing
         self.next_update += self.update_interval
