@@ -86,7 +86,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "core": {"timing": {"start_date": "2020-01-01"}},
             },
             "SoilModel(update_interval = 604800 seconds, next_update = "
-            "2020-01-08T00:00:00, no_layers = 1)",
+            "2020-01-08T00:00:00)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -137,10 +137,8 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     ERROR,
-                    "Configuration types appear not to have been properly validated. "
-                    "This problem prevents initialisation of the soil model. The first "
-                    "instance of this problem is as follows: Cannot convert from "
-                    "'dimensionless' (dimensionless) to 'second' ([time])",
+                    "Model timing error: Cannot convert from 'dimensionless' "
+                    "(dimensionless) to 'second' ([time])",
                 ),
                 (
                     CRITICAL,
@@ -227,9 +225,7 @@ def test_vr_run_bad_model(mocker, caplog):
         ),
         (
             ERROR,
-            "Configuration types appear not to have been properly validated. This "
-            "problem prevents initialisation of the soil model. The first instance of "
-            "this problem is as follows: 'martian' is not defined in the unit registry",
+            "Model timing error: 'martian' is not defined in the unit registry",
         ),
         (
             CRITICAL,
