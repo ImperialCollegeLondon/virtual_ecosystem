@@ -203,7 +203,12 @@ class SoilModel(BaseModel):
         For now a single integration will be used to advance the entire soil module.
         However, this might get split into several separate integrations in future (if
         that is feasible).
-        TODO - DOCUMENT UNPACKING ORDER HERE
+
+        This function unpacks the variables that are to be integrated into a single
+        numpy array suitable for integration. This order of this numpy array is as
+        follows: [low_molecular_weight_c, mineral_associated_om].
+
+        TODO - ADD IN Returns: INFO ONCE WE ARE ACTUALLY RETURNING SOMETHING
         """
 
         # Extract update interval
