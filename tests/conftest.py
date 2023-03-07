@@ -1,4 +1,5 @@
 """Collection of fixtures to assist the testing scripts."""
+from logging import DEBUG
 from typing import Any
 
 import pytest
@@ -6,7 +7,10 @@ from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
-import virtual_rainforest.core.logger  # noqa
+from virtual_rainforest.core.logger import LOGGER
+
+# Class uses DEBUG
+LOGGER.setLevel(DEBUG)
 
 
 def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> None:
@@ -14,8 +18,7 @@ def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> N
 
     Arguments:
         caplog: An instance of the caplog fixture
-        expected_log: An iterable of 2-tuples containing the
-            log level and message.
+        expected_log: An iterable of 2-tuples containing the log level and message.
     """
 
     assert len(expected_log) == len(caplog.records)
@@ -95,6 +98,36 @@ def data_instance():
 
     grid = Grid()
     return Data(grid)
+
+
+@pytest.fixture
+def dummy_carbon_data():
+    """Creates a dummy carbon data object for use in tests."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with four cells.
+    grid = Grid(cell_nx=4, cell_ny=1)
+    data = Data(grid)
+
+    # The required data is now added. This includes the two carbon pools: mineral
+    # associated organic matter and low molecular weight carbon. It also includes
+    # various factors of the physical environment: pH, bulk density, soil moisture, soil
+    # temperature, percentage clay in soil.
+    data["mineral_associated_om"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
+    """Mineral associated organic matter pool (kg C m^-3)"""
+    data["low_molecular_weight_c"] = DataArray(
+        [0.05, 0.02, 0.1, 0.005], dims=["cell_id"]
+    )
+    """Low molecular weight carbon pool (kg C m^-3)"""
+    data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
+    data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
+    data["soil_moisture"] = DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"])
+    data["soil_temperature"] = DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"])
+    data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+
+    return data
 
 
 @pytest.fixture

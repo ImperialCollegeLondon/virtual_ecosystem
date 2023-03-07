@@ -5,20 +5,14 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from pathlib import Path
 
 import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
-from virtual_rainforest.main import (
-    check_for_fast_models,
-    configure_models,
-    extract_timing_details,
-    select_models,
-    vr_run,
-)
+from virtual_rainforest.main import vr_run
 from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
@@ -73,6 +67,7 @@ from .conftest import log_check
 )
 def test_select_models(caplog, model_list, no_models, raises, expected_log_entries):
     """Test the model selecting function."""
+    from virtual_rainforest.main import select_models
 
     with raises:
         models = select_models(model_list)
@@ -87,7 +82,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     [
         pytest.param(
             {  # valid config
-                "soil": {"no_layers": 1, "model_time_step": "7 days"},
+                "soil": {"model_time_step": "7 days"},
                 "core": {"timing": {"start_date": "2020-01-01"}},
             },
             "SoilModel(update_interval = 604800 seconds, next_update = "
@@ -100,38 +95,40 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
+                (
+                    DEBUG,
+                    "soil model: required var 'mineral_associated_om' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'low_molecular_weight_c' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_moisture' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_temperature' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
+                ),
             ),
             id="valid config",
         ),
         pytest.param(
-            {  # invalid soil config tag
-                "soil": {"no_layers": -1, "model_time_step": "7 days"},
-                "core": {"timing": {"start_date": "2020-01-01"}},
-            },
-            None,
-            pytest.raises(InitialisationError),
-            (
-                (INFO, "Attempting to configure the following models: ['soil']"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (
-                    ERROR,
-                    "There has to be at least one soil layer in the soil model!",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
-            ),
-            id="invalid soil config tag",
-        ),
-        pytest.param(
             {  # model_time_step missing units
-                "soil": {"no_layers": 1, "model_time_step": "7"},
+                "soil": {"model_time_step": "7"},
                 "core": {"timing": {}},
             },
             None,
@@ -156,14 +153,15 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     ],
 )
 def test_configure_models(
-    caplog, data_instance, config, output, raises, expected_log_entries
+    caplog, dummy_carbon_data, config, output, raises, expected_log_entries
 ):
     """Test the function that configures the models."""
+    from virtual_rainforest.main import configure_models, select_models
 
     with raises:
         model_list = select_models(["soil"])
 
-        models = configure_models(config, data_instance, model_list)
+        models = configure_models(config, dummy_carbon_data, model_list)
 
         if output is None:
             assert models == [None]
@@ -339,6 +337,7 @@ def test_vr_run_bad_model(mocker, caplog):
 )
 def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
     """Test that function to extract main loop timing works as intended."""
+    from virtual_rainforest.main import extract_timing_details
 
     with raises:
         current_time, update_interval, end_time = extract_timing_details(config)
@@ -368,6 +367,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
 )
 def test_check_for_fast_models(caplog, update_interval, expected_log_entries):
     """Test that function to warn user about short module time steps works."""
+    from virtual_rainforest.main import check_for_fast_models
 
     # Create SoilModel instance and then populate the update_interval
     model = SoilModel.__new__(SoilModel)

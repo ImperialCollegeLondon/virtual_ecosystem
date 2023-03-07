@@ -5,12 +5,6 @@
          "description": "Configuration settings for the soil module",
          "type": "object",
          "properties": {
-            "no_layers": {
-               "description": "Number of soil layers to simulate",
-               "type": "integer",
-               "exclusiveMinimum": 0,
-               "default": 2
-            },
             "model_time_step": {
                "description": "Time step for soil module, units must be provided!",
                "desc_cont": "The time grain of the model is 10 minutes, so your choice",
@@ -21,7 +15,6 @@
          },
          "default": {},
          "required": [
-            "no_layers",
             "model_time_step"
          ]
       }
