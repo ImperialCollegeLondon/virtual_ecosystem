@@ -69,7 +69,7 @@ class TestAnimalCohort:
         assert animal_instance.stored_energy == 28266000000.0
 
     @pytest.mark.parametrize(
-        "dt, initial, final",
+        "dt, initial_energy, final_energy",
         [
             (timedelta64(1, "D"), 28266000000.0, 27543876297.171394),
             (timedelta64(1, "D"), 500.0, 0.0),
@@ -77,11 +77,11 @@ class TestAnimalCohort:
             (timedelta64(3, "D"), 28266000000.0, 26099628891.514183),
         ],
     )
-    def test_metabolize(self, animal_instance, dt, initial, final):
+    def test_metabolize(self, animal_instance, dt, initial_energy, final_energy):
         """Testing metabolize at varying energy levels."""
-        animal_instance.stored_energy = initial
+        animal_instance.stored_energy = initial_energy
         animal_instance.metabolize(dt)
-        assert animal_instance.stored_energy == final
+        assert animal_instance.stored_energy == final_energy
 
     @pytest.mark.parametrize(
         "animal_initial, animal_final, plant_initial, plant_final",
@@ -125,3 +125,18 @@ class TestAnimalCohort:
         soil_instance.energy = soil_initial
         animal_instance.excrete(soil_instance, consumed_energy)
         assert soil_instance.energy == soil_final
+
+    @pytest.mark.parametrize(
+        "dt, initial_age, final_age",
+        [
+            (timedelta64(0, "D"), 0.0, 0.0),
+            (timedelta64(1, "D"), 0.0, 1.0),
+            (timedelta64(0, "D"), 3.0, 3.0),
+            (timedelta64(90, "D"), 10.0, 100.0),
+        ],
+    )
+    def test_aging(self, animal_instance, dt, initial_age, final_age):
+        """Testing aging at varying ages."""
+        animal_instance.age = initial_age
+        animal_instance.aging(dt)
+        assert animal_instance.age == final_age

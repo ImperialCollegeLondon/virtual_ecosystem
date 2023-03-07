@@ -179,3 +179,12 @@ class AnimalCohort:
         """
         consumed_energy = self.eat(food)
         self.excrete(soil, consumed_energy)
+
+    def aging(self, dt: timedelta64) -> None:
+        """The function to modify cohort age as time passes.
+
+        Args:
+            dt: The number of days that should be added to cohort age.
+
+        """
+        self.age += float(dt / timedelta64(1, "D"))
