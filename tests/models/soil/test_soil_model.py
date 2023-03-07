@@ -326,6 +326,6 @@ def test_construct_full_soil_model(dummy_carbon_data):
         ]
     )
 
-    rate_of_change = construct_full_soil_model(0.0, pools, dummy_carbon_data)
+    rate_of_change = construct_full_soil_model(0.0, pools, dummy_carbon_data, 4)
 
     assert np.allclose(delta_pools, rate_of_change)

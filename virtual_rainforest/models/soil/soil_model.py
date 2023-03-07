@@ -24,7 +24,7 @@ import numpy as np
 import pint
 from numpy import datetime64, timedelta64
 from scipy.integrate import solve_ivp
-from xarray import Dataset
+from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
@@ -158,6 +158,7 @@ class SoilModel(BaseModel):
         low_molecular_weight_c = self.data["low_molecular_weight_c"].to_numpy()
         mineral_associated_om = self.data["mineral_associated_om"].to_numpy()
 
+        # SWITCH TO USING INTEGRATE FUNCTION HERE
         carbon_pool_updates = calculate_soil_carbon_updates(
             low_molecular_weight_c,
             mineral_associated_om,
@@ -178,6 +179,7 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
+    # TODO - CHANGE THIS FUNCTION TO REMOVE TIME DEPENDENCE
     def increment_soil_pools(self, delta_pools: np.ndarray, dt: float) -> None:
         """Increment soil pools based on previously calculated net change.
 
@@ -212,10 +214,16 @@ class SoilModel(BaseModel):
         numpy array suitable for integration. This order of this numpy array is as
         follows: [low_molecular_weight_c, mineral_associated_om].
 
-        TODO - ADD IN Returns: INFO ONCE WE ARE ACTUALLY RETURNING SOMETHING
+        Returns:
+            A data array containing the new pool values (i.e. the values at the final
+            time point)
+
         Raises:
             IntegrationError: When the integration cannot be successfully completed.
         """
+
+        # Find number of grid cells integration is being performed over
+        no_cells = self.data.grid.n_cells
 
         # Extract update interval
         update_time = self.update_interval.astype("timedelta64[s]").astype(float)
@@ -231,12 +239,24 @@ class SoilModel(BaseModel):
         )
 
         # Carry out simulation
-        output = solve_ivp(construct_full_soil_model, t_span, y0, args=(self.data,))
+        output = solve_ivp(
+            construct_full_soil_model,
+            t_span,
+            y0,
+            args=(
+                self.data,
+                no_cells,
+            ),
+        )
 
         # Check whether or not integration succeeded
         if output.success:
-            # TODO - CONVERT STUFF HERE?
-            return Dataset()
+            return Dataset(
+                data_vars=dict(
+                    new_lmwc=DataArray(output.y[:no_cells, -1], dims="cell_id"),
+                    new_maom=DataArray(output.y[no_cells:, -1], dims="cell_id"),
+                )
+            )
         else:
             LOGGER.error(
                 "Integration of soil module failed with following message: %s"
@@ -245,18 +265,19 @@ class SoilModel(BaseModel):
             raise IntegrationError()
 
 
-def construct_full_soil_model(t: float, pools: np.ndarray, data: Data) -> np.ndarray:
+def construct_full_soil_model(
+    t: float, pools: np.ndarray, data: Data, no_cells: int
+) -> np.ndarray:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
         pools: And area containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
+        no_cells: Number of grid cells the integration is being performed over
 
     Returns:
         The rate of change for each soil pool
     """
-    # Find number of pools of each type
-    no_cells = data.grid.n_cells
 
     pool_rate_of_changes = calculate_soil_carbon_updates(
         pools[:no_cells],
