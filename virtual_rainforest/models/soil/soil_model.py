@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
@@ -102,17 +101,8 @@ class SoilModel(BaseModel):
             start_date, update_interval = extract_model_time_details(
                 config, cls.model_name
             )
-        except (
-            ValueError,
-            pint.errors.DimensionalityError,
-            pint.errors.UndefinedUnitError,
-        ) as e:
+        except Exception:
             valid_input = False
-            LOGGER.error(
-                "Configuration types appear not to have been properly validated. This "
-                "problem prevents initialisation of the soil model. The first instance"
-                " of this problem is as follows: %s" % str(e)
-            )
 
         if valid_input:
             LOGGER.info(
