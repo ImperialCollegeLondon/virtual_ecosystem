@@ -32,6 +32,10 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
 
+class IntegrationError(Exception):
+    """Custom exception class for cases when model integration cannot be completed."""
+
+
 class SoilModel(BaseModel):
     """A class describing the soil model.
 
@@ -209,6 +213,8 @@ class SoilModel(BaseModel):
         follows: [low_molecular_weight_c, mineral_associated_om].
 
         TODO - ADD IN Returns: INFO ONCE WE ARE ACTUALLY RETURNING SOMETHING
+        Raises:
+            IntegrationError: When the integration cannot be successfully completed.
         """
 
         # Extract update interval
@@ -224,14 +230,22 @@ class SoilModel(BaseModel):
             ]
         )
 
-        # TODO - Convert simulation output to valid input to update data
-        solve_ivp(construct_full_soil_model, t_span, y0)
+        # Carry out simulation
+        output = solve_ivp(construct_full_soil_model, t_span, y0, args=(self.data,))
 
-        return Dataset()
+        # Check whether or not integration succeeded
+        if output.success:
+            return Dataset()
+        else:
+            LOGGER.error(
+                "Integration of soil module failed with following message: %s"
+                % str(output.message)
+            )
+            raise IntegrationError()
 
 
 # TODO - Work out how to test this function
-def construct_full_soil_model(pools: np.ndarray, data: Data) -> np.ndarray:
+def construct_full_soil_model(t: float, pools: np.ndarray, data: Data) -> np.ndarray:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
