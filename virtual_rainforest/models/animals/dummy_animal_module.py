@@ -100,9 +100,8 @@ class AnimalCohort:
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = (
             MetabolicRate.coefficient * (self.mass * 1000) ** MetabolicRate.exponent
-        ) * 86400
-        """The per-gram rate at which energy is expended modified
-        to kg rate in [J/day]."""
+        )
+        """The per-gram rate at which energy is expended to to kg rate in [J/s]."""
         self.stored_energy: float = (
             (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
             + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)

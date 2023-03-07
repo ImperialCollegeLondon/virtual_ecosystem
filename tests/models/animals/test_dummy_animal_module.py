@@ -65,16 +65,16 @@ class TestAnimalCohort:
     def test_initialization(self, animal_instance):
         """Testing initialization of derived parameters for animal cohorts."""
         assert animal_instance.individuals == 1
-        assert animal_instance.metabolic_rate == 722123702.8286058
+        assert animal_instance.metabolic_rate == 8357.913227182937
         assert animal_instance.stored_energy == 28266000000.0
 
     @pytest.mark.parametrize(
         "dt, initial, final",
         [
-            (timedelta64(1, "D"), 10000.0, 9136.0),
+            (timedelta64(1, "D"), 28266000000.0, 27543876297.171394),
             (timedelta64(1, "D"), 500.0, 0.0),
             (timedelta64(1, "D"), 0.0, 0.0),
-            (timedelta64(5, "D"), 10000.0, 5680.0),
+            (timedelta64(3, "D"), 28266000000.0, 26099628891.514183),
         ],
     )
     def test_metabolize(self, animal_instance, dt, initial, final):
