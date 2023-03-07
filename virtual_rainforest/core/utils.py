@@ -10,6 +10,8 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
+from virtual_rainforest.core.logger import LOGGER
+
 
 def extract_model_time_details(
     config: dict[str, Any], model_name: str
@@ -29,10 +31,16 @@ def extract_model_time_details(
         pint.errors.UndefinedUnitError: If the unit is not known to pint.
     """
 
-    raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to("seconds")
-    # Round raw time interval to nearest minute
-    update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
+    try:
+        raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to(
+            "seconds"
+        )
+        # Round raw time interval to nearest minute
+        update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
 
-    start_date = datetime64(config["core"]["timing"]["start_date"])
+        start_date = datetime64(config["core"]["timing"]["start_date"])
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as excep:
+        LOGGER.error("Model timing error: %s" % str(excep))
+        raise excep
 
     return start_date, update_interval
