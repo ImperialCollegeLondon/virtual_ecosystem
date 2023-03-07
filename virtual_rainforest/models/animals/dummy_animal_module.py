@@ -188,3 +188,18 @@ class AnimalCohort:
 
         """
         self.age += float(dt / timedelta64(1, "D"))
+
+    def die_individual(self, number_dead: int) -> None:
+        """The function to reduce the number of individuals in the cohort through death.
+
+        Currently, all cohorts are crafted as single km2 grid cohorts. This means that
+        very large animals will have one or fewer cohort members per grid. As changes
+        are made to capture large body size and multi-grid occupancy, this will be
+        updated.
+
+        Args:
+            number_dead: The number of individuals by which to decrease the population
+            count.
+
+        """
+        self.individuals -= number_dead

@@ -140,3 +140,18 @@ class TestAnimalCohort:
         animal_instance.age = initial_age
         animal_instance.aging(dt)
         assert animal_instance.age == final_age
+
+    @pytest.mark.parametrize(
+        "number_dead, initial_pop, final_pop",
+        [
+            (0, 0, 0),
+            (0, 1000, 1000),
+            (1, 1, 0),
+            (1000, 2000, 1000),
+        ],
+    )
+    def test_die_individual(self, animal_instance, number_dead, initial_pop, final_pop):
+        """Testing aging at varying ages."""
+        animal_instance.individuals = initial_pop
+        animal_instance.die_individual(number_dead)
+        assert animal_instance.individuals == final_pop
