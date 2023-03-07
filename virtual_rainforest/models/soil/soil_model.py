@@ -190,8 +190,8 @@ class SoilModel(BaseModel):
             dt: time step (days)
         """
 
-        # TODO - DECIDE WHETHER TO CALCULATE THIS GLOBALLY
-        no_cells = int(delta_pools.size / 2)
+        # Find total number of cells
+        no_cells = self.data.grid.n_cells
 
         self.data["low_molecular_weight_c"] += delta_pools[:no_cells] * dt
         self.data["mineral_associated_om"] += delta_pools[no_cells:] * dt
@@ -203,6 +203,7 @@ class SoilModel(BaseModel):
         For now a single integration will be used to advance the entire soil module.
         However, this might get split into several separate integrations in future (if
         that is feasible).
+        TODO - DOCUMENT UNPACKING ORDER HERE
         """
 
         # Extract update interval
@@ -218,7 +219,7 @@ class SoilModel(BaseModel):
             ]
         )
 
-        # TODO - Add actual integration here
+        # TODO - Convert simulation output to valid input to update data
         solve_ivp(construct_full_soil_model, t_span, y0)
 
         return Dataset()
@@ -236,11 +237,10 @@ def construct_full_soil_model(pools: np.ndarray, data: Data) -> np.ndarray:
         The rate of change for each soil pool
     """
     # Find number of pools of each type
-    # TODO - Check that this order is documented somewhere
-    no_cells = int(pools.size / 2)
+    no_cells = data.grid.n_cells
 
     pool_rate_of_changes = calculate_soil_carbon_updates(
-        pools[: no_cells - 1],
+        pools[:no_cells],
         pools[no_cells:],
         data["pH"],
         data["bulk_density"],
