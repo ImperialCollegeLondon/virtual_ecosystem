@@ -1,14 +1,17 @@
 """Testing the utility functions."""
 
 from contextlib import nullcontext as does_not_raise
+from logging import ERROR
 
 import pint
 import pytest
 from numpy import datetime64, timedelta64
 
+from tests.conftest import log_check
+
 
 @pytest.mark.parametrize(
-    argnames=["config", "raises", "timestep", "initial_time"],
+    argnames=["config", "raises", "timestep", "initial_time", "expected_log"],
     argvalues=[
         (
             {
@@ -18,6 +21,7 @@ from numpy import datetime64, timedelta64
             does_not_raise(),
             timedelta64(720, "m"),
             datetime64("2020-01-01"),
+            (),
         ),
         (
             {
@@ -27,6 +31,13 @@ from numpy import datetime64, timedelta64
             pytest.raises(pint.errors.UndefinedUnitError),
             None,
             None,
+            (
+                (
+                    ERROR,
+                    "Model timing error: 'interminable' is not defined in the unit "
+                    "registry",
+                ),
+            ),
         ),
         (
             {
@@ -36,10 +47,19 @@ from numpy import datetime64, timedelta64
             pytest.raises(pint.errors.DimensionalityError),
             None,
             None,
+            (
+                (
+                    ERROR,
+                    "Model timing error: Cannot convert from 'kilogram' ([mass]) to "
+                    "'second' ([time])",
+                ),
+            ),
         ),
     ],
 )
-def test_extract_model_time_details(config, raises, timestep, initial_time):
+def test_extract_model_time_details(
+    caplog, config, raises, timestep, initial_time, expected_log
+):
     """Tests timing details extraction utility."""
 
     from virtual_rainforest.core.utils import extract_model_time_details
@@ -48,3 +68,5 @@ def test_extract_model_time_details(config, raises, timestep, initial_time):
         start_time, update_interval = extract_model_time_details(config, "soil")
         assert start_time == initial_time
         assert update_interval == timestep
+
+    log_check(caplog, expected_log)
