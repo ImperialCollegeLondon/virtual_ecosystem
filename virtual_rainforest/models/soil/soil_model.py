@@ -149,11 +149,6 @@ class SoilModel(BaseModel):
     def update(self) -> None:
         """Function to update the soil model."""
 
-        # Convert time step from seconds to days
-        dt = self.update_interval.astype("timedelta64[s]").astype(float) / (
-            60.0 * 60.0 * 24.0
-        )
-
         # Convert DataArrays to numpy arrays
         low_molecular_weight_c = self.data["low_molecular_weight_c"].to_numpy()
         mineral_associated_om = self.data["mineral_associated_om"].to_numpy()
@@ -171,7 +166,7 @@ class SoilModel(BaseModel):
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.increment_soil_pools(carbon_pool_updates, dt)
+        self.replace_soil_pools(carbon_pool_updates)
 
         # Finally increment timing
         self.next_update += self.update_interval
@@ -179,30 +174,30 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    # TODO - CHANGE THIS FUNCTION TO REMOVE TIME DEPENDENCE
-    def increment_soil_pools(self, delta_pools: np.ndarray, dt: float) -> None:
-        """Increment soil pools based on previously calculated net change.
+    def replace_soil_pools(self, new_pools: np.ndarray) -> None:
+        """Replace soil pools with previously calculated new pool values.
 
         The state of particular soil pools will effect the rate of other processes in
         the soil module. These processes in turn can effect the exchange rates between
         the original soil pools. Thus, a separate update function is necessary so that
-        update increments for all soil module components can be calculated on a single
-        state, which is then updated (using this function) when all increments have been
+        the new values for all soil module components can be calculated on a single
+        state, which is then updated (using this function) when all values have been
         calculated.
 
         Args:
-            data: The data object to be used in the model.
-            delta_pools: Array of updates for every pool
-            dt: time step (days)
+            new_pools: Array of new pool values to insert into the data object
         """
 
         # Find total number of cells
         no_cells = self.data.grid.n_cells
 
-        self.data["low_molecular_weight_c"] += delta_pools[:no_cells] * dt
-        self.data["mineral_associated_om"] += delta_pools[no_cells:] * dt
+        self.data["low_molecular_weight_c"] = DataArray(
+            new_pools[:no_cells], dims="cell_id"
+        )
+        self.data["mineral_associated_om"] = DataArray(
+            new_pools[no_cells:], dims="cell_id"
+        )
 
-    # TODO - Add appropriate testing for this once it's completed
     def integrate_soil_model(self) -> Dataset:
         """Function to integrate the soil model.
 

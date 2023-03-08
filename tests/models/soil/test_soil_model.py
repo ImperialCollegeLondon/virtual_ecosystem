@@ -180,7 +180,14 @@ def test_soil_model_initialization(
 
         # In cases where it passes then checks that the object has the right properties
         assert set(
-            ["setup", "spinup", "update", "cleanup", "increment_soil_pools"]
+            [
+                "setup",
+                "spinup",
+                "update",
+                "cleanup",
+                "replace_soil_pools",
+                "integrate_soil_model",
+            ]
         ).issubset(dir(model))
         assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
@@ -287,21 +294,16 @@ def test_generate_soil_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_increment_soil_pools(dummy_carbon_data, soil_model_fixture):
+def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
     """Test function to update soil pools."""
 
-    delta_lmwc = np.array([-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7])
-    delta_maom = np.array([3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7])
-
-    delta_pools = np.concatenate([delta_lmwc, delta_maom])
-
-    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
+    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
 
-    dt = 0.5
+    new_pools = np.concatenate([end_lmwc, end_maom])
 
     # Use this update to update the soil carbon pools
-    soil_model_fixture.increment_soil_pools(delta_pools, dt)
+    soil_model_fixture.replace_soil_pools(new_pools)
 
     # Then check that pools are correctly incremented based on update
     assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
