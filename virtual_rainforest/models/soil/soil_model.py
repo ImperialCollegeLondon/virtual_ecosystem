@@ -149,24 +149,12 @@ class SoilModel(BaseModel):
     def update(self) -> None:
         """Function to update the soil model."""
 
-        # Convert DataArrays to numpy arrays
-        low_molecular_weight_c = self.data["low_molecular_weight_c"].to_numpy()
-        mineral_associated_om = self.data["mineral_associated_om"].to_numpy()
-
-        # TODO - SWITCH TO USING INTEGRATE FUNCTION HERE
-        carbon_pool_updates = calculate_soil_carbon_updates(
-            low_molecular_weight_c,
-            mineral_associated_om,
-            self.data["pH"],
-            self.data["bulk_density"],
-            self.data["soil_moisture"],
-            self.data["soil_temperature"],
-            self.data["percent_clay"],
-        )
+        # Find carbon pool updates by integration
+        updated_carbon_pools = self.integrate_soil_model()
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.replace_soil_pools(carbon_pool_updates)
+        self.replace_soil_pools(updated_carbon_pools)
 
         # Finally increment timing
         self.next_update += self.update_interval
@@ -174,7 +162,7 @@ class SoilModel(BaseModel):
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    def replace_soil_pools(self, new_pools: np.ndarray) -> None:
+    def replace_soil_pools(self, new_pools: Dataset) -> None:
         """Replace soil pools with previously calculated new pool values.
 
         The state of particular soil pools will effect the rate of other processes in
@@ -188,15 +176,8 @@ class SoilModel(BaseModel):
             new_pools: Array of new pool values to insert into the data object
         """
 
-        # Find total number of cells
-        no_cells = self.data.grid.n_cells
-
-        self.data["low_molecular_weight_c"] = DataArray(
-            new_pools[:no_cells], dims="cell_id"
-        )
-        self.data["mineral_associated_om"] = DataArray(
-            new_pools[no_cells:], dims="cell_id"
-        )
+        self.data["low_molecular_weight_c"] = new_pools["new_lmwc"]
+        self.data["mineral_associated_om"] = new_pools["new_maom"]
 
     def integrate_soil_model(self) -> Dataset:
         """Function to integrate the soil model.

@@ -7,7 +7,7 @@ from logging import DEBUG, ERROR, INFO
 import numpy as np
 import pytest
 from dotmap import DotMap  # type: ignore
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
@@ -201,14 +201,13 @@ def test_soil_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries,end_carbon",
+    "config,time_interval,raises,expected_log_entries",
     [
         (
             {},
             None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
-            [],
         ),
         (
             {
@@ -251,13 +250,7 @@ def test_soil_model_initialization(
                     DEBUG,
                     "soil model: required var 'percent_clay' checked",
                 ),
-                (INFO, "Replacing data array for 'low_molecular_weight_c'"),
-                (INFO, "Replacing data array for 'mineral_associated_om'"),
             ),
-            [
-                [2.50019883, 1.70000589, 4.50007171, 0.50000014],
-                [0.04980117, 0.01999411, 0.09992829, 0.00499986],
-            ],
         ),
     ],
 )
@@ -268,7 +261,6 @@ def test_generate_soil_model(
     time_interval,
     raises,
     expected_log_entries,
-    end_carbon,
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
@@ -280,18 +272,41 @@ def test_generate_soil_model(
             model.next_update
             == np.datetime64(config["core"]["timing"]["start_time"]) + time_interval
         )
-        # Run the update step and check that next_update has incremented properly
-        model.update()
-        assert (
-            model.next_update
-            == np.datetime64(config["core"]["timing"]["start_time"]) + 2 * time_interval
-        )
-        # Check that updates to data fixture are correct
-        assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_carbon[0])
-        assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_carbon[1])
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+# Check that mocked function is called
+def test_update(mocker, soil_model_fixture, dummy_carbon_data):
+    """Test to check that the update step works and increments the update step."""
+
+    end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
+    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
+
+    mock_integrate = mocker.patch(
+        "virtual_rainforest.models.soil.soil_model.SoilModel.integrate_soil_model"
+    )
+    mock_integrate.return_value = Dataset(
+        data_vars=dict(
+            new_lmwc=DataArray(end_lmwc, dims="cell_id"),
+            new_maom=DataArray(end_maom, dims="cell_id"),
+        )
+    )
+
+    soil_model_fixture.update()
+
+    # Check that integrator is called once (and once only)
+    mock_integrate.assert_called_once()
+
+    # Check that time has incremented correctly
+    assert soil_model_fixture.next_update == np.datetime64(
+        "2020-01-01"
+    ) + 2 * np.timedelta64(12, "h")
+
+    # Check that data fixture has been updated correctly
+    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
 
 
 def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
@@ -300,7 +315,12 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
 
-    new_pools = np.concatenate([end_lmwc, end_maom])
+    new_pools = Dataset(
+        data_vars=dict(
+            new_lmwc=DataArray(end_lmwc, dims="cell_id"),
+            new_maom=DataArray(end_maom, dims="cell_id"),
+        )
+    )
 
     # Use this update to update the soil carbon pools
     soil_model_fixture.replace_soil_pools(new_pools)
