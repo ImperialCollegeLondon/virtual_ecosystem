@@ -70,8 +70,6 @@ from __future__ import annotations
 # Any needed for type hints of the config dictionary as the values are of various types
 from typing import Any
 
-# Used by the timing loop to handle time units
-import pint
 # Used by timing loop to store date times, and time intervals, respectively
 from numpy import datetime64, timedelta64
 
@@ -311,25 +309,16 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
     valid_input = True
     # Convert configuration values to the required format for the __init__
     try:
-        raw_interval = pint.Quantity(config["freshwater"]["model_time_step"]).to(
-            "minutes"
-        )
         start_date, update_interval = extract_model_time_details(
                 config, cls.model_name
             )
-    # Catch cases where Values or dimensions are wrong
-    except (
-        ValueError,
-        pint.errors.DimensionalityError,
-        pint.errors.UndefinedUnitError,
-    ) as e:
+    # Catch cases where timing details are bad
+    except Exception:
         valid_input = False
-        LOGGER.error(
-            "Configuration types appear not to have been properly validated. This "
-            "problem prevents initialisation of the freshwater model. The first "
-            "instance of this problem is as follows: %s" % str(e)
-        )
     
+    # Non-timing details now extracted
+    no_of_pools = config["freshwater"]["no_of_pools"]
+
     # If everything is fine initialise a class instance (using cls)
     if valid_input:
         LOGGER.info(
