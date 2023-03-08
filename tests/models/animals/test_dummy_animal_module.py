@@ -155,3 +155,9 @@ class TestAnimalCohort:
         animal_instance.individuals = initial_pop
         animal_instance.die_individual(number_dead)
         assert animal_instance.individuals == final_pop
+
+    def test_die_cohort(self, animal_instance):
+        """Testing die_cohort."""
+        assert animal_instance.is_alive
+        animal_instance.die_cohort()
+        assert not animal_instance.is_alive

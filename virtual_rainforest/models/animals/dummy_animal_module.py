@@ -203,3 +203,18 @@ class AnimalCohort:
 
         """
         self.individuals -= number_dead
+
+    def die_cohort(self) -> None:
+        """The function to change the cohort status from alive to dead.
+
+        Currently, all this function does is switch the is_alive bool. Later, this will
+        also be used to perform supplementary actions like removing the cohort from
+        lists of active cohorts in AnimalModel or Grid instances.
+
+        """
+
+        if self.is_alive:
+            self.is_alive = False
+            LOGGER.warning("An animal cohort has died")
+        elif not self.is_alive:
+            LOGGER.warning("An animal cohort which is dead cannot die.")
