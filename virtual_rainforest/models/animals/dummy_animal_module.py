@@ -3,7 +3,6 @@ as self-contained dummy versions of the abiotic, soil, and plant modules that
 are required for setting up and testing the early stages of the animal module.
 
 Todo:
-- food intake, needs to be modified by number of indiv in cohort
 - rework dispersal
 - send portion of dead to carcass pool
 
@@ -26,6 +25,7 @@ from math import ceil
 from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import (
     ConversionEfficiency,
     DamuthsLaw,
@@ -189,7 +189,7 @@ class AnimalCohort:
         """
         self.age += float(dt / timedelta64(1, "D"))
 
-    def die_individual(self, number_dead: int) -> None:
+    def die_individual(self, number_dead: int, carcass_pool: CarcassPool) -> None:
         """The function to reduce the number of individuals in the cohort through death.
 
         Currently, all cohorts are crafted as single km2 grid cohorts. This means that
@@ -200,9 +200,12 @@ class AnimalCohort:
         Args:
             number_dead: The number of individuals by which to decrease the population
             count.
+            carcass_pool: The resident pool of animal carcasses to which the dead
+            individuals are delivered.
 
         """
         self.individuals -= number_dead
+        carcass_pool.energy += number_dead * self.mass * MeatEnergy.value
 
     def die_cohort(self) -> None:
         """The function to change the cohort status from alive to dead.

@@ -59,6 +59,14 @@ def animal_instance():
     return AnimalCohort("Testasaurus", 10000.0, 1, 4)
 
 
+@pytest.fixture
+def carcass_instance():
+    """Fixture for an carcass pool used in tests."""
+    from virtual_rainforest.models.animals.carcasses import CarcassPool
+
+    return CarcassPool(0.0, 4)
+
+
 class TestAnimalCohort:
     """Test Animal class."""
 
@@ -142,19 +150,30 @@ class TestAnimalCohort:
         assert animal_instance.age == final_age
 
     @pytest.mark.parametrize(
-        "number_dead, initial_pop, final_pop",
+        "number_dead, initial_pop, final_pop, initial_carcass, final_carcass",
         [
-            (0, 0, 0),
-            (0, 1000, 1000),
-            (1, 1, 0),
-            (1000, 2000, 1000),
+            (0, 0, 0, 0.0, 0.0),
+            (0, 1000, 1000, 0.0, 0.0),
+            (1, 1, 0, 1.0, 70000001.0),
+            (100, 200, 100, 0.0, 7000000000.0),
         ],
     )
-    def test_die_individual(self, animal_instance, number_dead, initial_pop, final_pop):
+    def test_die_individual(
+        self,
+        animal_instance,
+        number_dead,
+        initial_pop,
+        final_pop,
+        carcass_instance,
+        initial_carcass,
+        final_carcass,
+    ):
         """Testing aging at varying ages."""
         animal_instance.individuals = initial_pop
-        animal_instance.die_individual(number_dead)
+        carcass_instance.energy = initial_carcass
+        animal_instance.die_individual(number_dead, carcass_instance)
         assert animal_instance.individuals == final_pop
+        assert carcass_instance.energy == final_carcass
 
     def test_die_cohort(self, animal_instance):
         """Testing die_cohort."""
@@ -169,3 +188,49 @@ class TestAnimalCohort:
         assert baby_instance.mass == 10000.0
         assert baby_instance.age == 0.0
         assert baby_instance.position == 4
+
+    @pytest.mark.parametrize(
+        """animal_initial, animal_final, plant_initial, plant_final, soil_initial,
+        soil_final""",
+        [
+            (
+                28266000000.0,
+                28646761627.80271,
+                182000000000.0,
+                178192383721.97287,
+                1000.0,
+                380762627.80271316,
+            ),
+            (
+                0.0,
+                380761627.80271316,
+                182000000000.0,
+                178192383721.97287,
+                1000.0,
+                380762627.80271316,
+            ),
+            (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1010.0),
+            (28266000000.0, 28266000000.0, 0.0, 0.0, 1000.0, 1000.0),
+            (0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0),
+        ],
+    )
+    def test_forage(
+        self,
+        animal_instance,
+        animal_initial,
+        animal_final,
+        plant_instance,
+        plant_initial,
+        plant_final,
+        soil_instance,
+        soil_initial,
+        soil_final,
+    ):
+        """Testing forage."""
+        animal_instance.stored_energy = animal_initial
+        plant_instance.energy = plant_initial
+        soil_instance.energy = soil_initial
+        animal_instance.forage(plant_instance, soil_instance)
+        assert animal_instance.stored_energy == animal_final
+        assert plant_instance.energy == plant_final
+        assert soil_instance.energy == soil_final
