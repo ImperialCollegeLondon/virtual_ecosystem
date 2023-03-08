@@ -161,3 +161,11 @@ class TestAnimalCohort:
         assert animal_instance.is_alive
         animal_instance.die_cohort()
         assert not animal_instance.is_alive
+
+    def test_birth(self, animal_instance):
+        """Testing birth."""
+        baby_instance = animal_instance.birth()
+        assert baby_instance.name == "Testasaurus"
+        assert baby_instance.mass == 10000.0
+        assert baby_instance.age == 0.0
+        assert baby_instance.position == 4

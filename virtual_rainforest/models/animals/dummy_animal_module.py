@@ -218,3 +218,18 @@ class AnimalCohort:
             LOGGER.warning("An animal cohort has died")
         elif not self.is_alive:
             LOGGER.warning("An animal cohort which is dead cannot die.")
+
+    def birth(self) -> "AnimalCohort":
+        """The function to produce a new AnimalCohort through reproduction.
+
+        Currently, the birth function returns an identical cohort of adults with age
+        0. In the future, the offspring will be modified to have appropriate juvenile
+        traits based on parental type. This will also include supplemental functionality
+        to attached the birthed cohort to relevant cohort tracking lists in AnimalModel
+        and Grid.
+
+        Returns:
+            An AnimalCohort instance having appropriate offspring traits for the
+            location and functional type of the parent cohort.
+        """
+        return AnimalCohort(self.name, self.mass, 0, self.position)
