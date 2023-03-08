@@ -158,7 +158,7 @@ class SoilModel(BaseModel):
         low_molecular_weight_c = self.data["low_molecular_weight_c"].to_numpy()
         mineral_associated_om = self.data["mineral_associated_om"].to_numpy()
 
-        # SWITCH TO USING INTEGRATE FUNCTION HERE
+        # TODO - SWITCH TO USING INTEGRATE FUNCTION HERE
         carbon_pool_updates = calculate_soil_carbon_updates(
             low_molecular_weight_c,
             mineral_associated_om,

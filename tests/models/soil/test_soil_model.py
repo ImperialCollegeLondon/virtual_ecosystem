@@ -6,11 +6,25 @@ from logging import DEBUG, ERROR, INFO
 
 import numpy as np
 import pytest
+from dotmap import DotMap  # type: ignore
 from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
-from virtual_rainforest.models.soil.soil_model import SoilModel
+from virtual_rainforest.models.soil.soil_model import IntegrationError, SoilModel
+
+
+@pytest.fixture
+def soil_model_fixture(dummy_carbon_data):
+    """Create a soil model fixture based on the dummy carbon data."""
+
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    config = {
+        "core": {"timing": {"start_time": "2020-01-01"}},
+        "soil": {"model_time_step": "12 hours"},
+    }
+    return SoilModel.from_config(dummy_carbon_data, config)
 
 
 @pytest.mark.parametrize(
@@ -273,16 +287,8 @@ def test_generate_soil_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_increment_soil_pools(dummy_carbon_data):
+def test_increment_soil_pools(dummy_carbon_data, soil_model_fixture):
     """Test function to update soil pools."""
-
-    from virtual_rainforest.models.soil.soil_model import SoilModel
-
-    config = {
-        "core": {"timing": {"start_time": "2020-01-01"}},
-        "soil": {"model_time_step": "12 hours"},
-    }
-    model = SoilModel.from_config(dummy_carbon_data, config)
 
     delta_lmwc = np.array([-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7])
     delta_maom = np.array([3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7])
@@ -295,11 +301,68 @@ def test_increment_soil_pools(dummy_carbon_data):
     dt = 0.5
 
     # Use this update to update the soil carbon pools
-    model.increment_soil_pools(delta_pools, dt)
+    soil_model_fixture.increment_soil_pools(delta_pools, dt)
 
     # Then check that pools are correctly incremented based on update
     assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
     assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+
+
+@pytest.mark.parametrize(
+    argnames=["output", "raises", "expected_log"],
+    argvalues=[
+        pytest.param(
+            DotMap(
+                success=True,
+                y=np.array(
+                    [
+                        [5.000e-02, 3.210e-02],
+                        [2.000e-02, 1.921e-02],
+                        [4.500e00, 4.509e00],
+                        [5.000e-01, 5.000e-01],
+                        [3.210e-02, 5.000e-02],
+                        [1.921e-02, 2.000e-02],
+                        [4.509e00, 4.500e00],
+                        [5.000e-01, 5.000e-01],
+                    ]
+                ),
+            ),
+            does_not_raise(),
+            (),
+            id="successful integration",
+        ),
+        pytest.param(
+            DotMap(success=False, message="Example error message"),
+            pytest.raises(IntegrationError),
+            (
+                (
+                    ERROR,
+                    "Integration of soil module failed with following message: Example "
+                    "error message",
+                ),
+            ),
+            id="unsuccessful integration",
+        ),
+    ],
+)
+def test_integrate_soil_model(
+    mocker, caplog, soil_model_fixture, output, raises, expected_log
+):
+    """Test that function to integrate the soil model works as expected."""
+
+    mock_integrate = mocker.patch("virtual_rainforest.models.soil.soil_model.solve_ivp")
+    mock_integrate.return_value = output
+
+    with raises:
+        new_pools = soil_model_fixture.integrate_soil_model()
+        # Check returned pools matched (mocked) integrator output
+        assert np.allclose(new_pools["new_lmwc"], output.y[:4, -1])
+        assert np.allclose(new_pools["new_maom"], output.y[4:, -1])
+
+    # Check that integrator is called once (and once only)
+    mock_integrate.assert_called_once()
+
+    log_check(caplog, expected_log)
 
 
 def test_construct_full_soil_model(dummy_carbon_data):
