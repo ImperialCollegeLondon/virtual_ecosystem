@@ -17,20 +17,19 @@ class ScalingTerms:
 
 
 """Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]"""
-DamuthsLaw = ScalingTerms(-0.75, 4.23)
+DamuthsLawTerms = ScalingTerms(-0.75, 4.23)
 
 """Temporary basal metabolic rate values for mammals (citation from Rallings). [g]"""
-MetabolicRate = ScalingTerms(0.75, 0.047)
+MetabolicRateTerms = ScalingTerms(0.75, 0.047)
 
 """Scaling of mammalian herbivore fat mass (citation from Rallings). [g]"""
-FatMass = ScalingTerms(1.19, 0.02)
+FatMassTerms = ScalingTerms(1.19, 0.02)
 
 """Scaling of mammalian herbivore muscle mass (citation from Rallings).[g]"""
-MuscleMass = ScalingTerms(1.0, 0.38)
+MuscleMassTerms = ScalingTerms(1.0, 0.38)
 
-"""Mammalian maximum intake rate (kg/day) from (Shipley 1994)."""
-IntakeRate = ScalingTerms(0.71, (0.63 * 480) * (1 / 1000))
-""" Converts original g/min rate to kg/day where 'day' is an 8hr foraging window."""
+"""Mammalian maximum intake rate (g/min) from (Shipley 1994)."""
+IntakeRateTerms = ScalingTerms(0.71, 0.63)
 
 
 @dataclass

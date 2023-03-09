@@ -20,7 +20,6 @@ Notes to self:
 """  # noqa: #D205, D415
 
 from dataclasses import dataclass
-from math import ceil
 
 from numpy import timedelta64
 
@@ -28,13 +27,14 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import (
     ConversionEfficiency,
-    DamuthsLaw,
-    FatMass,
-    IntakeRate,
     MeatEnergy,
-    MetabolicRate,
-    MuscleMass,
     PlantEnergyDensity,
+)
+from virtual_rainforest.models.animals.scaling_functions import (
+    DamuthsLaw,
+    EnergeticReserveScaling,
+    IntakeRateScaling,
+    MetabolicRate,
 )
 
 
@@ -92,25 +92,16 @@ class AnimalCohort:
         """The age of the animal cohort [days]."""
         self.position = position
         """The grid position of the animal cohort."""
-        self.individuals: int = ceil(
-            DamuthsLaw.coefficient * self.mass ** (DamuthsLaw.exponent)
-        )
+        self.individuals: int = DamuthsLaw(self.mass)
         """The number of individuals in the cohort."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.metabolic_rate: float = (
-            MetabolicRate.coefficient * (self.mass * 1000) ** MetabolicRate.exponent
-        )
-        """The per-gram rate at which energy is expended to to kg rate in [J/s]."""
-        self.stored_energy: float = (
-            (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
-            + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
-        ) * MeatEnergy.value
+        self.metabolic_rate: float = MetabolicRate(self.mass)
+        """The rate at which energy is expended in [J/s]."""
+        self.stored_energy: float = EnergeticReserveScaling(mass)
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
-        self.intake_rate: float = (IntakeRate.coefficient) * self.mass ** (
-            IntakeRate.exponent
-        )
+        self.intake_rate: float = IntakeRateScaling(self.mass)
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
 

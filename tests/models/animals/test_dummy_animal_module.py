@@ -74,7 +74,7 @@ class TestAnimalCohort:
         """Testing initialization of derived parameters for animal cohorts."""
         assert animal_instance.individuals == 1
         assert animal_instance.metabolic_rate == 8357.913227182937
-        assert animal_instance.stored_energy == 28266000000.0
+        assert animal_instance.stored_energy == 56531469253.03123
 
     @pytest.mark.parametrize(
         "dt, initial_energy, final_energy",
