@@ -50,7 +50,7 @@ class PlantCommunity:
         self.energy_max: float = self.mass * self.energy_density
         """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
         self.energy = self.energy_max
-        """The initial amount of energy in the plant cohort [J] [toy]."""
+        """The amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.position = position
