@@ -106,14 +106,13 @@ class AnimalCohort:
             (MuscleMass.coefficient * (self.mass * 1000) ** MuscleMass.exponent)
             + (FatMass.coefficient * (self.mass * 1000) * FatMass.exponent)
         ) * MeatEnergy.value
-        """The initialized individual energetic reserve [J] as the sum of muscle
+        """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
         self.intake_rate: float = (IntakeRate.coefficient) * self.mass ** (
             IntakeRate.exponent
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
-        """The current individual energetic reserve [J]."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -124,7 +123,7 @@ class AnimalCohort:
         """
 
         energy_burned = float(dt / timedelta64(1, "s")) * self.metabolic_rate
-        """Number of seconds in a day * J/s metabolic rate, consider daily rate."""
+        "Number of seconds in a day * J/s metabolic rate, consider daily rate."
         if self.stored_energy >= energy_burned:
             self.stored_energy -= energy_burned
         elif self.stored_energy < energy_burned:
@@ -141,14 +140,13 @@ class AnimalCohort:
             A float containing the amount of energy consumed in the foraging bout.
         """
         consumed_energy = min(food.energy, self.intake_rate * food.energy_density)
-        """Minimum of the energy available and amount that can be consumed in an 8 hour
-        foraging window ."""
+        "Minimum of the energy available and amount that can be consumed in an 8 hour"
+        "foraging window ."
         food.energy -= consumed_energy * self.individuals
-        """The amount of energy consumed by the average member * number of
-        individuals."""
+        "The amount of energy consumed by the average member * number of individuals."
         self.stored_energy += consumed_energy * ConversionEfficiency.value
-        """The energy [J] extracted from the PlantCommunity adjusted for energetic
-        conversion efficiency and divided by the number of individuals in the cohort."""
+        "The energy [J] extracted from the PlantCommunity adjusted for energetic"
+        "conversion efficiency and divided by the number of individuals in the cohort."
         return consumed_energy
 
     def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
@@ -161,8 +159,7 @@ class AnimalCohort:
         """
         waste_energy = consumed_energy * ConversionEfficiency.value
         soil.energy += waste_energy * self.individuals
-        """The amount of waste deposited by the average cohort member * number
-        individuals."""
+        "The amount of waste by the average cohort member * number individuals."
 
     def forage(self, food: PlantCommunity, soil: PalatableSoil) -> None:
         """The function to enact multi-step foraging behaviors.
