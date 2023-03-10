@@ -26,15 +26,15 @@ from numpy import timedelta64
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import (
-    ConversionEfficiency,
-    MeatEnergy,
-    PlantEnergyDensity,
+    CONVERSION_EFFICIENCY,
+    MEAT_ENERGY,
+    PLANT_ENERGY_DENSITY,
 )
 from virtual_rainforest.models.animals.scaling_functions import (
-    DamuthsLaw,
-    EnergeticReserveScaling,
-    IntakeRateScaling,
-    MetabolicRate,
+    damuths_law,
+    energetic_reserve_scaling,
+    intake_rate_scaling,
+    metabolic_rate,
 )
 
 
@@ -45,7 +45,7 @@ class PlantCommunity:
         """The constructor for Plant class."""
         self.mass = mass
         """The mass of the plant cohort [kg]."""
-        self.energy_density: float = PlantEnergyDensity.value
+        self.energy_density: float = PLANT_ENERGY_DENSITY.value
         """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
         self.energy_max: float = self.mass * self.energy_density
         """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
@@ -92,16 +92,16 @@ class AnimalCohort:
         """The age of the animal cohort [days]."""
         self.position = position
         """The grid position of the animal cohort."""
-        self.individuals: int = DamuthsLaw(self.mass)
+        self.individuals: int = damuths_law(self.mass)
         """The number of individuals in the cohort."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.metabolic_rate: float = MetabolicRate(self.mass)
+        self.metabolic_rate: float = metabolic_rate(self.mass)
         """The rate at which energy is expended in [J/s]."""
-        self.stored_energy: float = EnergeticReserveScaling(mass)
+        self.stored_energy: float = energetic_reserve_scaling(mass)
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
-        self.intake_rate: float = IntakeRateScaling(self.mass)
+        self.intake_rate: float = intake_rate_scaling(self.mass)
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
 
@@ -135,7 +135,7 @@ class AnimalCohort:
         "foraging window ."
         food.energy -= consumed_energy * self.individuals
         "The amount of energy consumed by the average member * number of individuals."
-        self.stored_energy += consumed_energy * ConversionEfficiency.value
+        self.stored_energy += consumed_energy * CONVERSION_EFFICIENCY.value
         "The energy [J] extracted from the PlantCommunity adjusted for energetic"
         "conversion efficiency and divided by the number of individuals in the cohort."
         return consumed_energy
@@ -148,7 +148,7 @@ class AnimalCohort:
             consumed_energy: The amount of energy flowing through cohort digestion.
 
         """
-        waste_energy = consumed_energy * ConversionEfficiency.value
+        waste_energy = consumed_energy * CONVERSION_EFFICIENCY.value
         soil.energy += waste_energy * self.individuals
         "The amount of waste by the average cohort member * number individuals."
 
@@ -193,7 +193,7 @@ class AnimalCohort:
 
         """
         self.individuals -= number_dead
-        carcass_pool.energy += number_dead * self.mass * MeatEnergy.value
+        carcass_pool.energy += number_dead * self.mass * MEAT_ENERGY.value
 
     def die_cohort(self) -> None:
         """The function to change the cohort status from alive to dead.

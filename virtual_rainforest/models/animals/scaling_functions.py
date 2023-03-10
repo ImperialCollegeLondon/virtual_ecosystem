@@ -6,16 +6,16 @@ scaling equations" (relationships between body-mass and a train) required by the
 from math import ceil
 
 from virtual_rainforest.models.animals.constants import (
-    DamuthsLawTerms,
-    FatMassTerms,
-    IntakeRateTerms,
-    MeatEnergy,
-    MetabolicRateTerms,
-    MuscleMassTerms,
+    DAMUTHS_LAW_TERMS,
+    FAT_MASS_TERMS,
+    INTAKE_RATE_TERMS,
+    MEAT_ENERGY,
+    METABOLIC_RATE_TERMS,
+    MUSCLE_MASS_TERMS,
 )
 
 
-def DamuthsLaw(mass: float) -> int:
+def damuths_law(mass: float) -> int:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
@@ -31,10 +31,10 @@ def DamuthsLaw(mass: float) -> int:
         The population density of that AnimalCohort [individuals/km2].
 
     """
-    return ceil(DamuthsLawTerms.coefficient * mass ** (DamuthsLawTerms.exponent))
+    return ceil(DAMUTHS_LAW_TERMS.coefficient * mass ** (DAMUTHS_LAW_TERMS.exponent))
 
 
-def MetabolicRate(mass: float) -> float:
+def metabolic_rate(mass: float) -> float:
     """The function to set the metabolic rate of animal cohorts.
 
         Currently, this function provides the allometric scaling of the basal metabolic
@@ -48,10 +48,13 @@ def MetabolicRate(mass: float) -> float:
         The metabolic rate of an individual of the given cohort in [J/s].
 
     """
-    return MetabolicRateTerms.coefficient * (mass * 1000) ** MetabolicRateTerms.exponent
+    return (
+        METABOLIC_RATE_TERMS.coefficient
+        * (mass * 1000) ** METABOLIC_RATE_TERMS.exponent
+    )
 
 
-def MuscleMassScaling(mass: float) -> float:
+def muscle_mass_scaling(mass: float) -> float:
     """The function to set the amount of muscle mass on individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial mammals.
@@ -64,10 +67,10 @@ def MuscleMassScaling(mass: float) -> float:
         The mass [g] of muscle on an individual of the animal cohort.
 
     """
-    return MuscleMassTerms.coefficient * (mass * 1000) ** MuscleMassTerms.exponent
+    return MUSCLE_MASS_TERMS.coefficient * (mass * 1000) ** MUSCLE_MASS_TERMS.exponent
 
 
-def FatMassScaling(mass: float) -> float:
+def fat_mass_scaling(mass: float) -> float:
     """The function to set the amount of fat mass on individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial mammals.
@@ -80,10 +83,10 @@ def FatMassScaling(mass: float) -> float:
         The mass [g] of fat on an individual of the animal cohort.
 
     """
-    return FatMassTerms.coefficient * (mass * 1000) ** FatMassTerms.exponent
+    return FAT_MASS_TERMS.coefficient * (mass * 1000) ** FAT_MASS_TERMS.exponent
 
 
-def EnergeticReserveScaling(mass: float) -> float:
+def energetic_reserve_scaling(mass: float) -> float:
     """The function to set the energetic reserve of an individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial mammals.
@@ -96,10 +99,10 @@ def EnergeticReserveScaling(mass: float) -> float:
         The energetic reserve [J] of  an individual of the animal cohort.
 
     """
-    return (MuscleMassScaling(mass) + FatMassScaling(mass)) * MeatEnergy.value
+    return (muscle_mass_scaling(mass) + fat_mass_scaling(mass)) * MEAT_ENERGY.value
 
 
-def IntakeRateScaling(mass: float) -> float:
+def intake_rate_scaling(mass: float) -> float:
     """The function to set the intake rate of an individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial
@@ -117,8 +120,8 @@ def IntakeRateScaling(mass: float) -> float:
 
     """
     return (
-        IntakeRateTerms.coefficient
-        * mass**IntakeRateTerms.exponent
+        INTAKE_RATE_TERMS.coefficient
+        * mass**INTAKE_RATE_TERMS.exponent
         * 480
         * (1 / 1000)
     )
