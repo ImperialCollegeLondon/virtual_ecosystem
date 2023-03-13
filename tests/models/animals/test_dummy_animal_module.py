@@ -17,13 +17,13 @@ class TestPlantCommunity:
 
     @pytest.mark.parametrize(
         "initial, final",
-        [(182000000000.0, 182000000000.0), (10000.0, 19999.99945054945), (0.0, 0.0)],
+        [(182000000000.0, 182000000000.0), (10000.0, 19999.999450), (0.0, 0.0)],
     )
     def test_grow(self, plant_instance, initial, final):
         """Testing grow at 100%, 50%, and 0% maximum energy."""
         plant_instance.energy = initial
         plant_instance.grow()
-        assert plant_instance.energy == final
+        assert plant_instance.energy == pytest.approx(final, rel=1e-6)
 
     def test_die(self, plant_instance):
         """Testing die."""
@@ -73,8 +73,10 @@ class TestAnimalCohort:
     def test_initialization(self, animal_instance):
         """Testing initialization of derived parameters for animal cohorts."""
         assert animal_instance.individuals == 1
-        assert animal_instance.metabolic_rate == 8357.913227182937
-        assert animal_instance.stored_energy == 56531469253.03123
+        assert animal_instance.metabolic_rate == pytest.approx(8357.913227, rel=1e-6)
+        assert animal_instance.stored_energy == pytest.approx(
+            56531469253.03123, rel=1e-6
+        )
 
     @pytest.mark.parametrize(
         "dt, initial_energy, final_energy",
@@ -199,15 +201,15 @@ class TestAnimalCohort:
                 182000000000.0,
                 178192383721.97287,
                 1000.0,
-                380762627.80271316,
+                380762627.802713,
             ),
             (
                 0.0,
-                380761627.80271316,
+                380761627.802713,
                 182000000000.0,
                 178192383721.97287,
                 1000.0,
-                380762627.80271316,
+                380762627.802713,
             ),
             (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1010.0),
             (28266000000.0, 28266000000.0, 0.0, 0.0, 1000.0, 1000.0),
@@ -231,6 +233,6 @@ class TestAnimalCohort:
         plant_instance.energy = plant_initial
         soil_instance.energy = soil_initial
         animal_instance.forage(plant_instance, soil_instance)
-        assert animal_instance.stored_energy == animal_final
-        assert plant_instance.energy == plant_final
-        assert soil_instance.energy == soil_final
+        assert animal_instance.stored_energy == pytest.approx(animal_final, rel=1e-6)
+        assert plant_instance.energy == pytest.approx(plant_final, rel=1e-6)
+        assert soil_instance.energy == pytest.approx(soil_final, rel=1e-6)

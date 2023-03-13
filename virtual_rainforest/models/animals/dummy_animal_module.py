@@ -19,6 +19,8 @@ Notes to self:
 - waste_energy pool likely unnecessary, better to excrete directly to external pools
 """  # noqa: #D205, D415
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from numpy import timedelta64
@@ -64,7 +66,7 @@ class PlantCommunity:
         """The function to kill a plant cohort."""
         if self.is_alive:
             self.is_alive = False
-            LOGGER.warning("A Plant Community has died")
+            LOGGER.info("A Plant Community has died")
         elif not self.is_alive:
             LOGGER.warning("A Plant Community which is dead cannot die.")
 
@@ -114,7 +116,7 @@ class AnimalCohort:
         """
 
         energy_burned = float(dt / timedelta64(1, "s")) * self.metabolic_rate
-        "Number of seconds in a day * J/s metabolic rate, consider daily rate."
+        # Number of seconds in a day * J/s metabolic rate, consider daily rate.
         if self.stored_energy >= energy_burned:
             self.stored_energy -= energy_burned
         elif self.stored_energy < energy_burned:
@@ -125,19 +127,19 @@ class AnimalCohort:
 
         Args:
             food: The targeted PlantCommunity instance from which energy is
-                            transferred.
+                transferred.
 
         Returns:
             A float containing the amount of energy consumed in the foraging bout.
         """
         consumed_energy = min(food.energy, self.intake_rate * food.energy_density)
-        "Minimum of the energy available and amount that can be consumed in an 8 hour"
-        "foraging window ."
+        # Minimum of the energy available and amount that can be consumed in an 8 hour
+        # foraging window .
         food.energy -= consumed_energy * self.individuals
-        "The amount of energy consumed by the average member * number of individuals."
+        # The amount of energy consumed by the average member * number of individuals.
         self.stored_energy += consumed_energy * CONVERSION_EFFICIENCY.value
-        "The energy [J] extracted from the PlantCommunity adjusted for energetic"
-        "conversion efficiency and divided by the number of individuals in the cohort."
+        # The energy [J] extracted from the PlantCommunity adjusted for energetic
+        # conversion efficiency and divided by the number of individuals in the cohort.
         return consumed_energy
 
     def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
@@ -150,7 +152,7 @@ class AnimalCohort:
         """
         waste_energy = consumed_energy * CONVERSION_EFFICIENCY.value
         soil.energy += waste_energy * self.individuals
-        "The amount of waste by the average cohort member * number individuals."
+        # The amount of waste by the average cohort member * number individuals.
 
     def forage(self, food: PlantCommunity, soil: PalatableSoil) -> None:
         """The function to enact multi-step foraging behaviors.
@@ -161,7 +163,7 @@ class AnimalCohort:
 
         Args:
             food: The targeted PlantCommunity instance from which energy is
-                            transferred.
+                transferred.
             soil: The local PalatableSoil pool in which waste is deposited.
 
         """
@@ -172,7 +174,7 @@ class AnimalCohort:
         """The function to modify cohort age as time passes.
 
         Args:
-            dt: The number of days that should be added to cohort age.
+            dt: The amount of time that should be added to cohort age.
 
         """
         self.age += float(dt / timedelta64(1, "D"))
@@ -187,9 +189,9 @@ class AnimalCohort:
 
         Args:
             number_dead: The number of individuals by which to decrease the population
-            count.
+                count.
             carcass_pool: The resident pool of animal carcasses to which the dead
-            individuals are delivered.
+                individuals are delivered.
 
         """
         self.individuals -= number_dead
@@ -206,11 +208,11 @@ class AnimalCohort:
 
         if self.is_alive:
             self.is_alive = False
-            LOGGER.warning("An animal cohort has died")
+            LOGGER.info("An animal cohort has died")
         elif not self.is_alive:
-            LOGGER.warning("An animal cohort which is dead cannot die.")
+            LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def birth(self) -> "AnimalCohort":
+    def birth(self) -> AnimalCohort:
         """The function to produce a new AnimalCohort through reproduction.
 
         Currently, the birth function returns an identical cohort of adults with age
@@ -221,6 +223,6 @@ class AnimalCohort:
 
         Returns:
             An AnimalCohort instance having appropriate offspring traits for the
-            location and functional type of the parent cohort.
+                location and functional type of the parent cohort.
         """
         return AnimalCohort(self.name, self.mass, 0, self.position)

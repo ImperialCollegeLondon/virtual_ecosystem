@@ -1,6 +1,10 @@
 """The `models.animals.scaling_functions` module contains a set of functions containing
 scaling equations" (relationships between body-mass and a train) required by the broader
 :mod:`~virtual_rainforest.models.animals` module
+
+To Do:
+- streamline units of scaling functions [kg]->[kg] etc
+
 """  # noqa: D205, D415
 
 from math import ceil
