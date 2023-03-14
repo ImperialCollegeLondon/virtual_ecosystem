@@ -147,10 +147,10 @@ class SoilModel(BaseModel):
         """Placeholder function to spin up the soil model."""
 
     def update(self) -> None:
-        """Function to update the soil model."""
+        """Update the soil model by integrating."""
 
         # Find carbon pool updates by integration
-        updated_carbon_pools = self.integrate_soil_model()
+        updated_carbon_pools = self.integrate()
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
@@ -179,8 +179,8 @@ class SoilModel(BaseModel):
         self.data["low_molecular_weight_c"] = new_pools["new_lmwc"]
         self.data["mineral_associated_om"] = new_pools["new_maom"]
 
-    def integrate_soil_model(self) -> Dataset:
-        """Function to integrate the soil model.
+    def integrate(self) -> Dataset:
+        """Integrate the soil model.
 
         For now a single integration will be used to advance the entire soil module.
         However, this might get split into several separate integrations in future (if

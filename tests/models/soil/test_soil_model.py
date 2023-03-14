@@ -186,7 +186,7 @@ def test_soil_model_initialization(
                 "update",
                 "cleanup",
                 "replace_soil_pools",
-                "integrate_soil_model",
+                "integrate",
             ]
         ).issubset(dir(model))
         assert model.model_name == "soil"
@@ -285,7 +285,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
 
     mock_integrate = mocker.patch(
-        "virtual_rainforest.models.soil.soil_model.SoilModel.integrate_soil_model"
+        "virtual_rainforest.models.soil.soil_model.SoilModel.integrate"
     )
     mock_integrate.return_value = Dataset(
         data_vars=dict(
@@ -376,7 +376,7 @@ def test_integrate_soil_model(
     mock_integrate.return_value = output
 
     with raises:
-        new_pools = soil_model_fixture.integrate_soil_model()
+        new_pools = soil_model_fixture.integrate()
         # Check returned pools matched (mocked) integrator output
         assert np.allclose(new_pools["new_lmwc"], output.y[:4, -1])
         assert np.allclose(new_pools["new_maom"], output.y[4:, -1])
