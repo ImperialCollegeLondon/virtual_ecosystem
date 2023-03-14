@@ -255,7 +255,7 @@ def construct_full_soil_model(
         The rate of change for each soil pool
     """
 
-    pool_rate_of_changes = calculate_soil_carbon_updates(
+    return calculate_soil_carbon_updates(
         pools[:no_cells],
         pools[no_cells:],
         data["pH"],
@@ -264,5 +264,3 @@ def construct_full_soil_model(
         data["soil_temperature"],
         data["percent_clay"],
     )
-
-    return pool_rate_of_changes
