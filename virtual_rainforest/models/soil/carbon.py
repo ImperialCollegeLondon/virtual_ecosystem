@@ -60,10 +60,7 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    delta_lmwc = -lmwc_to_maom.to_numpy()
-    delta_maom = lmwc_to_maom.to_numpy()
-
-    delta_pools = np.concatenate([delta_lmwc, delta_maom])
+    delta_pools = np.concatenate([-lmwc_to_maom.data, lmwc_to_maom.data])
 
     return delta_pools
 
