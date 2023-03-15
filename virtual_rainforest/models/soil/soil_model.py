@@ -202,9 +202,8 @@ class SoilModel(BaseModel):
         no_cells = self.data.grid.n_cells
 
         # Extract update interval
-        update_time = self.update_interval.astype("timedelta64[s]").astype(float)
-        # Convert from second to day units
-        t_span = (0.0, update_time / (60.0 * 60.0 * 24.0))
+        update_time = self.update_interval / np.timedelta64(1, "D")
+        t_span = (0.0, update_time)
 
         # Construct vector of initial values y0
         y0 = np.concatenate(
