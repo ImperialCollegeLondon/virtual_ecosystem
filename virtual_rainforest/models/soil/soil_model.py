@@ -201,7 +201,7 @@ class SoilModel(BaseModel):
         # Find number of grid cells integration is being performed over
         no_cells = self.data.grid.n_cells
 
-        # Extract update interval
+        # Extract update interval (in units of number of days)
         update_time = self.update_interval / np.timedelta64(1, "D")
         t_span = (0.0, update_time)
 
@@ -246,8 +246,9 @@ def construct_full_soil_model(
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
-        t: Current time. At present the model has no explicit time dependence, but the
-            function must still be accept a time value to allow it to be integrated.
+        t: Current time [days]. At present the model has no explicit time dependence,
+            but the function must still be accept a time value to allow it to be
+            integrated.
         pools: And area containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
