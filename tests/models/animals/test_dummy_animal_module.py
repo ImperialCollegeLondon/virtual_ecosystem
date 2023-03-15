@@ -56,7 +56,7 @@ def animal_instance():
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
-    return AnimalCohort("Testasaurus", 10000.0, 1, 4)
+    return AnimalCohort("Testasaurus", 10000.0, "mammal", "herbivore", 1, 4)
 
 
 @pytest.fixture
