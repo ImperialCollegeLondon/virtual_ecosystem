@@ -37,7 +37,6 @@ pytest-flake8 = "^1.1.1"
 pytest-mypy = "^0.9.1"
 pytest-mock = "^3.8.1"
 hypothesis = "^6.54.2"
-dotmap = "^1.3.0"
 
 [tool.poetry.group.devenv.dependencies]
 black = "^22.6.0"
