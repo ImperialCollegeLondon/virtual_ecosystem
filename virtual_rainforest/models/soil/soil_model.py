@@ -247,6 +247,8 @@ def construct_full_soil_model(
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
+        t: Current time. At present the model has no explicit time dependence, but the
+            function must still be accept a time value to allow it to be integrated.
         pools: And area containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
