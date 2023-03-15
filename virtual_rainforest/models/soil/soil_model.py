@@ -258,11 +258,11 @@ def construct_full_soil_model(
     """
 
     return calculate_soil_carbon_updates(
-        pools[:no_cells],
-        pools[no_cells:],
-        data["pH"],
-        data["bulk_density"],
-        data["soil_moisture"],
-        data["soil_temperature"],
-        data["percent_clay"],
+        low_molecular_weight_c=pools[:no_cells],
+        mineral_associated_om=pools[no_cells:],
+        pH=data["pH"],
+        bulk_density=data["bulk_density"],
+        soil_moisture=data["soil_moisture"],
+        soil_temp=data["soil_temperature"],
+        percent_clay=data["percent_clay"],
     )
