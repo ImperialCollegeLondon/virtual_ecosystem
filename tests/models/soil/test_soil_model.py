@@ -6,7 +6,7 @@ from logging import DEBUG, ERROR, INFO
 
 import numpy as np
 import pytest
-from dotmap import DotMap  # type: ignore
+from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
@@ -334,7 +334,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
     argnames=["output", "raises", "expected_log"],
     argvalues=[
         pytest.param(
-            DotMap(
+            OptimizeResult(
                 success=True,
                 y=np.array(
                     [
@@ -354,7 +354,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
             id="successful integration",
         ),
         pytest.param(
-            DotMap(success=False, message="Example error message"),
+            OptimizeResult(success=False, message="Example error message"),
             pytest.raises(IntegrationError),
             (
                 (
