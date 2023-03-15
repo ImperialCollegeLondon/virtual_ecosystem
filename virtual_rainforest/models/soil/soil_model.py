@@ -225,20 +225,20 @@ class SoilModel(BaseModel):
             ),
         )
 
-        # Check whether or not integration succeeded
-        if output.success:
-            return Dataset(
-                data_vars=dict(
-                    new_lmwc=DataArray(output.y[:no_cells, -1], dims="cell_id"),
-                    new_maom=DataArray(output.y[no_cells:, -1], dims="cell_id"),
-                )
-            )
-        else:
+        # Check if integration failed
+        if not output.success:
             LOGGER.error(
                 "Integration of soil module failed with following message: %s"
                 % str(output.message)
             )
             raise IntegrationError()
+
+        return Dataset(
+            data_vars=dict(
+                new_lmwc=DataArray(output.y[:no_cells, -1], dims="cell_id"),
+                new_maom=DataArray(output.y[no_cells:, -1], dims="cell_id"),
+            )
+        )
 
 
 def construct_full_soil_model(
