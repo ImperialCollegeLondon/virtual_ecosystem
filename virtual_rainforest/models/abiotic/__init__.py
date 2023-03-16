@@ -21,6 +21,9 @@ Each of the abiotic sub-modules has its own API reference page:
   within-canopy wind profiles of the Virtual Rainforest. These profiles will determine
   the exchange of heat, water, and CO2 between soil and atmosphere below the canopy as
   well as the exchange with the atmsophere above the canopy.
+
+* The :mod:`~virtual_rainforest.models.abiotic.atmospheric_co2` submodule calculates the
+  above- and within-canopy CO2 concentration profiles of the Virtual Rainforest.
 """  # noqa: D205, D415
 
 from importlib import resources
