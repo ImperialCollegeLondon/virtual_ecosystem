@@ -7,27 +7,96 @@ vertically mixed based on the windprofiles above, within, and below the canopy (
 mixing is currently not implemented).
 """  # noqa: D205, D415
 
+from dataclasses import dataclass
 
+import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-# data object use?
+from virtual_rainforest.core.data import Data
+
+
+@dataclass
+class CO2Constants:
+    """CO2 constants class."""
+
+    ambient_CO2_default: float = 400
+    """Default ambient CO2 concentration, [ppm]"""
 
 
 def calculate_co2_profile(
-    ambient_atmsopheric_co2: DataArray,
-    plant_net_co2_assimilation: DataArray,
-    soil_respiration: DataArray,
-    animal_respiration: DataArray,
-    atmosphere_layers: int,
-    method: str,
+    data: Data,
+    atmosphere_layers: int,  # from config?
+    mixing_method: str = "homogenous",
+    co2_const: CO2Constants = CO2Constants(),
 ) -> DataArray:
-    """Calculate CO2 profile."""
+    """Calculate CO2 profile.
+
+    This function takes a :class:`~virtual_rainforest.core.data.Data` object as ``data``
+    argument that contains the following variables:
+
+    * atmospheric CO2
+    * plant net CO2 assimilation
+    * soil respiration
+    * animal respiration
+
+    Args:
+        data: A Virtual Rainforest Data object.
+        atmosphere_layers: number of atmosphere layers for which CO2 concentration is
+            calculated
+        mixing_method: interpolation method, default copies ambient CO2 to all vertical
+            levels
+
+    Returns:
+        vertical profile of CO2 concentrations, [ppm]
+    """
+
+    # check if atmospheric CO2 concentration in data
+    if "atmospheric_co2" not in data:
+        ambient_atmospheric_co2 = DataArray(
+            [
+                np.repeat(
+                    co2_const.ambient_CO2_default,
+                    len(data.grid.cell_id),
+                ),
+            ],
+            dims="cell_id",
+        )
+    else:
+        ambient_atmospheric_co2 = data["atmsopheric_co2"]
+
+    # check if plant_net_co2_assimilation in data
+    if "plant_net_co2_assimilation" not in data:
+        plant_net_co2_assimilation = DataArray(
+            [np.zeros((atmosphere_layers - 2, len(data.grid.cell_id)))],
+            dims=["canopy_layers", "cell_id"],
+        )
+    else:
+        plant_net_co2_assimilation = data["plant_net_co2_assimilation"]
+
+    # check if soil_respiration in data
+    if "soil_respiration" not in data:
+        soil_respiration = DataArray(
+            [np.zeros((len(data.grid.cell_id)))],
+            dims=["cell_id"],
+        )
+    else:
+        soil_respiration = data["soil_respiration"]
+
+    # check if animal_respiration in data
+    if "animal_respiration" not in data:
+        animal_respiration = DataArray(
+            [np.zeros((len(data.grid.cell_id)))],
+            dims=["cell_id"],
+        )
+    else:
+        animal_respiration = data["animal_respiration"]
+
     # initialise CO2 profile
     initial_co2_profile = initialise_co2_profile(
-        ambient_atmsopheric_co2=ambient_atmsopheric_co2,
+        ambient_atmospheric_co2=ambient_atmospheric_co2,
         atmosphere_layers=atmosphere_layers,
-        method=method,
+        mixing_method=mixing_method,
     )
 
     # Calculate CO2 within canopy
@@ -49,32 +118,34 @@ def calculate_co2_profile(
         mixing=False,
     )
 
-    # update data object
+    return co2_profile_mixed
 
 
 # helper functions
 def initialise_co2_profile(
-    ambient_atmsopheric_co2: DataArray,
+    ambient_atmospheric_co2: DataArray,
     atmosphere_layers: int,
-    method: str = "homogenous",
+    mixing_method: str = "homogenous",
 ) -> DataArray:
     """Initialise CO2 profile.
 
     Args:
-        ambient_atmsopheric_co2: ambient CO2 concentraion, [ppm],
-        atmosphere_layers: number of atmosphere layers
-        method: interpolation method, default copies ambient CO2 to all vertical levels
+        ambient_atmospheric_co2: ambient CO2 concentraion, [ppm],
+        atmosphere_layers: number of atmosphere layers for which CO2 concentration is
+            calculated
+        mixing_method: interpolation method, default copies ambient CO2 to all vertical
+            levels
 
     Returns:
         initial vertical CO2 profile, [ppm]
     """
 
-    if method != "homogenous":
+    if mixing_method != "homogenous":
         raise (NotImplementedError("This method is not implemented"))
 
     else:
         initial_co2_profile = DataArray(
-            ambient_atmsopheric_co2.expand_dims(
+            ambient_atmospheric_co2.expand_dims(
                 dim={"atmosphere_layers": atmosphere_layers}
             )
         )
