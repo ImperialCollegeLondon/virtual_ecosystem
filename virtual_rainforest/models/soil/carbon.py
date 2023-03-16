@@ -5,7 +5,7 @@ interactions will be added at a later date.
 """  # noqa: D205, D415
 
 import numpy as np
-from xarray import DataArray
+from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
@@ -21,14 +21,14 @@ from virtual_rainforest.models.soil.constants import (
 
 
 def calculate_soil_carbon_updates(
-    low_molecular_weight_c: np.ndarray,
-    mineral_associated_om: np.ndarray,
-    pH: DataArray,
-    bulk_density: DataArray,
-    soil_moisture: DataArray,
-    soil_temp: DataArray,
-    percent_clay: DataArray,
-) -> np.ndarray:
+    low_molecular_weight_c: NDArray[np.float32],
+    mineral_associated_om: NDArray[np.float32],
+    pH: NDArray[np.float32],
+    bulk_density: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate net change for each carbon pool.
 
     This function calls lower level functions which calculate the transfers between
@@ -60,20 +60,20 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    delta_pools = np.concatenate([-lmwc_to_maom.data, lmwc_to_maom.data])
+    delta_pools = np.concatenate([-lmwc_to_maom, lmwc_to_maom])
 
     return delta_pools
 
 
 def mineral_association(
-    low_molecular_weight_c: np.ndarray,
-    mineral_associated_om: np.ndarray,
-    pH: DataArray,
-    bulk_density: DataArray,
-    soil_moisture: DataArray,
-    soil_temp: DataArray,
-    percent_clay: DataArray,
-) -> DataArray:
+    low_molecular_weight_c: NDArray[np.float32],
+    mineral_associated_om: NDArray[np.float32],
+    pH: NDArray[np.float32],
+    bulk_density: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculates net rate of LMWC association with soil minerals.
 
     Following :cite:t:`abramoff_millennial_2018`, mineral adsorption of carbon is
@@ -114,10 +114,10 @@ def mineral_association(
 
 
 def calculate_max_sorption_capacity(
-    bulk_density: DataArray,
-    percent_clay: DataArray,
+    bulk_density: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
     coef: MaxSorptionWithClay = MaxSorptionWithClay(),
-) -> DataArray:
+) -> NDArray[np.float32]:
     """Calculate maximum sorption capacity based on bulk density and clay content.
 
     The maximum sorption capacity is the maximum amount of mineral associated organic
@@ -146,10 +146,10 @@ def calculate_max_sorption_capacity(
 
 
 def calculate_equilibrium_maom(
-    pH: DataArray,
-    Q_max: DataArray,
-    lmwc: np.ndarray,
-) -> DataArray:
+    pH: NDArray[np.float32],
+    Q_max: NDArray[np.float32],
+    lmwc: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate equilibrium MAOM concentration based on Langmuir coefficients.
 
     Equilibrium concentration of mineral associated organic matter (MAOM) is calculated
@@ -170,8 +170,8 @@ def calculate_equilibrium_maom(
 
 
 def calculate_binding_coefficient(
-    pH: DataArray, coef: BindingWithPH = BindingWithPH()
-) -> DataArray:
+    pH: NDArray[np.float32], coef: BindingWithPH = BindingWithPH()
+) -> NDArray[np.float32]:
     """Calculate Langmuir binding coefficient based on pH.
 
     This specific expression and its parameters are drawn from
@@ -189,8 +189,8 @@ def calculate_binding_coefficient(
 
 
 def convert_temperature_to_scalar(
-    soil_temp: DataArray, coef: TempScalar = TempScalar()
-) -> DataArray:
+    soil_temp: NDArray[np.float32], coef: TempScalar = TempScalar()
+) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -213,13 +213,13 @@ def convert_temperature_to_scalar(
         np.pi * coef.t_4 * (coef.ref_temp - coef.t_1)
     )
 
-    return DataArray(np.divide(numerator, denominator), dims="cell_id")
+    return np.divide(numerator, denominator)
 
 
 def convert_moisture_to_scalar(
-    soil_moisture: DataArray,
+    soil_moisture: NDArray[np.float32],
     coef: MoistureScalar = MoistureScalar(),
-) -> DataArray:
+) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -242,7 +242,4 @@ def convert_moisture_to_scalar(
         raise to_raise
 
     # This expression is drawn from Abramoff et al. (2018)
-    return DataArray(
-        1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture)),
-        dims="cell_id",
-    )
+    return 1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture))

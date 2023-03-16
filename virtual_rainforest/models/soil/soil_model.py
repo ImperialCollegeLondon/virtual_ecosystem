@@ -22,7 +22,7 @@ from typing import Any
 
 import numpy as np
 import pint
-from numpy import datetime64, timedelta64
+from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 from xarray import DataArray, Dataset
 
@@ -71,8 +71,8 @@ class SoilModel(BaseModel):
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
-        start_time: datetime64,
+        update_interval: np.timedelta64,
+        start_time: np.datetime64,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, start_time, **kwargs)
@@ -117,8 +117,8 @@ class SoilModel(BaseModel):
                 "minutes"
             )
             # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-            start_time = datetime64(config["core"]["timing"]["start_time"])
+            update_interval = np.timedelta64(int(round(raw_interval.magnitude)), "m")
+            start_time = np.datetime64(config["core"]["timing"]["start_time"])
         except (
             ValueError,
             pint.errors.DimensionalityError,
@@ -241,15 +241,15 @@ class SoilModel(BaseModel):
 
 
 def construct_full_soil_model(
-    t: float, pools: np.ndarray, data: Data, no_cells: int
-) -> np.ndarray:
+    t: float, pools: NDArray[np.float32], data: Data, no_cells: int
+) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:
         t: Current time [days]. At present the model has no explicit time dependence,
             but the function must still be accept a time value to allow it to be
             integrated.
-        pools: And area containing all soil pools in a single vector
+        pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
 
@@ -260,9 +260,9 @@ def construct_full_soil_model(
     return calculate_soil_carbon_updates(
         low_molecular_weight_c=pools[:no_cells],
         mineral_associated_om=pools[no_cells:],
-        pH=data["pH"],
-        bulk_density=data["bulk_density"],
-        soil_moisture=data["soil_moisture"],
-        soil_temp=data["soil_temperature"],
-        percent_clay=data["percent_clay"],
+        pH=data["pH"].to_numpy(),
+        bulk_density=data["bulk_density"].to_numpy(),
+        soil_moisture=data["soil_moisture"].to_numpy(),
+        soil_temp=data["soil_temperature"].to_numpy(),
+        percent_clay=data["percent_clay"].to_numpy(),
     )
