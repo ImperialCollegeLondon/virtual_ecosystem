@@ -54,12 +54,10 @@ def calculate_co2_profile(
     # check if atmospheric CO2 concentration in data
     if "atmospheric_co2" not in data:
         ambient_atmospheric_co2 = DataArray(
-            [
-                np.repeat(
-                    co2_const.ambient_CO2_default,
-                    len(data.grid.cell_id),
-                ),
-            ],
+            np.repeat(
+                co2_const.ambient_CO2_default,
+                len(data.grid.cell_id),
+            ),
             dims="cell_id",
         )
     else:
@@ -68,16 +66,20 @@ def calculate_co2_profile(
     # check if plant_net_co2_assimilation in data
     if "plant_net_co2_assimilation" not in data:
         plant_net_co2_assimilation = DataArray(
-            [np.zeros((atmosphere_layers - 2, len(data.grid.cell_id)))],
-            dims=["canopy_layers", "cell_id"],
+            np.zeros((atmosphere_layers - 2, len(data.grid.cell_id))),
+            dims=["atmosphere_layers", "cell_id"],
         )
+
     else:
-        plant_net_co2_assimilation = data["plant_net_co2_assimilation"]
+        plant_net_co2_assimilation1 = data["plant_net_co2_assimilation"]
+        plant_net_co2_assimilation = plant_net_co2_assimilation1.rename(
+            {"canopy_layers": "atmosphere_layers"}
+        )
 
     # check if soil_respiration in data
     if "soil_respiration" not in data:
         soil_respiration = DataArray(
-            [np.zeros((len(data.grid.cell_id)))],
+            np.zeros((len(data.grid.cell_id))),
             dims=["cell_id"],
         )
     else:
@@ -86,7 +88,7 @@ def calculate_co2_profile(
     # check if animal_respiration in data
     if "animal_respiration" not in data:
         animal_respiration = DataArray(
-            [np.zeros((len(data.grid.cell_id)))],
+            np.zeros((len(data.grid.cell_id))),
             dims=["cell_id"],
         )
     else:
@@ -101,12 +103,14 @@ def calculate_co2_profile(
 
     # Calculate CO2 within canopy
     co2_within_canopy = calculate_co2_within_canopy(
-        initial_co2_profile=initial_co2_profile,
+        initial_co2_profile=initial_co2_profile.isel(
+            atmosphere_layers=slice(1, atmosphere_layers - 1)
+        ),
         plant_net_co2_assimilation=plant_net_co2_assimilation,
     )
     # Calculate CO2 below canopy
     co2_below_canopy = calculate_co2_below_canopy(
-        initial_co2_profile=initial_co2_profile,
+        initial_co2_profile=initial_co2_profile.isel(atmosphere_layers=-1),
         soil_respiration=soil_respiration,
         animal_respiration=animal_respiration,
     )

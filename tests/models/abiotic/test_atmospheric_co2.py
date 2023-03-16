@@ -19,7 +19,7 @@ def dummy_data():
     # Add the required data.
     data["atmosperic_co2"] = DataArray([390, 395], dims=["cell_id"])
     data["plant_net_co2_assimilation"] = DataArray(
-        [[30, 30], [20, 20], [10, 10]], dims=["canopy_layer", "cell_id"]
+        [[30, 30], [20, 20], [10, 10]], dims=["canopy_layers", "cell_id"]
     )
     data["soil_respiration"] = DataArray([30, 35], dims=["cell_id"])
     data["animal_respiration"] = DataArray([30, 35], dims=["cell_id"])
@@ -49,21 +49,21 @@ def test_calculate_co2_profile(dummy_data, dummy_data_empty):
     data = dummy_data
     result = atmospheric_co2.calculate_co2_profile(data, 5)
 
-    data_empty = dummy_data_empty
-    result_default = atmospheric_co2.calculate_co2_profile(data_empty, 5)
-
     xr.testing.assert_allclose(
         result,
         DataArray(
-            [[300, 300], [200, 200], [310, 310], [200, 200], [310, 310]],
-            dims=["atmosphere_layer", "cell_id"],
+            [[400, 370, 380, 390, 460], [400, 370, 380, 390, 470]],
+            dims=["cell_id", "atmosphere_layers"],
         ),
     )
 
+    data1 = dummy_data_empty
+    result1 = atmospheric_co2.calculate_co2_profile(data1, 5)
+
     xr.testing.assert_allclose(
-        result_default,
+        result1,
         DataArray(
-            [[400, 400], [400, 400], [400, 400], [400, 400], [400, 400]],
-            dims=["atmosphere_layer", "cell_id"],
+            [[400, 400, 400, 400, 400], [400, 400, 400, 400, 400]],
+            dims=["cell_id", "atmosphere_layers"],
         ),
     )
