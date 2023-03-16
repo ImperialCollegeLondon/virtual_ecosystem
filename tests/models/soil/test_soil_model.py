@@ -36,11 +36,11 @@ def soil_model_fixture(dummy_carbon_data):
             (
                 (
                     DEBUG,
-                    "soil model: required var 'mineral_associated_om' checked",
+                    "soil model: required var 'soil_c_pool_maom' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'low_molecular_weight_c' checked",
+                    "soil model: required var 'soil_c_pool_lmwc' checked",
                 ),
                 (
                     DEBUG,
@@ -70,13 +70,11 @@ def soil_model_fixture(dummy_carbon_data):
             (
                 (
                     ERROR,
-                    "soil model: init data missing required var "
-                    "'mineral_associated_om'",
+                    "soil model: init data missing required var " "'soil_c_pool_maom'",
                 ),
                 (
                     ERROR,
-                    "soil model: init data missing required var "
-                    "'low_molecular_weight_c'",
+                    "soil model: init data missing required var " "'soil_c_pool_lmwc'",
                 ),
                 (
                     ERROR,
@@ -110,15 +108,15 @@ def soil_model_fixture(dummy_carbon_data):
             (
                 (
                     INFO,
-                    "Replacing data array for 'low_molecular_weight_c'",
+                    "Replacing data array for 'soil_c_pool_lmwc'",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'mineral_associated_om' checked",
+                    "soil model: required var 'soil_c_pool_maom' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'low_molecular_weight_c' checked",
+                    "soil model: required var 'soil_c_pool_lmwc' checked",
                 ),
                 (
                     DEBUG,
@@ -166,7 +164,7 @@ def test_soil_model_initialization(
             if bad_data == 2:
                 carbon_data = deepcopy(dummy_carbon_data)
                 # Put incorrect data in for lmwc
-                carbon_data["low_molecular_weight_c"] = DataArray(
+                carbon_data["soil_c_pool_lmwc"] = DataArray(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
@@ -224,11 +222,11 @@ def test_soil_model_initialization(
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'mineral_associated_om' checked",
+                    "soil model: required var 'soil_c_pool_maom' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'low_molecular_weight_c' checked",
+                    "soil model: required var 'soil_c_pool_lmwc' checked",
                 ),
                 (
                     DEBUG,
@@ -305,8 +303,8 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     ) + 2 * np.timedelta64(12, "h")
 
     # Check that data fixture has been updated correctly
-    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
-    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
 
 
 def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
@@ -326,8 +324,8 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
     soil_model_fixture.replace_soil_pools(new_pools)
 
     # Then check that pools are correctly incremented based on update
-    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
-    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
 
 
 @pytest.mark.parametrize(
@@ -367,6 +365,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
         ),
     ],
 )
+# TODO - First test should not be a mocked test (provided it doesn't take absurdly long)
 def test_integrate_soil_model(
     mocker, caplog, soil_model_fixture, output, raises, expected_log
 ):
@@ -406,8 +405,8 @@ def test_construct_full_soil_model(dummy_carbon_data):
     # make pools
     pools = np.concatenate(
         [
-            dummy_carbon_data["low_molecular_weight_c"].to_numpy(),
-            dummy_carbon_data["mineral_associated_om"].to_numpy(),
+            dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
+            dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         ]
     )
 

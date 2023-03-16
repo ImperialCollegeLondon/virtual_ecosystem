@@ -54,8 +54,8 @@ class SoilModel(BaseModel):
     model_name = "soil"
     """An internal name used to register the model and schema"""
     required_init_vars = (
-        ("mineral_associated_om", ("spatial",)),
-        ("low_molecular_weight_c", ("spatial",)),
+        ("soil_c_pool_maom", ("spatial",)),
+        ("soil_c_pool_lmwc", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
         ("soil_moisture", ("spatial",)),
@@ -78,8 +78,8 @@ class SoilModel(BaseModel):
         super().__init__(data, update_interval, start_time, **kwargs)
 
         # Check that soil pool data is appropriately bounded
-        if np.any(data["mineral_associated_om"] < 0.0) or np.any(
-            data["low_molecular_weight_c"] < 0.0
+        if np.any(data["soil_c_pool_maom"] < 0.0) or np.any(
+            data["soil_c_pool_lmwc"] < 0.0
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
@@ -176,8 +176,8 @@ class SoilModel(BaseModel):
             new_pools: Array of new pool values to insert into the data object
         """
 
-        self.data["low_molecular_weight_c"] = new_pools["new_lmwc"]
-        self.data["mineral_associated_om"] = new_pools["new_maom"]
+        self.data["soil_c_pool_lmwc"] = new_pools["new_lmwc"]
+        self.data["soil_c_pool_maom"] = new_pools["new_maom"]
 
     def integrate(self) -> Dataset:
         """Integrate the soil model.
@@ -188,7 +188,7 @@ class SoilModel(BaseModel):
 
         This function unpacks the variables that are to be integrated into a single
         numpy array suitable for integration. This order of this numpy array is as
-        follows: [low_molecular_weight_c, mineral_associated_om].
+        follows: [soil_c_pool_lmwc, soil_c_pool_maom].
 
         Returns:
             A data array containing the new pool values (i.e. the values at the final
@@ -208,8 +208,9 @@ class SoilModel(BaseModel):
         # Construct vector of initial values y0
         y0 = np.concatenate(
             [
-                self.data["low_molecular_weight_c"].to_numpy(),
-                self.data["mineral_associated_om"].to_numpy(),
+                self.data[str(name)].to_numpy()
+                for name in self.data.data.keys()
+                if str(name).startswith("soil_c_pool_")
             ]
         )
 
@@ -232,6 +233,7 @@ class SoilModel(BaseModel):
             )
             raise IntegrationError()
 
+        # TODO - Output reconstruction needs to use name order in data object
         return Dataset(
             data_vars=dict(
                 new_lmwc=DataArray(output.y[:no_cells, -1], dims="cell_id"),
@@ -257,6 +259,8 @@ def construct_full_soil_model(
         The rate of change for each soil pool
     """
 
+    # TODO - Change names here
+    # TODO - Input should be follow name order in data object here
     return calculate_soil_carbon_updates(
         low_molecular_weight_c=pools[:no_cells],
         mineral_associated_om=pools[no_cells:],

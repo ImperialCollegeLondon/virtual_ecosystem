@@ -23,8 +23,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     ]
 
     delta_pools = calculate_soil_carbon_updates(
-        dummy_carbon_data["low_molecular_weight_c"].to_numpy(),
-        dummy_carbon_data["mineral_associated_om"].to_numpy(),
+        dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
+        dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -46,8 +46,8 @@ def test_mineral_association(dummy_carbon_data):
 
     # Then calculate mineral association rate
     lmwc_to_maom = mineral_association(
-        dummy_carbon_data["low_molecular_weight_c"],
-        dummy_carbon_data["mineral_associated_om"],
+        dummy_carbon_data["soil_c_pool_lmwc"],
+        dummy_carbon_data["soil_c_pool_maom"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -67,7 +67,7 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     output_eqb_maoms = [19900.19, 969.4813, 832.6088, 742.4128]
 
     equib_maoms = calculate_equilibrium_maom(
-        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["low_molecular_weight_c"]
+        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["soil_c_pool_lmwc"]
     )
     assert np.allclose(equib_maoms, output_eqb_maoms)
 
