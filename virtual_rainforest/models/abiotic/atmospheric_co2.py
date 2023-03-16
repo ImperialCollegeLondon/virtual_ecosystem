@@ -1,9 +1,9 @@
 """The ``models.abiotic.atmospheric_co2`` module calculates the within- and below-
 canopy CO2 profile for the Virtual Rainforest.
 
-Based on external inputs, the module interpolates a vertical CO2 profile which is
-then modified by plant net carbon assimilation and soil and animal respiration and
-vertically mixed based on the windprofiles above, within, and below the canopy (the
+Based on external inputs, the module interpolates an initial  vertical CO2 profile which
+is then modified by plant net carbon assimilation and soil and animal respiration and
+vertically mixed based on the wind profiles above, within, and below the canopy (the
 mixing is currently not implemented).
 """  # noqa: D205, D415
 
