@@ -287,8 +287,8 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     )
     mock_integrate.return_value = Dataset(
         data_vars=dict(
-            new_lmwc=DataArray(end_lmwc, dims="cell_id"),
-            new_maom=DataArray(end_maom, dims="cell_id"),
+            soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
+            soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
         )
     )
 
@@ -315,8 +315,8 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
 
     new_pools = Dataset(
         data_vars=dict(
-            new_lmwc=DataArray(end_lmwc, dims="cell_id"),
-            new_maom=DataArray(end_maom, dims="cell_id"),
+            soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
+            soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
         )
     )
 
@@ -371,9 +371,10 @@ def test_integrate_soil_model(
 
     with raises:
         new_pools = soil_model_fixture.integrate()
+        print(new_pools)
         # Check returned pools matched (mocked) integrator output
-        assert np.allclose(new_pools["new_lmwc"], final_pools[0])
-        assert np.allclose(new_pools["new_maom"], final_pools[1])
+        assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools[0])
+        assert np.allclose(new_pools["soil_c_pool_maom"], final_pools[1])
 
     # Check that integrator is called once (and once only)
     if mock_output:

@@ -176,8 +176,8 @@ class SoilModel(BaseModel):
             new_pools: Array of new pool values to insert into the data object
         """
 
-        self.data["soil_c_pool_lmwc"] = new_pools["new_lmwc"]
-        self.data["soil_c_pool_maom"] = new_pools["new_maom"]
+        self.data["soil_c_pool_lmwc"] = new_pools["soil_c_pool_lmwc"]
+        self.data["soil_c_pool_maom"] = new_pools["soil_c_pool_maom"]
 
     def integrate(self) -> Dataset:
         """Integrate the soil model.
@@ -233,13 +233,23 @@ class SoilModel(BaseModel):
             )
             raise IntegrationError()
 
-        # TODO - Output reconstruction needs to use name order in data object
-        return Dataset(
-            data_vars=dict(
-                new_lmwc=DataArray(output.y[:no_cells, -1], dims="cell_id"),
-                new_maom=DataArray(output.y[no_cells:, -1], dims="cell_id"),
-            )
-        )
+        # Construct index slices
+        slices = [
+            slice(n * no_cells, (n + 1) * no_cells)
+            for n in range(round(len(y0) / no_cells))
+        ]
+
+        # Construct dictionary of data arrays (using a for loop)
+        new_c_pools = {}
+        slice_no = 0
+        for name in self.data.data.keys():
+            if str(name).startswith("soil_c_pool_"):
+                new_c_pools[name] = DataArray(
+                    output.y[slices[slice_no], -1], dims="cell_id"
+                )
+                slice_no += 1
+
+        return Dataset(data_vars=new_c_pools)
 
 
 def construct_full_soil_model(
@@ -259,7 +269,6 @@ def construct_full_soil_model(
         The rate of change for each soil pool
     """
 
-    # TODO - Change names here
     # TODO - Input should be follow name order in data object here
     return calculate_soil_carbon_updates(
         low_molecular_weight_c=pools[:no_cells],
