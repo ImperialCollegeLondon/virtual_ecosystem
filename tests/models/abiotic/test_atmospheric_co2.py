@@ -87,7 +87,7 @@ def test_calculate_co2_profile(dummy_data, dummy_data_empty):
     ],
 )
 def test_initialise_co2_profile(dummy_data, method, exp_err):
-    """test that CO2 profile is initialised correctly."""
+    """Test that CO2 profile is initialised correctly."""
 
     from virtual_rainforest.models.abiotic import atmospheric_co2
 
