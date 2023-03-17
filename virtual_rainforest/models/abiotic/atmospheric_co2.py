@@ -1,8 +1,8 @@
 r"""The ``models.abiotic.atmospheric_co2`` module calculates the within- and below-
-canopy CO\ :sub:`2`\ profile for the Virtual Rainforest.
+canopy :math:`\ce{CO2}` profile for the Virtual Rainforest.
 
 Based on external inputs, the module interpolates an initial vertical
-CO\ :sub:`2`\ profile which
+:math:`\ce{CO2}` profile which
 is then modified by plant net carbon assimilation and soil and animal respiration and
 vertically mixed based on the wind profiles above, within, and below the canopy (the
 mixing is currently not implemented).
@@ -22,10 +22,10 @@ from virtual_rainforest.core.data import Data
 
 @dataclass
 class CO2Constants:
-    r"""CO\ :sub:`2`\ constants class."""
+    r""":math:`\ce{CO2}` constants class."""
 
     ambient_co2_default: float = 400
-    r"""Default ambient CO\ :sub:`2`\ concentration, [ppm]"""
+    r"""Default ambient :math:`\ce{CO2}` concentration, [ppm]"""
 
 
 def calculate_co2_profile(
@@ -35,26 +35,26 @@ def calculate_co2_profile(
     mixing: bool = False,
     co2_const: CO2Constants = CO2Constants(),
 ) -> DataArray:
-    r"""Calculate CO\ :sub:`2`\ profile.
+    r"""Calculate :math:`\ce{CO2}` profile.
 
     This function takes a :class:`~virtual_rainforest.core.data.Data` object as ``data``
     argument that contains the following variables:
 
-    * atmospheric CO\ :sub:`2`\
-    * plant net CO\ :sub:`2`\ assimilation
+    * atmospheric :math:`\ce{CO2}`
+    * plant net :math:`\ce{CO2}` assimilation
     * soil respiration
     * animal respiration
 
     Args:
         data: A Virtual Rainforest Data object.
-        atmosphere_layers: number of atmosphere layers for which CO\ :sub:`2`\
+        atmosphere_layers: number of atmosphere layers for which :math:`\ce{CO2}`
             concentration is calculated
         initialisation_method: interpolation method, default copies ambient
-            CO\ :sub:`2`\ to all vertical levels
+            :math:`\ce{CO2}` to all vertical levels
         mixing: flag if mixing is true or false
 
     Returns:
-        vertical profile of CO\ :sub:`2`\ concentrations, [ppm]
+        vertical profile of :math:`\ce{CO2}` concentrations, [ppm]
     """
 
     # check if atmospheric CO2 concentration in data
@@ -67,20 +67,17 @@ def calculate_co2_profile(
             dims="cell_id",
         )
     else:
-        ambient_atmospheric_co2 = data["atmsopheric_co2"]
+        ambient_atmospheric_co2 = data["atmospheric_co2"]
 
     # check if plant_net_co2_assimilation in data
     if "plant_net_co2_assimilation" not in data:
         plant_net_co2_assimilation = DataArray(
             np.zeros((atmosphere_layers - 2, len(data.grid.cell_id))),
-            dims=["atmosphere_layers", "cell_id"],
+            dims=["canopy_layers", "cell_id"],
         )
 
     else:
-        plant_net_co2_assimilation1 = data["plant_net_co2_assimilation"]
-        plant_net_co2_assimilation = plant_net_co2_assimilation1.rename(
-            {"canopy_layers": "atmosphere_layers"}
-        )
+        plant_net_co2_assimilation = data["plant_net_co2_assimilation"]
 
     # check if soil_respiration in data
     if "soil_respiration" not in data:
@@ -125,7 +122,7 @@ def calculate_co2_profile(
         co2_above_canopy=initial_co2_profile.isel(atmosphere_layers=0),
         co2_within_canopy=co2_within_canopy,
         co2_below_canopy=co2_below_canopy,
-        mixing=False,
+        mixing=mixing,
     )
 
     return co2_profile_mixed
@@ -137,17 +134,17 @@ def initialise_co2_profile(
     atmosphere_layers: int,
     initialisation_method: str = "homogenous",
 ) -> DataArray:
-    r"""Initialise CO\ :sub:`2`\ profile.
+    r"""Initialise :math:`\ce{CO2}` profile.
 
     Args:
-        ambient_atmospheric_co2: ambient CO\ :sub:`2`\ concentraion, [ppm],
-        atmosphere_layers: number of atmosphere layers for which CO\ :sub:`2`\
+        ambient_atmospheric_co2: ambient :math:`\ce{CO2}` concentraion, [ppm],
+        atmosphere_layers: number of atmosphere layers for which :math:`\ce{CO2}`
              concentration is calculated
-        initialisation_method: interpolation method for initial CO\ :sub:`2`\ profile,
-            default copies ambient CO\ :sub:`2`\ to all vertical levels
+        initialisation_method: interpolation method for initial :math:`\ce{CO2}`
+            profile, default copies ambient :math:`\ce{CO2}` to all vertical levels
 
     Returns:
-        initial vertical CO\ :sub:`2`\ profile, [ppm]
+        initial vertical :math:`\ce{CO2}` profile, [ppm]
     """
 
     if initialisation_method != "homogenous":
@@ -166,21 +163,23 @@ def calculate_co2_within_canopy(
     initial_co2_profile: DataArray,
     plant_net_co2_assimilation: DataArray,
 ) -> DataArray:
-    r"""Calculate CO\ :sub:`2`\ concentration within canopy.
+    r"""Calculate :math:`\ce{CO2}` concentration within canopy.
 
-    This function subtracts the net CO\ :sub:`2`\ assimilation of plants from the
-    ambient CO\ :sub:`2`\ level. Make sure that the initial_co2_profile has the same
+    This function subtracts the net :math:`\ce{CO2}` assimilation of plants from the
+    ambient :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same
     dimensions as the canopy.
 
     Args:
-        initial_co2_profile: initial CO\ :sub:`2`\ profile, [ppm]
+        initial_co2_profile: initial :math:`\ce{CO2}` profile, [ppm]
         plant_net_co2_assimilation: plant net canron assimilation, [ppm]
 
     Returns:
-        CO\ :sub:`2`\ concentration within canopy, [ppm]
+        :math:`\ce{CO2}` concentration within canopy, [ppm]
     """
-
-    return initial_co2_profile - plant_net_co2_assimilation
+    plant_net_co2_assimilation_newaxis = plant_net_co2_assimilation.rename(
+        {"canopy_layers": "atmosphere_layers"}
+    )
+    return initial_co2_profile - plant_net_co2_assimilation_newaxis
 
 
 def calculate_co2_below_canopy(
@@ -188,19 +187,19 @@ def calculate_co2_below_canopy(
     soil_respiration: DataArray,
     animal_respiration: DataArray,
 ) -> DataArray:
-    r"""Calculate CO\ :sub:`2`\ concentration below canopy.
+    r"""Calculate :math:`\ce{CO2}` concentration below canopy.
 
     This function adds the net respiration of soil organisms and animals to the ambient
-    CO\ :sub:`2`\ level. Make sure that the initial_co2_profile has the same dimensions
+    :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same dimensions
     as layers below canopy.
 
     Args:
-        initial_co2_profile: initial CO\ :sub:`2`\ profile, [ppm]
+        initial_co2_profile: initial :math:`\ce{CO2}` profile, [ppm]
         soil_respiration: soil respiration, [ppm]
         animal_respiration: animal respiration, [ppm]
 
     Returns:
-        CO\ :sub:`2`\ concentration below canopy, [ppm]
+        :math:`\ce{CO2}` concentration below canopy, [ppm]
     """
     return initial_co2_profile + soil_respiration + animal_respiration
 
@@ -211,12 +210,12 @@ def vertical_mixing_co2(
     co2_below_canopy: DataArray,
     mixing: bool,
 ) -> DataArray:
-    r"""Vertical mixing of CO\ :sub:`2`\.
+    r"""Vertical mixing of :math:`\ce{CO2}`.
 
     Args:
-        co2_above_canopy: CO\ :sub:`2`\ concentration above canopy, [ppm]
-        co2_within_canopy: CO\ :sub:`2`\ concentration within canopy, [ppm]
-        co2_below_canopy: CO\ :sub:`2`\ concentration below canopy, [ppm]
+        co2_above_canopy: :math:`\ce{CO2}` concentration above canopy, [ppm]
+        co2_within_canopy: :math:`\ce{CO2}` concentration within canopy, [ppm]
+        co2_below_canopy: :math:`\ce{CO2}` concentration below canopy, [ppm]
         mixing: flag if mixing is true or false
     """
 
