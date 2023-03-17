@@ -329,31 +329,24 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
 
 
 @pytest.mark.parametrize(
-    argnames=["output", "raises", "expected_log"],
+    argnames=["mock_output", "raises", "final_pools", "expected_log"],
     argvalues=[
         pytest.param(
-            OptimizeResult(
-                success=True,
-                y=np.array(
-                    [
-                        [5.000e-02, 3.210e-02],
-                        [2.000e-02, 1.921e-02],
-                        [4.500e00, 4.509e00],
-                        [5.000e-01, 5.000e-01],
-                        [3.210e-02, 5.000e-02],
-                        [1.921e-02, 2.000e-02],
-                        [4.509e00, 4.500e00],
-                        [5.000e-01, 5.000e-01],
-                    ]
-                ),
-            ),
+            False,
             does_not_raise(),
+            np.array(
+                [
+                    [0.04980195, 0.01999411, 0.09992834, 0.00499986],
+                    [2.50019805, 1.70000589, 4.50007166, 0.50000014],
+                ]
+            ),
             (),
             id="successful integration",
         ),
         pytest.param(
             OptimizeResult(success=False, message="Example error message"),
             pytest.raises(IntegrationError),
+            None,
             (
                 (
                     ERROR,
@@ -365,23 +358,26 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
         ),
     ],
 )
-# TODO - First test should not be a mocked test (provided it doesn't take absurdly long)
 def test_integrate_soil_model(
-    mocker, caplog, soil_model_fixture, output, raises, expected_log
+    mocker, caplog, soil_model_fixture, mock_output, raises, final_pools, expected_log
 ):
     """Test that function to integrate the soil model works as expected."""
 
-    mock_integrate = mocker.patch("virtual_rainforest.models.soil.soil_model.solve_ivp")
-    mock_integrate.return_value = output
+    if mock_output:
+        mock_integrate = mocker.patch(
+            "virtual_rainforest.models.soil.soil_model.solve_ivp"
+        )
+        mock_integrate.return_value = mock_output
 
     with raises:
         new_pools = soil_model_fixture.integrate()
         # Check returned pools matched (mocked) integrator output
-        assert np.allclose(new_pools["new_lmwc"], output.y[:4, -1])
-        assert np.allclose(new_pools["new_maom"], output.y[4:, -1])
+        assert np.allclose(new_pools["new_lmwc"], final_pools[0])
+        assert np.allclose(new_pools["new_maom"], final_pools[1])
 
     # Check that integrator is called once (and once only)
-    mock_integrate.assert_called_once()
+    if mock_output:
+        mock_integrate.assert_called_once()
 
     log_check(caplog, expected_log)
 
