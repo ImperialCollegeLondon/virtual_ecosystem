@@ -60,6 +60,10 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
+    # THERE'S A STRICT ORDER HERE, HOW CAN THIS BE HANDLED?
+    # This can't be done procedurally!
+    # SO COULD FIND ORDER (HOW?)
+    # TODO - Fix ordering here
     delta_pools = np.concatenate([-lmwc_to_maom, lmwc_to_maom])
 
     return delta_pools

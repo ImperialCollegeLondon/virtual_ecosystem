@@ -266,18 +266,25 @@ def construct_full_soil_model(
         The rate of change for each soil pool
     """
 
-    # TODO - Input should be follow name order in data object here
-    # Make dict and unpack using **
+    # Construct index slices
+    slices = make_slices(no_cells, round(len(pools) / no_cells))
 
-    # THINK I OTHER KEYWORD ARGUMENTS CAN JUST BE SUPPLIED AS NORMAL?
+    # Construct dictionary of numpy arrays (using a for loop)
+    soil_pools = {}
+    slice_no = 0
+    for name in data.data.keys():
+        if str(name).startswith("soil_c_pool_"):
+            soil_pools[str(name)] = pools[slices[slice_no]]
+            slice_no += 1
+
+    # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
-        soil_c_pool_lmwc=pools[:no_cells],
-        soil_c_pool_maom=pools[no_cells:],
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"].to_numpy(),
         soil_temp=data["soil_temperature"].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
+        **soil_pools,
     )
 
 

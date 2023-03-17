@@ -334,11 +334,15 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
         pytest.param(
             False,
             does_not_raise(),
-            np.array(
-                [
-                    [0.04980195, 0.01999411, 0.09992834, 0.00499986],
-                    [2.50019805, 1.70000589, 4.50007166, 0.50000014],
-                ]
+            Dataset(
+                data_vars=dict(
+                    lmwc=DataArray(
+                        [0.04980195, 0.01999411, 0.09992834, 0.00499986], dims="cell_id"
+                    ),
+                    maom=DataArray(
+                        [2.50019805, 1.70000589, 4.50007166, 0.50000014], dims="cell_id"
+                    ),
+                )
             ),
             (),
             id="successful integration",
@@ -373,8 +377,8 @@ def test_integrate_soil_model(
         new_pools = soil_model_fixture.integrate()
         print(new_pools)
         # Check returned pools matched (mocked) integrator output
-        assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools[0])
-        assert np.allclose(new_pools["soil_c_pool_maom"], final_pools[1])
+        assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
+        assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -402,8 +406,9 @@ def test_construct_full_soil_model(dummy_carbon_data):
     # make pools
     pools = np.concatenate(
         [
-            dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
-            dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
+            dummy_carbon_data[str(name)].to_numpy()
+            for name in dummy_carbon_data.data.keys()
+            if str(name).startswith("soil_c_pool_")
         ]
     )
 
