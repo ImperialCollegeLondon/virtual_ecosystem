@@ -2,10 +2,9 @@ r"""The ``models.abiotic.atmospheric_co2`` module calculates the within- and bel
 canopy :math:`\ce{CO2}` profile for the Virtual Rainforest.
 
 Based on external inputs, the module interpolates an initial vertical
-:math:`\ce{CO2}` profile which
-is then modified by plant net carbon assimilation and soil and animal respiration and
-vertically mixed based on the wind profiles above, within, and below the canopy (the
-mixing is currently not implemented).
+:math:`\ce{CO2}` profile which is then modified by plant net carbon assimilation and
+soil and animal respiration and vertically mixed based on the wind profiles above,
+within, and below the canopy (the mixing is currently not implemented).
 
 TODO cross-check input variable names with other modules
 TODO update indexing vertical dimension
@@ -190,8 +189,8 @@ def calculate_co2_below_canopy(
     r"""Calculate :math:`\ce{CO2}` concentration below canopy.
 
     This function adds the net respiration of soil organisms and animals to the ambient
-    :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same dimensions
-    as layers below canopy.
+    :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same
+    dimensions as layers below canopy.
 
     Args:
         initial_co2_profile: initial :math:`\ce{CO2}` profile, [ppm]
