@@ -234,10 +234,7 @@ class SoilModel(BaseModel):
             raise IntegrationError()
 
         # Construct index slices
-        slices = [
-            slice(n * no_cells, (n + 1) * no_cells)
-            for n in range(round(len(y0) / no_cells))
-        ]
+        slices = make_slices(no_cells, round(len(y0) / no_cells))
 
         # Construct dictionary of data arrays (using a for loop)
         new_c_pools = {}
@@ -271,6 +268,7 @@ def construct_full_soil_model(
 
     # TODO - Input should be follow name order in data object here
     # Make dict and unpack using **
+
     # THINK I OTHER KEYWORD ARGUMENTS CAN JUST BE SUPPLIED AS NORMAL?
     return calculate_soil_carbon_updates(
         soil_c_pool_lmwc=pools[:no_cells],
@@ -281,3 +279,20 @@ def construct_full_soil_model(
         soil_temp=data["soil_temperature"].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
     )
+
+
+def make_slices(no_cells: int, no_pools: int) -> list[slice]:
+    """Constructs a list of slices based on the number of grid cells and pools.
+
+    Args:
+        no_cells: Number of grid cells the pools are defined for
+        no_pools: Number of soil pools being integrated
+
+    Returns:
+        A list of containing the correct number of correctly spaced slices
+    """
+
+    # Construct index slices
+    slices = [slice(n * no_cells, (n + 1) * no_cells) for n in range(no_pools)]
+
+    return slices

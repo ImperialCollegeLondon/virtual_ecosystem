@@ -410,3 +410,17 @@ def test_construct_full_soil_model(dummy_carbon_data):
     rate_of_change = construct_full_soil_model(0.0, pools, dummy_carbon_data, 4)
 
     assert np.allclose(delta_pools, rate_of_change)
+
+
+def test_make_slices():
+    """Test that function to make slices works as expected."""
+    from virtual_rainforest.models.soil.soil_model import make_slices
+
+    no_cells = 4
+    no_pools = 2
+
+    slices = make_slices(no_cells, no_pools)
+
+    assert len(slices) == no_pools
+    assert slices[0] == slice(0, 4)
+    assert slices[1] == slice(4, 8)
