@@ -36,7 +36,7 @@ def extract_model_time_details(
             "seconds"
         )
         # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
+        update_interval = timedelta64(round(raw_interval.magnitude), "s")
 
         start_date = datetime64(config["core"]["timing"]["start_date"])
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as excep:
