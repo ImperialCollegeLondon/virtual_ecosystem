@@ -3,11 +3,11 @@
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR
 
-import pint
 import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
+from virtual_rainforest.core.config import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ from tests.conftest import log_check
                 "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"model_time_step": "12 interminable hours"},
             },
-            pytest.raises(pint.errors.UndefinedUnitError),
+            pytest.raises(ConfigurationError),
             None,
             None,
             (
@@ -44,7 +44,7 @@ from tests.conftest import log_check
                 "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"model_time_step": "12 kilograms"},
             },
-            pytest.raises(pint.errors.DimensionalityError),
+            pytest.raises(ConfigurationError),
             None,
             None,
             (
