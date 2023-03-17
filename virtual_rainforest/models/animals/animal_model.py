@@ -24,6 +24,7 @@ from typing import Any
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import extract_model_time_details
@@ -77,7 +78,7 @@ class AnimalModel(BaseModel):
             start_time, update_interval = extract_model_time_details(
                 config, cls.model_name
             )
-        except Exception:
+        except ConfigurationError:
             valid_input = False
 
         if valid_input:

@@ -7,7 +7,6 @@ import pytest
 from numpy import allclose, datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.models.soil.soil_model import SoilModel
 
 
@@ -127,7 +126,7 @@ def test_soil_model_initialization(
         (
             {},
             None,
-            pytest.raises(InitialisationError),
+            pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
             [],
         ),

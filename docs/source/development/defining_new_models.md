@@ -73,6 +73,9 @@ from typing import Any
 # Used by timing loop to store date times, and time intervals, respectively
 from numpy import datetime64, timedelta64
 
+# Custom exception for configuration failures
+from virtual_rainforest.core.config import ConfigurationError
+
 # The core data storage object
 from virtual_rainforest.core.data import Data
 
@@ -313,7 +316,7 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
                 config, cls.model_name
             )
     # Catch cases where timing details are bad
-    except Exception:
+    except ConfigurationError:
         valid_input = False
     
     # Non-timing details now extracted

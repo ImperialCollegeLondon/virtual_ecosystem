@@ -33,7 +33,7 @@ def test_animal_model_initialization(caplog, data_instance):
         (
             {},
             None,
-            pytest.raises(InitialisationError),
+            pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
         ),
         (
