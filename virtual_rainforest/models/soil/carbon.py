@@ -21,8 +21,8 @@ from virtual_rainforest.models.soil.constants import (
 
 
 def calculate_soil_carbon_updates(
-    low_molecular_weight_c: NDArray[np.float32],
-    mineral_associated_om: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.float32],
+    soil_c_pool_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -36,8 +36,8 @@ def calculate_soil_carbon_updates(
     calculate the net change for each pool.
 
     Args:
-        low_molecular_weight_c: Low molecular weight carbon pool (kg C m^-3)
-        mineral_associated_om: Mineral associated organic matter pool (kg C m^-3)
+        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
+        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
         soil_moisture: relative water content for each soil grid cell (unitless)
@@ -50,8 +50,8 @@ def calculate_soil_carbon_updates(
     # TODO - Add interactions which involve the three missing carbon pools
 
     lmwc_to_maom = mineral_association(
-        low_molecular_weight_c,
-        mineral_associated_om,
+        soil_c_pool_lmwc,
+        soil_c_pool_maom,
         pH,
         bulk_density,
         soil_moisture,
@@ -66,8 +66,8 @@ def calculate_soil_carbon_updates(
 
 
 def mineral_association(
-    low_molecular_weight_c: NDArray[np.float32],
-    mineral_associated_om: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.float32],
+    soil_c_pool_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -84,8 +84,8 @@ def mineral_association(
     elsewhere.
 
     Args:
-        low_molecular_weight_c: Low molecular weight carbon pool (kg C m^-3)
-        mineral_associated_om: Mineral associated organic matter pool (kg C m^-3)
+        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
+        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
         soil_moisture: relative water content for each soil grid cell (unitless)
@@ -98,7 +98,7 @@ def mineral_association(
 
     # Calculate
     Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
-    equib_maom = calculate_equilibrium_maom(pH, Q_max, low_molecular_weight_c)
+    equib_maom = calculate_equilibrium_maom(pH, Q_max, soil_c_pool_lmwc)
 
     # Find scalar factors that multiple rates
     temp_scalar = convert_temperature_to_scalar(soil_temp)
@@ -107,8 +107,8 @@ def mineral_association(
     return (
         temp_scalar
         * moist_scalar
-        * low_molecular_weight_c
-        * (equib_maom - mineral_associated_om)
+        * soil_c_pool_lmwc
+        * (equib_maom - soil_c_pool_maom)
         / Q_max
     )
 

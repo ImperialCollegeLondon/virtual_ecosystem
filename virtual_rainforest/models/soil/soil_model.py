@@ -270,9 +270,11 @@ def construct_full_soil_model(
     """
 
     # TODO - Input should be follow name order in data object here
+    # Make dict and unpack using **
+    # THINK I OTHER KEYWORD ARGUMENTS CAN JUST BE SUPPLIED AS NORMAL?
     return calculate_soil_carbon_updates(
-        low_molecular_weight_c=pools[:no_cells],
-        mineral_associated_om=pools[no_cells:],
+        soil_c_pool_lmwc=pools[:no_cells],
+        soil_c_pool_maom=pools[no_cells:],
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"].to_numpy(),
