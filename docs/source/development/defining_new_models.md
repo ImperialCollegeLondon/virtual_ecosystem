@@ -73,9 +73,6 @@ from typing import Any
 # Used by timing loop to store date times, and time intervals, respectively
 from numpy import datetime64, timedelta64
 
-# Custom exception for configuration failures
-from virtual_rainforest.core.config import ConfigurationError
-
 # The core data storage object
 from virtual_rainforest.core.data import Data
 
@@ -303,35 +300,20 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
 
     Args:
         config: The complete (and validated) Virtual Rainforest configuration.
-
-    Raises:
-        InitialisationError: If configuration data can't be properly converted
     """
 
-    # Assume input is valid until we learn otherwise
-    valid_input = True
-    # Convert configuration values to the required format for the __init__
-    try:
-        start_date, update_interval = extract_model_time_details(
-                config, cls.model_name
-            )
-    # Catch cases where timing details are bad
-    except ConfigurationError:
-        valid_input = False
+    # Find timing details
+    start_time, update_interval = extract_model_time_details(config, cls.model_name)
     
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
-    # If everything is fine initialise a class instance (using cls)
-    if valid_input:
-        LOGGER.info(
-            "Information required to initialise the freshwater model successfully "
-            "extracted."
-        )
-        return cls(update_interval, start_time, no_of_pools)
-    else:
-        # Otherwise raise an InitialisationError
-        raise InitialisationError()
+    LOGGER.info(
+        "Information required to initialise the freshwater model successfully "
+        "extracted."
+    )
+    return cls(update_interval, start_time, no_of_pools)
+
 ```
 
 ## Other model steps

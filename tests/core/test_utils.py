@@ -7,7 +7,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.base_model import InitialisationError
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ from virtual_rainforest.core.config import ConfigurationError
                 "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"model_time_step": "12 interminable hours"},
             },
-            pytest.raises(ConfigurationError),
+            pytest.raises(InitialisationError),
             None,
             None,
             (
@@ -44,7 +44,7 @@ from virtual_rainforest.core.config import ConfigurationError
                 "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"model_time_step": "12 kilograms"},
             },
-            pytest.raises(ConfigurationError),
+            pytest.raises(InitialisationError),
             None,
             None,
             (

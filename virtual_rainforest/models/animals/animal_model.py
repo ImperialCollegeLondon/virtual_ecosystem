@@ -23,8 +23,7 @@ from typing import Any
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import extract_model_time_details
@@ -66,29 +65,18 @@ class AnimalModel(BaseModel):
         invalid rather than returning an initialised model instance None is returned.
 
         Args:
+            data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
-
-        Raises:
-            InitialisationError: If configuration data can't be properly converted
         """
 
-        # Assume input is valid until we learn otherwise
-        valid_input = True
-        try:
-            start_time, update_interval = extract_model_time_details(
-                config, cls.model_name
-            )
-        except ConfigurationError:
-            valid_input = False
+        # Find timing details
+        start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
-        if valid_input:
-            LOGGER.info(
-                "Information required to initialise the animal model successfully "
-                "extracted."
-            )
-            return cls(data, update_interval, start_time)
-        else:
-            raise InitialisationError()
+        LOGGER.info(
+            "Information required to initialise the animal model successfully "
+            "extracted."
+        )
+        return cls(data, update_interval, start_time)
 
     def setup(self) -> None:
         """Function to set up the animal model."""

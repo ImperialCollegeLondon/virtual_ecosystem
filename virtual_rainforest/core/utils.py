@@ -10,7 +10,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -27,7 +27,7 @@ def extract_model_time_details(
         A tuple containing the start date and the update interval for the model
 
     Raises:
-        ConfigurationError: If the model timing cannot be properly configured
+        InitialisationError: If the model timing cannot be properly extracted
     """
 
     try:
@@ -40,6 +40,6 @@ def extract_model_time_details(
         start_date = datetime64(config["core"]["timing"]["start_date"])
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as excep:
         LOGGER.error("Model timing error: %s" % str(excep))
-        raise ConfigurationError()
+        raise InitialisationError()
 
     return start_date, update_interval
