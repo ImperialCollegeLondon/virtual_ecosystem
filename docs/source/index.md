@@ -95,6 +95,7 @@ team.
   Abiotic Tools <api/abiotic/abiotic_tools.md>
   Abiotic Radiation <api/abiotic/radiation.md>
   Abiotic Wind <api/abiotic/wind.md>
+  Abiotic Atmospheric CO2 <api/abiotic/atmospheric_co2.md>
 ```
 
 ```{eval-rst}
