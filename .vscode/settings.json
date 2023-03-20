@@ -18,4 +18,9 @@
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook"
     },
+    "cSpell.words": [
+        "allometric",
+        "coef",
+        "Testasaurus"
+    ],
 }

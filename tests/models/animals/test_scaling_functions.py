@@ -4,92 +4,104 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "mass, population_density, taxa, diet",
+    "mass, population_density, terms",
     [
-        (100000.0, 1.0, "mammal", "herbivore"),
-        (0.07, 32.0, "mammal", "herbivore"),
-        (1.0, 5.0, "mammal", "herbivore"),
+        (100000.0, 1.0, (-0.75, 4.23)),
+        (0.07, 32.0, (-0.75, 4.23)),
+        (1.0, 5.0, (-0.75, 4.23)),
     ],
 )
-def test_damuths_law(mass, population_density, taxa, diet):
+def test_damuths_law(mass, population_density, terms):
     """Testing damuth's law for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import damuths_law
 
-    testing_pop = damuths_law(mass, taxa, diet)
+    testing_pop = damuths_law(mass, terms)
     assert testing_pop == population_density
 
 
 @pytest.mark.parametrize(
-    "mass, met_rate, taxa",
-    [(0.0, 0.0, "mammal"), (1.0, 8.357913, "mammal"), (1000.0, 1486.270500, "mammal")],
+    "mass, met_rate, terms",
+    [
+        (0.0, 0.0, (0.75, 0.047)),
+        (1.0, 8.357913, (0.75, 0.047)),
+        (1000.0, 1486.270500, (0.75, 0.047)),
+    ],
 )
-def test_metabolic_rate(mass, met_rate, taxa):
+def test_metabolic_rate(mass, met_rate, terms):
     """Testing metabolic rate for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import metabolic_rate
 
-    testing_rate = metabolic_rate(mass, taxa)
+    testing_rate = metabolic_rate(mass, terms)
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
 
 @pytest.mark.parametrize(
-    "mass, muscle, taxa",
-    [(0.0, 0.0, "mammal"), (1.0, 380.0, "mammal"), (1000.0, 380000.0, "mammal")],
+    "mass, muscle, terms",
+    [
+        (0.0, 0.0, (1.0, 0.38)),
+        (1.0, 380.0, (1.0, 0.38)),
+        (1000.0, 380000.0, (1.0, 0.38)),
+    ],
 )
-def test_muscle_mass_scaling(mass, muscle, taxa):
+def test_muscle_mass_scaling(mass, muscle, terms):
     """Testing muscle mass scaling for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import muscle_mass_scaling
 
-    gains = muscle_mass_scaling(mass, taxa)
+    gains = muscle_mass_scaling(mass, terms)
     assert gains == pytest.approx(muscle, rel=1e-6)
 
 
 @pytest.mark.parametrize(
-    "mass, fat, taxa",
+    "mass, fat, terms",
     [
-        (0.0, 0.0, "mammal"),
-        (1.0, 74.307045, "mammal"),
-        (1000.0, 276076.852920, "mammal"),
+        (0.0, 0.0, (1.19, 0.02)),
+        (1.0, 74.307045, (1.19, 0.02)),
+        (1000.0, 276076.852920, (1.19, 0.02)),
     ],
 )
-def test_fat_mass_scaling(mass, fat, taxa):
+def test_fat_mass_scaling(mass, fat, terms):
     """Testing fat mass scaling for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import fat_mass_scaling
 
-    gains = fat_mass_scaling(mass, taxa)
+    gains = fat_mass_scaling(mass, terms)
     assert gains == pytest.approx(fat, rel=1e-6)
 
 
 @pytest.mark.parametrize(
-    "mass, energy, taxa",
+    "mass, energy, muscle_terms, fat_terms",
     [
-        (0.0, 0.0, "mammal"),
-        (1.0, 3180149.320736, "mammal"),
-        (1000.0, 4592537970.444037, "mammal"),
+        (0.0, 0.0, (1.0, 0.38), (1.19, 0.02)),
+        (1.0, 3180149.320736, (1.0, 0.38), (1.19, 0.02)),
+        (1000.0, 4592537970.444037, (1.0, 0.38), (1.19, 0.02)),
     ],
 )
-def test_energetic_reserve_scaling(mass, energy, taxa):
+def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
     """Testing energetic reserve scaling for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import (
         energetic_reserve_scaling,
     )
 
-    gains = energetic_reserve_scaling(mass, taxa)
+    gains = energetic_reserve_scaling(mass, muscle_terms, fat_terms)
     assert gains == pytest.approx(energy, rel=1e-6)
 
 
 @pytest.mark.parametrize(
-    "mass, intake_rate, taxa",
-    [(0.0, 0.0, "mammal"), (1.0, 0.3024, "mammal"), (1000.0, 40.792637, "mammal")],
+    "mass, intake_rate, terms",
+    [
+        (0.0, 0.0, (0.71, 0.63)),
+        (1.0, 0.3024, (0.71, 0.63)),
+        (1000.0, 40.792637, (0.71, 0.63)),
+    ],
 )
-def test_intake_rate_scaling(mass, intake_rate, taxa):
+def test_intake_rate_scaling(mass, intake_rate, terms):
     """Testing intake rate scaling for various body-masses."""
 
     from virtual_rainforest.models.animals.scaling_functions import intake_rate_scaling
 
-    test_rate = intake_rate_scaling(mass, taxa)
+    test_rate = intake_rate_scaling(mass, terms)
     assert test_rate == pytest.approx(intake_rate, rel=1e-6)

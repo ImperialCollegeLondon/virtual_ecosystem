@@ -9,22 +9,8 @@ To Do:
 
 from math import ceil
 
-from virtual_rainforest.models.animals.constants import (
-    DAMUTHS_LAW_TERMS,
-    ENDOTHERM_METABOLIC_RATE_TERMS,
-    ENERGY_DENSITY,
-    FAT_MASS_TERMS,
-    INTAKE_RATE_TERMS,
-    MUSCLE_MASS_TERMS,
-)
 
-
-def damuths_law(
-    mass: float,
-    taxa: str,
-    diet: str,
-    terms: dict = DAMUTHS_LAW_TERMS,
-) -> int:
+def damuths_law(mass: float, terms: tuple) -> int:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
@@ -35,22 +21,18 @@ def damuths_law(
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        diet: The diet category of the animal cohort [toy: herbivore or carnivore].
-        terms: The dictionary of population density terms used, default to Damuth.
+        terms: The tuple of population density terms used, default to Damuth.
 
     Returns:
         The population density of that AnimalCohort [individuals/km2].
 
     """
-    exp = terms[taxa][diet][0]
-    coef = terms[taxa][diet][1]
+    exp = terms[0]
+    coef = terms[1]
     return ceil(coef * mass**exp)
 
 
-def metabolic_rate(
-    mass: float, taxa: str, terms: dict = ENDOTHERM_METABOLIC_RATE_TERMS
-) -> float:
+def metabolic_rate(mass: float, terms: tuple) -> float:
     """The function to set the metabolic rate of animal cohorts.
 
         Currently, this function provides the allometric scaling of the basal metabolic
@@ -59,21 +41,18 @@ def metabolic_rate(
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        terms: The dictionary of metabolic rate terms used.
+        terms: The tuple of metabolic rate terms used.
 
     Returns:
         The metabolic rate of an individual of the given cohort in [J/s].
 
     """
-    exp = terms[taxa][0]
-    coef = terms[taxa][1]
+    exp = terms[0]
+    coef = terms[1]
     return coef * (mass * 1000) ** exp
 
 
-def muscle_mass_scaling(
-    mass: float, taxa: str, terms: dict = MUSCLE_MASS_TERMS
-) -> float:
+def muscle_mass_scaling(mass: float, terms: tuple) -> float:
     """The function to set the amount of muscle mass on individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial mammals.
@@ -81,19 +60,18 @@ def muscle_mass_scaling(
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        terms: The dictionary of muscle scaling terms used.
+        terms: The tuple of muscle scaling terms used.
 
     Returns:
         The mass [g] of muscle on an individual of the animal cohort.
 
     """
-    exp = terms[taxa][0]
-    coef = terms[taxa][1]
+    exp = terms[0]
+    coef = terms[1]
     return coef * (mass * 1000) ** exp
 
 
-def fat_mass_scaling(mass: float, taxa: str, terms: dict = FAT_MASS_TERMS) -> float:
+def fat_mass_scaling(mass: float, terms: tuple) -> float:
     """The function to set the amount of fat mass on individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial mammals.
@@ -101,20 +79,19 @@ def fat_mass_scaling(mass: float, taxa: str, terms: dict = FAT_MASS_TERMS) -> fl
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        terms: The dictionary of fat scaling terms used.
+        terms: The tuple of fat scaling terms used.
 
     Returns:
         The mass [g] of fat on an individual of the animal cohort.
 
     """
-    exp = terms[taxa][0]
-    coef = terms[taxa][1]
+    exp = terms[0]
+    coef = terms[1]
     return coef * (mass * 1000) ** exp
 
 
 def energetic_reserve_scaling(
-    mass: float, taxa: str, terms: dict = ENERGY_DENSITY
+    mass: float, muscle_terms: tuple, fat_terms: tuple
 ) -> float:
     """The function to set the energetic reserve of an individual in an AnimalCohort.
 
@@ -123,21 +100,19 @@ def energetic_reserve_scaling(
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        terms: The dictionary of energy density terms used.
+        muscle_terms: The tuple of muscle scaling terms used.
+        fat_terms: The tuple of fat scaling terms used.
 
     Returns:
         The energetic reserve [J] of  an individual of the animal cohort.
 
     """
-    return (muscle_mass_scaling(mass, taxa) + fat_mass_scaling(mass, taxa)) * terms[
-        "meat"
-    ]
+    return (
+        muscle_mass_scaling(mass, muscle_terms) + fat_mass_scaling(mass, fat_terms)
+    ) * 7000.0  # j/g
 
 
-def intake_rate_scaling(
-    mass: float, taxa: str, terms: dict = INTAKE_RATE_TERMS
-) -> float:
+def intake_rate_scaling(mass: float, terms: tuple) -> float:
     """The function to set the intake rate of an individual in an AnimalCohort.
 
         Currently, this scaling relationship is only accurate for terrestrial
@@ -149,13 +124,12 @@ def intake_rate_scaling(
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
-        taxa: The taxa category of the animal cohort [toy: mammal or bird].
-        terms: The dictionary of intake rate terms used.
+        terms: The tuple of intake rate terms used.
 
     Returns:
         The intake rate [kg/day] of an individual of the animal cohort.
 
     """
-    exp = terms[taxa][0]
-    coef = terms[taxa][1]
+    exp = terms[0]
+    coef = terms[1]
     return coef * mass**exp * 480 * (1 / 1000)
