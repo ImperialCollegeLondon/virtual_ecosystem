@@ -28,6 +28,7 @@ def calculate_soil_carbon_updates(
     soil_moisture: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
+    pool_order: list[str],
 ) -> NDArray[np.float32]:
     """Calculate net change for each carbon pool.
 
@@ -43,6 +44,7 @@ def calculate_soil_carbon_updates(
         soil_moisture: relative water content for each soil grid cell (unitless)
         soil_temp: soil temperature for each soil grid cell (degrees C)
         percent_clay: Percentage clay for each soil grid cell
+        pool_order: The order of the soil pools in the initial condition vector
 
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
@@ -60,11 +62,14 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    # THERE'S A STRICT ORDER HERE, HOW CAN THIS BE HANDLED?
-    # This can't be done procedurally!
-    # SO COULD FIND ORDER (HOW?)
-    # TODO - Fix ordering here
-    delta_pools = np.concatenate([-lmwc_to_maom, lmwc_to_maom])
+    delta_soil_c_pool_lmwc = -lmwc_to_maom
+    delta_soil_c_pool_maom = lmwc_to_maom
+
+    # Create output array based on first pool
+    delta_pools = np.array([])
+    # Then append every subsequent pool
+    for pool in pool_order:
+        delta_pools = np.concatenate([delta_pools, locals()[f"delta_{pool}"]])
 
     return delta_pools
 

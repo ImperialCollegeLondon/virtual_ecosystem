@@ -187,8 +187,7 @@ class SoilModel(BaseModel):
         that is feasible).
 
         This function unpacks the variables that are to be integrated into a single
-        numpy array suitable for integration. This order of this numpy array is as
-        follows: [soil_c_pool_lmwc, soil_c_pool_maom].
+        numpy array suitable for integration.
 
         Returns:
             A data array containing the new pool values (i.e. the values at the final
@@ -272,10 +271,14 @@ def construct_full_soil_model(
     # Construct dictionary of numpy arrays (using a for loop)
     soil_pools = {}
     slice_no = 0
+    # TODO - I think it will save effort to calculate this at a higher level and pass it
+    # through
+    pool_order = []
     for name in data.data.keys():
         if str(name).startswith("soil_c_pool_"):
             soil_pools[str(name)] = pools[slices[slice_no]]
             slice_no += 1
+            pool_order.append(str(name))
 
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
@@ -284,6 +287,7 @@ def construct_full_soil_model(
         soil_moisture=data["soil_moisture"].to_numpy(),
         soil_temp=data["soil_temperature"].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
+        pool_order=pool_order,
         **soil_pools,
     )
 

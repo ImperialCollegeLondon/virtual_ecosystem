@@ -30,6 +30,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
         dummy_carbon_data["soil_moisture"],
         dummy_carbon_data["soil_temperature"],
         dummy_carbon_data["percent_clay"],
+        ["soil_c_pool_lmwc", "soil_c_pool_maom"],
     )
 
     # Check that the updates are correctly calculated
