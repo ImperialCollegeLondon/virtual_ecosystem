@@ -26,7 +26,7 @@ def calculate_co2_profile(
     r"""Calculate :math:`\ce{CO2}` profile.
 
     Args:
-        atmospheric_co2_topofcanopy: atmospheric :math:`\ce{CO2}` at the top pf canopy,
+        atmospheric_co2_topofcanopy: atmospheric :math:`\ce{CO2}` at the top of canopy,
             [ppm]
         plant_net_co2_assimilation: plant net :math:`\ce{CO2}` assimilation, [ppm]
         soil_respiration: soil respiration, [ppm]
