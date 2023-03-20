@@ -9,7 +9,7 @@ from xarray import DataArray
 
 @pytest.fixture
 def dummy_data():
-    """Creates a dummy data object with input data for use in atmospheric CO2 tests."""
+    """Creates a dummy data object for use in atmospheric CO2 tests."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
