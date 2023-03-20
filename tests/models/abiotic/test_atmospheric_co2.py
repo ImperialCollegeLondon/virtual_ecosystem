@@ -35,7 +35,13 @@ def test_calculate_co2_profile(dummy_data):
     from virtual_rainforest.models.abiotic import atmospheric_co2
 
     data = dummy_data
-    result = atmospheric_co2.calculate_co2_profile(data, 5)
+    result = atmospheric_co2.calculate_co2_profile(
+        atmospheric_co2_topofcanopy=data["atmospheric_co2"],
+        plant_net_co2_assimilation=data["plant_net_co2_assimilation"],
+        soil_respiration=data["soil_respiration"],
+        animal_respiration=data["animal_respiration"],
+        atmosphere_layers=5,
+    )
 
     xr.testing.assert_allclose(
         result,
