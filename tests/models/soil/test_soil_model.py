@@ -375,7 +375,6 @@ def test_integrate_soil_model(
 
     with raises:
         new_pools = soil_model_fixture.integrate()
-        print(new_pools)
         # Check returned pools matched (mocked) integrator output
         assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
@@ -385,6 +384,57 @@ def test_integrate_soil_model(
         mock_integrate.assert_called_once()
 
     log_check(caplog, expected_log)
+
+
+def test_order_independance(dummy_carbon_data, soil_model_fixture):
+    """Check that pool order in the data object doesn't change integration result."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    # Create new data object with same size as dummy_carbon_data fixture
+    grid = Grid(
+        cell_nx=dummy_carbon_data.grid.cell_nx, cell_ny=dummy_carbon_data.grid.cell_ny
+    )
+    new_data = Data(grid)
+
+    # Add all the non-pool data into the new data object
+    not_pools = [
+        "pH",
+        "bulk_density",
+        "soil_moisture",
+        "soil_temperature",
+        "percent_clay",
+    ]
+    for not_pool in not_pools:
+        new_data[not_pool] = dummy_carbon_data[not_pool]
+
+    # Then extract soil carbon pool names from the fixture (in order)
+    pool_names = [
+        str(name)
+        for name in dummy_carbon_data.data.keys()
+        if str(name).startswith("soil_c_pool_")
+    ]
+
+    # Add pool values from object in reversed order
+    for pool_name in reversed(pool_names):
+        new_data[pool_name] = dummy_carbon_data[pool_name]
+
+    # Use this new data to make a new soil model object
+    config = {
+        "core": {"timing": {"start_time": "2020-01-01"}},
+        "soil": {"model_time_step": "12 hours"},
+    }
+    new_soil_model = SoilModel.from_config(new_data, config)
+
+    # Integrate using both data objects
+    output = soil_model_fixture.integrate()
+    output_reversed = new_soil_model.integrate()
+
+    # Compare each final pool
+    for pool_name in pool_names:
+        assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
 def test_construct_full_soil_model(dummy_carbon_data):
