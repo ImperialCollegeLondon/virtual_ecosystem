@@ -214,10 +214,11 @@ class SoilModel(BaseModel):
         )
 
         # Find and store order of pools
-        pool_order = []
-        for name in self.data.data.keys():
-            if str(name).startswith("soil_c_pool_"):
-                pool_order.append(str(name))
+        pool_order = [
+            str(name)
+            for name in self.data.data.keys()
+            if str(name).startswith("soil_c_pool_")
+        ]
 
         # Carry out simulation
         output = solve_ivp(
@@ -238,14 +239,11 @@ class SoilModel(BaseModel):
         # Construct index slices
         slices = make_slices(no_cells, round(len(y0) / no_cells))
 
-        # Construct dictionary of data arrays (using a for loop)
-        new_c_pools = {}
-        slice_no = 0
-        for pool in pool_order:
-            new_c_pools[pool] = DataArray(
-                output.y[slices[slice_no], -1], dims="cell_id"
-            )
-            slice_no += 1
+        # Construct dictionary of data arrays
+        new_c_pools = {
+            str(pool): DataArray(output.y[slc, -1], dims="cell_id")
+            for slc, pool in zip(slices, pool_order)
+        }
 
         return Dataset(data_vars=new_c_pools)
 
@@ -276,11 +274,7 @@ def construct_full_soil_model(
     slices = make_slices(no_cells, len(pool_order))
 
     # Construct dictionary of numpy arrays (using a for loop)
-    soil_pools = {}
-    slice_no = 0
-    for pool in pool_order:
-        soil_pools[str(pool)] = pools[slices[slice_no]]
-        slice_no += 1
+    soil_pools = {str(pool): pools[slc] for slc, pool in zip(slices, pool_order)}
 
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
