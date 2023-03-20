@@ -10,95 +10,40 @@ TODO cross-check input variable names with other modules
 TODO update indexing vertical dimension
 """  # noqa: D205, D415
 
-from dataclasses import dataclass
-
-import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-from virtual_rainforest.core.data import Data
-
-
-@dataclass
-class CO2Constants:
-    r""":math:`\ce{CO2}` constants class."""
-
-    ambient_co2_default: float = 400
-    r"""Default ambient :math:`\ce{CO2}` concentration, [ppm]"""
-
 
 def calculate_co2_profile(
-    data: Data,
+    atmospheric_co2_topofcanopy: DataArray,
+    plant_net_co2_assimilation: DataArray,
+    soil_respiration: DataArray,
+    animal_respiration: DataArray,
     atmosphere_layers: int,  # from config?
     initialisation_method: str = "homogenous",
     mixing: bool = False,
-    co2_const: CO2Constants = CO2Constants(),
 ) -> DataArray:
     r"""Calculate :math:`\ce{CO2}` profile.
 
-    This function takes a :class:`~virtual_rainforest.core.data.Data` object as ``data``
-    argument that contains the following variables:
-
-    * atmospheric :math:`\ce{CO2}`
-    * plant net :math:`\ce{CO2}` assimilation
-    * soil respiration
-    * animal respiration
-
     Args:
-        data: A Virtual Rainforest Data object.
+        atmospheric_co2_topofcanopy: atmospheric :math:`\ce{CO2}` at the top pf canopy,
+            [ppm]
+        plant_net_co2_assimilation: plant net :math:`\ce{CO2}` assimilation, [ppm]
+        soil_respiration: soil respiration, [ppm]
+        animal_respiration: animal respiration, [ppm]
         atmosphere_layers: number of atmosphere layers for which :math:`\ce{CO2}`
             concentration is calculated
-        initialisation_method: interpolation method, default copies ambient
-            :math:`\ce{CO2}` to all vertical levels
+        initialisation_method: interpolation method, default copies top-of-canopy
+            :math:`\ce{CO2}` concentration to all vertical levels
         mixing: flag if mixing is true or false
 
     Returns:
         vertical profile of :math:`\ce{CO2}` concentrations, [ppm]
     """
 
-    # check if atmospheric CO2 concentration in data
-    if "atmospheric_co2" not in data:
-        ambient_atmospheric_co2 = DataArray(
-            np.repeat(
-                co2_const.ambient_co2_default,
-                len(data.grid.cell_id),
-            ),
-            dims="cell_id",
-        )
-    else:
-        ambient_atmospheric_co2 = data["atmospheric_co2"]
-
-    # check if plant_net_co2_assimilation in data
-    if "plant_net_co2_assimilation" not in data:
-        plant_net_co2_assimilation = DataArray(
-            np.zeros((atmosphere_layers - 2, len(data.grid.cell_id))),
-            dims=["canopy_layers", "cell_id"],
-        )
-
-    else:
-        plant_net_co2_assimilation = data["plant_net_co2_assimilation"]
-
-    # check if soil_respiration in data
-    if "soil_respiration" not in data:
-        soil_respiration = DataArray(
-            np.zeros((len(data.grid.cell_id))),
-            dims=["cell_id"],
-        )
-    else:
-        soil_respiration = data["soil_respiration"]
-
-    # check if animal_respiration in data
-    if "animal_respiration" not in data:
-        animal_respiration = DataArray(
-            np.zeros((len(data.grid.cell_id))),
-            dims=["cell_id"],
-        )
-    else:
-        animal_respiration = data["animal_respiration"]
-
     # initialise CO2 profile
     initial_co2_profile = initialise_co2_profile(
-        ambient_atmospheric_co2=ambient_atmospheric_co2,
+        atmospheric_co2_topofcanopy=atmospheric_co2_topofcanopy,
         atmosphere_layers=atmosphere_layers,
         initialisation_method=initialisation_method,
     )
@@ -129,18 +74,20 @@ def calculate_co2_profile(
 
 # helper functions
 def initialise_co2_profile(
-    ambient_atmospheric_co2: DataArray,
+    atmospheric_co2_topofcanopy: DataArray,
     atmosphere_layers: int,
     initialisation_method: str = "homogenous",
 ) -> DataArray:
     r"""Initialise :math:`\ce{CO2}` profile.
 
     Args:
-        ambient_atmospheric_co2: ambient :math:`\ce{CO2}` concentraion, [ppm],
+        atmospheric_co2_topofcanopy: atmospheric :math:`\ce{CO2}` concentration at the
+            top of canopy, [ppm]
         atmosphere_layers: number of atmosphere layers for which :math:`\ce{CO2}`
              concentration is calculated
         initialisation_method: interpolation method for initial :math:`\ce{CO2}`
-            profile, default copies ambient :math:`\ce{CO2}` to all vertical levels
+            profile, default copies atmospheric :math:`\ce{CO2}` concentration to all
+            vertical levels
 
     Returns:
         initial vertical :math:`\ce{CO2}` profile, [ppm]
@@ -151,7 +98,7 @@ def initialise_co2_profile(
 
     else:
         initial_co2_profile = DataArray(
-            ambient_atmospheric_co2.expand_dims(
+            atmospheric_co2_topofcanopy.expand_dims(
                 dim={"atmosphere_layers": atmosphere_layers}
             )
         )
@@ -165,8 +112,8 @@ def calculate_co2_within_canopy(
     r"""Calculate :math:`\ce{CO2}` concentration within canopy.
 
     This function subtracts the net :math:`\ce{CO2}` assimilation of plants from the
-    ambient :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same
-    dimensions as the canopy.
+    atmospheric :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the
+    same dimensions as the canopy.
 
     Args:
         initial_co2_profile: initial :math:`\ce{CO2}` profile, [ppm]
@@ -188,9 +135,9 @@ def calculate_co2_below_canopy(
 ) -> DataArray:
     r"""Calculate :math:`\ce{CO2}` concentration below canopy.
 
-    This function adds the net respiration of soil organisms and animals to the ambient
-    :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the same
-    dimensions as layers below canopy.
+    This function adds the net respiration of soil organisms and animals to the
+    atmospheric :math:`\ce{CO2}` level. Make sure that the initial_co2_profile has the
+    same dimensions as layers below canopy.
 
     Args:
         initial_co2_profile: initial :math:`\ce{CO2}` profile, [ppm]

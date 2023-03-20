@@ -29,21 +29,7 @@ def dummy_data():
     return data
 
 
-@pytest.fixture
-def dummy_data_empty():
-    """Creates an empty dummy data object."""
-
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    # Setup the data object with two cells.
-    grid = Grid(cell_nx=2, cell_ny=1)
-    data_empty = Data(grid)
-
-    return data_empty
-
-
-def test_calculate_co2_profile(dummy_data, dummy_data_empty):
+def test_calculate_co2_profile(dummy_data):
     """Test default values."""
 
     from virtual_rainforest.models.abiotic import atmospheric_co2
@@ -55,17 +41,6 @@ def test_calculate_co2_profile(dummy_data, dummy_data_empty):
         result,
         DataArray(
             [[390, 360, 370, 380, 450], [395, 365, 375, 385, 465]],
-            dims=["cell_id", "atmosphere_layers"],
-        ),
-    )
-
-    data1 = dummy_data_empty
-    result1 = atmospheric_co2.calculate_co2_profile(data1, 5)
-
-    xr.testing.assert_allclose(
-        result1,
-        DataArray(
-            [[400, 400, 400, 400, 400], [400, 400, 400, 400, 400]],
             dims=["cell_id", "atmosphere_layers"],
         ),
     )
@@ -95,7 +70,7 @@ def test_initialise_co2_profile(dummy_data, method, exp_err):
 
     with exp_err:
         result = atmospheric_co2.initialise_co2_profile(
-            ambient_atmospheric_co2=data["atmospheric_co2"],
+            atmospheric_co2_topofcanopy=data["atmospheric_co2"],
             atmosphere_layers=5,
             initialisation_method=method,
         )
