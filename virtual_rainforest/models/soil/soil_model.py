@@ -26,14 +26,14 @@ from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 from xarray import DataArray, Dataset
 
-from virtual_rainforest.core.base_model import (
-    BaseModel,
-    InitialisationError,
-    IntegrationError,
-)
+from virtual_rainforest.core.base_model import BaseModel, InitialisationError
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
+
+
+class IntegrationError(Exception):
+    """Custom exception class for cases when model integration cannot be completed."""
 
 
 class SoilModel(BaseModel):

@@ -87,10 +87,6 @@ class InitialisationError(Exception):
     """Custom exception class for model initialisation failures."""
 
 
-class IntegrationError(Exception):
-    """Custom exception class for cases when model integration cannot be completed."""
-
-
 class BaseModel(ABC):
     """A superclass for all Virtual Rainforest models.
 
