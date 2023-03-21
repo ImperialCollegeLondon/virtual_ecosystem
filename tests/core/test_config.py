@@ -47,9 +47,9 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
             (
                 (
                     CRITICAL,
-                    "A config file in the user specified output folder (.) already "
-                    "makes use of the specified output file name (complete_config.toml)"
-                    ", this file should either be renamed or deleted!",
+                    "A file in the user specified output folder (.) already makes use "
+                    "of the specified output file name (complete_config.toml), this "
+                    "file should either be renamed or deleted!",
                 ),
             ),
         ),
