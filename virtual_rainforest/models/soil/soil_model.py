@@ -37,12 +37,12 @@ class IntegrationError(Exception):
 
 
 class SoilModel(BaseModel):
-    """A class describing the soil model.
+    """A class defining the soil model.
 
-    Describes the specific functions and attributes that the soil module should possess.
-    It's very much incomplete at the moment, and only overwrites one function in a
-    pretty basic manner. This is intended as a demonstration of how the class
-    inheritance should be handled for the model classes.
+    This model can be configured based on the data object and a config dictionary. It
+    can be updated by numerical integration. At present the underlying model this class
+    wraps is quite simple (i.e. two soil carbon pools), but this will get more complex
+    as the Virtual Rainforest develops.
 
     Args:
         data: The data object to be used in the model.
