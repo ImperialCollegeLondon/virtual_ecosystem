@@ -570,16 +570,17 @@ def validate_config(
 ) -> dict[str, Any]:
     """Validates the contents of user provided config files.
 
-    This function first reads in a set of configuration files in `.toml` format. This
-    either consists of all `.toml` files in a specified folder, or a set of user
-    specified files within this folder. Checks are carried out to ensure that these
+    This function first reads in a set of configuration files in ``.toml`` format. This
+    either consists of all ``.toml`` files in the specified folders, or a set of user
+    specified files within these folders. Checks are carried out to ensure that these
     files are correctly formatted. The module validation schemas are extracted from
-    `SCHEMA_REGISTRY` for the modules the user has specified to configure (in
-    `config.core.modules`). These schemas are then consolidated into a single combined
-    JSON schema. This combined schema is then used to validate the combined contents of
-    the configuration files. If this validation passes the combined configuration is
-    saved in toml format in the specified configuration file folder. This configuration
-    is then returned for use in downstream simulation setup.
+    :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` for the modules the user has
+    specified to configure (in ``config.core.modules``). These schemas are then
+    consolidated into a single combined JSON schema. This combined schema is then used
+    to validate the combined contents of the configuration files. If this validation
+    passes the combined configuration is saved in toml format in the specified
+    configuration file folder. This configuration is then returned for use in downstream
+    simulation setup.
 
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
