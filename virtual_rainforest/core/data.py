@@ -123,7 +123,7 @@ import numpy as np
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.config import ConfigurationError, check_outfile
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.readers import load_to_dataarray
@@ -279,7 +279,7 @@ class Data:
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
         data_config dictionary can contain a 'variable' key containing an array of
-        dictionaries provding the path to the file (``file``) and the
+        dictionaries providing the path to the file (``file``) and the
         name of the variable within the file (``var_name``).
 
         Args:
@@ -326,6 +326,21 @@ class Data:
 
         if not clean_load:
             raise ConfigurationError("Data configuration did not load cleanly")
+
+    # TODO - Write a test for this function
+    def save_to_netcdf(self, output_file_path: Path) -> None:
+        """Save the entire Virtual Rainforest model state as a NetCDF file.
+
+        Args:
+            output_file_path: Path location to save the Virtual Rainforest model state.
+        """
+
+        # Check that the folder to save to exists and that there isn't already a file
+        # saved there
+        check_outfile(output_file_path)
+
+        # If the file path is okay then write the model state out as a NetCDF
+        self.data.to_netcdf(output_file_path)
 
 
 class DataGenerator:
