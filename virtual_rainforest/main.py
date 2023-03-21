@@ -191,10 +191,7 @@ def check_for_fast_models(
         )
 
 
-def vr_run(
-    cfg_paths: Union[str, list[str]],
-    merge_file_path: Path,
-) -> None:
+def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """Perform a virtual rainforest simulation.
 
     This is a high-level function that runs a virtual rainforest simulation. At the
@@ -235,6 +232,7 @@ def vr_run(
     # TODO - A model spin up might be needed here in future
 
     # Save the initial state of the model
+    # TODO - ERROR HANDLING WILL PROBABLY BE REQUIRED HERE
 
     # Get the list of date times of the next update.
     update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
