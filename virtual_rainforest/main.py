@@ -232,13 +232,9 @@ def vr_run(
     # Identify models with shorter time steps than main loop and warn user about them
     check_for_fast_models(models_cfd, update_interval)
 
-    # TODO - Extract input data required to initialise the models
+    # TODO - A model spin up might be needed here in future
 
-    # TODO - Initialise the set of configured models
-
-    # TODO - Spin up the models
-
-    # TODO - Save model state
+    # Save the initial state of the model
 
     # Get the list of date times of the next update.
     update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
@@ -255,6 +251,6 @@ def vr_run(
             models_cfd[mod_nm].update()
             update_due[mod_nm] = models_cfd[mod_nm].next_update
 
-        # TODO - Save model state
+    # TODO - Save the final model state
 
     LOGGER.info("Virtual rainforest model run completed!")
