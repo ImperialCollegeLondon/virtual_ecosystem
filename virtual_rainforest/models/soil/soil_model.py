@@ -303,6 +303,4 @@ def make_slices(no_cells: int, no_pools: int) -> list[slice]:
     """
 
     # Construct index slices
-    slices = [slice(n * no_cells, (n + 1) * no_cells) for n in range(no_pools)]
-
-    return slices
+    return [slice(n * no_cells, (n + 1) * no_cells) for n in range(no_pools)]
