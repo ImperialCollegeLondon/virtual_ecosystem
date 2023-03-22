@@ -66,13 +66,8 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
 
-    # Create output array based on first pool
-    delta_pools = np.array([])
-    # Then append every subsequent pool
-    for pool in delta_pools_ordered.keys():
-        delta_pools = np.concatenate([delta_pools, delta_pools_ordered[pool]])
-
-    return delta_pools
+    # Create output array of pools in desired order
+    return np.concatenate(list(delta_pools_ordered.values()))
 
 
 def mineral_association(
