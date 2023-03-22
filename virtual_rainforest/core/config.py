@@ -277,15 +277,14 @@ def check_outfile(merge_file_path: Path) -> None:
         raise to_raise
 
     # Throw critical error if combined output file already exists
-    for file in Path(parent_fold).iterdir():
-        if file.name == f"{out_file_name}":
-            to_raise = ConfigurationError(
-                f"A file in the user specified output folder ({parent_fold}) already "
-                f"makes use of the specified output file name ({out_file_name}), this "
-                f"file should either be renamed or deleted!"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
+    if merge_file_path.exists():
+        to_raise = ConfigurationError(
+            f"A file in the user specified output folder ({parent_fold}) already "
+            f"makes use of the specified output file name ({out_file_name}), this "
+            f"file should either be renamed or deleted!"
+        )
+        LOGGER.critical(to_raise)
+        raise to_raise
 
     return None
 

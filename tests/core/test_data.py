@@ -692,8 +692,9 @@ def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log)
     """Test that data object can save as NetCDF."""
 
     # Configure the mock to return a specific list of files
-    mock_content = mocker.patch("virtual_rainforest.core.config.Path.iterdir")
-    mock_content.return_value = [Path("final.nc")]
+    if out_path == "./final.nc":
+        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
+        mock_content.return_value = True
 
     with raises:
         fixture_data.save_to_netcdf(Path(out_path))

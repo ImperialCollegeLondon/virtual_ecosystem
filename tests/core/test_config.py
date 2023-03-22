@@ -76,11 +76,11 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
 )
 def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     """Check that an error is logged if an output file is already saved."""
-    file_name = "complete_config"
 
     # Configure the mock to return a specific list of files
-    mock_content = mocker.patch("virtual_rainforest.core.config.Path.iterdir")
-    mock_content.return_value = [Path(f"{file_name}.toml")]
+    if out_path == "./complete_config.toml":
+        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
+        mock_content.return_value = True
 
     # Check that check_outfile fails as expected
     with pytest.raises(config.ConfigurationError):
