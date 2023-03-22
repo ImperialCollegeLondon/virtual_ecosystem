@@ -222,3 +222,15 @@ data.load_data_config(data_config["core"]["data"])
 ```{code-cell}
 data
 ```
+
+## Data output
+
+The contents of the `Data` object can be output using the
+{meth}`~virtual_rainforest.core.data.Data.save_to_netcdf` method:
+
+```python
+data.save_to_netcdf(output_file_path)
+```
+
+At present this outputs the entire contents of the `Data` object as a single NetCDF, but
+this will likely be reworked in future.
