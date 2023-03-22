@@ -28,7 +28,7 @@ def calculate_soil_carbon_updates(
     soil_moisture: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
-    pool_order: list[str],
+    delta_pools_ordered: dict[str, NDArray[np.float32]],
 ) -> NDArray[np.float32]:
     """Calculate net change for each carbon pool.
 
@@ -44,7 +44,8 @@ def calculate_soil_carbon_updates(
         soil_moisture: relative water content for each soil grid cell (unitless)
         soil_temp: soil temperature for each soil grid cell (degrees C)
         percent_clay: Percentage clay for each soil grid cell
-        pool_order: The order of the soil pools in the initial condition vector
+        delta_pools_ordered: Dictionary to store pool changes in the order that pools
+            are stored in the initial condition vector.
 
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
@@ -62,14 +63,14 @@ def calculate_soil_carbon_updates(
     )
 
     # Determine net changes to the pools
-    delta_soil_c_pool_lmwc = -lmwc_to_maom
-    delta_soil_c_pool_maom = lmwc_to_maom
+    delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom
+    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
 
     # Create output array based on first pool
     delta_pools = np.array([])
     # Then append every subsequent pool
-    for pool in pool_order:
-        delta_pools = np.concatenate([delta_pools, locals()[f"delta_{pool}"]])
+    for pool in delta_pools_ordered.keys():
+        delta_pools = np.concatenate([delta_pools, delta_pools_ordered[pool]])
 
     return delta_pools
 

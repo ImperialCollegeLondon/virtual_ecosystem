@@ -214,18 +214,18 @@ class SoilModel(BaseModel):
         )
 
         # Find and store order of pools
-        pool_order = [
-            str(name)
+        delta_pools_ordered = {
+            str(name): np.array([])
             for name in self.data.data.keys()
             if str(name).startswith("soil_c_pool_")
-        ]
+        }
 
         # Carry out simulation
         output = solve_ivp(
             construct_full_soil_model,
             t_span,
             y0,
-            args=(self.data, no_cells, pool_order),
+            args=(self.data, no_cells, delta_pools_ordered),
         )
 
         # Check if integration failed
@@ -242,7 +242,7 @@ class SoilModel(BaseModel):
         # Construct dictionary of data arrays
         new_c_pools = {
             str(pool): DataArray(output.y[slc, -1], dims="cell_id")
-            for slc, pool in zip(slices, pool_order)
+            for slc, pool in zip(slices, delta_pools_ordered.keys())
         }
 
         return Dataset(data_vars=new_c_pools)
@@ -253,7 +253,7 @@ def construct_full_soil_model(
     pools: NDArray[np.float32],
     data: Data,
     no_cells: int,
-    pool_order: list[str],
+    delta_pools_ordered: dict[str, NDArray[np.float32]],
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -264,17 +264,20 @@ def construct_full_soil_model(
         pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
-        pool_order: The order of the soil pools in the initial condition vector
+        delta_pools_ordered: Dictionary to store pool changes in the order that pools
+            are stored in the initial condition vector.
 
     Returns:
         The rate of change for each soil pool
     """
 
     # Construct index slices
-    slices = make_slices(no_cells, len(pool_order))
+    slices = make_slices(no_cells, len(delta_pools_ordered))
 
     # Construct dictionary of numpy arrays (using a for loop)
-    soil_pools = {str(pool): pools[slc] for slc, pool in zip(slices, pool_order)}
+    soil_pools = {
+        str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
+    }
 
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
@@ -283,7 +286,7 @@ def construct_full_soil_model(
         soil_moisture=data["soil_moisture"].to_numpy(),
         soil_temp=data["soil_temperature"].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
-        pool_order=pool_order,
+        delta_pools_ordered=delta_pools_ordered,
         **soil_pools,
     )
 
