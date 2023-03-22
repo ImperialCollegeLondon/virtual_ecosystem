@@ -40,6 +40,6 @@ def extract_model_time_details(
         start_date = datetime64(config["core"]["timing"]["start_date"])
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as excep:
         LOGGER.error("Model timing error: %s" % str(excep))
-        raise InitialisationError()
+        raise InitialisationError() from excep
 
     return start_date, update_interval
