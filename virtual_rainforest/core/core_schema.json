@@ -95,11 +95,33 @@
                },
                "default": {},
                "required": []
+            },
+            "data_output_options": {
+               "description": "Options for output the virtual rainforest model state",
+               "type": "object",
+               "properties": {
+                  "save_initial_state": {
+                     "description": "Whether the initial state should be saved",
+                     "type": "boolean",
+                     "default": false
+                  },
+                  "save_final_state": {
+                     "description": "Whether the final state should be saved",
+                     "type": "boolean",
+                     "default": true
+                  }
+               },
+               "default": {},
+               "required": [
+                  "save_initial_state",
+                  "save_final_state"
+               ]
             }
          },
          "default": {},
          "required": [
             "data",
+            "data_output_options",
             "grid",
             "timing",
             "modules"

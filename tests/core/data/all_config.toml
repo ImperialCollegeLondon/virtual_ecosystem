@@ -10,6 +10,10 @@ start_date = "2020-01-01"
 update_interval = "10 minutes"
 run_length = "50 years"
 
+[core.data_output_options]
+save_initial_state = true
+save_final_state = true
+
 [plants]
 a_plant_integer = 12
 
