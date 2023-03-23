@@ -242,7 +242,6 @@ def check_dict_leaves(
     return conflicts
 
 
-# TODO - MOVE THIS TO UTILS MODULE (ONCE THAT IS MERGED)
 def check_outfile(merge_file_path: Path) -> None:
     """Check that final output file is not already in the output folder.
 
