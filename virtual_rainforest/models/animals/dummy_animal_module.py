@@ -82,10 +82,16 @@ class AnimalCohort:
     """This is a class of animal cohorts."""
 
     def __init__(
-        self, name: str, mass: float, taxa: str, diet: str, age: float, position: int
+        self,
+        name: str,
+        mass: float,
+        taxa: str,
+        diet: str,
+        age: float,
+        position: int,
     ) -> None:
         """The constructor for the AnimalCohort class."""
-        self.functional_group = FunctionalGroup(taxa, diet)
+        self.functional_group = FunctionalGroup(name, taxa, diet)
         """The functional group of the animal cohort which holds constants."""
         self.name = name
         """The functional type name of the animal cohort."""

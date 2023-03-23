@@ -32,8 +32,10 @@ class FunctionalGroup:
 
     """
 
-    def __init__(self, taxa: str, diet: str) -> None:
+    def __init__(self, name: str, taxa: str, diet: str) -> None:
         """The constructor for the FunctionalGroup class."""
+        self.name = name
+        """The name of the functional group."""
         self.taxa = taxa
         """The taxa of the functional group ("mammal" or "bird")."""
         self.diet = diet
