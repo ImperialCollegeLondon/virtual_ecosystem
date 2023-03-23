@@ -201,7 +201,8 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
 
     Args:
         cfg_paths: Set of paths to configuration files
-        merge_file_path: Path to save merged config file to
+        merge_file_path: Path to save merged config file to (i.e. folder location + file
+            name)
     """
 
     config = validate_config(cfg_paths, merge_file_path)

@@ -247,7 +247,9 @@ def check_outfile(merge_file_path: Path) -> None:
     """Check that final output file is not already in the output folder.
 
     Args:
-        merge_file_path: Path that merged config file is meant to be saved to
+        merge_file_path: Path to save merged config file to (i.e. folder location + file
+            name)
+
     Raises:
         ConfigurationError: If the final output directory doesn't exist, isn't a
             directory, or the final output file already exists.
@@ -584,7 +586,8 @@ def validate_config(
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
-        merge_file_path: Path to save merged config file to
+        merge_file_path: Path to save merged config file to (i.e. folder location + file
+            name)
     """
 
     # Check that there isn't a final output file saved in the final output folder
