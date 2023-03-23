@@ -21,12 +21,12 @@ from __future__ import annotations
 
 from typing import Any
 
-import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import extract_model_time_details
 
 
 class AnimalModel(BaseModel):
@@ -65,41 +65,18 @@ class AnimalModel(BaseModel):
         invalid rather than returning an initialised model instance None is returned.
 
         Args:
+            data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
-
-        Raises:
-            InitialisationError: If configuration data can't be properly converted
         """
 
-        # Assume input is valid until we learn otherwise
-        valid_input = True
-        try:
-            raw_interval = pint.Quantity(config["animal"]["model_time_step"]).to(
-                "minutes"
-            )
-            # Round raw time interval to nearest minute
-            update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-            start_time = datetime64(config["core"]["timing"]["start_time"])
-        except (
-            ValueError,
-            pint.errors.DimensionalityError,
-            pint.errors.UndefinedUnitError,
-        ) as e:
-            valid_input = False
-            LOGGER.error(
-                "Configuration types appear not to have been properly validated. This "
-                "problem prevents initialisation of the animal model. The first "
-                "instance of this problem is as follows: %s" % str(e)
-            )
+        # Find timing details
+        start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
-        if valid_input:
-            LOGGER.info(
-                "Information required to initialise the animal model successfully "
-                "extracted."
-            )
-            return cls(data, update_interval, start_time)
-        else:
-            raise InitialisationError()
+        LOGGER.info(
+            "Information required to initialise the animal model successfully "
+            "extracted."
+        )
+        return cls(data, update_interval, start_time)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
