@@ -282,9 +282,8 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
 
-    mock_integrate = mocker.patch(
-        "virtual_rainforest.models.soil.soil_model.SoilModel.integrate"
-    )
+    mock_integrate = mocker.patch.object(soil_model_fixture, "integrate")
+
     mock_integrate.return_value = Dataset(
         data_vars=dict(
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
