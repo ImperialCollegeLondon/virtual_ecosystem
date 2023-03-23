@@ -236,7 +236,8 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     parent_folder = merge_file_path.parent
 
     # Save the initial state of the model
-    data.save_to_netcdf(Path(f"{parent_folder}/initial.nc"))
+    if config["core"]["data_output_options"]["save_initial_state"]:
+        data.save_to_netcdf(Path(f"{parent_folder}/initial.nc"))
 
     # Get the list of date times of the next update.
     update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
@@ -254,6 +255,7 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
             update_due[mod_nm] = models_cfd[mod_nm].next_update
 
     # Save the final model state
-    data.save_to_netcdf(Path(f"{parent_folder}/final.nc"))
+    if config["core"]["data_output_options"]["save_final_state"]:
+        data.save_to_netcdf(Path(f"{parent_folder}/final.nc"))
 
     LOGGER.info("Virtual rainforest model run completed!")
