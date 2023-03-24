@@ -52,11 +52,24 @@ def soil_instance():
 
 
 @pytest.fixture
-def animal_instance():
+def functional_group_instance(shared_datadir):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_rainforest.models.animals.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file)
+
+    return fg_list[3]
+
+
+@pytest.fixture
+def animal_instance(functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
-    return AnimalCohort("Testasaurus", 10000.0, "mammal", "herbivore", 1, 4)
+    return AnimalCohort(functional_group_instance, 10000.0, 1, 4)
 
 
 @pytest.fixture
@@ -186,7 +199,7 @@ class TestAnimalCohort:
     def test_birth(self, animal_instance):
         """Testing birth."""
         baby_instance = animal_instance.birth()
-        assert baby_instance.name == "Testasaurus"
+        assert baby_instance.name == "herbivorous_mammal"
         assert baby_instance.mass == 10000.0
         assert baby_instance.age == 0.0
         assert baby_instance.position == 4

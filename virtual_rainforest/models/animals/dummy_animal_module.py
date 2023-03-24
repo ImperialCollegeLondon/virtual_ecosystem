@@ -83,24 +83,18 @@ class AnimalCohort:
 
     def __init__(
         self,
-        name: str,
+        functional_group: FunctionalGroup,
         mass: float,
-        taxa: str,
-        diet: str,
         age: float,
         position: int,
     ) -> None:
         """The constructor for the AnimalCohort class."""
-        self.functional_group = FunctionalGroup(name, taxa, diet)
+        self.functional_group = functional_group
         """The functional group of the animal cohort which holds constants."""
-        self.name = name
+        self.name = functional_group.name
         """The functional type name of the animal cohort."""
         self.mass = mass
         """The average mass of an individual in the animal cohort [kg]."""
-        self.taxa = taxa
-        """The broad taxa category of the cohort, curr uses "mammal" or "bird"."""
-        self.diet = diet
-        """The diet category of the cohort, curr uses "herbivore" or "carnivore"."""
         self.age = age
         """The age of the animal cohort [days]."""
         self.position = position
@@ -248,6 +242,4 @@ class AnimalCohort:
             An AnimalCohort instance having appropriate offspring traits for the
                 location and functional type of the parent cohort.
         """
-        return AnimalCohort(
-            self.name, self.mass, self.taxa, self.diet, 0, self.position
-        )
+        return AnimalCohort(self.functional_group, self.mass, 0, self.position)
