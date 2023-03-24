@@ -1,7 +1,9 @@
 """The `models.animals.functional_group` module contains a class that organizes
 constants and rate equations used by AnimalCohorts in the
-:mod:`~virtual_rainforest.models.animals` module
+:mod:`~virtual_rainforest.models.animals` module.
 """  # noqa: D205, D415
+
+import csv
 
 from virtual_rainforest.models.animals.constants import (
     CONVERSION_EFFICIENCY,
@@ -23,12 +25,6 @@ class FunctionalGroup:
     procedure only need run once, at initialization, and that all further references to
     constants and scaling relationships are accessed through attributes of the
     AnimalCohort in question.
-
-
-
-    Needs:
-        - auto-generation system
-        - ability to manually populate specific constants
 
     """
 
@@ -52,3 +48,35 @@ class FunctionalGroup:
         """The coefficient and exponent of intake allometry."""
         self.conversion_efficiency = CONVERSION_EFFICIENCY[diet]
         """The conversion efficiency of the functional group based on diet."""
+
+
+def import_functional_groups(fg_file: str) -> list[FunctionalGroup]:
+    """The function to import pre-defined functional groups.
+
+    This function is a first-pass of how we might import pre-defined functional groups.
+    The current expected csv structure is "name", "taxa", "diet" - the specific options
+    of which can be found in functional_group.py. This allows a user to set out a basic
+    outline of functional groups that accept our definitions of parameters and scaling
+    relationships based on those traits.
+
+    We will need a structure for users changing those underlying definitions but that
+    can be constructed later.
+
+    Args:
+        csv_file: The location of the csv file holding the functional group definitions.
+
+    Returns:
+        A list of the FunctionalGroup instances created by the import.
+
+    """
+    functional_group_list: list[FunctionalGroup] = []
+
+    with open(fg_file, newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        next(reader, None)  # skip the header
+        # unpack the row directly in the head of the for-loop
+        for name, taxa, diet in reader:
+            # create the FG instance and append it to the list
+            functional_group_list.append(FunctionalGroup(name, taxa, diet))
+
+    return functional_group_list
