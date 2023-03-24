@@ -70,8 +70,6 @@ from __future__ import annotations
 # Any needed for type hints of the config dictionary as the values are of various types
 from typing import Any
 
-# Used by the timing loop to handle time units
-import pint
 # Used by timing loop to store date times, and time intervals, respectively
 from numpy import datetime64, timedelta64
 
@@ -85,6 +83,9 @@ from virtual_rainforest.core.logger import LOGGER
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
 from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+
+# A utility function to unpack the model specific timing details from the config
+from virtual_rainforest.core.utils import extract_model_time_details
 ```
 
 ### Defining the new class and class attributes
@@ -283,7 +284,7 @@ The job of the `from_config` method is to take that dictionary, along with the s
 configuration into the arguments required by the `__init__` method.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
-return an initialised instance of the model using the setttings. The `from_config`
+return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
 As an example:
@@ -299,45 +300,20 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
 
     Args:
         config: The complete (and validated) Virtual Rainforest configuration.
-
-    Raises:
-        InitialisationError: If configuration data can't be properly converted
     """
 
-    # Assume input is valid until we learn otherwise
-    valid_input = True
-    # Convert configuration values to the required format for the __init__
-    try:
-        raw_interval = pint.Quantity(config["freshwater"]["model_time_step"]).to(
-            "minutes"
-        )
-        # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
-        start_time = datetime64(config["core"]["timing"]["start_time"])
-        no_of_pools = config["freshwater"]["no_of_pools"]
-    # Catch cases where Values or dimensions are wrong
-    except (
-        ValueError,
-        pint.errors.DimensionalityError,
-        pint.errors.UndefinedUnitError,
-    ) as e:
-        valid_input = False
-        LOGGER.error(
-            "Configuration types appear not to have been properly validated. This "
-            "problem prevents initialisation of the freshwater model. The first "
-            "instance of this problem is as follows: %s" % str(e)
-        )
+    # Find timing details
+    start_time, update_interval = extract_model_time_details(config, cls.model_name)
     
-    # If everything is fine initialise a class instance (using cls)
-    if valid_input:
-        LOGGER.info(
-            "Information required to initialise the freshwater model successfully "
-            "extracted."
-        )
-        return cls(update_interval, start_time, no_of_pools)
-    else:
-        # Otherwise raise an InitialisationError
-        raise InitialisationError()
+    # Non-timing details now extracted
+    no_of_pools = config["freshwater"]["no_of_pools"]
+
+    LOGGER.info(
+        "Information required to initialise the freshwater model successfully "
+        "extracted."
+    )
+    return cls(update_interval, start_time, no_of_pools)
+
 ```
 
 ## Other model steps

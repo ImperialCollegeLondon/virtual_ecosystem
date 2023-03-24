@@ -9,9 +9,21 @@ Each of the abiotic sub-modules has its own API reference page:
   AbioticModel class which consolidates the functionality of the abiotic module into a
   single class, which the high level functions of the Virtual Rainforest can then use.
 
+* The :mod:`~virtual_rainforest.models.abiotic.abiotic_tools` submodule contains a set
+  of general functions and universal constants that are shared across submodels in the
+  :mod:`~virtual_rainforest.models.abiotic.abiotic_model` model.
+
 * The :mod:`~virtual_rainforest.models.abiotic.radiation` submodule instantiates
   the :class:`~virtual_rainforest.models.abiotic.radiation.Radiation` class. This class
   calculates the radiation balance of the Virtual Rainforest.
+
+* The :mod:`~virtual_rainforest.models.abiotic.wind` submodule calculates the above- and
+  within-canopy wind profiles of the Virtual Rainforest. These profiles will determine
+  the exchange of heat, water, and CO2 between soil and atmosphere below the canopy as
+  well as the exchange with the atmsophere above the canopy.
+
+* The :mod:`~virtual_rainforest.models.abiotic.atmospheric_co2` submodule calculates the
+  above- and within-canopy CO2 concentration profiles of the Virtual Rainforest.
 """  # noqa: D205, D415
 
 from importlib import resources

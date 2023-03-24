@@ -21,7 +21,7 @@ def soil_model_fixture(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     config = {
-        "core": {"timing": {"start_time": "2020-01-01"}},
+        "core": {"timing": {"start_date": "2020-01-01"}},
         "soil": {"model_time_step": "12 hours"},
     }
     return SoilModel.from_config(dummy_carbon_data, config)
@@ -209,7 +209,7 @@ def test_soil_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_time": "2020-01-01"}},
+                "core": {"timing": {"start_date": "2020-01-01"}},
                 "soil": {"model_time_step": "12 hours"},
             },
             np.timedelta64(12, "h"),
@@ -268,7 +268,7 @@ def test_generate_soil_model(
         assert model.update_interval == time_interval
         assert (
             model.next_update
-            == np.datetime64(config["core"]["timing"]["start_time"]) + time_interval
+            == np.datetime64(config["core"]["timing"]["start_date"]) + time_interval
         )
 
     # Final check that expected logging entries are produced
@@ -422,7 +422,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
     # Use this new data to make a new soil model object
     config = {
-        "core": {"timing": {"start_time": "2020-01-01"}},
+        "core": {"timing": {"start_date": "2020-01-01"}},
         "soil": {"model_time_step": "12 hours"},
     }
     new_soil_model = SoilModel.from_config(new_data, config)

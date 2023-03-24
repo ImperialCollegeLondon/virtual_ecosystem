@@ -107,7 +107,7 @@ nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
     # TODO - Delete this once Vivienne has merged this feature into develop
-    ("py:class", "virtual_rainforest.models.abiotic.Energy_balance"),
+    ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
     # TODO - Delete this once Sphinx bug is resolved
     ("py:exc", "IntegrationError"),
 ]
@@ -117,6 +117,7 @@ intersphinx_mapping = {
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
+    "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
 
 
