@@ -27,9 +27,8 @@ def damuths_law(mass: float, terms: tuple) -> int:
         The population density of that AnimalCohort [individuals/km2].
 
     """
-    exp = terms[0]
-    coef = terms[1]
-    return ceil(coef * mass**exp)
+
+    return ceil(terms[1] * mass ** terms[0])
 
 
 def metabolic_rate(mass: float, terms: tuple) -> float:
@@ -47,9 +46,8 @@ def metabolic_rate(mass: float, terms: tuple) -> float:
         The metabolic rate of an individual of the given cohort in [J/s].
 
     """
-    exp = terms[0]
-    coef = terms[1]
-    return coef * (mass * 1000) ** exp
+
+    return terms[1] * (mass * 1000) ** terms[0]
 
 
 def muscle_mass_scaling(mass: float, terms: tuple) -> float:
@@ -66,9 +64,8 @@ def muscle_mass_scaling(mass: float, terms: tuple) -> float:
         The mass [g] of muscle on an individual of the animal cohort.
 
     """
-    exp = terms[0]
-    coef = terms[1]
-    return coef * (mass * 1000) ** exp
+
+    return terms[1] * (mass * 1000) ** terms[0]
 
 
 def fat_mass_scaling(mass: float, terms: tuple) -> float:
@@ -85,9 +82,8 @@ def fat_mass_scaling(mass: float, terms: tuple) -> float:
         The mass [g] of fat on an individual of the animal cohort.
 
     """
-    exp = terms[0]
-    coef = terms[1]
-    return coef * (mass * 1000) ** exp
+
+    return terms[1] * (mass * 1000) ** terms[0]
 
 
 def energetic_reserve_scaling(
@@ -130,6 +126,5 @@ def intake_rate_scaling(mass: float, terms: tuple) -> float:
         The intake rate [kg/day] of an individual of the animal cohort.
 
     """
-    exp = terms[0]
-    coef = terms[1]
-    return coef * mass**exp * 480 * (1 / 1000)
+
+    return terms[1] * mass ** terms[0] * 480 * (1 / 1000)
