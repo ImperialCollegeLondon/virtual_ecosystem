@@ -9,7 +9,7 @@ import pytest
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(

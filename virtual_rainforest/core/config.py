@@ -38,6 +38,7 @@ import dpath.util  # type: ignore
 import tomli_w
 from jsonschema import Draft202012Validator, FormatChecker, exceptions, validators
 
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 if sys.version_info[:2] >= (3, 11):
@@ -50,12 +51,6 @@ SCHEMA_REGISTRY: dict = {}
 
 :meta hide-value:
 """
-
-
-class ConfigurationError(Exception):
-    """Custom exception class for configuration failures."""
-
-    pass
 
 
 def log_all_validation_errors(

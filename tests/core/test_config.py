@@ -14,9 +14,8 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-import virtual_rainforest.core.config as config
 from tests.conftest import log_check
-from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -36,7 +35,9 @@ from virtual_rainforest.core.config import register_schema
 )
 def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
     """Checks overlapping dictionary search function."""
-    assert overlap == config.check_dict_leaves(d_a, d_b, [])
+    from virtual_rainforest.core.config import check_dict_leaves
+
+    assert overlap == check_dict_leaves(d_a, d_b, [])
 
 
 @pytest.mark.parametrize(
@@ -76,6 +77,7 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
 )
 def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     """Check that an error is logged if an output file is already saved."""
+    from virtual_rainforest.core.config import check_outfile
 
     # Configure the mock to return a specific list of files
     if out_path == "./complete_config.toml":
@@ -83,8 +85,8 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
         mock_content.return_value = True
 
     # Check that check_outfile fails as expected
-    with pytest.raises(config.ConfigurationError):
-        config.check_outfile(Path(out_path))
+    with pytest.raises(ConfigurationError):
+        check_outfile(Path(out_path))
 
     log_check(caplog, expected_log_entries)
 
@@ -95,7 +97,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
         (
             ["Nonsense/file/location"],
             [],
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -106,7 +108,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
         (
             ["."],
             [],
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -118,7 +120,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
         (
             ["", "all_config.toml"],
             ["all_config.toml"],
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -139,6 +141,7 @@ def test_collect_files(
     expected_log_entries,
 ):
     """Checks errors for missing config files."""
+    from virtual_rainforest.core.config import collect_files
 
     # Configure the mock to return a specific list of files when globbing a directory
     mock_get = mocker.patch("virtual_rainforest.core.config.Path.glob")
@@ -146,7 +149,7 @@ def test_collect_files(
 
     # Check that file collection fails as expected
     with pytest.raises(expected_exception):
-        config.collect_files([shared_datadir / fn for fn in cfg_paths])
+        collect_files([shared_datadir / fn for fn in cfg_paths])
 
     log_check(caplog, expected_log_entries)
 
@@ -157,7 +160,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml")],
             [b"bshbsybdvshhd"],
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -170,7 +173,7 @@ def test_collect_files(
         (
             [Path("fake_file1.toml"), Path("fake_file2.toml")],
             [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -185,6 +188,7 @@ def test_load_in_config_files(
     caplog, mocker, files, contents, expected_exception, expected_log_entries
 ):
     """Check errors for incorrectly formatted config files."""
+    from virtual_rainforest.core.config import load_in_config_files
 
     # Mock the toml that is sent to the builtin open function
     mocked_toml = []
@@ -194,7 +198,7 @@ def test_load_in_config_files(
 
     # Check that load_in_config_file fails as expected
     with pytest.raises(expected_exception):
-        config.load_in_config_files(files)
+        load_in_config_files(files)
 
     log_check(caplog, expected_log_entries)
 
@@ -204,7 +208,7 @@ def test_load_in_config_files(
     [
         (
             {"core": {"grid": {"nx": 10, "ny": 10}}},
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -215,7 +219,7 @@ def test_load_in_config_files(
         ),
         (
             {"core": {"modules": ["soil", "soil"]}},
-            config.ConfigurationError,
+            ConfigurationError,
             (
                 (
                     CRITICAL,
@@ -228,20 +232,22 @@ def test_load_in_config_files(
 )
 def test_find_schema(caplog, config_dict, expected_exception, expected_log_entries):
     """Check errors in finding module schema."""
+    from virtual_rainforest.core.config import find_schema
 
     # Check that find_schema fails as expected
     with pytest.raises(expected_exception):
-        config.find_schema(config_dict)
+        find_schema(config_dict)
 
     log_check(caplog, expected_log_entries)
 
 
 def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
     """Checks errors for bad or missing json schema."""
+    from virtual_rainforest.core.config import construct_combined_schema
 
     # Check that construct_combined_schema fails as expected
-    with pytest.raises(config.ConfigurationError):
-        config.construct_combined_schema(["a_stupid_module_name"])
+    with pytest.raises(ConfigurationError):
+        construct_combined_schema(["a_stupid_module_name"])
 
     expected_log_entries = (
         (
@@ -275,9 +281,10 @@ def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
 )
 def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_entries):
     """Checks that validation passes as expected and produces the correct output."""
+    from virtual_rainforest.core.config import validate_config
 
     outfile = shared_datadir / "complete_config.toml"
-    config.validate_config([shared_datadir / file_path], outfile)
+    validate_config([shared_datadir / file_path], outfile)
 
     # Remove generated output file
     # As a bonus tests that output file was generated correctly + to the right location
@@ -344,6 +351,8 @@ def test_register_schema_errors(
 ):
     """Test that the schema registering decorator throws the correct errors."""
 
+    from virtual_rainforest.core.config import register_schema
+
     data = mocker.mock_open(read_data=schema)
     mocker.patch("builtins.open", data)
 
@@ -357,9 +366,10 @@ def test_register_schema_errors(
 
 def test_extend_with_default():
     """Test that validator has been properly extended to allow addition of defaults."""
+    from virtual_rainforest.core.config import ValidatorWithDefaults
 
     # Check that function adds a function with the right name in the right location
-    TestValidator = config.ValidatorWithDefaults({"str": {}})
+    TestValidator = ValidatorWithDefaults({"str": {}})
     assert TestValidator.VALIDATORS["properties"].__name__ == "set_defaults"
 
 
@@ -381,7 +391,7 @@ def test_extend_with_default():
         (
             {"core": {"grid": {"nx": -125, "ny": -10}}},
             None,
-            pytest.raises(config.ConfigurationError),
+            pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
@@ -401,10 +411,11 @@ def test_extend_with_default():
 )
 def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries):
     """Test that default values are properly added to the core configuration."""
+    from virtual_rainforest.core.config import add_core_defaults
 
     # Check that find_schema fails as expected
     with raises:
-        config.add_core_defaults(config_dict)
+        add_core_defaults(config_dict)
 
     log_check(caplog, expected_log_entries)
 
@@ -415,12 +426,13 @@ def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries
 
 def test_missing_core_schema(caplog, mocker):
     """Test that core schema not being in the registry is handled properly."""
+    from virtual_rainforest.core.config import add_core_defaults
 
     mocker.patch("virtual_rainforest.core.config.SCHEMA_REGISTRY", {})
 
     # Check that find_schema fails as expected
-    with pytest.raises(config.ConfigurationError):
-        config.add_core_defaults({})
+    with pytest.raises(ConfigurationError):
+        add_core_defaults({})
 
     expected_log_entries = (
         (
@@ -450,7 +462,7 @@ def test_missing_core_schema(caplog, mocker):
         (
             {"soil": {"no_layers": -1}},
             None,
-            pytest.raises(config.ConfigurationError),
+            pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
@@ -474,12 +486,16 @@ def test_validate_with_defaults(
     caplog, config_dict, plant_int, raises, expected_log_entries
 ):
     """Test that addition of defaults values during configuration works as desired."""
+    from virtual_rainforest.core.config import (
+        construct_combined_schema,
+        validate_with_defaults,
+    )
 
-    comb_schema = config.construct_combined_schema(["core", "plants", "soil"])
+    comb_schema = construct_combined_schema(["core", "plants", "soil"])
 
     # Check that find_schema fails as expected
     with raises:
-        config.validate_with_defaults(config_dict, comb_schema)
+        validate_with_defaults(config_dict, comb_schema)
 
     log_check(caplog, expected_log_entries)
 

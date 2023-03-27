@@ -29,8 +29,8 @@ from typing import Union
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.abiotic.abiotic_tools import AbioticConstants
 

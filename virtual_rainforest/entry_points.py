@@ -9,7 +9,7 @@ import textwrap
 from pathlib import Path
 
 import virtual_rainforest as vr
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.main import vr_run
 

@@ -83,10 +83,6 @@ MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
 """A registry for different models."""
 
 
-class InitialisationError(Exception):
-    """Custom exception class for model initialisation failures."""
-
-
 class BaseModel(ABC):
     """A superclass for all Virtual Rainforest models.
 

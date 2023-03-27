@@ -7,8 +7,8 @@ interactions will be added at a later date.
 import numpy as np
 from xarray import DataArray, Dataset
 
-from virtual_rainforest.core.base_model import InitialisationError
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     BindingWithPH,

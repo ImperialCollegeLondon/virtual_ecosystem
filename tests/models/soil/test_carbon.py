@@ -11,7 +11,7 @@ import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 

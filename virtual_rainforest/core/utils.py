@@ -10,7 +10,7 @@ from typing import Any
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import InitialisationError
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
 
