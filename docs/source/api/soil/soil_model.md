@@ -18,12 +18,6 @@ kernelspec:
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.models.soil.soil_model
-```
-
-## The {mod}`~virtual_rainforest.models.soil.soil_model.SoilModel` class
-
-```{eval-rst}
-.. autoclass:: virtual_rainforest.models.soil.soil_model.SoilModel
     :autosummary:
     :members:
     :exclude-members: model_name

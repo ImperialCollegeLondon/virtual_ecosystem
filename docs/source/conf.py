@@ -108,8 +108,6 @@ nitpick_ignore = [
     ("py:class", "numpy.float32"),
     # TODO - Delete this once Vivienne has merged this feature into develop
     ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
-    # TODO - Delete this once Sphinx bug is resolved
-    ("py:exc", "IntegrationError"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
