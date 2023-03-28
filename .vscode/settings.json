@@ -18,4 +18,5 @@
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook"
     },
+    "cSpell.words": [],
 }

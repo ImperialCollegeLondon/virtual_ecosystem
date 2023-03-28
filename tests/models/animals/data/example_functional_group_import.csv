@@ -1,0 +1,5 @@
+name,taxa,diet
+carnivorous_bird,bird,carnivore
+herbivorous_bird,bird,herbivore
+carnivorous_mammal,mammal,carnivore
+herbivorous_mammal,mammal,herbivore
