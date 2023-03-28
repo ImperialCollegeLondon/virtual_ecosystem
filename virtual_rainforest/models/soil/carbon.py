@@ -5,10 +5,8 @@ interactions will be added at a later date.
 """  # noqa: D205, D415
 
 import numpy as np
-from xarray import DataArray, Dataset
+from numpy.typing import NDArray
 
-from virtual_rainforest.core.base_model import InitialisationError
-from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     BindingWithPH,
@@ -22,143 +20,109 @@ from virtual_rainforest.models.soil.constants import (
 # to track down a reliable parameterisation for this section.
 
 
-class SoilCarbonPools:
-    """Class containing the full set of soil carbon pools.
+def calculate_soil_carbon_updates(
+    soil_c_pool_lmwc: NDArray[np.float32],
+    soil_c_pool_maom: NDArray[np.float32],
+    pH: NDArray[np.float32],
+    bulk_density: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
+    delta_pools_ordered: dict[str, NDArray[np.float32]],
+) -> NDArray[np.float32]:
+    """Calculate net change for each carbon pool.
 
-    At the moment, only two pools are included. Functions exist for the transfer of
-    carbon between these pools, but not with either the yet to be implemented soil
-    carbon pools, other pools in the soil module, or other modules.
+    This function calls lower level functions which calculate the transfers between
+    pools. When all transfers have been calculated the net transfer is used to
+    calculate the net change for each pool.
+
+    Args:
+        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
+        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
+        pH: pH values for each soil grid cell
+        bulk_density: bulk density values for each soil grid cell (kg m^-3)
+        soil_moisture: relative water content for each soil grid cell (unitless)
+        soil_temp: soil temperature for each soil grid cell (degrees C)
+        percent_clay: Percentage clay for each soil grid cell
+        delta_pools_ordered: Dictionary to store pool changes in the order that pools
+            are stored in the initial condition vector.
+
+    Returns:
+        A vector containing net changes to each pool. Order [lmwc, maom].
+    """
+    # TODO - Add interactions which involve the three missing carbon pools
+
+    lmwc_to_maom = mineral_association(
+        soil_c_pool_lmwc,
+        soil_c_pool_maom,
+        pH,
+        bulk_density,
+        soil_moisture,
+        soil_temp,
+        percent_clay,
+    )
+
+    # Determine net changes to the pools
+    delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom
+    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
+
+    # Create output array of pools in desired order
+    return np.concatenate(list(delta_pools_ordered.values()))
+
+
+def mineral_association(
+    soil_c_pool_lmwc: NDArray[np.float32],
+    soil_c_pool_maom: NDArray[np.float32],
+    pH: NDArray[np.float32],
+    bulk_density: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculates net rate of LMWC association with soil minerals.
+
+    Following :cite:t:`abramoff_millennial_2018`, mineral adsorption of carbon is
+    controlled by a Langmuir saturation function. At present, binding affinity and
+    Q_max are recalculated on every function called based on pH, bulk density and
+    clay content. Once a decision has been reached as to how fast pH and bulk
+    density will change (if at all), this calculation may need to be moved
+    elsewhere.
+
+    Args:
+        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
+        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
+        pH: pH values for each soil grid cell
+        bulk_density: bulk density values for each soil grid cell (kg m^-3)
+        soil_moisture: relative water content for each soil grid cell (unitless)
+        soil_temp: soil temperature for each soil grid cell (degrees C)
+        percent_clay: Percentage clay for each soil grid cell
+
+    Returns:
+        The net flux from LMWC to MAOM (kg C m^-3 day^-1)
     """
 
-    def __init__(self, data: Data) -> None:
-        """Initialise set of carbon pools."""
+    # Calculate
+    Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
+    equib_maom = calculate_equilibrium_maom(pH, Q_max, soil_c_pool_lmwc)
 
-        if np.any(data["mineral_associated_om"] < 0.0) or np.any(
-            data["low_molecular_weight_c"] < 0.0
-        ):
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+    # Find scalar factors that multiple rates
+    temp_scalar = convert_temperature_to_scalar(soil_temp)
+    moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-    def update_soil_carbon_pools(self, data: Data, delta_pools: Dataset) -> None:
-        """Update soil carbon pools based on previously calculated net change.
-
-        The state of the soil carbon pools will effect the rate of other processes in
-        the soil module. These processes in turn can effect the exchange rates between
-        the soil organic matter pools. Thus, separate update functions (like this one)
-        are necessary so that update increments for all soil module components can be
-        calculated on a single state, which is only then updated when all increments
-        have been calculated.
-
-        Args:
-            data: The data object to be used in the model.
-            delta_pools: Array of updates for every pool
-        """
-
-        data["mineral_associated_om"] += delta_pools["delta_maom"]
-        data["low_molecular_weight_c"] += delta_pools["delta_lmwc"]
-
-    def calculate_soil_carbon_updates(
-        self,
-        data: Data,
-        pH: DataArray,
-        bulk_density: DataArray,
-        soil_moisture: DataArray,
-        soil_temp: DataArray,
-        percent_clay: DataArray,
-        dt: float,
-    ) -> Dataset:
-        """Calculate net change for each carbon pool.
-
-        This function calls lower level functions which calculate the transfers between
-        pools. When all transfers have been calculated the net transfer is used to
-        calculate the net change for each pool.
-
-        Args:
-            data: The data object to be used in the model.
-            pH: pH values for each soil grid cell
-            bulk_density: bulk density values for each soil grid cell (kg m^-3)
-            soil_moisture: relative water content for each soil grid cell (unitless)
-            soil_temp: soil temperature for each soil grid cell (degrees C)
-            percent_clay: Percentage clay for each soil grid cell
-            dt: time step (days)
-
-        Returns:
-            A vector containing net changes to each pool. Order [lmwc, maom].
-        """
-        # TODO - Add interactions which involve the three missing carbon pools
-
-        lmwc_to_maom = self.mineral_association(
-            data, pH, bulk_density, soil_moisture, soil_temp, percent_clay
-        )
-
-        # Determine net changes to the pools
-        delta_maom = lmwc_to_maom * dt
-        delta_lmwc = -lmwc_to_maom * dt
-
-        return Dataset(
-            data_vars=dict(
-                delta_maom=DataArray(delta_maom, dims="cell_id"),
-                delta_lmwc=DataArray(delta_lmwc, dims="cell_id"),
-            )
-        )
-
-    def mineral_association(
-        self,
-        data: Data,
-        pH: DataArray,
-        bulk_density: DataArray,
-        soil_moisture: DataArray,
-        soil_temp: DataArray,
-        percent_clay: DataArray,
-    ) -> DataArray:
-        """Calculates net rate of LMWC association with soil minerals.
-
-        Following :cite:t:`abramoff_millennial_2018`, mineral adsorption of carbon is
-        controlled by a Langmuir saturation function. At present, binding affinity and
-        Q_max are recalculated on every function called based on pH, bulk density and
-        clay content. Once a decision has been reached as to how fast pH and bulk
-        density will change (if at all), this calculation may need to be moved
-        elsewhere.
-
-        Args:
-            data: The data object to be used in the model.
-            pH: pH values for each soil grid cell
-            bulk_density: bulk density values for each soil grid cell (kg m^-3)
-            soil_moisture: relative water content for each soil grid cell (unitless)
-            soil_temp: soil temperature for each soil grid cell (degrees C)
-            percent_clay: Percentage clay for each soil grid cell
-
-        Returns:
-            The net flux from LMWC to MAOM (kg C m^-3 day^-1)
-        """
-
-        # Calculate
-        Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
-        equib_maom = calculate_equilibrium_maom(
-            pH, Q_max, data["low_molecular_weight_c"]
-        )
-
-        # Find scalar factors that multiple rates
-        temp_scalar = convert_temperature_to_scalar(soil_temp)
-        moist_scalar = convert_moisture_to_scalar(soil_moisture)
-
-        return (
-            temp_scalar
-            * moist_scalar
-            * data["low_molecular_weight_c"]
-            * (equib_maom - data["mineral_associated_om"])
-            / Q_max
-        )
+    return (
+        temp_scalar
+        * moist_scalar
+        * soil_c_pool_lmwc
+        * (equib_maom - soil_c_pool_maom)
+        / Q_max
+    )
 
 
 def calculate_max_sorption_capacity(
-    bulk_density: DataArray,
-    percent_clay: DataArray,
+    bulk_density: NDArray[np.float32],
+    percent_clay: NDArray[np.float32],
     coef: MaxSorptionWithClay = MaxSorptionWithClay(),
-) -> DataArray:
+) -> NDArray[np.float32]:
     """Calculate maximum sorption capacity based on bulk density and clay content.
 
     The maximum sorption capacity is the maximum amount of mineral associated organic
@@ -187,10 +151,10 @@ def calculate_max_sorption_capacity(
 
 
 def calculate_equilibrium_maom(
-    pH: DataArray,
-    Q_max: DataArray,
-    lmwc: DataArray,
-) -> DataArray:
+    pH: NDArray[np.float32],
+    Q_max: NDArray[np.float32],
+    lmwc: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate equilibrium MAOM concentration based on Langmuir coefficients.
 
     Equilibrium concentration of mineral associated organic matter (MAOM) is calculated
@@ -211,8 +175,8 @@ def calculate_equilibrium_maom(
 
 
 def calculate_binding_coefficient(
-    pH: DataArray, coef: BindingWithPH = BindingWithPH()
-) -> DataArray:
+    pH: NDArray[np.float32], coef: BindingWithPH = BindingWithPH()
+) -> NDArray[np.float32]:
     """Calculate Langmuir binding coefficient based on pH.
 
     This specific expression and its parameters are drawn from
@@ -230,8 +194,8 @@ def calculate_binding_coefficient(
 
 
 def convert_temperature_to_scalar(
-    soil_temp: DataArray, coef: TempScalar = TempScalar()
-) -> DataArray:
+    soil_temp: NDArray[np.float32], coef: TempScalar = TempScalar()
+) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -254,13 +218,13 @@ def convert_temperature_to_scalar(
         np.pi * coef.t_4 * (coef.ref_temp - coef.t_1)
     )
 
-    return DataArray(np.divide(numerator, denominator), dims="cell_id")
+    return np.divide(numerator, denominator)
 
 
 def convert_moisture_to_scalar(
-    soil_moisture: DataArray,
+    soil_moisture: NDArray[np.float32],
     coef: MoistureScalar = MoistureScalar(),
-) -> DataArray:
+) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
     This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
@@ -283,7 +247,4 @@ def convert_moisture_to_scalar(
         raise to_raise
 
     # This expression is drawn from Abramoff et al. (2018)
-    return DataArray(
-        1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture)),
-        dims="cell_id",
-    )
+    return 1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture))

@@ -4,107 +4,51 @@ This module tests the functionality of the soil carbon module
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import ERROR
 
 import numpy as np
 import pytest
-from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
-from virtual_rainforest.models.soil.carbon import SoilCarbonPools
 
 
-def test_soil_carbon_class(dummy_carbon_data):
-    """Test SoilCarbon class can be initialised."""
-
-    # Check that initialisation succeeds as expected
-    _ = SoilCarbonPools(dummy_carbon_data)
-
-
-def test_bad_soil_carbon_class(caplog):
-    """Test that negative soil pool values prevent class initialisation."""
-
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-
-    # Setup the data object with a single cells.
-    grid = Grid(cell_nx=1, cell_ny=1)
-    data = Data(grid)
-
-    # Add the required data.
-    data["mineral_associated_om"] = DataArray([2.5], dims=["cell_id"])
-    data["low_molecular_weight_c"] = DataArray([-0.05], dims=["cell_id"])
-
-    # Check that initialisation fails as expected
-    with pytest.raises(InitialisationError):
-        _ = SoilCarbonPools(data)
-
-    expected_log_entries = (
-        (
-            INFO,
-            "Adding data array for 'mineral_associated_om'",
-        ),
-        (
-            INFO,
-            "Adding data array for 'low_molecular_weight_c'",
-        ),
-        (
-            ERROR,
-            "Initial carbon pools contain at least one negative value!",
-        ),
-    )
-
-    log_check(caplog, expected_log_entries)
-
-
-def test_pool_updates(dummy_carbon_data):
+def test_calculate_soil_carbon_updates(dummy_carbon_data):
     """Test that the two pool update functions work correctly."""
 
-    # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(dummy_carbon_data)
+    from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
-    dt = 0.5
     change_in_pools = [
-        [1.988333e-4, 5.891712e-6, 7.17089e-5, 1.401810e-7],
-        [-1.988333e-4, -5.891712e-6, -7.17089e-5, -1.401810e-7],
+        [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7],
+        [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
     ]
-    end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
-    end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
 
-    delta_pools = soil_carbon.calculate_soil_carbon_updates(
-        dummy_carbon_data,
+    delta_pools = calculate_soil_carbon_updates(
+        dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
+        dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
         dummy_carbon_data["soil_temperature"],
         dummy_carbon_data["percent_clay"],
-        dt,
+        {"soil_c_pool_lmwc": np.array([]), "soil_c_pool_maom": np.array([])},
     )
 
     # Check that the updates are correctly calculated
-    assert np.allclose(delta_pools.delta_maom, change_in_pools[0])
-    assert np.allclose(delta_pools.delta_lmwc, change_in_pools[1])
-
-    # Use this update to update the soil carbon pools
-    soil_carbon.update_soil_carbon_pools(dummy_carbon_data, delta_pools)
-
-    # Then check that pools are correctly incremented based on update
-    assert np.allclose(dummy_carbon_data["mineral_associated_om"], end_maom)
-    assert np.allclose(dummy_carbon_data["low_molecular_weight_c"], end_lmwc)
+    assert np.allclose(delta_pools[:4], change_in_pools[0])
+    assert np.allclose(delta_pools[4:], change_in_pools[1])
 
 
 def test_mineral_association(dummy_carbon_data):
     """Test that mineral_association runs and generates the correct values."""
 
+    from virtual_rainforest.models.soil.carbon import mineral_association
+
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
 
-    # Initialise soil carbon class
-    soil_carbon = SoilCarbonPools(dummy_carbon_data)
-
     # Then calculate mineral association rate
-    lmwc_to_maom = soil_carbon.mineral_association(
-        dummy_carbon_data,
+    lmwc_to_maom = mineral_association(
+        dummy_carbon_data["soil_c_pool_lmwc"],
+        dummy_carbon_data["soil_c_pool_maom"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -124,7 +68,7 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     output_eqb_maoms = [19900.19, 969.4813, 832.6088, 742.4128]
 
     equib_maoms = calculate_equilibrium_maom(
-        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["low_molecular_weight_c"]
+        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["soil_c_pool_lmwc"]
     )
     assert np.allclose(equib_maoms, output_eqb_maoms)
 

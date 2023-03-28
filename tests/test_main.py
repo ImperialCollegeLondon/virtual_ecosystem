@@ -97,11 +97,11 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'mineral_associated_om' checked",
+                    "soil model: required var 'soil_c_pool_maom' checked",
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'low_molecular_weight_c' checked",
+                    "soil model: required var 'soil_c_pool_lmwc' checked",
                 ),
                 (
                     DEBUG,
