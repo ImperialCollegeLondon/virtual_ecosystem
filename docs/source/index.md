@@ -87,6 +87,7 @@ team.
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
   Utility functions <api/core/utils.md>
+  Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>

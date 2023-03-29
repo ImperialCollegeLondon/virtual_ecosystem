@@ -38,7 +38,9 @@ import dpath.util  # type: ignore
 import tomli_w
 from jsonschema import Draft202012Validator, FormatChecker, exceptions, validators
 
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import check_outfile
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -50,12 +52,6 @@ SCHEMA_REGISTRY: dict = {}
 
 :meta hide-value:
 """
-
-
-class ConfigurationError(Exception):
-    """Custom exception class for configuration failures."""
-
-    pass
 
 
 def log_all_validation_errors(
@@ -240,53 +236,6 @@ def check_dict_leaves(
                 conflicts.append("%s" % ".".join(path + [str(key)]))
 
     return conflicts
-
-
-def check_outfile(merge_file_path: Path) -> None:
-    """Check that final output file is not already in the output folder.
-
-    Args:
-        merge_file_path: Path that merged config file is meant to be saved to
-    Raises:
-        ConfigurationError: If the final output directory doesn't exist, isn't a
-            directory, or the final output file already exists.
-    """
-
-    # Extract parent folder name and output file name. If this is a relative path, it is
-    # expected to be relative to where the command is being run.
-    if not merge_file_path.is_absolute():
-        parent_fold = merge_file_path.parent.relative_to(".")
-    else:
-        parent_fold = merge_file_path.parent
-    out_file_name = merge_file_path.name
-
-    # Throw critical error if the output folder doesn't exist
-    if not Path(parent_fold).exists():
-        to_raise = ConfigurationError(
-            f"The user specified output directory ({parent_fold}) doesn't exist!"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    elif not Path(parent_fold).is_dir():
-        to_raise = ConfigurationError(
-            f"The user specified output folder ({parent_fold}) isn't a directory!"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Throw critical error if combined output file already exists
-    for file in Path(parent_fold).iterdir():
-        if file.name == f"{out_file_name}":
-            to_raise = ConfigurationError(
-                f"A config file in the user specified output folder ({parent_fold}) "
-                f"already makes use of the specified output file name ({out_file_name})"
-                f", this file should either be renamed or deleted!"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-    return None
 
 
 def collect_files(cfg_paths: list[str]) -> list[Path]:
@@ -569,21 +518,23 @@ def validate_config(
 ) -> dict[str, Any]:
     """Validates the contents of user provided config files.
 
-    This function first reads in a set of configuration files in `.toml` format. This
-    either consists of all `.toml` files in a specified folder, or a set of user
-    specified files within this folder. Checks are carried out to ensure that these
+    This function first reads in a set of configuration files in ``.toml`` format. This
+    either consists of all ``.toml`` files in the specified folders, or a set of user
+    specified files within these folders. Checks are carried out to ensure that these
     files are correctly formatted. The module validation schemas are extracted from
-    `SCHEMA_REGISTRY` for the modules the user has specified to configure (in
-    `config.core.modules`). These schemas are then consolidated into a single combined
-    JSON schema. This combined schema is then used to validate the combined contents of
-    the configuration files. If this validation passes the combined configuration is
-    saved in toml format in the specified configuration file folder. This configuration
-    is then returned for use in downstream simulation setup.
+    :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` for the modules the user has
+    specified to configure (in ``config.core.modules``). These schemas are then
+    consolidated into a single combined JSON schema. This combined schema is then used
+    to validate the combined contents of the configuration files. If this validation
+    passes the combined configuration is saved in toml format in the specified
+    configuration file folder. This configuration is then returned for use in downstream
+    simulation setup.
 
     Args:
         cfg_paths: A path or a set of paths that point to either configuration files, or
             folders containing configuration files
-        merge_file_path: Path to save merged config file to
+        merge_file_path: Path to save merged config file to (i.e. folder location + file
+            name)
     """
 
     # Check that there isn't a final output file saved in the final output folder

@@ -2,13 +2,14 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
+from pathlib import Path
 
 import numpy as np
 import pytest
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -646,3 +647,59 @@ def test_on_core_axis(
 
     if err_message:
         assert str(err.value) == err_message
+
+
+@pytest.mark.parametrize(
+    argnames=["out_path", "raises", "exp_log"],
+    argvalues=[
+        ("./initial.nc", does_not_raise(), ()),
+        (
+            "bad_folder/initial.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
+        ),
+        (
+            "pyproject.toml/initial.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
+        ),
+        (
+            "./final.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "A file in the user specified output folder (.) already makes use "
+                    "of the specified output file name (final.nc), this file should "
+                    "either be renamed or deleted!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log):
+    """Test that data object can save as NetCDF."""
+
+    # Configure the mock to return a specific list of files
+    if out_path == "./final.nc":
+        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
+        mock_content.return_value = True
+
+    with raises:
+        fixture_data.save_to_netcdf(Path(out_path))
+        # Remove generated output file, as a bonus this  tests that output file was
+        # generated correctly + to the right location
+        Path(out_path).unlink()
+
+    log_check(caplog, exp_log)

@@ -11,7 +11,8 @@ from pathlib import Path
 import pytest
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.main import vr_run
 from virtual_rainforest.models.soil.soil_model import SoilModel
 

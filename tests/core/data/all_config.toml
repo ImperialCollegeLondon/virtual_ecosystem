@@ -10,6 +10,12 @@ start_date = "2020-01-01"
 update_interval = "10 minutes"
 run_length = "50 years"
 
+[core.data_output_options]
+save_initial_state = true
+save_final_state = true
+out_path_initial = "./model_at_start.nc"
+out_path_final = "./model_at_end.nc"
+
 [plants]
 a_plant_integer = 12
 

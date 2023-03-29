@@ -7,7 +7,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.base_model import InitialisationError
+from virtual_rainforest.core.exceptions import InitialisationError
 
 
 def test_animal_model_initialization(caplog, data_instance):
