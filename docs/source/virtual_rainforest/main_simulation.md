@@ -7,10 +7,12 @@ flow will now be set out step by step.
 
 As a first step, configuration files are loaded in and validated. These files are of
 `toml` format and are found based on paths provided by the user. When these files are
-loaded in they are validated to ensure that they are valid `toml`, and that no tags are
-repeated. In cases where a required tag is not present in any file, the validation will
-fail unless a default value for it has been set. Further details can be found in the
-[configuration documentation](./core/config.md).
+loaded in they are validated to ensure that they are valid `toml`, and that all the
+required settings are present and not duplicated. The Virtual Rainforest code provides
+default settings for some configuration options and these will be used automatically if
+that setting is not found in the configuration, but if no default is set then the
+validation will fail. Further details can be found in the [configuration
+documentation](./core/config.md).
 
 ## Grid creation
 
