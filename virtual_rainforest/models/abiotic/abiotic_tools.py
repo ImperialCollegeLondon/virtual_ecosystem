@@ -1,9 +1,12 @@
 """The ``models.abiotic.abiotic_tools`` module contains a set of general functions and
-universal constants that are shared across submodels in the abiotic model.
+universal constants that are shared across submodules in the
+:mod:`~virtual_rainforest.models.abiotic` model.
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
+from typing import List
 
+import numpy as np
 from xarray import DataArray
 
 
@@ -21,6 +24,9 @@ class AbioticConstants:
     """Gravitational acceleration constant, [m s-1]."""
     stefan_boltzmann_constant: float = 5.67e-8
     """Stefan-Boltzmann constant, [W m-2 K-4]"""
+    von_karmans_constant: float = 0.4
+    """Von Karman's constant, unitless constant describing the logarithmic velocity
+    profile of a turbulent fluid near a no-slip boundary."""
 
 
 def calc_molar_density_air(
@@ -40,14 +46,19 @@ def calc_molar_density_air(
             temperature in Kelvin
 
     Returns:
-        molar density of air
+        molar density of air, [kg m-3]
     """
 
     temperature_kelvin = temperature + celsius_to_kelvin
-    molar_density_air = (
-        standard_mole
-        * (temperature_kelvin / atmospheric_pressure)
-        * (celsius_to_kelvin / temperature_kelvin)
+    molar_density_air = DataArray(
+        (
+            standard_mole
+            * (temperature_kelvin / atmospheric_pressure)
+            * (celsius_to_kelvin / temperature_kelvin)
+        ),
+        dims=temperature.dims,
+        coords=temperature.coords,
+        name="molar_density_air",
     )
     return molar_density_air
 
@@ -65,6 +76,71 @@ def calc_specific_heat_air(
         molar_heat_capacity_air: molar heat capacity, [J mol-1 C-1]
 
     Returns:
-        specific heat of air at constant pressure (J mol-1 K-1)
+        specific heat of air at constant pressure, [J mol-1 K-1]
     """
-    return 2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
+    return DataArray(
+        (2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air),
+        dims=temperature.dims,
+        coords=temperature.coords,
+        name="specific_heat_air",
+    )
+
+
+def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
+    """Calculate latent heat of vaporisation.
+
+    Args:
+        temperature: temperature, [C]
+
+    Returns:
+        latent heat of vaporisation, [J kg-1]
+    """
+
+    latent_heat_vaporisation = DataArray(
+        (-42.575 * temperature + 44994),
+        dims=temperature.dims,
+        coords=temperature.coords,
+        name="latent_heat_vaporisation",
+    )
+    return latent_heat_vaporisation
+
+
+def calculate_aero_resistance(
+    wind_speed: DataArray,
+    heat_transfer_coefficient: float,
+) -> DataArray:
+    """Calculate aerodynamic resistance.
+
+    Args:
+        wind_speed: wind speed at each canopy height, [m s-1]
+        heat_transfer_coefficient: factor that describes heat capacity of medium
+
+    Returns:
+        aerodynamic resistance
+    """
+
+    return DataArray(
+        (heat_transfer_coefficient / np.sqrt(wind_speed)),
+        dims=wind_speed.dims,
+        coords=wind_speed.coords,
+        name="areo_resistance",
+    )
+
+
+def set_layers_function(canopy_layers: int, soil_layers: int) -> List[str]:
+    """Define a list of layer names.
+
+    Args:
+        canopy_layers: number of canopy layers
+        soil_layers: number of soil layers
+
+    Returns:
+        List of canopy layer names
+    """
+    return (
+        ["soil"] * soil_layers
+        + ["surface"]
+        + ["below"]
+        + ["canopy"] * canopy_layers
+        + ["above"]
+    )
