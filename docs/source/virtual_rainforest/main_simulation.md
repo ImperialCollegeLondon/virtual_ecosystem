@@ -31,13 +31,15 @@ procedures to ensure that the loaded data can be mapped onto the spatial grid an
 other core dimensions for the configured simulation. Further details can be found in the
 [data system](./core/data.md) and [core axes](./core/axes.md) documentation.
 
-## Configuration of specific modules
+## Configuration of specific models
 
-The models used for the specific simulation run can be set in the configuration. This
-will generally be the four standard modules (`abiotic`, `animals`, `plants` and `soil`),
-but it is also useful to have the ability to run novel modules or different combinations
-of the modules. Once a list of modules to configure has been extracted from the
-configuration, they are then all configured.
+The Virtual Rainforest is implemented as model objects, each of which is responsible for
+simulating a particular aspect of the rainforest ecosystem. The models used for the
+specific simulation run can be set in the configuration. This will typically be the four
+standard models ([`AbioticModel`](../api/abiotic.md), `AnimalModel`, `PlantModel` and
+[`SoilModel`](../api/soil.md)), but this can be extended to include new models or
+different combinations of models. Once a list of models to configure has been extracted
+from the configuration, they are then all configured.
 
 ## Extracting simulation timing details
 
