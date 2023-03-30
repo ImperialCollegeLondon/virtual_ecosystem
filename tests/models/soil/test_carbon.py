@@ -44,6 +44,8 @@ def test_mineral_association(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import mineral_association
 
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
+    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
+    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
 
     # Then calculate mineral association rate
     lmwc_to_maom = mineral_association(
@@ -51,8 +53,8 @@ def test_mineral_association(dummy_carbon_data):
         dummy_carbon_data["soil_c_pool_maom"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
-        dummy_carbon_data["soil_moisture"],
-        dummy_carbon_data["soil_temperature"],
+        moist_scalars,
+        temp_scalars,
         dummy_carbon_data["percent_clay"],
     )
 
