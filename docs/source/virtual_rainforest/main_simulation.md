@@ -14,19 +14,20 @@ fail unless a default value for it has been set. Further details can be found in
 
 ## Grid creation
 
-The next step is creating a grid, which defines the area and resolution of the
-simulation. The [grid documentation](./core/grid.md) describes this object further. This
-grid is then used to create an empty `Data` object of the correct size to describe the
-simulation.
+The next step is creating a grid, which defines the spatial structure of the simulation:
+the area, coordinate system and geometry of the individual cells that will be used in
+the simulation. The [grid documentation](./core/grid.md) describes this object further.
+This grid is then used to create an empty `Data` object of the correct size to describe
+the simulation.
 
 ## Loading and validation of input data
 
 This `Data` object now needs to be populated with data. The data used in the simulation
-is stored in a set of data files which are specified in the configuration. This data
-is then loaded using the `data.load_data_config` method, which has built in validation
-procedures to ensure that the loaded data can be mapped onto the grid. Further details
-can be found in the [data system](./core/data.md) and [core axes](./core/axes.md)
-documentation.
+is stored in a set of data files which are specified in the configuration. This data is
+then loaded using the `data.load_data_config` method, which has built in validation
+procedures to ensure that the loaded data can be mapped onto the spatial grid and also
+other core dimensions for the configured simulation. Further details can be found in the
+[data system](./core/data.md) and [core axes](./core/axes.md) documentation.
 
 ## Configuration of specific modules
 
@@ -46,10 +47,9 @@ time step than the overall simulation update interval.
 
 ## Saving the initial state
 
-At this point with input data loaded in and all modules configured, the initial model
-state (i.e. the contents of the `data` object) can be saved. This is optional, and is
-set by a configuration option which defaults to not saving the initial state. The file
-path to save this initial state to is also a configuration option.
+The `data` object has now been populated with all of the configured data required to run
+the model. It can now optionally be saved to a file set in the configuration to generate
+a single data file of the initial model state.
 
 ## Simulating over time
 
