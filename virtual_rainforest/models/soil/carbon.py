@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
+    MICROBIAL_TURNOVER_RATE,
     BindingWithPH,
     MaxSorptionWithClay,
     MoistureScalar,
@@ -56,7 +57,7 @@ def calculate_soil_carbon_updates(
     temp_scalar = convert_temperature_to_scalar(soil_temp)
     moist_scalar = convert_moisture_to_scalar(soil_moisture)
 
-    lmwc_to_maom = mineral_association(
+    lmwc_to_maom = calculate_mineral_association(
         soil_c_pool_lmwc,
         soil_c_pool_maom,
         pH,
@@ -74,7 +75,7 @@ def calculate_soil_carbon_updates(
     return np.concatenate(list(delta_pools_ordered.values()))
 
 
-def mineral_association(
+def calculate_mineral_association(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
@@ -97,8 +98,8 @@ def mineral_association(
         soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
-        moist_scalar: relative water content for each soil grid cell (unitless)
-        temp_scalar: soil temperature for each soil grid cell (degrees C)
+        moist_scalar: A scalar capturing the impact of soil moisture on process rates
+        temp_scalar: A scalar capturing the impact of soil temperature on process rates
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
@@ -250,5 +251,19 @@ def convert_moisture_to_scalar(
     return 1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture))
 
 
-# def calculate_maintenance_respiration():
-#     """TODO - ADD DOCSTRING."""
+def calculate_maintenance_respiration(
+    soil_c_pool_microbe: NDArray[np.float32],
+    moist_scalar: NDArray[np.float32],
+    temp_scalar: NDArray[np.float32],
+    microbial_turnover_rate: float = MICROBIAL_TURNOVER_RATE,
+) -> NDArray[np.float32]:
+    """Calculate the maintenance respiration of the microbial pool.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool (kg C m^-3)
+        moist_scalar: A scalar capturing the impact of soil moisture on process rates
+        temp_scalar: A scalar capturing the impact of soil temperature on process rates
+        microbial_turnover_rate: Rate of microbial biomass turnover [day^-1]
+    """
+
+    return microbial_turnover_rate * moist_scalar * temp_scalar * soil_c_pool_microbe

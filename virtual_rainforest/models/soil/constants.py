@@ -50,3 +50,7 @@ class TempScalar:
     """Unclear exactly what this parameter is [units unclear]"""
     ref_temp: float = 30.0
     """Reference temperature [degrees C]"""
+
+
+MICROBIAL_TURNOVER_RATE = 0.036
+"""Microbial turnover rate [day^-1], this isn't a constant but often treated as one."""

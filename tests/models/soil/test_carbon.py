@@ -38,17 +38,17 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     assert np.allclose(delta_pools[4:], change_in_pools[1])
 
 
-def test_mineral_association(dummy_carbon_data):
+def test_calculate_mineral_association(dummy_carbon_data):
     """Test that mineral_association runs and generates the correct values."""
 
-    from virtual_rainforest.models.soil.carbon import mineral_association
+    from virtual_rainforest.models.soil.carbon import calculate_mineral_association
 
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
     temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
     moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
 
     # Then calculate mineral association rate
-    lmwc_to_maom = mineral_association(
+    lmwc_to_maom = calculate_mineral_association(
         dummy_carbon_data["soil_c_pool_lmwc"],
         dummy_carbon_data["soil_c_pool_maom"],
         dummy_carbon_data["pH"],
