@@ -24,6 +24,7 @@ from virtual_rainforest.models.soil.constants import (
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
+    soil_c_pool_microbe: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -40,6 +41,7 @@ def calculate_soil_carbon_updates(
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
         soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
+        soil_c_pool_microbe: Microbial biomass (carbon) pool (kg C m^-3)
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
         soil_moisture: relative water content for each soil grid cell (unitless)
