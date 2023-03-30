@@ -38,15 +38,17 @@ simulating a particular aspect of the rainforest ecosystem. The models used for 
 specific simulation run can be set in the configuration. This will typically be the four
 standard models ([`AbioticModel`](../api/abiotic.md), `AnimalModel`, `PlantModel` and
 [`SoilModel`](../api/soil.md)), but this can be extended to include new models or
-different combinations of models. Once a list of models to configure has been extracted
-from the configuration, they are then all configured.
+different combinations of models. For more information about implementing new models,
+see [this page](../development/defining_new_models.md) about the required module
+structure and the model API. Once a list of models to configure has been extracted from
+the configuration, they are then all configured.
 
 ## Extracting simulation timing details
 
 The configuration contains a start time, an end time and an time interval for checking
-whether modules need to be updated. Once these details are extracted from the
+whether models need to be updated. Once these details are extracted from the
 configuration, a check is performed to ensure that the simulation update interval works
-suitably with the time steps for individual models, i.e. that no module has a shorter
+suitably with the time steps for individual models, i.e. that no model has a shorter
 time step than the overall simulation update interval.
 
 ## Saving the initial state
@@ -59,7 +61,7 @@ a single data file of the initial model state.
 
 The previously extracted timing details are used to setup a timing loop, which runs from
 the start time to the end time with a time step set by the update interval. At each
-step a check is performed to determine if any modules need to be updated. Any that do
+step a check is performed to determine if any models need to be updated. Any that do
 need to be updated are then updated.
 
 ## Saving the final state
