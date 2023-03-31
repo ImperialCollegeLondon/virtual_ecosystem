@@ -5,6 +5,9 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 from dataclasses import dataclass
 
+# TODO - Need to check for the sources of all constants defined here as part of checking
+# whether Abramoff et al.'s parameterisation works
+
 
 @dataclass
 class BindingWithPH:
@@ -60,3 +63,18 @@ NECROMASS_ADSORPTION_RATE = 0.025
 
 Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
 """
+
+
+@dataclass
+class CarbonUseEfficiency:
+    """Collection of carbon use efficiency parameters.
+
+    Taken from :cite:t:`abramoff_millennial_2018`, more investigation required in future
+    """
+
+    reference_cue = 0.6
+    """Carbon use efficiency of community at the reference temperature [no units]"""
+    reference_temp = 15.0
+    """Reference temperature [degrees C]"""
+    cue_with_temperature = -0.012
+    """Change in carbon use efficiency with increasing temperature [degree C^-1]."""

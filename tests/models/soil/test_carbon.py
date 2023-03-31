@@ -223,3 +223,14 @@ def test_calculate_necromass_adsorption(dummy_carbon_data):
     )
 
     assert np.allclose(actual_adsorps, expected_adsorps)
+
+
+def test_calculate_carbon_use_efficiency(dummy_carbon_data):
+    """Check maintenance respiration cost calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_carbon_use_efficiency
+
+    expected_cues = [0.84, 0.87, 0.9, 0.72]
+
+    actual_cues = calculate_carbon_use_efficiency(dummy_carbon_data["soil_temperature"])
+
+    assert np.allclose(actual_cues, expected_cues)

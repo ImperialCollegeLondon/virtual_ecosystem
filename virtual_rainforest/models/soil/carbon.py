@@ -12,6 +12,7 @@ from virtual_rainforest.models.soil.constants import (
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
     BindingWithPH,
+    CarbonUseEfficiency,
     MaxSorptionWithClay,
     MoistureScalar,
     TempScalar,
@@ -207,7 +208,7 @@ def convert_temperature_to_scalar(
     needed.
 
     Args:
-       soil_temp: soil temperature for each soil grid cell (degrees C)
+       soil_temp: soil temperature for each soil grid cell [degrees C]
 
     Returns:
         A scalar that captures the impact of soil temperature on process rates
@@ -291,3 +292,23 @@ def calculate_necromass_adsorption(
     """
 
     return necromass_adsorption_rate * moist_temp_scalar * soil_c_pool_microbe
+
+
+def calculate_carbon_use_efficiency(
+    soil_temp: NDArray[np.float32], paras: CarbonUseEfficiency = CarbonUseEfficiency()
+) -> NDArray[np.float32]:
+    """Calculate the (temperature dependant) carbon use efficiency.
+
+    Args:
+       soil_temp: soil temperature for each soil grid cell [degrees C]
+
+    Returns:
+        The carbon use efficiency (CUE) of the microbial community
+    """
+
+    # TODO - I think there is a sign error here as carbon use efficiencies should
+    # generally decline with rising temp. However, this follows the paper I am adopting
+    # the model from, so I will keep it as is pending further investigation.
+    return paras.reference_cue - paras.cue_with_temperature * (
+        soil_temp - paras.reference_temp
+    )
