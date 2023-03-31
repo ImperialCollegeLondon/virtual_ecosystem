@@ -256,14 +256,9 @@ class AnimalCohort:
         the current grid. Later functionality will need to involve bodysize, locomotion,
         and other factors.
 
-        I am uncertain about my use of try-except here.
-
         """
-        try:
-            model.data.grid.neighbours
-        except AttributeError:
-            model.data.grid.set_neighbours(distance=sqrt(model.data.grid.cell_area))
-        # make sure set_neighbours has been run and run it if it hasn't
+        model.data.grid.set_neighbours(distance=sqrt(model.data.grid.cell_area))
+        # run a new set_neighbours with cohort specific dispersal distance (to come)
         dispersal_neighbours = model.data.grid.neighbours[self.position]
         # possible destination grids
         destination = choice(dispersal_neighbours)
