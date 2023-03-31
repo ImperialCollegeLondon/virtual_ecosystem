@@ -226,7 +226,7 @@ def test_calculate_necromass_adsorption(dummy_carbon_data):
 
 
 def test_calculate_carbon_use_efficiency(dummy_carbon_data):
-    """Check maintenance respiration cost calculates correctly."""
+    """Check carbon use efficiency calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_carbon_use_efficiency
 
     expected_cues = [0.84, 0.87, 0.9, 0.72]
@@ -234,3 +234,16 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data):
     actual_cues = calculate_carbon_use_efficiency(dummy_carbon_data["soil_temperature"])
 
     assert np.allclose(actual_cues, expected_cues)
+
+
+def test_calculate_microbial_saturation(dummy_carbon_data):
+    """Check microbial activity saturation calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_microbial_saturation
+
+    expected_saturated = [0.446153, 0.242105, 0.610810, 0.121951]
+
+    actual_saturated = calculate_microbial_saturation(
+        dummy_carbon_data["soil_c_pool_microbe"]
+    )
+
+    assert np.allclose(actual_saturated, expected_saturated)

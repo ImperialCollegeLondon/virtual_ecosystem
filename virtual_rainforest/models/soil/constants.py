@@ -64,6 +64,12 @@ NECROMASS_ADSORPTION_RATE = 0.025
 Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
 """
 
+HALF_SAT_MICROBIAL_ACTIVITY = 7.2
+"""Half saturation constant for microbial activity (with increasing biomass density).
+
+Units given as [g C m-2], this is a clear place where I need to look at units (and
+parameterisation) more carefully"""
+
 
 @dataclass
 class CarbonUseEfficiency:

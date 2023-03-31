@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
+    HALF_SAT_MICROBIAL_ACTIVITY,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
     BindingWithPH,
@@ -312,3 +313,25 @@ def calculate_carbon_use_efficiency(
     return paras.reference_cue - paras.cue_with_temperature * (
         soil_temp - paras.reference_temp
     )
+
+
+def calculate_microbial_saturation(
+    soil_c_pool_microbe: NDArray[np.float32],
+    half_sat_microbial_activity: float = HALF_SAT_MICROBIAL_ACTIVITY,
+) -> NDArray[np.float32]:
+    """Calculate microbial activity saturation.
+
+    This ensures that microbial activity (per unit biomass) drops as biomass density
+    increases. This is adopted from Abramoff et al. It feels like an assumption that
+    should be revised as the Virtual Rainforest develops.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        half_sat_microbial_activity: Half saturation constant for microbial activity
+
+    Returns:
+        A rescaling of microbial biomass that takes into account activity saturation
+        with increasing biomass density
+    """
+
+    return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
