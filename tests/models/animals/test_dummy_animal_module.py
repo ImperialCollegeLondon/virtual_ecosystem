@@ -206,19 +206,30 @@ class TestAnimalCohort:
         assert animal_instance.individuals == final_pop
         assert carcass_instance.energy == final_carcass
 
-    def test_die_cohort(self, animal_instance):
+    def test_die_cohort(self, animal_instance, animal_model_instance):
         """Testing die_cohort."""
         assert animal_instance.is_alive
-        animal_instance.die_cohort()
+        animal_model_instance.cohort_positions[animal_instance.position].append(
+            animal_instance
+        )
+        animal_instance.die_cohort(animal_model_instance)
         assert not animal_instance.is_alive
+        assert (
+            animal_instance
+            not in animal_model_instance.cohort_positions[animal_instance.position]
+        )
 
-    def test_birth(self, animal_instance):
+    def test_birth(self, animal_instance, animal_model_instance):
         """Testing birth."""
-        baby_instance = animal_instance.birth()
+        baby_instance = animal_instance.birth(animal_model_instance)
         assert baby_instance.name == "herbivorous_mammal"
         assert baby_instance.mass == 10000.0
         assert baby_instance.age == 0.0
         assert baby_instance.position == 4
+        assert (
+            baby_instance
+            in animal_model_instance.cohort_positions[animal_instance.position]
+        )
 
     @pytest.mark.parametrize(
         """animal_initial, animal_final, plant_initial, plant_final, soil_initial,

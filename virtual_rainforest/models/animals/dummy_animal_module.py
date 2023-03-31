@@ -217,36 +217,47 @@ class AnimalCohort:
         self.individuals -= number_dead
         carcass_pool.energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
 
-    def die_cohort(self) -> None:
+    def die_cohort(self, model: AnimalModel) -> None:
         """The function to change the cohort status from alive to dead.
 
-        Currently, all this function does is switch the is_alive bool. Later, this will
-        also be used to perform supplementary actions like removing the cohort from
-        lists of active cohorts in AnimalModel or Grid instances.
+        This function also removes a cohort from the cohort_positions dictionary within
+        AnimalModel.
+
+        Args:
+            model: An instance of the AnimalModel object containing the dictionary of
+                    animal cohort positions.
 
         """
 
         if self.is_alive:
             self.is_alive = False
             LOGGER.info("An animal cohort has died")
+            model.cohort_positions[self.position].remove(self)
         elif not self.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def birth(self) -> AnimalCohort:
+    def birth(self, model: AnimalModel) -> AnimalCohort:
         """The function to produce a new AnimalCohort through reproduction.
 
         Currently, the birth function returns an identical cohort of adults with age
         0. In the future, the offspring will be modified to have appropriate juvenile
-        traits based on parental type. This will also include supplemental functionality
-        to attached the birthed cohort to relevant cohort tracking lists in AnimalModel
-        and Grid.
+        traits based on parental type.
+
+        This function also adds a cohort from the cohort_positions dictionary within
+        AnimalModel.
+
+        Args:
+            model: An instance of the AnimalModel object containing the dictionary of
+                    animal cohort positions.
 
         Returns:
             An AnimalCohort instance having appropriate offspring traits for the
                 location and functional type of the parent cohort.
         """
+        new_cohort = AnimalCohort(self.functional_group, self.mass, 0, self.position)
+        model.cohort_positions[self.position].append(new_cohort)
 
-        return AnimalCohort(self.functional_group, self.mass, 0, self.position)
+        return new_cohort
 
     def disperse(self, model: AnimalModel) -> None:
         """The function to move a cohort between grid squares.
@@ -255,6 +266,10 @@ class AnimalCohort:
         function. Right now it moves a cohort into a random neighboring grid, including
         the current grid. Later functionality will need to involve bodysize, locomotion,
         and other factors.
+
+        Args:
+            model: An instance of the AnimalModel object containing the dictionary of
+                    animal cohort positions.
 
         """
         model.data.grid.set_neighbours(distance=sqrt(model.data.grid.cell_area))

@@ -57,6 +57,7 @@ class AnimalModel(BaseModel):
         super().__init__(data, update_interval, start_time, **kwargs)
         from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
+        # imports AnimalCohort w/in init to dodge circular import problems: allowed??
         self.cohort_positions: dict[int, list[AnimalCohort]] = {
             k: [] for k in self.data.grid.cell_id
         }
