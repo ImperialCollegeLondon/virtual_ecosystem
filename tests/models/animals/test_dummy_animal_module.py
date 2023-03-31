@@ -52,6 +52,22 @@ def soil_instance():
 
 
 @pytest.fixture
+def animal_model_instance():
+    """Fixture for an animal model used in tests."""
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    test_grid = Grid(cell_nx=3, cell_ny=3)
+    test_data = Data(test_grid)
+    test_config = {
+        "core": {"timing": {"start_date": "2020-01-01"}},
+        "animal": {"model_time_step": "12 hours"},
+    }
+    return AnimalModel.from_config(test_data, test_config)
+
+
+@pytest.fixture
 def functional_group_instance(shared_datadir):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
@@ -249,3 +265,32 @@ class TestAnimalCohort:
         assert animal_instance.stored_energy == pytest.approx(animal_final, rel=1e-6)
         assert plant_instance.energy == pytest.approx(plant_final, rel=1e-6)
         assert soil_instance.energy == pytest.approx(soil_final, rel=1e-6)
+
+    @pytest.mark.parametrize(
+        "initial_pos, final_pos",
+        [
+            (0, [0, 1, 3]),
+            (4, [1, 3, 4, 5, 7]),
+            (8, [5, 7, 8]),
+        ],
+    )
+    def test_disperse(
+        self, animal_instance, animal_model_instance, initial_pos, final_pos
+    ):
+        """Testing disperse."""
+        animal_instance.position = initial_pos
+        animal_model_instance.cohort_positions[animal_instance.position].append(
+            animal_instance
+        )
+        # adds cohort to position dict, temp until broader initialization system
+        assert (
+            animal_instance
+            in animal_model_instance.cohort_positions[animal_instance.position]
+        )
+        # checks that cohort is actually in position dict
+        animal_instance.disperse(animal_model_instance)
+        assert animal_instance.position in final_pos
+        assert (
+            animal_instance
+            in animal_model_instance.cohort_positions[animal_instance.position]
+        )

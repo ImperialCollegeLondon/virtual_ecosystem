@@ -22,10 +22,13 @@ Notes to self:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import sqrt
+from random import choice
 
 from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -242,4 +245,32 @@ class AnimalCohort:
             An AnimalCohort instance having appropriate offspring traits for the
                 location and functional type of the parent cohort.
         """
+
         return AnimalCohort(self.functional_group, self.mass, 0, self.position)
+
+    def disperse(self, model: AnimalModel) -> None:
+        """The function to move a cohort between grid squares.
+
+        This is a simple implementation of what will need to be a much more complex
+        function. Right now it moves a cohort into a random neighboring grid, including
+        the current grid. Later functionality will need to involve bodysize, locomotion,
+        and other factors.
+
+        I am uncertain about my use of try-except here.
+
+        """
+        try:
+            model.data.grid.neighbours
+        except AttributeError:
+            model.data.grid.set_neighbours(distance=sqrt(model.data.grid.cell_area))
+        # make sure set_neighbours has been run and run it if it hasn't
+        dispersal_neighbours = model.data.grid.neighbours[self.position]
+        # possible destination grids
+        destination = choice(dispersal_neighbours)
+        # randomly select a dispersal destination
+        model.cohort_positions[self.position].remove(self)
+        # remove from old position list
+        self.position = destination
+        # set new position as chosen destination
+        model.cohort_positions[self.position].append(self)
+        # add to new position list

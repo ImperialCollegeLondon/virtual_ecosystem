@@ -55,6 +55,12 @@ class AnimalModel(BaseModel):
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, start_time, **kwargs)
+        from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
+
+        self.cohort_positions: dict[int, list[AnimalCohort]] = {
+            k: [] for k in self.data.grid.cell_id
+        }
+        """This stores the AnimalCohorts as values keyed to their grid positions."""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
