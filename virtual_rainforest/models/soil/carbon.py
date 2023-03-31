@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     MICROBIAL_TURNOVER_RATE,
+    NECROMASS_ADSORPTION_RATE,
     BindingWithPH,
     MaxSorptionWithClay,
     MoistureScalar,
@@ -276,3 +277,25 @@ def calculate_maintenance_respiration(
     """
 
     return microbial_turnover_rate * moist_scalar * temp_scalar * soil_c_pool_microbe
+
+
+def calculate_necromass_adsorption(
+    soil_c_pool_microbe: NDArray[np.float32],
+    moist_scalar: NDArray[np.float32],
+    temp_scalar: NDArray[np.float32],
+    necromass_adsorption_rate: float = NECROMASS_ADSORPTION_RATE,
+) -> NDArray[np.float32]:
+    """Calculate adsorption of microbial necromass to soil minerals.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        moist_scalar: A scalar capturing the impact of soil moisture on process rates
+        temp_scalar: A scalar capturing the impact of soil temperature on process rates
+        necromass_adsorption_rate: Rate at which necromass is adsorbed by soil minerals
+
+    Returns:
+        Adsorption of microbial biomass to mineral associated organic matter (MAOM)
+    """
+
+    # TODO - COMBINE MOISTURE AND TEMP INTO SINGLE SCALAR
+    return necromass_adsorption_rate * moist_scalar * temp_scalar * soil_c_pool_microbe

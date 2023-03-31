@@ -54,3 +54,9 @@ class TempScalar:
 
 MICROBIAL_TURNOVER_RATE = 0.036
 """Microbial turnover rate [day^-1], this isn't a constant but often treated as one."""
+
+NECROMASS_ADSORPTION_RATE = 0.025
+"""Rate at which necromass is adsorbed by soil minerals [day^-1].
+
+Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
+"""

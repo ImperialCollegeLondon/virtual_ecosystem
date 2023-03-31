@@ -205,3 +205,19 @@ def test_calculate_maintenance_respiration(dummy_carbon_data):
     )
 
     assert np.allclose(main_resps, expected_resps)
+
+
+def test_calculate_necromass_adsorption(dummy_carbon_data):
+    """Check maintenance respiration cost calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_necromass_adsorption
+
+    expected_adsorps = [0.13824183, 0.06931897, 0.31661708, 0.00530057]
+
+    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
+    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
+
+    actual_adsorps = calculate_necromass_adsorption(
+        dummy_carbon_data["soil_c_pool_microbe"], moist_scalars, temp_scalars
+    )
+
+    assert np.allclose(actual_adsorps, expected_adsorps)
