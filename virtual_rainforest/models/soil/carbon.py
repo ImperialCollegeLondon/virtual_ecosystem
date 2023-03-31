@@ -59,14 +59,14 @@ def calculate_soil_carbon_updates(
     # Find scalar factors that multiple rates
     temp_scalar = convert_temperature_to_scalar(soil_temp)
     moist_scalar = convert_moisture_to_scalar(soil_moisture)
+    moist_temp_scalar = moist_scalar * temp_scalar
 
     lmwc_to_maom = calculate_mineral_association(
         soil_c_pool_lmwc,
         soil_c_pool_maom,
         pH,
         bulk_density,
-        moist_scalar,
-        temp_scalar,
+        moist_temp_scalar,
         percent_clay,
     )
 
@@ -87,8 +87,7 @@ def calculate_mineral_association(
     soil_c_pool_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
-    moist_scalar: NDArray[np.float32],
-    temp_scalar: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculates net rate of LMWC association with soil minerals.
@@ -105,8 +104,8 @@ def calculate_mineral_association(
         soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell (kg m^-3)
-        moist_scalar: A scalar capturing the impact of soil moisture on process rates
-        temp_scalar: A scalar capturing the impact of soil temperature on process rates
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
@@ -118,11 +117,7 @@ def calculate_mineral_association(
     equib_maom = calculate_equilibrium_maom(pH, Q_max, soil_c_pool_lmwc)
 
     return (
-        temp_scalar
-        * moist_scalar
-        * soil_c_pool_lmwc
-        * (equib_maom - soil_c_pool_maom)
-        / Q_max
+        moist_temp_scalar * soil_c_pool_lmwc * (equib_maom - soil_c_pool_maom) / Q_max
     )
 
 
@@ -260,42 +255,39 @@ def convert_moisture_to_scalar(
 
 def calculate_maintenance_respiration(
     soil_c_pool_microbe: NDArray[np.float32],
-    moist_scalar: NDArray[np.float32],
-    temp_scalar: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
     microbial_turnover_rate: float = MICROBIAL_TURNOVER_RATE,
 ) -> NDArray[np.float32]:
     """Calculate the maintenance respiration of the microbial pool.
 
     Args:
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        moist_scalar: A scalar capturing the impact of soil moisture on process rates
-        temp_scalar: A scalar capturing the impact of soil temperature on process rates
+        moist_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
         microbial_turnover_rate: Rate of microbial biomass turnover [day^-1]
 
     Returns:
         Total respiration for all microbial biomass
     """
 
-    return microbial_turnover_rate * moist_scalar * temp_scalar * soil_c_pool_microbe
+    return microbial_turnover_rate * moist_temp_scalar * soil_c_pool_microbe
 
 
 def calculate_necromass_adsorption(
     soil_c_pool_microbe: NDArray[np.float32],
-    moist_scalar: NDArray[np.float32],
-    temp_scalar: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
     necromass_adsorption_rate: float = NECROMASS_ADSORPTION_RATE,
 ) -> NDArray[np.float32]:
     """Calculate adsorption of microbial necromass to soil minerals.
 
     Args:
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        moist_scalar: A scalar capturing the impact of soil moisture on process rates
-        temp_scalar: A scalar capturing the impact of soil temperature on process rates
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
         necromass_adsorption_rate: Rate at which necromass is adsorbed by soil minerals
 
     Returns:
         Adsorption of microbial biomass to mineral associated organic matter (MAOM)
     """
 
-    # TODO - COMBINE MOISTURE AND TEMP INTO SINGLE SCALAR
-    return necromass_adsorption_rate * moist_scalar * temp_scalar * soil_c_pool_microbe
+    return necromass_adsorption_rate * moist_temp_scalar * soil_c_pool_microbe

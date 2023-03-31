@@ -47,8 +47,9 @@ def test_calculate_mineral_association(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_mineral_association
 
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
-    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
-    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
+    moist_temp_scalars = np.array(
+        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
+    )
 
     # Then calculate mineral association rate
     lmwc_to_maom = calculate_mineral_association(
@@ -56,8 +57,7 @@ def test_calculate_mineral_association(dummy_carbon_data):
         dummy_carbon_data["soil_c_pool_maom"],
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
-        moist_scalars,
-        temp_scalars,
+        moist_temp_scalars,
         dummy_carbon_data["percent_clay"],
     )
 
@@ -197,11 +197,12 @@ def test_calculate_maintenance_respiration(dummy_carbon_data):
 
     expected_resps = [0.19906823, 0.0998193, 0.45592854, 0.00763283]
 
-    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
-    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
+    moist_temp_scalars = np.array(
+        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
+    )
 
     main_resps = calculate_maintenance_respiration(
-        dummy_carbon_data["soil_c_pool_microbe"], moist_scalars, temp_scalars
+        dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
     )
 
     assert np.allclose(main_resps, expected_resps)
@@ -213,11 +214,12 @@ def test_calculate_necromass_adsorption(dummy_carbon_data):
 
     expected_adsorps = [0.13824183, 0.06931897, 0.31661708, 0.00530057]
 
-    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
-    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
+    moist_temp_scalars = np.array(
+        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
+    )
 
     actual_adsorps = calculate_necromass_adsorption(
-        dummy_carbon_data["soil_c_pool_microbe"], moist_scalars, temp_scalars
+        dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
     )
 
     assert np.allclose(actual_adsorps, expected_adsorps)
