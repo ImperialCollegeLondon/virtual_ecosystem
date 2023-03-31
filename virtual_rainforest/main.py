@@ -218,9 +218,6 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
         "All models successfully configured, now attempting to initialise them."
     )
 
-    # Define the basic model time grain (set to 10 minutes for now)
-    update_interval = timedelta64(10, "m")
-
     # Extract all the relevant timing details
     current_time, update_interval, end_time = extract_timing_details(config)
 
