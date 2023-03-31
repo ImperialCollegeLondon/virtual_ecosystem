@@ -44,6 +44,10 @@ def soil_model_fixture(dummy_carbon_data):
                 ),
                 (
                     DEBUG,
+                    "soil model: required var 'soil_c_pool_microbe' checked",
+                ),
+                (
+                    DEBUG,
                     "soil model: required var 'pH' checked",
                 ),
                 (
@@ -75,6 +79,11 @@ def soil_model_fixture(dummy_carbon_data):
                 (
                     ERROR,
                     "soil model: init data missing required var " "'soil_c_pool_lmwc'",
+                ),
+                (
+                    ERROR,
+                    "soil model: init data missing required var "
+                    "'soil_c_pool_microbe'",
                 ),
                 (
                     ERROR,
@@ -117,6 +126,10 @@ def soil_model_fixture(dummy_carbon_data):
                 (
                     DEBUG,
                     "soil model: required var 'soil_c_pool_lmwc' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_c_pool_microbe' checked",
                 ),
                 (
                     DEBUG,
@@ -230,6 +243,10 @@ def test_soil_model_initialization(
                 ),
                 (
                     DEBUG,
+                    "soil model: required var 'soil_c_pool_microbe' checked",
+                ),
+                (
+                    DEBUG,
                     "soil model: required var 'pH' checked",
                 ),
                 (
@@ -281,6 +298,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
 
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
+    end_microbe = [5.8, 2.3, 11.3, 1.0]
 
     mock_integrate = mocker.patch.object(soil_model_fixture, "integrate")
 
@@ -288,6 +306,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
         data_vars=dict(
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
+            soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
         )
     )
 
@@ -311,11 +330,13 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
 
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
+    end_microbe = [5.8, 2.3, 11.3, 1.0]
 
     new_pools = Dataset(
         data_vars=dict(
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
+            soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
         )
     )
 
@@ -341,6 +362,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
                     maom=DataArray(
                         [2.50019805, 1.70000589, 4.50007166, 0.50000014], dims="cell_id"
                     ),
+                    microbe=DataArray([5.8, 2.3, 11.3, 1.0], dims="cell_id"),
                 )
             ),
             (),
@@ -377,6 +399,7 @@ def test_integrate_soil_model(
         # Check returned pools matched (mocked) integrator output
         assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
+        assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -450,6 +473,10 @@ def test_construct_full_soil_model(dummy_carbon_data):
         1.1783424e-5,
         1.434178e-4,
         2.80362e-7,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
     ]
 
     # make pools

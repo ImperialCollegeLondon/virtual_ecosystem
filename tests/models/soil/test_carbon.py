@@ -20,11 +20,13 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     change_in_pools = [
         [-3.976666e-4, -1.1783424e-5, -1.434178e-4, -2.80362e-7],
         [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
+        [0.0, 0.0, 0.0, 0.0],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
         dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
         dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
+        dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"],
@@ -35,7 +37,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
 
     # Check that the updates are correctly calculated
     assert np.allclose(delta_pools[:4], change_in_pools[0])
-    assert np.allclose(delta_pools[4:], change_in_pools[1])
+    assert np.allclose(delta_pools[4:8], change_in_pools[1])
+    assert np.allclose(delta_pools[8:], change_in_pools[2])
 
 
 def test_calculate_mineral_association(dummy_carbon_data):
@@ -186,3 +189,19 @@ def test_convert_moisture_to_scalar(
         assert np.allclose(moist_scalar, output_scalars)
 
     log_check(caplog, expected_log_entries)
+
+
+def test_calculate_maintenance_respiration(dummy_carbon_data):
+    """Check maintenance respiration cost calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
+
+    expected_resps = [0.19906823, 0.0998193, 0.45592854, 0.00763283]
+
+    temp_scalars = np.array([1.27113, 1.27196, 1.27263, 1.26344], dtype=np.float32)
+    moist_scalars = np.array([0.750035, 0.947787, 0.880671, 0.167814], dtype=np.float32)
+
+    main_resps = calculate_maintenance_respiration(
+        dummy_carbon_data["soil_c_pool_microbe"], moist_scalars, temp_scalars
+    )
+
+    assert np.allclose(main_resps, expected_resps)

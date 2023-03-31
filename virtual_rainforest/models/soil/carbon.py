@@ -72,6 +72,10 @@ def calculate_soil_carbon_updates(
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
+    # TODO - Replace this with a proper calculation of the soil microbe update
+    delta_pools_ordered["soil_c_pool_microbe"] = np.zeros(
+        len(lmwc_to_maom), dtype=np.float32
+    )
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
@@ -262,10 +266,13 @@ def calculate_maintenance_respiration(
     """Calculate the maintenance respiration of the microbial pool.
 
     Args:
-        soil_c_pool_microbe: Microbial biomass (carbon) pool (kg C m^-3)
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         moist_scalar: A scalar capturing the impact of soil moisture on process rates
         temp_scalar: A scalar capturing the impact of soil temperature on process rates
         microbial_turnover_rate: Rate of microbial biomass turnover [day^-1]
+
+    Returns:
+        Total respiration for all microbial biomass
     """
 
     return microbial_turnover_rate * moist_scalar * temp_scalar * soil_c_pool_microbe
