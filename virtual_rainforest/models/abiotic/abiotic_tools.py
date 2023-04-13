@@ -32,9 +32,9 @@ class AbioticConstants:
     specific_heat_equ_factor_2 = 0.0002
     """Factor in calculation of molar specific heat of air."""
     latent_heat_vap_equ_factor_1 = 42.575
-    """Factor in caluclation of latent heat of vaporisation."""
+    """Factor in calculation of latent heat of vaporisation."""
     latent_heat_vap_equ_factor_2 = 44994
-    """Factor in caluclation of latent heat of vaporisation."""
+    """Factor in calculation of latent heat of vaporisation."""
 
 
 def calc_molar_density_air(
