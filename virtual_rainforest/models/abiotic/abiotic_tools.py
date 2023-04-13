@@ -73,12 +73,7 @@ def calc_specific_heat_air(
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
-    return DataArray(
-        (2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air),
-        dims=temperature.dims,
-        coords=temperature.coords,
-        name="specific_heat_air",
-    )
+    return (2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air).rename("specific_heat_air")
 
 
 def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
