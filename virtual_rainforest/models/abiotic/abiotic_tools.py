@@ -27,6 +27,14 @@ class AbioticConstants:
     von_karmans_constant: float = 0.4
     """Von Karman's constant, unitless constant describing the logarithmic velocity
     profile of a turbulent fluid near a no-slip boundary."""
+    specific_heat_equ_factor_1 = 2e-05
+    """Factor in calculation of molar specific heat of air."""
+    specific_heat_equ_factor_2 = 0.0002
+    """Factor in calculation of molar specific heat of air."""
+    latent_heat_vap_equ_factor_1 = 42.575
+    """Factor in caluclation of latent heat of vaporisation."""
+    latent_heat_vap_equ_factor_2 = 44994
+    """Factor in caluclation of latent heat of vaporisation."""
 
 
 def calc_molar_density_air(
@@ -61,6 +69,8 @@ def calc_molar_density_air(
 def calc_specific_heat_air(
     temperature: DataArray,
     molar_heat_capacity_air: float = AbioticConstants.molar_heat_capacity_air,
+    specific_heat_equ_factor_1: float = AbioticConstants.specific_heat_equ_factor_1,
+    specific_heat_equ_factor_2: float = AbioticConstants.specific_heat_equ_factor_2,
 ) -> DataArray:
     """Calculate molar temperature-dependent specific heat of air.
 
@@ -69,29 +79,40 @@ def calc_specific_heat_air(
     Args:
         temperature: temperature, [C]
         molar_heat_capacity_air: molar heat capacity, [J mol-1 C-1]
+        specific_heat_equ_factor_1: Factor in calculation of molar specific heat of air
+        specific_heat_equ_factor_2: Factor in calculation of molar specific heat of air
 
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
     return (
-        2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
+        specific_heat_equ_factor_1 * temperature**2
+        + specific_heat_equ_factor_2 * temperature
+        + molar_heat_capacity_air
     ).rename("specific_heat_air")
 
 
-def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
+def calculate_latent_heat_vaporisation(
+    temperature: DataArray,
+    latent_heat_vap_equ_factor_1: float = AbioticConstants.latent_heat_vap_equ_factor_1,
+    latent_heat_vap_equ_factor_2: float = AbioticConstants.latent_heat_vap_equ_factor_2,
+) -> DataArray:
     """Calculate latent heat of vaporisation.
 
     Args:
         temperature: temperature, [C]
+        latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
+            vaporisation
+        latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
+            vaporisation
 
     Returns:
         latent heat of vaporisation, [J kg-1]
     """
 
-    latent_heat_vaporisation = (-42.575 * temperature + 44994).rename(
-        "latent_heat_vaporisation"
-    )
-    return latent_heat_vaporisation
+    return (
+        -latent_heat_vap_equ_factor_1 * temperature + latent_heat_vap_equ_factor_2
+    ).rename("latent_heat_vaporisation")
 
 
 def calculate_aero_resistance(
