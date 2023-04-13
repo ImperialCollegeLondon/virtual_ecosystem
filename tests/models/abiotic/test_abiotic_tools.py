@@ -12,23 +12,18 @@ def dummy_data():
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.abiotic.abiotic_tools import set_layers_function
 
     # Setup the data object with two cells.
     grid = Grid(cell_nx=3, cell_ny=1)
     data = Data(grid)
-
-    # define layers along coordinates
-    # TODO from abiotic_model
-    layers_function = set_layers_function(canopy_layers=3, soil_layers=1)
 
     # Add the required data.
     data["temperature_2m"] = DataArray(
         [[30, 20, 30]],
         dims=["layers", "cell_id"],
         coords={
-            "layers": [len(layers_function) - 1],
-            "layers_function": ("layers", [layers_function[-1]]),
+            "layers": [6],
+            "layer_roles": ("layers", ["above"]),
             "cell_id": [0, 1, 2],
         },
     )
@@ -43,10 +38,10 @@ def dummy_data():
         ],
         dims=["layers", "cell_id"],
         coords={
-            "layers": np.arange(1, (len(layers_function))),
-            "layers_function": (
+            "layers": np.arange(1, 7),
+            "layer_roles": (
                 "layers",
-                layers_function[1 : (len(layers_function))],
+                ["surface", "below", "canopy", "canopy", "canopy", "above"],
             ),
             "cell_id": [0, 1, 2],
         },
@@ -55,10 +50,10 @@ def dummy_data():
         [[0.1, 0.1, 0.1], [1, 0.5, 0.5], [2, 2, 5], [3, 4, 10], [5, 7, 12]],
         dims=["layers", "cell_id"],
         coords={
-            "layers": np.arange(1, (len(layers_function) - 1)),
-            "layers_function": (
+            "layers": np.arange(1, 6),
+            "layer_roles": (
                 "layers",
-                layers_function[1 : (len(layers_function) - 1)],
+                ["surface", "below", "canopy", "canopy", "canopy"],
             ),
             "cell_id": [0, 1, 2],
         },
@@ -68,8 +63,8 @@ def dummy_data():
         [[101, 102, 103]],
         dims=["layers", "cell_id"],
         coords={
-            "layers": [len(layers_function) - 1],
-            "layers_function": ("layers", [layers_function[-1]]),
+            "layers": [6],
+            "layer_roles": ("layers", ["above"]),
             "cell_id": [0, 1, 2],
         },
     )
@@ -83,7 +78,6 @@ def test_calc_molar_density_air(dummy_data):
     from virtual_rainforest.models.abiotic import abiotic_tools
 
     data = dummy_data
-    layers_function = abiotic_tools.set_layers_function(canopy_layers=3, soil_layers=1)
 
     result = abiotic_tools.calc_molar_density_air(
         temperature=data["temperature_2m"],
@@ -95,8 +89,8 @@ def test_calc_molar_density_air(dummy_data):
             [[120.618713, 119.436176, 118.276602]],
             dims=["layers", "cell_id"],
             coords={
-                "layers": [len(layers_function) - 1],
-                "layers_function": ("layers", ["above"]),
+                "layers": [6],
+                "layer_roles": ("layers", ["above"]),
                 "cell_id": [0, 1, 2],
             },
             name="molar_density_air",
@@ -110,7 +104,6 @@ def test_calc_specific_heat_air(dummy_data):
     from virtual_rainforest.models.abiotic import abiotic_tools
 
     data = dummy_data
-    layers_function = abiotic_tools.set_layers_function(canopy_layers=3, soil_layers=1)
 
     result = abiotic_tools.calc_specific_heat_air(temperature=data["temperature_2m"])
 
@@ -120,8 +113,8 @@ def test_calc_specific_heat_air(dummy_data):
             [[29.214, 29.202, 29.214]],
             dims=["layers", "cell_id"],
             coords={
-                "layers": [len(layers_function) - 1],
-                "layers_function": ("layers", [layers_function[-1]]),
+                "layers": [6],
+                "layer_roles": ("layers", ["above"]),
                 "cell_id": [0, 1, 2],
             },
             name="specific_heat_air",
@@ -138,7 +131,6 @@ def test_calculate_latent_heat_vaporisation(dummy_data):
     from virtual_rainforest.models.abiotic import abiotic_tools
 
     data = dummy_data
-    layers_function = abiotic_tools.set_layers_function(canopy_layers=3, soil_layers=1)
 
     # test without dummy
     air_temperature = DataArray(
@@ -152,10 +144,10 @@ def test_calculate_latent_heat_vaporisation(dummy_data):
         ],
         dims=["layers", "cell_id"],
         coords={
-            "layers": np.arange(1, (len(layers_function))),
-            "layers_function": (
+            "layers": np.arange(1, 7),
+            "layer_roles": (
                 "layers",
-                layers_function[1 : (len(layers_function))],
+                ["surface", "below", "canopy", "canopy", "canopy", "above"],
             ),
             "cell_id": [0, 1, 2],
         },
@@ -171,7 +163,7 @@ def test_calculate_latent_heat_vaporisation(dummy_data):
             dims=["layers", "cell_id"],
             coords={
                 "layers": [6],
-                "layers_function": ("layers", [layers_function[-1]]),
+                "layer_roles": ("layers", ["above"]),
                 "cell_id": [0, 1, 2],
             },
             name="latent_heat_vaporisation",
@@ -190,10 +182,10 @@ def test_calculate_latent_heat_vaporisation(dummy_data):
             ],
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(1, len(layers_function)),
-                "layers_function": (
+                "layers": np.arange(1, 7),
+                "layer_roles": (
                     "layers",
-                    layers_function[1 : len(layers_function)],
+                    ["surface", "below", "canopy", "canopy", "canopy", "above"],
                 ),
                 "cell_id": [0, 1, 2],
             },
@@ -210,16 +202,14 @@ def test_calculate_bulk_aero_resistance():
 
     from virtual_rainforest.models.abiotic import abiotic_tools
 
-    layers_function = abiotic_tools.set_layers_function(canopy_layers=3, soil_layers=1)
-
     wind_below_canopy = DataArray(
         [[0.1, 0.1, 0.1], [1, 0.5, 0.5], [2, 2, 5], [3, 4, 10], [5, 7, 12]],
         dims=["layers", "cell_id"],
         coords={
-            "layers": np.arange(1, (len(layers_function) - 1)),
-            "layers_function": (
+            "layers": np.arange(1, 6),
+            "layer_roles": (
                 "layers",
-                layers_function[1 : (len(layers_function) - 1)],
+                ["surface", "below", "canopy", "canopy", "canopy"],
             ),
             "cell_id": [0, 1, 2],
         },
@@ -241,10 +231,10 @@ def test_calculate_bulk_aero_resistance():
             ],
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(1, (len(layers_function) - 1)),
-                "layers_function": (
+                "layers": np.arange(1, 6),
+                "layer_roles": (
                     "layers",
-                    layers_function[1 : (len(layers_function) - 1)],
+                    ["surface", "below", "canopy", "canopy", "canopy"],
                 ),
                 "cell_id": [0, 1, 2],
             },
@@ -253,12 +243,12 @@ def test_calculate_bulk_aero_resistance():
     )
 
 
-def test_set_layers_function():
+def test_set_layer_roles():
     """Test layers string created correctly."""
 
     from virtual_rainforest.models.abiotic import abiotic_tools
 
-    result = abiotic_tools.set_layers_function(canopy_layers=3, soil_layers=2)
+    result = abiotic_tools.set_layer_roles(canopy_layers=3, soil_layers=2)
 
     assert result == [
         "soil",

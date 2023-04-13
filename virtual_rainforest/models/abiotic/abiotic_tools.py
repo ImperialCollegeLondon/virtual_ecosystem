@@ -50,12 +50,12 @@ def calc_molar_density_air(
     """
 
     temperature_kelvin = temperature + celsius_to_kelvin
-    molar_density_air =  (
-            standard_mole
-            * (temperature_kelvin / atmospheric_pressure)
-            * (celsius_to_kelvin / temperature_kelvin)
-        ).rename("molar_density_air")
-    return molar_density_air
+
+    return (
+        standard_mole
+        * (temperature_kelvin / atmospheric_pressure)
+        * (celsius_to_kelvin / temperature_kelvin)
+    ).rename("molar_density_air")
 
 
 def calc_specific_heat_air(
@@ -73,7 +73,9 @@ def calc_specific_heat_air(
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
-    return (2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air).rename("specific_heat_air")
+    return (
+        2e-05 * temperature**2 + 0.0002 * temperature + molar_heat_capacity_air
+    ).rename("specific_heat_air")
 
 
 def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
@@ -86,7 +88,9 @@ def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
         latent heat of vaporisation, [J kg-1]
     """
 
-    latent_heat_vaporisation = (-42.575 * temperature + 44994).rename("latent_heat_vaporisation")
+    latent_heat_vaporisation = (-42.575 * temperature + 44994).rename(
+        "latent_heat_vaporisation"
+    )
     return latent_heat_vaporisation
 
 
@@ -104,18 +108,20 @@ def calculate_aero_resistance(
         aerodynamic resistance
     """
 
-    return (heat_transfer_coefficient / np.sqrt(wind_speed)).rename("areo_resistance")
+    return DataArray(heat_transfer_coefficient / np.sqrt(wind_speed)).rename(
+        "areo_resistance"
+    )
 
 
-def set_layers_function(canopy_layers: int, soil_layers: int) -> List[str]:
-    """Define a list of layer names.
+def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
+    """Define a list of layer roles.
 
     Args:
         canopy_layers: number of canopy layers
         soil_layers: number of soil layers
 
     Returns:
-        List of canopy layer names
+        List of canopy layer roles
     """
     return (
         ["soil"] * soil_layers
