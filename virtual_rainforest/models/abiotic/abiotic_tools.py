@@ -50,16 +50,11 @@ def calc_molar_density_air(
     """
 
     temperature_kelvin = temperature + celsius_to_kelvin
-    molar_density_air = DataArray(
-        (
+    molar_density_air =  (
             standard_mole
             * (temperature_kelvin / atmospheric_pressure)
             * (celsius_to_kelvin / temperature_kelvin)
-        ),
-        dims=temperature.dims,
-        coords=temperature.coords,
-        name="molar_density_air",
-    )
+        ).rename("molar_density_air")
     return molar_density_air
 
 
