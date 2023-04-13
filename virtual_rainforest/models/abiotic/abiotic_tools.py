@@ -86,12 +86,7 @@ def calculate_latent_heat_vaporisation(temperature: DataArray) -> DataArray:
         latent heat of vaporisation, [J kg-1]
     """
 
-    latent_heat_vaporisation = DataArray(
-        (-42.575 * temperature + 44994),
-        dims=temperature.dims,
-        coords=temperature.coords,
-        name="latent_heat_vaporisation",
-    )
+    latent_heat_vaporisation = (-42.575 * temperature + 44994).rename("latent_heat_vaporisation")
     return latent_heat_vaporisation
 
 
