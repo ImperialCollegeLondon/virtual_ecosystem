@@ -104,12 +104,7 @@ def calculate_aero_resistance(
         aerodynamic resistance
     """
 
-    return DataArray(
-        (heat_transfer_coefficient / np.sqrt(wind_speed)),
-        dims=wind_speed.dims,
-        coords=wind_speed.coords,
-        name="areo_resistance",
-    )
+    return (heat_transfer_coefficient / np.sqrt(wind_speed)).rename("areo_resistance")
 
 
 def set_layers_function(canopy_layers: int, soil_layers: int) -> List[str]:
