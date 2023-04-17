@@ -79,13 +79,17 @@ def calculate_soil_carbon_updates(
     microbial_respiration = calculate_maintenance_respiration(
         soil_c_pool_microbe, moist_temp_scalar
     )
+    necromass_adsorption = calculate_necromass_adsorption(
+        soil_c_pool_microbe, moist_temp_scalar
+    )
 
     # Determine net changes to the pools
+    # TODO - Add a supply rate here
+    # TODO - Should also add leaching
     delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom - microbial_uptake
-    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
-    # TODO - Replace this with a proper calculation of the soil microbe update
+    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
     delta_pools_ordered["soil_c_pool_microbe"] = (
-        microbial_uptake - microbial_respiration
+        microbial_uptake - microbial_respiration - necromass_adsorption
     )
 
     # Create output array of pools in desired order
