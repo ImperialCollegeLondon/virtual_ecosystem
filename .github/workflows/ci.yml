@@ -36,14 +36,14 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
-    - name: Run tests
+    - name: Run tests (no codecov)
+      if: false == (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9')
       run: poetry run pytest
 
-    - name: Run codecov
-      if: success() && (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9')
-      run: |
-        pip install codecov
-        codecov
+    - name: Run tests + codecov
+      if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9')
+      run:
+        poetry run pytest --cov app
 
   docs_build:
     needs: qa
