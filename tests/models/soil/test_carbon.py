@@ -247,3 +247,23 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     )
 
     assert np.allclose(actual_saturated, expected_saturated)
+
+
+def test_calculate_microbial_carbon_uptake(dummy_carbon_data):
+    """Check microbial carbon uptake calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
+
+    expected_uptake = [6.25277836e-03, 1.77747350e-03, 2.15640269e-02, 3.25789906e-05]
+
+    moist_temp_scalars = np.array(
+        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
+    )
+
+    actual_uptake = calculate_microbial_carbon_uptake(
+        dummy_carbon_data["soil_c_pool_lmwc"],
+        dummy_carbon_data["soil_c_pool_microbe"],
+        moist_temp_scalars,
+        dummy_carbon_data["soil_temperature"],
+    )
+
+    assert np.allclose(actual_uptake, expected_uptake)

@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     HALF_SAT_MICROBIAL_ACTIVITY,
+    MAX_UPTAKE_RATE_LABILE_C,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
     BindingWithPH,
@@ -42,13 +43,13 @@ def calculate_soil_carbon_updates(
     calculate the net change for each pool.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
-        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
-        soil_c_pool_microbe: Microbial biomass (carbon) pool (kg C m^-3)
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         pH: pH values for each soil grid cell
-        bulk_density: bulk density values for each soil grid cell (kg m^-3)
-        soil_moisture: relative water content for each soil grid cell (unitless)
-        soil_temp: soil temperature for each soil grid cell (degrees C)
+        bulk_density: bulk density values for each soil grid cell [kg m^-3]
+        soil_moisture: relative water content for each soil grid cell [unitless]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
         percent_clay: Percentage clay for each soil grid cell
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
@@ -335,3 +336,42 @@ def calculate_microbial_saturation(
     """
 
     return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
+
+
+def calculate_microbial_carbon_uptake(
+    soil_c_pool_lmwc: NDArray[np.float32],
+    soil_c_pool_microbe: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    max_uptake_rate: float = MAX_UPTAKE_RATE_LABILE_C,
+) -> NDArray[np.float32]:
+    """Calculate amount of labile carbon taken up by microbes.
+
+    Args:
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        max_uptake_rate: Maximum rate at which microbes can uptake labile carbon
+            [TODO - Add units]
+
+    Returns:
+        Uptake of low molecular weight carbon (LMWC) by the soil microbial biomass.
+    """
+
+    # Calculate carbon use efficiency and microbial saturation
+    carbon_use_efficency = calculate_carbon_use_efficiency(soil_temp)
+    microbial_saturation = calculate_microbial_saturation(soil_c_pool_microbe)
+
+    # TODO - the quantities calculated above can be used to calculate the carbon
+    # respired instead of being uptaken. This isn't currently of interest, but will be
+    # in future
+
+    return (
+        max_uptake_rate
+        * moist_temp_scalar
+        * soil_c_pool_lmwc
+        * microbial_saturation
+        * carbon_use_efficency
+    )

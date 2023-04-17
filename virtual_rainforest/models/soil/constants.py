@@ -58,6 +58,10 @@ class TempScalar:
 MICROBIAL_TURNOVER_RATE = 0.036
 """Microbial turnover rate [day^-1], this isn't a constant but often treated as one."""
 
+MAX_UPTAKE_RATE_LABILE_C = 0.35
+"""Maximum (theoretical) rate at which microbes can take up labile carbon. Units given
+as [g C m^-2 day^-1], this definitely warrants investigation."""
+
 NECROMASS_ADSORPTION_RATE = 0.025
 """Rate at which necromass is adsorbed by soil minerals [day^-1].
 
