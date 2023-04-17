@@ -346,6 +346,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
     # Then check that pools are correctly incremented based on update
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
 
 
 @pytest.mark.parametrize(
@@ -357,12 +358,15 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.04980195, 0.01999411, 0.09992834, 0.00499986], dims="cell_id"
+                        [0.0467885, 0.01912508, 0.08971612, 0.0049836], dims="cell_id"
                     ),
                     maom=DataArray(
                         [2.50019805, 1.70000589, 4.50007166, 0.50000014], dims="cell_id"
                     ),
-                    microbe=DataArray([5.8, 2.3, 11.3, 1.0], dims="cell_id"),
+                    microbe=DataArray(
+                        [5.80302526, 2.30086929, 11.31021944, 1.00001626],
+                        dims="cell_id",
+                    ),
                 )
             ),
             (),
@@ -465,18 +469,18 @@ def test_construct_full_soil_model(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -3.976666e-4,
-        -1.1783424e-5,
-        -1.434178e-4,
-        -2.80362e-7,
+        -6.65046496e-03,
+        -1.78927655e-03,
+        -2.17076335e-02,
+        -3.28598040e-05,
         3.976666e-4,
         1.1783424e-5,
         1.434178e-4,
         2.80362e-7,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
+        6.25279820e-03,
+        1.77749312e-03,
+        2.15642155e-02,
+        3.25794419e-05,
     ]
 
     # make pools

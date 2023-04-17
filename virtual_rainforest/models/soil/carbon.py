@@ -64,6 +64,7 @@ def calculate_soil_carbon_updates(
     moist_scalar = convert_moisture_to_scalar(soil_moisture)
     moist_temp_scalar = moist_scalar * temp_scalar
 
+    # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
         soil_c_pool_lmwc,
         soil_c_pool_maom,
@@ -72,14 +73,15 @@ def calculate_soil_carbon_updates(
         moist_temp_scalar,
         percent_clay,
     )
+    microbial_uptake = calculate_microbial_carbon_uptake(
+        soil_c_pool_lmwc, soil_c_pool_microbe, moist_temp_scalar, soil_temp
+    )
 
     # Determine net changes to the pools
-    delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom
+    delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom - microbial_uptake
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
     # TODO - Replace this with a proper calculation of the soil microbe update
-    delta_pools_ordered["soil_c_pool_microbe"] = np.zeros(
-        len(lmwc_to_maom), dtype=np.float32
-    )
+    delta_pools_ordered["soil_c_pool_microbe"] = microbial_uptake
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
