@@ -20,7 +20,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     change_in_pools = [
         [-6.65046496e-03, -1.78927655e-03, -2.17076335e-02, -3.28598040e-05],
         [3.976666e-4, 1.1783424e-5, 1.434178e-4, 2.80362e-7],
-        [6.25279820e-03, 1.77749312e-03, 2.15642155e-02, 3.25794419e-05],
+        [-0.19281588, -0.09804232, -0.43436491, -0.00760032],
     ]
 
     delta_pools = calculate_soil_carbon_updates(

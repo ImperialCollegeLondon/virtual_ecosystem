@@ -76,12 +76,17 @@ def calculate_soil_carbon_updates(
     microbial_uptake = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc, soil_c_pool_microbe, moist_temp_scalar, soil_temp
     )
+    microbial_respiration = calculate_maintenance_respiration(
+        soil_c_pool_microbe, moist_temp_scalar
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = -lmwc_to_maom - microbial_uptake
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
     # TODO - Replace this with a proper calculation of the soil microbe update
-    delta_pools_ordered["soil_c_pool_microbe"] = microbial_uptake
+    delta_pools_ordered["soil_c_pool_microbe"] = (
+        microbial_uptake - microbial_respiration
+    )
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
