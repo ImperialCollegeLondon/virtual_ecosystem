@@ -1,5 +1,7 @@
 # Welcome to the Virtual Rainforest
 
+[![codecov](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest/branch/main/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest)
+
 This repository is the home for the development of the Virtual Rainforest. The
 Virtual Rainforest is a project to develop a simulation of all of the major
 processes involved in a real rainforest including the:

@@ -42,8 +42,7 @@ jobs:
 
     - name: Run tests + codecov
       if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9')
-      run:
-        poetry run pytest --cov app
+      run: poetry run pytest --cov app
 
     - name: Upload coverage to Codecov
       if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9')
