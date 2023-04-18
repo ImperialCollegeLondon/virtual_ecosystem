@@ -358,7 +358,7 @@ def test_replace_soil_pools(dummy_carbon_data, soil_model_fixture):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.04681201, 0.01913685, 0.08978062, 0.00498364], dims="cell_id"
+                        [0.04677861, 0.01911956, 0.08970521, 0.00498285], dims="cell_id"
                     ),
                     maom=DataArray(
                         [2.56833002, 1.73404228, 4.65576973, 0.50264192], dims="cell_id"
@@ -469,10 +469,10 @@ def test_construct_full_soil_model(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -6.65046496e-03,
-        -1.78927655e-03,
-        -2.17076335e-02,
-        -3.28598040e-05,
+        -6.72196952e-03,
+        -1.82544314e-03,
+        -2.18757490e-02,
+        -3.44499911e-05,
         0.1386398,
         0.0693311,
         0.31676087,
