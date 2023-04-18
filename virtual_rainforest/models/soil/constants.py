@@ -74,6 +74,13 @@ HALF_SAT_MICROBIAL_ACTIVITY = 7.2
 Units given as [g C m-2], this is a clear place where I need to look at units (and
 parameterisation) more carefully"""
 
+LEACHING_RATE_LABILE_CARBON = 0.0015
+"""Leaching rate for labile carbon (lmwc).
+
+Units again given as [g C m-2]. This is another place where I need to look at units (and
+parameterisation) more carefully
+"""
+
 
 @dataclass
 class CarbonUseEfficiency:

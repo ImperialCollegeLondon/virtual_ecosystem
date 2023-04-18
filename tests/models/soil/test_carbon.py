@@ -12,6 +12,20 @@ import pytest
 from tests.conftest import log_check
 
 
+@pytest.fixture
+def moist_temp_scalars(dummy_carbon_data):
+    """Combined moisture and temperature scalars based on dummy carbon data."""
+    from virtual_rainforest.models.soil.carbon import (
+        convert_moisture_to_scalar,
+        convert_temperature_to_scalar,
+    )
+
+    moist_scalars = convert_moisture_to_scalar(dummy_carbon_data["soil_moisture"])
+    temp_scalars = convert_temperature_to_scalar(dummy_carbon_data["soil_temperature"])
+
+    return moist_scalars * temp_scalars
+
+
 def test_calculate_soil_carbon_updates(dummy_carbon_data):
     """Test that the two pool update functions work correctly."""
 
@@ -41,15 +55,12 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     assert np.allclose(delta_pools[8:], change_in_pools[2])
 
 
-def test_calculate_mineral_association(dummy_carbon_data):
+def test_calculate_mineral_association(dummy_carbon_data, moist_temp_scalars):
     """Test that mineral_association runs and generates the correct values."""
 
     from virtual_rainforest.models.soil.carbon import calculate_mineral_association
 
     output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
-    moist_temp_scalars = np.array(
-        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
-    )
 
     # Then calculate mineral association rate
     lmwc_to_maom = calculate_mineral_association(
@@ -191,15 +202,11 @@ def test_convert_moisture_to_scalar(
     log_check(caplog, expected_log_entries)
 
 
-def test_calculate_maintenance_respiration(dummy_carbon_data):
+def test_calculate_maintenance_respiration(dummy_carbon_data, moist_temp_scalars):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
 
     expected_resps = [0.19906823, 0.0998193, 0.45592854, 0.00763283]
-
-    moist_temp_scalars = np.array(
-        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
-    )
 
     main_resps = calculate_maintenance_respiration(
         dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
@@ -208,15 +215,11 @@ def test_calculate_maintenance_respiration(dummy_carbon_data):
     assert np.allclose(main_resps, expected_resps)
 
 
-def test_calculate_necromass_adsorption(dummy_carbon_data):
+def test_calculate_necromass_adsorption(dummy_carbon_data, moist_temp_scalars):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_necromass_adsorption
 
     expected_adsorps = [0.13824183, 0.06931897, 0.31661708, 0.00530057]
-
-    moist_temp_scalars = np.array(
-        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
-    )
 
     actual_adsorps = calculate_necromass_adsorption(
         dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
@@ -249,15 +252,11 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     assert np.allclose(actual_saturated, expected_saturated)
 
 
-def test_calculate_microbial_carbon_uptake(dummy_carbon_data):
+def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
     expected_uptake = [6.25277836e-03, 1.77747350e-03, 2.15640269e-02, 3.25789906e-05]
-
-    moist_temp_scalars = np.array(
-        [0.953391, 1.20554, 1.12076, 0.212022], dtype=np.float32
-    )
 
     actual_uptake = calculate_microbial_carbon_uptake(
         dummy_carbon_data["soil_c_pool_lmwc"],
@@ -267,3 +266,16 @@ def test_calculate_microbial_carbon_uptake(dummy_carbon_data):
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
+
+
+def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars):
+    """Check leaching of labile carbon is calculated correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_labile_carbon_leaching
+
+    expected_leaching = [7.1504399e-5, 3.616641e-5, 0.0001681152, 1.590171e-6]
+
+    actual_leaching = calculate_labile_carbon_leaching(
+        dummy_carbon_data["soil_c_pool_lmwc"], moist_temp_scalars
+    )
+
+    assert np.allclose(actual_leaching, expected_leaching)

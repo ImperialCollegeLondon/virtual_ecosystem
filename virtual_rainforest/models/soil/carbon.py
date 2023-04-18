@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     HALF_SAT_MICROBIAL_ACTIVITY,
+    LEACHING_RATE_LABILE_CARBON,
     MAX_UPTAKE_RATE_LABILE_C,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
@@ -386,3 +387,27 @@ def calculate_microbial_carbon_uptake(
         * microbial_saturation
         * carbon_use_efficency
     )
+
+
+def calculate_labile_carbon_leaching(
+    soil_c_pool_lmwc: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
+    leaching_rate: float = LEACHING_RATE_LABILE_CARBON,
+) -> NDArray[np.float32]:
+    """Calculate rate at which labile carbon is leached.
+
+    This is adopted from Abramoff et al. We definitely need to give more thought to how
+    we model leaching.
+
+    Args:
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
+        leaching_rate: The rate at which labile carbon leaches from the soil [g C m^-2
+            day^-1]
+
+    Returns:
+        The amount of labile carbon leached
+    """
+
+    return leaching_rate * moist_temp_scalar * soil_c_pool_lmwc
