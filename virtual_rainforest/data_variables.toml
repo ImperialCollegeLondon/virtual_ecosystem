@@ -6,7 +6,7 @@ source = "abiotic"
 used_by = [ "abiotic", "plants", "animals"]
 
 [[variable]]
-name = "air_temperature_2m"
+name = "air_temperature_ref"
 description = "air temperature at reference height (2m)"
 unit = "C"
 source = "external"
@@ -34,8 +34,8 @@ source = "animal"
 used_by = [ "abiotic", "animals"]
 
 [[variable]]
-name = "atmospheric_co2_topofcanopy"
-description = "CO2 concentration above canopy"
+name = "atmospheric_co2_ref"
+description = "CO2 concentration at reference height (above canopy)"
 unit = "ppm"
 source = "external"
 used_by = [ "abiotic"]
@@ -48,7 +48,7 @@ source = ["abiotic"]
 used_by = [ "abiotic", "plants"]
 
 [[variable]]
-name = "atmospheric_pressure_2m"
+name = "atmospheric_pressure_ref"
 description = "atmospheric pressure at reference height (2m)"
 unit = "kPa"
 source = ["external"] 
@@ -202,7 +202,7 @@ source = "abiotic"
 used_by = [ "abiotic", "plants"]
 
 [[variable]]
-name = "relative_humidity_2m"
+name = "relative_humidity_ref"
 description = "relative humidity at reference height (2m)"
 unit = "%"
 source = "external"
@@ -335,8 +335,8 @@ source = "abiotic"
 used_by = [ "abiotic"]
 
 [[variable]]
-name = "wind_speed_10m"
-description = "10m wind speed"
+name = "wind_speed_ref"
+description = "wind speed at reference height (10m)"
 unit = "m s-1"
 source = "external "
 used_by = [ "abiotic"]
