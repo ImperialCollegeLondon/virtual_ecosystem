@@ -32,7 +32,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [-6.72196952e-03, -1.82544314e-03, -2.18757490e-02, -3.44499911e-05],
+        [0.15024814, 0.15514467, 0.13509436, 0.15693566],
         [0.1386398, 0.0693311, 0.31676087, 0.0053009],
         [-0.33105802, -0.16736163, -0.75098236, -0.01290094],
     ]

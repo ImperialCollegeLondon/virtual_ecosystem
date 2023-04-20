@@ -88,11 +88,12 @@ def calculate_soil_carbon_updates(
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc, moist_temp_scalar
     )
+    litter_input_to_lmwc = calculate_direct_litter_input_to_lmwc()
 
     # Determine net changes to the pools
     # TODO - Add a supply rate here
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        -lmwc_to_maom - microbial_uptake - labile_carbon_leaching
+        litter_input_to_lmwc - lmwc_to_maom - microbial_uptake - labile_carbon_leaching
     )
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
     delta_pools_ordered["soil_c_pool_microbe"] = (
