@@ -9,8 +9,10 @@ from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
+    CARBON_INPUT_TO_POM,
     HALF_SAT_MICROBIAL_ACTIVITY,
     LEACHING_RATE_LABILE_CARBON,
+    LITTER_INPUT_RATE,
     MAX_UPTAKE_RATE_LABILE_C,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
@@ -415,3 +417,25 @@ def calculate_labile_carbon_leaching(
     """
 
     return leaching_rate * moist_temp_scalar * soil_c_pool_lmwc
+
+
+def calculate_direct_litter_input_to_lmwc(
+    carbon_input_to_pom: float = CARBON_INPUT_TO_POM,
+    litter_input_rate: float = LITTER_INPUT_RATE,
+) -> float:
+    """Calculate direct input from litter to LMWC pool.
+
+    This process is very much specific to :cite:t:`abramoff_millennial_2018`, and I
+    don't think we want to preserve it long term.
+
+    Args:
+        carbon_input_to_pom: Proportion of litter carbon input that goes to POM (rather
+            than LMWC) [unitless].
+        litter_input_rate: Rate at which carbon moves from litter "pool" to soil carbon
+            pools [g C m^-2 day^-1].
+
+    Returns:
+        Amount of carbon directly added to LMWC pool from litter.
+    """
+
+    return (1 - carbon_input_to_pom) * litter_input_rate

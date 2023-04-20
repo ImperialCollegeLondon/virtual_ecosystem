@@ -279,3 +279,14 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars)
     )
 
     assert np.allclose(actual_leaching, expected_leaching)
+
+
+def test_calculate_direct_litter_input_to_lmwc():
+    """Check direct litter input to lmwc is calculated correctly."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_direct_litter_input_to_lmwc,
+    )
+
+    actual_input = calculate_direct_litter_input_to_lmwc()
+
+    assert np.isclose(actual_input, 0.15697011)

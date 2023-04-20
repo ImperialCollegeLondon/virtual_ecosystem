@@ -81,6 +81,22 @@ Units again given as [g C m-2]. This is another place where I need to look at un
 parameterisation) more carefully
 """
 
+CARBON_INPUT_TO_POM = 2.0 / 3.0
+"""Proportion of carbon input that becomes particulate organic matter (POM) [unitless].
+
+Taken from :cite:t:`abramoff_millennial_2018`, this is justified there based on previous
+empirical work. However, this is something we will definitely completely alter down the
+line so no need to worry too much about references.
+"""
+
+LITTER_INPUT_RATE = 172.0 / 365.25
+"""Rate of litter input to the system [g C m^-2 day^-1].
+
+This definitely is not a constant for our purposes. However,
+:cite:t:`abramoff_millennial_2018` use a constant litter input rate, so we shall also
+use one initially.
+"""
+
 
 @dataclass
 class CarbonUseEfficiency:
