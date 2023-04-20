@@ -19,6 +19,8 @@ by downstream functions so that all model configuration failures can be reported
 
 from __future__ import annotations
 
+from itertools import groupby
+from math import sqrt
 from typing import Any
 
 from numpy import datetime64, timedelta64
@@ -27,6 +29,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import extract_model_time_details
+from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
 
 class AnimalModel(BaseModel):
@@ -55,13 +58,21 @@ class AnimalModel(BaseModel):
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, start_time, **kwargs)
-        from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
+        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+        # run a new set_neighbours with cohort specific dispersal distance (temp sol.)
+        # from virtual_rainforest.models.animals.dummy_animal_module import AnimalCohort
 
         # imports AnimalCohort w/in init to dodge circular import problems: allowed??
-        self.cohort_positions: dict[int, list[AnimalCohort]] = {
+        # self.cohort_positions: dict[int, list[AnimalCohort]] = {
+        #    k: [] for k in self.data.grid.cell_id
+        # }
+        """This stores the AnimalCohorts as values keyed to their grid positions."""
+        self.cohorts: list[AnimalCohort] = []
+        """This stores an unstructured list of all animal cohorts in the model."""
+        self.cohorts_by_cell: dict[int, list[AnimalCohort]] = {
             k: [] for k in self.data.grid.cell_id
         }
-        """This stores the AnimalCohorts as values keyed to their grid positions."""
+        """This stores a dict of cohorts by position."""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
@@ -99,3 +110,22 @@ class AnimalModel(BaseModel):
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
+
+    def update_cohort_positions(self) -> None:
+        """The function to update cohort pos after dispersal, and cohort birth/death.
+
+        Notes: Having this functionality be global vs built into AnimalCohort function
+        calls will require attention to the ordering of events in the temporal
+        loop. This function must be called after each round of cohort trophic behaviour,
+        dispersal, birth, and death and/or these processes must be designed such that
+        cohort events are not contingent on the positions of other cohorts.
+
+        Pay particular attention to what happens if the final individuals of a cohort
+        are consumed via predation mid-way through the trophic sequence.
+
+        """
+        self.cohorts.sort(key=lambda x: x.position)
+        self.cohorts_by_cell = {
+            grp: list(val)
+            for grp, val in groupby(self.cohorts, key=lambda x: x.position)
+        }

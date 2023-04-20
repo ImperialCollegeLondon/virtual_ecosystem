@@ -206,30 +206,30 @@ class TestAnimalCohort:
         assert animal_instance.individuals == final_pop
         assert carcass_instance.energy == final_carcass
 
-    def test_die_cohort(self, animal_instance, animal_model_instance):
+    def test_die_cohort(self, animal_instance):
         """Testing die_cohort."""
         assert animal_instance.is_alive
-        animal_model_instance.cohort_positions[animal_instance.position].append(
-            animal_instance
-        )
-        animal_instance.die_cohort(animal_model_instance)
+        # animal_model_instance.cohort_positions[animal_instance.position].append(
+        #    animal_instance
+        # )
+        animal_instance.die_cohort()
         assert not animal_instance.is_alive
-        assert (
-            animal_instance
-            not in animal_model_instance.cohort_positions[animal_instance.position]
-        )
+        # assert (
+        #    animal_instance
+        #    not in animal_model_instance.cohort_positions[animal_instance.position]
+        # )
 
-    def test_birth(self, animal_instance, animal_model_instance):
+    def test_birth(self, animal_instance):
         """Testing birth."""
-        baby_instance = animal_instance.birth(animal_model_instance)
+        baby_instance = animal_instance.birth()
         assert baby_instance.name == "herbivorous_mammal"
         assert baby_instance.mass == 10000.0
         assert baby_instance.age == 0.0
         assert baby_instance.position == 4
-        assert (
-            baby_instance
-            in animal_model_instance.cohort_positions[animal_instance.position]
-        )
+        # assert (
+        #    baby_instance
+        #    in animal_model_instance.cohort_positions[animal_instance.position]
+        # )
 
     @pytest.mark.parametrize(
         """animal_initial, animal_final, plant_initial, plant_final, soil_initial,
@@ -290,18 +290,18 @@ class TestAnimalCohort:
     ):
         """Testing disperse."""
         animal_instance.position = initial_pos
-        animal_model_instance.cohort_positions[animal_instance.position].append(
-            animal_instance
-        )
+        animal_model_instance.cohorts.append(animal_instance)
         # adds cohort to position dict, temp until broader initialization system
+        animal_model_instance.update_cohort_positions()
         assert (
             animal_instance
-            in animal_model_instance.cohort_positions[animal_instance.position]
+            in animal_model_instance.cohorts_by_cell[animal_instance.position]
         )
         # checks that cohort is actually in position dict
-        animal_instance.disperse(animal_model_instance)
+        animal_instance.disperse(animal_model_instance.data.grid)
         assert animal_instance.position in final_pos
+        animal_model_instance.update_cohort_positions()
         assert (
             animal_instance
-            in animal_model_instance.cohort_positions[animal_instance.position]
+            in animal_model_instance.cohorts_by_cell[animal_instance.position]
         )

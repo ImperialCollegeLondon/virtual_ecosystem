@@ -22,13 +22,14 @@ Notes to self:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import sqrt
 from random import choice
 
 from numpy import timedelta64
 
+from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+# from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -217,11 +218,8 @@ class AnimalCohort:
         self.individuals -= number_dead
         carcass_pool.energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
 
-    def die_cohort(self, model: AnimalModel) -> None:
+    def die_cohort(self) -> None:
         """The function to change the cohort status from alive to dead.
-
-        This function also removes a cohort from the cohort_positions dictionary within
-        AnimalModel.
 
         Args:
             model: An instance of the AnimalModel object containing the dictionary of
@@ -232,19 +230,16 @@ class AnimalCohort:
         if self.is_alive:
             self.is_alive = False
             LOGGER.info("An animal cohort has died")
-            model.cohort_positions[self.position].remove(self)
+            # model.cohort_positions[self.position].remove(self)
         elif not self.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def birth(self, model: AnimalModel) -> AnimalCohort:
+    def birth(self) -> AnimalCohort:
         """The function to produce a new AnimalCohort through reproduction.
 
         Currently, the birth function returns an identical cohort of adults with age
         0. In the future, the offspring will be modified to have appropriate juvenile
         traits based on parental type.
-
-        This function also adds a cohort from the cohort_positions dictionary within
-        AnimalModel.
 
         Args:
             model: An instance of the AnimalModel object containing the dictionary of
@@ -255,32 +250,30 @@ class AnimalCohort:
                 location and functional type of the parent cohort.
         """
         new_cohort = AnimalCohort(self.functional_group, self.mass, 0, self.position)
-        model.cohort_positions[self.position].append(new_cohort)
+        # model.cohorts[self.position].append(new_cohort)
 
         return new_cohort
 
-    def disperse(self, model: AnimalModel) -> None:
+    def disperse(self, grid: Grid) -> None:
         """The function to move a cohort between grid squares.
 
         This is a simple implementation of what will need to be a much more complex
         function. Right now it moves a cohort into a random neighboring grid, including
-        the current grid. Later functionality will need to involve bodysize, locomotion,
-        and other factors.
+        the current grid. Later functionality will need to involve body-size,
+        locomotion, and other factors.
 
         Args:
-            model: An instance of the AnimalModel object containing the dictionary of
-                    animal cohort positions.
+            grid: An instance of the grid object contained in the AnimalModel object.
 
         """
-        model.data.grid.set_neighbours(distance=sqrt(model.data.grid.cell_area))
-        # run a new set_neighbours with cohort specific dispersal distance (to come)
-        dispersal_neighbours = model.data.grid.neighbours[self.position]
+
+        dispersal_neighbours = grid.neighbours[self.position]
         # possible destination grids
         destination = choice(dispersal_neighbours)
         # randomly select a dispersal destination
-        model.cohort_positions[self.position].remove(self)
+        # model.cohort_positions[self.position].remove(self)
         # remove from old position list
         self.position = destination
         # set new position as chosen destination
-        model.cohort_positions[self.position].append(self)
+        # model.cohort_positions[self.position].append(self)
         # add to new position list

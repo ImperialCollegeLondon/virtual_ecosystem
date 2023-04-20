@@ -25,8 +25,8 @@ def test_animal_model_initialization(caplog, data_instance):
         repr(model)
         == "AnimalModel(update_interval = 1 weeks, next_update = 2022-11-08)"
     )
-    assert type(model.cohort_positions) is dict
-    assert len(model.cohort_positions) == 100
+    assert type(model.cohorts_by_cell) is dict
+    assert len(model.cohorts_by_cell) == 100
 
 
 @pytest.mark.parametrize(
