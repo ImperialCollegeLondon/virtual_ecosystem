@@ -187,9 +187,9 @@ def calculate_equilibrium_maom(
     carbon (LMWC) is fixed.
 
     Args:
-        pH: pH values for each soil grid cell Q_max: Maximum sorption capacities (kg
-        m^-3)
-        lmwc: Low molecular weight carbon pool (kg C m^-3)
+        pH: pH values for each soil grid cell
+        Q_max: Maximum sorption capacities [kg m^-3]
+        lmwc: Low molecular weight carbon pool [kg C m^-3]
 
     Returns:
         Equilibrium concentration of MAOM (kg C m^-3)

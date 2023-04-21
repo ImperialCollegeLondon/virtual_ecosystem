@@ -32,9 +32,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [0.15024814, 0.15514467, 0.13509436, 0.15693566],
+        [-2.54765666e-04, 1.37831613e-04, -2.18977749e-05, 1.56422918e-04],
         [0.1386398, 0.0693311, 0.31676087, 0.0053009],
-        [-0.33105802, -0.16736163, -0.75098236, -0.01290094],
+        [-0.33729682, -0.1691318, -0.7725113, -0.01293326],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
@@ -243,7 +243,7 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     """Check microbial activity saturation calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_saturation
 
-    expected_saturated = [0.446153, 0.242105, 0.610810, 0.121951]
+    expected_saturated = [0.99876016, 0.99687933, 0.99936324, 0.99285147]
 
     actual_saturated = calculate_microbial_saturation(
         dummy_carbon_data["soil_c_pool_microbe"]
@@ -256,7 +256,7 @@ def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [6.25277836e-03, 1.77747350e-03, 2.15640269e-02, 3.25789906e-05]
+    expected_uptake = [1.39975163e-05, 7.31890805e-06, 3.52817662e-05, 2.65241683e-07]
 
     actual_uptake = calculate_microbial_carbon_uptake(
         dummy_carbon_data["soil_c_pool_lmwc"],
@@ -272,7 +272,7 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars)
     """Check leaching of labile carbon is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_labile_carbon_leaching
 
-    expected_leaching = [7.1504399e-5, 3.616641e-5, 0.0001681152, 1.590171e-6]
+    expected_leaching = [7.1504399e-8, 3.616641e-8, 1.681152e-7, 1.590171e-9]
 
     actual_leaching = calculate_labile_carbon_leaching(
         dummy_carbon_data["soil_c_pool_lmwc"], moist_temp_scalars
@@ -289,4 +289,4 @@ def test_calculate_direct_litter_input_to_lmwc():
 
     actual_input = calculate_direct_litter_input_to_lmwc()
 
-    assert np.isclose(actual_input, 0.15697011)
+    assert np.isclose(actual_input, 0.00015697011)
