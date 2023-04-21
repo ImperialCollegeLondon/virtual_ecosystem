@@ -32,9 +32,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [-2.54765666e-04, 1.37831613e-04, -2.18977749e-05, 1.56422918e-04],
+        [-0.0003182, 0.00010624, -0.00016632, 0.00015492],
         [0.1386398, 0.0693311, 0.31676087, 0.0053009],
-        [-0.33729682, -0.1691318, -0.7725113, -0.01293326],
+        [-0.33730482, -0.16913635, -0.77253482, -0.01293334],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
@@ -232,7 +232,7 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data):
     """Check carbon use efficiency calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_carbon_use_efficiency
 
-    expected_cues = [0.84, 0.87, 0.9, 0.72]
+    expected_cues = [0.36, 0.33, 0.3, 0.48]
 
     actual_cues = calculate_carbon_use_efficiency(dummy_carbon_data["soil_temperature"])
 
@@ -256,7 +256,7 @@ def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [1.39975163e-05, 7.31890805e-06, 3.52817662e-05, 2.65241683e-07]
+    expected_uptake = [5.99893556e-06, 2.77613754e-06, 1.17605887e-05, 1.76827789e-07]
 
     actual_uptake = calculate_microbial_carbon_uptake(
         dummy_carbon_data["soil_c_pool_lmwc"],
@@ -272,7 +272,7 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars)
     """Check leaching of labile carbon is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_labile_carbon_leaching
 
-    expected_leaching = [7.1504399e-8, 3.616641e-8, 1.681152e-7, 1.590171e-9]
+    expected_leaching = [7.15045537e-05, 3.61665981e-05, 1.68115460e-04, 1.59018704e-06]
 
     actual_leaching = calculate_labile_carbon_leaching(
         dummy_carbon_data["soil_c_pool_lmwc"], moist_temp_scalars

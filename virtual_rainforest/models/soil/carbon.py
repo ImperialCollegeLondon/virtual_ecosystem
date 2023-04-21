@@ -91,7 +91,6 @@ def calculate_soil_carbon_updates(
     litter_input_to_lmwc = calculate_direct_litter_input_to_lmwc()
 
     # Determine net changes to the pools
-    # TODO - Add a supply rate here
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         litter_input_to_lmwc - lmwc_to_maom - microbial_uptake - labile_carbon_leaching
     )
@@ -327,9 +326,6 @@ def calculate_carbon_use_efficiency(
         The carbon use efficiency (CUE) of the microbial community
     """
 
-    # TODO - I think there is a sign error here as carbon use efficiencies should
-    # generally decline with rising temp. However, this follows the paper I am adopting
-    # the model from, so I will keep it as is pending further investigation.
     return paras.reference_cue - paras.cue_with_temperature * (
         soil_temp - paras.reference_temp
     )

@@ -71,11 +71,11 @@ Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibrat
 """
 
 HALF_SAT_MICROBIAL_ACTIVITY = 0.0072
-"""Half saturation constant for microbial activity (with increasing biomass)[kg C m-2].
+"""Half saturation constant for microbial activity (with increasing biomass)[kg C m^-2].
 """
 
-LEACHING_RATE_LABILE_CARBON = 1.5e-6
-"""Leaching rate for labile carbon (lmwc) [kg C m-2]."""
+LEACHING_RATE_LABILE_CARBON = 1.5e-3
+"""Leaching rate for labile carbon (lmwc) [day^-1]."""
 
 CARBON_INPUT_TO_POM = 2.0 / 3.0
 """Proportion of carbon input that becomes particulate organic matter (POM) [unitless].
@@ -105,5 +105,5 @@ class CarbonUseEfficiency:
     """Carbon use efficiency of community at the reference temperature [no units]"""
     reference_temp = 15.0
     """Reference temperature [degrees C]"""
-    cue_with_temperature = -0.012
+    cue_with_temperature = 0.012
     """Change in carbon use efficiency with increasing temperature [degree C^-1]."""
