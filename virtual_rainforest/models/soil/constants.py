@@ -8,6 +8,8 @@ from dataclasses import dataclass
 # TODO - Need to check for the sources of all constants defined here as part of checking
 # whether Abramoff et al.'s parameterisation works
 
+# TODO - Need to figure out a sensible area to volume conversion
+
 
 @dataclass
 class BindingWithPH:
@@ -58,9 +60,9 @@ class TempScalar:
 MICROBIAL_TURNOVER_RATE = 0.036
 """Microbial turnover rate [day^-1], this isn't a constant but often treated as one."""
 
-MAX_UPTAKE_RATE_LABILE_C = 0.35
+MAX_UPTAKE_RATE_LABILE_C = 0.00035
 """Maximum (theoretical) rate at which microbes can take up labile carbon. Units given
-as [g C m^-2 day^-1], this definitely warrants investigation."""
+as [kg C m^-2 day^-1], this definitely warrants investigation."""
 
 NECROMASS_ADSORPTION_RATE = 0.025
 """Rate at which necromass is adsorbed by soil minerals [day^-1].
@@ -68,18 +70,12 @@ NECROMASS_ADSORPTION_RATE = 0.025
 Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
 """
 
-HALF_SAT_MICROBIAL_ACTIVITY = 7.2
-"""Half saturation constant for microbial activity (with increasing biomass density).
-
-Units given as [g C m-2], this is a clear place where I need to look at units (and
-parameterisation) more carefully"""
-
-LEACHING_RATE_LABILE_CARBON = 0.0015
-"""Leaching rate for labile carbon (lmwc).
-
-Units again given as [g C m-2]. This is another place where I need to look at units (and
-parameterisation) more carefully
+HALF_SAT_MICROBIAL_ACTIVITY = 0.0072
+"""Half saturation constant for microbial activity (with increasing biomass)[kg C m-2].
 """
+
+LEACHING_RATE_LABILE_CARBON = 1.5e-6
+"""Leaching rate for labile carbon (lmwc) [kg C m-2]."""
 
 CARBON_INPUT_TO_POM = 2.0 / 3.0
 """Proportion of carbon input that becomes particulate organic matter (POM) [unitless].
@@ -89,8 +85,8 @@ empirical work. However, this is something we will definitely completely alter d
 line so no need to worry too much about references.
 """
 
-LITTER_INPUT_RATE = 172.0 / 365.25
-"""Rate of litter input to the system [g C m^-2 day^-1].
+LITTER_INPUT_RATE = 0.172 / 365.25
+"""Rate of litter input to the system [kg C m^-2 day^-1].
 
 This definitely is not a constant for our purposes. However,
 :cite:t:`abramoff_millennial_2018` use a constant litter input rate, so we shall also
