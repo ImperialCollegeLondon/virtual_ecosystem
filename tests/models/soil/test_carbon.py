@@ -32,9 +32,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [7.43769317e-03, 1.28896287e-02, 7.16222953e-01, 1.22259448e-04],
+        [1.44475655e-03, 1.01162673e-02, 7.04474125e-01, -5.43915134e-05],
         [0.13088391, 0.05654771, -0.39962841, 0.00533357],
-        [-0.33730482, -0.16913635, -0.77253482, -0.01293334],
+        [-0.33131188, -0.16636299, -0.76078599, -0.01275669],
     ]
 
     delta_pools = calculate_soil_carbon_updates(
@@ -256,7 +256,7 @@ def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [5.99893556e-06, 2.77613754e-06, 1.17605887e-05, 1.76827789e-07]
+    expected_uptake = [0.00599894, 0.00277614, 0.01176059, 0.00017683]
 
     actual_uptake = calculate_microbial_carbon_uptake(
         dummy_carbon_data["soil_c_pool_lmwc"],

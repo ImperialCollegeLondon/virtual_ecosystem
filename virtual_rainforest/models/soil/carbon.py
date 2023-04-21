@@ -23,10 +23,6 @@ from virtual_rainforest.models.soil.constants import (
     TempScalar,
 )
 
-# TODO - I'm basically certain that the paper I've taken this model structure from has
-# not used units consistently (in particular the BINDING_WITH_PH). Down the line I need
-# to track down a reliable parameterisation for this section.
-
 
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
@@ -369,7 +365,7 @@ def calculate_microbial_carbon_uptake(
             temperature on process rates
         soil_temp: soil temperature for each soil grid cell [degrees C]
         max_uptake_rate: Maximum rate at which microbes can uptake labile carbon
-            [TODO - Add units]
+            [day^-1]
 
     Returns:
         Uptake of low molecular weight carbon (LMWC) by the soil microbial biomass.
