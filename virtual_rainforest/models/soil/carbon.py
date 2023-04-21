@@ -121,16 +121,16 @@ def calculate_mineral_association(
     elsewhere.
 
     Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool (kg C m^-3)
-        soil_c_pool_maom: Mineral associated organic matter pool (kg C m^-3)
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         pH: pH values for each soil grid cell
-        bulk_density: bulk density values for each soil grid cell (kg m^-3)
+        bulk_density: bulk density values for each soil grid cell [kg m^-3]
         moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
             temperature on process rates
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
-        The net flux from LMWC to MAOM (kg C m^-3 day^-1)
+        The net flux from LMWC to MAOM [kg C m^-3 day^-1]
     """
 
     # Calculate
@@ -155,11 +155,11 @@ def calculate_max_sorption_capacity(
     Fe content, but we are ignoring this for now.
 
     Args:
-        bulk_density: bulk density values for each soil grid cell (kg m^-3)
+        bulk_density: bulk density values for each soil grid cell [kg m^-3]
         percent_clay: Percentage clay for each soil grid cell
 
     Returns:
-        Maximum sorption capacity (kg m^-3)
+        Maximum sorption capacity [kg C m^-3]
     """
 
     # Check that negative initial values are not given
@@ -187,11 +187,11 @@ def calculate_equilibrium_maom(
 
     Args:
         pH: pH values for each soil grid cell
-        Q_max: Maximum sorption capacities [kg m^-3]
+        Q_max: Maximum sorption capacities [kg C m^-3]
         lmwc: Low molecular weight carbon pool [kg C m^-3]
 
     Returns:
-        Equilibrium concentration of MAOM (kg C m^-3)
+        Equilibrium concentration of MAOM [kg C m^-3]
     """
 
     binding_coefficient = calculate_binding_coefficient(pH)
@@ -210,8 +210,8 @@ def calculate_binding_coefficient(
         pH: pH values for each soil grid cell
 
     Returns:
-        Langmuir binding coefficients for mineral association of labile carbon (m^3
-        kg^-1)
+        Langmuir binding coefficients for mineral association of labile carbon [m^3
+        kg^-1]
     """
 
     return 10.0 ** (coef.slope * pH + coef.intercept)
@@ -406,8 +406,7 @@ def calculate_labile_carbon_leaching(
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
             temperature on process rates
-        leaching_rate: The rate at which labile carbon leaches from the soil [g C m^-2
-            day^-1]
+        leaching_rate: The rate at which labile carbon leaches from the soil [day^-1]
 
     Returns:
         The amount of labile carbon leached
@@ -429,7 +428,7 @@ def calculate_direct_litter_input_to_lmwc(
         carbon_input_to_pom: Proportion of litter carbon input that goes to POM (rather
             than LMWC) [unitless].
         litter_input_rate: Rate at which carbon moves from litter "pool" to soil carbon
-            pools [g C m^-2 day^-1].
+            pools [kg C m^-2 day^-1].
 
     Returns:
         Amount of carbon directly added to LMWC pool from litter.

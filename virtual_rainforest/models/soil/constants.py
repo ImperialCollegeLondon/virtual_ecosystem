@@ -17,8 +17,8 @@ class BindingWithPH:
 
     slope: float = -0.186
     """Units of pH^-1."""
-    intercept: float = -0.216
-    """Unit less."""
+    intercept: float = -0.216 + 3.0
+    """Unit of log(m^3 kg^-1). n.b. +3 converts from mg^-1 to kg^-1 and L to m^3"""
 
 
 @dataclass
@@ -27,8 +27,8 @@ class MaxSorptionWithClay:
 
     slope: float = 0.483
     """Units of (% clay)^-1."""
-    intercept: float = 2.328
-    """Unit less."""
+    intercept: float = 2.328 - 6.0
+    """Unit of log(kg C kg soil ^-1). n.b. -6 converts from mg to kg"""
 
 
 @dataclass

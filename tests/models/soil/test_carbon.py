@@ -32,8 +32,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = [
-        [-0.0003182, 0.00010624, -0.00016632, 0.00015492],
-        [0.1386398, 0.0693311, 0.31676087, 0.0053009],
+        [7.43769317e-03, 1.28896287e-02, 7.16222953e-01, 1.22259448e-04],
+        [0.13088391, 0.05654771, -0.39962841, 0.00533357],
         [-0.33730482, -0.16913635, -0.77253482, -0.01293334],
     ]
 
@@ -60,7 +60,7 @@ def test_calculate_mineral_association(dummy_carbon_data, moist_temp_scalars):
 
     from virtual_rainforest.models.soil.carbon import calculate_mineral_association
 
-    output_l_to_m = [0.000397665, 1.178336e-5, 0.0001434178, 2.80359e-7]
+    output_l_to_m = [-7.35822655e-03, -1.27716013e-02, -7.16245859e-01, 3.29436494e-05]
 
     # Then calculate mineral association rate
     lmwc_to_maom = calculate_mineral_association(
@@ -80,8 +80,8 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     """Test that equilibrium maom calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
 
-    Q_max = [2.385207e6, 1.980259e6, 647142.61, 2.805371e6]
-    output_eqb_maoms = [19900.19, 969.4813, 832.6088, 742.4128]
+    Q_max = [2.38520786, 1.98025934, 0.64714262, 2.80537157]
+    output_eqb_maoms = [2.13182275, 0.65105909, 0.36433141, 0.58717765]
 
     equib_maoms = calculate_equilibrium_maom(
         dummy_carbon_data["pH"], Q_max, dummy_carbon_data["soil_c_pool_lmwc"]
@@ -94,7 +94,7 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     [
         (
             None,
-            [2.385207e6, 1.980259e6, 647142.61, 2.805371e6],
+            [2.38520786, 1.98025934, 0.64714262, 2.80537157],
             does_not_raise(),
             (),
         ),
@@ -144,7 +144,7 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
     """Test that Langmuir binding coefficient calculation works as expected."""
     from virtual_rainforest.models.soil.carbon import calculate_binding_coefficient
 
-    output_coefs = [0.16826738, 0.02449064, 0.0128825, 0.05294197]
+    output_coefs = [168.26740611, 24.49063242, 12.88249552, 52.9419581]
 
     binding_coefs = calculate_binding_coefficient(dummy_carbon_data["pH"])
 
