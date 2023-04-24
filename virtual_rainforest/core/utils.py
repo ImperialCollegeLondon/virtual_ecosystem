@@ -15,6 +15,7 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 from virtual_rainforest.core.logger import LOGGER
 
 
+# TODO - This should switch to extracting model time bounds
 def extract_model_time_details(
     config: dict[str, Any], model_name: str
 ) -> tuple[datetime64, timedelta64]:
@@ -35,7 +36,7 @@ def extract_model_time_details(
         raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to(
             "seconds"
         )
-        # Round raw time interval to nearest minute
+        # Round raw time interval to nearest second
         update_interval = timedelta64(round(raw_interval.magnitude), "s")
 
         start_date = datetime64(config["core"]["timing"]["start_date"])

@@ -116,7 +116,7 @@ def extract_timing_details(
 
     # Catch bad time dimensions
     try:
-        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("minutes")
+        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("seconds")
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
         to_raise = InitialisationError(
             "Units for core.timing.run_length are not valid time units: %s"
@@ -125,14 +125,14 @@ def extract_timing_details(
         LOGGER.critical(to_raise)
         raise to_raise
     else:
-        # Round raw time interval to nearest minute
-        run_length = timedelta64(int(round(raw_length.magnitude)), "m")
+        # Round raw time interval to nearest second
+        run_length = timedelta64(int(round(raw_length.magnitude)), "s")
 
     # Catch bad time dimensions
     try:
         # TODO - Document what this unit transformation does (i.e. month = 30.4375 days)
         raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
-            "minutes"
+            "seconds"
         )
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
         to_raise = InitialisationError(
@@ -142,8 +142,8 @@ def extract_timing_details(
         LOGGER.critical(to_raise)
         raise to_raise
     else:
-        # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+        # Round raw time interval to nearest second
+        update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
 
     if run_length < update_interval:
         to_raise = InitialisationError(

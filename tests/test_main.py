@@ -260,9 +260,9 @@ def test_vr_run_bad_model(mocker, caplog):
             (
                 (
                     INFO,
-                    "Virtual Rainforest simulation will run from 2020-01-01 until 2049-"
-                    "12-31T12:00. This is a run length of 15778800 minutes, the user "
-                    "requested 15778800 minutes",
+                    "Virtual Rainforest simulation will run from 2020-01-01 until "
+                    "2049-12-31T12:00:00. This is a run length of 946728000 seconds, "
+                    "the user requested 946728000 seconds",
                 ),
             ),
             id="timing correct",
@@ -282,8 +282,8 @@ def test_vr_run_bad_model(mocker, caplog):
             (
                 (
                     CRITICAL,
-                    "Models will never update as the update interval (10 minutes) is "
-                    "larger than the run length (1 minutes)",
+                    "Models will never update as the update interval (600 seconds) is "
+                    "larger than the run length (60 seconds)",
                 ),
             ),
             id="run length < update interval",
