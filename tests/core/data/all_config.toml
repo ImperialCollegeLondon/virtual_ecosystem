@@ -7,7 +7,7 @@ ny = 10
 
 [core.timing]
 start_date = "2020-01-01"
-update_interval = "10 minutes"
+update_interval = "2 weeks"
 run_length = "50 years"
 
 [core.data_output_options]
@@ -28,4 +28,4 @@ pft_name = "broadleaf"
 maxh = 50.0
 
 [soil]
-model_time_step = "5 days"
+model_time_step = "2 weeks"

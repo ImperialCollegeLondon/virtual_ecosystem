@@ -130,6 +130,7 @@ def extract_timing_details(
 
     # Catch bad time dimensions
     try:
+        # TODO - Document what this unit transformation does (i.e. month = 30.4375 days)
         raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
             "minutes"
         )
@@ -140,7 +141,6 @@ def extract_timing_details(
         )
         LOGGER.critical(to_raise)
         raise to_raise
-
     else:
         # Round raw time interval to nearest minute
         update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
@@ -222,6 +222,7 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     current_time, update_interval, end_time = extract_timing_details(config)
 
     # Identify models with shorter time steps than main loop and warn user about them
+    # TODO - THIS SHOULD BECOME A STEP CHECKING MODEL BOUNDS
     check_for_fast_models(models_cfd, update_interval)
 
     # TODO - A model spin up might be needed here in future
