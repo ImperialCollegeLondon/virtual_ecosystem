@@ -11,7 +11,7 @@ import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
-from virtual_rainforest.core.config import validate_config
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.grid import Grid
@@ -202,7 +202,7 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
             name)
     """
 
-    config = validate_config(cfg_paths, merge_file_path)
+    config = Config(cfg_paths)
 
     grid = Grid()  # TODO - this needs a Grid.from_config factory function
     data = Data(grid)
