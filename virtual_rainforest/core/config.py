@@ -170,13 +170,7 @@ def load_schema(module_name: str, schema_file_path: Path) -> dict:
         ValueError: the JSON Schema is missing required keys
     """
 
-    if module_name not in SCHEMA_REGISTRY:
-        to_raise = ValueError(f"No schema registered for module {module_name}")
-        LOGGER.error(to_raise)
-        raise to_raise
-
     # Try and get the contents of the JSON schema file
-    schema_file_path = SCHEMA_REGISTRY[module_name]
     try:
         json_schema = json.load(open(schema_file_path))
     except FileNotFoundError:
@@ -206,9 +200,44 @@ def load_schema(module_name: str, schema_file_path: Path) -> dict:
         LOGGER.error(to_raise)
         raise to_raise
 
-    LOGGER.info("Module schema for %s loaded", module_name)
-
     return json_schema
+
+
+def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Merge the validation schemas for desired modules.
+
+    The method merges a set of schemas for a set of desired modules into a single
+    integrated schema that can then be used to validate a mergedconfiguration for those
+    modules.
+
+    Args:
+        schema: A dictionary of schemas keyed by module name
+
+    Returns:
+        An integrated schema combining the modules.
+    """
+
+    # Construct combined schema for all relevant modules
+    comb_schema: dict = {"type": "object", "properties": {}, "required": []}
+
+    # Loop over expected modules amd add them to the combined schema
+    for this_module, this_schema in schemas.items():
+        comb_schema["properties"][this_module] = this_schema["properties"][this_module]
+        # Add module name to list of required modules
+        comb_schema["required"].append(this_module)
+
+    p_paths = []
+    # Recursively search for all instances of properties in the schema
+    for path, value in dpath.util.search(comb_schema, "**/properties", yielded=True):
+        # Remove final properties instance from path so that additionalProperties ends
+        # up in the right place
+        p_paths.append("" if path == "properties" else path[:-11])
+
+    # Set additional properties to false everywhere that properties are defined
+    for path in p_paths:
+        dpath.util.new(comb_schema, f"{path}/additionalProperties", False)
+
+    return comb_schema
 
 
 def check_dict_leaves(
