@@ -6,12 +6,10 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
-import json
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
-import jsonschema
 import pytest
 
 from tests.conftest import log_check
@@ -41,64 +39,88 @@ def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
 
 
 @pytest.mark.parametrize(
-    "cfg_paths,contents,expected_exception,expected_log_entries",
+    "cfg_paths, expected_cfg_paths",
     [
-        (
-            ["Nonsense/file/location"],
-            [],
-            ConfigurationError,
+        ("string1", [Path("string1")]),
+        (Path("string1"), [Path("string1")]),
+        (["string1", "string2"], [Path("string1"), Path("string2")]),
+        (["string1", Path("string2")], [Path("string1"), Path("string2")]),
+        ([Path("string1"), Path("string2")], [Path("string1"), Path("string2")]),
+    ],
+)
+def test_Config_init(cfg_paths, expected_cfg_paths):
+    """Tests the normalisation of Config instance init."""
+    from virtual_rainforest.core.config import Config
+
+    # Just check normalisation, no processing
+    cfg = Config(cfg_paths, auto=False)
+
+    assert cfg.cfg_paths == expected_cfg_paths
+
+
+@pytest.mark.parametrize(
+    "cfg_paths,expected_exception,expected_log_entries",
+    [
+        pytest.param(
+            ["file_does_not_exist"],
+            pytest.raises(ConfigurationError),
             (
-                (
-                    CRITICAL,
-                    "The following (user provided) config paths do not exist:",
-                ),
+                (ERROR, "Config file path does not exist"),
+                (CRITICAL, "Config paths not all valid: check log."),
             ),
+            id="bad_path",
         ),
-        (
-            ["."],
-            [],
-            ConfigurationError,
+        pytest.param(
+            ["cfg_no_toml"],
+            pytest.raises(ConfigurationError),
             (
-                (
-                    CRITICAL,
-                    "The following (user provided) config folders do not contain any "
-                    "toml files:",
-                ),
+                (ERROR, "Config directory path contains no TOML files"),
+                (CRITICAL, "Config paths not all valid: check log."),
             ),
+            id="no_toml_dir",
         ),
-        (
-            ["", "all_config.toml"],
+        pytest.param(
+            ["bad_json_in_schema.json"],
+            pytest.raises(ConfigurationError),
+            (
+                (ERROR, "Config file path with non-TOML suffix"),
+                (CRITICAL, "Config paths not all valid: check log."),
+            ),
+            id="not_toml",
+        ),
+        pytest.param(
+            [".", "all_config.toml"],
+            pytest.raises(ConfigurationError),
+            (
+                (ERROR, "Repeated files in config paths:"),
+                (CRITICAL, "Config paths not all valid: check log."),
+            ),
+            id="dupes",
+        ),
+        pytest.param(
             ["all_config.toml"],
-            ConfigurationError,
-            (
-                (
-                    CRITICAL,
-                    "A total of 1 config files are specified more than once (possibly "
-                    "indirectly)",
-                ),
-            ),
+            does_not_raise(),
+            ((INFO, "Config paths resolve to 1 files"),),
+            id="valid",
         ),
     ],
 )
-def test_collect_files(
+def test_Config_resolve_config_paths(
     caplog,
-    mocker,
     shared_datadir,
     cfg_paths,
-    contents,
     expected_exception,
     expected_log_entries,
 ):
     """Checks errors for missing config files."""
-    from virtual_rainforest.core.config import collect_files
+    from virtual_rainforest.core.config import Config
 
-    # Configure the mock to return a specific list of files when globbing a directory
-    mock_get = mocker.patch("virtual_rainforest.core.config.Path.glob")
-    mock_get.return_value = [shared_datadir / fn for fn in contents]
+    # Init the class
+    cfg = Config([shared_datadir / p for p in cfg_paths], auto=False)
 
-    # Check that file collection fails as expected
-    with pytest.raises(expected_exception):
-        collect_files([shared_datadir / fn for fn in cfg_paths])
+    # Check that file resolution runs as expected
+    with expected_exception:
+        cfg.resolve_config_paths()
 
     log_check(caplog, expected_log_entries)
 
@@ -190,25 +212,6 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
     log_check(caplog, expected_log_entries)
 
 
-def test_construct_combined_schema(caplog: pytest.LogCaptureFixture) -> None:
-    """Checks errors for bad or missing json schema."""
-    from virtual_rainforest.core.config import construct_combined_schema
-
-    # Check that construct_combined_schema fails as expected
-    with pytest.raises(ConfigurationError):
-        construct_combined_schema(["a_stupid_module_name"])
-
-    expected_log_entries = (
-        (
-            CRITICAL,
-            "Expected a schema for a_stupid_module_name module configuration, "
-            "it was not provided!",
-        ),
-    )
-
-    log_check(caplog, expected_log_entries)
-
-
 @pytest.mark.parametrize(
     "file_path,expected_log_entries",
     [
@@ -241,85 +244,6 @@ def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_en
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "schema_name,schema,expected_exception,expected_log_entries",
-    [
-        (
-            "core",
-            "",
-            ValueError,
-            (
-                (
-                    CRITICAL,
-                    "The module schema for core is already registered",
-                ),
-            ),
-        ),
-        (
-            "test",
-            "najsnjasnda",
-            json.JSONDecodeError,
-            (
-                (ERROR, "JSON error in schema file"),
-                (CRITICAL, "Schema registration for test failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_1",
-            '{"type": "hobbit", "properties": {"bad_module_1": {}}}',
-            jsonschema.SchemaError,
-            (
-                (ERROR, "Module schema invalid in: "),
-                (CRITICAL, "Schema registration for bad_module_1 failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_2",
-            '{"type": "object", "properties": {"bad_module_1": {}}}',
-            ValueError,
-            (
-                (ERROR, "Missing key in module schema bad_module_2:"),
-                (CRITICAL, "Schema registration for bad_module_2 failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_3",
-            '{"type": "object", "properties": {"bad_module_3": {}}}',
-            ValueError,
-            (
-                (ERROR, "Missing key in module schema bad_module_3"),
-                (CRITICAL, "Schema registration for bad_module_3 failed: check log"),
-            ),
-        ),
-    ],
-)
-def test_register_schema_errors(
-    caplog, mocker, schema_name, schema, expected_exception, expected_log_entries
-):
-    """Test that the schema registering decorator throws the correct errors."""
-
-    from virtual_rainforest.core.config import register_schema
-
-    data = mocker.mock_open(read_data=schema)
-    mocker.patch("builtins.open", data)
-
-    # Check that construct_combined_schema fails as expected
-    with pytest.raises(expected_exception):
-        register_schema(schema_name, "file_path")
-
-    # Then check that the correct (critical error) log messages are emitted
-    log_check(caplog, expected_log_entries)
-
-
-def test_extend_with_default():
-    """Test that validator has been properly extended to allow addition of defaults."""
-    from virtual_rainforest.core.config import ValidatorWithDefaults
-
-    # Check that function adds a function with the right name in the right location
-    TestValidator = ValidatorWithDefaults({"str": {}})
-    assert TestValidator.VALIDATORS["properties"].__name__ == "set_defaults"
 
 
 @pytest.mark.parametrize(

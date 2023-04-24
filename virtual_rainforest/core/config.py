@@ -31,7 +31,7 @@ import json
 import sys
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, Generator, Iterator, Optional, Union
+from typing import Any, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -50,37 +50,6 @@ SCHEMA_REGISTRY: dict[str, Any] = {}
 
 :meta hide-value:
 """
-
-
-def log_all_validation_errors(
-    errors: Generator[Any, None, None], complete: bool
-) -> None:
-    """Logs all validation errors and raises an exception.
-
-    A tag is constructed to allow the location of each error to be better determined.
-    For each error this is then printed along with the error message.
-
-    Raises:
-        ConfigurationError: As at least one validation error has occurred.
-    """
-    if complete:
-        conf = "complete"
-    else:
-        conf = "core"
-
-    for error in errors:
-        # Construct details of the tag associated with the error
-        tag = ""
-        for k in error.path:
-            tag += f"[{k}]"
-        LOGGER.error("%s: %s" % (tag, error.message))
-
-    to_raise = ConfigurationError(
-        f"Validation of {conf} configuration files failed see above errors"
-    )
-    LOGGER.critical(to_raise)
-    raise to_raise
-
 
 #  Set up a JSON Schema validator that fills in default values
 
@@ -124,6 +93,8 @@ def set_defaults(
 ValidatorWithDefaults = validators.extend(
     Draft202012Validator, {"properties": set_defaults}
 )
+
+# Schema handling functions
 
 
 def register_schema(module_name: str, schema_file_path: Path) -> None:
@@ -205,7 +176,7 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Merge the validation schemas for desired modules.
 
     The method merges a set of schemas for a set of desired modules into a single
-    integrated schema that can then be used to validate a mergedconfiguration for those
+    integrated schema that can then be used to validate a merged configuration for those
     modules.
 
     Args:
@@ -275,12 +246,18 @@ def check_dict_leaves(
 class Config(dict):
     """Draft config class."""
 
-    def __init__(self, cfg_paths: Union[str, list[str]]):
+    def __init__(
+        self, cfg_paths: Union[str, Path, list[str], list[Path]], auto: bool = True
+    ) -> None:
+        # Standardise cfg_paths
+        if isinstance(cfg_paths, (str, Path)):
+            self.cfg_paths = [Path(cfg_paths)]
+        else:
+            self.cfg_paths = [Path(p) for p in cfg_paths]
+
         # Define custom attributes
-        self.cfg_paths = (
-            [cfg_paths] if isinstance(cfg_paths, (str, Path)) else cfg_paths
-        )
-        self.toml_inputs: dict[Path, dict] = {}
+        self.toml_files: list[Path] = []
+        self.toml_contents: dict[Path, dict] = {}
         self.failed_inputs: dict[Path, str] = {}
         self.merged_config: dict = {}
         self.merge_conflicts: list = []
@@ -289,67 +266,85 @@ class Config(dict):
         self.validated: bool = False
 
         # Run the validation steps
-        self.resolve_config_files()
-        self.build_config()
-        self.build_schema()
-        self.validate_config()
+        if auto:
+            self.resolve_config_paths()
+            self.build_config()
+            self.build_schema()
+            self.validate_config()
 
-    def resolve_config_files(self) -> None:
-        """Resolve config file paths into a set of TOML config paths.
+    def resolve_config_paths(self) -> None:
+        """Resolve config file paths into a set of TOML config files.
 
         The :class:`~virtual_rainforest.core.config.Config` class is initialised with a
         set of paths to TOML config files or directories containing sets of files. This
-        method resolves those paths to the set of paths to individual TOML config files.
+        method resolves those paths to a set of individual TOML config files and then
+        populates the  :attr:`~virtual_rainforest.core.config.Config.toml_files`
+        attribute.
+
+        Raises:
+            ConfigurationError: this is raised if any of the paths: do not exist, are
+            directories that do not contain TOML files, are not TOML files or if the
+            resolved files contain duplicate entries.
         """
 
-        toml_files: list[Path] = []
-        not_found: list[str] = []  # Stores all invalid paths
-        empty_folder: list[str] = []  # Stores all empty toml folders
+        all_valid = True
 
+        # Validate the paths
         for path in self.cfg_paths:
-            p = Path(path)
-            # Check if each path is to a file or a directory
-            if p.is_dir():
-                toml_in_dir = list([f for f in p.glob("*.toml")])
-                if toml_files:
-                    toml_files.extend(toml_in_dir)
+            if not path.exists():
+                all_valid = False
+                LOGGER.error(f"Config file path does not exist: {path}")
+            elif path.is_dir():
+                toml_in_dir = list(path.glob("*.toml"))
+                if toml_in_dir:
+                    self.toml_files.extend(toml_in_dir)
                 else:
-                    empty_folder.append(path)
-            elif p.is_file():
-                toml_files.append(p)
+                    all_valid = False
+                    LOGGER.error(
+                        f"Config directory path contains no TOML files: {path}"
+                    )
+            elif path.is_file() and path.suffix != ".toml":
+                all_valid = False
+                LOGGER.error(f"Config file path with non-TOML suffix: {path}")
             else:
-                # Add missing path to list of missing paths
-                not_found.append(path)
-
-        # Check for items that are not found
-        if not_found:
-            to_raise = ConfigurationError(
-                f"Some config paths do not exist: {','.join(not_found)}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-        # And for empty folders
-        if empty_folder:
-            to_raise = ConfigurationError(
-                f"Config directories contain no toml files: {','.join(empty_folder)}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
+                self.toml_files.append(path)
 
         # Check that no files are resolved twice
-        dupl_files = set([str(md) for md in toml_files if toml_files.count(md) > 1])
+        dupl_files = set(
+            [str(md) for md in self.toml_files if self.toml_files.count(md) > 1]
+        )
         if dupl_files:
-            to_raise = ConfigurationError(
-                f"Repeated files in config paths: {','.join(dupl_files)}"
-            )
-            LOGGER.critical(to_raise)
+            all_valid = False
+            LOGGER.error(f"Repeated files in config paths: {','.join(dupl_files)}")
 
+        # Raise if there are any path errors
+        if not all_valid:
+            to_raise = ConfigurationError("Config paths not all valid: check log.")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        LOGGER.info(f"Config paths resolve to {len(self.toml_files)} files")
+
+    def load_config_toml(self) -> None:
+        """Load the contents of resolved configuration files.
+
+        This method populates the
+        :attr:`~virtual_rainforest.core.config.Config.toml_contents` dictionary with the
+        contents of the configuration files set in
+        :attr:`~virtual_rainforest.core.config.Config.toml_files`. That attribute is
+        normally populated by providing a set of paths to
+        :class:`~virtual_rainforest.core.config.Config` and running the
+        :meth:`~virtual_rainforest.core.config.Config.resolve_config_paths` method, but
+        it can also be set directly.
+
+        Raises:
+            ConfigurationError: Invalid TOML content in config files.
+        """
         # Load the contents into the instance
-        for this_file in toml_files:
+        for this_file in self.toml_files:
             try:
                 with open(this_file, "rb") as file_io:
-                    self.toml_inputs[this_file] = tomllib.load(file_io)
+                    self.toml_contents[this_file] = tomllib.load(file_io)
             except tomllib.TOMLDecodeError as err:
                 self.failed_inputs[this_file] = str(err)
                 LOGGER.error(f"Config TOML parsing error in {this_file}: {str(err)}")
@@ -369,7 +364,7 @@ class Config(dict):
 
         # Loop over loaded TOML checking each file against the previous entries in the
         # dictionary
-        input_keys = list(self.toml_inputs.keys())
+        input_keys = list(self.toml_contents.keys())
 
         for idx, this_key in enumerate(input_keys):
             # Get a list of the keys before this one
@@ -377,7 +372,7 @@ class Config(dict):
             # Check this key doesn't overlap with all previous ones
             for this_previous in previous_keys:
                 repeats = check_dict_leaves(
-                    self.toml_inputs[this_previous], self.toml_inputs[this_key], []
+                    self.toml_contents[this_previous], self.toml_contents[this_key], []
                 )
 
                 for elem in repeats:
@@ -391,9 +386,9 @@ class Config(dict):
             )
             LOGGER.critical(to_raise)
             raise to_raise
-        else:
-            # Merge everything into a single dictionary and update the object
-            self.update(dict(ChainMap(*self.toml_inputs.values())))
+
+        # Merge everything into a single dictionary and update the object
+        self.update(dict(ChainMap(*self.toml_contents.values())))
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
