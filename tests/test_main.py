@@ -85,8 +85,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 "soil": {"model_time_step": "7 days"},
                 "core": {"timing": {"start_date": "2020-01-01"}},
             },
-            "SoilModel(update_interval = 604800 seconds, next_update = "
-            "2020-01-08T00:00:00)",
+            "SoilModel(update_interval = 604800 seconds)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),

@@ -4,7 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
 import pytest
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -76,7 +76,6 @@ def test_abiotic_model_initialization(
         model = AbioticModel(
             data_instance,
             timedelta64(1, "W"),
-            datetime64("2022-11-01"),
             soil_layers,
             canopy_layers,
         )
@@ -85,8 +84,7 @@ def test_abiotic_model_initialization(
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
         assert model.model_name == "abiotic"
         assert (
-            repr(model)
-            == f"AbioticModel(update_interval = 1 weeks, next_update = 2022-11-08, "
+            repr(model) == f"AbioticModel(update_interval = 1 weeks, "
             f"soil_layers = {int(soil_layers)}, "
             f"canopy_layers = {int(canopy_layers)})"
         )
@@ -138,16 +136,9 @@ def test_generate_abiotic_model(
         assert model.soil_layers == config["abiotic"]["soil_layers"]
         assert model.canopy_layers == config["abiotic"]["canopy_layers"]
         assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
-        )
-        # Run the update step and check that next_update has incremented properly
+
+        # Run the update step (once this does something should check output)
         model.update()
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
-        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

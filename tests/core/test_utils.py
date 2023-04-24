@@ -5,14 +5,14 @@ from logging import CRITICAL, ERROR
 from pathlib import Path
 
 import pytest
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 
 
 @pytest.mark.parametrize(
-    argnames=["config", "raises", "timestep", "initial_time", "expected_log"],
+    argnames=["config", "raises", "timestep", "expected_log"],
     argvalues=[
         (
             {
@@ -21,7 +21,6 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
             },
             does_not_raise(),
             timedelta64(720, "m"),
-            datetime64("2020-01-01"),
             (),
         ),
         (
@@ -30,7 +29,6 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
                 "soil": {"model_time_step": "12 interminable hours"},
             },
             pytest.raises(InitialisationError),
-            None,
             None,
             (
                 (
@@ -47,7 +45,6 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
             },
             pytest.raises(InitialisationError),
             None,
-            None,
             (
                 (
                     ERROR,
@@ -58,16 +55,13 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
         ),
     ],
 )
-def test_extract_model_time_details(
-    caplog, config, raises, timestep, initial_time, expected_log
-):
+def test_extract_model_time_details(caplog, config, raises, timestep, expected_log):
     """Tests timing details extraction utility."""
 
     from virtual_rainforest.core.utils import extract_model_time_details
 
     with raises:
-        start_time, update_interval = extract_model_time_details(config, "soil")
-        assert start_time == initial_time
+        update_interval = extract_model_time_details(config, "soil")
         assert update_interval == timestep
 
     log_check(caplog, expected_log)

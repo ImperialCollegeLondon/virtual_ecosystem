@@ -73,7 +73,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Type
 
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.data import Data
@@ -129,7 +129,6 @@ class BaseModel(ABC):
         self,
         data: Data,
         update_interval: timedelta64,
-        start_time: datetime64,
         **kwargs: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
@@ -150,9 +149,7 @@ class BaseModel(ABC):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval = update_interval
         """The time interval between model updates."""
-        self.next_update = start_time + update_interval
-        """The simulation time at which the model should next run the update method"""
-        self._repr = ["update_interval", "next_update"]
+        self._repr = ["update_interval"]
         """A list of attributes to be included in the class __repr__ output"""
 
         # Check the required init variables

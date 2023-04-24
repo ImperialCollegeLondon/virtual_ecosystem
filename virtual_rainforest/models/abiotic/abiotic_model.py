@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -45,7 +45,6 @@ class AbioticModel(BaseModel):
         self,
         data: Data,
         update_interval: timedelta64,
-        start_time: datetime64,
         soil_layers: int,
         canopy_layers: int,
         **kwargs: Any,
@@ -78,7 +77,7 @@ class AbioticModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
         self.soil_layers = int(soil_layers)
         """The number of soil layers to be modelled."""
         self.canopy_layers = int(canopy_layers)
@@ -92,8 +91,6 @@ class AbioticModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
-        self.next_update
-        """The simulation time at which the model should next run the update method"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticModel:
@@ -109,7 +106,7 @@ class AbioticModel(BaseModel):
         """
 
         # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
+        update_interval = extract_model_time_details(config, cls.model_name)
 
         soil_layers = config["abiotic"]["soil_layers"]
         canopy_layers = config["abiotic"]["canopy_layers"]
@@ -118,7 +115,7 @@ class AbioticModel(BaseModel):
             "Information required to initialise the abiotic model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time, soil_layers, canopy_layers)
+        return cls(data, update_interval, soil_layers, canopy_layers)
 
     def setup(self) -> None:
         """Function to set up the abiotic model."""
@@ -128,9 +125,6 @@ class AbioticModel(BaseModel):
 
     def update(self) -> None:
         """Placeholder function to update the abiotic model."""
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

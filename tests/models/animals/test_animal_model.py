@@ -4,7 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
 import pytest
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -15,16 +15,13 @@ def test_animal_model_initialization(caplog, data_instance):
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
-    model = AnimalModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
+    model = AnimalModel(data_instance, timedelta64(1, "W"))
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
     assert model.model_name == "animal"
     assert str(model) == "A animal model instance"
-    assert (
-        repr(model)
-        == "AnimalModel(update_interval = 1 weeks, next_update = 2022-11-08)"
-    )
+    assert repr(model) == "AnimalModel(update_interval = 1 weeks)"
 
 
 @pytest.mark.parametrize(
@@ -78,16 +75,8 @@ def test_generate_animal_model(
     with raises:
         model = AnimalModel.from_config(data_instance, config)
         assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
-        )
-        # Run the update step and check that next_update has incremented properly
+        # Run the update step (once this does something should check output)
         model.update()
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
-        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

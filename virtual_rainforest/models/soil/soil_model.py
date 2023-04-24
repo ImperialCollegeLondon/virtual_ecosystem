@@ -73,10 +73,9 @@ class SoilModel(BaseModel):
         self,
         data: Data,
         update_interval: np.timedelta64,
-        start_time: np.datetime64,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
 
         # Check that soil pool data is appropriately bounded
         if np.any(data["soil_c_pool_maom"] < 0.0) or np.any(
@@ -92,8 +91,6 @@ class SoilModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
-        self.next_update
-        """The simulation time at which the model should next run the update method"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
@@ -108,14 +105,14 @@ class SoilModel(BaseModel):
             config: The complete (and validated) Virtual Rainforest configuration.
         """
 
-        # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
+        # Find update interval
+        update_interval = extract_model_time_details(config, cls.model_name)
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time)
+        return cls(data, update_interval)
 
     def setup(self) -> None:
         """Placeholder function to setup up the soil model."""
@@ -132,9 +129,6 @@ class SoilModel(BaseModel):
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
         self.replace_soil_pools(updated_carbon_pools)
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""

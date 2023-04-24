@@ -168,13 +168,9 @@ def test_soil_model_initialization(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
-            model = SoilModel(
-                carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
-            )
+            model = SoilModel(carbon_data, np.timedelta64(1, "W"))
         else:
-            model = SoilModel(
-                dummy_carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
-            )
+            model = SoilModel(dummy_carbon_data, np.timedelta64(1, "W"))
 
         # In cases where it passes then checks that the object has the right properties
         assert set(
@@ -189,10 +185,7 @@ def test_soil_model_initialization(
         ).issubset(dir(model))
         assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
-        assert (
-            repr(model)
-            == "SoilModel(update_interval = 1 weeks, next_update = 2022-11-08)"
-        )
+        assert repr(model) == "SoilModel(update_interval = 1 weeks)"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -266,10 +259,6 @@ def test_generate_soil_model(
     with raises:
         model = SoilModel.from_config(dummy_carbon_data, config)
         assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == np.datetime64(config["core"]["timing"]["start_date"]) + time_interval
-        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -295,11 +284,6 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
 
     # Check that integrator is called once (and once only)
     mock_integrate.assert_called_once()
-
-    # Check that time has incremented correctly
-    assert soil_model_fixture.next_update == np.datetime64(
-        "2020-01-01"
-    ) + 2 * np.timedelta64(12, "h")
 
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)

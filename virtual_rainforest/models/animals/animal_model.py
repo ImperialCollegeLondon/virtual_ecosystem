@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -51,10 +51,9 @@ class AnimalModel(BaseModel):
         self,
         data: Data,
         update_interval: timedelta64,
-        start_time: datetime64,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
@@ -70,13 +69,13 @@ class AnimalModel(BaseModel):
         """
 
         # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
+        update_interval = extract_model_time_details(config, cls.model_name)
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time)
+        return cls(data, update_interval)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
@@ -86,9 +85,6 @@ class AnimalModel(BaseModel):
 
     def update(self) -> None:
         """Placeholder function to solve the animal model."""
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
