@@ -34,6 +34,11 @@ class AbioticModel(BaseModel):
 
     model_name = "abiotic"
     """An internal name used to register the model and schema"""
+    # TODO - Check with Vivienne that these are sensible bounds
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "3 months"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the abiotic model.
 

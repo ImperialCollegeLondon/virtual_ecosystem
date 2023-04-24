@@ -231,6 +231,8 @@ def test_check_failure_on_missing_methods(data_instance):
 
     class InitVarModel(BaseModel):
         model_name = "init_var"
+        lower_bound_on_time_scale = "1 second"
+        upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
 
     with pytest.raises(TypeError) as err:
@@ -306,6 +308,8 @@ def test_check_required_init_vars(
 
     class TestCaseModel(BaseModel):
         model_name = "init_var"
+        lower_bound_on_time_scale = "1 second"
+        upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
 
         def setup(self) -> None:

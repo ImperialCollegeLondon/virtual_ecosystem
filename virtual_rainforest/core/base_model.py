@@ -113,6 +113,31 @@ class BaseModel(ABC):
 
     @property
     @abstractmethod
+    def lower_bound_on_time_scale(cls) -> str:
+        """The shortest time scale for which the model is reasonable to use.
+
+        Whether or not a model is an acceptable representation of reality depends on the
+        time scale of interest. At large time scales some processes can be treated as
+        transient (and therefore ignored), but at shorter time scales these processes
+        can be vital to capture. We thus require each model to define a lower bound on
+        the time scale for which it is thought to be a reasonable approximation.
+        """
+
+    @property
+    @abstractmethod
+    def upper_bound_on_time_scale(cls) -> str:
+        """The longest time scale for which the model is reasonable to use.
+
+        Whether or not a model is an acceptable representation of reality depends on the
+        time scale of interest. Processes that can be sensibly simulated in detail at
+        shorter time scales often need to approximated as time scales get longer (e.g.
+        impacts of diurnal or seasonal cycles). We thus require each model to define an
+        upper bound on the time scale for which it is thought to be a reasonable
+        approximation.
+        """
+
+    @property
+    @abstractmethod
     def required_init_vars(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         """Required variables for model initialisation.
 

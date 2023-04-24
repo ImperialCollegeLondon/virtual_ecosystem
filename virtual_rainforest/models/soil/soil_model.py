@@ -54,6 +54,10 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """An internal name used to register the model and schema"""
+    lower_bound_on_time_scale = "30 minutes"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "3 months"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = (
         ("soil_c_pool_maom", ("spatial",)),
         ("soil_c_pool_lmwc", ("spatial",)),
