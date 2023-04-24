@@ -30,7 +30,6 @@ imported, which ensures that all modules schemas are registered in
 import json
 import sys
 from collections import ChainMap
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Generator, Iterator, Optional, Union
 
@@ -40,14 +39,13 @@ from jsonschema import Draft202012Validator, FormatChecker, exceptions, validato
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_outfile
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
 
-SCHEMA_REGISTRY: dict = {}
+SCHEMA_REGISTRY: dict[str, Any] = {}
 """A registry for different module schema.
 
 :meta hide-value:
@@ -274,334 +272,215 @@ def check_dict_leaves(
     return conflicts
 
 
-def collect_files(cfg_paths: list[str]) -> list[Path]:
-    """Collect all toml files from a user specified list of files and directories.
+class Config(dict):
+    """Draft config class."""
 
-    Args:
-        cfg_paths: A path or a set of paths that point to either configuration files, or
-            folders containing configuration files
-    Raises:
-        ConfigurationError: If toml configuration files cannot be found at the specified
-            locations, or if configuration files are specified more than once (this is
-            likely to be through both direct and indirect specification)
-    """
+    def __init__(self, cfg_paths: Union[str, list[str]]):
+        # Define custom attributes
+        self.cfg_paths = (
+            [cfg_paths] if isinstance(cfg_paths, (str, Path)) else cfg_paths
+        )
+        self.toml_inputs: dict[Path, dict] = {}
+        self.failed_inputs: dict[Path, str] = {}
+        self.merged_config: dict = {}
+        self.merge_conflicts: list = []
+        self.merged_schema: dict[str, Any]
+        self.config_errors: list[tuple[str, Any]] = []
+        self.validated: bool = False
 
-    # Preallocate file list
-    files: list[Path] = []
-    not_found: list[str] = []  # Stores all invalid paths
-    empty_fold: list[str] = []  # Stores all empty toml folders
+        # Run the validation steps
+        self.resolve_config_files()
+        self.build_config()
+        self.build_schema()
+        self.validate_config()
 
-    for path in cfg_paths:
-        p = Path(path)
-        # Check if each path is to a file or a directory
-        if p.is_dir():
-            toml_files = list([f for f in p.glob("*.toml")])
-            if len(toml_files) != 0:
-                files.extend(toml_files)
+    def resolve_config_files(self) -> None:
+        """Resolve config file paths into a set of TOML config paths.
+
+        The :class:`~virtual_rainforest.core.config.Config` class is initialised with a
+        set of paths to TOML config files or directories containing sets of files. This
+        method resolves those paths to the set of paths to individual TOML config files.
+        """
+
+        toml_files: list[Path] = []
+        not_found: list[str] = []  # Stores all invalid paths
+        empty_folder: list[str] = []  # Stores all empty toml folders
+
+        for path in self.cfg_paths:
+            p = Path(path)
+            # Check if each path is to a file or a directory
+            if p.is_dir():
+                toml_in_dir = list([f for f in p.glob("*.toml")])
+                if toml_files:
+                    toml_files.extend(toml_in_dir)
+                else:
+                    empty_folder.append(path)
+            elif p.is_file():
+                toml_files.append(p)
             else:
-                empty_fold.append(path)
-        elif p.is_file():
-            files.append(p)
-        else:
-            # Add missing path to list of missing paths
-            not_found.append(path)
+                # Add missing path to list of missing paths
+                not_found.append(path)
 
-    # Check for items that are not found
-    if len(not_found) != 0:
-        to_raise = ConfigurationError(
-            f"The following (user provided) config paths do not exist:\n{not_found}"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # And for empty folders
-    if len(empty_fold) != 0:
-        to_raise = ConfigurationError(
-            f"The following (user provided) config folders do not contain any toml "
-            f"files:\n{empty_fold}"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Finally check that no files are pointed to twice
-    if len(files) != len(set(files)):
-        to_raise = ConfigurationError(
-            f"A total of {len(files) - len(set(files))} config files are specified more"
-            f" than once (possibly indirectly)"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    return files
-
-
-def load_in_config_files(files: list[Path]) -> dict[str, Any]:
-    """Load in a set of toml files checking that no tags are repeated.
-
-    This function also ensure that no tags are repeated across different toml files.
-
-    Args:
-        files: List of files to be read in and checked for overlapping tags
-    Raises:
-        ConfigurationError: If files are poorly formatted or tags are repeated between
-            files
-    """
-
-    # Preallocate container for file names and corresponding dictionaries
-    file_data: dict[Path, dict] = {}
-    conflicts = []
-
-    # Load all toml files that we want to read from
-    for file in files:
-        # If not then read in the file data
-        with file.open("rb") as f:
-            try:
-                toml_dict = tomllib.load(f)
-                # Check for repeated entries across previous nested dictionaries
-                for existing_file, existing_dict in file_data.items():
-                    repeats = check_dict_leaves(existing_dict, toml_dict, [])
-                    for elem in repeats:
-                        conflicts.append((elem, file, existing_file))
-
-                file_data[file] = toml_dict
-            except tomllib.TOMLDecodeError as err:
-                to_raise = ConfigurationError(
-                    f"Configuration file {file} is incorrectly formatted. Failed with "
-                    f"the following message:\n{err}"
-                )
-                LOGGER.critical(to_raise)
-                raise to_raise
-
-    # Check if any tags are repeated across files
-    if len(conflicts) != 0:
-        # If so generate full list of errors
-        msg = "The following tags are defined in multiple config files:\n"
-        for conf in conflicts:
-            msg += f"{conf[0]} defined in both {conf[1]} and {conf[2]}\n"
-        msg = msg[:-1]
-        to_raise = ConfigurationError(msg)
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Merge everything into a single dictionary
-    config_dict = dict(ChainMap(*file_data.values()))
-
-    return config_dict
-
-
-def add_core_defaults(config_dict: dict[str, Any]) -> None:
-    """Add default config options for the core module to the config dictionary.
-
-    This is a separate function because the default modules to load are specified in the
-    core schema. So, these defaults must be populated before the complete schema can be
-    constructed.
-
-    Args:
-        config_dict: The complete configuration settings for the particular model
-            instance
-    Raises:
-        ConfigurationError: If the core module schema can't be found, or if it cannot be
-            validated
-    """
-
-    # Look for core config in schema registry
-    if "core" in SCHEMA_REGISTRY:
-        core_schema = SCHEMA_REGISTRY["core"]
-    else:
-        to_raise = ConfigurationError(
-            "Expected a schema for core module configuration, it was not provided!"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    try:
-        ValidatorWithDefaults(core_schema, format_checker=FormatChecker()).validate(
-            config_dict
-        )
-    except exceptions.ValidationError:
-        # Find full set of errors
-        errors = ValidatorWithDefaults(
-            core_schema, format_checker=FormatChecker()
-        ).iter_errors(config_dict)
-        # Then log all errors in validating core config
-        log_all_validation_errors(errors, False)
-
-
-def find_schema(config_dict: dict[str, Any]) -> list[str]:
-    """Find which schema the configuration requires to be loaded.
-
-    Args:
-        config_dict: The complete configuration settings for the particular model
-            instance
-    Raises:
-        ConfigurationError: If core configuration does not list the other modules to
-            configure, or any module is specified to be configured twice
-    """
-
-    # Find which other schema should be searched for
-    try:
-        modules = config_dict["core"]["modules"]
-    except KeyError:
-        to_raise = ConfigurationError(
-            "Core configuration does not specify which other modules should be "
-            "configured!"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Add core to list of modules if its not already included
-    if "core" not in modules:
-        modules.append("core")
-
-    if len(modules) != len(set(modules)):
-        to_raise = ConfigurationError(
-            f"The list of modules to configure given in the core configuration file "
-            f"repeats {len(modules) - len(set(modules))} names!"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    return modules
-
-
-def construct_combined_schema(modules: list[str]) -> dict[str, Any]:
-    """Load validation schema for desired modules, and combine into a single schema.
-
-    Args:
-        modules: List of modules to load schema for
-    Raises:
-        ConfigurationError: If a particular module schema can't be found
-    """
-
-    # Construct combined schema for all relevant modules
-    comb_schema: dict = {}
-
-    # Loop over expected modules and add them to the registry
-    for module in modules:
-        if module in SCHEMA_REGISTRY:
-            # Store complete schema if no previous schema has been added
-            if comb_schema == {}:
-                comb_schema = deepcopy(SCHEMA_REGISTRY[module])
-            # Otherwise only save truncated part of the schema
-            else:
-                comb_schema["properties"][module] = deepcopy(
-                    SCHEMA_REGISTRY[module]["properties"][module]
-                )
-                # Add module name to list of required modules
-                comb_schema["required"].append(module)
-        else:
+        # Check for items that are not found
+        if not_found:
             to_raise = ConfigurationError(
-                f"Expected a schema for {module} module configuration, it was not "
-                f"provided!"
+                f"Some config paths do not exist: {','.join(not_found)}"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
-    p_paths = []
-    # Recursively search for all instances of properties in the schema
-    for path, value in dpath.util.search(comb_schema, "**/properties", yielded=True):
-        # Remove final properties instance from path so that additionalProperties ends
-        # up in the right place
-        p_paths.append(
-            ""
-            if path == "properties"
-            else path[::-1].replace("seitreporp/", "", 1)[::-1]
-        )
+        # And for empty folders
+        if empty_folder:
+            to_raise = ConfigurationError(
+                f"Config directories contain no toml files: {','.join(empty_folder)}"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
 
-    # Set additional properties to false everywhere that properties are defined
-    for path in p_paths:
-        dpath.util.new(comb_schema, f"{path}/additionalProperties", False)
+        # Check that no files are resolved twice
+        dupl_files = set([str(md) for md in toml_files if toml_files.count(md) > 1])
+        if dupl_files:
+            to_raise = ConfigurationError(
+                f"Repeated files in config paths: {','.join(dupl_files)}"
+            )
+            LOGGER.critical(to_raise)
 
-    return comb_schema
+        # Load the contents into the instance
+        for this_file in toml_files:
+            try:
+                with open(this_file, "rb") as file_io:
+                    self.toml_inputs[this_file] = tomllib.load(file_io)
+            except tomllib.TOMLDecodeError as err:
+                self.failed_inputs[this_file] = str(err)
+                LOGGER.error(f"Config TOML parsing error in {this_file}: {str(err)}")
 
+        if self.failed_inputs:
+            to_raise = ConfigurationError("Errors parsing config files: check log")
+            LOGGER.critical(to_raise)
+            raise to_raise
 
-def validate_with_defaults(
-    config_dict: dict[str, Any], comb_schema: dict[str, Any]
-) -> None:
-    """Validate the configuration settings against the combined schema.
+    def build_config(self) -> None:
+        """Build a combined configuration from the loaded files.
 
-    This function also adds default values into the configuration dictionary where it is
-    appropriate.
+        This method does pairwise comparisons of the loaded config data from individual
+        files and merges them to build a single configuration dictionary. If there are
+        duplicate definitions, an error is logged.
+        """
 
-    Args:
-        config_dict: The complete configuration settings for the particular model
-            instance
-        comb_schema: Combined schema for all modules that are being configured
+        # Loop over loaded TOML checking each file against the previous entries in the
+        # dictionary
+        input_keys = list(self.toml_inputs.keys())
 
-    Raises:
-        ConfigurationError: If the configuration files fail to validate against the JSON
-            schema
-    """
+        for idx, this_key in enumerate(input_keys):
+            # Get a list of the keys before this one
+            previous_keys = input_keys[:idx]
+            # Check this key doesn't overlap with all previous ones
+            for this_previous in previous_keys:
+                repeats = check_dict_leaves(
+                    self.toml_inputs[this_previous], self.toml_inputs[this_key], []
+                )
 
-    # Validate the input configuration settings against the combined schema
-    # This step also adds in all default module configuration details
-    try:
-        ValidatorWithDefaults(comb_schema, format_checker=FormatChecker()).validate(
-            config_dict
-        )
-    except exceptions.ValidationError:
-        # Find full set of errors
-        errors = ValidatorWithDefaults(
-            comb_schema, format_checker=FormatChecker()
-        ).iter_errors(config_dict)
-        # Then log all errors in validating complete config
-        log_all_validation_errors(errors, True)
+                for elem in repeats:
+                    self.merge_conflicts.append((elem, this_key, previous_keys))
+                    LOGGER.error(f"Duplicate configuration across files for {elem}")
 
+        # Check if any tags are repeated across files
+        if self.merge_conflicts:
+            to_raise = ConfigurationError(
+                "Config file contain duplicate definitions: check log"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+        else:
+            # Merge everything into a single dictionary and update the object
+            self.update(dict(ChainMap(*self.toml_inputs.values())))
 
-def validate_config(
-    cfg_paths: Union[str, list[str]],
-    merge_file_path: Path = Path("./vr_full_model_configuration.toml"),
-) -> dict[str, Any]:
-    """Validates the contents of user provided config files.
+    def build_schema(self) -> None:
+        """Build a schema to validate the model configuration.
 
-    This function first reads in a set of configuration files in ``.toml`` format. This
-    either consists of all ``.toml`` files in the specified folders, or a set of user
-    specified files within these folders. Checks are carried out to ensure that these
-    files are correctly formatted. The module validation schemas are extracted from
-    :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY` for the modules the user has
-    specified to configure (in ``config.core.modules``). These schemas are then
-    consolidated into a single combined JSON schema. This combined schema is then used
-    to validate the combined contents of the configuration files. If this validation
-    passes the combined configuration is saved in toml format in the specified
-    configuration file folder. This configuration is then returned for use in downstream
-    simulation setup.
+        This method first validates the 'core' configuration, which sets the requested
+        modules to be used in the configured model. The schemas for the requested
+        modules are then loaded and combined to generate a single validation schema for
+        model configuration.
+        """
 
-    Args:
-        cfg_paths: A path or a set of paths that point to either configuration files, or
-            folders containing configuration files
-        merge_file_path: Path to save merged config file to (i.e. folder location + file
-            name)
-    """
+        # Get the core schema and then use it to validate the 'core' element of the
+        # configuration dictionary
+        core_schema = SCHEMA_REGISTRY["core"]
+        self._validate_and_set_defaults(self["core"], core_schema)
 
-    # Check that there isn't a final output file saved in the final output folder
-    check_outfile(merge_file_path)
-    # If this passes collect the files
-    if isinstance(cfg_paths, str):
-        files = collect_files([cfg_paths])
-    else:
-        files = collect_files(cfg_paths)
+        # Cannot proceed if there are configuration errors in the core - this validation
+        # also should ensure that the config["core"]["modules"] element is populated
+        if self.config_errors:
+            return
 
-    # Then load all config files to a combined config dict
-    config_dict = load_in_config_files(files)
+        # Generate a dictionary of schemas for requested modules
+        all_schemas: dict[str, Any] = {"core": core_schema}
+        requested_modules = self["core"]["modules"]
+        for module in requested_modules:
+            # Trap unknown model schemas
+            if module not in SCHEMA_REGISTRY:
+                to_raise = ConfigurationError(
+                    f"Configuration contains model with no schema: {module}"
+                )
+                LOGGER.error(to_raise)
+                raise to_raise
 
-    # Add in core configuration defaults
-    add_core_defaults(config_dict)
+            all_schemas[module] = SCHEMA_REGISTRY[module]
 
-    # Find schema to load in
-    modules = find_schema(config_dict)
+        # Merge the schemas into a single combined schema
+        self.merged_schema = merge_schemas(all_schemas)
 
-    # Construct combined schema for all relevant modules
-    comb_schema = construct_combined_schema(modules)
+    def validate_config(self) -> None:
+        """Validates the loaded config."""
 
-    # Validate all the complete configuration, adding in module defaults where required
-    validate_with_defaults(config_dict, comb_schema)
+        # Check to see if the instance is in a validatable state
+        if not self.merged_schema:
+            raise RuntimeError("Merged schema not built.")
 
-    LOGGER.info("Configuration files successfully validated!")
+        # Run the validation, which either populates self.config_errors or updates the
+        # config data in place
+        self._validate_and_set_defaults(self, self.merged_schema)
 
-    # Output combined toml file, into the initial config folder
-    LOGGER.info("Saving all configuration details to %s" % merge_file_path)
-    with open(merge_file_path, "wb") as toml_file:
-        tomli_w.dump(config_dict, toml_file)
+        if self.config_errors:
+            LOGGER.error("Invalid configuration - see config_errors.")
+        else:
+            self.validated = True
+            LOGGER.info("Configuration validated")
 
-    # Return the complete validated config
-    return config_dict
+    def export_config(self, outfile: Path) -> None:
+        """Exports a validated and merged configuration as a single file."""
+
+        # Output combined toml file
+        with open(outfile, "wb") as toml_file:
+            tomli_w.dump(self, toml_file)
+        LOGGER.info("Saving config to: %s", outfile)
+
+    def _validate_and_set_defaults(
+        self, config: dict[str, Any], schema: dict[str, Any]
+    ) -> None:
+        """Validate a config dictionary against a schema and set default values.
+
+        This method takes a config dictionary (or subset of one) and validates it
+        against the provided schema. Where default values are provided in the schema,
+        missing required values are filled using those defaults.
+
+        The behaviour of this method is tricky - the config dictionary is updated in
+        place and it can be used on a subsection of a dictionary, which makes it useful
+        for bootstrapping the core config in order to build a full model schema.
+
+        Args:
+            config: A dictionary containing config information
+            schema: The schema that the config dictionary should conform to.
+        """
+
+        val = ValidatorWithDefaults(schema, format_checker=FormatChecker())
+        errors = [
+            (str(list(error.path)), error.message) for error in val.iter_errors(config)
+        ]
+
+        if errors:
+            self.config_errors.extend(errors)
+            LOGGER.error("Configuration schema violations - check config_errors")
+        else:
+            val.validate(config)
