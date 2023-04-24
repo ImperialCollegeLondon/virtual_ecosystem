@@ -145,7 +145,7 @@ def register_schema(module_name: str, schema_file_path: Path) -> None:
         raise excep
 
     try:
-        SCHEMA_REGISTRY[module_name] = get_schema(module_name, schema_file_path)
+        SCHEMA_REGISTRY[module_name] = load_schema(module_name, schema_file_path)
     except Exception as excep:
         LOGGER.critical(f"Schema registration for {module_name} failed: check log")
         raise excep
@@ -153,7 +153,7 @@ def register_schema(module_name: str, schema_file_path: Path) -> None:
     LOGGER.info("Schema registered for module %s: %s ", module_name, schema_file_path)
 
 
-def get_schema(module_name: str, schema_file_path: Path) -> dict:
+def load_schema(module_name: str, schema_file_path: Path) -> dict:
     """Function to load the JSON schema for a module.
 
     This function tries to load a JSON schema file and then - if the JSON loaded
@@ -170,12 +170,19 @@ def get_schema(module_name: str, schema_file_path: Path) -> dict:
         ValueError: the JSON Schema is missing required keys
     """
 
+    if module_name not in SCHEMA_REGISTRY:
+        to_raise = ValueError(f"No schema registered for module {module_name}")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    # Try and get the contents of the JSON schema file
+    schema_file_path = SCHEMA_REGISTRY[module_name]
     try:
-        fobj = open(schema_file_path)
-        json_schema = json.load(fobj)
-    except FileNotFoundError as excep:
-        LOGGER.error(excep)
-        raise excep
+        json_schema = json.load(open(schema_file_path))
+    except FileNotFoundError:
+        fnf_error = FileNotFoundError(f"Schema file not found {schema_file_path}.")
+        LOGGER.error(fnf_error)
+        raise fnf_error
     except json.JSONDecodeError as excep:
         LOGGER.error(f"JSON error in schema file {schema_file_path}")
         raise excep
