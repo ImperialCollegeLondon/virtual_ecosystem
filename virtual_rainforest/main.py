@@ -233,20 +233,13 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
-    # Get the list of date times of the next update.
-    update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
-
     # Setup the timing loop
     while current_time < end_time:
         current_time += update_interval
 
-        # Get the names of models that have expired due dates
-        update_needed = [nm for nm, upd in update_due.items() if upd <= current_time]
-
-        # Run their update() method and update due dates for all expired models
-        for mod_nm in update_needed:
+        # Run update() method for every model
+        for mod_nm in models_cfd:
             models_cfd[mod_nm].update()
-            update_due[mod_nm] = models_cfd[mod_nm].next_update
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
