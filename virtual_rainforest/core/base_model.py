@@ -137,8 +137,7 @@ class BaseModel(ABC):
         performs the following core steps:
 
         * It populates the shared instance attributes
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.data`,
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.next_update` and
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.data` and
           :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
         * It uses the
           :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data`
