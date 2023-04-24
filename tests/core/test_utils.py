@@ -16,8 +16,12 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
     argvalues=[
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "soil": {"model_time_step": "12 hours"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    }
+                },
             },
             does_not_raise(),
             timedelta64(720, "m"),
@@ -25,8 +29,12 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "soil": {"model_time_step": "12 interminable hours"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 interminable hours",
+                    }
+                },
             },
             pytest.raises(InitialisationError),
             None,
@@ -40,8 +48,12 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "soil": {"model_time_step": "12 kilograms"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 kilograms",
+                    }
+                },
             },
             pytest.raises(InitialisationError),
             None,
@@ -55,13 +67,13 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
         ),
     ],
 )
-def test_extract_model_time_details(caplog, config, raises, timestep, expected_log):
+def test_extract_update_interval(caplog, config, raises, timestep, expected_log):
     """Tests timing details extraction utility."""
 
-    from virtual_rainforest.core.utils import extract_model_time_details
+    from virtual_rainforest.core.utils import extract_update_interval
 
     with raises:
-        update_interval = extract_model_time_details(config, "soil")
+        update_interval = extract_update_interval(config)
         assert update_interval == timestep
 
     log_check(caplog, expected_log)

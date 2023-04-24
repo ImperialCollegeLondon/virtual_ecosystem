@@ -15,12 +15,11 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 from virtual_rainforest.core.logger import LOGGER
 
 
-def extract_model_time_details(config: dict[str, Any], model_name: str) -> timedelta64:
+def extract_update_interval(config: dict[str, Any]) -> timedelta64:
     """Function to extract the timing details required to setup a specific model.
 
     Args:
         config: The configuration for the Virtual Rainforest simulation.
-        model_name: The name of the specific model of interest.
 
     Returns:
         The update interval for the overall model
@@ -30,7 +29,7 @@ def extract_model_time_details(config: dict[str, Any], model_name: str) -> timed
     """
 
     try:
-        raw_interval = pint.Quantity(config[model_name]["model_time_step"]).to(
+        raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
             "seconds"
         )
         # Round raw time interval to nearest second

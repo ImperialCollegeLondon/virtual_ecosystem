@@ -21,8 +21,7 @@ def soil_model_fixture(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "soil": {"model_time_step": "12 hours"},
+        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
     }
     return SoilModel.from_config(dummy_carbon_data, config)
 
@@ -202,8 +201,12 @@ def test_soil_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "soil": {"model_time_step": "12 hours"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    }
+                },
             },
             np.timedelta64(12, "h"),
             does_not_raise(),
@@ -406,8 +409,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
     # Use this new data to make a new soil model object
     config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "soil": {"model_time_step": "12 hours"},
+        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
     }
     new_soil_model = SoilModel.from_config(new_data, config)
 

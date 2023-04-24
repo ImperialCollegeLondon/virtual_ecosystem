@@ -409,18 +409,13 @@ def test_missing_core_schema(caplog, mocker):
             (),
         ),
         (
-            {"soil": {"no_layers": -1}},
+            {},
             None,
             pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
                     "[plants]: 'ftypes' is a required property",
-                ),
-                (
-                    ERROR,
-                    "[soil]: Additional properties are not allowed ('no_layers' was "
-                    "unexpected)",
                 ),
                 (
                     CRITICAL,

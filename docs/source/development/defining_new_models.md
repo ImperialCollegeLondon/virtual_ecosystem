@@ -14,6 +14,8 @@ kernelspec:
 
 # Creating new Virtual Rainforest models
 
+TODO - UPDATE THIS TO DOCUMENT CHANGES TO TIMING SETUP.
+
 The Virtual Rainforest initially contains a set of models defining four core components
 of the rainforest: the `abiotic`, `animals`, `plants` and `soil` models. However, the
 simulation is designed to be modular:
@@ -87,7 +89,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.exceptions import InitialisationError
 
 # A utility function to unpack the model specific timing details from the config
-from virtual_rainforest.core.utils import extract_model_time_details
+from virtual_rainforest.core.utils import extract_update_interval
 ```
 
 ### Defining the new class and class attributes
@@ -305,7 +307,7 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
     """
 
     # Find timing details
-    start_time, update_interval = extract_model_time_details(config, cls.model_name)
+    update_interval = extract_update_interval(config)
     
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]

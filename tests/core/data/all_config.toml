@@ -26,6 +26,3 @@ maxh = 1.0
 [[plants.ftypes]]
 pft_name = "broadleaf"
 maxh = 50.0
-
-[soil]
-model_time_step = "2 weeks"

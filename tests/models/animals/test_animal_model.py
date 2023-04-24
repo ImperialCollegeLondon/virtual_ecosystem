@@ -35,8 +35,12 @@ def test_animal_model_initialization(caplog, data_instance):
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "animal": {"model_time_step": "12 hours"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    }
+                },
             },
             timedelta64(12, "h"),
             does_not_raise(),
@@ -50,8 +54,12 @@ def test_animal_model_initialization(caplog, data_instance):
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "animal": {"model_time_step": "20 interminable minutes"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "20 interminable minutes",
+                    }
+                },
             },
             None,
             pytest.raises(InitialisationError),

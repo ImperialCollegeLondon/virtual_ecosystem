@@ -13,7 +13,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_model_time_details
+from virtual_rainforest.core.utils import extract_update_interval
 
 
 class AbioticModel(BaseModel):
@@ -106,7 +106,7 @@ class AbioticModel(BaseModel):
         """
 
         # Find timing details
-        update_interval = extract_model_time_details(config, cls.model_name)
+        update_interval = extract_update_interval(config)
 
         soil_layers = config["abiotic"]["soil_layers"]
         canopy_layers = config["abiotic"]["canopy_layers"]
