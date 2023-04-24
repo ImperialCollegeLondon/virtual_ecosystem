@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO
 from pathlib import Path
 
 import pytest
@@ -14,7 +14,6 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.main import vr_run
-from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
 
@@ -341,36 +340,5 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert end_time == output["end_time"]
         assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "update_interval,expected_log_entries",
-    [
-        pytest.param(timedelta64(2, "W"), (), id="valid"),
-        pytest.param(
-            timedelta64(5, "W"),
-            (
-                (
-                    WARNING,
-                    "The following models have shorter time steps than the main model: "
-                    "['soil']",
-                ),
-            ),
-            id="fast model",
-        ),
-    ],
-)
-def test_check_for_fast_models(caplog, update_interval, expected_log_entries):
-    """Test that function to warn user about short module time steps works."""
-    from virtual_rainforest.main import check_for_fast_models
-
-    # Create SoilModel instance and then populate the update_interval
-    model = SoilModel.__new__(SoilModel)
-    model.update_interval = timedelta64(3, "W")
-    models_cfd = {"soil": model}
-
-    check_for_fast_models(models_cfd, update_interval)
 
     log_check(caplog, expected_log_entries)

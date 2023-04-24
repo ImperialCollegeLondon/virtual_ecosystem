@@ -167,27 +167,6 @@ def extract_timing_details(
     return start_time, update_interval, end_time
 
 
-def check_for_fast_models(
-    models_cfd: dict[str, BaseModel], update_interval: timedelta64
-) -> None:
-    """Warn user of any models using a faster time step than update interval.
-
-    Args:
-        models_cfd: Set of initialised models
-        update_interval: Time step of the main model loop
-    """
-    fast_models = [
-        model.model_name
-        for model in models_cfd.values()
-        if model.update_interval < update_interval
-    ]
-    if fast_models:
-        LOGGER.warning(
-            "The following models have shorter time steps than the main model: %s"
-            % fast_models
-        )
-
-
 def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -221,9 +200,7 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     # Extract all the relevant timing details
     current_time, update_interval, end_time = extract_timing_details(config)
 
-    # Identify models with shorter time steps than main loop and warn user about them
-    # TODO - THIS SHOULD BECOME A STEP CHECKING MODEL BOUNDS
-    check_for_fast_models(models_cfd, update_interval)
+    # TODO - Add step checking model bounds match with time step
 
     # TODO - A model spin up might be needed here in future
 
