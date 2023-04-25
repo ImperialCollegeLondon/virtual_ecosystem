@@ -269,7 +269,7 @@ class Config(dict):
     def __init__(
         self, cfg_paths: Union[str, Path, list[str], list[Path]], auto: bool = True
     ) -> None:
-        # Standardise cfg_paths
+        # Standardise cfg_paths to list of Paths
         if isinstance(cfg_paths, (str, Path)):
             self.cfg_paths = [Path(cfg_paths)]
         else:
@@ -304,8 +304,8 @@ class Config(dict):
 
         Raises:
             ConfigurationError: this is raised if any of the paths: do not exist, are
-            directories that do not contain TOML files, are not TOML files or if the
-            resolved files contain duplicate entries.
+                directories that do not contain TOML files, are not TOML files or if the
+                resolved files contain duplicate entries.
         """
 
         all_valid = True
@@ -393,11 +393,13 @@ class Config(dict):
 
         if len(input_dicts) == 0:
             # No input dicts, Config dict is empty
+            LOGGER.warn("No config files set")
             return
 
         if len(input_dicts) == 1:
             # One input dict, which becomes the content of the Config dict
             self.update(**input_dicts[0])
+            LOGGER.info("Config set from single file")
             return
 
         # Otherwise, merge other dicts into first
@@ -412,14 +414,14 @@ class Config(dict):
         if conflicts:
             self.merge_conflicts = set(conflicts)
             to_raise = ConfigurationError(
-                f"Duplicated entries in config files: {','.join(self.merge_conflicts)}"
+                f"Duplicated entries in config files: {', '.join(self.merge_conflicts)}"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
         # Merge everything into a single dictionary and update the object
         self.update(master)
-        LOGGER.info("Config files merged")
+        LOGGER.info("Config set from merged files")
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
