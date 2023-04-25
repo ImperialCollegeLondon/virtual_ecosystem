@@ -252,18 +252,6 @@ def test_Config_resolve_config_paths(
             ((INFO, "Config TOML loaded from "),),
             id="toml_valid",
         ),
-        # (
-        #     [Path("fake_file1.toml"), Path("fake_file2.toml")],
-        #     [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-        #     ConfigurationError,
-        #     (
-        #         (
-        #             CRITICAL,
-        #             "The following tags are defined in multiple config files:\n"
-        #            "core.grid.nx defined in both fake_file2.toml and fake_file1.toml",
-        #         ),
-        #     ),
-        # ),
     ],
 )
 def test_Config_load_config_toml(
@@ -373,39 +361,92 @@ def test_Config_build_config(
 
 
 @pytest.mark.parametrize(
-    "config_dict,expected_exception,expected_log_entries",
+    "config_content,expected_exception,expected_log_entries",
     [
-        (
-            {"core": {"grid": {"nx": 10, "ny": 10}}},
-            ConfigurationError,
-            (
-                (
-                    CRITICAL,
-                    "Core configuration does not specify which other modules should be "
-                    "configured!",
-                ),
-            ),
-        ),
-        (
+        pytest.param(
             {"core": {"modules": ["soil", "soil"]}},
-            ConfigurationError,
+            pytest.raises(ConfigurationError),
             (
                 (
-                    CRITICAL,
-                    "The list of modules to configure given in the core configuration "
-                    "file repeats 1 names!",
+                    ERROR,
+                    "Configuration error in ['core', 'modules']: "
+                    "['soil', 'soil'] has non-unique elements",
                 ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
             ),
+            id="core_unique_module_violation",
+        ),
+        pytest.param(
+            {"core": {"modules": ["soil", "pants"]}},
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['core', 'modules']: "
+                    "Unknown model schema: pants",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="core_unknown_module",
+        ),
+        pytest.param(
+            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants"]}},
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['plants']: "
+                    "'ftypes' is a required property",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="missing_required_property",
+        ),
+        pytest.param(
+            {"core": {"grid": {"nx": 10, "ny": -10}, "modules": []}},
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['core', 'grid', 'ny']: "
+                    "-10 is less than or equal to the minimum of 0",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="minimum_value_violation",
+        ),
+        pytest.param(
+            {
+                "core": {"grid": {"nx": 10, "ny": 10}, "modules": ["soil"]},
+                "soil": {"no_layers": 123},
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['soil']: Additional properties "
+                    "are not allowed ('no_layers' was unexpected)",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="unexpected_property",
         ),
     ],
 )
-def test_find_schema(caplog, config_dict, expected_exception, expected_log_entries):
-    """Check errors in finding module schema."""
-    from virtual_rainforest.core.config import find_schema
+def test_Config_validate_config(
+    caplog, config_content, expected_exception, expected_log_entries
+):
+    """Test the validate_config method of Config."""
+    from virtual_rainforest.core.config import Config
 
-    # Check that find_schema fails as expected
-    with pytest.raises(expected_exception):
-        find_schema(config_dict)
+    # create an empty config and directly set the merged configuration values
+    cfg = Config([], auto=False)
+    cfg.update(config_content)
+    caplog.clear()
+
+    # Run the validation
+    with expected_exception:
+        cfg.validate_config2()
 
     log_check(caplog, expected_log_entries)
 
@@ -416,160 +457,26 @@ def test_find_schema(caplog, config_dict, expected_exception, expected_log_entri
         (
             "default_config.toml",  # File entirely of defaults
             (
-                (INFO, "Configuration files successfully validated!"),
-                (INFO, "Saving all configuration details to"),
+                (INFO, "Config paths resolve to 1 files"),
+                (INFO, "Config TOML loaded from"),
+                (INFO, "Config set from single file"),
+                (INFO, "Configuration validated"),
             ),
         ),
         (
             "all_config.toml",  # File with no defaults
             (
-                (INFO, "Configuration files successfully validated!"),
-                (INFO, "Saving all configuration details to"),
+                (INFO, "Config paths resolve to 1 files"),
+                (INFO, "Config TOML loaded from"),
+                (INFO, "Config set from single file"),
+                (INFO, "Configuration validated"),
             ),
         ),
     ],
 )
-def test_final_validation_log(caplog, shared_datadir, file_path, expected_log_entries):
-    """Checks that validation passes as expected and produces the correct output."""
-    from virtual_rainforest.core.config import validate_config
+def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entries):
+    """Checks that auto validation passes as expected."""
+    from virtual_rainforest.core.config import Config
 
-    outfile = shared_datadir / "complete_config.toml"
-    validate_config([shared_datadir / file_path], outfile)
-
-    # Remove generated output file
-    # As a bonus tests that output file was generated correctly + to the right location
-    outfile.unlink()
-
-    # Then check that the correct (critical error) log messages are emitted
+    Config(shared_datadir / file_path, auto=True)
     log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "config_dict,nx,raises,expected_log_entries",
-    [
-        (
-            {},
-            100,
-            does_not_raise(),
-            (),
-        ),
-        (
-            {"core": {"grid": {"nx": 125}}},
-            125,
-            does_not_raise(),
-            (),
-        ),
-        (
-            {"core": {"grid": {"nx": -125, "ny": -10}}},
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "[core][grid][nx]: -125 is less than or equal to the minimum of 0",
-                ),
-                (
-                    ERROR,
-                    "[core][grid][ny]: -10 is less than or equal to the minimum of 0",
-                ),
-                (
-                    CRITICAL,
-                    "Validation of core configuration files failed see above errors",
-                ),
-            ),
-        ),
-    ],
-)
-def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries):
-    """Test that default values are properly added to the core configuration."""
-    from virtual_rainforest.core.config import add_core_defaults
-
-    # Check that find_schema fails as expected
-    with raises:
-        add_core_defaults(config_dict)
-
-    log_check(caplog, expected_log_entries)
-
-    # If configuration occurs check that nx has the right value
-    if nx is not None:
-        assert config_dict["core"]["grid"]["nx"] == nx
-
-
-def test_missing_core_schema(caplog, mocker):
-    """Test that core schema not being in the registry is handled properly."""
-    from virtual_rainforest.core.config import add_core_defaults
-
-    mocker.patch("virtual_rainforest.core.config.SCHEMA_REGISTRY", {})
-
-    # Check that find_schema fails as expected
-    with pytest.raises(ConfigurationError):
-        add_core_defaults({})
-
-    expected_log_entries = (
-        (
-            CRITICAL,
-            "Expected a schema for core module configuration, it was not provided!",
-        ),
-    )
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "config_dict,plant_int,raises,expected_log_entries",
-    [
-        (
-            {"plants": {"ftypes": []}},
-            1,
-            does_not_raise(),
-            (),
-        ),
-        (
-            {"plants": {"ftypes": [], "a_plant_integer": 333}},
-            333,
-            does_not_raise(),
-            (),
-        ),
-        (
-            {"soil": {"no_layers": -1}},
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "[plants]: 'ftypes' is a required property",
-                ),
-                (
-                    ERROR,
-                    "[soil]: Additional properties are not allowed ('no_layers' was "
-                    "unexpected)",
-                ),
-                (
-                    CRITICAL,
-                    "Validation of complete configuration files failed see above "
-                    "errors",
-                ),
-            ),
-        ),
-    ],
-)
-def test_validate_with_defaults(
-    caplog, config_dict, plant_int, raises, expected_log_entries
-):
-    """Test that addition of defaults values during configuration works as desired."""
-    from virtual_rainforest.core.config import (
-        construct_combined_schema,
-        validate_with_defaults,
-    )
-
-    comb_schema = construct_combined_schema(["core", "plants", "soil"])
-
-    # Check that find_schema fails as expected
-    with raises:
-        validate_with_defaults(config_dict, comb_schema)
-
-    log_check(caplog, expected_log_entries)
-
-    # If configuration occurs check that plant integer has the right value
-    if plant_int is not None:
-        assert config_dict["plants"]["a_plant_integer"] == plant_int
