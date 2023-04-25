@@ -20,17 +20,23 @@ The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides d
 implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
 and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
 
-The :class:`~virtual_rainforest.core.base_model.BaseModel` has two class attributes that
-must be defined in subclasses:
+The :class:`~virtual_rainforest.core.base_model.BaseModel` has four class attributes
+that must be defined in subclasses:
 
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` atttribute and
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute and
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
   attribute.
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+  attribute
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+  attribute
 
-The usage of these two attributes is described in their docstrings and two private
+TODO - Add in fourth method once I've defined it.
+The usage of these four attributes is described in their docstrings and four private
 methods are provided to validate that the properties are set and valid in subclasses
-(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name` and
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`).
+(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`,).
 
 Model registration
 ------------------
@@ -73,6 +79,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Type
 
+import pint
 from numpy import timedelta64
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
@@ -284,6 +291,62 @@ class BaseModel(ABC):
             raise to_raise
 
     @classmethod
+    def _check_time_bounds_units(cls) -> None:
+        """Check that the time bounds defined by each model have time units.
+
+        Raises:
+            NotImplementedError: If either of the bounds is not defined
+            ValueError: If model time bounds either don't have units or have non-time
+                units
+        """
+
+        # First check that upper and lower bounds are set
+        if isinstance(cls.lower_bound_on_time_scale, property):
+            to_raise = NotImplementedError(
+                f"Property lower_bound_on_time_scale is not implemented in "
+                f"{cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        if isinstance(cls.upper_bound_on_time_scale, property):
+            to_raise = NotImplementedError(
+                f"Property upper_bound_on_time_scale is not implemented in "
+                f"{cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Assume bounds have valid units until we learn otherwise
+        valid_bounds = True
+
+        # Check unit for lower bound first
+        try:
+            lower_bound = pint.Quantity(cls.lower_bound_on_time_scale)
+            if not lower_bound.check("[time]"):
+                LOGGER.error(f"Lower bound for {cls.__name__} given a non-time unit.")
+                valid_bounds = False
+        except pint.errors.UndefinedUnitError:
+            LOGGER.error(f"Lower bound for {cls.__name__} not given a valid unit.")
+            valid_bounds = False
+        # Then check unit for upper bound
+        try:
+            upper_bound = pint.Quantity(cls.upper_bound_on_time_scale)
+            if not upper_bound.check("[time]"):
+                LOGGER.error(f"Upper bound for {cls.__name__} given a non-time unit.")
+                valid_bounds = False
+        except pint.errors.UndefinedUnitError:
+            LOGGER.error(f"Upper bound for {cls.__name__} not given a valid unit.")
+            valid_bounds = False
+
+        if not valid_bounds:
+            to_raise = ValueError(
+                "Invalid units for one or more model time bounds, see above errors."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -300,6 +363,7 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
+            cls._check_time_bounds_units()
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep

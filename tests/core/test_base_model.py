@@ -83,6 +83,91 @@ def data_instance():
                 model_name = 'should_pass'
                 required_init_vars = tuple()
             """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property lower_bound_on_time_scale is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property lower_bound_on_time_scale is not implemented in "
+                    "UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="No lower_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property upper_bound_on_time_scale is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property upper_bound_on_time_scale is not implemented in "
+                    "UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="No upper_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 time"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Invalid units for one or more model time bounds, see above errors.",
+            [
+                (ERROR, "Upper bound for UnnamedModel not given a valid unit."),
+                (
+                    ERROR,
+                    "Invalid units for one or more model time bounds, see above "
+                    "errors.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Bad unit for upper_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 meter"
+                upper_bound_on_time_scale = "1 month"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Invalid units for one or more model time bounds, see above errors.",
+            [
+                (ERROR, "Lower bound for UnnamedModel given a non-time unit."),
+                (
+                    ERROR,
+                    "Invalid units for one or more model time bounds, see above "
+                    "errors.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Distance unit for lower_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
+            """,
             "should_pass",
             "UnnamedModel",
             does_not_raise(),
@@ -94,6 +179,8 @@ def data_instance():
             """class UnnamedModel2(BaseModel):
                 model_name = 'should_pass'
                 required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
             """,
             "should_pass",
             "UnnamedModel2",
@@ -112,6 +199,8 @@ def data_instance():
             """class UnnamedModel(BaseModel):
                 model_name = 'should_also_pass'
                 required_init_vars = (('temperature', ('spatial',),),)
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
             """,
             "should_also_pass",
             "UnnamedModel",
@@ -210,6 +299,8 @@ def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg
     code = f"""class UM(BaseModel):
         model_name = 'should_also_pass'
         required_init_vars = {riv_value}
+        lower_bound_on_time_scale = "1 day"
+        upper_bound_on_time_scale = "1 month"
     """
 
     with exp_raise as err:
