@@ -264,10 +264,46 @@ def config_merge(
 
 
 class Config(dict):
-    """Draft config class."""
+    """Configuration loading and validation.
+
+    The ``Config`` class is used to generate a validated configuration for a Virtual
+    Rainforest simulation. The ``cfg_paths`` attribute is used to provide paths to TOML
+    configuration files or directories containing sets of files to be used. The class
+    methods are then used to perform four steps:
+
+    * The :meth:`~virtual_rainforest.core.config.Config.resolve_config_paths` method is
+      used to resolve the provided paths into the set of actual TOML files to be used to
+      build the configuration.
+
+    * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is
+      then used to load the contents of each resolved file.
+
+    * The :meth:`~virtual_rainforest.core.config.Config.build_config` method is
+      used to merge the loaded configuration across files and check that configuration
+      settings are uniquely defined.
+
+    * The :meth:`~virtual_rainforest.core.config.Config.validate_config` method
+      validates the compiled configuration against the appropriate configuration schema
+      for the :mod:`~virtual_rainforest.core` module and any
+      :mode:`~virtual_rainforest.models` included in the configuration. This validation
+      will also fill in any missing configuration settings with defined defaults.
+
+    By default, creating a ``Config`` instance automatically runs these steps across the
+    provided ``cfg_paths``, but the ``auto`` argument can be used to turn off automatic
+    validation.
+
+    The :meth:`~virtual_rainforest.core.config.Config.export_config` method can be used
+    to export the compiled and validated configuration as a single TOML file.
+
+    Args:
+        cfg_paths: A string, Path or list of strings or Paths giving configuration
+            file or directory paths.
+        auto: flag to turn off automatic validation.
+
+    """
 
     def __init__(
-        self, cfg_paths: Union[str, Path, list[str], list[Path]], auto: bool = True
+        self, cfg_paths: Union[str, Path, list[Union[str, Path]]], auto: bool = True
     ) -> None:
         # Standardise cfg_paths to list of Paths
         if isinstance(cfg_paths, (str, Path)):
@@ -277,20 +313,21 @@ class Config(dict):
 
         # Define custom attributes
         self.toml_files: list[Path] = []
+        """A list of TOML file paths resolved from the initial config paths."""
         self.toml_contents: dict[Path, dict] = {}
-        self.failed_inputs: dict[Path, str] = {}
-        self.merged_config: dict = {}
+        """A dictionary of the contents of config files, keyed by file path."""
         self.merge_conflicts: set = set()
-        self.merged_schema: dict[str, Any]
+        """Paths of configuration keys duplicated across configuration files."""
         self.config_errors: list[tuple[str, Any]] = []
+        """Configuration errors, as a list of tuples of key path and error details."""
         self.validated: bool = False
+        """A boolean flag indicating successful validation."""
 
         # Run the validation steps
         if auto:
             self.resolve_config_paths()
             self.load_config_toml()
             self.build_config()
-            self.build_schema()
             self.validate_config()
 
     def resolve_config_paths(self) -> None:
@@ -361,18 +398,21 @@ class Config(dict):
         Raises:
             ConfigurationError: Invalid TOML content in config files.
         """
+
+        failed_inputs = False
+
         # Load the contents into the instance
         for this_file in self.toml_files:
             try:
                 with open(this_file, "rb") as file_io:
                     self.toml_contents[this_file] = tomllib.load(file_io)
             except tomllib.TOMLDecodeError as err:
-                self.failed_inputs[this_file] = str(err)
+                failed_inputs = True
                 LOGGER.error(f"Config TOML parsing error in {this_file}: {str(err)}")
             else:
                 LOGGER.info(f"Config TOML loaded from {this_file}")
 
-        if self.failed_inputs:
+        if failed_inputs:
             to_raise = ConfigurationError("Errors parsing config files: check log")
             LOGGER.critical(to_raise)
             raise to_raise
@@ -459,7 +499,7 @@ class Config(dict):
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
 
-    def validate_config(self) -> None:
+    def validate_config_old(self) -> None:
         """Validates the loaded config."""
 
         # Check to see if the instance is in a validatable state
@@ -476,26 +516,21 @@ class Config(dict):
             self.validated = True
             LOGGER.info("Configuration validated")
 
-    def export_config(self, outfile: Path) -> None:
-        """Exports a validated and merged configuration as a single file."""
-
-        # Output combined toml file
-        with open(outfile, "wb") as toml_file:
-            tomli_w.dump(self, toml_file)
-        LOGGER.info("Saving config to: %s", outfile)
-
     def _validate_and_set_defaults(
         self, config: dict[str, Any], schema: dict[str, Any]
     ) -> None:
         """Validate a config dictionary against a schema and set default values.
 
-        This method takes a config dictionary (or subset of one) and validates it
-        against the provided schema. Where default values are provided in the schema,
-        missing required values are filled using those defaults.
+        This private method takes a config dictionary (or subset of one) and validates
+        it against the provided schema. Missing values are filled using defaults from
+        the schema where available.
 
-        The behaviour of this method is tricky - the config dictionary is updated in
-        place and it can be used on a subsection of a dictionary, which makes it useful
-        for bootstrapping the core config in order to build a full model schema.
+        Note that the config input is updated in place and different schema can be
+        applied sequentially to incrementally validate subsections of the merged config
+        inputs. This is used to validate the core config to confirm the module list
+        before then validating individual module configurations. When validation errors
+        are found, the details of each validation issue is appended to the
+        :attr:`~virtual_rainforest.core.config.Config.config_errors` attribute.
 
         Args:
             config: A dictionary containing config information
@@ -509,6 +544,61 @@ class Config(dict):
 
         if errors:
             self.config_errors.extend(errors)
-            LOGGER.error("Configuration schema violations - check config_errors")
         else:
             val.validate(config)
+
+    def validate_config(self) -> None:
+        """Validate the model configuration.
+
+        This method first validates the 'core' configuration and applies defaults, which
+        ensures that the modules to be used in the configured model are set. The schemas
+        for the requested modules are then applied to each configuration section to
+        validate the contents and apply any default values.
+
+        Raises:
+            ConfigurationError: if the loaded configuration is not compatible with the
+                configuration schemas.
+        """
+
+        # Run validation for the core configuration, which also ensures that the
+        # core.modules element of the configuration is populated
+        self._validate_and_set_defaults(self, SCHEMA_REGISTRY["core"])
+
+        # If the core is configured correctly, validate the other module configurations
+        if not self.config_errors:
+            for module in self["core"]["modules"]:
+                # Trap unknown model schemas
+                if module not in SCHEMA_REGISTRY:
+                    self.config_errors.append(
+                        ("['core', 'modules']", f"Unknown model schema: {module}")
+                    )
+                    continue
+
+                # Validate the config using the module schema
+                self._validate_and_set_defaults(self, SCHEMA_REGISTRY[module])
+
+        if self.config_errors:
+            # Log config issues and raise configuration error
+            for cfg_err_path, cfg_err in self.config_errors:
+                LOGGER.error(f"Configuration error in {cfg_err_path}: {cfg_err}")
+
+            to_raise = ConfigurationError(
+                "Configuration contains schema violations: check log"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        LOGGER.info("Configuration validated")
+        self.validated = True
+
+    def export_config(self, outfile: Path) -> None:
+        """Exports a validated and merged configuration as a single file."""
+
+        if not self.validated:
+            LOGGER.error("Configuration not validated or failed validation")
+            return
+
+        # Output combined toml file
+        with open(outfile, "wb") as toml_file:
+            tomli_w.dump(self, toml_file)
+        LOGGER.info("Saving config to: %s", outfile)
