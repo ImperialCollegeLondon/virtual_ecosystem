@@ -110,7 +110,9 @@ class AbioticModel(BaseModel):
         """
 
         # Find timing details
-        update_interval = extract_update_interval(config)
+        update_interval = extract_update_interval(
+            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
+        )
 
         soil_layers = config["abiotic"]["soil_layers"]
         canopy_layers = config["abiotic"]["canopy_layers"]

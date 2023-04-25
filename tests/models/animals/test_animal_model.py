@@ -38,11 +38,11 @@ def test_animal_model_initialization(caplog, data_instance):
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
+                        "update_interval": "7 days",
                     }
                 },
             },
-            timedelta64(12, "h"),
+            timedelta64(7, "D"),
             does_not_raise(),
             (
                 (

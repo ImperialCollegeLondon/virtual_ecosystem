@@ -74,7 +74,9 @@ class AnimalModel(BaseModel):
         """
 
         # Find timing details
-        update_interval = extract_update_interval(config)
+        update_interval = extract_update_interval(
+            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
+        )
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "

@@ -307,7 +307,9 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
     """
 
     # Find timing details
-    update_interval = extract_update_interval(config)
+    update_interval = extract_update_interval(
+            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
+        )
     
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]

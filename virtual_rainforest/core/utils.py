@@ -15,17 +15,26 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 from virtual_rainforest.core.logger import LOGGER
 
 
-def extract_update_interval(config: dict[str, Any]) -> timedelta64:
+def extract_update_interval(
+    config: dict[str, Any], lower_bound: str, upper_bound: str
+) -> timedelta64:
     """Function to extract the timing details required to setup a specific model.
+
+    This also checks that the update interval is extracted is compatible with the bounds
+    on the appropriate time scales for the model in question.
 
     Args:
         config: The configuration for the Virtual Rainforest simulation.
+        lower_bound: The lower bound on the appropriate model time scale
+        upper_bound: The upper bound on the appropriate model time scale
 
     Returns:
         The update interval for the overall model
 
     Raises:
         InitialisationError: If the model timing cannot be properly extracted
+        ConfigurationError: If the update interval does not fit with the model's time
+            bounds
     """
 
     try:
@@ -37,6 +46,20 @@ def extract_update_interval(config: dict[str, Any]) -> timedelta64:
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as excep:
         LOGGER.error("Model timing error: %s" % str(excep))
         raise InitialisationError() from excep
+
+    # Check if either bound is violated
+    if raw_interval < pint.Quantity(lower_bound):
+        to_raise = ConfigurationError(
+            "The update interval is shorter than the model's lower bound"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+    elif raw_interval > pint.Quantity(upper_bound):
+        to_raise = ConfigurationError(
+            "The update interval is longer than the model's upper bound"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     return update_interval
 

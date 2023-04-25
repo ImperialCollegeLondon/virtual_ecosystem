@@ -15,7 +15,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
 from virtual_rainforest.core.config import validate_config
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
@@ -57,6 +57,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     return modules
 
 
+# TODO - Think I need extra testing here
 def configure_models(
     config: dict[str, Any], data: Data, model_list: list[Type[BaseModel]]
 ) -> dict[str, BaseModel]:
@@ -78,7 +79,7 @@ def configure_models(
         try:
             this_model = model.from_config(data, config)
             models_cfd[this_model.model_name] = this_model
-        except InitialisationError:
+        except (InitialisationError, ConfigurationError):
             failed_models.append(model.model_name)
 
     # If any models fail to configure inform the user about it
@@ -128,7 +129,7 @@ def extract_timing_details(
         raise to_raise
     else:
         # Round raw time interval to nearest second
-        run_length = timedelta64(int(round(raw_length.magnitude)), "s")
+        run_length = timedelta64(round(raw_length.magnitude), "s")
 
     # Catch bad time dimensions
     try:
@@ -169,27 +170,6 @@ def extract_timing_details(
     return start_time, update_interval, end_time
 
 
-# TODO - Add tests for this function
-def check_time_bounds_appropriateness(
-    models_cfd: dict[str, BaseModel], update_interval: timedelta64
-) -> None:
-    """Check that update interval is within the time bounds of all configured models.
-
-    Args:
-        models_cfd: Set of models configured for a simulation run
-        update_interval: Time to wait between updates of the model state
-
-    Raises:
-        ConfigurationError: If the update interval is higher than one or more upper
-            bounds and/or lower than one or more lower bounds
-    """
-
-    # TODO - Implement the below
-    # CHECK IS HIGHER THAN ALL LOWER BOUNDS
-    # AND LOWER THAN ALL UPPER BOUNDS
-    # IF NOT REPORT EVERYTHING AND ERROR
-
-
 # TODO - Work out if any more tested is needed for this main flow
 def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """Perform a virtual rainforest simulation.
@@ -223,9 +203,6 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
 
     # Extract all the relevant timing details
     current_time, update_interval, end_time = extract_timing_details(config)
-
-    # Check that update interval is appropriate for configured models
-    check_time_bounds_appropriateness(models_cfd, update_interval)
 
     # TODO - A model spin up might be needed here in future
 

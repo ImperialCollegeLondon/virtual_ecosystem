@@ -65,6 +65,42 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
                 ),
             ),
         ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "30 minutes",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is shorter than the model's lower bound",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "3 months",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is longer than the model's upper bound",
+                ),
+            ),
+        ),
     ],
 )
 def test_extract_update_interval(caplog, config, raises, timestep, expected_log):
@@ -73,7 +109,7 @@ def test_extract_update_interval(caplog, config, raises, timestep, expected_log)
     from virtual_rainforest.core.utils import extract_update_interval
 
     with raises:
-        update_interval = extract_update_interval(config)
+        update_interval = extract_update_interval(config, "1 hour", "1 month")
         assert update_interval == timestep
 
     log_check(caplog, expected_log)
