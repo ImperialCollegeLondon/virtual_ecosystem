@@ -4,8 +4,7 @@ temperature as a function of leaf area index and height. The relationships are d
 from HARDWICK.
 """  # noqa: D205, D415
 
-from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -13,32 +12,17 @@ from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
 
-
-@dataclass
-class MicroclimateGradients:
-    """Regression parameters for 1.5 m microclimate calculations."""
-
-    air_temperature_max_gradient: float = -2.45
-    """Maximum air temperature gradient from linear regression """
-    air_temperature_min_gradient: float = -0.08
-    """Maximum air temperature gradient from linear regression """
-
-    relative_humidity_max_gradient: float = -0.02
-    """Maximum relative humidity gradient from linear regression """
-    relative_humidity_min_gradient: float = 9.05
-    """Maximum relative humidity gradient from linear regression """
-
-    vapor_pressure_deficit_max_gradient: float = -504
-    """Maximum vapor pressure deficit gradient from linear regression """
-    vapor_pressure_deficit_min_gradient: float = -0.47
-    """Maximum vapor pressure deficit gradient from linear regression """
-
-    soil_temperature_max_gradient: float = -1.28
-    """Maximum soil temperature gradient from linear regression """
-    soil_temperature_min_gradient: float = -0.37
-    """Maximum soil temperature gradient from linear regression """
-    soil_temperature_diurnal_range_gradient: float = -0.92
-    """Maximum soil temperature gradient from linear regression """
+MicroclimateGradients: Dict[str, float] = {
+    "air_temperature_max_gradient": -2.45,
+    "air_temperature_min_gradient": -0.08,
+    "relative_humidity_max_gradient": -0.02,
+    "relative_humidity_min_gradient": 9.05,
+    "vapor_pressure_deficit_max_gradient": -504,
+    "vapor_pressure_deficit_min_gradient": -0.47,
+    "soil_temperature_max_gradient": -1.28,
+    "soil_temperature_min_gradient": -0.37,
+    "soil_temperature_diurnal_range_gradient": -0.92,
+}
 
 
 layer_roles: List[str] = [
@@ -86,43 +70,19 @@ def setup_simple_regression(
         coords=air_temperature_min.coords,
     ).rename("air_temperature_max")
     """Maximum air temperature profile, [C]"""
-    air_temperature_mean = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("air_temperature_mean")
-    """Mean air temperature profile, [C]"""
-    air_temperature_diurnal_range = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("air_temperature_diurnal_range")
-    """Diurnal range of air temperature profile, [C]"""
 
-    atmospheric_humidity_min = DataArray(
+    relative_humidity_min = DataArray(
         np.full_like(air_temperature_min, np.nan),
         dims=air_temperature_min.dims,
         coords=air_temperature_min.coords,
-    ).rename("atmospheric_humidity_min")
+    ).rename("relative_humidity_min")
     """Minimum atmospheric humidity profile"""
-    atmospheric_humidity_max = DataArray(
+    relative_humidity_max = DataArray(
         np.full_like(air_temperature_min, np.nan),
         dims=air_temperature_min.dims,
         coords=air_temperature_min.coords,
-    ).rename("atmospheric_humidity_max")
+    ).rename("relative_humidity_max")
     """Maximum atmospheric humidity profile"""
-    atmospheric_humidity_mean = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("atmospheric_humidity_mean")
-    """Mean atmospheric humidity profile"""
-    atmospheric_humidity_diurnal_range = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("atmospheric_humidity_diurnal_range")
-    """Diurnal range of atmospheric humidity profile"""
 
     vapor_pressure_deficit_min = DataArray(
         np.full_like(air_temperature_min, np.nan),
@@ -136,18 +96,6 @@ def setup_simple_regression(
         coords=air_temperature_min.coords,
     ).rename("vapor_pressure_deficit_max")
     """Maximum vapor pressure deficit profile"""
-    vapor_pressure_deficit_mean = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("vapor_pressure_deficit_mean")
-    """Mean vapor pressure deficit profile"""
-    vapor_pressure_deficit_diurnal_range = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("vapor_pressure_deficit_diurnal_range")
-    """Diurnal range of vapor pressure deficit profile"""
 
     soil_temperature_min = DataArray(
         np.full_like(air_temperature_min, np.nan),
@@ -161,45 +109,28 @@ def setup_simple_regression(
         coords=air_temperature_min.coords,
     ).rename("soil_temperature_max")
     """Maximum soil temperature profile, [C]"""
-    soil_temperature_mean = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("soil_temperature_mean")
-    """Mean soil temperature profile, [C]"""
-    soil_temperature_diurnal_range = DataArray(
-        np.full_like(air_temperature_min, np.nan),
-        dims=air_temperature_min.dims,
-        coords=air_temperature_min.coords,
-    ).rename("soil_temperature_diurnal_range")
-    """Diurnal range of soil temperature profile, [C]"""
 
     return [
         air_temperature_min,
         air_temperature_max,
-        air_temperature_mean,
-        air_temperature_diurnal_range,
-        atmospheric_humidity_min,
-        atmospheric_humidity_max,
-        atmospheric_humidity_mean,
-        atmospheric_humidity_diurnal_range,
+        relative_humidity_min,
+        relative_humidity_max,
         vapor_pressure_deficit_min,
         vapor_pressure_deficit_max,
-        vapor_pressure_deficit_mean,
-        vapor_pressure_deficit_diurnal_range,
         soil_temperature_min,
         soil_temperature_max,
-        soil_temperature_mean,
-        soil_temperature_diurnal_range,
     ]
 
 
 def run_simple_regression(
     data: Data,
     layer_roles: List[str],
+    input_list: List[str],
     canopy_node_heights: DataArray,
+    atmosphere_node_heights: DataArray,
+    soil_node_depths: DataArray,
     leaf_area_index: DataArray,
-    MicroclimateGradients: MicroclimateGradients = MicroclimateGradients(),
+    MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
 ) -> List[DataArray]:
     """Calculate simple microclimate.
 
@@ -233,51 +164,72 @@ def run_simple_regression(
 
     Args:
         data: Data object
-        canopy_node_heights: heights of canopy layers, the first entry equals the canopy
-            height, [m]
+        layer_roles: roles of vertical layers
+        input_list: list of output variables to be calculated
+        canopy_node_heights: heights of canopy layers, the first canopy layer equals the
+            canopy height, [m]
+        atmosphere_node_heights
+        soil_node_depths
         leaf_area_index: leaf area index, [m m-1]
 
     Returns:
         list of min/max for air temperature, relative humidity, vapor pressure deficit,
         and soil temperature
     """
+    # set limits for humidity
 
     output = []
 
-    gradient = MicroclimateGradients
-    # TODO find a clever way to loop over min max mean diurnal_range of all vars
+    for i in range(0, len(input_list)):
+        if "air_temperature" in input_list[i]:
+            reference_data = data["air_temperature_ref"].isel(layers=0)
+        elif "relative_humidity" in input_list[i]:
+            reference_data = data["relative_humidity_ref"].isel(layers=0)
+        elif "vapor_pressure" in input_list[i]:
+            reference_data = data["vapor_pressure_deficit_ref"].isel(layers=0)
+        elif "soil_temperature" in input_list[i]:
+            reference_data = data["air_temperature_ref"].isel(layers=0) + 5.0
+        else:
+            "This variable is not implemented"
 
-    # calculate temperature at 1.5 m as a function of LAI based on Hardwick (2015)
-    air_temperature_min_lai = DataArray(
-        gradient.air_temperature_min_gradient * leaf_area_index.sum(dim="layers")
-        + data["air_temperature_ref"].isel(layers=0)
-    )
+        gradient = input_list[i] + "_gradient"
+        value_from_lai = DataArray(
+            MicroclimateGradients[gradient] * leaf_area_index.sum(dim="layers")
+            + reference_data
+        )
 
-    # Fit logarithmic function to interpolate between temperature top and 1.5m
-    x_values = np.array(
-        [canopy_node_heights.isel(layers=1), np.repeat(1.5, len(data.grid.cell_id))]
-    ).flatten()
-    y_values = np.array(
-        [data["air_temperature_ref"].isel(layers=0), air_temperature_min_lai]
-    ).flatten()
+        # Fit logarithmic function to interpolate between temperature top and 1.5m
+        x_values = np.array(
+            [
+                canopy_node_heights.isel(layers=1) + 2,
+                np.repeat(1.5, len(data.grid.cell_id)),
+            ]
+        ).flatten()
+        y_values = np.array([reference_data, value_from_lai]).flatten()
 
-    popt, pcov = curve_fit(logarithmic, x_values, y_values)
-    a, b = popt  # the function coefficients
+        popt, pcov = curve_fit(logarithmic, x_values, y_values)
+        a, b = popt  # the function coefficients
 
-    air_temperature_min = DataArray(
-        a * np.log(canopy_node_heights) + b,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
-            "cell_id": data.grid.cell_id,
-        },
-        name="air_temperature_min",
-    )
-    output.append(air_temperature_min)
+        if "soil" not in input_list[i]:
+            output_heights = atmosphere_node_heights
+        else:
+            output_heights = soil_node_depths
+
+        output_variable = DataArray(
+            a * np.log(output_heights) + b,
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, len(layer_roles)),
+                "layer_roles": (
+                    "layers",
+                    layer_roles[0 : len(layer_roles)],
+                ),
+                "cell_id": data.grid.cell_id,
+            },
+            name=input_list[i],
+        )
+
+        output.append(output_variable)
 
     return output
 
