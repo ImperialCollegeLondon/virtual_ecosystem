@@ -316,8 +316,8 @@ class Config(dict):
         """A list of TOML file paths resolved from the initial config paths."""
         self.toml_contents: dict[Path, dict] = {}
         """A dictionary of the contents of config files, keyed by file path."""
-        self.merge_conflicts: set = set()
-        """Paths of configuration keys duplicated across configuration files."""
+        self.merge_conflicts: list = []
+        """A list of configuration keys duplicated across configuration files."""
         self.config_errors: list[tuple[str, Any]] = []
         """Configuration errors, as a list of tuples of key path and error details."""
         self.validated: bool = False
@@ -452,7 +452,7 @@ class Config(dict):
 
         # Check if any tags are repeated across files
         if conflicts:
-            self.merge_conflicts = set(conflicts)
+            self.merge_conflicts = sorted(set(conflicts))
             to_raise = ConfigurationError(
                 f"Duplicated entries in config files: {', '.join(self.merge_conflicts)}"
             )
