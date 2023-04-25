@@ -67,7 +67,8 @@
                "default": [
                   "plants",
                   "soil"
-               ]
+               ],
+               "uniqueItems": true
             },
             "data": {
                "description": "Configuration settings for the core data module",
