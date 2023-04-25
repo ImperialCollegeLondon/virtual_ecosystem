@@ -29,10 +29,9 @@ imported, which ensures that all modules schemas are registered in
 
 import json
 import sys
-from collections import ChainMap
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -210,40 +209,6 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
     return comb_schema
 
 
-def check_dict_leaves(
-    d1: dict[str, Any],
-    d2: dict[str, Any],
-    conflicts: Optional[list] = None,
-    path: Optional[list] = None,
-) -> list[str]:
-    """Recursively checks if leaves are repeated between two nested dictionaries.
-
-    Args:
-        d1: First nested dictionary to compare
-        d2: Second nested dictionary to compare
-        path: List describing recursive path through the nested dictionary
-        conflicts: List of variables that are defined in multiple places
-
-    Returns:
-        List of variables that are defined in multiple places
-    """
-
-    if conflicts is None:
-        conflicts = []
-
-    if path is None:
-        path = []
-
-    for key in d2:
-        if key in d1:
-            if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-                check_dict_leaves(d1[key], d2[key], conflicts, path + [str(key)])
-            else:
-                conflicts.append("%s" % ".".join(path + [str(key)]))
-
-    return conflicts
-
-
 def config_merge(
     dest: dict, source: dict, conflicts: tuple = (), path: str = ""
 ) -> tuple[dict, tuple]:
@@ -289,7 +254,8 @@ def config_merge(
             # The key is in _both_, so override destval with srcval to keep processing,
             # but extend the conflicts tuple with the path to the conflicting key.
             dest[src_key] = src_val
-            conflicts += (f"{path}.{src_key}",)
+            conflict_path = src_key if path == "" else f"{path}.{src_key}"
+            conflicts += (conflict_path,)
 
             # NOTE: Could extend here to check for dest_val == src_val and then ignore
             #       duplicate matching definitions, but cleaner to just forbid overlap.
@@ -314,7 +280,7 @@ class Config(dict):
         self.toml_contents: dict[Path, dict] = {}
         self.failed_inputs: dict[Path, str] = {}
         self.merged_config: dict = {}
-        self.merge_conflicts: list = []
+        self.merge_conflicts: set = set()
         self.merged_schema: dict[str, Any]
         self.config_errors: list[tuple[str, Any]] = []
         self.validated: bool = False
@@ -414,38 +380,45 @@ class Config(dict):
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
 
-        This method does pairwise comparisons of the loaded config data from individual
-        files and merges them to build a single configuration dictionary. If there are
-        duplicate definitions, an error is logged.
+        This method does pairwise merging of the loaded config data from individual
+        files to build a single configuration dictionary, looking for duplicate
+        definitions in the config tree.
+
+        Raises:
+            ConfigurationError: if duplicate config definitions occur across files.
         """
 
-        # Loop over loaded TOML checking each file against the previous entries in the
-        # dictionary
-        input_keys = list(self.toml_contents.keys())
+        # Get the config dictionaries
+        input_dicts = list(self.toml_contents.values())
 
-        for idx, this_key in enumerate(input_keys):
-            # Get a list of the keys before this one
-            previous_keys = input_keys[:idx]
-            # Check this key doesn't overlap with all previous ones
-            for this_previous in previous_keys:
-                repeats = check_dict_leaves(
-                    self.toml_contents[this_previous], self.toml_contents[this_key], []
-                )
+        if len(input_dicts) == 0:
+            # No input dicts, Config dict is empty
+            return
 
-                for elem in repeats:
-                    self.merge_conflicts.append((elem, this_key, previous_keys))
-                    LOGGER.error(f"Duplicate configuration across files for {elem}")
+        if len(input_dicts) == 1:
+            # One input dict, which becomes the content of the Config dict
+            self.update(**input_dicts[0])
+            return
+
+        # Otherwise, merge other dicts into first
+        master = input_dicts[0]
+        others = input_dicts[1:]
+        conflicts: tuple = ()
+
+        for each_dict in others:
+            master, conflicts = config_merge(master, each_dict, conflicts=conflicts)
 
         # Check if any tags are repeated across files
-        if self.merge_conflicts:
+        if conflicts:
+            self.merge_conflicts = set(conflicts)
             to_raise = ConfigurationError(
-                "Config file contain duplicate definitions: check log"
+                f"Duplicated entries in config files: {','.join(self.merge_conflicts)}"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
         # Merge everything into a single dictionary and update the object
-        self.update(dict(ChainMap(*self.toml_contents.values())))
+        self.update(master)
         LOGGER.info("Config files merged")
 
     def build_schema(self) -> None:
