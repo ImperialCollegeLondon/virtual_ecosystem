@@ -188,7 +188,9 @@ def check_for_fast_models(
         )
 
 
-def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
+def vr_run(
+    cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
+) -> None:
     """Perform a virtual rainforest simulation.
 
     This is a high-level function that runs a virtual rainforest simulation. At the
@@ -203,6 +205,7 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """
 
     config = Config(cfg_paths)
+    config.export_config(merge_file_path)
 
     grid = Grid()  # TODO - this needs a Grid.from_config factory function
     data = Data(grid)
