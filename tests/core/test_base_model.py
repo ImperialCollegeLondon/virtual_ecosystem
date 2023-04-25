@@ -143,6 +143,48 @@ def data_instance():
             """class UnnamedModel(BaseModel):
                 model_name = 'should_pass'
                 required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Lower time bound for UnnamedModel is not less than the upper bound.",
+            [
+                (
+                    ERROR,
+                    "Lower time bound for UnnamedModel is not less than the upper "
+                    "bound.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Lower and upper bound equal",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 month"
+                upper_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Lower time bound for UnnamedModel is not less than the upper bound.",
+            [
+                (
+                    ERROR,
+                    "Lower time bound for UnnamedModel is not less than the upper "
+                    "bound.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Lower bound greater",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 meter"
                 upper_bound_on_time_scale = "1 month"
             """,

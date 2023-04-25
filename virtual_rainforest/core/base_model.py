@@ -31,12 +31,12 @@ that must be defined in subclasses:
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
   attribute
 
-TODO - Add in fourth method once I've defined it.
 The usage of these four attributes is described in their docstrings and four private
 methods are provided to validate that the properties are set and valid in subclasses
 (:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`,).
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units` and
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_values`).
 
 Model registration
 ------------------
@@ -347,6 +347,25 @@ class BaseModel(ABC):
             raise to_raise
 
     @classmethod
+    def _check_time_bounds_values(cls) -> None:
+        """Check that the lower time bound is less than the upper bound.
+
+        Raises:
+            ValueError: If the lower bound is not less than the upper bound
+        """
+
+        # Find upper and lower bound
+        upper_bound = pint.Quantity(cls.upper_bound_on_time_scale)
+        lower_bound = pint.Quantity(cls.lower_bound_on_time_scale)
+
+        if upper_bound <= lower_bound:
+            to_raise = ValueError(
+                f"Lower time bound for {cls.__name__} is not less than the upper bound."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -364,6 +383,7 @@ class BaseModel(ABC):
             cls._check_model_name()
             cls._check_required_init_vars()
             cls._check_time_bounds_units()
+            cls._check_time_bounds_values()
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
