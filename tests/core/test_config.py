@@ -17,25 +17,134 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
-    "d_a,d_b,overlap",
+    "dest,source,exp_result, exp_conflicts",
     [
-        ({"d1": {"d2": 3}}, {"d3": {"d2": 3}}, []),
-        ({"d1": {"d2": 3}}, {"d1": {"d3": 3}}, []),
-        ({"d1": 1}, {"d1": 2}, ["d1"]),
-        ({"d1": 1}, {"d1": {"d2": 1}}, ["d1"]),
-        ({"d1": {"d2": 3, "d3": 12}}, {"d1": {"d3": 7}}, ["d1.d3"]),
-        (
+        pytest.param(
+            {"d1": {"d2": 3}},
+            {"d3": {"d2": 3}},
+            {"d1": {"d2": 3}, "d3": {"d2": 3}},
+            (),
+            id="no_conflict",
+        ),
+        pytest.param(
+            {"d1": {"d2": 3}},
+            {"d1": {"d3": 3}},
+            {"d1": {"d2": 3, "d3": 3}},
+            (),
+            id="no_conflict2",
+        ),
+        pytest.param(
+            {
+                "a": {"aa": {"aaa": True, "aab": True}, "ab": {"abb": True}},
+                "b": {
+                    "ba": {"bab": {"baba": True}},
+                    "bb": {
+                        "bba": {"bbab": {"bbaba": True}},
+                        "bbb": {"bbba": {"bbbaa": True}},
+                    },
+                },
+            },
+            {
+                "a": {"ab": {"aba": False}},
+                "b": {
+                    "ba": {"baa": {"baaa": False}},
+                    "bb": {
+                        "bba": {"bbaa": {"bbaaa": False}},
+                        "bbb": {"bbbb": {"bbbba": False}},
+                    },
+                },
+            },
+            {
+                "a": {
+                    "aa": {"aaa": True, "aab": True},
+                    "ab": {"aba": False, "abb": True},
+                },
+                "b": {
+                    "ba": {"baa": {"baaa": False}, "bab": {"baba": True}},
+                    "bb": {
+                        "bba": {"bbaa": {"bbaaa": False}, "bbab": {"bbaba": True}},
+                        "bbb": {"bbba": {"bbbaa": True}, "bbbb": {"bbbba": False}},
+                    },
+                },
+            },
+            (),
+            id="no_conflict_complex",
+        ),
+        pytest.param(
+            {"d1": 1},
+            {"d1": 2},
+            {"d1": 2},  # source value takes precedence
+            ("d1",),
+            id="conflict_root",
+        ),
+        pytest.param(
+            {"d1": 1},
+            {"d1": {"d2": 1}},
+            {"d1": {"d2": 1}},
+            ("d1",),
+            id="conflict_root2",
+        ),
+        pytest.param(
+            {"d1": {"d2": 3, "d3": 12}},
+            {"d1": {"d3": 7}},
+            {"d1": {"d2": 3, "d3": 7}},
+            ("d1.d3",),
+            id="conflict_nested1",
+        ),
+        pytest.param(
             {"d1": {"d2": {"d3": 12, "d4": 5}}},
             {"d1": {"d2": {"d3": 5, "d4": 7}}},
-            ["d1.d2.d3", "d1.d2.d4"],
+            {"d1": {"d2": {"d3": 5, "d4": 7}}},
+            ("d1.d2.d3", "d1.d2.d4"),
+            id="conflict_nested_multiple",
+        ),
+        pytest.param(
+            {
+                "a": {"aa": {"aaa": True, "aab": True}, "ab": {"abb": True}},
+                "b": {
+                    "ba": {"bab": {"baba": True}},
+                    "bb": {
+                        "bba": {"bbab": {"bbaba": True}},
+                        "bbb": {"bbba": {"bbbaa": True}},
+                    },
+                },
+            },
+            {
+                "a": {"ab": {"aba": False}},
+                "b": {
+                    "ba": {"baa": {"baaa": False}},
+                    "bb": {
+                        "bba": {"bbaa": {"bbaaa": False}},
+                        "bbb": {"bbba": {"bbbaa": False}, "bbbb": {"bbbba": False}},
+                    },
+                },
+            },
+            {
+                "a": {
+                    "aa": {"aaa": True, "aab": True},
+                    "ab": {"aba": False, "abb": True},
+                },
+                "b": {
+                    "ba": {"baa": {"baaa": False}, "bab": {"baba": True}},
+                    "bb": {
+                        "bba": {"bbaa": {"bbaaa": False}, "bbab": {"bbaba": True}},
+                        "bbb": {"bbba": {"bbbaa": False}, "bbbb": {"bbbba": False}},
+                    },
+                },
+            },
+            ("b.bb.bbb.bbba.bbbaa",),
+            id="conflict_complex",
         ),
     ],
 )
-def test_check_dict_leaves(d_a: dict, d_b: dict, overlap: list) -> None:
-    """Checks overlapping dictionary search function."""
-    from virtual_rainforest.core.config import check_dict_leaves
+def test_config_merge(dest, source, exp_result, exp_conflicts):
+    """Checks configuration merge and validation function."""
+    from virtual_rainforest.core.config import config_merge
 
-    assert overlap == check_dict_leaves(d_a, d_b, [])
+    result, conflicts = config_merge(dest, source)
+
+    assert result == exp_result
+    assert conflicts == exp_conflicts
 
 
 @pytest.mark.parametrize(
@@ -126,52 +235,111 @@ def test_Config_resolve_config_paths(
 
 
 @pytest.mark.parametrize(
-    "files,contents,expected_exception,expected_log_entries",
+    "cfg_paths,expected_exception,expected_log_entries",
     [
-        (
-            [Path("fake_file1.toml")],
-            [b"bshbsybdvshhd"],
-            ConfigurationError,
+        pytest.param(
+            ["all_config_bad.toml"],
+            pytest.raises(ConfigurationError),
             (
-                (
-                    CRITICAL,
-                    "Configuration file fake_file1.toml is incorrectly formatted. "
-                    "Failed with the following message:\nExpected '=' after a key in "
-                    "a key/value pair (at end of document)",
-                ),
+                (ERROR, "Config TOML parsing error in"),
+                (CRITICAL, "Errors parsing config files:"),
             ),
+            id="toml_errors",
         ),
-        (
-            [Path("fake_file1.toml"), Path("fake_file2.toml")],
-            [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
-            ConfigurationError,
+        pytest.param(
+            ["all_config.toml"],
+            does_not_raise(),
+            ((INFO, "Config TOML loaded from "),),
+            id="toml_valid",
+        ),
+        # (
+        #     [Path("fake_file1.toml"), Path("fake_file2.toml")],
+        #     [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
+        #     ConfigurationError,
+        #     (
+        #         (
+        #             CRITICAL,
+        #             "The following tags are defined in multiple config files:\n"
+        #            "core.grid.nx defined in both fake_file2.toml and fake_file1.toml",
+        #         ),
+        #     ),
+        # ),
+    ],
+)
+def test_Config_load_config_toml(
+    caplog, shared_datadir, cfg_paths, expected_exception, expected_log_entries
+):
+    """Check errors for incorrectly formatted config files."""
+    from virtual_rainforest.core.config import Config
+
+    # Initialise the Config instance and manually resolve the config paths to toml files
+    cfg = Config([shared_datadir / p for p in cfg_paths], auto=False)
+    cfg.resolve_config_paths()
+    caplog.clear()
+
+    # Check that load_config_toml behaves as expected
+    with expected_exception:
+        cfg.load_config_toml()
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "content,expected_exception,expected_dict,expected_log_entries",
+    [
+        pytest.param(
+            {"filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}}},
+            does_not_raise(),
+            {"core": {"grid": {"nx": 10, "ny": 10}}},
+            ((INFO, "Config files merged"),),
+            id="single_file_ok",
+        ),
+        pytest.param(
+            {
+                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename2.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+            },
+            pytest.raises(ConfigurationError),
+            None,
             (
-                (
-                    CRITICAL,
-                    "The following tags are defined in multiple config files:\n"
-                    "core.grid.nx defined in both fake_file2.toml and fake_file1.toml",
-                ),
+                (ERROR, "Duplicate configuration across files for core.grid.nx"),
+                (ERROR, "Duplicate configuration across files for core.grid.ny"),
+                (CRITICAL, "Config file contain duplicate definitions: check log"),
             ),
+            id="two_files_duplication",
+        ),
+        pytest.param(
+            {
+                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+            },
+            does_not_raise(),
+            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants", "abiotic"]}},
+            ((INFO, "Config files merged"),),
+            id="two_files_valid",
         ),
     ],
 )
-def test_load_in_config_files(
-    caplog, mocker, files, contents, expected_exception, expected_log_entries
+def test_Config_build_config(
+    caplog, content, expected_dict, expected_exception, expected_log_entries
 ):
-    """Check errors for incorrectly formatted config files."""
-    from virtual_rainforest.core.config import load_in_config_files
+    """Check building merged config from loaded content."""
+    from virtual_rainforest.core.config import Config
 
-    # Mock the toml that is sent to the builtin open function
-    mocked_toml = []
-    for item in contents:
-        mocked_toml = mocker.mock_open(read_data=item)
-    mocker.patch("virtual_rainforest.core.config.Path.open", side_effect=mocked_toml)
+    # Initialise the Config instance and manually populate the loaded TOML
+    cfg = Config([], auto=False)
+    cfg.toml_contents = content
+    caplog.clear()
 
-    # Check that load_in_config_file fails as expected
-    with pytest.raises(expected_exception):
-        load_in_config_files(files)
+    # Check that build_config behaves as expected
+    with expected_exception:
+        cfg.build_config()
 
     log_check(caplog, expected_log_entries)
+
+    # Assert that the config dictionary is as expected
+    if expected_dict is not None:
+        assert cfg == expected_dict
 
 
 @pytest.mark.parametrize(
