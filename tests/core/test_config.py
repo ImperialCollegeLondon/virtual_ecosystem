@@ -480,3 +480,36 @@ def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entrie
 
     Config(shared_datadir / file_path, auto=True)
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "auto,expected_log_entries",
+    [
+        pytest.param(
+            True,
+            ((INFO, "Saving config to: "),),
+            id="can_export",
+        ),
+        pytest.param(
+            False,
+            ((ERROR, "Cannot export unvalidated or invalid configuration"),),
+            id="cannot_export",
+        ),
+    ],
+)
+def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries):
+    """Checks that auto validation passes as expected."""
+    from virtual_rainforest.core.config import Config
+
+    cfg = Config(shared_datadir / "all_config.toml", auto=auto)
+    caplog.clear()
+
+    outpath = shared_datadir / "test_output.toml"
+    cfg.export_config(outfile=outpath)
+
+    log_check(caplog, expected_log_entries)
+
+    # Check file is created - maybe add a file hash check?
+    if auto:
+        assert outpath.exists()
+        assert outpath.is_file()

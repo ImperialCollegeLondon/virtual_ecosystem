@@ -592,10 +592,18 @@ class Config(dict):
         self.validated = True
 
     def export_config(self, outfile: Path) -> None:
-        """Exports a validated and merged configuration as a single file."""
+        """Exports a validated and merged configuration as a single file.
+
+        This method will only export a configuration file if the
+        :class:`~virtual_rainforest.core.config.Config` instance has been successfully
+        validated.
+
+        Args:
+            outfile: An output path for the TOML configuration file.
+        """
 
         if not self.validated:
-            LOGGER.error("Configuration not validated or failed validation")
+            LOGGER.error("Cannot export unvalidated or invalid configuration")
             return
 
         # Output combined toml file
