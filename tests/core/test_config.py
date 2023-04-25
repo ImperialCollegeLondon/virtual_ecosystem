@@ -7,7 +7,7 @@ to date.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO
+from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
 import pytest
@@ -288,10 +288,17 @@ def test_Config_load_config_toml(
     "content,expected_exception,expected_dict,expected_log_entries",
     [
         pytest.param(
+            {},
+            does_not_raise(),
+            {},
+            ((WARNING, "No config files set"),),
+            id="no_file_warns",
+        ),
+        pytest.param(
             {"filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}}},
             does_not_raise(),
             {"core": {"grid": {"nx": 10, "ny": 10}}},
-            ((INFO, "Config files merged"),),
+            ((INFO, "Config set from single file"),),
             id="single_file_ok",
         ),
         pytest.param(
@@ -302,11 +309,12 @@ def test_Config_load_config_toml(
             pytest.raises(ConfigurationError),
             None,
             (
-                (ERROR, "Duplicate configuration across files for core.grid.nx"),
-                (ERROR, "Duplicate configuration across files for core.grid.ny"),
-                (CRITICAL, "Config file contain duplicate definitions: check log"),
+                (
+                    CRITICAL,
+                    "Duplicated entries in config files: core.grid.nx, core.grid.ny",
+                ),
             ),
-            id="two_files_duplication",
+            id="two_files_conflict",
         ),
         pytest.param(
             {
@@ -315,8 +323,30 @@ def test_Config_load_config_toml(
             },
             does_not_raise(),
             {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants", "abiotic"]}},
-            ((INFO, "Config files merged"),),
+            ((INFO, "Config set from merged files"),),
             id="two_files_valid",
+        ),
+        pytest.param(
+            {
+                "filename1.toml": {"core": {"grid": {"nx": 10}}},
+                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+                "filename3.toml": {"core": {"grid": {"ny": 10}}},
+            },
+            does_not_raise(),
+            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants", "abiotic"]}},
+            ((INFO, "Config set from merged files"),),
+            id="three_files_valid",
+        ),
+        pytest.param(
+            {
+                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+                "filename3.toml": {"core": {"grid": {"ny": 10}}},
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            ((CRITICAL, "Duplicated entries in config files: core.grid.ny"),),
+            id="three_files_conflict",
         ),
     ],
 )
