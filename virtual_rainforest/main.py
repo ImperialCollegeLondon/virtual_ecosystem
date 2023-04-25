@@ -3,6 +3,8 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+# TODO - Update documentation of main simulation flow to reflect changes
+
 from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
@@ -167,6 +169,28 @@ def extract_timing_details(
     return start_time, update_interval, end_time
 
 
+# TODO - Add tests for this function
+def check_time_bounds_appropriateness(
+    models_cfd: dict[str, BaseModel], update_interval: timedelta64
+) -> None:
+    """Check that update interval is within the time bounds of all configured models.
+
+    Args:
+        models_cfd: Set of models configured for a simulation run
+        update_interval: Time to wait between updates of the model state
+
+    Raises:
+        ConfigurationError: If the update interval is higher than one or more upper
+            bounds and/or lower than one or more lower bounds
+    """
+
+    # TODO - Implement the below
+    # CHECK IS HIGHER THAN ALL LOWER BOUNDS
+    # AND LOWER THAN ALL UPPER BOUNDS
+    # IF NOT REPORT EVERYTHING AND ERROR
+
+
+# TODO - Work out if any more tested is needed for this main flow
 def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -200,7 +224,8 @@ def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     # Extract all the relevant timing details
     current_time, update_interval, end_time = extract_timing_details(config)
 
-    # TODO - Add step checking model bounds match with time step
+    # Check that update interval is appropriate for configured models
+    check_time_bounds_appropriateness(models_cfd, update_interval)
 
     # TODO - A model spin up might be needed here in future
 
