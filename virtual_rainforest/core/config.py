@@ -268,6 +268,7 @@ class Config(dict):
         # Run the validation steps
         if auto:
             self.resolve_config_paths()
+            self.load_config_toml()
             self.build_config()
             self.build_schema()
             self.validate_config()
@@ -348,6 +349,8 @@ class Config(dict):
             except tomllib.TOMLDecodeError as err:
                 self.failed_inputs[this_file] = str(err)
                 LOGGER.error(f"Config TOML parsing error in {this_file}: {str(err)}")
+            else:
+                LOGGER.info(f"Config TOML loaded from {this_file}")
 
         if self.failed_inputs:
             to_raise = ConfigurationError("Errors parsing config files: check log")
@@ -389,6 +392,7 @@ class Config(dict):
 
         # Merge everything into a single dictionary and update the object
         self.update(dict(ChainMap(*self.toml_contents.values())))
+        LOGGER.info("Config files merged")
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
