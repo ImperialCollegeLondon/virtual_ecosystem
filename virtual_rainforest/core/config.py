@@ -30,6 +30,7 @@ imported, which ensures that all modules schemas are registered in
 import json
 import sys
 from collections import ChainMap
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Iterator, Optional, Union
 
@@ -241,6 +242,59 @@ def check_dict_leaves(
                 conflicts.append("%s" % ".".join(path + [str(key)]))
 
     return conflicts
+
+
+def config_merge(
+    dest: dict, source: dict, conflicts: tuple = (), path: str = ""
+) -> tuple[dict, tuple]:
+    """Recursively merge two dictionaries detecting duplicated key definitions.
+
+    This function returns a copy of the dest dictionary that has been extended
+    recursively with the entries from the source dictionary. No key path should be
+    repeated between the two dictionaries. When duplicated key paths are found, the
+    value from the source dictionary is used and the function extends the returned
+    ``conflicts`` tuple with the conflicting key path.
+
+    Args:
+        dest: A dictionary to extend
+        source: A dictionary of key value pairs to extend dest
+        conflicts: A tuple of duplicated key paths between the two dictionaries
+        path: A string giving the current key path.
+
+    Returns:
+        A copy of dest, extended recursively with values from source, and a tuple of
+        duplicate key paths.
+    """
+
+    # Copy inputs to avoid mangling inputs
+    dest = deepcopy(dest)
+    source = deepcopy(source)
+
+    # Loop over the elements in the source dictionary
+    for src_key, src_val in source.items():
+        # Get the source key from the dest dictionary and then check for three possible
+        # outcomes of comparing dest_val and src_val
+        dest_val = dest.get(src_key)
+
+        if isinstance(dest_val, dict) and isinstance(src_val, dict):
+            # Both values for this key are dictionaries, so recurse, extending the path
+            next_path = src_key if path == "" else f"{path}.{src_key}"
+            dest[src_key], conflicts = config_merge(
+                dest_val, src_val, conflicts=conflicts, path=next_path
+            )
+        elif dest_val is None:
+            # The key is not currently in dest, so add the key value pair
+            dest[src_key] = src_val
+        else:
+            # The key is in _both_, so override destval with srcval to keep processing,
+            # but extend the conflicts tuple with the path to the conflicting key.
+            dest[src_key] = src_val
+            conflicts += (f"{path}.{src_key}",)
+
+            # NOTE: Could extend here to check for dest_val == src_val and then ignore
+            #       duplicate matching definitions, but cleaner to just forbid overlap.
+
+    return dest, conflicts
 
 
 class Config(dict):
