@@ -105,6 +105,10 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 ),
                 (
                     DEBUG,
+                    "soil model: required var 'soil_c_pool_microbe' checked",
+                ),
+                (
+                    DEBUG,
                     "soil model: required var 'pH' checked",
                 ),
                 (
