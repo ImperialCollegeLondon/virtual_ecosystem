@@ -39,14 +39,14 @@ from tests.conftest import log_check
             "failure_4",
             "no_properties_in_schema.json",
             pytest.raises(ValueError),
-            [(ERROR, "Missing key in module schema")],
+            [(ERROR, "Missing key in module schema failure_4: 'failure_4'")],
             id="no_properties_in_schema_file",
         ),
         pytest.param(
             "failure_5",
             "no_required_in_schema.json",
             pytest.raises(ValueError),
-            [(ERROR, "Missing key in module schema")],
+            [(ERROR, "Missing key in module schema failure_5: 'required'")],
             id="no_required_in_schema_file",
         ),
         pytest.param(

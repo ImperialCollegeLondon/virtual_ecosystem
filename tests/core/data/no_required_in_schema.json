@@ -4,10 +4,7 @@
     "title": "Hello World!",
     "type": "object",
     "properties": {
-        "module_name_missing": {}
+        "failure_5": {}
     },
-    "required": [
-        "module_name_missing"
-    ],
     "description": "My first JSON Schema."
 }
