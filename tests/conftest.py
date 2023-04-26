@@ -119,6 +119,8 @@ def dummy_carbon_data():
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["soil_c_pool_maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
     """Mineral associated organic matter pool (kg C m^-3)"""
+    data["soil_c_pool_microbe"] = DataArray([5.8, 2.3, 11.3, 1.0], dims=["cell_id"])
+    """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     data["soil_moisture"] = DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"])
