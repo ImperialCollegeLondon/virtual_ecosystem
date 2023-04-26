@@ -275,18 +275,18 @@ class Config(dict):
       used to resolve the provided paths into the set of actual TOML files to be used to
       build the configuration.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is
-      then used to load the contents of each resolved file.
+    * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is then
+      used to load the contents of each resolved file.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.build_config` method is
-      used to merge the loaded configuration across files and check that configuration
-      settings are uniquely defined.
+    * The :meth:`~virtual_rainforest.core.config.Config.build_config` method is used to
+      merge the loaded configuration across files and check that configuration settings
+      are uniquely defined.
 
     * The :meth:`~virtual_rainforest.core.config.Config.validate_config` method
       validates the compiled configuration against the appropriate configuration schema
-      for the :mod:`~virtual_rainforest.core` module and any
-      :mode:`~virtual_rainforest.models` included in the configuration. This validation
-      will also fill in any missing configuration settings with defined defaults.
+      for the :mod:`~virtual_rainforest.core` module and any models included in the
+      configuration. This validation will also fill in any missing configuration
+      settings with defined defaults.
 
     By default, creating a ``Config`` instance automatically runs these steps across the
     provided ``cfg_paths``, but the ``auto`` argument can be used to turn off automatic
