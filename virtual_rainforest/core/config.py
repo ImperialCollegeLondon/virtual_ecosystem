@@ -320,6 +320,8 @@ class Config(dict):
         """A list of configuration keys duplicated across configuration files."""
         self.config_errors: list[tuple[str, Any]] = []
         """Configuration errors, as a list of tuples of key path and error details."""
+        self.merged_schema: dict = {}
+        """The merged schema for the core and modules present in the configutation."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
 
@@ -328,6 +330,7 @@ class Config(dict):
             self.resolve_config_paths()
             self.load_config_toml()
             self.build_config()
+            self.build_schema()
             self.validate_config()
 
     def resolve_config_paths(self) -> None:
@@ -476,15 +479,17 @@ class Config(dict):
         # validation to the whole config in one go and this is not needed as each
         # applicable schema can be applied separately to the config dictionary.
 
-        # Get the core schema and then use it to validate the 'core' element of the
-        # configuration dictionary
+        # Look up the modules requested in the configuration or use the defaults from
+        # the schema
         core_schema = SCHEMA_REGISTRY["core"]
-        self._validate_and_set_defaults(self["core"], core_schema)
-
-        # Cannot proceed if there are configuration errors in the core - this validation
-        # also should ensure that the config["core"]["modules"] element is populated
-        if self.config_errors:
-            return
+        try:
+            # Provided in config
+            requested_modules = self["core"]["modules"]
+        except KeyError:
+            # Revert to defaults
+            requested_modules = core_schema["properties"]["core"]["properties"][
+                "modules"
+            ]["default"]
 
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
@@ -503,7 +508,7 @@ class Config(dict):
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
 
-    def validate_config_old(self) -> None:
+    def validate_config(self) -> None:
         """Validates the loaded config."""
 
         # NOTE: This is probably to be redacted - it uses the merged schema, and there
@@ -519,10 +524,17 @@ class Config(dict):
         self._validate_and_set_defaults(self, self.merged_schema)
 
         if self.config_errors:
-            LOGGER.error("Invalid configuration - see config_errors.")
-        else:
-            self.validated = True
-            LOGGER.info("Configuration validated")
+            for cfg_err_path, cfg_err in self.config_errors:
+                LOGGER.error(f"Configuration error in {cfg_err_path}: {cfg_err}")
+
+            to_raise = ConfigurationError(
+                "Configuration contains schema violations: check log"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        self.validated = True
+        LOGGER.info("Configuration validated")
 
     def _validate_and_set_defaults(
         self, config: dict[str, Any], schema: dict[str, Any]
@@ -555,7 +567,7 @@ class Config(dict):
         else:
             val.validate(config)
 
-    def validate_config(self) -> None:
+    def validate_config_old(self) -> None:
         """Validate the model configuration.
 
         This method first validates the 'core' configuration and applies defaults, which
