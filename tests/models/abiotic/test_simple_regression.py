@@ -52,38 +52,40 @@ data["relative_humidity_ref"] = xr.concat(
 data["relative_humidity_ref"] = data["relative_humidity_ref"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
-data["vapor_pressure_deficit_ref"] = xr.concat(
+data["atmospheric_pressure_ref"] = xr.concat(
     [
-        DataArray(np.full((1, 3), 90)),
+        DataArray(np.full((1, 3), 1)),
         DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
     ],
     dim="dim_0",
 )
-data["vapor_pressure_deficit_ref"] = data["vapor_pressure_deficit_ref"].rename(
+data["atmospheric_pressure_ref"] = data["atmospheric_pressure_ref"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
 
-leaf_area_index = xr.concat(
+data["atmospheric_co2_ref"] = xr.concat(
+    [
+        DataArray(np.full((1, 3), 1)),
+        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
+    ],
+    dim="dim_0",
+)
+data["atmospheric_co2_ref"] = data["atmospheric_co2_ref"].rename(
+    {"dim_0": "layers", "dim_1": "cell_id"}
+)
+
+data["leaf_area_index"] = xr.concat(
     [
         DataArray(np.full((1, 3), 3)),
         DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
     ],
     dim="dim_0",
 )
-leaf_area_index = leaf_area_index.rename({"dim_0": "layers", "dim_1": "cell_id"})
-
-canopy_node_heights = xr.concat(
-    [
-        DataArray(np.full((1, 3), np.nan)),
-        DataArray([[30, 30, 30], [20, 20, 20], [10, 10, 10]]),
-        DataArray(np.full((11, 3), np.nan)),
-    ],
-    dim="dim_0",
-)
-canopy_node_heights = canopy_node_heights.rename(
+data["leaf_area_index"] = data["leaf_area_index"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
-atmosphere_node_heights = xr.concat(
+
+data["layer_heights"] = xr.concat(
     [
         DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
         DataArray(np.full((7, 3), np.nan)),
@@ -92,21 +94,13 @@ atmosphere_node_heights = xr.concat(
     ],
     dim="dim_0",
 )
-atmosphere_node_heights = atmosphere_node_heights.rename(
+data["layer_heights"] = data["layer_heights"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
-soil_node_depths = xr.concat(
-    [
-        DataArray(np.full((13, 3), np.nan)),
-        DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
-    ],
-    dim="dim_0",
-)
-soil_node_depths = soil_node_depths.rename({"dim_0": "layers", "dim_1": "cell_id"})
 
 
 def test_setup_simple_regression():
-    """Test initialisation of variables."""
+    """Test initialisation of variables with same dimensions."""
 
     from virtual_rainforest.models.abiotic.simple_regression import (
         setup_simple_regression,
@@ -127,7 +121,7 @@ def test_setup_simple_regression():
                 ),
                 "cell_id": data.grid.cell_id,
             },
-            name="air_temperature_min",
+            name="air_temperature",
         ),
     )
     xr.testing.assert_allclose(
@@ -143,9 +137,142 @@ def test_setup_simple_regression():
                 ),
                 "cell_id": data.grid.cell_id,
             },
-            name="air_temperature_max",
+            name="relative_humidity",
         ),
     )
+
+
+def test_lai_regression():
+    """Test lai regression."""
+    from virtual_rainforest.models.abiotic.simple_regression import lai_regression
+
+    result = lai_regression(
+        reference_data=data["air_temperature_ref"].isel(layers=0),
+        leaf_area_index=data["leaf_area_index"],
+        gradient=-2.45,
+    )
+
+    xr.testing.assert_allclose(result, DataArray([22.65, 22.65, 22.65], dims="cell_id"))
+
+
+def test_log_interpolation():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic.simple_regression import (
+        lai_regression,
+        log_interpolation,
+    )
+
+    value_from_lai_regression = lai_regression(
+        reference_data=data["air_temperature_ref"].isel(layers=0),
+        leaf_area_index=data["leaf_area_index"],
+        gradient=-2.45,
+    )
+
+    result = log_interpolation(
+        data=data,
+        reference_data=data["air_temperature_ref"].isel(layers=0),
+        layer_roles=layer_roles,
+        layer_heights=data["layer_heights"],
+        value_from_lai_regression=value_from_lai_regression,
+    )
+
+    exp_output = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.844995, 29.844995, 29.844995],
+                    [28.87117, 28.87117, 28.87117],
+                    [27.206405, 27.206405, 27.206405],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [16.145945, 16.145945, 16.145945],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    exp_output1 = exp_output.assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+    xr.testing.assert_allclose(result, exp_output1)
+
+
+def test_calculate_saturation_vapor_pressure():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic.simple_regression import (
+        calculate_saturation_vapor_pressure,
+    )
+
+    result = calculate_saturation_vapor_pressure(data["air_temperature_ref"])
+
+    exp_output = xr.concat(
+        [
+            DataArray(
+                [
+                    [1.41727, 1.41727, 1.41727],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((14, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    xr.testing.assert_allclose(result, exp_output)
+
+
+def test_calculate_vapor_pressure_deficit():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic.simple_regression import (
+        calculate_vapor_pressure_deficit,
+    )
+
+    result = calculate_vapor_pressure_deficit(
+        data["air_temperature_ref"],
+        data["relative_humidity_ref"],
+    )
+    exp_output = xr.concat(
+        [
+            DataArray(
+                [
+                    [0.141727, 0.141727, 0.141727],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((14, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    xr.testing.assert_allclose(result, exp_output)
 
 
 def test_run_simple_regression():
@@ -153,74 +280,50 @@ def test_run_simple_regression():
 
     from virtual_rainforest.models.abiotic.simple_regression import (
         run_simple_regression,
-        setup_simple_regression,
     )
-
-    variable_list = setup_simple_regression(layer_roles, data=data)
-    input_list = []
-    for i in range(0, len(variable_list)):
-        input_name = variable_list[i].name
-        input_list.append(input_name)
 
     result = run_simple_regression(
         data=data,
         layer_roles=layer_roles,
-        input_list=input_list,
-        canopy_node_heights=canopy_node_heights,
-        atmosphere_node_heights=atmosphere_node_heights,
-        soil_node_depths=soil_node_depths,
-        leaf_area_index=leaf_area_index,
     )
 
-    xr.testing.assert_allclose(
-        result[0].isel(layers=[1, 2, 3]),
-        DataArray(
-            [
-                [29.994939, 29.994939, 29.994939],
-                [29.96314, 29.96314, 29.96314],
-                [29.908781, 29.908781, 29.908781],
-            ],
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(1, 4),
-                "layer_roles": (
-                    "layers",
-                    layer_roles[1:4],
-                ),
-                "cell_id": data.grid.cell_id,
-            },
-            name="air_temperature_min",
-        ),
+    exp_output = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.91965, 29.91965, 29.91965],
+                    [29.414851, 29.414851, 29.414851],
+                    [28.551891, 28.551891, 28.551891],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [
+                    [26.19, 26.19, 26.19],
+                    [22.81851, 22.81851, 22.81851],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
     )
-    xr.testing.assert_allclose(
-        result[0].isel(layers=[0]),
-        DataArray(
-            [[30.0, 30.0, 30.0]],
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": [0],
-                "layer_roles": (
-                    "layers",
-                    [layer_roles[0]],
-                ),
-                "cell_id": data.grid.cell_id,
-            },
-            name="air_temperature_min",
-        ),
+    exp_output1 = exp_output.assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
     )
-    xr.testing.assert_allclose(
-        result[2].isel(layers=[0]),
-        DataArray(
-            [[90, 90, 90]],
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": [0],
-                "layer_roles": (
-                    "layers",
-                    [layer_roles[0]],
-                ),
-                "cell_id": data.grid.cell_id,
-            },
-            name="relative_humidity_min",
-        ),
-    )
+    xr.testing.assert_allclose(result[0], exp_output1)
