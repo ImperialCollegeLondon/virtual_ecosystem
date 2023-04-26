@@ -415,22 +415,22 @@ def test_Config_build_config(
             ),
             id="minimum_value_violation",
         ),
-        # pytest.param(
-        #     {
-        #         "core": {"grid": {"nx": 10, "ny": 10}, "modules": ["soil"]},
-        #         "soil": {"no_layers": 123},
-        #     },
-        #     pytest.raises(ConfigurationError),
-        #     (
-        #         (
-        #             ERROR,
-        #             "Configuration error in ['soil']: Additional properties "
-        #             "are not allowed ('no_layers' was unexpected)",
-        #         ),
-        #         (CRITICAL, "Configuration contains schema violations: check log"),
-        #     ),
-        #     id="unexpected_property",
-        # ),
+        pytest.param(
+            {
+                "core": {"grid": {"nx": 10, "ny": 10}, "modules": ["soil"]},
+                "soil": {"no_layers": 123},
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['soil']: Additional properties "
+                    "are not allowed ('no_layers' was unexpected)",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="unexpected_property",
+        ),
     ],
 )
 def test_Config_validate_config(
