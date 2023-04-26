@@ -14,8 +14,6 @@ kernelspec:
 
 # Creating new Virtual Rainforest models
 
-TODO - UPDATE THIS TO DOCUMENT CHANGES TO TIMING SETUP.
-
 The Virtual Rainforest initially contains a set of models defining four core components
 of the rainforest: the `abiotic`, `animals`, `plants` and `soil` models. However, the
 simulation is designed to be modular:
@@ -29,7 +27,8 @@ ensure that it can be accessed by the `core` processes in the simulation.
 
 ## Create a new submodule folder
 
-Start by creating  a new folder for your model, within the `virtual_rainforest/models/` directory.
+Start by creating  a new folder for your model, within the `virtual_rainforest/models/`
+directory.
 
 ```bash
 mkdir virtual_rainforest/models/freshwater
@@ -96,7 +95,7 @@ from virtual_rainforest.core.utils import extract_update_interval
 
 Now create a new class, that derives from the
 {mod}`~virtual_rainforest.core.base_model.BaseModel`. To begin with, choose a class name
-for the model and define the following two class attributes.
+for the model and define the following four class attributes.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
 : This is a string providing a shorter, lower case  name that is used to refer to this
@@ -114,6 +113,16 @@ tuple that sets any required axes for the variable. For example:
 (('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
 ```
 
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+attribute: This give the shortest time scale for which the model can be said to be a
+reasonable model of reality for. This attribute is a string, which should include
+units that can be parsed using `pint`.
+
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+attribute: This give the longest time scale for which the model can be said to be a
+reasonable model of reality for. Again this attribute is a string, which should include
+units that can be parsed using `pint`.
+
 You will end up with something like the following:
 
 ```python
@@ -126,6 +135,10 @@ class FreshWaterModel(BaseModel):
 
     model_name = "freshwater"
     """The model name for use in registering the model and logging."""
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that freshwater model can sensibly capture."""
+    upper_bound_on_time_scale = "1 month"
+    """Longest time scale that freshwater model can sensibly capture."""
     required_init_vars = (('temperature', ('spatial', )), )
     """The required variables and axes for the Freshwater Model"""
 ```
@@ -324,31 +337,24 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
 
 ## Other model steps
 
-Every model class needs to include a function to update its model state. The exact
-details of what should be in this `update` function are yet to be decided, apart from
-how to update the internal model timing loop.
-
-```python
-def update(self) -> None:
-    """Function to update the freshwater model (only updates time currently)."""
-
-    # Update internal model timing loop
-    self.next_update += self.update_interval
-```
-
-In addition to the above, there are three other functions that must be included as part
-of the model class. The names and roles of these functions might well change as the
-Virtual Rainforest model develops, but that kind of API change is something that would
-require significant discussion. These functions are not actually used at present, so
-while they have to be included, there's no need to include any particular content within
-them (i.e. they can just be function definitions with docstrings).
+There are four functions that must be included as part of the model class. The names and
+roles of these functions might well change as the Virtual Rainforest model develops, but
+that kind of API change is something that would require significant discussion. Only the
+`update` function is used at present. The other functions need to be included, but
+there's no need to include any particular content within them (i.e. they can just be
+function definitions with docstrings).
 
 ```python
 def setup(self) -> None:
-    """Placeholder function to spin up the freshwater model."""
+    """Placeholder function to set up the freshwater model."""
 
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
+
+def update(self) -> None:
+    """Function to update the freshwater model."""
+
+    # Model simulation + update steps go in here.
 
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
