@@ -214,15 +214,15 @@ def config_merge(
 ) -> tuple[dict, tuple]:
     """Recursively merge two dictionaries detecting duplicated key definitions.
 
-    This function returns a copy of the dest dictionary that has been extended
-    recursively with the entries from the source dictionary. No key path should be
-    repeated between the two dictionaries. When duplicated key paths are found, the
-    value from the source dictionary is used and the function extends the returned
-    ``conflicts`` tuple with the conflicting key path.
+    This function returns a copy of the input ``dest`` dictionary that has been extended
+    recursively with the entries from the input ``source`` dictionary. The two input
+    dictionaries must not share any key paths and when duplicated key paths are
+    found, the value from the source dictionary is used and the function extends the
+    returned ``conflicts`` tuple with the duplicated key path.
 
     Args:
         dest: A dictionary to extend
-        source: A dictionary of key value pairs to extend dest
+        source: A dictionary of key value pairs to extend ``dest``
         conflicts: A tuple of duplicated key paths between the two dictionaries
         path: A string giving the current key path.
 
