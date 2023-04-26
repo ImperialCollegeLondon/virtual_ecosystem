@@ -48,7 +48,9 @@ the configuration, they are then all configured.
 The configuration contains a start time, an end time and an time interval for the update
 of every model. These details are extracted from configuration, with a check performed
 to ensure that the simulation will update at least once between the start and end time
-of the simulation.
+of the simulation. It is important to note that because months and years are of
+inconsistent length they are currently averaged over. This means that 1 month becomes
+30.4375 days, and 1 year becomes 365.25 days.
 
 ## Saving the initial state
 

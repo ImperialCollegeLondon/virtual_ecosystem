@@ -130,7 +130,7 @@ def extract_timing_details(
 
     # Catch bad time dimensions
     try:
-        # TODO - Document what this unit transformation does (i.e. month = 30.4375 days)
+        # This averages across months and years (i.e. 1 month => 30.4375 days)
         raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
             "seconds"
         )
