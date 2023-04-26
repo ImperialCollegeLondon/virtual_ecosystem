@@ -469,36 +469,38 @@ class Config(dict):
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
 
-        This method first validates the 'core' configuration, which sets the requested
-        modules to be used in the configured model. The schemas for the requested
-        modules are then loaded and combined to generate a single validation schema for
-        model configuration.
+        This method identifies the modules to be configured from the config
+        `core.modules` entry, using the core schema default if this entry is missing.
+        This sets the requested modules to be used in the configured model. The schemas
+        for the requested modules are then loaded and combined using the
+        :meth:`~virtual_rainforest.core.config.merge_schemas` function to generate a
+        single validation schema for model configuration.
+
+        Raises:
+            ConfigurationError: if the requested modules includes a model name that does
+                not have an entry in the
+                :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
         """
 
-        # NOTE: This is probably to be redacted - the merged schema was used to apply
-        # validation to the whole config in one go and this is not needed as each
-        # applicable schema can be applied separately to the config dictionary.
-
-        # Look up the modules requested in the configuration or use the defaults from
-        # the schema
+        # Extract the modules requested in the configuration, falling back to the schema
+        # defaults
         core_schema = SCHEMA_REGISTRY["core"]
+        defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
+
         try:
             # Provided in config
             requested_modules = self["core"]["modules"]
         except KeyError:
             # Revert to defaults
-            requested_modules = core_schema["properties"]["core"]["properties"][
-                "modules"
-            ]["default"]
+            requested_modules = defmods
 
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
-        requested_modules = self["core"]["modules"]
         for module in requested_modules:
             # Trap unknown model schemas
             if module not in SCHEMA_REGISTRY:
                 to_raise = ConfigurationError(
-                    f"Configuration contains model with no schema: {module}"
+                    f"Configuration contains module with no schema: {module}"
                 )
                 LOGGER.error(to_raise)
                 raise to_raise
@@ -507,13 +509,20 @@ class Config(dict):
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
+        LOGGER.info("Validation schema for configuration built.")
 
     def validate_config(self) -> None:
-        """Validates the loaded config."""
+        """Validate the model configuration.
 
-        # NOTE: This is probably to be redacted - it uses the merged schema, and there
-        # is no real need to actual merge schemas - just apply each applicable schema
-        # separately to the config dictionary.
+        This method first validates the 'core' configuration and applies defaults, which
+        ensures that the modules to be used in the configured model are set. The schemas
+        for the requested modules are then applied to each configuration section to
+        validate the contents and apply any default values.
+
+        Raises:
+            ConfigurationError: if the loaded configuration is not compatible with the
+                configuration schemas.
+        """
 
         # Check to see if the instance is in a validatable state
         if not self.merged_schema:
@@ -566,50 +575,6 @@ class Config(dict):
             self.config_errors.extend(errors)
         else:
             val.validate(config)
-
-    def validate_config_old(self) -> None:
-        """Validate the model configuration.
-
-        This method first validates the 'core' configuration and applies defaults, which
-        ensures that the modules to be used in the configured model are set. The schemas
-        for the requested modules are then applied to each configuration section to
-        validate the contents and apply any default values.
-
-        Raises:
-            ConfigurationError: if the loaded configuration is not compatible with the
-                configuration schemas.
-        """
-
-        # Run validation for the core configuration, which also ensures that the
-        # core.modules element of the configuration is populated
-        self._validate_and_set_defaults(self, SCHEMA_REGISTRY["core"])
-
-        # If the core is configured correctly, validate the other module configurations
-        if not self.config_errors:
-            for module in self["core"]["modules"]:
-                # Trap unknown model schemas
-                if module not in SCHEMA_REGISTRY:
-                    self.config_errors.append(
-                        ("['core', 'modules']", f"Unknown model schema: {module}")
-                    )
-                    continue
-
-                # Validate the config using the module schema
-                self._validate_and_set_defaults(self, SCHEMA_REGISTRY[module])
-
-        if self.config_errors:
-            # Log config issues and raise configuration error
-            for cfg_err_path, cfg_err in self.config_errors:
-                LOGGER.error(f"Configuration error in {cfg_err_path}: {cfg_err}")
-
-            to_raise = ConfigurationError(
-                "Configuration contains schema violations: check log"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-        LOGGER.info("Configuration validated")
-        self.validated = True
 
     def export_config(self, outfile: Path) -> None:
         """Exports a validated and merged configuration as a single file.

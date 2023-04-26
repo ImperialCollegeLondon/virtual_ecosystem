@@ -364,6 +364,41 @@ def test_Config_build_config(
     "config_content,expected_exception,expected_log_entries",
     [
         pytest.param(
+            {"core": {"modules": ["soil", "plants"]}},
+            does_not_raise(),
+            ((INFO, "Validation schema for configuration built."),),
+            id="core_modules_all_known",
+        ),
+        pytest.param(
+            {"core": {"modules": ["soil", "pants"]}},
+            pytest.raises(ConfigurationError),
+            ((ERROR, "Configuration contains module with no schema: pants"),),
+            id="core_modules_include_unknown",
+        ),
+    ],
+)
+def test_Config_build_schema(
+    caplog, config_content, expected_exception, expected_log_entries
+):
+    """Test the validate_config method of Config."""
+    from virtual_rainforest.core.config import Config
+
+    # create an empty config and directly set the merged configuration values
+    cfg = Config([], auto=False)
+    cfg.update(config_content)
+    caplog.clear()
+
+    # Run the validation
+    with expected_exception:
+        cfg.build_schema()
+
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "config_content,expected_exception,expected_log_entries",
+    [
+        pytest.param(
             {"core": {"modules": ["soil", "soil"]}},
             pytest.raises(ConfigurationError),
             (
@@ -375,19 +410,6 @@ def test_Config_build_config(
                 (CRITICAL, "Configuration contains schema violations: check log"),
             ),
             id="core_unique_module_violation",
-        ),
-        pytest.param(
-            {"core": {"modules": ["soil", "pants"]}},
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Configuration error in ['core', 'modules']: "
-                    "Unknown model schema: pants",
-                ),
-                (CRITICAL, "Configuration contains schema violations: check log"),
-            ),
-            id="core_unknown_module",
         ),
         pytest.param(
             {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants"]}},
@@ -442,6 +464,7 @@ def test_Config_validate_config(
     # create an empty config and directly set the merged configuration values
     cfg = Config([], auto=False)
     cfg.update(config_content)
+    cfg.build_schema()
     caplog.clear()
 
     # Run the validation
@@ -460,6 +483,7 @@ def test_Config_validate_config(
                 (INFO, "Config paths resolve to 1 files"),
                 (INFO, "Config TOML loaded from"),
                 (INFO, "Config set from single file"),
+                (INFO, "Validation schema for configuration built."),
                 (INFO, "Configuration validated"),
             ),
         ),
@@ -469,6 +493,7 @@ def test_Config_validate_config(
                 (INFO, "Config paths resolve to 1 files"),
                 (INFO, "Config TOML loaded from"),
                 (INFO, "Config set from single file"),
+                (INFO, "Validation schema for configuration built."),
                 (INFO, "Configuration validated"),
             ),
         ),
