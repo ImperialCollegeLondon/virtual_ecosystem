@@ -170,70 +170,81 @@ def test_configure_models(
     log_check(caplog, expected_log_entries)
 
 
-def test_vr_run_miss_model(mocker, caplog):
-    """Test the main `vr_run` function handles missing models correctly."""
-
-    mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
-    mock_conf.return_value = {"core": {"modules": ["topsoil"], "data": []}}
-
-    with pytest.raises(InitialisationError):
-        vr_run("path/does/not/need/to/exist", Path("./delete_me.toml"))
-        # If vr_run is successful (which it shouldn't be) clean up the file
-        Path("./delete_me.toml").unlink()
-
-    expected_log_entries = (
-        (INFO, "Loading data from configuration"),
-        (INFO, "Attempting to configure the following models: ['topsoil']"),
-        (
-            CRITICAL,
-            "The following models cannot be configured as they are not found in the "
-            "registry: ['topsoil']",
-        ),
-    )
-
-    log_check(caplog, expected_log_entries)
-
-
-def test_vr_run_bad_model(mocker, caplog):
-    """Test the main `vr_run` function handles bad model configuration correctly."""
-
-    mock_conf = mocker.patch("virtual_rainforest.main.validate_config")
-    mock_conf.return_value = {
-        "core": {
-            "modules": ["soil"],
-            "timing": {
-                "start_date": "2020-01-01",
-                "end_date": "2120-01-01",
+@pytest.mark.parametrize(
+    "config_content, expected_log_entries",
+    [
+        pytest.param(
+            {
+                "core": {
+                    "modules": ["soil"],
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "end_date": "2120-01-01",
+                    },
+                    "data": [],
+                },
+                "soil": {
+                    "model_time_step": "0.5 martian days",
+                },
             },
-            "data": [],
-        },
-        "soil": {
-            "model_time_step": "0.5 martian days",
-        },
-    }
+            (
+                (INFO, "Loading data from configuration"),
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    INFO,
+                    "All models found in the registry, now attempting "
+                    "to configure them.",
+                ),
+                (
+                    ERROR,
+                    "Model timing error: 'martian' is not defined in the unit registry",
+                ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation. The following models failed: ['soil'].",
+                ),
+            ),
+            id="bad_config_data",
+        ),
+        pytest.param(
+            {"core": {"modules": ["topsoil"], "data": []}},
+            (
+                (INFO, "Loading data from configuration"),
+                (INFO, "Attempting to configure the following models: ['topsoil']"),
+                (
+                    CRITICAL,
+                    "The following models cannot be configured as they are not "
+                    "found in the registry: ['topsoil']",
+                ),
+            ),
+            id="missing_model",
+        ),
+    ],
+)
+def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entries):
+    """Test the main `vr_run` function handles bad model configurations correctly.
+
+    Note that some of this is also safeguarded by the config validation. Unknown model
+    names should not pass schema validation, but incorrect config data can still pass
+    schema validation.
+    """
+
+    # Simple drop in replacement for the Config class that sidesteps TOML loading and
+    # validation and simply asserts the resulting config dictionary contents.
+    class MockConfig(dict):
+        def __init__(self, cfg_paths):
+            self.update(config_content)
+
+        def export_config(self, outfile: Path):
+            pass
+
+    mocker.patch("virtual_rainforest.main.Config", MockConfig)
 
     with pytest.raises(InitialisationError):
-        vr_run("path/does/not/need/to/exist", Path("./delete_me.toml"))
+        vr_run([], Path("./delete_me.toml"))
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
-
-    expected_log_entries = (
-        (INFO, "Loading data from configuration"),
-        (INFO, "Attempting to configure the following models: ['soil']"),
-        (
-            INFO,
-            "All models found in the registry, now attempting to configure them.",
-        ),
-        (
-            ERROR,
-            "Model timing error: 'martian' is not defined in the unit registry",
-        ),
-        (
-            CRITICAL,
-            "Could not configure all the desired models, ending the simulation. The "
-            "following models failed: ['soil'].",
-        ),
-    )
 
     log_check(caplog, expected_log_entries)
 
