@@ -459,7 +459,7 @@ class Config(dict):
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Merge everything into a single dictionary and update the object
+        # Update the object
         self.update(master)
         LOGGER.info("Config set from merged files")
 
@@ -471,6 +471,10 @@ class Config(dict):
         modules are then loaded and combined to generate a single validation schema for
         model configuration.
         """
+
+        # NOTE: This is probably to be redacted - the merged schema was used to apply
+        # validation to the whole config in one go and this is not needed as each
+        # applicable schema can be applied separately to the config dictionary.
 
         # Get the core schema and then use it to validate the 'core' element of the
         # configuration dictionary
@@ -501,6 +505,10 @@ class Config(dict):
 
     def validate_config_old(self) -> None:
         """Validates the loaded config."""
+
+        # NOTE: This is probably to be redacted - it uses the merged schema, and there
+        # is no real need to actual merge schemas - just apply each applicable schema
+        # separately to the config dictionary.
 
         # Check to see if the instance is in a validatable state
         if not self.merged_schema:
