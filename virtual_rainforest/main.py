@@ -3,8 +3,6 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
-# TODO - Update documentation of main simulation flow to reflect changes
-
 from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
@@ -145,7 +143,7 @@ def extract_timing_details(
         raise to_raise
     else:
         # Round raw time interval to nearest second
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "s")
+        update_interval = timedelta64(round(raw_interval.magnitude), "s")
 
     if run_length < update_interval:
         to_raise = InitialisationError(
@@ -169,7 +167,6 @@ def extract_timing_details(
     return start_time, update_interval, end_time
 
 
-# TODO - Work out if any more tested is needed for this main flow
 def vr_run(cfg_paths: Union[str, list[str]], merge_file_path: Path) -> None:
     """Perform a virtual rainforest simulation.
 
