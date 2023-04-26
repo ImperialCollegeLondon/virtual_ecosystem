@@ -151,6 +151,46 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             ),
             id="model_time_step missing units",
         ),
+        pytest.param(
+            {  # update_interval missing units
+                "core": {"timing": {"update_interval": "1 minute"}},
+            },
+            None,
+            pytest.raises(InitialisationError),
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    ERROR,
+                    "The update interval is shorter than the model's lower bound",
+                ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
+                ),
+            ),
+            id="update interval too short",
+        ),
+        pytest.param(
+            {  # update_interval missing units
+                "core": {"timing": {"update_interval": "1 year"}},
+            },
+            None,
+            pytest.raises(InitialisationError),
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    ERROR,
+                    "The update interval is longer than the model's upper bound",
+                ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
+                ),
+            ),
+            id="update interval too long",
+        ),
     ],
 )
 def test_configure_models(
