@@ -93,10 +93,12 @@ team.
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
   Soil Constants <api/soil/constants.md>
+  Abiotic Simple Overview <api/abiotic_simple.md>
+  Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
+  Abiotic Simple Regression Model <api/abiotic_simple/simple_regression.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Tools <api/abiotic/abiotic_tools.md>
-  Abiotic Simple Regression Model <api/abiotic/simple_regression.md>
   Abiotic Radiation <api/abiotic/radiation.md>
   Abiotic Wind <api/abiotic/wind.md>
   Abiotic Atmospheric CO2 <api/abiotic/atmospheric_co2.md>

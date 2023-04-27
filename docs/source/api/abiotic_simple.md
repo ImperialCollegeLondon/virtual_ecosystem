@@ -14,11 +14,8 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.abiotic.simple_regression` module
+# API reference for `abiotic_simple` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic.simple_regression
-    :autosummary:
-    :members:
-    :special-members: __init__
+.. automodule:: virtual_rainforest.models.abiotic_simple
 ```

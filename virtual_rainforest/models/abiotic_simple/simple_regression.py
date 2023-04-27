@@ -1,4 +1,4 @@
-r"""The ``models.abiotic.simple_regression`` module uses simple linear regression
+r"""The ``models.abiotic_simple.simple_regression`` module uses simple linear regression
 and logarithmic interpolation to calculate atmospheric temperature and humidity and soil
 temperature as a function of leaf area index and height. The relationships are derived
 from HARDWICK. The module also provides a constant vertical profile of atmospheric
@@ -22,6 +22,7 @@ MicroclimateGradients: Dict[str, float] = {
     "soil_temperature_gradient": -0.61,
     "soil_temperature_diurnal_range_gradient": -0.92,
 }
+
 MicroclimateParameters: Dict[str, float] = {
     "soil_moisture_capacity": 150,
     "soil_temperature_adjustment": 5,
@@ -217,7 +218,6 @@ def run_simple_regression(
         temperature=data["air_temperature_ref"],
         relative_humidity=data["relative_humidity_ref"],
     )
-
     vapor_pressure_deficit_lai = lai_regression(
         reference_data=vapor_pressure_deficit_ref.isel(layers=0),
         leaf_area_index=data["leaf_area_index"],
@@ -233,23 +233,35 @@ def run_simple_regression(
     vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
 
-    # soil temperature
-    soil_temperature_lai = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(layers=0)
-        + 5.0,  # approximation
-        leaf_area_index=data["leaf_area_index"],
-        gradient=MicroclimateGradients["soil_temperature_gradient"],
-    )
-    soil_temperature_log = log_interpolation(
-        data=data,
-        reference_data=data["air_temperature_ref"].isel(layers=0)
-        + MicroclimateParameters["soil_temperature_adjustment"],
-        layer_roles=layer_roles,
-        layer_heights=data["layer_heights"],
-        value_from_lai_regression=soil_temperature_lai,
-    )
-    soil_temperature = soil_temperature_log.rename("soil_temperature")
-    output.append(soil_temperature)
+    # TODO soil temperature; interpolation from surface to 1m depth (annual mean)?
+
+    # highest_soil_layer = (
+    #     (
+    #         air_temperature.isel(layers=12)
+    #         + data["mean_annual_temperature"].isel(layers=14)
+    #     )
+    #     / 2
+    # ).expand_dims("layers")
+    # soil_temperature = xr.concat(
+    #     [
+    #         DataArray(
+    #             np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
+    #             dims=["layers", "cell_id"],
+    #             coords={
+    #                 "layers": np.arange(0, len(layer_roles)),
+    #                 "layer_roles": (
+    #                     "layers",
+    #                     layer_roles[0 : len(layer_roles)],
+    #                 ),
+    #                 "cell_id": data.grid.cell_id,
+    #             },
+    #         ),
+    #         highest_soil_layer,
+    #         data["mean_annual_temperature"].isel(layer=14),
+    #     ],
+    #     dim="layers",
+    # )
+    # output.append(soil_temperature)
 
     # atmospheric pressure
     atmospheric_pressure_1 = xr.concat(

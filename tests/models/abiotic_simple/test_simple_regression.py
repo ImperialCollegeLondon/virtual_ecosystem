@@ -1,4 +1,4 @@
-"""Test module for abiotic.simple_regression.py."""
+"""Test module for abiotic_simple.simple_regression.py."""
 
 import numpy as np
 import xarray as xr
@@ -85,7 +85,7 @@ data["leaf_area_index"] = data["leaf_area_index"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
 
-data["layer_heights"] = xr.concat(
+data["layer_heights"] = xr.concat(  # TODO what values for soil layers? negative?
     [
         DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
         DataArray(np.full((7, 3), np.nan)),
@@ -102,7 +102,7 @@ data["layer_heights"] = data["layer_heights"].rename(
 def test_setup_simple_regression():
     """Test initialisation of variables with same dimensions."""
 
-    from virtual_rainforest.models.abiotic.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
         setup_simple_regression,
     )
 
@@ -144,7 +144,9 @@ def test_setup_simple_regression():
 
 def test_lai_regression():
     """Test lai regression."""
-    from virtual_rainforest.models.abiotic.simple_regression import lai_regression
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+        lai_regression,
+    )
 
     result = lai_regression(
         reference_data=data["air_temperature_ref"].isel(layers=0),
@@ -158,7 +160,7 @@ def test_lai_regression():
 def test_log_interpolation():
     """Test."""
 
-    from virtual_rainforest.models.abiotic.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
         lai_regression,
         log_interpolation,
     )
@@ -222,7 +224,7 @@ def test_log_interpolation():
 def test_calculate_saturation_vapor_pressure():
     """Test."""
 
-    from virtual_rainforest.models.abiotic.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
         calculate_saturation_vapor_pressure,
     )
 
@@ -249,7 +251,7 @@ def test_calculate_saturation_vapor_pressure():
 def test_calculate_vapor_pressure_deficit():
     """Test."""
 
-    from virtual_rainforest.models.abiotic.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
         calculate_vapor_pressure_deficit,
     )
 
@@ -278,7 +280,7 @@ def test_calculate_vapor_pressure_deficit():
 def test_run_simple_regression():
     """Test interpolation."""
 
-    from virtual_rainforest.models.abiotic.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
         run_simple_regression,
     )
 
