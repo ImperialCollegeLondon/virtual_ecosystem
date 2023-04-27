@@ -9,6 +9,17 @@
                "description": "Details of the grid to configure",
                "type": "object",
                "properties": {
+                  "grid_type": {
+                     "description": "The grid cell type",
+                     "type": "string",
+                     "default": "square"
+                  },
+                  "cell_area": {
+                     "description": "The area of each grid cell",
+                     "type": "float",
+                     "exclusiveMinimum": 0,
+                     "default": 100
+                  },
                   "nx": {
                      "description": "Number of grid cells in x direction",
                      "type": "integer",
@@ -20,6 +31,16 @@
                      "type": "integer",
                      "exclusiveMinimum": 0,
                      "default": 100
+                  },
+                  "xoff": {
+                     "description": "The x offset of the grid origin",
+                     "type": "float",
+                     "default": 0
+                  },
+                  "yoff": {
+                     "description": "The y offset of the grid origin",
+                     "type": "float",
+                     "default": 0
                   }
                },
                "default": {},
