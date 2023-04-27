@@ -121,13 +121,14 @@ def test_collect_files(
         ),
         (
             [Path("fake_file1.toml"), Path("fake_file2.toml")],
-            [b"[core.grid]\nnx = 10", b"[core.grid]\nnx = 12"],
+            [b"[core.grid]\ncell_nx = 10", b"[core.grid]\ncell_nx = 12"],
             ConfigurationError,
             (
                 (
                     CRITICAL,
                     "The following tags are defined in multiple config files:\n"
-                    "core.grid.nx defined in both fake_file2.toml and fake_file1.toml",
+                    "core.grid.cell_nx defined in both fake_file2.toml and "
+                    "fake_file1.toml",
                 ),
             ),
         ),
@@ -156,7 +157,7 @@ def test_load_in_config_files(
     "config_dict,expected_exception,expected_log_entries",
     [
         (
-            {"core": {"grid": {"nx": 10, "ny": 10}}},
+            {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
             ConfigurationError,
             (
                 (
@@ -323,7 +324,7 @@ def test_extend_with_default():
 
 
 @pytest.mark.parametrize(
-    "config_dict,nx,raises,expected_log_entries",
+    "config_dict,cell_nx,raises,expected_log_entries",
     [
         (
             {},
@@ -332,23 +333,25 @@ def test_extend_with_default():
             (),
         ),
         (
-            {"core": {"grid": {"nx": 125}}},
+            {"core": {"grid": {"cell_nx": 125}}},
             125,
             does_not_raise(),
             (),
         ),
         (
-            {"core": {"grid": {"nx": -125, "ny": -10}}},
+            {"core": {"grid": {"cell_nx": -125, "cell_ny": -10}}},
             None,
             pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
-                    "[core][grid][nx]: -125 is less than or equal to the minimum of 0",
+                    "[core][grid][cell_nx]: -125 is less than or equal to the "
+                    "minimum of 0",
                 ),
                 (
                     ERROR,
-                    "[core][grid][ny]: -10 is less than or equal to the minimum of 0",
+                    "[core][grid][cell_ny]: -10 is less than or equal to the "
+                    "minimum of 0",
                 ),
                 (
                     CRITICAL,
@@ -358,7 +361,7 @@ def test_extend_with_default():
         ),
     ],
 )
-def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries):
+def test_add_core_defaults(caplog, config_dict, cell_nx, raises, expected_log_entries):
     """Test that default values are properly added to the core configuration."""
     from virtual_rainforest.core.config import add_core_defaults
 
@@ -368,9 +371,9 @@ def test_add_core_defaults(caplog, config_dict, nx, raises, expected_log_entries
 
     log_check(caplog, expected_log_entries)
 
-    # If configuration occurs check that nx has the right value
-    if nx is not None:
-        assert config_dict["core"]["grid"]["nx"] == nx
+    # If configuration occurs check that cell_nx has the right value
+    if cell_nx is not None:
+        assert config_dict["core"]["grid"]["cell_nx"] == cell_nx
 
 
 def test_missing_core_schema(caplog, mocker):

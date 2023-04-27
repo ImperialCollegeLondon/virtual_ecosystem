@@ -45,8 +45,8 @@
                },
                "default": {},
                "required": [
-                  "nx",
-                  "ny"
+                  "cell_nx",
+                  "cell_ny"
                ]
             },
             "timing": {
