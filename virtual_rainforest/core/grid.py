@@ -10,6 +10,8 @@ underlying the simulation and to identify the neighbourhood connections of cells
   https://pysal.org/libpysal/
 """  # noqa: D205, D415
 
+from __future__ import annotations
+
 import json
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
@@ -283,6 +285,25 @@ class Grid:
             f"ny={self.cell_ny}, "
             f"n={self.n_cells}, "
             f"bounds={self.bounds})"
+        )
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> Grid:
+        """Factory function to generate a Grid instance from a configuration dict.
+
+        Args:
+            config: A complete, validated Virtual Rainforest configuration.
+        """
+
+        grid_dict = config["core"]["grid"]
+
+        return Grid(
+            grid_type=grid_dict["grid_type"],
+            cell_area=grid_dict["cell_area"],
+            cell_nx=grid_dict["nx"],
+            cell_ny=grid_dict["ny"],
+            xoff=grid_dict["xoff"],
+            yoff=grid_dict["yoff"],
         )
 
     def dumps(self, dp: int = 2, **kwargs: Any) -> str:
