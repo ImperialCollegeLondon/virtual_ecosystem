@@ -16,17 +16,17 @@
                   },
                   "cell_area": {
                      "description": "The area of each grid cell",
-                     "type": "float",
+                     "type": "number",
                      "exclusiveMinimum": 0,
                      "default": 100
                   },
-                  "nx": {
+                  "cell_nx": {
                      "description": "Number of grid cells in x direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
                      "default": 100
                   },
-                  "ny": {
+                  "cell_ny": {
                      "description": "Number of grid cells in y direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
@@ -34,12 +34,12 @@
                   },
                   "xoff": {
                      "description": "The x offset of the grid origin",
-                     "type": "float",
+                     "type": "number",
                      "default": 0
                   },
                   "yoff": {
                      "description": "The y offset of the grid origin",
-                     "type": "float",
+                     "type": "number",
                      "default": 0
                   }
                },

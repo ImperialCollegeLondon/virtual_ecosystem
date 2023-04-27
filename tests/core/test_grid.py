@@ -4,6 +4,7 @@ This module tests the functionality of grid.py
 """
 import json
 from contextlib import nullcontext as does_not_raise
+from logging import CRITICAL, ERROR, INFO
 
 import numpy as np
 import numpy.linalg as LA
@@ -11,6 +12,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
+
+from tests.conftest import log_check
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 # Local constants
 # 100m2 hex: apothem = 5.373 m, side = 6.204 m
@@ -163,6 +167,79 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     assert np.allclose(grid.centroids, exp_centroids)
     assert grid.n_cells == exp_n_cells
     assert np.allclose(grid.bounds, exp_bounds)
+
+
+@pytest.mark.parametrize(
+    argnames=["config", "expected_err", "expected_log"],
+    argvalues=[
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "square",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            does_not_raise(),
+            ((INFO, "Grid created from configuration."),),
+            id="good_square",
+        ),
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "hexagon",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            does_not_raise(),
+            ((INFO, "Grid created from configuration."),),
+            id="good_hex",
+        ),
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "penrose",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (ERROR, "The grid_type penrose is not defined."),
+                (CRITICAL, "Grid creation from configuration failed."),
+            ),
+            id="fail_unknown_grid",
+        ),
+    ],
+)
+def test_grid_from_config(caplog, config, expected_err, expected_log):
+    """Test the creation of a Grid object using the from_config factory method.
+
+    NOTE: this does not use an actual Config object, just a dictionary
+    """
+
+    from virtual_rainforest.core.grid import Grid
+
+    with expected_err:
+        _ = Grid.from_config(config)
+
+    log_check(caplog, expected_log)
 
 
 @pytest.mark.parametrize(argnames=["preset_distances"], argvalues=[(True,), (False,)])

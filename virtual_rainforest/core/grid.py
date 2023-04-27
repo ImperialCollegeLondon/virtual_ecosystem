@@ -21,6 +21,7 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
+from virtual_rainforest.core.config import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 GRID_REGISTRY: dict[str, Callable] = {}
@@ -295,16 +296,16 @@ class Grid:
             config: A complete, validated Virtual Rainforest configuration.
         """
 
-        grid_dict = config["core"]["grid"]
+        try:
+            grid = Grid(**config["core"]["grid"])
+        except Exception as err:
+            LOGGER.error(err)
+            to_raise = ConfigurationError("Grid creation from configuration failed.")
+            LOGGER.critical(to_raise)
+            raise to_raise
 
-        return Grid(
-            grid_type=grid_dict["grid_type"],
-            cell_area=grid_dict["cell_area"],
-            cell_nx=grid_dict["nx"],
-            cell_ny=grid_dict["ny"],
-            xoff=grid_dict["xoff"],
-            yoff=grid_dict["yoff"],
-        )
+        LOGGER.info("Grid created from configuration.")
+        return grid
 
     def dumps(self, dp: int = 2, **kwargs: Any) -> str:
         """Export a grid as a GeoJSON string.
