@@ -32,46 +32,21 @@ grid = Grid(cell_nx=3, cell_ny=1)
 data = Data(grid)
 
 # Add the required data.
-data["air_temperature_ref"] = xr.concat(
-    [
-        DataArray(np.full((1, 3), 30)),
-        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
-    ],
-    dim="dim_0",
+data["air_temperature_ref"] = DataArray(
+    np.full((3, 3), 30),
+    dims=["cell_id", "time"],
 )
-data["air_temperature_ref"] = data["air_temperature_ref"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
+data["relative_humidity_ref"] = DataArray(
+    np.full((3, 3), 90),
+    dims=["cell_id", "time"],
 )
-data["relative_humidity_ref"] = xr.concat(
-    [
-        DataArray(np.full((1, 3), 90)),
-        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
-    ],
-    dim="dim_0",
+data["atmospheric_pressure_ref"] = DataArray(
+    np.full((3, 3), 1.5),
+    dims=["cell_id", "time"],
 )
-data["relative_humidity_ref"] = data["relative_humidity_ref"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
-)
-data["atmospheric_pressure_ref"] = xr.concat(
-    [
-        DataArray(np.full((1, 3), 1)),
-        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
-    ],
-    dim="dim_0",
-)
-data["atmospheric_pressure_ref"] = data["atmospheric_pressure_ref"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
-)
-
-data["atmospheric_co2_ref"] = xr.concat(
-    [
-        DataArray(np.full((1, 3), 1)),
-        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
-    ],
-    dim="dim_0",
-)
-data["atmospheric_co2_ref"] = data["atmospheric_co2_ref"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
+data["atmospheric_co2_ref"] = DataArray(
+    np.full((3, 3), 400),
+    dims=["cell_id", "time"],
 )
 
 data["leaf_area_index"] = xr.concat(
@@ -149,7 +124,7 @@ def test_lai_regression():
     )
 
     result = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(layers=0),
+        reference_data=data["air_temperature_ref"].isel(time=0),
         leaf_area_index=data["leaf_area_index"],
         gradient=-2.45,
     )
@@ -166,14 +141,14 @@ def test_log_interpolation():
     )
 
     value_from_lai_regression = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(layers=0),
+        reference_data=data["air_temperature_ref"].isel(time=0),
         leaf_area_index=data["leaf_area_index"],
         gradient=-2.45,
     )
 
     result = log_interpolation(
         data=data,
-        reference_data=data["air_temperature_ref"].isel(layers=0),
+        reference_data=data["air_temperature_ref"].isel(time=0),
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=value_from_lai_regression,
@@ -228,22 +203,13 @@ def test_calculate_saturation_vapor_pressure():
         calculate_saturation_vapor_pressure,
     )
 
-    result = calculate_saturation_vapor_pressure(data["air_temperature_ref"])
+    result = calculate_saturation_vapor_pressure(
+        data["air_temperature_ref"].isel(time=0)
+    )
 
-    exp_output = xr.concat(
-        [
-            DataArray(
-                [
-                    [1.41727, 1.41727, 1.41727],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(
-                np.full((14, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
-        ],
-        dim="layers",
+    exp_output = DataArray(
+        [1.41727, 1.41727, 1.41727],
+        dims=["cell_id"],
     )
     xr.testing.assert_allclose(result, exp_output)
 
@@ -255,20 +221,90 @@ def test_calculate_vapor_pressure_deficit():
         calculate_vapor_pressure_deficit,
     )
 
+    temperature = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.844995, 29.844995, 29.844995],
+                    [28.87117, 28.87117, 28.87117],
+                    [27.206405, 27.206405, 27.206405],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [16.145945, 16.145945, 16.145945],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    rel_humidity = xr.concat(
+        [
+            DataArray(
+                [
+                    [90.0, 90.0, 90.0],
+                    [88.5796455, 88.5796455, 88.5796455],
+                    [79.65622765, 79.65622765, 79.65622765],
+                    [64.40154408, 64.40154408, 64.40154408],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [-36.94837978, -36.94837978, -36.94837978],
+                ],  # TODO set boundaries
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+
     result = calculate_vapor_pressure_deficit(
-        data["air_temperature_ref"],
-        data["relative_humidity_ref"],
+        temperature,
+        rel_humidity,
     )
     exp_output = xr.concat(
         [
             DataArray(
                 [
                     [0.141727, 0.141727, 0.141727],
+                    [0.161233, 0.161233, 0.161233],
+                    [0.280298, 0.280298, 0.280298],
+                    [0.470266, 0.470266, 0.470266],
                 ],
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                np.full((14, 3), np.nan),
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [[0.90814, 0.90814, 0.90814], [1.34879, 1.34879, 1.34879]],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -287,6 +323,7 @@ def test_run_simple_regression():
     result = run_simple_regression(
         data=data,
         layer_roles=layer_roles,
+        time_index=0,
     )
 
     exp_output = xr.concat(

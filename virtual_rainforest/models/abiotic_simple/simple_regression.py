@@ -125,6 +125,7 @@ def setup_simple_regression(
 def run_simple_regression(
     data: Data,
     layer_roles: List[str],
+    time_index: int,  # could be datetime
     MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
     MicroclimateParameters: Dict[str, float] = MicroclimateParameters,
 ) -> List[DataArray]:
@@ -168,6 +169,7 @@ def run_simple_regression(
     Args:
         data: Data object
         layer_roles: roles of vertical layers
+        time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
         MicroclimateParameters: dictionnary of microclimate parameters
 
@@ -182,13 +184,13 @@ def run_simple_regression(
 
     # air temperature
     air_temperature_lai = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(layers=0),
+        reference_data=data["air_temperature_ref"].isel(time=time_index),
         leaf_area_index=data["leaf_area_index"],
         gradient=MicroclimateGradients["air_temperature_gradient"],
     )
     air_temperature_log = log_interpolation(
         data=data,
-        reference_data=data["air_temperature_ref"].isel(layers=0),
+        reference_data=data["air_temperature_ref"].isel(time=time_index),
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=air_temperature_lai,
@@ -198,13 +200,13 @@ def run_simple_regression(
 
     # relative humidity
     relative_humidity_lai = lai_regression(
-        reference_data=data["relative_humidity_ref"].isel(layers=0),
+        reference_data=data["relative_humidity_ref"].isel(time=time_index),
         leaf_area_index=data["leaf_area_index"],
         gradient=MicroclimateGradients["relative_humidity_gradient"],
     )
     relative_humidity_log = log_interpolation(
         data=data,
-        reference_data=data["relative_humidity_ref"].isel(layers=0),
+        reference_data=data["relative_humidity_ref"].isel(time=time_index),
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=relative_humidity_lai,
@@ -215,17 +217,17 @@ def run_simple_regression(
     # vapor pressure deficit
     # calculate vapor pressure deficit at reference height
     vapor_pressure_deficit_ref = calculate_vapor_pressure_deficit(
-        temperature=data["air_temperature_ref"],
-        relative_humidity=data["relative_humidity_ref"],
+        temperature=data["air_temperature_ref"].isel(time=time_index),
+        relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
     vapor_pressure_deficit_lai = lai_regression(
-        reference_data=vapor_pressure_deficit_ref.isel(layers=0),
+        reference_data=vapor_pressure_deficit_ref,
         leaf_area_index=data["leaf_area_index"],
         gradient=MicroclimateGradients["vapor_pressure_deficit_gradient"],
     )
     vapor_pressure_deficit_log = log_interpolation(
         data=data,
-        reference_data=vapor_pressure_deficit_ref.isel(layers=0),
+        reference_data=vapor_pressure_deficit_ref,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=vapor_pressure_deficit_lai,
@@ -267,7 +269,7 @@ def run_simple_regression(
     atmospheric_pressure_1 = xr.concat(
         [
             data["atmospheric_pressure_ref"]
-            .isel(layers=0)
+            .isel(time=time_index)
             .expand_dims(
                 dim={"layers": np.arange(len(layer_roles) - layer_roles.count("soil"))},
                 axis=0,
@@ -300,7 +302,7 @@ def run_simple_regression(
     atmospheric_co2_1 = xr.concat(
         [
             data["atmospheric_co2_ref"]
-            .isel(layers=0)
+            .isel(time=time_index)
             .expand_dims(
                 dim={"layers": np.arange(len(layer_roles) - layer_roles.count("soil"))},
                 axis=0,
@@ -361,6 +363,7 @@ def lai_regression(
     Returns:
         microclimatic variable at 1.5 m
     """
+
     return DataArray(
         leaf_area_index.sum(dim="layers") * gradient + reference_data, dims="cell_id"
     )
@@ -434,7 +437,7 @@ def calculate_saturation_vapor_pressure(
     """
     return DataArray(
         (0.61078 * np.exp((7.5 * (temperature)) / (temperature + 237.3))),
-        dims=["layers", "cell_id"],
+        dims=temperature.dims,
         name="saturation_vapor_pressure",
     )
 
