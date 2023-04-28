@@ -45,8 +45,8 @@ the configuration, they are then all configured.
 
 ## Extracting simulation timing details
 
-The configuration contains a start time, an end time and an time interval for the update
-of every model. These details are extracted from configuration, with a check performed
+The configuration contains a start time, an end time and a time interval for the update
+of all models. These details are extracted from configuration, with a check performed
 to ensure that the simulation will update at least once between the start and end time
 of the simulation. It is important to note that because months and years are of
 inconsistent length they are currently averaged over. This means that 1 month becomes
