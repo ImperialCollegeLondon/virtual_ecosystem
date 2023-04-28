@@ -6,7 +6,7 @@ pressure and :math:`\ce{CO2}`. Soil moisture and surface runoff are calculated w
 simple bucket model.
 """  # noqa: D205, D415
 
-from typing import Dict, List  # , Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import xarray as xr
@@ -36,6 +36,9 @@ def setup_simple_regression(
     initial_soil_moisture: float = 50,
 ) -> List[DataArray]:
     r"""Set up abiotic environment variables.
+
+    This function initialises all abiotic variables as DataArrays filled with NaN,
+    except for soil moisture which has a homogenous value across all soil layers.
 
     Args:
         layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
@@ -197,7 +200,7 @@ def run_simple_regression(
     * leaf_area_index
     * layer_heights
     * precipitation
-    * soil_moisture_ini
+    * soil_moisture
 
     Args:
         data: Data object
@@ -211,7 +214,7 @@ def run_simple_regression(
         temperature, atmospheric pressure, atmospheric :math:`\ce{CO2}`, soil moisture,
         and surface runoff
     """
-    # set limits for humidity
+    # TODO set limits for variables
 
     output = []
 
@@ -346,18 +349,39 @@ def run_simple_regression(
     output.append(atmospheric_co2)
 
     # soil moisture
+    precipitation_surface = (
+        data["precipitation"].isel(time=time_index)
+        * MicroclimateParameters["water_interception_factor"]
+        * data["leaf_area_index"].sum(dim="layers")
+    )
 
-    # precipitation_surface = (
-    #    data["precipitation"] * MicroclimateParameters['water_interception_factor']
-    #  * data["leaf_area_index"].sum(dim="layers")
-    # ) TODO check dimensions (write in surface layer)
-
-    # soil_moisture, surface_run_off = calculate_soil_moisture(
-    #       precipitation_surface,
-    #       current_soil_moisture,
-    #       soil_moisture_capacity= MicroclimateParameters['soil_moisture_capacity'],
-    # )
-
+    soil_moisture1, surface_run_off1 = calculate_soil_moisture(
+        precipitation_surface=precipitation_surface,
+        current_soil_moisture=data["soil_moisture"],
+        soil_moisture_capacity=MicroclimateParameters["soil_moisture_capacity"],
+    )
+    soil_moisture = soil_moisture1.rename("soil_moisture").assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        },
+    )
+    surface_run_off = surface_run_off1.rename("surface_run_off").assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        },
+    )
+    output.append(soil_moisture)
+    output.append(surface_run_off.rename("surface_run_off"))
     return output
 
 
@@ -572,20 +596,27 @@ def interpolate_soil_temperature(
 
 # TODO HYDROLOGY grid based not ready
 
-# def calculate_surface_runoff(
-#     precipitation_surface: DataArray,
-#     current_soil_moisture: DataArray,
-#     soil_moisture_capacity: Union[DataArray,float],
-# ) -> Tuple[DataArray, DataArray]:
-#     """Calculate surface runoff and update soil mositure content.
-#     Args:
-#         precipitation_surface: precipitation that reaches surface, [mm],
-#         current_soil_moisture: current soil moisture at upper layer, [mm],
-#         soil_moisture_capacity: soil moisture capacity
-#     Returns:
-#         current soil moisture, [mm], surface runoff, [mm]
-#     """
-#     # TODO apply to DataArray with where() or any() !
+
+def calculate_soil_moisture(
+    precipitation_surface: DataArray,
+    current_soil_moisture: DataArray,
+    soil_moisture_capacity: Union[DataArray, float],
+) -> Tuple[DataArray, DataArray]:
+    """Calculate surface runoff and update soil mositure content.
+
+    Args:
+        precipitation_surface: precipitation that reaches surface, [mm],
+        current_soil_moisture: current soil moisture at upper layer, [mm],
+        soil_moisture_capacity: soil moisture capacity
+
+    Returns:
+        current soil moisture, [mm], surface runoff, [mm]
+    """
+    raise (NotImplementedError)
+
+    # TODO apply to DataArray with where() or any() !
+
+
 #     if precipitation_surface > soil_moisture_capacity:
 #         surface_runoff = current_soil_moisture - soil_moisture_capacity
 #         soil_moisture_updated = soil_moisture_capacity
