@@ -1,3 +1,6 @@
+# This file contains every tag required to build the config for the plants and soil
+# modules. Each value has been chosen to be different from the default value, so that
+# this file can be used to test that providing non-default values works.
 [core]
 modules = ["plants", "soil"]
 
