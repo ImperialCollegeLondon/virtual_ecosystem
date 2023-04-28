@@ -33,12 +33,14 @@ MicroclimateParameters: Dict[str, float] = {
 def setup_simple_regression(
     layer_roles: List[str],
     data: Data,
+    initial_soil_moisture: float = 50,
 ) -> List[DataArray]:
     r"""Set up abiotic environment variables.
 
     Args:
         layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         data: Data object
+        initial_soil_moisture: initial soil moisture
 
     Returns:
         list of DataArrays for air temperature, relative humidity, vapor pressure
@@ -96,7 +98,38 @@ def setup_simple_regression(
     ).rename("atmospheric_co2")
     r"""Atmospheric :math:`\ce{CO2}` profile, [ppm]"""
 
-    soil_moisture = DataArray(
+    # initial soil moisture constant in all soil layers
+    soil_moisture = (
+        xr.concat(
+            [
+                DataArray(
+                    np.full(
+                        (
+                            len(layer_roles) - layer_roles.count("soil"),
+                            len(data.grid.cell_id),
+                        ),
+                        np.nan,
+                    ),
+                    dims=["layers", "cell_id"],
+                ),
+                DataArray(
+                    np.full(
+                        (
+                            layer_roles.count("soil"),
+                            len(data.grid.cell_id),
+                        ),
+                        initial_soil_moisture,
+                    ),
+                    dims=["layers", "cell_id"],
+                ),
+            ],
+            dim="layers",
+        )
+        .rename("soil_moisture")
+        .assign_coords(air_temperature.coords)
+    )
+
+    DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
