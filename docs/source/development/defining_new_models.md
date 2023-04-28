@@ -114,14 +114,14 @@ tuple that sets any required axes for the variable. For example:
 ```
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
-attribute: This give the shortest time scale for which the model can be said to be a
-reasonable model of reality for. This attribute is a string, which should include
-units that can be parsed using `pint`.
+attribute: This is the shortest time scale for which the model is a realistic
+simulation. This attribute is a string, which should include units that can be parsed
+using `pint`.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
-attribute: This give the longest time scale for which the model can be said to be a
-reasonable model of reality for. Again this attribute is a string, which should include
-units that can be parsed using `pint`.
+attribute: This is the longest time scale for which the model is a realistic simulation.
+Again this attribute is a string, which should include units that can be parsed using
+`pint`.
 
 You will end up with something like the following:
 
