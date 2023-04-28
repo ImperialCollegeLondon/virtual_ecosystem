@@ -164,7 +164,7 @@ def run_simple_regression(
     * leaf_area_index
     * layer_heights
     * precipitation
-    * soil_moisture
+    * soil_moisture_ini
 
     Args:
         data: Data object
@@ -235,35 +235,16 @@ def run_simple_regression(
     vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
 
-    # TODO soil temperature; interpolation from surface to 1m depth (annual mean)?
-
-    # highest_soil_layer = (
-    #     (
-    #         air_temperature.isel(layers=12)
-    #         + data["mean_annual_temperature"].isel(layers=14)
-    #     )
-    #     / 2
-    # ).expand_dims("layers")
-    # soil_temperature = xr.concat(
-    #     [
-    #         DataArray(
-    #             np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
-    #             dims=["layers", "cell_id"],
-    #             coords={
-    #                 "layers": np.arange(0, len(layer_roles)),
-    #                 "layer_roles": (
-    #                     "layers",
-    #                     layer_roles[0 : len(layer_roles)],
-    #                 ),
-    #                 "cell_id": data.grid.cell_id,
-    #             },
-    #         ),
-    #         highest_soil_layer,
-    #         data["mean_annual_temperature"].isel(layer=14),
-    #     ],
-    #     dim="layers",
-    # )
-    # output.append(soil_temperature)
+    # soil temperature
+    soil_temperature = interpolate_soil_temperature(
+        layer_heights=data["layer_heights"],
+        layer_roles=layer_roles,
+        surface_temperature=air_temperature.isel(
+            layers=len(layer_roles) - layer_roles.count("soil") - 1
+        ),
+        mean_annual_temperature=data["mean_annual_temperature"],
+    )
+    output.append(soil_temperature)
 
     # atmospheric pressure
     atmospheric_pressure_1 = xr.concat(
@@ -464,6 +445,96 @@ def calculate_vapor_pressure_deficit(
     return (saturation_vapor_pressure - actual_vapor_pressure).rename(
         "vapor_pressure_deficit_ref"
     )
+
+
+def interpolate_soil_temperature(
+    layer_heights: DataArray,
+    layer_roles: List,
+    surface_temperature: DataArray,
+    mean_annual_temperature: DataArray,
+) -> DataArray:
+    """Interpolate soil temperature."""
+
+    # select surface layer (atmosphere)
+    surface_layer = layer_heights[layer_heights.coords["layer_roles"] == "surface"]
+
+    # calculate relative depth of lowest layer with respect to surface layer
+    lowest_soil_depth_relative = (
+        layer_heights.isel(layers=-1).expand_dims("layers") * -1 + surface_layer.values
+    )
+
+    # create array of interpolation heights including surface layer and soil layers
+    interpolation_heights = xr.concat(
+        [
+            surface_layer,
+            layer_heights[layer_heights.coords["layer_roles"] == "soil"] * -1
+            + surface_layer.values,
+        ],
+        dim="layers",
+    )
+
+    # x values include surface and lowest soil layer
+    x_values = np.array(
+        xr.concat(
+            [
+                layer_heights[
+                    layer_heights.coords["layer_roles"] == "surface"
+                ],  # surface layer
+                lowest_soil_depth_relative,
+            ],
+            dim="layers",
+        )
+    ).flatten()
+
+    y_values = np.array([surface_temperature, mean_annual_temperature]).flatten()
+
+    popt, pcov = curve_fit(logarithmic, x_values, y_values)
+    a, b = popt  # the function coefficients
+
+    interpolation = DataArray(
+        a * np.log(interpolation_heights) + b,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(
+                len(layer_roles) - layer_roles.count("soil") - 1, len(layer_roles)
+            ),
+            "layer_roles": (
+                "layers",
+                layer_roles[
+                    len(layer_roles) - layer_roles.count("soil") - 1 : len(layer_roles)
+                ],
+            ),
+            "cell_id": mean_annual_temperature.coords["cell_id"],
+        },
+    )
+
+    soil_temperature = xr.concat(
+        [
+            DataArray(
+                np.full(
+                    (
+                        len(layer_roles) - layer_roles.count("soil"),
+                        len(mean_annual_temperature.coords["cell_id"]),
+                    ),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(
+                        0, len(layer_roles) - layer_roles.count("soil")
+                    ),
+                    "layer_roles": (
+                        "layers",
+                        layer_roles[0 : len(layer_roles) - layer_roles.count("soil")],
+                    ),
+                    "cell_id": mean_annual_temperature.coords["cell_id"],
+                },
+            ),
+            interpolation[interpolation.coords["layer_roles"] == "soil"],
+        ],
+        dim="layers",  # select bottom two
+    )
+    return soil_temperature.rename("soil_temperature")
 
 
 # TODO HYDROLOGY grid based not ready

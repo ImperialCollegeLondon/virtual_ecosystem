@@ -36,6 +36,10 @@ data["air_temperature_ref"] = DataArray(
     np.full((3, 3), 30),
     dims=["cell_id", "time"],
 )
+data["mean_annual_temperature"] = DataArray(
+    np.full((3), 20),
+    dims=["cell_id"],
+)
 data["relative_humidity_ref"] = DataArray(
     np.full((3, 3), 90),
     dims=["cell_id", "time"],
@@ -60,17 +64,28 @@ data["leaf_area_index"] = data["leaf_area_index"].rename(
     {"dim_0": "layers", "dim_1": "cell_id"}
 )
 
-data["layer_heights"] = xr.concat(  # TODO what values for soil layers? negative?
+data["layer_heights"] = xr.concat(
     [
         DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
         DataArray(np.full((7, 3), np.nan)),
         DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
-        DataArray(np.full((2, 3), np.nan)),
+        DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
     ],
     dim="dim_0",
 )
-data["layer_heights"] = data["layer_heights"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
+data["layer_heights"] = (
+    data["layer_heights"]
+    .rename({"dim_0": "layers", "dim_1": "cell_id"})
+    .assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
+    )
 )
 
 
@@ -129,7 +144,16 @@ def test_lai_regression():
         gradient=-2.45,
     )
 
-    xr.testing.assert_allclose(result, DataArray([22.65, 22.65, 22.65], dims="cell_id"))
+    xr.testing.assert_allclose(
+        result,
+        DataArray(
+            [22.65, 22.65, 22.65],
+            dims="cell_id",
+            coords={
+                "cell_id": data.grid.cell_id,
+            },
+        ),
+    )
 
 
 def test_log_interpolation():
@@ -210,6 +234,9 @@ def test_calculate_saturation_vapor_pressure():
     exp_output = DataArray(
         [1.41727, 1.41727, 1.41727],
         dims=["cell_id"],
+        coords={
+            "cell_id": data.grid.cell_id,
+        },
     )
     xr.testing.assert_allclose(result, exp_output)
 
@@ -366,3 +393,57 @@ def test_run_simple_regression():
         }
     )
     xr.testing.assert_allclose(result[0], exp_output1)
+
+
+def test_interpolate_soil_temperature():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+        interpolate_soil_temperature,
+    )
+
+    surface_temperature = DataArray(
+        [22.81851036, 22.81851036, 22.81851036],
+        dims="cell_id",
+    )
+    result = interpolate_soil_temperature(
+        layer_heights=data["layer_heights"],
+        layer_roles=layer_roles,
+        surface_temperature=surface_temperature,
+        mean_annual_temperature=data["mean_annual_temperature"],
+    )
+
+    exp_output = xr.concat(
+        [
+            DataArray(
+                np.full(
+                    (13, 3),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(0, 13),
+                    "layer_roles": (
+                        "layers",
+                        layer_roles[0:13],
+                    ),
+                    "cell_id": [0, 1, 2],
+                },
+            ),
+            DataArray(
+                [[22.00377816, 22.00377816, 22.00377816], [20.0, 20.0, 20.0]],
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(13, 15),
+                    "layer_roles": (
+                        "layers",
+                        layer_roles[13:15],
+                    ),
+                    "cell_id": [0, 1, 2],
+                },
+            ),
+        ],
+        dim="layers",  # select bottom two
+    )
+
+    xr.testing.assert_allclose(result, exp_output)
