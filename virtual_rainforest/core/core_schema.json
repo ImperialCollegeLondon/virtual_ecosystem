@@ -15,10 +15,10 @@
                      "default": "square"
                   },
                   "cell_area": {
-                     "description": "The area of each grid cell",
+                     "description": "The area of each grid cell (m^2)",
                      "type": "number",
                      "exclusiveMinimum": 0,
-                     "default": 100
+                     "default": 10000
                   },
                   "cell_nx": {
                      "description": "Number of grid cells in x direction",
@@ -44,10 +44,7 @@
                   }
                },
                "default": {},
-               "required": [
-                  "cell_nx",
-                  "cell_ny"
-               ]
+               "required": []
             },
             "timing": {
                "description": "Overall timing settings for the model",

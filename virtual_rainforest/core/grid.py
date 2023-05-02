@@ -79,11 +79,11 @@ def make_square_grid(
     """Create a square grid.
 
     Args:
-        cell_area: The area of each hexagon cell
+        cell_area: The area of each hexagon cell in m2
         cell_nx: The number of grid cells in the X direction.
         cell_ny: The number of grid cells in the Y direction.
-        xoff: An offset to use for the grid origin in the X direction.
-        yoff: An offset to use for the grid origin in the Y direction.
+        xoff: An offset to use for the grid origin in the X direction in metres.
+        yoff: An offset to use for the grid origin in the Y direction in metres.
 
     Returns:
         Equal-length tuples of integer polygon ids and Polygon objects
@@ -124,11 +124,11 @@ def make_hex_grid(
     """Create a hexagonal grid.
 
     Args:
-        cell_area: The area of each hexagon cell
+        cell_area: The area of each hexagon cell in m2.
         cell_nx: The number of grid cells in the X direction.
         cell_ny: The number of grid cells in the Y direction.
-        xoff: An offset to use for the grid origin in the X direction.
-        yoff: An offset to use for the grid origin in the Y direction.
+        xoff: An offset to use for the grid origin in the X direction in metres.
+        yoff: An offset to use for the grid origin in the Y direction in metres.
 
     Returns:
         Equal-length tuples of integer polygon ids and Polygon objects
@@ -188,18 +188,19 @@ class Grid:
 
     Args:
         grid_type: The grid type to be used, which must identify a grid creation
-            function in the virtual_rainforest.core.grid.GRID_REGISTRY dictionary.
+            function in the :data:`~virtual_rainforest.core.grid.GRID_REGISTRY`
+            dictionary.
         cell_area: The area of each grid cell, in square metres.
         cell_nx: The number of cells in the grid along the x (easting) axis
         cell_ny: The number of cells in the grid along the y (northing) axis
-        xoff: An offset for the grid x origin
-        yoff: An offset for the grid y origin
+        xoff: An offset for the grid x origin in metres
+        yoff: An offset for the grid y origin in metres
     """
 
     def __init__(
         self,
         grid_type: str = "square",
-        cell_area: float = 100,
+        cell_area: float = 10000,
         cell_nx: int = 10,
         cell_ny: int = 10,
         xoff: float = 0,
