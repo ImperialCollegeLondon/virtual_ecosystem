@@ -17,8 +17,8 @@ from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
 
 # Local constants
-# 100m2 hex: apothem = 5.373 m, side = 6.204 m
-hxA = 100
+# 10000 m2 hex: apothem = 53.73 m, side = 62.04 m
+hxA = 10000
 hxs = np.sqrt(hxA / (1.5 * np.sqrt(3)))
 hxa = hxA / (3 * hxs)
 
@@ -119,19 +119,19 @@ def test_grid_exceptions(mocker, grid_type, excep_type, message):
             "square",
             [
                 [
-                    [5, 25],
-                    [15, 25],
-                    [25, 25],
-                    [5, 15],
-                    [15, 15],
-                    [25, 15],
-                    [5, 5],
-                    [15, 5],
-                    [25, 5],
+                    [50, 250],
+                    [150, 250],
+                    [250, 250],
+                    [50, 150],
+                    [150, 150],
+                    [250, 150],
+                    [50, 50],
+                    [150, 50],
+                    [250, 50],
                 ],
             ],
             9,
-            (0, 0, 30, 30),
+            (0, 0, 300, 300),
         ),
         (
             "hexagon",
