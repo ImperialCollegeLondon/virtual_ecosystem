@@ -60,8 +60,19 @@ data["leaf_area_index"] = xr.concat(
     ],
     dim="dim_0",
 )
-data["leaf_area_index"] = data["leaf_area_index"].rename(
-    {"dim_0": "layers", "dim_1": "cell_id"}
+data["leaf_area_index"] = (
+    data["leaf_area_index"]
+    .rename({"dim_0": "layers", "dim_1": "cell_id"})
+    .assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
+    )
 )
 
 data["layer_heights"] = xr.concat(
@@ -86,6 +97,35 @@ data["layer_heights"] = (
             "cell_id": data.grid.cell_id,
         }
     )
+)
+
+data["precipitation"] = DataArray(
+    [[20, 30, 200], [20, 30, 200], [20, 30, 200]], dims=["time", "cell_id"]
+)
+data["soil_moisture"] = xr.concat(
+    [
+        DataArray(
+            np.full(
+                (
+                    13,
+                    3,
+                ),
+                np.nan,
+            ),
+            dims=["layers", "cell_id"],
+        ),
+        DataArray(
+            np.full(
+                (
+                    2,
+                    3,
+                ),
+                20,
+            ),
+            dims=["layers", "cell_id"],
+        ),
+    ],
+    dim="layers",
 )
 
 
@@ -447,3 +487,56 @@ def test_interpolate_soil_temperature():
     )
 
     xr.testing.assert_allclose(result, exp_output)
+
+
+def test_calculate_soil_moisture():
+    """Test."""
+
+    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+        calculate_soil_moisture,
+    )
+
+    precipitation_surface = data["precipitation"].isel(time=0) * (
+        1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
+    )
+
+    exp_soil_moisture = xr.concat(
+        [
+            DataArray(
+                np.full(
+                    (13, 3),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    exp_soil_moisture = exp_soil_moisture.assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+
+    exp_runoff = DataArray(
+        [4, 0, 70],
+        dims=["cell_id"],
+        coords={"cell_id": [0, 1, 2]},
+    )
+    result = calculate_soil_moisture(
+        layer_roles=layer_roles,
+        precipitation_surface=precipitation_surface,
+        current_soil_moisture=data["soil_moisture"],
+        soil_moisture_capacity=DataArray([30, 60, 90], dims=["cell_id"]),
+    )
+    xr.testing.assert_allclose(result[0], exp_soil_moisture)
+    xr.testing.assert_allclose(result[1], exp_runoff)
