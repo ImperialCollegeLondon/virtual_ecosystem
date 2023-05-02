@@ -311,7 +311,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
     argvalues=[
         (
             "square",
-            10,
+            100,
             [
                 [0, 1, 3],
                 [0, 1, 2, 4],
@@ -326,7 +326,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
         ),
         (
             "square",
-            10 * 2**0.5,
+            100 * 2**0.5,
             [
                 [0, 1, 3, 4],
                 [0, 1, 2, 3, 4, 5],
@@ -341,7 +341,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
         ),
         (
             "hexagon",
-            11,
+            110,
             [
                 [0, 1, 3],
                 [0, 1, 2, 3, 4],

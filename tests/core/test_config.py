@@ -283,57 +283,68 @@ def test_Config_load_config_toml(
             id="no_file_warns",
         ),
         pytest.param(
-            {"filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}}},
+            {"filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}}},
             does_not_raise(),
-            {"core": {"grid": {"nx": 10, "ny": 10}}},
+            {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
             ((INFO, "Config set from single file"),),
             id="single_file_ok",
         ),
         pytest.param(
             {
-                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
-                "filename2.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
+                "filename2.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
             },
             pytest.raises(ConfigurationError),
             None,
             (
                 (
                     CRITICAL,
-                    "Duplicated entries in config files: core.grid.nx, core.grid.ny",
+                    "Duplicated entries in config files: "
+                    "core.grid.cell_nx, core.grid.cell_ny",
                 ),
             ),
             id="two_files_conflict",
         ),
         pytest.param(
             {
-                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
                 "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
             },
             does_not_raise(),
-            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants", "abiotic"]}},
+            {
+                "core": {
+                    "grid": {"cell_nx": 10, "cell_ny": 10},
+                    "modules": ["plants", "abiotic"],
+                }
+            },
             ((INFO, "Config set from merged files"),),
             id="two_files_valid",
         ),
         pytest.param(
             {
-                "filename1.toml": {"core": {"grid": {"nx": 10}}},
+                "filename1.toml": {"core": {"grid": {"cell_nx": 10}}},
                 "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
-                "filename3.toml": {"core": {"grid": {"ny": 10}}},
+                "filename3.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             does_not_raise(),
-            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants", "abiotic"]}},
+            {
+                "core": {
+                    "grid": {"cell_nx": 10, "cell_ny": 10},
+                    "modules": ["plants", "abiotic"],
+                }
+            },
             ((INFO, "Config set from merged files"),),
             id="three_files_valid",
         ),
         pytest.param(
             {
-                "filename1.toml": {"core": {"grid": {"nx": 10, "ny": 10}}},
+                "filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
                 "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
-                "filename3.toml": {"core": {"grid": {"ny": 10}}},
+                "filename3.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             pytest.raises(ConfigurationError),
             None,
-            ((CRITICAL, "Duplicated entries in config files: core.grid.ny"),),
+            ((CRITICAL, "Duplicated entries in config files: core.grid.cell_ny"),),
             id="three_files_conflict",
         ),
     ],
@@ -412,7 +423,7 @@ def test_Config_build_schema(
             id="core_unique_module_violation",
         ),
         pytest.param(
-            {"core": {"grid": {"nx": 10, "ny": 10}, "modules": ["plants"]}},
+            {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}, "modules": ["plants"]}},
             pytest.raises(ConfigurationError),
             (
                 (
@@ -425,12 +436,12 @@ def test_Config_build_schema(
             id="missing_required_property",
         ),
         pytest.param(
-            {"core": {"grid": {"nx": 10, "ny": -10}, "modules": []}},
+            {"core": {"grid": {"cell_nx": 10, "cell_ny": -10}, "modules": []}},
             pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
-                    "Configuration error in ['core', 'grid', 'ny']: "
+                    "Configuration error in ['core', 'grid', 'cell_ny']: "
                     "-10 is less than or equal to the minimum of 0",
                 ),
                 (CRITICAL, "Configuration contains schema violations: check log"),
@@ -439,7 +450,7 @@ def test_Config_build_schema(
         ),
         pytest.param(
             {
-                "core": {"grid": {"nx": 10, "ny": 10}, "modules": ["soil"]},
+                "core": {"grid": {"cell_nx": 10, "cell_ny": 10}, "modules": ["soil"]},
                 "soil": {"no_layers": 123},
             },
             pytest.raises(ConfigurationError),
