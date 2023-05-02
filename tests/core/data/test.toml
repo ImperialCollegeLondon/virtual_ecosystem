@@ -1,3 +1,5 @@
+[core]
+modules = []
 [[core.data.variable]]
 file = "cellid_coords.nc"
 var_name = "temp"
