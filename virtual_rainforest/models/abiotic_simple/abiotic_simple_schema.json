@@ -16,19 +16,12 @@
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "default": 10
-                },
-                "model_time_step": {
-                    "description": "Time step for simple abiotic model, units must be",
-                    "desc_cont": " provided! ",
-                    "type": "string",
-                    "default": "1 Month"
                 }
             },
             "default": {},
             "required": [
                 "soil_layers",
-                "canopy_layers",
-                "model_time_step"
+                "canopy_layers"
             ]
         }
     },

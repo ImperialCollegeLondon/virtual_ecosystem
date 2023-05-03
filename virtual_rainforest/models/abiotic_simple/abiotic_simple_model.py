@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from numpy import datetime64, timedelta64
+from numpy import timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_model_time_details
+from virtual_rainforest.core.utils import extract_update_interval
+from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
 class AbioticSimpleModel(BaseModel):
@@ -30,6 +31,10 @@ class AbioticSimpleModel(BaseModel):
 
     model_name = "abiotic_simple"
     """The model name for use in registering the model and logging."""
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "30 day"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = (
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
@@ -55,7 +60,6 @@ class AbioticSimpleModel(BaseModel):
         self,
         data: Data,
         update_interval: timedelta64,
-        start_time: datetime64,
         soil_layers: int,
         canopy_layers: int,
         **kwargs: Any,
@@ -89,7 +93,7 @@ class AbioticSimpleModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
 
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -100,8 +104,6 @@ class AbioticSimpleModel(BaseModel):
         "A list of vertical layer roles."
         self.update_interval
         """The time interval between model updates."""
-        self.next_update
-        """The simulation time at which the model should next run the update method"""
 
     @classmethod
     def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticSimpleModel:
@@ -117,7 +119,9 @@ class AbioticSimpleModel(BaseModel):
         """
 
         # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
+        update_interval = extract_update_interval(
+            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
+        )
 
         # Find number of soil and canopy layers
         soil_layers = config["abiotic"]["soil_layers"]
@@ -127,10 +131,15 @@ class AbioticSimpleModel(BaseModel):
             "Information required to initialise the abiotic model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time, soil_layers, canopy_layers)
+        return cls(data, update_interval, soil_layers, canopy_layers)
 
     def setup(self) -> None:
         """Function to set up the abiotic model."""
+
+        setup_variables = simple_regression.setup_simple_regression(
+            layer_roles=self.layer_roles, data=self.data
+        )
+        update_data_object(data=self.data, output_list=setup_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
@@ -138,8 +147,12 @@ class AbioticSimpleModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the abiotic model."""
 
-        # Finally increment timing
-        self.next_update += self.update_interval
+        output_variables = simple_regression.run_simple_regression(
+            data=self.data,
+            layer_roles=self.layer_roles,
+            time_index=0,
+        )
+        update_data_object(data=self.data, output_list=output_variables)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
@@ -162,3 +175,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
         + ["canopy"] * canopy_layers
         + ["above"]
     )
+
+
+def update_data_object(data: Data, output_list: List) -> None:
+    """Update data object with results from simple regression module."""
