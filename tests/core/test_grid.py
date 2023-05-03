@@ -4,6 +4,7 @@ This module tests the functionality of grid.py
 """
 import json
 from contextlib import nullcontext as does_not_raise
+from logging import CRITICAL, ERROR, INFO
 
 import numpy as np
 import numpy.linalg as LA
@@ -12,9 +13,12 @@ from hypothesis import given, settings
 from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
 
+from tests.conftest import log_check
+from virtual_rainforest.core.exceptions import ConfigurationError
+
 # Local constants
-# 100m2 hex: apothem = 5.373 m, side = 6.204 m
-hxA = 100
+# 10000 m2 hex: apothem = 53.73 m, side = 62.04 m
+hxA = 10000
 hxs = np.sqrt(hxA / (1.5 * np.sqrt(3)))
 hxa = hxA / (3 * hxs)
 
@@ -115,19 +119,19 @@ def test_grid_exceptions(mocker, grid_type, excep_type, message):
             "square",
             [
                 [
-                    [5, 25],
-                    [15, 25],
-                    [25, 25],
-                    [5, 15],
-                    [15, 15],
-                    [25, 15],
-                    [5, 5],
-                    [15, 5],
-                    [25, 5],
+                    [50, 250],
+                    [150, 250],
+                    [250, 250],
+                    [50, 150],
+                    [150, 150],
+                    [250, 150],
+                    [50, 50],
+                    [150, 50],
+                    [250, 50],
                 ],
             ],
             9,
-            (0, 0, 30, 30),
+            (0, 0, 300, 300),
         ),
         (
             "hexagon",
@@ -163,6 +167,79 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     assert np.allclose(grid.centroids, exp_centroids)
     assert grid.n_cells == exp_n_cells
     assert np.allclose(grid.bounds, exp_bounds)
+
+
+@pytest.mark.parametrize(
+    argnames=["config", "expected_err", "expected_log"],
+    argvalues=[
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "square",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            does_not_raise(),
+            ((INFO, "Grid created from configuration."),),
+            id="good_square",
+        ),
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "hexagon",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            does_not_raise(),
+            ((INFO, "Grid created from configuration."),),
+            id="good_hex",
+        ),
+        pytest.param(
+            {
+                "core": {
+                    "grid": {
+                        "grid_type": "penrose",
+                        "cell_area": 100,
+                        "cell_nx": 10,
+                        "cell_ny": 10,
+                        "xoff": 0,
+                        "yoff": 0,
+                    }
+                }
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (ERROR, "The grid_type penrose is not defined."),
+                (CRITICAL, "Grid creation from configuration failed."),
+            ),
+            id="fail_unknown_grid",
+        ),
+    ],
+)
+def test_grid_from_config(caplog, config, expected_err, expected_log):
+    """Test the creation of a Grid object using the from_config factory method.
+
+    NOTE: this does not use an actual Config object, just a dictionary
+    """
+
+    from virtual_rainforest.core.grid import Grid
+
+    with expected_err:
+        _ = Grid.from_config(config)
+
+    log_check(caplog, expected_log)
 
 
 @pytest.mark.parametrize(argnames=["preset_distances"], argvalues=[(True,), (False,)])
@@ -234,7 +311,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
     argvalues=[
         (
             "square",
-            10,
+            100,
             [
                 [0, 1, 3],
                 [0, 1, 2, 4],
@@ -249,7 +326,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
         ),
         (
             "square",
-            10 * 2**0.5,
+            100 * 2**0.5,
             [
                 [0, 1, 3, 4],
                 [0, 1, 2, 3, 4, 5],
@@ -264,7 +341,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
         ),
         (
             "hexagon",
-            11,
+            110,
             [
                 [0, 1, 3],
                 [0, 1, 2, 3, 4],

@@ -207,7 +207,7 @@ def vr_run(
     config = Config(cfg_paths)
     config.export_config(merge_file_path)
 
-    grid = Grid()  # TODO - this needs a Grid.from_config factory function
+    grid = Grid.from_config(config)
     data = Data(grid)
     data.load_data_config(config["core"]["data"])
 
