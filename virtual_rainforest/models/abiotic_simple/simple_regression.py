@@ -27,6 +27,9 @@ MicroclimateGradients: Dict[str, float] = {
 MicroclimateParameters: Dict[str, float] = {
     "soil_moisture_capacity": 150,
     "water_interception_factor": 0.1,
+    "saturation_vapor_pressure_factor1": 0.61078,
+    "saturation_vapor_pressure_factor2": 7.5,
+    "saturation_vapor_pressure_factor3": 237.3,
 }
 
 
@@ -420,6 +423,8 @@ def log_interpolation(
 ) -> DataArray:
     """Logarithmic interpolation of variables for vertical profile.
 
+    TODO deal with negative values
+
     Args:
         data: Data object
         reference_data: input variable at reference height
@@ -443,8 +448,9 @@ def log_interpolation(
     popt, pcov = curve_fit(logarithmic, x_values, y_values)
     a, b = popt  # the function coefficients
 
+    output = a * np.log(layer_heights) + b
     return DataArray(
-        a * np.log(layer_heights) + b,
+        np.where(output < 0, 0, output),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
@@ -459,6 +465,9 @@ def log_interpolation(
 
 def calculate_saturation_vapor_pressure(
     temperature: DataArray,
+    factor1: float = MicroclimateParameters["saturation_vapor_pressure_factor1"],
+    factor2: float = MicroclimateParameters["saturation_vapor_pressure_factor2"],
+    factor3: float = MicroclimateParameters["saturation_vapor_pressure_factor3"],
 ) -> DataArray:
     r"""Calculate saturation vapor pressure.
 
@@ -473,7 +482,7 @@ def calculate_saturation_vapor_pressure(
         saturation vapor pressure, kPa
     """
     return DataArray(
-        (0.61078 * np.exp((7.5 * (temperature)) / (temperature + 237.3))),
+        (factor1 * np.exp((factor2 * (temperature)) / (temperature + factor3))),
         dims=temperature.dims,
         name="saturation_vapor_pressure",
     )

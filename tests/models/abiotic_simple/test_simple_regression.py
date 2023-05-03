@@ -259,6 +259,55 @@ def test_log_interpolation():
     )
     xr.testing.assert_allclose(result, exp_output1)
 
+    exp_humidity = xr.concat(
+        [
+            DataArray(
+                [
+                    [90.0, 90.0, 90.0],
+                    [88.5796455, 88.5796455, 88.5796455],
+                    [79.65622765, 79.65622765, 79.65622765],
+                    [64.40154408, 64.40154408, 64.40154408],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((7, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [0, 0, 0],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full((2, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+    exp_humidity = exp_humidity.assign_coords(
+        {
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": (
+                "layers",
+                layer_roles[0 : len(layer_roles)],
+            ),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+
+    result_hum = log_interpolation(
+        data=data,
+        reference_data=data["relative_humidity_ref"].isel(time=0),
+        layer_roles=layer_roles,
+        layer_heights=data["layer_heights"],
+        value_from_lai_regression=value_from_lai_regression,
+    )
+    xr.testing.assert_allclose(result_hum, exp_humidity)
+
 
 def test_calculate_saturation_vapor_pressure():
     """Test."""
@@ -335,8 +384,8 @@ def test_calculate_vapor_pressure_deficit():
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
-                    [-36.94837978, -36.94837978, -36.94837978],
-                ],  # TODO set boundaries
+                    [0, 0, 0],
+                ],
                 dims=["layers", "cell_id"],
             ),
             DataArray(
@@ -367,7 +416,7 @@ def test_calculate_vapor_pressure_deficit():
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.90814, 0.90814, 0.90814], [1.34879, 1.34879, 1.34879]],
+                [[0.90814, 0.90814, 0.90814], [0.984889, 0.984889, 0.984889]],
                 dims=["layers", "cell_id"],
             ),
             DataArray(
