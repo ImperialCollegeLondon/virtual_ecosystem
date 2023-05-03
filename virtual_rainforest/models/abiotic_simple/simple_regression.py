@@ -236,7 +236,6 @@ def run_simple_regression(
         temperature, atmospheric pressure, atmospheric :math:`\ce{CO2}`, soil moisture,
         and surface runoff
     """
-    # TODO set limits for variables
 
     output = []
 
@@ -422,8 +421,6 @@ def log_interpolation(
     value_from_lai_regression: DataArray,
 ) -> DataArray:
     """Logarithmic interpolation of variables for vertical profile.
-
-    TODO deal with negative values
 
     Args:
         data: Data object
