@@ -146,7 +146,7 @@ class AbioticSimpleModel(BaseModel):
 
     def update(self) -> None:
         """Placeholder function to update the abiotic model."""
-
+        # TODO do I need a counter to access the correct time index from the input data?
         output_variables = simple_regression.run_simple_regression(
             data=self.data,
             layer_roles=self.layer_roles,
@@ -178,4 +178,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
 
 
 def update_data_object(data: Data, output_list: List) -> None:
-    """Update data object with results from simple regression module."""
+    """Update data object from list of variables."""
+
+    for variable in output_list:
+        data[variable.name] = variable
