@@ -123,11 +123,11 @@ import numpy as np
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_rainforest.core.config import check_outfile
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.readers import load_to_dataarray
+from virtual_rainforest.core.utils import check_outfile
 
 
 class Data:

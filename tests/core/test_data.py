@@ -576,18 +576,22 @@ def test_Data_load_from_config(
 
     TODO - Could mock load_to_dataarray to avoid needing real files and just test the
            config loader part of the mechanism
+    TODO - The test TOML files here are _very_ minimal and are going to be fragile to
+           required fields being updated. They explicitly load no modules to moderate
+           this risk.
     """
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.config import load_in_config_files
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
     # Skip combinations where loader does not supported this grid
     data = Data(fixture_load_data_grids)
     file = [shared_datadir / file]
 
-    cfg = load_in_config_files(file)
+    cfg = Config(file)
+    caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
     for each_var in cfg["core"]["data"]["variable"]:
