@@ -1,10 +1,12 @@
 r"""The ``models.abiotic_simple.simple_regression`` module uses linear regression
 and logarithmic interpolation to calculate atmospheric temperature and humidity profiles
 as a function of leaf area index and height. The relationships are derived
-from HARDWICK. Soil temperature is interpolated between the surface layer and the
+from :cite:t:`hardwick_relationship_2015`. Soil temperature is interpolated between the
+surface layer and the
 temperature at 1 m depth which equals the mean annual temperature. The module also
 provides a constant vertical profile of atmospheric pressure and :math:`\ce{CO2}`.
-Soil moisture and surface runoff are calculated with a simple bucket model.
+Soil moisture and surface runoff are calculated with a simple bucket model based on
+:cite:t:`davis_simple_2017`.
 """  # noqa: D205, D415
 
 from typing import Dict, List, Tuple, Union
@@ -182,7 +184,7 @@ def run_simple_regression(
     atmospheric temperature and relative humidity to derive logarithmic
     profiles of atmospheric temperature and humidity from external climate data such as
     regional climate models or satellite observations. For below canopy values (1.5 m),
-    the implementation is based on HARDWICK as
+    the implementation is based on :cite:t:`hardwick_relationship_2015` as
 
     :math:`y = m * LAI + c`
 
@@ -197,7 +199,8 @@ def run_simple_regression(
     The function also provides constant atmospheric pressure and :math:`\ce{CO2}` for
     all atmospheric levels.
 
-    Soil moisture and surface runoff are calculated with a simple bucket model: if
+    Soil moisture and surface runoff are calculated with a simple bucket model based
+    on :cite:t:`davis_simple_2017`: if
     precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
