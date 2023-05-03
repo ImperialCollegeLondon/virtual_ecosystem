@@ -1,10 +1,14 @@
 r"""The ``models.abiotic_simple.simple_regression`` module uses linear regression
 and logarithmic interpolation to calculate atmospheric temperature and humidity profiles
 as a function of leaf area index and height. The relationships are derived
-from :cite:t:`hardwick_relationship_2015`. Soil temperature is interpolated between the
-surface layer and the
-temperature at 1 m depth which equals the mean annual temperature. The module also
-provides a constant vertical profile of atmospheric pressure and :math:`\ce{CO2}`.
+from :cite:t:`hardwick_relationship_2015`.
+
+Soil temperature is interpolated between the surface layer and the air
+temperature at 1 m depth which equals the mean annual temperature.
+
+The module also provides a constant vertical profile of atmospheric pressure and
+:math:`\ce{CO2}`.
+
 Soil moisture and surface runoff are calculated with a simple bucket model based on
 :cite:t:`davis_simple_2017`.
 """  # noqa: D205, D415
@@ -22,8 +26,6 @@ MicroclimateGradients: Dict[str, float] = {
     "air_temperature_gradient": -1.27,
     "relative_humidity_gradient": 5.4,
     "vapor_pressure_deficit_gradient": -252.24,
-    # "soil_temperature_gradient": -0.61,
-    # "soil_temperature_diurnal_range_gradient": -0.92,
 }
 
 MicroclimateParameters: Dict[str, float] = {
@@ -38,7 +40,7 @@ MicroclimateParameters: Dict[str, float] = {
 def setup_simple_regression(
     layer_roles: List[str],
     data: Data,
-    initial_soil_moisture: float = 50,
+    initial_soil_moisture: Union[DataArray, float] = 50,
 ) -> List[DataArray]:
     r"""Set up abiotic environment variables.
 
@@ -169,7 +171,7 @@ def setup_simple_regression(
 def run_simple_regression(
     data: Data,
     layer_roles: List[str],
-    time_index: int,  # could be datetime
+    time_index: int,  # could be datetime?
     MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
     water_interception_factor: Union[DataArray, float] = MicroclimateParameters[
         "water_interception_factor"
@@ -227,7 +229,7 @@ def run_simple_regression(
 
     Args:
         data: Data object
-        layer_roles: roles of vertical layers
+        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
         water_interception_factor: Factor that determines how much rainfall is
@@ -275,11 +277,12 @@ def run_simple_regression(
     output.append(relative_humidity)
 
     # vapor pressure deficit
-    # calculate vapor pressure deficit at reference height
+    # calculate vapor pressure deficit at reference height first
     vapor_pressure_deficit_ref = calculate_vapor_pressure_deficit(
         temperature=data["air_temperature_ref"].isel(time=time_index),
         relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
+
     vapor_pressure_deficit_lai = lai_regression(
         reference_data=vapor_pressure_deficit_ref,
         leaf_area_index=data["leaf_area_index"],
@@ -372,11 +375,12 @@ def run_simple_regression(
     )
     output.append(atmospheric_co2)
 
-    # soil moisture
+    # precipitation at the surface is reduced as a function of leaf area index
     precipitation_surface = data["precipitation"].isel(time=time_index) * (
         1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
     )
 
+    # soil moisture
     soil_moisture, surface_run_off = calculate_soil_moisture(
         layer_roles=layer_roles,
         precipitation_surface=precipitation_surface,
@@ -399,7 +403,7 @@ def lai_regression(
 
     Args:
         reference_data: input variable at reference height
-        leaf_area_index: leaf area index
+        leaf_area_index: leaf area index, [m m-1]
         gradient: gradient of regression from Harwick
 
     Returns:
@@ -411,9 +415,18 @@ def lai_regression(
     )
 
 
-def logarithmic(x: DataArray, a: float, b: float) -> DataArray:
-    """Logarithmic function."""
-    return DataArray(a * np.log(x) + b)
+def logarithmic(x: DataArray, gradient: float, intercept: float) -> DataArray:
+    """Logarithmic function.
+
+    Args:
+        x: x values
+        gradient: gradient
+        intercept: intercept
+
+    Returns:
+        y values
+    """
+    return DataArray(gradient * np.log(x) + intercept)
 
 
 def log_interpolation(
@@ -428,8 +441,8 @@ def log_interpolation(
     Args:
         data: Data object
         reference_data: input variable at reference height
-        layer_roles: list of layer roles
-        layer_heights: vertical layer heights
+        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        layer_heights: vertical layer heights, [m]
         value_from_lai_regression: variable value from linear regression with LAI
 
     Returns:
@@ -477,6 +490,9 @@ def calculate_saturation_vapor_pressure(
 
     Args:
         temperature: air temperature, [C]
+        factor1: factor 1 in saturation vapor pressure calculation
+        factor2: factor 2 in saturation vapor pressure calculation
+        factor3: factor 3 in saturation vapor pressure calculation
 
     Returns:
         saturation vapor pressure, kPa
@@ -518,7 +534,17 @@ def interpolate_soil_temperature(
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
 ) -> DataArray:
-    """Interpolate soil temperature."""
+    """Interpolate soil temperature.
+
+    Args:
+        layer_heights: vertical layer heights, [m]
+        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        surface_temperature: surface temperature, [C]
+        mean_annual_temperature: mean annual temperature, [C]
+
+    Returns:
+        soil temperature profile, [C]
+    """
 
     # select surface layer (atmosphere)
     surface_layer = layer_heights[layer_heights.coords["layer_roles"] == "surface"]
@@ -622,6 +648,7 @@ def calculate_soil_moisture(
     moisture level and runoff is set to zero.
 
     Args:
+        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         precipitation_surface: precipitation that reaches surface, [mm],
         current_soil_moisture: current soil moisture at upper layer, [mm],
         soil_moisture_capacity: soil moisture capacity (optional)
