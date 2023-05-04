@@ -706,6 +706,15 @@ def calculate_soil_moisture(
             dim="layers",
         )
         .rename("soil_moisture")
-        .assign_coords(current_soil_moisture.coords)
+        .assign_coords(
+            {
+                "layers": np.arange(0, len(layer_roles)),
+                "layer_roles": (
+                    "layers",
+                    layer_roles[0 : len(layer_roles)],
+                ),
+                "cell_id": current_soil_moisture.coords["cell_id"],
+            },
+        )
     )
     return (soil_moisture, surface_runoff)

@@ -1,7 +1,7 @@
 """Test module for abiotic_simple.simple_regression.py."""
 
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 from xarray import DataArray
 
@@ -384,6 +384,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     )
 
     data = dummy_climate_data
+
     surface_temperature = DataArray(
         [22.81851036, 22.81851036, 22.81851036],
         dims="cell_id",
