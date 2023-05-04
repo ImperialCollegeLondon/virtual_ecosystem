@@ -39,6 +39,17 @@ def layer_roles_fixture():
     return set_layer_roles(10, 2)
 
 
+def test_set_layer_roles():
+    """Test correct order of layers."""
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        set_layer_roles,
+    )
+
+    assert set_layer_roles(10, 2) == (
+        ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
+    )
+
+
 @pytest.mark.parametrize(
     "soil_layers,canopy_layers,raises,expected_log_entries",
     [

@@ -170,11 +170,11 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
         List of canopy layer roles
     """
     return (
-        ["soil"] * soil_layers
-        + ["surface"]
-        + ["subcanopy"]
+        ["above"]
         + ["canopy"] * canopy_layers
-        + ["above"]
+        + ["subcanopy"]
+        + ["surface"]
+        + ["soil"] * soil_layers
     )
 
 
