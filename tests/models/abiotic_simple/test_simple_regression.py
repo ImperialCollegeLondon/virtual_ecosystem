@@ -4,9 +4,6 @@ import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.grid import Grid
-
 # test data set
 layer_roles = [
     "above",
@@ -27,115 +24,14 @@ layer_roles = [
 ]
 
 
-# Setup the data object with two cells.
-grid = Grid(cell_nx=3, cell_ny=1)
-data = Data(grid)
-
-# Add the required data.
-data["air_temperature_ref"] = DataArray(
-    np.full((3, 3), 30),
-    dims=["cell_id", "time"],
-)
-data["mean_annual_temperature"] = DataArray(
-    np.full((3), 20),
-    dims=["cell_id"],
-)
-data["relative_humidity_ref"] = DataArray(
-    np.full((3, 3), 90),
-    dims=["cell_id", "time"],
-)
-data["atmospheric_pressure_ref"] = DataArray(
-    np.full((3, 3), 1.5),
-    dims=["cell_id", "time"],
-)
-data["atmospheric_co2_ref"] = DataArray(
-    np.full((3, 3), 400),
-    dims=["cell_id", "time"],
-)
-
-data["leaf_area_index"] = xr.concat(
-    [
-        DataArray(np.full((1, 3), 3)),
-        DataArray(np.full((len(layer_roles) - 1, 3), np.nan)),
-    ],
-    dim="dim_0",
-)
-data["leaf_area_index"] = (
-    data["leaf_area_index"]
-    .rename({"dim_0": "layers", "dim_1": "cell_id"})
-    .assign_coords(
-        {
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
-            "cell_id": data.grid.cell_id,
-        }
-    )
-)
-
-data["layer_heights"] = xr.concat(
-    [
-        DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
-        DataArray(np.full((7, 3), np.nan)),
-        DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
-        DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
-    ],
-    dim="dim_0",
-)
-data["layer_heights"] = (
-    data["layer_heights"]
-    .rename({"dim_0": "layers", "dim_1": "cell_id"})
-    .assign_coords(
-        {
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
-            "cell_id": data.grid.cell_id,
-        }
-    )
-)
-
-data["precipitation"] = DataArray(
-    [[20, 30, 200], [20, 30, 200], [20, 30, 200]], dims=["time", "cell_id"]
-)
-data["soil_moisture"] = xr.concat(
-    [
-        DataArray(
-            np.full(
-                (
-                    13,
-                    3,
-                ),
-                np.nan,
-            ),
-            dims=["layers", "cell_id"],
-        ),
-        DataArray(
-            np.full(
-                (
-                    2,
-                    3,
-                ),
-                20,
-            ),
-            dims=["layers", "cell_id"],
-        ),
-    ],
-    dim="layers",
-)
-
-
-def test_setup_simple_regression():
+def test_setup_simple_regression(dummy_climate_data):
     """Test initialisation of variables with same dimensions."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         setup_simple_regression,
     )
 
+    data = dummy_climate_data
     result = setup_simple_regression(data=data, layer_roles=layer_roles)
 
     xr.testing.assert_allclose(
@@ -172,12 +68,13 @@ def test_setup_simple_regression():
     )
 
 
-def test_lai_regression():
+def test_lai_regression(dummy_climate_data):
     """Test lai regression."""
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         lai_regression,
     )
 
+    data = dummy_climate_data
     result = lai_regression(
         reference_data=data["air_temperature_ref"].isel(time=0),
         leaf_area_index=data["leaf_area_index"],
@@ -196,7 +93,7 @@ def test_lai_regression():
     )
 
 
-def test_log_interpolation():
+def test_log_interpolation(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -204,6 +101,7 @@ def test_log_interpolation():
         log_interpolation,
     )
 
+    data = dummy_climate_data
     value_from_lai_regression = lai_regression(
         reference_data=data["air_temperature_ref"].isel(time=0),
         leaf_area_index=data["leaf_area_index"],
@@ -309,13 +207,14 @@ def test_log_interpolation():
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
 
-def test_calculate_saturation_vapor_pressure():
+def test_calculate_saturation_vapor_pressure(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         calculate_saturation_vapor_pressure,
     )
 
+    data = dummy_climate_data
     result = calculate_saturation_vapor_pressure(
         data["air_temperature_ref"].isel(time=0)
     )
@@ -429,13 +328,14 @@ def test_calculate_vapor_pressure_deficit():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_run_simple_regression():
+def test_run_simple_regression(dummy_climate_data):
     """Test interpolation."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         run_simple_regression,
     )
 
+    data = dummy_climate_data
     result = run_simple_regression(
         data=data,
         layer_roles=layer_roles,
@@ -484,13 +384,14 @@ def test_run_simple_regression():
     xr.testing.assert_allclose(result[0], exp_output1)
 
 
-def test_interpolate_soil_temperature():
+def test_interpolate_soil_temperature(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         interpolate_soil_temperature,
     )
 
+    data = dummy_climate_data
     surface_temperature = DataArray(
         [22.81851036, 22.81851036, 22.81851036],
         dims="cell_id",
@@ -538,13 +439,14 @@ def test_interpolate_soil_temperature():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_calculate_soil_moisture():
+def test_calculate_soil_moisture(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         calculate_soil_moisture,
     )
 
+    data = dummy_climate_data
     precipitation_surface = data["precipitation"].isel(time=0) * (
         1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
     )

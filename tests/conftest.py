@@ -2,7 +2,9 @@
 from logging import DEBUG
 from typing import Any
 
+import numpy as np
 import pytest
+import xarray as xr
 from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
@@ -161,3 +163,130 @@ def new_axis_validators():
             self, value: DataArray, grid: Grid, **kwargs: Any
         ) -> DataArray:
             return value * 2
+
+
+@pytest.fixture
+def dummy_climate_data():
+    """Creates a dummy climate data object for use in tests."""
+
+    layer_roles = [
+        "above",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "subcanopy",
+        "surface",
+        "soil",
+        "soil",
+    ]
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with four cells.
+    grid = Grid(cell_nx=3, cell_ny=1)
+    data = Data(grid)
+
+    data["air_temperature_ref"] = DataArray(
+        np.full((3, 3), 30),
+        dims=["cell_id", "time"],
+    )
+    data["mean_annual_temperature"] = DataArray(
+        np.full((3), 20),
+        dims=["cell_id"],
+    )
+    data["relative_humidity_ref"] = DataArray(
+        np.full((3, 3), 90),
+        dims=["cell_id", "time"],
+    )
+    data["atmospheric_pressure_ref"] = DataArray(
+        np.full((3, 3), 1.5),
+        dims=["cell_id", "time"],
+    )
+    data["atmospheric_co2_ref"] = DataArray(
+        np.full((3, 3), 400),
+        dims=["cell_id", "time"],
+    )
+
+    data["leaf_area_index"] = xr.concat(
+        [
+            DataArray(np.full((1, 3), 3)),
+            DataArray(np.full((14, 3), np.nan)),
+        ],
+        dim="dim_0",
+    )
+    data["leaf_area_index"] = (
+        data["leaf_area_index"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": (
+                    "layers",
+                    layer_roles[0:15],
+                ),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
+    data["layer_heights"] = xr.concat(
+        [
+            DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
+            DataArray(np.full((7, 3), np.nan)),
+            DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
+            DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
+        ],
+        dim="dim_0",
+    )
+    data["layer_heights"] = (
+        data["layer_heights"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": (
+                    "layers",
+                    layer_roles[0:15],
+                ),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
+    data["precipitation"] = DataArray(
+        [[20, 30, 200], [20, 30, 200], [20, 30, 200]], dims=["time", "cell_id"]
+    )
+    data["soil_moisture"] = xr.concat(
+        [
+            DataArray(
+                np.full(
+                    (
+                        13,
+                        3,
+                    ),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                np.full(
+                    (
+                        2,
+                        3,
+                    ),
+                    20,
+                ),
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    )
+
+    return data
