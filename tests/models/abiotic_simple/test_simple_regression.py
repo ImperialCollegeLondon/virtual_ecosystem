@@ -1,30 +1,22 @@
 """Test module for abiotic_simple.simple_regression.py."""
 
+import pytest
 import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-# test data set
-layer_roles = [
-    "above",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "subcanopy",
-    "surface",
-    "soil",
-    "soil",
-]
+
+@pytest.fixture
+def layer_roles_fixture():
+    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        set_layer_roles,
+    )
+
+    return set_layer_roles(10, 2)
 
 
-def test_setup_simple_regression(dummy_climate_data):
+def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     """Test initialisation of variables with same dimensions."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -32,18 +24,18 @@ def test_setup_simple_regression(dummy_climate_data):
     )
 
     data = dummy_climate_data
-    result = setup_simple_regression(data=data, layer_roles=layer_roles)
+    result = setup_simple_regression(data=data, layer_roles=layer_roles_fixture)
 
     xr.testing.assert_allclose(
         result[0],
         DataArray(
-            np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
+            np.full((len(layer_roles_fixture), len(data.grid.cell_id)), np.nan),
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, len(layer_roles)),
+                "layers": np.arange(0, len(layer_roles_fixture)),
                 "layer_roles": (
                     "layers",
-                    layer_roles[0 : len(layer_roles)],
+                    layer_roles_fixture[0 : len(layer_roles_fixture)],
                 ),
                 "cell_id": data.grid.cell_id,
             },
@@ -53,13 +45,13 @@ def test_setup_simple_regression(dummy_climate_data):
     xr.testing.assert_allclose(
         result[1],
         DataArray(
-            np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
+            np.full((len(layer_roles_fixture), len(data.grid.cell_id)), np.nan),
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, len(layer_roles)),
+                "layers": np.arange(0, len(layer_roles_fixture)),
                 "layer_roles": (
                     "layers",
-                    layer_roles[0 : len(layer_roles)],
+                    layer_roles_fixture[0 : len(layer_roles_fixture)],
                 ),
                 "cell_id": data.grid.cell_id,
             },
@@ -93,7 +85,7 @@ def test_lai_regression(dummy_climate_data):
     )
 
 
-def test_log_interpolation(dummy_climate_data):
+def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -111,7 +103,7 @@ def test_log_interpolation(dummy_climate_data):
     result = log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time=0),
-        layer_roles=layer_roles,
+        layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=value_from_lai_regression,
     )
@@ -147,10 +139,10 @@ def test_log_interpolation(dummy_climate_data):
     )
     exp_output1 = exp_output.assign_coords(
         {
-            "layers": np.arange(0, len(layer_roles)),
+            "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                layer_roles[0 : len(layer_roles)],
+                layer_roles_fixture[0:15],
             ),
             "cell_id": data.grid.cell_id,
         }
@@ -188,10 +180,10 @@ def test_log_interpolation(dummy_climate_data):
     )
     exp_humidity = exp_humidity.assign_coords(
         {
-            "layers": np.arange(0, len(layer_roles)),
+            "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                layer_roles[0 : len(layer_roles)],
+                layer_roles_fixture[0:15],
             ),
             "cell_id": data.grid.cell_id,
         }
@@ -200,7 +192,7 @@ def test_log_interpolation(dummy_climate_data):
     result_hum = log_interpolation(
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time=0),
-        layer_roles=layer_roles,
+        layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
         value_from_lai_regression=value_from_lai_regression,
     )
@@ -328,7 +320,7 @@ def test_calculate_vapor_pressure_deficit():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_run_simple_regression(dummy_climate_data):
+def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     """Test interpolation."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -338,7 +330,7 @@ def test_run_simple_regression(dummy_climate_data):
     data = dummy_climate_data
     result = run_simple_regression(
         data=data,
-        layer_roles=layer_roles,
+        layer_roles=layer_roles_fixture,
         time_index=0,
     )
 
@@ -373,10 +365,10 @@ def test_run_simple_regression(dummy_climate_data):
     )
     exp_output1 = exp_output.assign_coords(
         {
-            "layers": np.arange(0, len(layer_roles)),
+            "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                layer_roles[0 : len(layer_roles)],
+                layer_roles_fixture[0:15],
             ),
             "cell_id": data.grid.cell_id,
         }
@@ -384,7 +376,7 @@ def test_run_simple_regression(dummy_climate_data):
     xr.testing.assert_allclose(result[0], exp_output1)
 
 
-def test_interpolate_soil_temperature(dummy_climate_data):
+def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -398,7 +390,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
     )
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        layer_roles=layer_roles,
+        layer_roles=layer_roles_fixture,
         surface_temperature=surface_temperature,
         mean_annual_temperature=data["mean_annual_temperature"],
     )
@@ -415,7 +407,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
                     "layers": np.arange(0, 13),
                     "layer_roles": (
                         "layers",
-                        layer_roles[0:13],
+                        layer_roles_fixture[0:13],
                     ),
                     "cell_id": [0, 1, 2],
                 },
@@ -427,7 +419,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
                     "layers": np.arange(13, 15),
                     "layer_roles": (
                         "layers",
-                        layer_roles[13:15],
+                        layer_roles_fixture[13:15],
                     ),
                     "cell_id": [0, 1, 2],
                 },
@@ -439,7 +431,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_calculate_soil_moisture(dummy_climate_data):
+def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -469,10 +461,10 @@ def test_calculate_soil_moisture(dummy_climate_data):
     )
     exp_soil_moisture = exp_soil_moisture.assign_coords(
         {
-            "layers": np.arange(0, len(layer_roles)),
+            "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                layer_roles[0 : len(layer_roles)],
+                layer_roles_fixture[0:15],
             ),
             "cell_id": data.grid.cell_id,
         }
@@ -484,7 +476,7 @@ def test_calculate_soil_moisture(dummy_climate_data):
         coords={"cell_id": [0, 1, 2]},
     )
     result = calculate_soil_moisture(
-        layer_roles=layer_roles,
+        layer_roles=layer_roles_fixture,
         precipitation_surface=precipitation_surface,
         current_soil_moisture=data["soil_moisture"],
         soil_moisture_capacity=DataArray([30, 60, 90], dims=["cell_id"]),
