@@ -1,16 +1,42 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import ERROR, DEBUG, INFO
 
 import pytest
 from numpy import timedelta64
+import numpy as np
+import xarray as xr
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     AbioticSimpleModel,
 )
+
+
+@pytest.fixture
+def abiotic_model_fixture(dummy_climate_data):
+    """Create a simple abiotic model fixture based on the dummy carbon data."""
+
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
+
+    config = {
+        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
+    }
+    return AbioticSimpleModel.from_config(dummy_climate_data, config)
+
+
+@pytest.fixture
+def layer_roles_fixture():
+    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        set_layer_roles,
+    )
+
+    return set_layer_roles(10, 2)
 
 
 @pytest.mark.parametrize(
@@ -69,14 +95,20 @@ from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     ],
 )
 def test_abiotic_simple_model_initialization(
-    caplog, data_instance, soil_layers, canopy_layers, raises, expected_log_entries
+    caplog,
+    dummy_climate_data,
+    soil_layers,
+    canopy_layers,
+    raises,
+    expected_log_entries,
+    layer_roles_fixture,
 ):
     """Test `AbioticSimpleModel` initialization."""
 
     with raises:
         # Initialize model
         model = AbioticSimpleModel(
-            data_instance,
+            dummy_climate_data,
             timedelta64(1, "W"),
             soil_layers,
             canopy_layers,
@@ -92,6 +124,7 @@ def test_abiotic_simple_model_initialization(
         )
         assert model.soil_layers == soil_layers
         assert model.canopy_layers == canopy_layers
+        assert model.layer_roles == layer_roles_fixture
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -127,6 +160,10 @@ def test_abiotic_simple_model_initialization(
                     "Information required to initialise the abiotic model successfully "
                     "extracted.",
                 ),
+                (
+                    DEBUG,
+                    "abiotic simple model: required var 'air_temperature_ref' checked",
+                ),
             ),
         ),
     ],
@@ -143,6 +180,23 @@ def test_generate_abiotic_simple_model(
         assert model.canopy_layers == config["abiotic_simple"]["canopy_layers"]
         assert model.update_interval == time_interval
 
+        model.setup()
+        xr.testing.assert_allclose(
+            data_instance["air_temperature"],
+            xr.DataArray(
+                np.full((15, 2), np.nan),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(0, 15),
+                    "layer_roles": (
+                        "layers",
+                        model.layer_roles[0:15],
+                    ),
+                    "cell_id": [0, 1, 2],
+                },
+                name="air_temperature",
+            ),
+        )
         # Run the update step (once this does something should check output)
         model.update()
 
@@ -150,54 +204,61 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_update_data_object():
+def test_update_data_object(dummy_climate_data):
     """Test reading from list."""
     import numpy as np
     from xarray import DataArray
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
         update_data_object,
-    )
-
-    # Setup the data object with two cells.
-    grid = Grid(cell_nx=3, cell_ny=1)
-    data = Data(grid)
-
-    # Add the required data.
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30),
-        dims=["cell_id", "time"],
-        name="air_temperature_ref",
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20),
-        dims=["cell_id"],
-        name="mean_annual_temperature",
     )
 
     var_list = [
         DataArray(
             np.full((3, 3), 20),
             dims=["cell_id", "time"],
+            coords=dummy_climate_data["air_temperature_ref"].coords,
             name="air_temperature_ref",
         ),
-        DataArray(np.full((3), 40), dims=["cell_id"], name="mean_annual_temperature"),
-        DataArray(np.full((3), 100), dims=["cell_id"], name="new_variable"),
+        DataArray(
+            np.full((3), 40),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="mean_annual_temperature",
+        ),
+        DataArray(
+            np.full((3), 100),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="new_variable",
+        ),
     ]
-    update_data_object(data, var_list)
+    update_data_object(dummy_climate_data, var_list)
 
-    assert data["air_temperature_ref"] == DataArray(
-        np.full((3, 3), 20),
-        dims=["cell_id", "time"],
-        name="air_temperature_ref",
+    xr.testing.assert_allclose(
+        dummy_climate_data["air_temperature_ref"],
+        DataArray(
+            np.full((3, 3), 20),
+            dims=["cell_id", "time"],
+            coords=dummy_climate_data["air_temperature_ref"].coords,
+            name="air_temperature_ref",
+        ),
     )
-    assert data["mean_annual_temperature"] == DataArray(
-        np.full((3), 40),
-        dims=["cell_id"],
-        name="mean_annual_temperature",
+    xr.testing.assert_allclose(
+        dummy_climate_data["mean_annual_temperature"],
+        DataArray(
+            np.full((3), 40),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="mean_annual_temperature",
+        ),
     )
-    assert data["new_variable"] == DataArray(
-        np.full((3), 100), dims=["cell_id"], name="new_variable"
+    xr.testing.assert_allclose(
+        dummy_climate_data["new_variable"],
+        DataArray(
+            np.full((3), 100),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="new_variable",
+        ),
     )
