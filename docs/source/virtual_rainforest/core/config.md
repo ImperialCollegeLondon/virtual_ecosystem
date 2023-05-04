@@ -22,18 +22,18 @@ configuration is shown below:
 modules = ["plants"]
 
 [core.grid]
-nx = 10
-ny = 10
+cell_nx = 10
+cell_ny = 10
 ```
 
 Here, the first tag indicates the module in question (e.g. `core`), and subsequent tags
 indicate (potentially nested) module level configuration details (e.g. horizontal grid
-size `nx`).
+size `cell_nx`).
 
 The configuration system does not require a single input config file, instead the config
 input can be spread across an arbitrarily large number of config files. However,
 information cannot be repeated between files as there is no way to establish which of
-two values (of e.g. `core.grid.nx`) the user intended to provide. In this case, the
+two values (of e.g. `core.grid.cell_nx`) the user intended to provide. In this case, the
 module will throw critical error and the `virtual_rainforest` model will not configure.
 The user supplies a list of config files and/or folders to look for config files, within
 the supplied folders every `toml` file will be read in. Once the complete configuration

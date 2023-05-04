@@ -4,7 +4,9 @@
       "soil": {
          "description": "Configuration settings for the soil module",
          "type": "object",
-         "default": {}
+         "properties": {},
+         "default": {},
+         "required": []
       }
    },
    "required": [

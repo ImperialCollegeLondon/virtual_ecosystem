@@ -2,8 +2,8 @@
 modules = ["soil"]
 
 [core.grid]
-nx = 10
-ny = 10
+cell_nx = 10
+cell_ny = 10
 
 [core.timing]
 start_date = "2020-01-01"
