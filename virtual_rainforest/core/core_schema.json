@@ -9,24 +9,42 @@
                "description": "Details of the grid to configure",
                "type": "object",
                "properties": {
-                  "nx": {
+                  "grid_type": {
+                     "description": "The grid cell type",
+                     "type": "string",
+                     "default": "square"
+                  },
+                  "cell_area": {
+                     "description": "The area of each grid cell (m^2)",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 10000
+                  },
+                  "cell_nx": {
                      "description": "Number of grid cells in x direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
                      "default": 100
                   },
-                  "ny": {
+                  "cell_ny": {
                      "description": "Number of grid cells in y direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
                      "default": 100
+                  },
+                  "xoff": {
+                     "description": "The x offset of the grid origin",
+                     "type": "number",
+                     "default": 0
+                  },
+                  "yoff": {
+                     "description": "The y offset of the grid origin",
+                     "type": "number",
+                     "default": 0
                   }
                },
                "default": {},
-               "required": [
-                  "nx",
-                  "ny"
-               ]
+               "required": []
             },
             "timing": {
                "description": "Overall timing settings for the model",

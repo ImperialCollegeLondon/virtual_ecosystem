@@ -186,12 +186,19 @@ def test_configure_models(
                         "end_date": "2120-01-01",
                     },
                     "data": [],
+                    "grid": {
+                        "grid_type": "square",
+                        "cell_area": 10000,
+                        "cell_nx": 3,
+                        "cell_ny": 3,
+                    },
                 },
                 "soil": {
                     "model_time_step": "0.5 martian days",
                 },
             },
             (
+                (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
@@ -212,8 +219,20 @@ def test_configure_models(
             id="bad_config_data",
         ),
         pytest.param(
-            {"core": {"modules": ["topsoil"], "data": []}},
+            {
+                "core": {
+                    "modules": ["topsoil"],
+                    "data": [],
+                    "grid": {
+                        "grid_type": "square",
+                        "cell_area": 10000,
+                        "cell_nx": 3,
+                        "cell_ny": 3,
+                    },
+                },
+            },
             (
+                (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
                 (INFO, "Attempting to configure the following models: ['topsoil']"),
                 (
