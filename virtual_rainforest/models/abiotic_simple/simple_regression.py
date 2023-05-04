@@ -48,7 +48,8 @@ def setup_simple_regression(
     except for soil moisture which has a homogenous value across all soil layers.
 
     Args:
-        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+            surface, soil)
         data: Data object
         initial_soil_moisture: initial soil moisture
 
@@ -229,7 +230,8 @@ def run_simple_regression(
 
     Args:
         data: Data object
-        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+            surface, soil)
         time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
         water_interception_factor: Factor that determines how much rainfall is
@@ -538,7 +540,8 @@ def interpolate_soil_temperature(
 
     Args:
         layer_heights: vertical layer heights, [m]
-        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+            surface, soil)
         surface_temperature: surface temperature, [C]
         mean_annual_temperature: mean annual temperature, [C]
 
@@ -648,7 +651,8 @@ def calculate_soil_moisture(
     moisture level and runoff is set to zero.
 
     Args:
-        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
+        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+            surface, soil)
         precipitation_surface: precipitation that reaches surface, [mm],
         current_soil_moisture: current soil moisture at upper layer, [mm],
         soil_moisture_capacity: soil moisture capacity (optional)
