@@ -1,12 +1,14 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
+# TODO the tests are incomplete and inconsistent because of incomplete implementation of
+# sew timing here, please ignore this file
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, DEBUG, INFO
+from logging import DEBUG, ERROR, INFO
 
-import pytest
-from numpy import timedelta64
 import numpy as np
+import pytest
 import xarray as xr
+from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError

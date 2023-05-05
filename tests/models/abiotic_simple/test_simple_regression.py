@@ -61,7 +61,7 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
 
 
 def test_lai_regression(dummy_climate_data):
-    """Test lai regression."""
+    """Test that function returns one-dimensional output."""
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         lai_regression,
     )
@@ -86,7 +86,7 @@ def test_lai_regression(dummy_climate_data):
 
 
 def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
-    """Test."""
+    """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
         lai_regression,
@@ -94,6 +94,8 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     )
 
     data = dummy_climate_data
+
+    # temperature
     value_from_lai_regression = lai_regression(
         reference_data=data["air_temperature_ref"].isel(time=0),
         leaf_area_index=data["leaf_area_index"],
@@ -149,6 +151,19 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     )
     xr.testing.assert_allclose(result, exp_output1)
 
+    # relative humidity
+    value_from_lai_regression_h = lai_regression(
+        reference_data=data["relative_humidity_ref"].isel(time=0),
+        leaf_area_index=data["leaf_area_index"],
+        gradient=5.4,
+    )
+    result_hum = log_interpolation(
+        data=data,
+        reference_data=data["relative_humidity_ref"].isel(time=0),
+        layer_roles=layer_roles_fixture,
+        layer_heights=data["layer_heights"],
+        value_from_lai_regression=value_from_lai_regression_h,
+    )
     exp_humidity = xr.concat(
         [
             DataArray(
@@ -187,14 +202,6 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
             ),
             "cell_id": data.grid.cell_id,
         }
-    )
-
-    result_hum = log_interpolation(
-        data=data,
-        reference_data=data["relative_humidity_ref"].isel(time=0),
-        layer_roles=layer_roles_fixture,
-        layer_heights=data["layer_heights"],
-        value_from_lai_regression=value_from_lai_regression,
     )
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
