@@ -14,11 +14,13 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-
-# from virtual_rainforest.core.utils import extract_update_interval
+from virtual_rainforest.core.utils import extract_update_interval  # not in develop yet
 from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
+# TODO THIS IS A DRAFT
+# this is still very inconsistent as the new timing is not fully implemented
+# the corresponding test are also incomplete and inconsistent
 class AbioticSimpleModel(BaseModel):
     """A class describing the simple abiotic model.
 
@@ -160,7 +162,17 @@ class AbioticSimpleModel(BaseModel):
 
 
 def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
-    """Define a list of layer roles.
+    """Create a list of layer roles.
+
+    This function creates a list of layer roles for the vertical dimension of the
+    Virtual Rainforest. The layer above the canopy is defined as 0 (canopy height + 2m)
+    and the index increases towards the bottom of the soil column. The canopy includes
+    a maximum number of canopy layers (defined in config) which are filled from the top
+    with canopy node heights from the plant module (the rest is set to NaN). Below the
+    canopy, we currently set one subcanopy layer (around 1.5m above ground) and one
+    surface layer (0.1 m above ground). Below ground, we include a maximum number of
+    soil layers (defined in config); the deepest layer is currently set to 1 m as the
+    temperature there is fairly constant and equals the mean annual temperature.
 
     Args:
         canopy_layers: number of canopy layers
@@ -179,7 +191,18 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
 
 
 def update_data_object(data: Data, output_list: List) -> None:
-    """Update data object from list of variables."""
+    """Update data object from list of variables.
+
+    This function takes a list of variables from a submodule to update
+    the corresponding variables in the data object.
+
+    Args:
+        data: Data instance
+        output_list: list of variables from submodule
+
+    Returns:
+        an updated data object for the current time step
+    """
 
     for variable in output_list:
         data[variable.name] = variable

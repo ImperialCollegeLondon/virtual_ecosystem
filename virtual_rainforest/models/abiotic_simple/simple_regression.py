@@ -1,7 +1,7 @@
 r"""The ``models.abiotic_simple.simple_regression`` module uses linear regression
 and logarithmic interpolation to calculate atmospheric temperature and humidity profiles
-as a function of leaf area index and height. The relationships are derived
-from :cite:t:`hardwick_relationship_2015`.
+as a function of leaf area index and canopy layer height. The relationships are derived
+from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018`.
 
 Soil temperature is interpolated between the surface layer and the air
 temperature at 1 m depth which equals the mean annual temperature.
@@ -22,7 +22,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
 
-MicroclimateGradients: Dict[str, float] = {
+MicroclimateGradients: Dict[str, float] = {  # DOCSTRING? `hardwick_relationship_2015`
     "air_temperature_gradient": -1.27,
     "relative_humidity_gradient": 5.4,
     "vapor_pressure_deficit_gradient": -252.24,
@@ -234,6 +234,7 @@ def run_simple_regression(
             surface, soil)
         time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
+            :cite:p:`hardwick_relationship_2015`
         water_interception_factor: Factor that determines how much rainfall is
             intercepted by stem and canopy
         soil_moisture_capacity: soil moisture capacity for water
@@ -406,7 +407,7 @@ def lai_regression(
     Args:
         reference_data: input variable at reference height
         leaf_area_index: leaf area index, [m m-1]
-        gradient: gradient of regression from Harwick
+        gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
 
     Returns:
         microclimatic variable at 1.5 m
@@ -536,7 +537,7 @@ def interpolate_soil_temperature(
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
 ) -> DataArray:
-    """Interpolate soil temperature.
+    """Interpolate soil temperature using logarithmic function.
 
     Args:
         layer_heights: vertical layer heights, [m]
@@ -631,7 +632,8 @@ def interpolate_soil_temperature(
     return soil_temperature.rename("soil_temperature")
 
 
-# TODO HYDROLOGY grid based not ready
+# TODO HYDROLOGY grid based in simple model?
+# Stream flow could be estimated as P-ET
 
 
 def calculate_soil_moisture(
