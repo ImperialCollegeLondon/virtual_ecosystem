@@ -87,25 +87,23 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        lai_regression,
         log_interpolation,
     )
 
     data = dummy_climate_data
 
-    # temperature
-    value_from_lai_regression = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(time=0),
-        leaf_area_index=data["leaf_area_index"],
-        gradient=-2.45,
-    )
+    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
+    # temperature
     result = log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time=0),
+        leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
-        value_from_lai_regression=value_from_lai_regression,
+        upper_bound=80,
+        lower_bound=0,
+        gradient=-2.45,
     )
 
     exp_output = xr.concat(
@@ -141,34 +139,32 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     xr.testing.assert_allclose(result, exp_output1)
 
     # relative humidity
-    value_from_lai_regression_h = lai_regression(
-        reference_data=data["relative_humidity_ref"].isel(time=0),
-        leaf_area_index=data["leaf_area_index"],
-        gradient=5.4,
-    )
     result_hum = log_interpolation(
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time=0),
+        leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
-        value_from_lai_regression=value_from_lai_regression_h,
+        upper_bound=100,
+        lower_bound=0,
+        gradient=5.4,
     )
     exp_humidity = xr.concat(
         [
             DataArray(
                 [
                     [90.0, 90.0, 90.0],
-                    [88.5796455, 88.5796455, 88.5796455],
-                    [79.65622765, 79.65622765, 79.65622765],
-                    [64.40154408, 64.40154408, 64.40154408],
+                    [90.341644, 90.341644, 90.341644],
+                    [92.488034, 92.488034, 92.488034],
+                    [96.157312, 96.157312, 96.157312],
                 ],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
-                    [22.65, 22.65, 22.65],
-                    [0, 0, 0],
+                    [100, 100, 100],
+                    [100, 100, 100],
                 ],
                 dims=["layers", "cell_id"],
             ),

@@ -252,34 +252,33 @@ def run_simple_regression(
 
     output = []
 
+    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
+
     # Mean air temperature profile, [C]
-    air_temperature_lai = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(time=time_index),
-        leaf_area_index=data["leaf_area_index"],
-        gradient=MicroclimateGradients["air_temperature_gradient"],
-    )
+
     air_temperature_log = log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time=time_index),
+        leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        value_from_lai_regression=air_temperature_lai,
+        upper_bound=80,
+        lower_bound=0,
+        gradient=MicroclimateGradients["air_temperature_gradient"],
     )
     air_temperature = air_temperature_log.rename("air_temperature")
     output.append(air_temperature)
 
     # Mean relative humidity profile, []
-    relative_humidity_lai = lai_regression(
-        reference_data=data["relative_humidity_ref"].isel(time=time_index),
-        leaf_area_index=data["leaf_area_index"],
-        gradient=MicroclimateGradients["relative_humidity_gradient"],
-    )
     relative_humidity_log = log_interpolation(
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time=time_index),
+        leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        value_from_lai_regression=relative_humidity_lai,
+        upper_bound=100,
+        lower_bound=0,
+        gradient=MicroclimateGradients["relative_humidity_gradient"],
     )
     relative_humidity = relative_humidity_log.rename("relative_humidity")
     output.append(relative_humidity)
@@ -291,17 +290,15 @@ def run_simple_regression(
         relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
 
-    vapor_pressure_deficit_lai = lai_regression(
-        reference_data=vapor_pressure_deficit_ref,
-        leaf_area_index=data["leaf_area_index"],
-        gradient=MicroclimateGradients["vapor_pressure_deficit_gradient"],
-    )
     vapor_pressure_deficit_log = log_interpolation(
         data=data,
         reference_data=vapor_pressure_deficit_ref,
+        leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        value_from_lai_regression=vapor_pressure_deficit_lai,
+        upper_bound=10,
+        lower_bound=0,
+        gradient=MicroclimateGradients["vapor_pressure_deficit_gradient"],
     )
     vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
@@ -396,27 +393,6 @@ def run_simple_regression(
 
 
 # supporting functions
-def lai_regression(
-    reference_data: DataArray,
-    leaf_area_index: DataArray,
-    gradient: float,
-) -> DataArray:
-    """Calculate microclimatic variable at 1.5 m as function of leaf area index.
-
-    Args:
-        reference_data: input variable at reference height
-        leaf_area_index: leaf area index, [m m-1]
-        gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
-
-    Returns:
-        microclimatic variable at 1.5 m
-    """
-
-    return DataArray(
-        leaf_area_index.sum(dim="layers") * gradient + reference_data, dims="cell_id"
-    )
-
-
 def logarithmic(x: DataArray, gradient: float, intercept: float) -> DataArray:
     """Logarithmic function.
 
@@ -434,22 +410,33 @@ def logarithmic(x: DataArray, gradient: float, intercept: float) -> DataArray:
 def log_interpolation(
     data: Data,
     reference_data: DataArray,
-    layer_roles: List[str],
+    leaf_area_index_sum: DataArray,
+    layer_roles: List,
     layer_heights: DataArray,
-    value_from_lai_regression: DataArray,
+    upper_bound: float,
+    lower_bound: float,
+    gradient: float,
 ) -> DataArray:
-    """Logarithmic interpolation of variables for vertical profile.
+    """LAI regression and logarithmic interpolation of variables for vertical profile.
 
     Args:
         data: Data object
         reference_data: input variable at reference height
+        leaf_area_index_sum: leaf area index summed over all layers, [m m-1]
         layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         layer_heights: vertical layer heights, [m]
-        value_from_lai_regression: variable value from linear regression with LAI
+        lower_bound: minimum allowe value
+        upper_bound: maximum allowed value
+        gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
 
     Returns:
         vertical profile of provided variable
     """
+
+    # Calculate microclimatic variable at 1.5 m as function of leaf area index
+    lai_regression = DataArray(
+        leaf_area_index_sum * gradient + reference_data, dims="cell_id"
+    )
 
     # Fit logarithmic function to interpolate between temperature top and 1.5m
     x_values = np.array(
@@ -458,14 +445,24 @@ def log_interpolation(
             np.repeat(1.5, len(data.grid.cell_id)),
         ]
     ).flatten()
-    y_values = np.array([reference_data, value_from_lai_regression]).flatten()
+    y_values = np.array([reference_data, lai_regression]).flatten()
 
     popt, pcov = curve_fit(logarithmic, x_values, y_values)
     a, b = popt  # the function coefficients
 
     output = a * np.log(layer_heights) + b
+
+    lower_limit = DataArray(
+        np.where(output < lower_bound, lower_bound, output),
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+            "cell_id": data.grid.cell_id,
+        },
+    )
     return DataArray(
-        np.where(output < 0, 0, output),
+        np.where(lower_limit > upper_bound, upper_bound, lower_limit),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
@@ -679,7 +676,7 @@ def calculate_soil_moisture(
     soil_moisture_mean = total_water.where(total_water < soil_moisture_capacity).fillna(
         soil_moisture_capacity
     )
-    soil_moisture = (
+    soil_moisture = (  # TODO set bounds 0-100
         xr.concat(
             [
                 DataArray(
