@@ -78,9 +78,7 @@ def test_lai_regression(dummy_climate_data):
         DataArray(
             [22.65, 22.65, 22.65],
             dims="cell_id",
-            coords={
-                "cell_id": data.grid.cell_id,
-            },
+            coords={"cell_id": data.grid.cell_id},  # noqa
         ),
     )
 
@@ -121,10 +119,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -132,20 +127,14 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
         ],
         dim="layers",
     )
     exp_output1 = exp_output.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                layer_roles_fixture[0:15],
-            ),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),  # noqa
             "cell_id": data.grid.cell_id,
         }
     )
@@ -175,10 +164,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -186,20 +172,14 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
         ],
         dim="layers",
     )
     exp_humidity = exp_humidity.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                layer_roles_fixture[0:15],
-            ),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),  # noqa
             "cell_id": data.grid.cell_id,
         }
     )
@@ -221,9 +201,7 @@ def test_calculate_saturation_vapor_pressure(dummy_climate_data):
     exp_output = DataArray(
         [1.41727, 1.41727, 1.41727],
         dims=["cell_id"],
-        coords={
-            "cell_id": data.grid.cell_id,
-        },
+        coords={"cell_id": data.grid.cell_id},  # noqa
     )
     xr.testing.assert_allclose(result, exp_output)
 
@@ -246,10 +224,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -257,10 +232,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
         ],
         dim="layers",
     )
@@ -275,10 +247,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -286,10 +255,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
         ],
         dim="layers",
     )
@@ -309,18 +275,12 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
             DataArray(
                 [[0.90814, 0.90814, 0.90814], [0.984889, 0.984889, 0.984889]],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
         ],
         dim="layers",
     )
@@ -352,10 +312,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((7, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
                     [26.19, 26.19, 26.19],
@@ -363,20 +320,14 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(
-                np.full((2, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     exp_output1 = exp_output.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                layer_roles_fixture[0:15],
-            ),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -406,17 +357,11 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     exp_output = xr.concat(
         [
             DataArray(
-                np.full(
-                    (13, 3),
-                    np.nan,
-                ),
+                np.full((13, 3), np.nan),
                 dims=["layers", "cell_id"],
                 coords={
                     "layers": np.arange(0, 13),
-                    "layer_roles": (
-                        "layers",
-                        layer_roles_fixture[0:13],
-                    ),
+                    "layer_roles": ("layers", layer_roles_fixture[0:13]),
                     "cell_id": [0, 1, 2],
                 },
             ),
@@ -425,10 +370,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
                 dims=["layers", "cell_id"],
                 coords={
                     "layers": np.arange(13, 15),
-                    "layer_roles": (
-                        "layers",
-                        layer_roles_fixture[13:15],
-                    ),
+                    "layer_roles": ("layers", layer_roles_fixture[13:15]),
                     "cell_id": [0, 1, 2],
                 },
             ),
@@ -453,13 +395,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
 
     exp_soil_moisture = xr.concat(
         [
-            DataArray(
-                np.full(
-                    (13, 3),
-                    np.nan,
-                ),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
                 dims=["layers", "cell_id"],
@@ -470,10 +406,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     exp_soil_moisture = exp_soil_moisture.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                layer_roles_fixture[0:15],
-            ),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
             "cell_id": data.grid.cell_id,
         }
     )
