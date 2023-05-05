@@ -22,11 +22,15 @@ from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
 
-MicroclimateGradients: Dict[str, float] = {  # DOCSTRING? `hardwick_relationship_2015`
+MicroclimateGradients: Dict[str, float] = {
     "air_temperature_gradient": -1.27,
     "relative_humidity_gradient": 5.4,
     "vapor_pressure_deficit_gradient": -252.24,
 }
+"""Gradients for linear regression to calculate air temperature, relative humidity, and
+vapor pressure deficit as a function of leaf area index from
+:cite:t:`hardwick_relationship_2015`.
+"""
 
 MicroclimateParameters: Dict[str, float] = {
     "soil_moisture_capacity": 150,
@@ -35,6 +39,7 @@ MicroclimateParameters: Dict[str, float] = {
     "saturation_vapor_pressure_factor2": 7.5,
     "saturation_vapor_pressure_factor3": 237.3,
 }
+"""Parameters for simple abiotic regression model."""
 
 
 def setup_simple_regression(
@@ -61,62 +66,60 @@ def setup_simple_regression(
 
     output = []
 
+    # Mean air temperature profile, [C]
     air_temperature = DataArray(
         np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
             "cell_id": data.grid.cell_id,
         },
         name="air_temperature",
     )
-    """Mean air temperature profile, [C]"""
     output.append(air_temperature)
 
+    # Mean relative humidity profile, []
     relative_humidity = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("relative_humidity")
-    """Mean relative humidity profile"""
     output.append(relative_humidity)
 
+    # Mean vapor pressure deficit profile, [kPa]
     vapor_pressure_deficit = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("vapor_pressure_deficit")
-    """Mean vapor pressure deficit profile"""
     output.append(vapor_pressure_deficit)
 
+    # Mean soil temperature profile, [C]
     soil_temperature = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("soil_temperature")
-    """Mean soil temperature profile, [C]"""
     output.append(soil_temperature)
 
+    # Atmospheric pressure profile, [kPa]
     atmospheric_pressure = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("atmospheric_pressure")
-    """Atmospheric pressure profile, [kPa]"""
     output.append(atmospheric_pressure)
 
+    # Atmospheric CO2 profile, [ppm]
     atmospheric_CO2 = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("atmospheric_co2")
-    r"""Atmospheric :math:`\ce{CO2}` profile, [ppm]"""
     output.append(atmospheric_CO2)
 
+    # Soil moisture profile, []
     # initial soil moisture constant in all soil layers, all other layers set to NaN
     soil_moisture = (
         xr.concat(
@@ -149,12 +152,12 @@ def setup_simple_regression(
     )
     output.append(soil_moisture)
 
+    # Surface runoff, [mm]
     surface_runoff = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
         coords=air_temperature.coords,
     ).rename("surface_runoff")
-    """Surface runoff, [mm]"""
     output.append(surface_runoff)
 
     return [
@@ -192,7 +195,8 @@ def run_simple_regression(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, math:`m` is the gradient
-    (see MicroclimateGradients) and :math:`c` is the intersect which we set to the
+    (:data:`~virtual_rainforest.models.abiotic_simple.simple_regression.MicroclimateGradients`)
+    and :math:`c` is the intersect which we set to the
     external data values. We assume that the gradient remains constant.
 
     The other atmospheric layers are calculated by logaritmic regression and
@@ -247,7 +251,7 @@ def run_simple_regression(
 
     output = []
 
-    # air temperature
+    # Mean air temperature profile, [C]
     air_temperature_lai = lai_regression(
         reference_data=data["air_temperature_ref"].isel(time=time_index),
         leaf_area_index=data["leaf_area_index"],
@@ -263,7 +267,7 @@ def run_simple_regression(
     air_temperature = air_temperature_log.rename("air_temperature")
     output.append(air_temperature)
 
-    # relative humidity
+    # Relative humidity profile, []
     relative_humidity_lai = lai_regression(
         reference_data=data["relative_humidity_ref"].isel(time=time_index),
         leaf_area_index=data["leaf_area_index"],
@@ -279,7 +283,7 @@ def run_simple_regression(
     relative_humidity = relative_humidity_log.rename("relative_humidity")
     output.append(relative_humidity)
 
-    # vapor pressure deficit
+    # Vapor pressure deficit, [kPa]
     # calculate vapor pressure deficit at reference height first
     vapor_pressure_deficit_ref = calculate_vapor_pressure_deficit(
         temperature=data["air_temperature_ref"].isel(time=time_index),
@@ -301,7 +305,7 @@ def run_simple_regression(
     vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
 
-    # soil temperature
+    # Soil temperature profile, [C]
     soil_temperature = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         layer_roles=layer_roles,
@@ -312,7 +316,7 @@ def run_simple_regression(
     )
     output.append(soil_temperature)
 
-    # atmospheric pressure
+    # Atmospheric pressure, [kPa]
     atmospheric_pressure_1 = xr.concat(
         [
             data["atmospheric_pressure_ref"]
@@ -336,16 +340,13 @@ def run_simple_regression(
     atmospheric_pressure = atmospheric_pressure_1.assign_coords(
         {
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
             "cell_id": data.grid.cell_id,
         },
     )
     output.append(atmospheric_pressure)
 
-    # atmospheric C02
+    # Atmospheric C02 profile, [ppm]
     atmospheric_co2_1 = xr.concat(
         [
             data["atmospheric_co2_ref"]
@@ -369,10 +370,7 @@ def run_simple_regression(
     atmospheric_co2 = atmospheric_co2_1.assign_coords(
         {
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
             "cell_id": data.grid.cell_id,
         },
     )
@@ -383,7 +381,7 @@ def run_simple_regression(
         1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
     )
 
-    # soil moisture
+    # Soil moisture profile, []
     soil_moisture, surface_run_off = calculate_soil_moisture(
         layer_roles=layer_roles,
         precipitation_surface=precipitation_surface,
@@ -470,10 +468,7 @@ def log_interpolation(
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": (
-                "layers",
-                layer_roles[0 : len(layer_roles)],
-            ),
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
             "cell_id": data.grid.cell_id,
         },
     )
@@ -674,11 +669,7 @@ def calculate_soil_moisture(
         DataArray(surface_runoff_cells.data - available_capacity.data, dims="cell_id")
         .fillna(0)
         .rename("surface_runoff")
-        .assign_coords(
-            {
-                "cell_id": current_soil_moisture.cell_id,
-            },
-        )
+        .assign_coords({"cell_id": current_soil_moisture.cell_id}),  # noqa
     )
 
     total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
@@ -715,10 +706,7 @@ def calculate_soil_moisture(
         .assign_coords(
             {
                 "layers": np.arange(0, len(layer_roles)),
-                "layer_roles": (
-                    "layers",
-                    layer_roles[0 : len(layer_roles)],
-                ),
+                "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
                 "cell_id": current_soil_moisture.coords["cell_id"],
             },
         )

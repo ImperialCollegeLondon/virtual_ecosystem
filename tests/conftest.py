@@ -215,10 +215,7 @@ def dummy_climate_data():
     )
 
     data["leaf_area_index"] = xr.concat(
-        [
-            DataArray(np.full((1, 3), 3)),
-            DataArray(np.full((14, 3), np.nan)),
-        ],
+        [DataArray(np.full((1, 3), 3)), DataArray(np.full((14, 3), np.nan))],
         dim="dim_0",
     )
     data["leaf_area_index"] = (
@@ -227,10 +224,7 @@ def dummy_climate_data():
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    layer_roles[0:15],
-                ),
+                "layer_roles": ("layers", layer_roles[0:15]),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -251,10 +245,7 @@ def dummy_climate_data():
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    layer_roles[0:15],
-                ),
+                "layer_roles": ("layers", layer_roles[0:15]),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -266,23 +257,11 @@ def dummy_climate_data():
     data["soil_moisture"] = xr.concat(
         [
             DataArray(
-                np.full(
-                    (
-                        13,
-                        3,
-                    ),
-                    np.nan,
-                ),
+                np.full((13, 3), np.nan),
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                np.full(
-                    (
-                        2,
-                        3,
-                    ),
-                    20,
-                ),
+                np.full((2, 3), 20),
                 dims=["layers", "cell_id"],
             ),
         ],
