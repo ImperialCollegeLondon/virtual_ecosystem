@@ -103,7 +103,7 @@ def setup_simple_regression(
     ).rename("soil_temperature")
     output.append(soil_temperature)
 
-    # Atmospheric pressure profile, [kPa]
+    # Mean atmospheric pressure profile, [kPa]
     atmospheric_pressure = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
@@ -111,7 +111,7 @@ def setup_simple_regression(
     ).rename("atmospheric_pressure")
     output.append(atmospheric_pressure)
 
-    # Atmospheric CO2 profile, [ppm]
+    # Mean atmospheric CO2 profile, [ppm]
     atmospheric_CO2 = DataArray(
         np.full_like(air_temperature, np.nan),
         dims=air_temperature.dims,
@@ -119,7 +119,7 @@ def setup_simple_regression(
     ).rename("atmospheric_co2")
     output.append(atmospheric_CO2)
 
-    # Soil moisture profile, []
+    # Mean soil moisture profile, []
     # initial soil moisture constant in all soil layers, all other layers set to NaN
     soil_moisture = (
         xr.concat(
@@ -208,10 +208,11 @@ def run_simple_regression(
 
     Soil moisture and surface runoff are calculated with a simple bucket model based
     on :cite:t:`davis_simple_2017`: if
-    precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
-    excess water is added to runoff and soil moisture is set to soil moisture capacity
-    value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero.
+    precipitation exceeds soil moisture capacity (see
+    :data:`~virtual_rainforest.models.abiotic_simple.simple_regression.MicroclimateParameters`)
+    , the excess water is added to runoff and soil moisture is set to soil moisture
+    capacity value; if the soil is not saturated, precipitation is added to the current
+    soil moisture level and runoff is set to zero.
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
@@ -267,7 +268,7 @@ def run_simple_regression(
     air_temperature = air_temperature_log.rename("air_temperature")
     output.append(air_temperature)
 
-    # Relative humidity profile, []
+    # Mean relative humidity profile, []
     relative_humidity_lai = lai_regression(
         reference_data=data["relative_humidity_ref"].isel(time=time_index),
         leaf_area_index=data["leaf_area_index"],
@@ -283,7 +284,7 @@ def run_simple_regression(
     relative_humidity = relative_humidity_log.rename("relative_humidity")
     output.append(relative_humidity)
 
-    # Vapor pressure deficit, [kPa]
+    # Mean vapor pressure deficit, [kPa]
     # calculate vapor pressure deficit at reference height first
     vapor_pressure_deficit_ref = calculate_vapor_pressure_deficit(
         temperature=data["air_temperature_ref"].isel(time=time_index),
@@ -305,7 +306,7 @@ def run_simple_regression(
     vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
 
-    # Soil temperature profile, [C]
+    # Mean soil temperature profile, [C]
     soil_temperature = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         layer_roles=layer_roles,
@@ -316,7 +317,7 @@ def run_simple_regression(
     )
     output.append(soil_temperature)
 
-    # Atmospheric pressure, [kPa]
+    # Mean atmospheric pressure profile, [kPa]
     atmospheric_pressure_1 = xr.concat(
         [
             data["atmospheric_pressure_ref"]
@@ -346,7 +347,7 @@ def run_simple_regression(
     )
     output.append(atmospheric_pressure)
 
-    # Atmospheric C02 profile, [ppm]
+    # Mean atmospheric C02 profile, [ppm]
     atmospheric_co2_1 = xr.concat(
         [
             data["atmospheric_co2_ref"]
@@ -376,12 +377,12 @@ def run_simple_regression(
     )
     output.append(atmospheric_co2)
 
-    # precipitation at the surface is reduced as a function of leaf area index
+    # Precipitation at the surface is reduced as a function of leaf area index
     precipitation_surface = data["precipitation"].isel(time=time_index) * (
         1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
     )
 
-    # Soil moisture profile, []
+    # Mean soil moisture profile, [] and Runoff, [mm]
     soil_moisture, surface_run_off = calculate_soil_moisture(
         layer_roles=layer_roles,
         precipitation_surface=precipitation_surface,
@@ -669,7 +670,9 @@ def calculate_soil_moisture(
         DataArray(surface_runoff_cells.data - available_capacity.data, dims="cell_id")
         .fillna(0)
         .rename("surface_runoff")
-        .assign_coords({"cell_id": current_soil_moisture.cell_id}),  # noqa
+        .assign_coords(
+            {"cell_id": current_soil_moisture.cell_id},
+        ),
     )
 
     total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
