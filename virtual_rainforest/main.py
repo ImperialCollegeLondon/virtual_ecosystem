@@ -227,6 +227,10 @@ def vr_run(
     # Identify models with shorter time steps than main loop and warn user about them
     check_for_fast_models(models_cfd, update_interval)
 
+    # Setup all models (those with placeholder setup processes won't change at all)
+    for mod_nm in models_cfd:
+        models_cfd[mod_nm].setup()
+
     # TODO - A model spin up might be needed here in future
 
     # Save the initial state of the model
