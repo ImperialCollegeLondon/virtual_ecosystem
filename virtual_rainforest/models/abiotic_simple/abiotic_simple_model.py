@@ -44,18 +44,9 @@ class AbioticSimpleModel(BaseModel):
         ("atmospheric_pressure_ref", ("spatial",)),
         ("precipitation", ("spatial",)),
         ("atmospheric_co2", ("spatial",)),
-        (
-            "mean_annual_temperature",
-            ("spatial",),
-        ),
-        (
-            "leaf_area_index",
-            ("spatial",),
-        ),
-        (
-            "layer_heights",
-            ("spatial",),
-        ),
+        ("mean_annual_temperature", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+        ("layer_heights", ("spatial",)),
     )
     """The required variables and axes for the simple abiotic model"""
 

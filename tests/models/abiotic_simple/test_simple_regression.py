@@ -78,7 +78,7 @@ def test_lai_regression(dummy_climate_data):
         DataArray(
             [22.65, 22.65, 22.65],
             dims="cell_id",
-            coords={"cell_id": data.grid.cell_id},  # noqa
+            coords={"cell_id": data.grid.cell_id},
         ),
     )
 
@@ -119,7 +119,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -127,14 +127,14 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     exp_output1 = exp_output.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),  # noqa
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -164,7 +164,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -172,14 +172,14 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     exp_humidity = exp_humidity.assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),  # noqa
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -201,7 +201,7 @@ def test_calculate_saturation_vapor_pressure(dummy_climate_data):
     exp_output = DataArray(
         [1.41727, 1.41727, 1.41727],
         dims=["cell_id"],
-        coords={"cell_id": data.grid.cell_id},  # noqa
+        coords={"cell_id": data.grid.cell_id},
     )
     xr.testing.assert_allclose(result, exp_output)
 
@@ -224,7 +224,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -232,7 +232,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
@@ -247,7 +247,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [
                     [22.65, 22.65, 22.65],
@@ -255,7 +255,7 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
@@ -275,12 +275,12 @@ def test_calculate_vapor_pressure_deficit():
                 ],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [[0.90814, 0.90814, 0.90814], [0.984889, 0.984889, 0.984889]],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),  # noqa
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
