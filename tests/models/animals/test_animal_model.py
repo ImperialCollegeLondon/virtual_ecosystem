@@ -3,8 +3,8 @@
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
+import pint
 import pytest
-from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -15,13 +15,13 @@ def test_animal_model_initialization(caplog, data_instance):
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
-    model = AnimalModel(data_instance, timedelta64(1, "W"))
+    model = AnimalModel(data_instance, pint.Quantity("1 week"))
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
     assert model.model_name == "animal"
     assert str(model) == "A animal model instance"
-    assert repr(model) == "AnimalModel(update_interval = 1 weeks)"
+    assert repr(model) == "AnimalModel(update_interval = 1 week)"
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,7 @@ def test_animal_model_initialization(caplog, data_instance):
                     }
                 },
             },
-            timedelta64(7, "D"),
+            pint.Quantity("7 days"),
             does_not_raise(),
             (
                 (
@@ -81,7 +81,11 @@ def test_generate_animal_model(
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AnimalModel.from_config(data_instance, config)
+        model = AnimalModel.from_config(
+            data_instance,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
         assert model.update_interval == time_interval
         # Run the update step (once this does something should check output)
         model.update()

@@ -7,6 +7,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from typing import Any
 
+import pint
 import pytest
 from numpy import datetime64, timedelta64
 
@@ -456,8 +457,10 @@ def test_check_required_init_vars(
             return super().cleanup()
 
         @classmethod
-        def from_config(cls, data: Data, config: dict[str, Any]) -> Any:
-            return super().from_config(data, config)
+        def from_config(
+            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+        ) -> Any:
+            return super().from_config(data, config, update_interval)
 
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
@@ -469,7 +472,7 @@ def test_check_required_init_vars(
     with raises as err:
         inst = TestCaseModel(  # noqa: F841
             data=data_instance,
-            update_interval=timedelta64(1, "W"),
+            update_interval=pint.Quantity("1 week"),
             start_time=datetime64("2022-11-01"),
         )
 

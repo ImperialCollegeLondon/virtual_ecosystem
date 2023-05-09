@@ -3,8 +3,8 @@
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
+import pint
 import pytest
-from numpy import timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -75,7 +75,7 @@ def test_abiotic_model_initialization(
         # Initialize model
         model = AbioticModel(
             data_instance,
-            timedelta64(1, "W"),
+            pint.Quantity("1 hour"),
             soil_layers,
             canopy_layers,
         )
@@ -84,7 +84,7 @@ def test_abiotic_model_initialization(
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
         assert model.model_name == "abiotic"
         assert (
-            repr(model) == f"AbioticModel(update_interval = 1 weeks, "
+            repr(model) == f"AbioticModel(update_interval = 1 hour, "
             f"soil_layers = {int(soil_layers)}, "
             f"canopy_layers = {int(canopy_layers)})"
         )
@@ -117,7 +117,7 @@ def test_abiotic_model_initialization(
                     "canopy_layers": 3,
                 },
             },
-            timedelta64(12, "h"),
+            pint.Quantity("12 hours"),
             does_not_raise(),
             (
                 (
@@ -136,7 +136,11 @@ def test_generate_abiotic_model(
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AbioticModel.from_config(data_instance, config)
+        model = AbioticModel.from_config(
+            data_instance,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
         assert model.soil_layers == config["abiotic"]["soil_layers"]
         assert model.canopy_layers == config["abiotic"]["canopy_layers"]
         assert model.update_interval == time_interval
