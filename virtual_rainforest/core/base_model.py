@@ -290,7 +290,6 @@ class BaseModel(ABC):
             LOGGER.error(to_raise)
             raise to_raise
 
-    # TODO - Test that quantity is returned
     @classmethod
     def _check_time_bounds_units(
         cls, which: str = "lower_bound_on_time_scale"
@@ -342,25 +341,8 @@ class BaseModel(ABC):
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-    @classmethod
-    def _check_time_bounds_values(cls) -> None:
-        """Check that the lower time bound is less than the upper bound.
-
-        Raises:
-            ValueError: If the lower bound is not less than the upper bound
-        """
-
-        # Find upper and lower bound
-        upper_bound = pint.Quantity(cls.upper_bound_on_time_scale)
-        lower_bound = pint.Quantity(cls.lower_bound_on_time_scale)
-
-        if upper_bound <= lower_bound:
-            to_raise = ValueError(
-                f"Lower time bound for {cls.__name__} is not less than the upper bound."
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        else:
+            return bound
 
     @classmethod
     def __init_subclass__(cls) -> None:
@@ -379,9 +361,16 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
-            cls._check_time_bounds_units("lower_bound_on_time_scale")
-            cls._check_time_bounds_units("upper_bound_on_time_scale")
-            cls._check_time_bounds_values()
+            lower_bound = cls._check_time_bounds_units("lower_bound_on_time_scale")
+            upper_bound = cls._check_time_bounds_units("upper_bound_on_time_scale")
+            # Once bounds units are checked their relative values can be validated
+            if upper_bound <= lower_bound:
+                to_raise = ValueError(
+                    f"Lower time bound for {cls.__name__} is not less than the upper "
+                    f"bound."
+                )
+                LOGGER.error(to_raise)
+                raise to_raise
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
