@@ -12,6 +12,7 @@ import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
@@ -485,3 +486,114 @@ def test_check_required_init_vars(
         assert str(inst) == "A init_var model instance"
 
     log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["config", "raises", "timestep", "expected_log"],
+    argvalues=[
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 month",
+                    }
+                },
+            },
+            does_not_raise(),
+            pint.Quantity("1 month"),
+            (),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 day",
+                    }
+                },
+            },
+            does_not_raise(),
+            pint.Quantity("1 day"),
+            (),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "30 minutes",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is shorter than the model's lower bound",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "3 months",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is longer than the model's upper bound",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_update_speed(caplog, config, raises, timestep, expected_log):
+    """Tests check on update speed."""
+
+    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.data import Data
+
+    class TimingTestModel(BaseModel):
+        model_name = "timing_test"
+        lower_bound_on_time_scale = "1 day"
+        upper_bound_on_time_scale = "1 month"
+        required_init_vars = ()
+
+        def setup(self) -> None:
+            return super().setup()
+
+        def spinup(self) -> None:
+            return super().spinup()
+
+        def update(self) -> None:
+            return super().update()
+
+        def cleanup(self) -> None:
+            return super().cleanup()
+
+        @classmethod
+        def from_config(
+            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+        ) -> Any:
+            return super().from_config(data, config, update_interval)
+
+    # Registration of TestClassModel emits logging messages - discard.
+    caplog.clear()
+
+    with raises:
+        inst = TimingTestModel(
+            data=data_instance,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
+            start_time=datetime64(config["core"]["timing"]["start_date"]),
+        )
+        assert inst.update_interval == timestep
+
+    log_check(caplog, expected_log)

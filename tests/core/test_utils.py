@@ -1,118 +1,12 @@
 """Testing the utility functions."""
 
-from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR
+from logging import CRITICAL
 from pathlib import Path
 
 import pytest
-from numpy import timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-
-
-@pytest.mark.parametrize(
-    argnames=["config", "raises", "timestep", "expected_log"],
-    argvalues=[
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
-                    }
-                },
-            },
-            does_not_raise(),
-            timedelta64(720, "m"),
-            (),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 interminable hours",
-                    }
-                },
-            },
-            pytest.raises(InitialisationError),
-            None,
-            (
-                (
-                    ERROR,
-                    "Model timing error: 'interminable' is not defined in the unit "
-                    "registry",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 kilograms",
-                    }
-                },
-            },
-            pytest.raises(InitialisationError),
-            None,
-            (
-                (
-                    ERROR,
-                    "Model timing error: Cannot convert from 'kilogram' ([mass]) to "
-                    "'second' ([time])",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "30 minutes",
-                    }
-                },
-            },
-            pytest.raises(ConfigurationError),
-            None,
-            (
-                (
-                    ERROR,
-                    "The update interval is shorter than the model's lower bound",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "3 months",
-                    }
-                },
-            },
-            pytest.raises(ConfigurationError),
-            None,
-            (
-                (
-                    ERROR,
-                    "The update interval is longer than the model's upper bound",
-                ),
-            ),
-        ),
-    ],
-)
-def test_extract_update_interval(caplog, config, raises, timestep, expected_log):
-    """Tests timing details extraction utility."""
-
-    from virtual_rainforest.core.utils import extract_update_interval
-
-    with raises:
-        update_interval = extract_update_interval(config, "1 hour", "1 month")
-        assert update_interval == timestep
-
-    log_check(caplog, expected_log)
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(

@@ -1,13 +1,12 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import INFO
 
 import pint
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import InitialisationError
 
 
 def test_animal_model_initialization(caplog, data_instance):
@@ -49,25 +48,6 @@ def test_animal_model_initialization(caplog, data_instance):
                     INFO,
                     "Information required to initialise the animal model successfully "
                     "extracted.",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "20 interminable minutes",
-                    }
-                },
-            },
-            None,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Model timing error: 'interminable' is not defined in the unit "
-                    "registry",
                 ),
             ),
         ),
