@@ -17,7 +17,6 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import xarray as xr
-from scipy.optimize import curve_fit
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
@@ -517,6 +516,8 @@ def interpolate_soil_temperature(
     layer_roles: List,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
+    lower_bound: float = -10,
+    upper_bound: float = 50,
 ) -> DataArray:
     """Interpolate soil temperature using logarithmic function.
 
@@ -526,6 +527,8 @@ def interpolate_soil_temperature(
             surface, soil)
         surface_temperature: surface temperature, [C]
         mean_annual_temperature: mean annual temperature, [C]
+        lower bound: minimum allowed values
+        upper_bound: maximum allowed value
 
     Returns:
         soil temperature profile, [C]
@@ -533,11 +536,6 @@ def interpolate_soil_temperature(
 
     # select surface layer (atmosphere)
     surface_layer = layer_heights[layer_heights.coords["layer_roles"] == "surface"]
-
-    # calculate relative depth of lowest layer with respect to surface layer
-    lowest_soil_depth_relative = (
-        layer_heights.isel(layers=-1).expand_dims("layers") * -1 + surface_layer.values
-    )
 
     # create array of interpolation heights including surface layer and soil layers
     interpolation_heights = xr.concat(
@@ -549,68 +547,54 @@ def interpolate_soil_temperature(
         dim="layers",
     )
 
-    # x values include surface and lowest soil layer
-    x_values = np.array(
-        xr.concat(
-            [
-                layer_heights[
-                    layer_heights.coords["layer_roles"] == "surface"
-                ],  # surface layer
-                lowest_soil_depth_relative,
-            ],
-            dim="layers",
-        )
-    ).flatten()
+    # Calculate per cell slope and intercept for logarithmic soil temperature profile
+    slope = (surface_temperature - mean_annual_temperature) / (
+        np.log(interpolation_heights.isel(layers=0))
+        - np.log(interpolation_heights.isel(layers=-1))
+    )
+    intercept = surface_temperature - slope * np.log(
+        interpolation_heights.isel(layers=0)
+    )
 
-    y_values = np.array([surface_temperature, mean_annual_temperature]).flatten()
+    # Calculate the values within cells by layer
+    layer_values = np.log(interpolation_heights) * slope + intercept
 
-    popt, pcov = curve_fit(logarithmic, x_values, y_values)
-    a, b = popt  # the function coefficients
-
-    interpolation = DataArray(
-        a * np.log(interpolation_heights) + b,
+    # set upper and lower bounds
+    layer_values_low = np.where(layer_values < lower_bound, lower_bound, layer_values)
+    layer_values_bound = DataArray(
+        np.where(layer_values_low > upper_bound, upper_bound, layer_values_low),
         dims=["layers", "cell_id"],
         coords={
-            "layers": np.arange(
-                len(layer_roles) - layer_roles.count("soil") - 1, len(layer_roles)
-            ),
-            "layer_roles": (
-                "layers",
-                layer_roles[
-                    len(layer_roles) - layer_roles.count("soil") - 1 : len(layer_roles)
-                ],
-            ),
-            "cell_id": mean_annual_temperature.coords["cell_id"],
+            "layers": np.arange(0, len(interpolation_heights)),
+            "layer_roles": ("layers", layer_roles[0 : len(interpolation_heights)]),
+            "cell_id": mean_annual_temperature.cell_id,
         },
     )
 
-    soil_temperature = xr.concat(
+    return xr.concat(
         [
+            layer_values_bound,
             DataArray(
                 np.full(
                     (
-                        len(layer_roles) - layer_roles.count("soil"),
+                        len(layer_roles) - len(interpolation_heights),
                         len(mean_annual_temperature.coords["cell_id"]),
                     ),
                     np.nan,
                 ),
                 dims=["layers", "cell_id"],
                 coords={
-                    "layers": np.arange(
-                        0, len(layer_roles) - layer_roles.count("soil")
-                    ),
+                    "layers": np.arange(len(interpolation_heights), len(layer_roles)),
                     "layer_roles": (
                         "layers",
-                        layer_roles[0 : len(layer_roles) - layer_roles.count("soil")],
+                        layer_roles[len(interpolation_heights) : len(layer_roles)],
                     ),
                     "cell_id": mean_annual_temperature.coords["cell_id"],
                 },
             ),
-            interpolation[interpolation.coords["layer_roles"] == "soil"],
         ],
         dim="layers",  # select bottom two
-    )
-    return soil_temperature.rename("soil_temperature")
+    ).rename("soil_temperature")
 
 
 # TODO HYDROLOGY grid based in simple model?
@@ -652,12 +636,11 @@ def calculate_soil_moisture(
         precipitation_surface > available_capacity
     )
     surface_runoff = (
-        DataArray(surface_runoff_cells.data - available_capacity.data, dims="cell_id")
+        DataArray(surface_runoff_cells.data - available_capacity.data)
         .fillna(0)
         .rename("surface_runoff")
-        .assign_coords(
-            {"cell_id": current_soil_moisture.cell_id},
-        ),
+        .rename({"dim_0": "cell_id"})
+        .assign_coords({"cell_id": current_soil_moisture.cell_id})
     )
 
     total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
@@ -670,20 +653,20 @@ def calculate_soil_moisture(
                 DataArray(
                     np.full(
                         (
-                            len(layer_roles) - layer_roles.count("soil"),
+                            layer_roles.count("soil"),
                             len(current_soil_moisture.cell_id),
                         ),
-                        np.nan,
+                        soil_moisture_mean,
                     ),
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
                     np.full(
                         (
-                            layer_roles.count("soil"),
+                            len(layer_roles) - layer_roles.count("soil"),
                             len(current_soil_moisture.cell_id),
                         ),
-                        soil_moisture_mean,
+                        np.nan,
                     ),
                     dims=["layers", "cell_id"],
                 ),
@@ -699,4 +682,4 @@ def calculate_soil_moisture(
             },
         )
     )
-    return (soil_moisture, surface_runoff)
+    return soil_moisture, surface_runoff

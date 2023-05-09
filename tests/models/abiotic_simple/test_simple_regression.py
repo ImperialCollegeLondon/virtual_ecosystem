@@ -317,7 +317,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     data = dummy_climate_data
 
     surface_temperature = DataArray(
-        [22.81851036, 22.81851036, 22.81851036],
+        [22.0, 22, 22],
         dims="cell_id",
     )
     result = interpolate_soil_temperature(
@@ -330,20 +330,24 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     exp_output = xr.concat(
         [
             DataArray(
-                [[22.00377816, 22.00377816, 22.00377816], [20.0, 20.0, 20.0]],
+                [
+                    [22.0, 22.0, 22.0],
+                    [21.42187035, 21.42187035, 21.42187035],
+                    [20.0, 20.0, 20.0],
+                ],
                 dims=["layers", "cell_id"],
                 coords={
-                    "layers": np.arange(13, 15),
-                    "layer_roles": ("layers", layer_roles_fixture[13:15]),
+                    "layers": [0, 1, 2],
+                    "layer_roles": ("layers", layer_roles_fixture[0:3]),
                     "cell_id": [0, 1, 2],
                 },
             ),
             DataArray(
-                np.full((13, 3), np.nan),
+                np.full((12, 3), np.nan),
                 dims=["layers", "cell_id"],
                 coords={
-                    "layers": np.arange(0, 13),
-                    "layer_roles": ("layers", layer_roles_fixture[0:13]),
+                    "layers": np.arange(3, 15),
+                    "layer_roles": ("layers", layer_roles_fixture[3:15]),
                     "cell_id": [0, 1, 2],
                 },
             ),
@@ -368,11 +372,11 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
 
     exp_soil_moisture = xr.concat(
         [
-            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
                 dims=["layers", "cell_id"],
             ),
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
