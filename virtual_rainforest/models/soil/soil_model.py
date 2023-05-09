@@ -180,7 +180,7 @@ class SoilModel(BaseModel):
         no_cells = self.data.grid.n_cells
 
         # Extract update interval (in units of number of days)
-        update_time = self.update_interval / np.timedelta64(1, "D")
+        update_time = self.update_interval.to("days").magnitude
         t_span = (0.0, update_time)
 
         # Construct vector of initial values y0
