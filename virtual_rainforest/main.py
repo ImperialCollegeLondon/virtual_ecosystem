@@ -56,7 +56,10 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any], data: Data, model_list: list[Type[BaseModel]]
+    config: dict[str, Any],
+    data: Data,
+    model_list: list[Type[BaseModel]],
+    update_interval: pint.Quantity,
 ) -> dict[str, BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
@@ -64,6 +67,7 @@ def configure_models(
         config: The full virtual rainforest configuration
         data: A Data instance.
         modules: A set of models to be configured
+        update_interval: The interval with which each model is updated
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
@@ -74,7 +78,7 @@ def configure_models(
     models_cfd = {}
     for model in model_list:
         try:
-            this_model = model.from_config(data, config)
+            this_model = model.from_config(data, config, update_interval)
             models_cfd[this_model.model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model.model_name)
@@ -93,7 +97,7 @@ def configure_models(
 
 def extract_timing_details(
     config: dict[str, Any]
-) -> tuple[datetime64, timedelta64, datetime64]:
+) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
     The start time, run length and update interval are all extracted from the
@@ -164,7 +168,7 @@ def extract_timing_details(
         % (start_time, end_time, end_time - start_time, run_length)
     )
 
-    return start_time, update_interval, end_time
+    return start_time, update_interval, raw_interval, end_time
 
 
 def vr_run(
@@ -194,14 +198,19 @@ def vr_run(
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
-    models_cfd = configure_models(config, data, model_list)
+    # Extract all the relevant timing details
+    (
+        current_time,
+        update_interval,
+        update_interval_as_quantity,
+        end_time,
+    ) = extract_timing_details(config)
+
+    models_cfd = configure_models(config, data, model_list, update_interval_as_quantity)
 
     LOGGER.info(
         "All models successfully configured, now attempting to initialise them."
     )
-
-    # Extract all the relevant timing details
-    current_time, update_interval, end_time = extract_timing_details(config)
 
     # TODO - A model spin up might be needed here in future
 
