@@ -127,13 +127,12 @@ def data_instance():
             None,
             "UnnamedModel",
             pytest.raises(ValueError),
-            "Invalid units for one or more model time bounds, see above errors.",
+            "Invalid units for model time bound, see above errors.",
             [
                 (ERROR, "Upper bound for UnnamedModel not given a valid unit."),
                 (
                     ERROR,
-                    "Invalid units for one or more model time bounds, see above "
-                    "errors.",
+                    "Invalid units for model time bound, see above errors.",
                 ),
                 (CRITICAL, "Errors in UnnamedModel class properties: see log"),
             ],
@@ -191,13 +190,12 @@ def data_instance():
             None,
             "UnnamedModel",
             pytest.raises(ValueError),
-            "Invalid units for one or more model time bounds, see above errors.",
+            "Invalid units for model time bound, see above errors.",
             [
                 (ERROR, "Lower bound for UnnamedModel given a non-time unit."),
                 (
                     ERROR,
-                    "Invalid units for one or more model time bounds, see above "
-                    "errors.",
+                    "Invalid units for model time bound, see above errors.",
                 ),
                 (CRITICAL, "Errors in UnnamedModel class properties: see log"),
             ],

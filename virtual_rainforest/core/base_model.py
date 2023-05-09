@@ -290,58 +290,55 @@ class BaseModel(ABC):
             LOGGER.error(to_raise)
             raise to_raise
 
+    # TODO - Test that quantity is returned
     @classmethod
-    def _check_time_bounds_units(cls) -> None:
+    def _check_time_bounds_units(
+        cls, which: str = "lower_bound_on_time_scale"
+    ) -> pint.Quantity:
         """Check that the time bounds defined by each model have time units.
+
+        Args:
+            which: Which bound should be checked (i.e. lower or upper)
 
         Raises:
             NotImplementedError: If either of the bounds is not defined
             ValueError: If model time bounds either don't have units or have non-time
                 units
+
+        Returns:
+            The requested time scale bound
         """
 
         # First check that upper and lower bounds are set
-        if isinstance(cls.lower_bound_on_time_scale, property):
-            to_raise = NotImplementedError(
-                f"Property lower_bound_on_time_scale is not implemented in "
-                f"{cls.__name__}"
+        if isinstance(getattr(cls, which), property):
+            to_raise: Exception = NotImplementedError(
+                f"Property {which} is not implemented in {cls.__name__}"
             )
             LOGGER.error(to_raise)
             raise to_raise
 
-        if isinstance(cls.upper_bound_on_time_scale, property):
-            to_raise = NotImplementedError(
-                f"Property upper_bound_on_time_scale is not implemented in "
-                f"{cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # Assume time bound has valid units until we learn otherwise
+        valid_bound = True
 
-        # Assume bounds have valid units until we learn otherwise
-        valid_bounds = True
+        # Making bound naming nicer so that it can be printed
+        if which == "lower_bound_on_time_scale":
+            bound_name = "Lower bound"
+        elif which == "upper_bound_on_time_scale":
+            bound_name = "Upper bound"
 
         # Check unit for lower bound first
         try:
-            lower_bound = pint.Quantity(cls.lower_bound_on_time_scale)
-            if not lower_bound.check("[time]"):
-                LOGGER.error(f"Lower bound for {cls.__name__} given a non-time unit.")
-                valid_bounds = False
+            bound = pint.Quantity(getattr(cls, which))
+            if not bound.check("[time]"):
+                LOGGER.error(f"{bound_name} for {cls.__name__} given a non-time unit.")
+                valid_bound = False
         except pint.errors.UndefinedUnitError:
-            LOGGER.error(f"Lower bound for {cls.__name__} not given a valid unit.")
-            valid_bounds = False
-        # Then check unit for upper bound
-        try:
-            upper_bound = pint.Quantity(cls.upper_bound_on_time_scale)
-            if not upper_bound.check("[time]"):
-                LOGGER.error(f"Upper bound for {cls.__name__} given a non-time unit.")
-                valid_bounds = False
-        except pint.errors.UndefinedUnitError:
-            LOGGER.error(f"Upper bound for {cls.__name__} not given a valid unit.")
-            valid_bounds = False
+            LOGGER.error(f"{bound_name} for {cls.__name__} not given a valid unit.")
+            valid_bound = False
 
-        if not valid_bounds:
+        if not valid_bound:
             to_raise = ValueError(
-                "Invalid units for one or more model time bounds, see above errors."
+                "Invalid units for model time bound, see above errors."
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -382,7 +379,8 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
-            cls._check_time_bounds_units()
+            cls._check_time_bounds_units("lower_bound_on_time_scale")
+            cls._check_time_bounds_units("upper_bound_on_time_scale")
             cls._check_time_bounds_values()
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
