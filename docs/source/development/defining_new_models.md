@@ -71,8 +71,8 @@ from __future__ import annotations
 # Any needed for type hints of the config dictionary as the values are of various types
 from typing import Any
 
-# Used by timing loop to store date times, and time intervals, respectively
-from numpy import datetime64, timedelta64
+# pint.Quantity allows time units to be more easily interpreted
+from pint import Quantity
 
 # The core data storage object
 from virtual_rainforest.core.data import Data
@@ -86,9 +86,6 @@ from virtual_rainforest.core.base_model import BaseModel
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
 from virtual_rainforest.core.exceptions import InitialisationError
-
-# A utility function to unpack the model specific timing details from the config
-from virtual_rainforest.core.utils import extract_update_interval
 ```
 
 ### Defining the new class and class attributes
@@ -158,7 +155,7 @@ things.
    also known as the superclass:
 
    ```python
-   super().__init__(data, update_interval, start_time, **kwargs)
+   super().__init__(data, update_interval, **kwargs)
    ```
 
    Calling this method runs all of the shared functionality across models, such as
@@ -178,8 +175,7 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
-    start_time: datetime64,
-    update_interval: timedelta64,
+    update_interval: pint.Quantity,
     no_of_ponds: int,
     **kwargs: Any,
 ):
@@ -193,7 +189,7 @@ def __init__(
         raise to_raise
         
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval, start_time, **kwargs)
+    super().__init__(data, update_interval, **kwargs)
 
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
@@ -308,7 +304,9 @@ As an example:
 
 ```python
 @classmethod
-def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
+def from_config(
+    cls, data: Data, config: dict[str, Any], update_interval: Quantity
+) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
     This function unpacks the relevant information from the configuration file, and
@@ -316,22 +314,19 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
     invalid rather than returning an initialised model instance an error is raised.
 
     Args:
+        data: A :class:`~virtual_rainforest.core.data.Data` instance.
         config: The complete (and validated) Virtual Rainforest configuration.
+        update_interval: Frequency with which all models are updated
     """
-
-    # Find timing details
-    update_interval = extract_update_interval(
-            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
-        )
     
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
     LOGGER.info(
-        "Information required to initialise the freshwater model successfully "
-        "extracted."
-    )
-    return cls(update_interval, start_time, no_of_pools)
+            "Information required to initialise the soil model successfully "
+            "extracted."
+        )
+        return cls(data, update_interval, no_pools)
 
 ```
 
