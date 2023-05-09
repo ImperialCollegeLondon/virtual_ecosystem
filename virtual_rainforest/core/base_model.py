@@ -31,12 +31,11 @@ that must be defined in subclasses:
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
   attribute
 
-The usage of these four attributes is described in their docstrings and four private
+The usage of these four attributes is described in their docstrings and three private
 methods are provided to validate that the properties are set and valid in subclasses
 (:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units` and
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_values`).
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
 
 Model registration
 ------------------
