@@ -77,7 +77,7 @@ class SoilModel(BaseModel):
     def __init__(
         self,
         data: Data,
-        update_interval: np.timedelta64,
+        update_interval: Quantity,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)

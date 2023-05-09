@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import timedelta64
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -48,7 +47,7 @@ class AbioticModel(BaseModel):
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
+        update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
         **kwargs: Any,
