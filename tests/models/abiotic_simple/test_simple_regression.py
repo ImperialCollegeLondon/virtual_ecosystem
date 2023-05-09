@@ -60,29 +60,6 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     )
 
 
-def test_lai_regression(dummy_climate_data):
-    """Test that function returns one-dimensional output."""
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        lai_regression,
-    )
-
-    data = dummy_climate_data
-    result = lai_regression(
-        reference_data=data["air_temperature_ref"].isel(time=0),
-        leaf_area_index=data["leaf_area_index"],
-        gradient=-2.45,
-    )
-
-    xr.testing.assert_allclose(
-        result,
-        DataArray(
-            [22.65, 22.65, 22.65],
-            dims="cell_id",
-            coords={"cell_id": data.grid.cell_id},
-        ),
-    )
-
-
 def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     """Test interpolation for temperature and humidity non-negative."""
 
@@ -353,20 +330,20 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     exp_output = xr.concat(
         [
             DataArray(
-                np.full((13, 3), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(0, 13),
-                    "layer_roles": ("layers", layer_roles_fixture[0:13]),
-                    "cell_id": [0, 1, 2],
-                },
-            ),
-            DataArray(
                 [[22.00377816, 22.00377816, 22.00377816], [20.0, 20.0, 20.0]],
                 dims=["layers", "cell_id"],
                 coords={
                     "layers": np.arange(13, 15),
                     "layer_roles": ("layers", layer_roles_fixture[13:15]),
+                    "cell_id": [0, 1, 2],
+                },
+            ),
+            DataArray(
+                np.full((13, 3), np.nan),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(0, 13),
+                    "layer_roles": ("layers", layer_roles_fixture[0:13]),
                     "cell_id": [0, 1, 2],
                 },
             ),

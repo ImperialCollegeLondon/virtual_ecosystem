@@ -425,7 +425,7 @@ def log_interpolation(
         leaf_area_index_sum: leaf area index summed over all layers, [m m-1]
         layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         layer_heights: vertical layer heights, [m]
-        lower_bound: minimum allowe value
+        lower_bound: minimum allowed value
         upper_bound: maximum allowed value
         gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
 
@@ -438,35 +438,23 @@ def log_interpolation(
         leaf_area_index_sum * gradient + reference_data, dims="cell_id"
     )
 
-    # Fit logarithmic function to interpolate between temperature top and 1.5m
-    x_values = np.array(
-        [
-            layer_heights.isel(layers=0),
-            np.repeat(1.5, len(data.grid.cell_id)),
-        ]
-    ).flatten()
-    y_values = np.array([reference_data, lai_regression]).flatten()
-
-    popt, pcov = curve_fit(logarithmic, x_values, y_values)
-    a, b = popt  # the function coefficients
-
-    output = a * np.log(layer_heights) + b
-
-    lower_limit = DataArray(
-        np.where(output < lower_bound, lower_bound, output),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
-            "cell_id": data.grid.cell_id,
-        },
+    # Calculate per cell slope and intercept for logarithmic within-canopy profile
+    slope = (reference_data - lai_regression) / (
+        np.log(layer_heights.isel(layers=0)) - np.log(1.5)
     )
+    intercept = lai_regression - slope * np.log(1.5)
+
+    # Calculate the values within cells by layer
+    layer_values = np.log(layer_heights) * slope + intercept
+
+    # set upper and lower bounds
+    layer_values_low = np.where(layer_values < lower_bound, lower_bound, layer_values)
     return DataArray(
-        np.where(lower_limit > upper_bound, upper_bound, lower_limit),
+        np.where(layer_values_low > upper_bound, upper_bound, layer_values_low),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
             "cell_id": data.grid.cell_id,
         },
     )
