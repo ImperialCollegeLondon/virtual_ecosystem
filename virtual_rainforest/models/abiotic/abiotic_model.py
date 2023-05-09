@@ -8,12 +8,12 @@ from __future__ import annotations
 from typing import Any
 
 from numpy import timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_update_interval
 
 
 class AbioticModel(BaseModel):
@@ -97,7 +97,9 @@ class AbioticModel(BaseModel):
         """The time interval between model updates."""
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -107,12 +109,8 @@ class AbioticModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
-
-        # Find timing details
-        update_interval = extract_update_interval(
-            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
-        )
 
         soil_layers = config["abiotic"]["soil_layers"]
         canopy_layers = config["abiotic"]["canopy_layers"]

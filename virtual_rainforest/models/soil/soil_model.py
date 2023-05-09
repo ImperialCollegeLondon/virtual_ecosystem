@@ -22,6 +22,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
+from pint import Quantity
 from scipy.integrate import solve_ivp
 from xarray import DataArray, Dataset
 
@@ -29,7 +30,6 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_update_interval
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
 
@@ -100,7 +100,9 @@ class SoilModel(BaseModel):
         """The time interval between model updates."""
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -110,12 +112,8 @@ class SoilModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) Virtual Rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
-
-        # Find update interval
-        update_interval = extract_update_interval(
-            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
-        )
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "

@@ -22,11 +22,11 @@ from __future__ import annotations
 from typing import Any
 
 from numpy import timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_update_interval
 
 
 class AnimalModel(BaseModel):
@@ -61,7 +61,9 @@ class AnimalModel(BaseModel):
         super().__init__(data, update_interval, **kwargs)
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -71,12 +73,8 @@ class AnimalModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
-
-        # Find timing details
-        update_interval = extract_update_interval(
-            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
-        )
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
