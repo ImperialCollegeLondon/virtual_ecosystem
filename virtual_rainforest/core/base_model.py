@@ -79,10 +79,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Type
 
 import pint
-from numpy import timedelta64
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
@@ -159,7 +159,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
+        update_interval: pint.Quantity,
         **kwargs: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
@@ -177,7 +177,7 @@ class BaseModel(ABC):
         """
         self.data = data
         """A Data instance providing access to the shared simulation data."""
-        self.update_interval = update_interval
+        self.update_interval = self._check_update_speed(update_interval)
         """The time interval between model updates."""
         self._repr = ["update_interval"]
         """A list of attributes to be included in the class __repr__ output"""
@@ -342,6 +342,36 @@ class BaseModel(ABC):
             raise to_raise
         else:
             return bound
+
+    def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
+        """Function to check that the update speed of a specific model is within bounds.
+
+        Args:
+            update_interval: Simulation update interval
+
+        Returns:
+            The update interval for the overall model
+
+        Raises:
+            ConfigurationError: If the update interval does not fit with the model's
+                time bounds
+        """
+
+        # Check if either bound is violated
+        if update_interval < pint.Quantity(self.lower_bound_on_time_scale):
+            to_raise = ConfigurationError(
+                "The update interval is shorter than the model's lower bound"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+        elif update_interval > pint.Quantity(self.upper_bound_on_time_scale):
+            to_raise = ConfigurationError(
+                "The update interval is longer than the model's upper bound"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        return update_interval
 
     @classmethod
     def __init_subclass__(cls) -> None:
