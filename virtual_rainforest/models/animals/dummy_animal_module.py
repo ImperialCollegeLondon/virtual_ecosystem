@@ -22,11 +22,9 @@ Notes to self:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from random import choice
 
 from numpy import timedelta64
 
-from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
@@ -39,6 +37,8 @@ from virtual_rainforest.models.animals.scaling_functions import (
     intake_rate_scaling,
     metabolic_rate,
 )
+
+# from random import choice
 
 
 class PlantCommunity:
@@ -82,6 +82,75 @@ class PalatableSoil:
     """The grid position of the soil pool."""
 
 
+class AnimalCommunity:
+    """This is a class for the animal community of a grid cell."""
+
+    def __init__(
+        self,
+        functional_groups: list[FunctionalGroup],
+    ) -> None:
+        """The constructor of the AnimalCommunity class."""
+        self.functional_groups = functional_groups
+        """A list of all FunctionalGroup types in the model."""
+
+        self.cohorts: dict[str, list[AnimalCohort]] = {
+            k.name: [] for k in self.functional_groups
+        }
+        """Generate a dictionary of functional groups."""
+
+    def immigrate(self, cohort: AnimalCohort, destination: AnimalCommunity) -> None:
+        """Function to move an AnimalCohort between AnimalCommunity objects.
+
+        This function should take a cohort and a destination community and then pop the
+        cohort from this community to the destination.
+
+        Args:
+            cohort: The AnimalCohort moving between AnimalCommunities.
+            destination: The AnimalCommunity the cohort is moving to.
+
+        """
+        immigrant = self.cohorts[cohort.name].pop(
+            self.cohorts[cohort.name].index(cohort)
+        )
+        # Remove target cohort from source community
+        destination.cohorts[immigrant.name].append(immigrant)
+        # Add cohort to destination community
+
+    def die_cohort(self, cohort: AnimalCohort) -> None:
+        """The function to change the cohort status from alive to dead.
+
+        Args:
+            cohort: The AnimalCohort instance that has lost all individuals.
+
+        """
+
+        if cohort.is_alive:
+            cohort.is_alive = False
+            LOGGER.info("An animal cohort has died")
+            self.cohorts[cohort.name].remove(cohort)
+        elif not cohort.is_alive:
+            LOGGER.exception("An animal cohort which is dead cannot die.")
+
+    def birth(self, cohort: AnimalCohort) -> AnimalCohort:
+        """The function to produce a new AnimalCohort through reproduction.
+
+        Currently, the birth function returns an identical cohort of adults with age
+        0. In the future, the offspring will be modified to have appropriate juvenile
+        traits based on parental type.
+
+        Args:
+            cohort: The AnimalCohort instance which is producing a new AnimalCohort.
+
+        Returns:
+            A new age 0 AnimalCohort.
+
+        """
+        new_cohort = AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
+        self.cohorts[cohort.name].append(new_cohort)
+
+        return new_cohort
+
+
 class AnimalCohort:
     """This is a class of animal cohorts."""
 
@@ -90,7 +159,6 @@ class AnimalCohort:
         functional_group: FunctionalGroup,
         mass: float,
         age: float,
-        position: int,
     ) -> None:
         """The constructor for the AnimalCohort class."""
         self.functional_group = functional_group
@@ -101,8 +169,6 @@ class AnimalCohort:
         """The average mass of an individual in the animal cohort [kg]."""
         self.age = age
         """The age of the animal cohort [days]."""
-        self.position = position
-        """The grid position of the animal cohort."""
         self.individuals: int = damuths_law(
             self.mass, self.functional_group.damuths_law_terms
         )
@@ -217,63 +283,3 @@ class AnimalCohort:
         """
         self.individuals -= number_dead
         carcass_pool.energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
-
-    def die_cohort(self) -> None:
-        """The function to change the cohort status from alive to dead.
-
-        Args:
-            model: An instance of the AnimalModel object containing the dictionary of
-                    animal cohort positions.
-
-        """
-
-        if self.is_alive:
-            self.is_alive = False
-            LOGGER.info("An animal cohort has died")
-            # model.cohort_positions[self.position].remove(self)
-        elif not self.is_alive:
-            LOGGER.exception("An animal cohort which is dead cannot die.")
-
-    def birth(self) -> AnimalCohort:
-        """The function to produce a new AnimalCohort through reproduction.
-
-        Currently, the birth function returns an identical cohort of adults with age
-        0. In the future, the offspring will be modified to have appropriate juvenile
-        traits based on parental type.
-
-        Args:
-            model: An instance of the AnimalModel object containing the dictionary of
-                    animal cohort positions.
-
-        Returns:
-            An AnimalCohort instance having appropriate offspring traits for the
-                location and functional type of the parent cohort.
-        """
-        new_cohort = AnimalCohort(self.functional_group, self.mass, 0, self.position)
-        # model.cohorts[self.position].append(new_cohort)
-
-        return new_cohort
-
-    def disperse(self, grid: Grid) -> None:
-        """The function to move a cohort between grid squares.
-
-        This is a simple implementation of what will need to be a much more complex
-        function. Right now it moves a cohort into a random neighboring grid, including
-        the current grid. Later functionality will need to involve body-size,
-        locomotion, and other factors.
-
-        Args:
-            grid: An instance of the grid object contained in the AnimalModel object.
-
-        """
-
-        dispersal_neighbours = grid.neighbours[self.position]
-        # possible destination grids
-        destination = choice(dispersal_neighbours)
-        # randomly select a dispersal destination
-        # model.cohort_positions[self.position].remove(self)
-        # remove from old position list
-        self.position = destination
-        # set new position as chosen destination
-        # model.cohort_positions[self.position].append(self)
-        # add to new position list

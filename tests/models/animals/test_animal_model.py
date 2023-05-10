@@ -10,23 +10,42 @@ from tests.conftest import log_check
 from virtual_rainforest.core.base_model import InitialisationError
 
 
-def test_animal_model_initialization(caplog, data_instance):
+@pytest.fixture
+def functional_group_list_instance(shared_datadir):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_rainforest.models.animals.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file)
+
+    return fg_list
+
+
+def test_animal_model_initialization(
+    caplog, data_instance, functional_group_list_instance
+):
     """Test `AnimalModel` initialization."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
-    model = AnimalModel(data_instance, timedelta64(1, "W"), datetime64("2022-11-01"))
+    model = AnimalModel(
+        data_instance,
+        timedelta64(1, "W"),
+        datetime64("2022-11-01"),
+        functional_group_list_instance,
+    )
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-    assert model.model_name == "animal"
-    assert str(model) == "A animal model instance"
+    assert model.model_name == "animals"
+    assert str(model) == "A animals model instance"
     assert (
         repr(model)
         == "AnimalModel(update_interval = 1 weeks, next_update = 2022-11-08)"
     )
-    assert type(model.cohorts_by_cell) is dict
-    assert len(model.cohorts_by_cell) == 100
+    assert type(model.communities) is dict
 
 
 @pytest.mark.parametrize(
@@ -41,7 +60,15 @@ def test_animal_model_initialization(caplog, data_instance):
         (
             {
                 "core": {"timing": {"start_date": "2020-01-01"}},
-                "animal": {"model_time_step": "12 hours"},
+                "animals": {
+                    "model_time_step": "12 hours",
+                    "functional_groups": (
+                        ("carnivorous_bird", "bird", "carnivore"),
+                        ("herbivorous_bird", "bird", "herbivore"),
+                        ("carnivorous_mammal", "mammal", "carnivore"),
+                        ("herbivorous_mammal", "mammal", "herbivore"),
+                    ),
+                },
             },
             timedelta64(12, "h"),
             does_not_raise(),
@@ -56,7 +83,13 @@ def test_animal_model_initialization(caplog, data_instance):
         (
             {
                 "core": {"timing": {"start_date": "2020-01-01"}},
-                "animal": {"model_time_step": "20 interminable minutes"},
+                "animals": {"model_time_step": "20 interminable minutes"},
+                "functional_groups": (
+                    ("carnivorous_bird", "bird", "carnivore"),
+                    ("herbivorous_bird", "bird", "herbivore"),
+                    ("carnivorous_mammal", "mammal", "carnivore"),
+                    ("herbivorous_mammal", "mammal", "herbivore"),
+                ),
             },
             None,
             pytest.raises(InitialisationError),
@@ -71,7 +104,12 @@ def test_animal_model_initialization(caplog, data_instance):
     ],
 )
 def test_generate_animal_model(
-    caplog, data_instance, config, time_interval, raises, expected_log_entries
+    caplog,
+    data_instance,
+    config,
+    time_interval,
+    raises,
+    expected_log_entries,
 ):
     """Test that the function to initialise the animal model behaves as expected."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
@@ -90,6 +128,7 @@ def test_generate_animal_model(
             model.next_update
             == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
         )
+        assert len(model.communities) == 100
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
