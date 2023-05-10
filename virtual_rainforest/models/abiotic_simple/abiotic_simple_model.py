@@ -8,14 +8,12 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from numpy import timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-
-# from virtual_rainforest.core.utils import extract_update_interval
 from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
@@ -55,7 +53,7 @@ class AbioticSimpleModel(BaseModel):
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
+        update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
         initial_soil_moisture: float,
@@ -117,7 +115,9 @@ class AbioticSimpleModel(BaseModel):
         self.initial_soil_moisture = initial_soil_moisture
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> AbioticSimpleModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> AbioticSimpleModel:
         """Factory function to initialise the simple abiotic model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -127,12 +127,8 @@ class AbioticSimpleModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) Virtual Rainforest configuration.
+            update_interval: Frequency with which all models are updated.
         """
-
-        # Find timing details
-        update_interval = extract_update_interval(
-            config, cls.lower_bound_on_time_scale, cls.upper_bound_on_time_scale
-        )
 
         # Find number of soil and canopy layers
         soil_layers = config["abiotic"]["soil_layers"]
