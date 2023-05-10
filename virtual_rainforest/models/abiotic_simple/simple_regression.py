@@ -126,20 +126,20 @@ def setup_simple_regression(
                 DataArray(
                     np.full(
                         (
-                            layer_roles.count("soil"),
+                            len(layer_roles) - layer_roles.count("soil"),
                             len(data.grid.cell_id),
                         ),
-                        initial_soil_moisture,
+                        np.nan,
                     ),
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
                     np.full(
                         (
-                            len(layer_roles) - layer_roles.count("soil"),
+                            layer_roles.count("soil"),
                             len(data.grid.cell_id),
                         ),
-                        np.nan,
+                        initial_soil_moisture,
                     ),
                     dims=["layers", "cell_id"],
                 ),
@@ -565,7 +565,6 @@ def interpolate_soil_temperature(
 
     return xr.concat(
         [
-            layer_values_bound,
             DataArray(
                 np.full(
                     (
@@ -584,6 +583,7 @@ def interpolate_soil_temperature(
                     "cell_id": mean_annual_temperature.coords["cell_id"],
                 },
             ),
+            layer_values_bound,
         ],
         dim="layers",
     ).rename("soil_temperature")
@@ -645,20 +645,20 @@ def calculate_soil_moisture(
                 DataArray(
                     np.full(
                         (
-                            layer_roles.count("soil"),
+                            len(layer_roles) - layer_roles.count("soil"),
                             len(current_soil_moisture.cell_id),
                         ),
-                        soil_moisture_mean,
+                        np.nan,
                     ),
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
                     np.full(
                         (
-                            len(layer_roles) - layer_roles.count("soil"),
+                            layer_roles.count("soil"),
                             len(current_soil_moisture.cell_id),
                         ),
-                        np.nan,
+                        soil_moisture_mean,
                     ),
                     dims=["layers", "cell_id"],
                 ),

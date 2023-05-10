@@ -48,8 +48,8 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
         result[-2],
         xr.concat(
             [
-                DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
                 DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+                DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
             ],
             dim="layers",
         ).assign_coords(data["layer_heights"].coords),
@@ -326,6 +326,15 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     exp_output = xr.concat(
         [
             DataArray(
+                np.full((12, 3), np.nan),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(3, 15),
+                    "layer_roles": ("layers", layer_roles_fixture[3:15]),
+                    "cell_id": [0, 1, 2],
+                },
+            ),
+            DataArray(
                 [
                     [22.0, 22.0, 22.0],
                     [21.42187035, 21.42187035, 21.42187035],
@@ -335,15 +344,6 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
                 coords={
                     "layers": [0, 1, 2],
                     "layer_roles": ("layers", layer_roles_fixture[0:3]),
-                    "cell_id": [0, 1, 2],
-                },
-            ),
-            DataArray(
-                np.full((12, 3), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(3, 15),
-                    "layer_roles": ("layers", layer_roles_fixture[3:15]),
                     "cell_id": [0, 1, 2],
                 },
             ),
@@ -368,11 +368,11 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
 
     exp_soil_moisture = xr.concat(
         [
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
                 [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
                 dims=["layers", "cell_id"],
             ),
-            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
