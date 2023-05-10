@@ -44,7 +44,7 @@ MicroclimateParameters: Dict[str, float] = {
 def setup_simple_regression(
     layer_roles: List[str],
     data: Data,
-    initial_soil_moisture: Union[DataArray, float] = 50,
+    initial_soil_moisture: float = 50,
 ) -> List[DataArray]:
     r"""Set up abiotic environment variables.
 
@@ -71,7 +71,7 @@ def setup_simple_regression(
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
             "cell_id": data.grid.cell_id,
         },
         name="air_temperature",
@@ -126,20 +126,20 @@ def setup_simple_regression(
                 DataArray(
                     np.full(
                         (
-                            len(layer_roles) - layer_roles.count("soil"),
+                            layer_roles.count("soil"),
                             len(data.grid.cell_id),
                         ),
-                        np.nan,
+                        initial_soil_moisture,
                     ),
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
                     np.full(
                         (
-                            layer_roles.count("soil"),
+                            len(layer_roles) - layer_roles.count("soil"),
                             len(data.grid.cell_id),
                         ),
-                        initial_soil_moisture,
+                        np.nan,
                     ),
                     dims=["layers", "cell_id"],
                 ),
@@ -159,16 +159,7 @@ def setup_simple_regression(
     ).rename("surface_runoff")
     output.append(surface_runoff)
 
-    return [
-        air_temperature,
-        relative_humidity,
-        vapor_pressure_deficit,
-        soil_temperature,
-        atmospheric_pressure,
-        atmospheric_CO2,
-        soil_moisture,
-        surface_runoff,
-    ]
+    return output
 
 
 def run_simple_regression(
@@ -215,7 +206,7 @@ def run_simple_regression(
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
-    * above canopy
+    * above canopy (canopy height + reference measurement height, typically 2m)
     * canopy layers (maximum of ten layers, minimum one layers)
     * subcanopy (1.5 m)
     * surface layer
@@ -249,6 +240,7 @@ def run_simple_regression(
         and surface runoff
     """
 
+    # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
     output = []
 
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
@@ -337,7 +329,7 @@ def run_simple_regression(
     atmospheric_pressure = atmospheric_pressure_1.assign_coords(
         {
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
             "cell_id": data.grid.cell_id,
         },
     )
@@ -367,7 +359,7 @@ def run_simple_regression(
     atmospheric_co2 = atmospheric_co2_1.assign_coords(
         {
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
             "cell_id": data.grid.cell_id,
         },
     )
@@ -593,7 +585,7 @@ def interpolate_soil_temperature(
                 },
             ),
         ],
-        dim="layers",  # select bottom two
+        dim="layers",
     ).rename("soil_temperature")
 
 
@@ -677,7 +669,7 @@ def calculate_soil_moisture(
         .assign_coords(
             {
                 "layers": np.arange(0, len(layer_roles)),
-                "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),  # noqa
+                "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
                 "cell_id": current_soil_moisture.coords["cell_id"],
             },
         )

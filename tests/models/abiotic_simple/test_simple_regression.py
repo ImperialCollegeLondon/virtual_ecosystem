@@ -24,39 +24,35 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     )
 
     data = dummy_climate_data
+
+    # default soil moisture
     result = setup_simple_regression(data=data, layer_roles=layer_roles_fixture)
 
     xr.testing.assert_allclose(
-        result[0],
-        DataArray(
-            np.full((len(layer_roles_fixture), len(data.grid.cell_id)), np.nan),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, len(layer_roles_fixture)),
-                "layer_roles": (
-                    "layers",
-                    layer_roles_fixture[0 : len(layer_roles_fixture)],
-                ),
-                "cell_id": data.grid.cell_id,
-            },
-            name="air_temperature",
-        ),
-    )
-    xr.testing.assert_allclose(
         result[1],
         DataArray(
-            np.full((len(layer_roles_fixture), len(data.grid.cell_id)), np.nan),
+            np.full((15, 3), np.nan),
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, len(layer_roles_fixture)),
+                "layers": np.arange(0, 15),
                 "layer_roles": (
                     "layers",
-                    layer_roles_fixture[0 : len(layer_roles_fixture)],
+                    layer_roles_fixture[0:15],
                 ),
-                "cell_id": data.grid.cell_id,
+                "cell_id": [0, 1, 2],
             },
             name="relative_humidity",
         ),
+    )
+    xr.testing.assert_allclose(
+        result[-2],
+        xr.concat(
+            [
+                DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
+                DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+            ],
+            dim="layers",
+        ).assign_coords(data["layer_heights"].coords),
     )
 
 
