@@ -26,7 +26,7 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     data = dummy_climate_data
 
     # default soil moisture
-    result = setup_simple_regression(data, layer_roles_fixture)
+    result = setup_simple_regression(data=data, layer_roles=layer_roles_fixture)
 
     xr.testing.assert_allclose(
         result[1],
@@ -56,7 +56,9 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     )
 
     # input soil moisture
-    result1 = setup_simple_regression(data, layer_roles_fixture, 20)
+    result1 = setup_simple_regression(
+        data=data, layer_roles=layer_roles_fixture, initial_soil_moisture=20
+    )
     xr.testing.assert_allclose(
         result1[-2],
         xr.concat(
