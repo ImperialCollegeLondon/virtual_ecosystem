@@ -190,7 +190,14 @@ def dummy_climate_data():
     from virtual_rainforest.core.grid import Grid
 
     # Setup the data object with four cells.
-    grid = Grid(cell_nx=3, cell_ny=1)
+    grid = Grid(
+        grid_type="square",
+        cell_nx=3,
+        cell_ny=1,
+        cell_area=3,
+        xoff=0,
+        yoff=0,
+    )
     data = Data(grid)
 
     data["air_temperature_ref"] = DataArray(
