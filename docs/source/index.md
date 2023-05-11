@@ -65,6 +65,7 @@ team.
 
   virtual_rainforest/module_overview.md
   virtual_rainforest/usage.md
+  virtual_rainforest/main_simulation.md
   virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
   virtual_rainforest/core/data.md
@@ -87,6 +88,7 @@ team.
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
   Utility functions <api/core/utils.md>
+  Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>

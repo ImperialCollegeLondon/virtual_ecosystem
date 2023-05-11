@@ -10,13 +10,10 @@ from typing import Any, Type, Union
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import (
-    MODEL_REGISTRY,
-    BaseModel,
-    InitialisationError,
-)
-from virtual_rainforest.core.config import validate_config
+from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
@@ -192,8 +189,7 @@ def check_for_fast_models(
 
 
 def vr_run(
-    cfg_paths: Union[str, list[str]],
-    merge_file_path: Path,
+    cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -204,12 +200,14 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
-        merge_file_path: Path to save merged config file to
+        merge_file_path: Path to save merged config file to (i.e. folder location + file
+            name)
     """
 
-    config = validate_config(cfg_paths, merge_file_path)
+    config = Config(cfg_paths)
+    config.export_config(merge_file_path)
 
-    grid = Grid()  # TODO - this needs a Grid.from_config factory function
+    grid = Grid.from_config(config)
     data = Data(grid)
     data.load_data_config(config["core"]["data"])
 
@@ -223,22 +221,19 @@ def vr_run(
         "All models successfully configured, now attempting to initialise them."
     )
 
-    # Define the basic model time grain (set to 10 minutes for now)
-    update_interval = timedelta64(10, "m")
-
     # Extract all the relevant timing details
     current_time, update_interval, end_time = extract_timing_details(config)
 
     # Identify models with shorter time steps than main loop and warn user about them
     check_for_fast_models(models_cfd, update_interval)
 
-    # TODO - Extract input data required to initialise the models
+    # TODO - A model spin up might be needed here in future
 
-    # TODO - Initialise the set of configured models
-
-    # TODO - Spin up the models
-
-    # TODO - Save model state
+    # Save the initial state of the model
+    if config["core"]["data_output_options"]["save_initial_state"]:
+        data.save_to_netcdf(
+            Path(config["core"]["data_output_options"]["out_path_initial"])
+        )
 
     # Get the list of date times of the next update.
     update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
@@ -255,6 +250,10 @@ def vr_run(
             models_cfd[mod_nm].update()
             update_due[mod_nm] = models_cfd[mod_nm].next_update
 
-        # TODO - Save model state
+    # Save the final model state
+    if config["core"]["data_output_options"]["save_final_state"]:
+        data.save_to_netcdf(
+            Path(config["core"]["data_output_options"]["out_path_final"])
+        )
 
     LOGGER.info("Virtual rainforest model run completed!")

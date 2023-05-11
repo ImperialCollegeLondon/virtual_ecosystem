@@ -79,8 +79,8 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.axes import *
 from virtual_rainforest.core.readers import load_to_dataarray
 
-# Create a simple default grid and a Data instance
-grid = Grid()
+# Create a grid with square 100m2 cells in a 10 by 10 lattice and a Data instance
+grid = Grid(grid_type='square', cell_area=100, cell_nx=10, cell_ny=10)
 data = Data(grid=grid)
 
 data
@@ -222,3 +222,15 @@ data.load_data_config(data_config["core"]["data"])
 ```{code-cell}
 data
 ```
+
+## Data output
+
+The contents of the `Data` object can be output using the
+{meth}`~virtual_rainforest.core.data.Data.save_to_netcdf` method:
+
+```python
+data.save_to_netcdf(output_file_path)
+```
+
+At present this outputs the entire contents of the `Data` object as a single NetCDF, but
+this will likely be reworked in future.

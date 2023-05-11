@@ -2,13 +2,14 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
+from pathlib import Path
 
 import numpy as np
 import pytest
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -575,18 +576,22 @@ def test_Data_load_from_config(
 
     TODO - Could mock load_to_dataarray to avoid needing real files and just test the
            config loader part of the mechanism
+    TODO - The test TOML files here are _very_ minimal and are going to be fragile to
+           required fields being updated. They explicitly load no modules to moderate
+           this risk.
     """
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.config import load_in_config_files
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
     # Skip combinations where loader does not supported this grid
     data = Data(fixture_load_data_grids)
     file = [shared_datadir / file]
 
-    cfg = load_in_config_files(file)
+    cfg = Config(file)
+    caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
     for each_var in cfg["core"]["data"]["variable"]:
@@ -646,3 +651,59 @@ def test_on_core_axis(
 
     if err_message:
         assert str(err.value) == err_message
+
+
+@pytest.mark.parametrize(
+    argnames=["out_path", "raises", "exp_log"],
+    argvalues=[
+        ("./initial.nc", does_not_raise(), ()),
+        (
+            "bad_folder/initial.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
+        ),
+        (
+            "pyproject.toml/initial.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
+        ),
+        (
+            "./final.nc",
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    CRITICAL,
+                    "A file in the user specified output folder (.) already makes use "
+                    "of the specified output file name (final.nc), this file should "
+                    "either be renamed or deleted!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log):
+    """Test that data object can save as NetCDF."""
+
+    # Configure the mock to return a specific list of files
+    if out_path == "./final.nc":
+        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
+        mock_content.return_value = True
+
+    with raises:
+        fixture_data.save_to_netcdf(Path(out_path))
+        # Remove generated output file, as a bonus this  tests that output file was
+        # generated correctly + to the right location
+        Path(out_path).unlink()
+
+    log_check(caplog, exp_log)

@@ -9,8 +9,9 @@ from typing import Any
 
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import extract_model_time_details
 

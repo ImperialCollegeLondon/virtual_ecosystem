@@ -1,9 +1,9 @@
 [core]
-modules = ["plants", "soil", "animals"]
+modules = [plants, soil]
 
 [core.grid]
-cell_nx = 10
-cell_ny = 10
+nx = 10
+ny = 10
 
 [core.timing]
 start_date = "2020-01-01"
@@ -29,23 +29,3 @@ maxh = 50.0
 
 [soil]
 model_time_step = "5 days"
-
-[[animals.functional_groups]]
-name = "carnivorous_bird"
-taxa = "bird"
-diet = "carnivore"
-
-[[animals.functional_groups]]
-name = "herbivorous_bird"
-taxa = "bird"
-diet = "herbivore"
-
-[[animals.functional_groups]]
-name = "carnivorous_mammal"
-taxa = "mammal"
-diet = "carnivore"
-
-[[animals.functional_groups]]
-name = "herbivorous_mammal"
-taxa = "mammal"
-diet = "herbivore"

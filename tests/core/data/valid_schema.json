@@ -1,0 +1,13 @@
+{
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Hello World!",
+    "type": "object",
+    "properties": {
+        "test_module": {}
+    },
+    "required": [
+        "test_module"
+    ],
+    "description": "My first JSON Schema."
+}

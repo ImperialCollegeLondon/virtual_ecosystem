@@ -25,8 +25,9 @@ from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
 from xarray import DataArray, Dataset
 
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import extract_model_time_details
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
@@ -56,6 +57,7 @@ class SoilModel(BaseModel):
     required_init_vars = (
         ("soil_c_pool_maom", ("spatial",)),
         ("soil_c_pool_lmwc", ("spatial",)),
+        ("soil_c_pool_microbe", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
         ("soil_moisture", ("spatial",)),
@@ -78,8 +80,10 @@ class SoilModel(BaseModel):
         super().__init__(data, update_interval, start_time, **kwargs)
 
         # Check that soil pool data is appropriately bounded
-        if np.any(data["soil_c_pool_maom"] < 0.0) or np.any(
-            data["soil_c_pool_lmwc"] < 0.0
+        if (
+            np.any(data["soil_c_pool_maom"] < 0.0)
+            or np.any(data["soil_c_pool_lmwc"] < 0.0)
+            or np.any(data["soil_c_pool_microbe"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
@@ -154,6 +158,7 @@ class SoilModel(BaseModel):
 
         self.data["soil_c_pool_lmwc"] = new_pools["soil_c_pool_lmwc"]
         self.data["soil_c_pool_maom"] = new_pools["soil_c_pool_maom"]
+        self.data["soil_c_pool_microbe"] = new_pools["soil_c_pool_microbe"]
 
     def integrate(self) -> Dataset:
         """Integrate the soil model.

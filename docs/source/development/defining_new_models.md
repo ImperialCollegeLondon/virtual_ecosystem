@@ -80,9 +80,11 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 
 # New model class will inherit from BaseModel.
+from virtual_rainforest.core.base_model import BaseModel
+
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
-from virtual_rainforest.core.base_model import BaseModel, InitialisationError
+from virtual_rainforest.core.exceptions import InitialisationError
 
 # A utility function to unpack the model specific timing details from the config
 from virtual_rainforest.core.utils import extract_model_time_details
