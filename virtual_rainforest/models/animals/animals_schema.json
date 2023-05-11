@@ -1,7 +1,7 @@
 {
     "type": "object",
     "properties": {
-        "animal": {
+        "animals": {
             "description": "Configuration settings for the animal module.",
             "type": "object",
             "properties": {
@@ -39,6 +39,6 @@
         }
     },
     "required": [
-        "animal"
+        "animals"
     ]
 }

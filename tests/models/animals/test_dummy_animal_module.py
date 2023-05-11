@@ -62,7 +62,7 @@ def animal_model_instance():
     test_data = Data(test_grid)
     test_config = {
         "core": {"timing": {"start_date": "2020-01-01"}},
-        "animal": {"model_time_step": "12 hours"},
+        "animals": {"model_time_step": "12 hours"},
     }
     return AnimalModel.from_config(test_data, test_config)
 

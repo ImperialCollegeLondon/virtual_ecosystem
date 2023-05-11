@@ -45,7 +45,7 @@ class AnimalModel(BaseModel):
         start_time: Time at which the model is initialized.
     """
 
-    model_name = "animal"
+    model_name = "animals"
     """The model name for use in registering the model and logging."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
@@ -87,7 +87,7 @@ class AnimalModel(BaseModel):
         # Find timing details
         start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
-        functional_groups_raw = config["animal"]["functional_groups"]
+        functional_groups_raw = config["animals"]["functional_groups"]
 
         functional_groups = []
         for k in functional_groups_raw:
