@@ -45,7 +45,7 @@ class AnimalModel(BaseModel):
         start_time: Time at which the model is initialized.
     """
 
-    model_name = "animals"
+    model_name = "animal"
     """The model name for use in registering the model and logging."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
@@ -60,7 +60,7 @@ class AnimalModel(BaseModel):
     ):
         super().__init__(data, update_interval, start_time, **kwargs)
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
-        # run a new set_neighbours with cohort specific dispersal distance (temp sol.)
+        """Run a new set_neighbours (temporary solution)."""
 
         self.communities: dict[int, AnimalCommunity] = {
             k: AnimalCommunity(functional_groups) for k in self.data.grid.cell_id
@@ -87,7 +87,7 @@ class AnimalModel(BaseModel):
         # Find timing details
         start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
-        functional_groups_raw = config["animals"]["functional_groups"]
+        functional_groups_raw = config["animal"]["functional_groups"]
 
         functional_groups = []
         for k in functional_groups_raw:

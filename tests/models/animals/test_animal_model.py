@@ -39,8 +39,8 @@ def test_animal_model_initialization(
 
     # In cases where it passes then checks that the object has the right properties
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-    assert model.model_name == "animals"
-    assert str(model) == "A animals model instance"
+    assert model.model_name == "animal"
+    assert str(model) == "A animal model instance"
     assert (
         repr(model)
         == "AnimalModel(update_interval = 1 weeks, next_update = 2022-11-08)"
@@ -60,7 +60,7 @@ def test_animal_model_initialization(
         (
             {
                 "core": {"timing": {"start_date": "2020-01-01"}},
-                "animals": {
+                "animal": {
                     "model_time_step": "12 hours",
                     "functional_groups": (
                         ("carnivorous_bird", "bird", "carnivore"),
@@ -83,7 +83,7 @@ def test_animal_model_initialization(
         (
             {
                 "core": {"timing": {"start_date": "2020-01-01"}},
-                "animals": {"model_time_step": "20 interminable minutes"},
+                "animal": {"model_time_step": "20 interminable minutes"},
                 "functional_groups": (
                     ("carnivorous_bird", "bird", "carnivore"),
                     ("herbivorous_bird", "bird", "herbivore"),
