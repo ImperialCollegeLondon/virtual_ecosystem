@@ -67,7 +67,7 @@ def setup_simple_regression(
 
     # Mean air temperature profile, [C]
     air_temperature = DataArray(
-        np.full((len(layer_roles), data.grid.cell_area), np.nan),
+        np.full((len(layer_roles), int(data.grid.cell_area)), np.nan),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
@@ -127,7 +127,7 @@ def setup_simple_regression(
                     np.full(
                         (
                             len(layer_roles) - layer_roles.count("soil"),
-                            data.grid.cell_area,
+                            int(data.grid.cell_area),
                         ),
                         np.nan,
                     ),
@@ -137,7 +137,7 @@ def setup_simple_regression(
                     np.full(
                         (
                             layer_roles.count("soil"),
-                            data.grid.cell_area,
+                            int(data.grid.cell_area),
                         ),
                         initial_soil_moisture,
                     ),
@@ -315,7 +315,7 @@ def run_simple_regression(
                 axis=0,
             ),  # vertical projection
             DataArray(
-                np.full((layer_roles.count("soil"), data.grid.cell_area), np.nan),
+                np.full((layer_roles.count("soil"), int(data.grid.cell_area)), np.nan),
                 dims=["layers", "cell_id"],
                 coords={
                     "layers": np.arange(
@@ -345,7 +345,7 @@ def run_simple_regression(
                 axis=0,
             ),  # vertical projection
             DataArray(
-                np.full((layer_roles.count("soil"), data.grid.cell_area), np.nan),
+                np.full((layer_roles.count("soil"), int(data.grid.cell_area)), np.nan),
                 dims=["layers", "cell_id"],
                 coords={
                     "layers": np.arange(
