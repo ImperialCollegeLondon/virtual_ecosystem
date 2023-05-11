@@ -19,7 +19,7 @@
                 },
                 "initial_soil_moisture": {
                     "description": "Initial soil moisture for all layers",
-                    "type": "float",
+                    "type": "number",
                     "exclusiveMinimum": 0,
                     "default": 50
                 }
