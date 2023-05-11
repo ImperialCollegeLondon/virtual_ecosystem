@@ -91,7 +91,7 @@ class AbioticSimpleModel(BaseModel):
         super().__init__(data, update_interval, **kwargs)
 
         # sanity checks for initial soil moisture
-        if initial_soil_moisture < 0 or initial_soil_moisture > 1:
+        if initial_soil_moisture < 0 or initial_soil_moisture > 100:
             to_raise = InitialisationError(
                 "The initial soil moisture has to be between 0 and 100!"
             )
