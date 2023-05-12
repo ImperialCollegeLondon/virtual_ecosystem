@@ -2,13 +2,10 @@ r"""The ``models.abiotic_simple.simple_regression`` module uses linear regressio
 and logarithmic interpolation to calculate atmospheric temperature and humidity profiles
 as a function of leaf area index and canopy layer height. The relationships are derived
 from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018`.
-
 Soil temperature is interpolated between the surface layer and the air
 temperature at 1 m depth which equals the mean annual temperature.
-
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
-
 Soil moisture and surface runoff are calculated with a simple bucket model based on
 :cite:t:`davis_simple_2017`.
 """  # noqa: D205, D415
@@ -460,7 +457,9 @@ def calculate_saturation_vapor_pressure(
     r"""Calculate saturation vapor pressure.
 
     Saturation vapor pressure :math:`e_{s} (T)` is here calculated as
+
     :math:`e_{s}(T) = 0.61078 exp(\frac{7.5 T}{T + 237.3})`
+
     where :math:`T` is temperature in degree C .
 
     Args:
@@ -498,9 +497,7 @@ def calculate_vapor_pressure_deficit(
     saturation_vapor_pressure = calculate_saturation_vapor_pressure(temperature)
     actual_vapor_pressure = saturation_vapor_pressure * (relative_humidity / 100)
 
-    return (saturation_vapor_pressure - actual_vapor_pressure).rename(
-        "vapor_pressure_deficit_ref"
-    )
+    return saturation_vapor_pressure - actual_vapor_pressure
 
 
 def interpolate_soil_temperature(
@@ -519,7 +516,7 @@ def interpolate_soil_temperature(
             surface, soil)
         surface_temperature: surface temperature, [C]
         mean_annual_temperature: mean annual temperature, [C]
-        lower bound: minimum allowed values
+        lower_bound: minimum allowed values
         upper_bound: maximum allowed value
 
     Returns:
