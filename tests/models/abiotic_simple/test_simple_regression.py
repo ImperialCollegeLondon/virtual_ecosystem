@@ -1,6 +1,10 @@
 """Test module for abiotic_simple.simple_regression.py."""
 
+from contextlib import nullcontext as does_not_raise
+from logging import ERROR
+
 import numpy as np
+import pytest
 import xarray as xr
 from xarray import DataArray
 
@@ -414,3 +418,45 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     )
     xr.testing.assert_allclose(result[0], exp_soil_moisture)
     xr.testing.assert_allclose(result[1], exp_runoff)
+
+
+@pytest.mark.parametrize(
+    "x,gradient,intercept,exp_error,exp_log",
+    [
+        (
+            [1, 5, 10, 50],
+            -1,
+            20,
+            does_not_raise(),
+            (),
+        ),
+        (
+            [1, 5, 10, 50],
+            2,
+            20,
+            does_not_raise(),
+            (),
+        ),
+        (
+            [1, 5, 10, 50],
+            2,
+            -20,
+            does_not_raise(),
+            (),
+        ),
+        (
+            [-1, 5, 10, 50],
+            2,
+            -20,
+            pytest.raises(ValueError),
+            ((ERROR, "x values must be positive!")),
+        ),
+    ],
+)
+def test_logarithmic(x, gradient, intercept, exp_error, exp_log):
+    """Test logarithmic function."""
+
+    from virtual_rainforest.models.abiotic_simple.simple_regression import logarithmic
+
+    with exp_error:
+        logarithmic(x, gradient, intercept)

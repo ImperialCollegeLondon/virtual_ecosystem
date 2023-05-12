@@ -17,6 +17,7 @@ import xarray as xr
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.logger import LOGGER
 
 MicroclimateGradients: Dict[str, float] = {
     "air_temperature_gradient": -1.27,
@@ -280,6 +281,12 @@ def logarithmic(x: DataArray, gradient: float, intercept: float) -> DataArray:
     Returns:
         y values
     """
+    for number in x:
+        if number < 0:
+            to_raise = ValueError("x values must be positive!")
+            LOGGER.error(to_raise)
+            raise to_raise
+
     return DataArray(gradient * np.log(x) + intercept)
 
 
