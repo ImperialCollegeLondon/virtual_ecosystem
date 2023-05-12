@@ -78,45 +78,8 @@ def setup_simple_regression(
     )
     output.append(air_temperature)
 
-    # Mean relative humidity profile, []
-    relative_humidity = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("relative_humidity")
-    output.append(relative_humidity)
-
-    # Mean vapor pressure deficit profile, [kPa]
-    vapor_pressure_deficit = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("vapor_pressure_deficit")
-    output.append(vapor_pressure_deficit)
-
-    # Mean soil temperature profile, [C]
-    soil_temperature = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("soil_temperature")
-    output.append(soil_temperature)
-
-    # Mean atmospheric pressure profile, [kPa]
-    atmospheric_pressure = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("atmospheric_pressure")
-    output.append(atmospheric_pressure)
-
-    # Mean atmospheric CO2 profile, [ppm]
-    atmospheric_CO2 = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("atmospheric_co2")
-    output.append(atmospheric_CO2)
+    for name in ("relative_humidity", "vapor_pressure_deficit", "soil_temperature", "atmospheric_pressure", "atmospheric_co2", "surface_runoff"):
+        output.append(air_temperature.copy().rename(name))
 
     # Mean soil moisture profile, []
     # initial soil moisture constant in all soil layers, all other layers set to NaN
