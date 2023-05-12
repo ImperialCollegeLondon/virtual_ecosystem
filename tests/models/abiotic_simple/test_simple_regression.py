@@ -265,13 +265,22 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     )
 
     data = dummy_climate_data
+    data["atmospheric_pressure"] = DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords=data["layer_heights"].coords,
+        name="atmospheric_pressure",
+    )
+    data["atmospheric_co2"] = (
+        data["atmospheric_pressure"].copy().rename("atmospheric_co2")
+    )
     result = run_simple_regression(
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
     )
 
-    exp_output = xr.concat(
+    exp_air_temperature = xr.concat(
         [
             DataArray(
                 [
@@ -294,14 +303,21 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
         ],
         dim="layers",
     )
-    exp_output1 = exp_output.assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
-            "cell_id": data.grid.cell_id,
-        }
-    )
+    exp_output1 = exp_air_temperature.assign_coords(data["layer_heights"].coords)
     xr.testing.assert_allclose(result[0], exp_output1)
+
+    exp_atmospheric_pressure = xr.concat(
+        [
+            DataArray(
+                np.full((13, 3), 1.5),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
+    exp_output2 = exp_atmospheric_pressure.assign_coords(data["layer_heights"].coords)
+    xr.testing.assert_allclose(result[4], exp_output2)
 
 
 def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):

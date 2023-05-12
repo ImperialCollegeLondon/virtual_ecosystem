@@ -88,20 +88,9 @@ def setup_simple_regression(
 
     # The initial soil moisture constant in all soil layers, all other layers set to NaN
     soil_moisture = air_temperature.copy().rename("soil_moisture")
-    soil_moisture = (
-        DataArray(
-            np.where(
-                soil_moisture.coords["layer_roles"] == "soil",
-                initial_soil_moisture,
-                np.nan,
-            )
-        )
-        .expand_dims(
-            dim={"cell_id": np.arange(len(data.grid.cell_id))},
-            axis=1,
-        )
-        .rename({"dim_0": "layers"})
-        .assign_coords(air_temperature.coords)
+    soil_moisture = soil_moisture.where(
+        soil_moisture.coords["layer_roles"] != "soil",
+        initial_soil_moisture,
     )
     output.append(soil_moisture)
 
@@ -192,8 +181,7 @@ def run_simple_regression(
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Mean air temperature profile, [C]
-
-    air_temperature_log = log_interpolation(
+    air_temperature = log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time=time_index),
         leaf_area_index_sum=leaf_area_index_sum,
@@ -202,12 +190,11 @@ def run_simple_regression(
         upper_bound=80,
         lower_bound=0,
         gradient=MicroclimateGradients["air_temperature_gradient"],
-    )
-    air_temperature = air_temperature_log.rename("air_temperature")
+    ).rename("air_temperature")
     output.append(air_temperature)
 
     # Mean relative humidity profile, []
-    relative_humidity_log = log_interpolation(
+    relative_humidity = log_interpolation(
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time=time_index),
         leaf_area_index_sum=leaf_area_index_sum,
@@ -216,8 +203,7 @@ def run_simple_regression(
         upper_bound=100,
         lower_bound=0,
         gradient=MicroclimateGradients["relative_humidity_gradient"],
-    )
-    relative_humidity = relative_humidity_log.rename("relative_humidity")
+    ).rename("relative_humidity")
     output.append(relative_humidity)
 
     # Mean vapor pressure deficit, [kPa]
@@ -227,7 +213,7 @@ def run_simple_regression(
         relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
 
-    vapor_pressure_deficit_log = log_interpolation(
+    vapor_pressure_deficit = log_interpolation(
         data=data,
         reference_data=vapor_pressure_deficit_ref,
         leaf_area_index_sum=leaf_area_index_sum,
@@ -236,8 +222,7 @@ def run_simple_regression(
         upper_bound=10,
         lower_bound=0,
         gradient=MicroclimateGradients["vapor_pressure_deficit_gradient"],
-    )
-    vapor_pressure_deficit = vapor_pressure_deficit_log.rename("vapor_pressure_deficit")
+    ).rename("vapor_pressure_deficit")
     output.append(vapor_pressure_deficit)
 
     # Mean soil temperature profile, [C]
@@ -252,62 +237,16 @@ def run_simple_regression(
     output.append(soil_temperature)
 
     # Mean atmospheric pressure profile, [kPa]
-    atmospheric_pressure_1 = xr.concat(
-        [
-            data["atmospheric_pressure_ref"]
-            .isel(time=time_index)
-            .expand_dims(
-                dim={"layers": np.arange(len(layer_roles) - layer_roles.count("soil"))},
-                axis=0,
-            ),  # vertical projection
-            DataArray(
-                np.full((layer_roles.count("soil"), len(data.grid.cell_id)), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(
-                        len(layer_roles) - layer_roles.count("soil"), len(layer_roles)
-                    ),
-                },
-            ),
-        ],
-        dim="layers",
-    )
-    atmospheric_pressure = atmospheric_pressure_1.assign_coords(
-        {
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
-            "cell_id": data.grid.cell_id,
-        },
+    atmospheric_pressure = data["atmospheric_pressure"].where(
+        data["atmospheric_pressure"].coords["layer_roles"] == "soil",
+        (data["atmospheric_pressure_ref"].isel(time=time_index)),
     )
     output.append(atmospheric_pressure)
 
     # Mean atmospheric C02 profile, [ppm]
-    atmospheric_co2_1 = xr.concat(
-        [
-            data["atmospheric_co2_ref"]
-            .isel(time=time_index)
-            .expand_dims(
-                dim={"layers": np.arange(len(layer_roles) - layer_roles.count("soil"))},
-                axis=0,
-            ),  # vertical projection
-            DataArray(
-                np.full((layer_roles.count("soil"), len(data.grid.cell_id)), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(
-                        len(layer_roles) - layer_roles.count("soil"), len(layer_roles)
-                    ),
-                },
-            ),
-        ],
-        dim="layers",
-    )
-    atmospheric_co2 = atmospheric_co2_1.assign_coords(
-        {
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
-            "cell_id": data.grid.cell_id,
-        },
+    atmospheric_co2 = data["atmospheric_co2"].where(
+        data["atmospheric_co2"].coords["layer_roles"] == "soil",
+        (data["atmospheric_co2_ref"].isel(time=time_index)),
     )
     output.append(atmospheric_co2)
 
