@@ -38,6 +38,19 @@ MicroclimateParameters: Dict[str, float] = {
 }
 """Parameters for simple abiotic regression model."""
 
+Bounds: Dict[str, float] = {
+    "air_temperature_min": -20,
+    "air_temperature_max": 80,
+    "relative_humidity_min": 0,
+    "relative_humidity_max": 100,
+    "vapour_pressure_deficit_min": 0,
+    "vapour_pressure_deficit_max": 10,
+    "soil_moisture_min": 0,
+    "soil_moisture_max": 100,
+    "soil_temperature_min": -10,
+    "soil_temperature_max": 50,
+}
+
 
 def setup_simple_regression(
     layer_roles: List[str],
@@ -103,6 +116,7 @@ def run_simple_regression(
     layer_roles: List[str],
     time_index: int,  # could be datetime?
     MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
+    Bounds: Dict[str, float] = Bounds,
     water_interception_factor: Union[DataArray, float] = MicroclimateParameters[
         "water_interception_factor"
     ],
@@ -166,14 +180,16 @@ def run_simple_regression(
         time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
             :cite:p:`hardwick_relationship_2015`
+        Bounds: upper and lower allowed values for vertical profiles, used to adjust
+            log interpolation. Note that currently no conservation of water and energy!
         water_interception_factor: Factor that determines how much rainfall is
             intercepted by stem and canopy
         soil_moisture_capacity: soil moisture capacity for water
 
     Returns:
-        list of air temperature, relative humidity, vapour pressure deficit, soil
-        temperature, atmospheric pressure, atmospheric :math:`\ce{CO2}`, soil moisture,
-        and surface runoff
+        list of DataArrays for air temperature [C], relative humidity [-], vapour
+        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
+        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
 
     # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
@@ -188,8 +204,8 @@ def run_simple_regression(
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        upper_bound=80,
-        lower_bound=0,
+        upper_bound=Bounds["air_temperature_max"],
+        lower_bound=Bounds["air_temperature_min"],
         gradient=MicroclimateGradients["air_temperature_gradient"],
     ).rename("air_temperature")
     output.append(air_temperature)
@@ -201,8 +217,8 @@ def run_simple_regression(
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        upper_bound=100,
-        lower_bound=0,
+        upper_bound=Bounds["relative_humidity_max"],
+        lower_bound=Bounds["relative_humidity_min"],
         gradient=MicroclimateGradients["relative_humidity_gradient"],
     ).rename("relative_humidity")
     output.append(relative_humidity)
@@ -220,8 +236,8 @@ def run_simple_regression(
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
-        upper_bound=10,
-        lower_bound=0,
+        upper_bound=Bounds["vapour_pressure_deficit_max"],
+        lower_bound=Bounds["vapour_pressure_deficit_min"],
         gradient=MicroclimateGradients["vapour_pressure_deficit_gradient"],
     ).rename("vapour_pressure_deficit")
     output.append(vapour_pressure_deficit)
@@ -234,6 +250,8 @@ def run_simple_regression(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
+        upper_bound=Bounds["soil_temperature_max"],
+        lower_bound=Bounds["soil_temperature_min"],
     )
     output.append(soil_temperature)
 
@@ -398,8 +416,8 @@ def interpolate_soil_temperature(
     layer_roles: List,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
-    lower_bound: float = -10,
-    upper_bound: float = 50,
+    upper_bound: float = Bounds["soil_temperature_max"],
+    lower_bound: float = Bounds["soil_temperature_min"],
 ) -> DataArray:
     """Interpolate soil temperature using logarithmic function.
 
@@ -409,8 +427,8 @@ def interpolate_soil_temperature(
             surface, soil)
         surface_temperature: surface temperature, [C]
         mean_annual_temperature: mean annual temperature, [C]
-        lower_bound: minimum allowed values
         upper_bound: maximum allowed value
+        lower_bound: minimum allowed values
 
     Returns:
         soil temperature profile, [C]
