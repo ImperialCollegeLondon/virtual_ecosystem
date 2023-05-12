@@ -22,19 +22,19 @@ from virtual_rainforest.core.logger import LOGGER
 MicroclimateGradients: Dict[str, float] = {
     "air_temperature_gradient": -1.27,
     "relative_humidity_gradient": 5.4,
-    "vapor_pressure_deficit_gradient": -252.24,
+    "vapour_pressure_deficit_gradient": -252.24,
 }
 """Gradients for linear regression to calculate air temperature, relative humidity, and
-vapor pressure deficit as a function of leaf area index from
+vapour pressure deficit as a function of leaf area index from
 :cite:t:`hardwick_relationship_2015`.
 """
 
 MicroclimateParameters: Dict[str, float] = {
     "soil_moisture_capacity": 150,
     "water_interception_factor": 0.1,
-    "saturation_vapor_pressure_factor1": 0.61078,
-    "saturation_vapor_pressure_factor2": 7.5,
-    "saturation_vapor_pressure_factor3": 237.3,
+    "saturation_vapour_pressure_factor1": 0.61078,
+    "saturation_vapour_pressure_factor2": 7.5,
+    "saturation_vapour_pressure_factor3": 237.3,
 }
 """Parameters for simple abiotic regression model."""
 
@@ -56,7 +56,7 @@ def setup_simple_regression(
         initial_soil_moisture: initial soil moisture
 
     Returns:
-        list of DataArrays for air temperature [C], relative humidity [-], vapor
+        list of DataArrays for air temperature [C], relative humidity [-], vapour
         pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
         atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
@@ -69,7 +69,7 @@ def setup_simple_regression(
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
+            "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
         },
         name="air_temperature",
@@ -79,7 +79,7 @@ def setup_simple_regression(
     # copy and assign new variable names
     for name in (
         "relative_humidity",
-        "vapor_pressure_deficit",
+        "vapour_pressure_deficit",
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
@@ -171,7 +171,7 @@ def run_simple_regression(
         soil_moisture_capacity: soil moisture capacity for water
 
     Returns:
-        list of air temperature, relative humidity, vapor pressure deficit, soil
+        list of air temperature, relative humidity, vapour pressure deficit, soil
         temperature, atmospheric pressure, atmospheric :math:`\ce{CO2}`, soil moisture,
         and surface runoff
     """
@@ -207,24 +207,24 @@ def run_simple_regression(
     ).rename("relative_humidity")
     output.append(relative_humidity)
 
-    # Mean vapor pressure deficit, [kPa]
-    # calculate vapor pressure deficit at reference height first
-    vapor_pressure_deficit_ref = calculate_vapor_pressure_deficit(
+    # Mean vapour pressure deficit, [kPa]
+    # calculate vapour pressure deficit at reference height first
+    vapour_pressure_deficit_ref = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature_ref"].isel(time=time_index),
         relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
 
-    vapor_pressure_deficit = log_interpolation(
+    vapour_pressure_deficit = log_interpolation(
         data=data,
-        reference_data=vapor_pressure_deficit_ref,
+        reference_data=vapour_pressure_deficit_ref,
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles,
         layer_heights=data["layer_heights"],
         upper_bound=10,
         lower_bound=0,
-        gradient=MicroclimateGradients["vapor_pressure_deficit_gradient"],
-    ).rename("vapor_pressure_deficit")
-    output.append(vapor_pressure_deficit)
+        gradient=MicroclimateGradients["vapour_pressure_deficit_gradient"],
+    ).rename("vapour_pressure_deficit")
+    output.append(vapour_pressure_deficit)
 
     # Mean soil temperature profile, [C]
     soil_temperature = interpolate_soil_temperature(
@@ -331,27 +331,26 @@ def log_interpolation(
     layer_values = np.log(layer_heights) * slope + intercept
 
     # set upper and lower bounds
-    layer_values_low = np.where(layer_values < lower_bound, lower_bound, layer_values)
     return DataArray(
-        np.where(layer_values_low > upper_bound, upper_bound, layer_values_low),
+        np.clip(layer_values, lower_bound, upper_bound),
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
+            "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
         },
     )
 
 
-def calculate_saturation_vapor_pressure(
+def calculate_saturation_vapour_pressure(
     temperature: DataArray,
-    factor1: float = MicroclimateParameters["saturation_vapor_pressure_factor1"],
-    factor2: float = MicroclimateParameters["saturation_vapor_pressure_factor2"],
-    factor3: float = MicroclimateParameters["saturation_vapor_pressure_factor3"],
+    factor1: float = MicroclimateParameters["saturation_vapour_pressure_factor1"],
+    factor2: float = MicroclimateParameters["saturation_vapour_pressure_factor2"],
+    factor3: float = MicroclimateParameters["saturation_vapour_pressure_factor3"],
 ) -> DataArray:
-    r"""Calculate saturation vapor pressure.
+    r"""Calculate saturation vapour pressure.
 
-    Saturation vapor pressure :math:`e_{s} (T)` is here calculated as
+    Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
 
     :math:`e_{s}(T) = 0.61078 exp(\frac{7.5 T}{T + 237.3})`
 
@@ -359,40 +358,39 @@ def calculate_saturation_vapor_pressure(
 
     Args:
         temperature: air temperature, [C]
-        factor1: factor 1 in saturation vapor pressure calculation
-        factor2: factor 2 in saturation vapor pressure calculation
-        factor3: factor 3 in saturation vapor pressure calculation
+        factor1: factor 1 in saturation vapour pressure calculation
+        factor2: factor 2 in saturation vapour pressure calculation
+        factor3: factor 3 in saturation vapour pressure calculation
 
     Returns:
-        saturation vapor pressure, kPa
+        saturation vapour pressure, kPa
     """
+
     return DataArray(
-        (factor1 * np.exp((factor2 * (temperature)) / (temperature + factor3))),
-        dims=temperature.dims,
-        name="saturation_vapor_pressure",
-    )
+        factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
+    ).rename("saturation_vapour_pressure")
 
 
-def calculate_vapor_pressure_deficit(
+def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
 ) -> DataArray:
-    """Calculate vapor pressure deficit.
+    """Calculate vapour pressure deficit.
 
-    Vapor pressure deficit is defined as the difference between saturated vapor pressure
-    and actual vapor pressure.
+    Vapor pressure deficit is defined as the difference between saturated vapour
+    pressure and actual vapour pressure.
 
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
 
     Return:
-        vapor pressure deficit, [kPa]
+        vapour pressure deficit, [kPa]
     """
-    saturation_vapor_pressure = calculate_saturation_vapor_pressure(temperature)
-    actual_vapor_pressure = saturation_vapor_pressure * (relative_humidity / 100)
+    saturation_vapour_pressure = calculate_saturation_vapour_pressure(temperature)
+    actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
 
-    return saturation_vapor_pressure - actual_vapor_pressure
+    return saturation_vapour_pressure - actual_vapour_pressure
 
 
 def interpolate_soil_temperature(
@@ -561,7 +559,7 @@ def calculate_soil_moisture(
         .assign_coords(
             {
                 "layers": np.arange(0, len(layer_roles)),
-                "layer_roles": ("layers", layer_roles[0 : len(layer_roles)]),
+                "layer_roles": ("layers", layer_roles),
                 "cell_id": current_soil_moisture.coords["cell_id"],
             },
         )

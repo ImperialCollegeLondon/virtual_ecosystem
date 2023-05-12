@@ -160,15 +160,15 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
 
-def test_calculate_saturation_vapor_pressure(dummy_climate_data):
+def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        calculate_saturation_vapor_pressure,
+        calculate_saturation_vapour_pressure,
     )
 
     data = dummy_climate_data
-    result = calculate_saturation_vapor_pressure(
+    result = calculate_saturation_vapour_pressure(
         data["air_temperature_ref"].isel(time=0)
     )
 
@@ -180,11 +180,11 @@ def test_calculate_saturation_vapor_pressure(dummy_climate_data):
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_calculate_vapor_pressure_deficit():
+def test_calculate_vapour_pressure_deficit():
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        calculate_vapor_pressure_deficit,
+        calculate_vapour_pressure_deficit,
     )
 
     temperature = xr.concat(
@@ -234,7 +234,7 @@ def test_calculate_vapor_pressure_deficit():
         dim="layers",
     )
 
-    result = calculate_vapor_pressure_deficit(
+    result = calculate_vapour_pressure_deficit(
         temperature,
         rel_humidity,
     )
