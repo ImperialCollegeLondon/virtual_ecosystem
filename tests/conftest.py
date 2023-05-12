@@ -166,12 +166,18 @@ def new_axis_validators():
 
 
 @pytest.fixture
-def dummy_climate_data():
-    """Creates a dummy climate data object for use in tests."""
-
-    layer_roles = (
-        ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
+def layer_roles_fixture():
+    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        set_layer_roles,
     )
+
+    return set_layer_roles(10, 2)
+
+
+@pytest.fixture
+def dummy_climate_data(layer_roles_fixture):
+    """Creates a dummy climate data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
@@ -218,7 +224,7 @@ def dummy_climate_data():
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles[0:15]),
+                "layer_roles": ("layers", layer_roles_fixture),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -239,7 +245,7 @@ def dummy_climate_data():
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles[0:15]),
+                "layer_roles": ("layers", layer_roles_fixture),
                 "cell_id": data.grid.cell_id,
             }
         )
