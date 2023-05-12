@@ -261,5 +261,19 @@ def dummy_climate_data(layer_roles_fixture):
         ],
         dim="layers",
     )
-
+    data["soil_temperature"] = xr.concat(
+        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
     return data

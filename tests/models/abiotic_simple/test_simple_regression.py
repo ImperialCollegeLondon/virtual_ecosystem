@@ -344,32 +344,17 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
         mean_annual_temperature=data["mean_annual_temperature"],
     )
 
-    exp_output = xr.concat(
+    exp_output = DataArray(
         [
-            DataArray(
-                np.full((12, 3), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(3, 15),
-                    "layer_roles": ("layers", layer_roles_fixture[3:15]),
-                    "cell_id": [0, 1, 2],
-                },
-            ),
-            DataArray(
-                [
-                    [22.0, 22.0, 22.0],
-                    [21.42187035, 21.42187035, 21.42187035],
-                    [20.0, 20.0, 20.0],
-                ],
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": [0, 1, 2],
-                    "layer_roles": ("layers", layer_roles_fixture[0:3]),
-                    "cell_id": [0, 1, 2],
-                },
-            ),
+            [21.42187035, 21.42187035, 21.42187035],
+            [20.0, 20.0, 20.0],
         ],
-        dim="layers",  # select bottom two
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
     )
 
     xr.testing.assert_allclose(result, exp_output)
