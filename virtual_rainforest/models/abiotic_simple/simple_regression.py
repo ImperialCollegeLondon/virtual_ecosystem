@@ -55,14 +55,14 @@ def setup_simple_regression(
         initial_soil_moisture: initial soil moisture
 
     Returns:
-        list of DataArrays for air temperature, relative humidity, vapor pressure
-        deficit, soil temperature, atmospheric pressure, atmospheric :math:`\ce{CO2}`,
-        soil moisture, and surface runoff
+        list of DataArrays for air temperature [C], relative humidity [-], vapor
+        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
+        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
 
     output = []
 
-    # Mean air temperature profile, [C]
+    # Initialise DataArrays filled with NaN
     air_temperature = DataArray(
         np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
         dims=["layers", "cell_id"],
@@ -75,86 +75,35 @@ def setup_simple_regression(
     )
     output.append(air_temperature)
 
-    # Mean relative humidity profile, []
-    relative_humidity = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("relative_humidity")
-    output.append(relative_humidity)
+    # copy and assign new variable names
+    for name in (
+        "relative_humidity",
+        "vapor_pressure_deficit",
+        "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+        "surface_runoff",
+    ):
+        output.append(air_temperature.copy().rename(name))
 
-    # Mean vapor pressure deficit profile, [kPa]
-    vapor_pressure_deficit = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("vapor_pressure_deficit")
-    output.append(vapor_pressure_deficit)
-
-    # Mean soil temperature profile, [C]
-    soil_temperature = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("soil_temperature")
-    output.append(soil_temperature)
-
-    # Mean atmospheric pressure profile, [kPa]
-    atmospheric_pressure = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("atmospheric_pressure")
-    output.append(atmospheric_pressure)
-
-    # Mean atmospheric CO2 profile, [ppm]
-    atmospheric_CO2 = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("atmospheric_co2")
-    output.append(atmospheric_CO2)
-
-    # Mean soil moisture profile, []
-    # initial soil moisture constant in all soil layers, all other layers set to NaN
+    # The initial soil moisture constant in all soil layers, all other layers set to NaN
+    soil_moisture = air_temperature.copy().rename("soil_moisture")
     soil_moisture = (
-        xr.concat(
-            [
-                DataArray(
-                    np.full(
-                        (
-                            len(layer_roles) - layer_roles.count("soil"),
-                            len(data.grid.cell_id),
-                        ),
-                        np.nan,
-                    ),
-                    dims=["layers", "cell_id"],
-                ),
-                DataArray(
-                    np.full(
-                        (
-                            layer_roles.count("soil"),
-                            len(data.grid.cell_id),
-                        ),
-                        initial_soil_moisture,
-                    ),
-                    dims=["layers", "cell_id"],
-                ),
-            ],
-            dim="layers",
+        DataArray(
+            np.where(
+                soil_moisture.coords["layer_roles"] == "soil",
+                initial_soil_moisture,
+                np.nan,
+            )
         )
-        .rename("soil_moisture")
+        .expand_dims(
+            dim={"cell_id": np.arange(len(data.grid.cell_id))},
+            axis=1,
+        )
+        .rename({"dim_0": "layers"})
         .assign_coords(air_temperature.coords)
     )
     output.append(soil_moisture)
-
-    # Surface runoff, [mm]
-    surface_runoff = DataArray(
-        np.full_like(air_temperature, np.nan),
-        dims=air_temperature.dims,
-        coords=air_temperature.coords,
-    ).rename("surface_runoff")
-    output.append(surface_runoff)
 
     return output
 

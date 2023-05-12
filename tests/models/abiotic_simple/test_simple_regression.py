@@ -1,19 +1,8 @@
 """Test module for abiotic_simple.simple_regression.py."""
 
 import numpy as np
-import pytest
 import xarray as xr
 from xarray import DataArray
-
-
-@pytest.fixture
-def layer_roles_fixture():
-    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        set_layer_roles,
-    )
-
-    return set_layer_roles(10, 2)
 
 
 def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
@@ -35,24 +24,21 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
             dims=["layers", "cell_id"],
             coords={
                 "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    layer_roles_fixture[0:15],
-                ),
+                "layer_roles": ("layers", layer_roles_fixture),
                 "cell_id": [0, 1, 2],
             },
             name="relative_humidity",
         ),
     )
     xr.testing.assert_allclose(
-        result[-2],
+        result[-1],
         xr.concat(
             [
                 DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
                 DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
             ],
             dim="layers",
-        ).assign_coords(data["layer_heights"].coords),
+        ).assign_coords(result[1].coords),
     )
 
     # input soil moisture
@@ -60,7 +46,7 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
         data=data, layer_roles=layer_roles_fixture, initial_soil_moisture=20
     )
     xr.testing.assert_allclose(
-        result1[-2],
+        result1[-1],
         xr.concat(
             [
                 DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
