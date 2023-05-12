@@ -169,23 +169,10 @@ def new_axis_validators():
 def dummy_climate_data():
     """Creates a dummy climate data object for use in tests."""
 
-    layer_roles = [
-        "above",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "canopy",
-        "subcanopy",
-        "surface",
-        "soil",
-        "soil",
-    ]
+    layer_roles = (
+        ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
+    )
+
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
