@@ -1,6 +1,5 @@
-"""This is a placeholder for the
-:class:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
-and includes only functions called elsewhere.
+"""This is a placeholder for the AbioticSimpleModel and includes only functions called
+elsewhere.
 """  # noqa: D205, D415
 
 from typing import List

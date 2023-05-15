@@ -282,6 +282,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
+        soil_moisture_capacity=DataArray([30, 60, 90], dims="cell_id"),
     )
 
     exp_air_temperature = xr.concat(
@@ -323,8 +324,23 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     exp_output2 = exp_atmospheric_pressure.assign_coords(data["layer_heights"].coords)
     xr.testing.assert_allclose(result[4], exp_output2)
 
+    exp_soil_moisture = xr.concat(
+        [
+            DataArray(
+                np.full((13, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]], dims=["layers", "cell_id"]
+            ),
+        ],
+        dim="layers",
+    )
+    exp_output3 = exp_soil_moisture.assign_coords(data["layer_heights"].coords)
+    xr.testing.assert_allclose(result[-2], exp_output3)
 
-def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
+
+def test_interpolate_soil_temperature(dummy_climate_data):
     """Test."""
 
     from virtual_rainforest.models.abiotic_simple.simple_regression import (
@@ -339,7 +355,6 @@ def test_interpolate_soil_temperature(dummy_climate_data, layer_roles_fixture):
     )
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        layer_roles=layer_roles_fixture,
         surface_temperature=surface_temperature,
         mean_annual_temperature=data["mean_annual_temperature"],
     )
@@ -372,22 +387,14 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
     )
 
-    exp_soil_moisture = xr.concat(
-        [
-            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
-                dims=["layers", "cell_id"],
-            ),
-        ],
-        dim="layers",
-    )
-    exp_soil_moisture = exp_soil_moisture.assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
-            "cell_id": data.grid.cell_id,
-        }
+    exp_soil_moisture = DataArray(
+        [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
+        dims=["layers", "cell_id"],
+        coords={
+            "cell_id": [0, 1, 2],
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+        },
     )
 
     exp_runoff = DataArray(

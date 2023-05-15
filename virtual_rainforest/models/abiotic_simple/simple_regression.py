@@ -30,7 +30,7 @@ vapour pressure deficit as a function of leaf area index from
 """
 
 MicroclimateParameters: Dict[str, float] = {
-    "soil_moisture_capacity": 150,
+    "soil_moisture_capacity": 90,
     "water_interception_factor": 0.1,
     "saturation_vapour_pressure_factor1": 0.61078,
     "saturation_vapour_pressure_factor2": 7.5,
@@ -50,6 +50,7 @@ Bounds: Dict[str, float] = {
     "soil_temperature_min": -10,
     "soil_temperature_max": 50,
 }
+"""Upper and lower bounds for abiotic variables."""
 
 
 def setup_simple_regression(
@@ -245,7 +246,6 @@ def run_simple_regression(
     # Mean soil temperature profile, [C]
     soil_temperature_only = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        layer_roles=layer_roles,
         surface_temperature=air_temperature.isel(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
@@ -253,7 +253,7 @@ def run_simple_regression(
         upper_bound=Bounds["soil_temperature_max"],
         lower_bound=Bounds["soil_temperature_min"],
     )
-    # add other layers back
+    # add above-ground vertical layers back
     soil_temperature = xr.concat(
         [
             data["soil_temperature"].isel(
@@ -285,13 +285,21 @@ def run_simple_regression(
     )
 
     # Mean soil moisture profile, [] and Runoff, [mm]
-    soil_moisture, surface_run_off = calculate_soil_moisture(
+    soil_moisture_only, surface_run_off = calculate_soil_moisture(
         layer_roles=layer_roles,
         precipitation_surface=precipitation_surface,
         current_soil_moisture=data["soil_moisture"],
         soil_moisture_capacity=soil_moisture_capacity,
     )
-
+    soil_moisture = xr.concat(
+        [
+            data["soil_moisture"].isel(
+                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
+            ),
+            soil_moisture_only,
+        ],
+        dim="layers",
+    )
     output.append(soil_moisture)
     output.append(surface_run_off)
     return output
@@ -423,7 +431,6 @@ def calculate_vapour_pressure_deficit(
 
 def interpolate_soil_temperature(
     layer_heights: DataArray,
-    layer_roles: List,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
     upper_bound: float = Bounds["soil_temperature_max"],
@@ -505,16 +512,18 @@ def calculate_soil_moisture(
         soil_moisture_capacity: soil moisture capacity (optional)
 
     Returns:
-        current soil moisture, [mm], surface runoff, [mm]
+        current soil moisture for one layer, [mm], surface runoff, [mm]
     """
-
+    # calculate how much water can be added to soil before capacity is reached
     available_capacity = soil_moisture_capacity - current_soil_moisture.mean(
         dim="layers"
     )
 
+    # calculate where precipitation exceeds available capacity
     surface_runoff_cells = precipitation_surface.where(
         precipitation_surface > available_capacity
     )
+    # calculate runoff
     surface_runoff = (
         DataArray(surface_runoff_cells.data - available_capacity.data)
         .fillna(0)
@@ -523,43 +532,23 @@ def calculate_soil_moisture(
         .assign_coords({"cell_id": current_soil_moisture.cell_id})
     )
 
+    # calculate total water in each grid cell
     total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
-    soil_moisture_mean = total_water.where(total_water < soil_moisture_capacity).fillna(
-        soil_moisture_capacity
-    )
-    soil_moisture = (  # TODO set bounds 0-100
-        xr.concat(
-            [
-                DataArray(
-                    np.full(
-                        (
-                            len(layer_roles) - layer_roles.count("soil"),
-                            len(current_soil_moisture.cell_id),
-                        ),
-                        np.nan,
-                    ),
-                    dims=["layers", "cell_id"],
-                ),
-                DataArray(
-                    np.full(
-                        (
-                            layer_roles.count("soil"),
-                            len(current_soil_moisture.cell_id),
-                        ),
-                        soil_moisture_mean,
-                    ),
-                    dims=["layers", "cell_id"],
-                ),
-            ],
-            dim="layers",
-        )
-        .rename("soil_moisture")
+
+    # calculate soil moisture for one layer and copy to all layers
+    soil_moisture = (
+        DataArray(np.clip(total_water, 0, soil_moisture_capacity))
+        .expand_dims(dim={"layers": np.arange(layer_roles.count("soil"))}, axis=0)
         .assign_coords(
             {
-                "layers": np.arange(0, len(layer_roles)),
-                "layer_roles": ("layers", layer_roles),
-                "cell_id": current_soil_moisture.coords["cell_id"],
-            },
+                "cell_id": current_soil_moisture.cell_id,
+                "layers": [
+                    len(layer_roles) - layer_roles.count("soil"),
+                    len(layer_roles) - 1,
+                ],
+                "layer_roles": ("layers", layer_roles.count("soil") * ["soil"]),
+            }
         )
     )
+
     return soil_moisture, surface_runoff
