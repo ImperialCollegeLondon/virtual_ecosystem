@@ -21,8 +21,9 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     # default soil moisture
     result = setup_simple_regression(data=data, layer_roles=layer_roles_fixture)
 
+    # check that copied variables have the same shape and dims as air_temperature
     xr.testing.assert_allclose(
-        result[1],
+        result["relative_humidity"],
         DataArray(
             np.full((15, 3), np.nan),
             dims=["layers", "cell_id"],
@@ -34,15 +35,16 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
             name="relative_humidity",
         ),
     )
+    # check that soil mositure has correct shape
     xr.testing.assert_allclose(
-        result[-1],
+        result["soil_moisture"],
         xr.concat(
             [
                 DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
                 DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
             ],
             dim="layers",
-        ).assign_coords(result[1].coords),
+        ).assign_coords(data["layer_heights"].coords),
     )
 
     # input soil moisture
@@ -50,7 +52,7 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
         data=data, layer_roles=layer_roles_fixture, initial_soil_moisture=20
     )
     xr.testing.assert_allclose(
-        result1[-1],
+        result1["soil_moisture"],
         xr.concat(
             [
                 DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
@@ -309,7 +311,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
         dim="layers",
     )
     exp_output1 = exp_air_temperature.assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result[0], exp_output1)
+    xr.testing.assert_allclose(result["air_temperature"], exp_output1)
 
     exp_atmospheric_pressure = xr.concat(
         [
@@ -322,7 +324,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
         dim="layers",
     )
     exp_output2 = exp_atmospheric_pressure.assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result[4], exp_output2)
+    xr.testing.assert_allclose(result["atmospheric_pressure"], exp_output2)
 
     exp_soil_moisture = xr.concat(
         [
@@ -337,7 +339,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
         dim="layers",
     )
     exp_output3 = exp_soil_moisture.assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result[-2], exp_output3)
+    xr.testing.assert_allclose(result["soil_moisture"], exp_output3)
 
 
 def test_interpolate_soil_temperature(dummy_climate_data):
