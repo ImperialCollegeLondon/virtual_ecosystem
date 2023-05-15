@@ -129,9 +129,9 @@ team.
   :maxdepth: 4
   :caption: Climate data pre-processing
 
-  Climate data recipes <data_recipes/data_recipes.md>
-  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
-  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
+  Climate data recipes overview <data_recipes/data_recipes.md>
+  Download CORDEX data <data_recipes/CDS_toolbox_template.md>
+  Preprocess ERA5 data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}
