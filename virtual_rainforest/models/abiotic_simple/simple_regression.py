@@ -70,7 +70,7 @@ def setup_simple_regression(
         initial_soil_moisture: initial soil moisture
 
     Returns:
-        dict of DataArrays for air temperature [C], relative humidity [-], vapour
+        Dict of DataArrays for air temperature [C], relative humidity [-], vapour
         pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
         atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
@@ -78,7 +78,7 @@ def setup_simple_regression(
     output = {}
 
     # Initialise DataArrays filled with NaN
-    air_temperature = DataArray(
+    output["air_temperature"] = DataArray(
         np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
         dims=["layers", "cell_id"],
         coords={
@@ -88,7 +88,6 @@ def setup_simple_regression(
         },
         name="air_temperature",
     )
-    output["air_temperature"] = air_temperature
 
     # copy and assign new variable names
     for name in (
@@ -99,15 +98,14 @@ def setup_simple_regression(
         "atmospheric_co2",
         "surface_runoff",
     ):
-        output[name] = air_temperature.copy().rename(name)
+        output[name] = output["air_temperature"].copy().rename(name)
 
     # The initial soil moisture constant in all soil layers, all other layers set to NaN
-    soil_moisture = air_temperature.copy().rename("soil_moisture")
-    soil_moisture = soil_moisture.where(
+    soil_moisture = output["air_temperature"].copy().rename("soil_moisture")
+    output["soil_moisture"] = soil_moisture.where(
         soil_moisture.coords["layer_roles"] != "soil",
         initial_soil_moisture,
     )
-    output["soil_moisture"] = soil_moisture
 
     return output
 
@@ -188,7 +186,7 @@ def run_simple_regression(
         soil_moisture_capacity: soil moisture capacity for water
 
     Returns:
-        list of DataArrays for air temperature [C], relative humidity [-], vapour
+        Dict of DataArrays for air temperature [C], relative humidity [-], vapour
         pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
         atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
@@ -199,7 +197,7 @@ def run_simple_regression(
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Mean air temperature profile, [C]
-    air_temperature = log_interpolation(
+    output["air_temperature"] = log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time=time_index),
         leaf_area_index_sum=leaf_area_index_sum,
@@ -209,10 +207,9 @@ def run_simple_regression(
         lower_bound=Bounds["air_temperature_min"],
         gradient=MicroclimateGradients["air_temperature_gradient"],
     ).rename("air_temperature")
-    output["air_temperature"] = air_temperature
 
     # Mean relative humidity profile, []
-    relative_humidity = log_interpolation(
+    output["relative_humidity"] = log_interpolation(
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time=time_index),
         leaf_area_index_sum=leaf_area_index_sum,
@@ -222,7 +219,6 @@ def run_simple_regression(
         lower_bound=Bounds["relative_humidity_min"],
         gradient=MicroclimateGradients["relative_humidity_gradient"],
     ).rename("relative_humidity")
-    output["relative_humidity"] = relative_humidity
 
     # Mean vapour pressure deficit, [kPa]
     # calculate vapour pressure deficit at reference height first
@@ -231,7 +227,7 @@ def run_simple_regression(
         relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
     )
 
-    vapour_pressure_deficit = log_interpolation(
+    output["vapour_pressure_deficit"] = log_interpolation(
         data=data,
         reference_data=vapour_pressure_deficit_ref,
         leaf_area_index_sum=leaf_area_index_sum,
@@ -241,12 +237,11 @@ def run_simple_regression(
         lower_bound=Bounds["vapour_pressure_deficit_min"],
         gradient=MicroclimateGradients["vapour_pressure_deficit_gradient"],
     ).rename("vapour_pressure_deficit")
-    output["vapour_pressure_deficit"] = vapour_pressure_deficit
 
     # Mean soil temperature profile, [C]
     soil_temperature_only = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        surface_temperature=air_temperature.isel(
+        surface_temperature=output["air_temperature"].isel(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
@@ -254,7 +249,7 @@ def run_simple_regression(
         lower_bound=Bounds["soil_temperature_min"],
     )
     # add above-ground vertical layers back
-    soil_temperature = xr.concat(
+    output["soil_temperature"] = xr.concat(
         [
             data["soil_temperature"].isel(
                 layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
@@ -263,21 +258,18 @@ def run_simple_regression(
         ],
         dim="layers",
     )
-    output["soil_temperature"] = soil_temperature
 
     # Mean atmospheric pressure profile, [kPa]
-    atmospheric_pressure = data["atmospheric_pressure"].where(
+    output["atmospheric_pressure"] = data["atmospheric_pressure"].where(
         data["atmospheric_pressure"].coords["layer_roles"] == "soil",
         (data["atmospheric_pressure_ref"].isel(time=time_index)),
     )
-    output["atmospheric_pressure"] = atmospheric_pressure
 
     # Mean atmospheric C02 profile, [ppm]
-    atmospheric_co2 = data["atmospheric_co2"].where(
+    output["atmospheric_co2"] = data["atmospheric_co2"].where(
         data["atmospheric_co2"].coords["layer_roles"] == "soil",
         (data["atmospheric_co2_ref"].isel(time=time_index)),
     )
-    output["atmospheric_co2"] = atmospheric_co2
 
     # Precipitation at the surface is reduced as a function of leaf area index
     precipitation_surface = data["precipitation"].isel(time=time_index) * (
@@ -291,7 +283,7 @@ def run_simple_regression(
         current_soil_moisture=data["soil_moisture"],
         soil_moisture_capacity=soil_moisture_capacity,
     )
-    soil_moisture = xr.concat(
+    output["soil_moisture"] = xr.concat(
         [
             data["soil_moisture"].isel(
                 layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
@@ -300,8 +292,8 @@ def run_simple_regression(
         ],
         dim="layers",
     )
-    output["soil_moisture"] = soil_moisture
     output["surface_run_off"] = surface_run_off
+
     return output
 
 
