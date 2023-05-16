@@ -208,7 +208,7 @@ def test_generate_abiotic_simple_model(
 
 
 def test_update_data_object(dummy_climate_data):
-    """Test reading from list."""
+    """Test reading from dict."""
     import numpy as np
     from xarray import DataArray
 
@@ -216,7 +216,7 @@ def test_update_data_object(dummy_climate_data):
         update_data_object,
     )
 
-    var_list = {
+    var_dict = {
         "air_temperature": DataArray(
             np.full((3, 3), 20),
             dims=["cell_id", "time"],
@@ -237,7 +237,7 @@ def test_update_data_object(dummy_climate_data):
         ),
     }
 
-    update_data_object(dummy_climate_data, var_list)
+    update_data_object(dummy_climate_data, var_dict)
 
     xr.testing.assert_allclose(
         dummy_climate_data["air_temperature_ref"],
