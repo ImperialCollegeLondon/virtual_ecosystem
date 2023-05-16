@@ -114,6 +114,9 @@ class AbioticSimpleModel(BaseModel):
         self.update_interval
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
+        """Initial soil moisture for all layers and grill cells identical."""
+        self.time_index = 0
+        """Start counter for extracting correct input data."""
 
     @classmethod
     def from_config(
@@ -160,12 +163,14 @@ class AbioticSimpleModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the abiotic model."""
         # TODO do I need a counter to access the correct time index from the input data?
+
         output_variables = simple_regression.run_simple_regression(
             data=self.data,
             layer_roles=self.layer_roles,
-            time_index=0,
+            time_index=self.time_index,
         )
         update_data_object(data=self.data, output_dict=output_variables)
+        self.time_index += 1
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
