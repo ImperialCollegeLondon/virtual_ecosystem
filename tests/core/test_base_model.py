@@ -7,10 +7,12 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from typing import Any
 
+import pint
 import pytest
 from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
+from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
@@ -83,6 +85,131 @@ def data_instance():
                 model_name = 'should_pass'
                 required_init_vars = tuple()
             """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property lower_bound_on_time_scale is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property lower_bound_on_time_scale is not implemented in "
+                    "UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="No lower_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property upper_bound_on_time_scale is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property upper_bound_on_time_scale is not implemented in "
+                    "UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="No upper_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 time"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Invalid units for model time bound, see above errors.",
+            [
+                (ERROR, "Upper bound for UnnamedModel not given a valid unit."),
+                (
+                    ERROR,
+                    "Invalid units for model time bound, see above errors.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Bad unit for upper_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Lower time bound for UnnamedModel is not less than the upper bound.",
+            [
+                (
+                    ERROR,
+                    "Lower time bound for UnnamedModel is not less than the upper "
+                    "bound.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Lower and upper bound equal",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 month"
+                upper_bound_on_time_scale = "1 day"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Lower time bound for UnnamedModel is not less than the upper bound.",
+            [
+                (
+                    ERROR,
+                    "Lower time bound for UnnamedModel is not less than the upper "
+                    "bound.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Lower bound greater",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 meter"
+                upper_bound_on_time_scale = "1 month"
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(ValueError),
+            "Invalid units for model time bound, see above errors.",
+            [
+                (ERROR, "Lower bound for UnnamedModel given a non-time unit."),
+                (
+                    ERROR,
+                    "Invalid units for model time bound, see above errors.",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Distance unit for lower_bound_on_time_scale",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
+                model_name = 'should_pass'
+                required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
+            """,
             "should_pass",
             "UnnamedModel",
             does_not_raise(),
@@ -94,6 +221,8 @@ def data_instance():
             """class UnnamedModel2(BaseModel):
                 model_name = 'should_pass'
                 required_init_vars = tuple()
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
             """,
             "should_pass",
             "UnnamedModel2",
@@ -112,6 +241,8 @@ def data_instance():
             """class UnnamedModel(BaseModel):
                 model_name = 'should_also_pass'
                 required_init_vars = (('temperature', ('spatial',),),)
+                lower_bound_on_time_scale = "1 day"
+                upper_bound_on_time_scale = "1 month"
             """,
             "should_also_pass",
             "UnnamedModel",
@@ -210,6 +341,8 @@ def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg
     code = f"""class UM(BaseModel):
         model_name = 'should_also_pass'
         required_init_vars = {riv_value}
+        lower_bound_on_time_scale = "1 day"
+        upper_bound_on_time_scale = "1 month"
     """
 
     with exp_raise as err:
@@ -231,6 +364,8 @@ def test_check_failure_on_missing_methods(data_instance):
 
     class InitVarModel(BaseModel):
         model_name = "init_var"
+        lower_bound_on_time_scale = "1 second"
+        upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
 
     with pytest.raises(TypeError) as err:
@@ -306,6 +441,8 @@ def test_check_required_init_vars(
 
     class TestCaseModel(BaseModel):
         model_name = "init_var"
+        lower_bound_on_time_scale = "1 second"
+        upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
 
         def setup(self) -> None:
@@ -321,8 +458,10 @@ def test_check_required_init_vars(
             return super().cleanup()
 
         @classmethod
-        def from_config(cls, data: Data, config: dict[str, Any]) -> Any:
-            return super().from_config(data, config)
+        def from_config(
+            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+        ) -> Any:
+            return super().from_config(data, config, update_interval)
 
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
@@ -334,7 +473,7 @@ def test_check_required_init_vars(
     with raises as err:
         inst = TestCaseModel(  # noqa: F841
             data=data_instance,
-            update_interval=timedelta64(1, "W"),
+            update_interval=pint.Quantity("1 week"),
             start_time=datetime64("2022-11-01"),
         )
 
@@ -347,3 +486,114 @@ def test_check_required_init_vars(
         assert str(inst) == "A init_var model instance"
 
     log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["config", "raises", "timestep", "expected_log"],
+    argvalues=[
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 month",
+                    }
+                },
+            },
+            does_not_raise(),
+            pint.Quantity("1 month"),
+            (),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 day",
+                    }
+                },
+            },
+            does_not_raise(),
+            pint.Quantity("1 day"),
+            (),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "30 minutes",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is shorter than the model's lower bound",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "3 months",
+                    }
+                },
+            },
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "The update interval is longer than the model's upper bound",
+                ),
+            ),
+        ),
+    ],
+)
+def test_check_update_speed(caplog, config, raises, timestep, expected_log):
+    """Tests check on update speed."""
+
+    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.data import Data
+
+    class TimingTestModel(BaseModel):
+        model_name = "timing_test"
+        lower_bound_on_time_scale = "1 day"
+        upper_bound_on_time_scale = "1 month"
+        required_init_vars = ()
+
+        def setup(self) -> None:
+            return super().setup()
+
+        def spinup(self) -> None:
+            return super().spinup()
+
+        def update(self) -> None:
+            return super().update()
+
+        def cleanup(self) -> None:
+            return super().cleanup()
+
+        @classmethod
+        def from_config(
+            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+        ) -> Any:
+            return super().from_config(data, config, update_interval)
+
+    # Registration of TestClassModel emits logging messages - discard.
+    caplog.clear()
+
+    with raises:
+        inst = TimingTestModel(
+            data=data_instance,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
+            start_time=datetime64(config["core"]["timing"]["start_date"]),
+        )
+        assert inst.update_interval == timestep
+
+    log_check(caplog, expected_log)

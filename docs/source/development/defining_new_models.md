@@ -27,7 +27,8 @@ ensure that it can be accessed by the `core` processes in the simulation.
 
 ## Create a new submodule folder
 
-Start by creating  a new folder for your model, within the `virtual_rainforest/models/` directory.
+Start by creating  a new folder for your model, within the `virtual_rainforest/models/`
+directory.
 
 ```bash
 mkdir virtual_rainforest/models/freshwater
@@ -70,8 +71,8 @@ from __future__ import annotations
 # Any needed for type hints of the config dictionary as the values are of various types
 from typing import Any
 
-# Used by timing loop to store date times, and time intervals, respectively
-from numpy import datetime64, timedelta64
+# pint.Quantity allows time units to be more easily interpreted
+from pint import Quantity
 
 # The core data storage object
 from virtual_rainforest.core.data import Data
@@ -85,16 +86,13 @@ from virtual_rainforest.core.base_model import BaseModel
 # InitialisationError is a custom exception, for case where a `Model` class cannot be
 # properly initialised based on the data contained in the configuration
 from virtual_rainforest.core.exceptions import InitialisationError
-
-# A utility function to unpack the model specific timing details from the config
-from virtual_rainforest.core.utils import extract_model_time_details
 ```
 
 ### Defining the new class and class attributes
 
 Now create a new class, that derives from the
 {mod}`~virtual_rainforest.core.base_model.BaseModel`. To begin with, choose a class name
-for the model and define the following two class attributes.
+for the model and define the following four class attributes.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
 : This is a string providing a shorter, lower case  name that is used to refer to this
@@ -112,6 +110,16 @@ tuple that sets any required axes for the variable. For example:
 (('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
 ```
 
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+attribute: This is the shortest time scale for which the model is a realistic
+simulation. This attribute is a string, which should include units that can be parsed
+using `pint`.
+
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+attribute: This is the longest time scale for which the model is a realistic simulation.
+Again this attribute is a string, which should include units that can be parsed using
+`pint`.
+
 You will end up with something like the following:
 
 ```python
@@ -124,6 +132,10 @@ class FreshWaterModel(BaseModel):
 
     model_name = "freshwater"
     """The model name for use in registering the model and logging."""
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that freshwater model can sensibly capture."""
+    upper_bound_on_time_scale = "1 month"
+    """Longest time scale that freshwater model can sensibly capture."""
     required_init_vars = (('temperature', ('spatial', )), )
     """The required variables and axes for the Freshwater Model"""
 ```
@@ -143,7 +155,7 @@ things.
    also known as the superclass:
 
    ```python
-   super().__init__(data, update_interval, start_time, **kwargs)
+   super().__init__(data, update_interval, **kwargs)
    ```
 
    Calling this method runs all of the shared functionality across models, such as
@@ -163,8 +175,7 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
-    start_time: datetime64,
-    update_interval: timedelta64,
+    update_interval: pint.Quantity,
     no_of_ponds: int,
     **kwargs: Any,
 ):
@@ -178,7 +189,7 @@ def __init__(
         raise to_raise
         
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval, start_time, **kwargs)
+    super().__init__(data, update_interval, **kwargs)
 
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
@@ -293,7 +304,9 @@ As an example:
 
 ```python
 @classmethod
-def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
+def from_config(
+    cls, data: Data, config: dict[str, Any], update_interval: Quantity
+) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
     This function unpacks the relevant information from the configuration file, and
@@ -301,50 +314,42 @@ def from_config(cls, config: dict[str, Any]) -> FreshWaterModel:
     invalid rather than returning an initialised model instance an error is raised.
 
     Args:
+        data: A :class:`~virtual_rainforest.core.data.Data` instance.
         config: The complete (and validated) Virtual Rainforest configuration.
+        update_interval: Frequency with which all models are updated
     """
-
-    # Find timing details
-    start_time, update_interval = extract_model_time_details(config, cls.model_name)
     
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
     LOGGER.info(
-        "Information required to initialise the freshwater model successfully "
-        "extracted."
-    )
-    return cls(update_interval, start_time, no_of_pools)
+            "Information required to initialise the soil model successfully "
+            "extracted."
+        )
+        return cls(data, update_interval, no_pools)
 
 ```
 
 ## Other model steps
 
-Every model class needs to include a function to update its model state. The exact
-details of what should be in this `update` function are yet to be decided, apart from
-how to update the internal model timing loop.
-
-```python
-def update(self) -> None:
-    """Function to update the freshwater model (only updates time currently)."""
-
-    # Update internal model timing loop
-    self.next_update += self.update_interval
-```
-
-In addition to the above, there are three other functions that must be included as part
-of the model class. The names and roles of these functions might well change as the
-Virtual Rainforest model develops, but that kind of API change is something that would
-require significant discussion. These functions are not actually used at present, so
-while they have to be included, there's no need to include any particular content within
-them (i.e. they can just be function definitions with docstrings).
+There are four functions that must be included as part of the model class. The names and
+roles of these functions might well change as the Virtual Rainforest model develops, but
+that kind of API change is something that would require significant discussion. Only the
+`update` function is used at present. The other functions need to be included, but
+there's no need to include any particular content within them (i.e. they can just be
+function definitions with docstrings).
 
 ```python
 def setup(self) -> None:
-    """Placeholder function to spin up the freshwater model."""
+    """Placeholder function to set up the freshwater model."""
 
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
+
+def update(self) -> None:
+    """Function to update the freshwater model."""
+
+    # Model simulation + update steps go in here.
 
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""

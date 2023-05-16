@@ -31,12 +31,12 @@ The research is based at Imperial College London:
 ## Project Team
 
 * Professor Robert Ewers
-* Olivia Daniels
+* Olivia Daniel
 * Dr. Jaideep Joshi
 * Dr. David Orme
 * Dr. Vivienne Groner
 * Dr. Jacob Cook
-* Taran Rallings
+* Dr. Taran Rallings
 
 The research team are supported by the Imperial College London
 [Research Software
