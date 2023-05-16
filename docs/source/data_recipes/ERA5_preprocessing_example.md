@@ -19,8 +19,8 @@ kernelspec:
 This section illustrates how to perform simple manipulations to adjust ERA5 data to use
 in the Virtual Rainforest. This includes reading climate data from netcdf, converting
 the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
-Celsius conversion), and writing the output in a new netcdf file. This does not include
-scaling or topographic adjustment.
+Celsius conversion), adding further required variables, and writing the output in a new
+netcdf file. This does not include scaling or topographic adjustment.
 
 ## Dummy data set
 
@@ -58,6 +58,7 @@ Example file: [dummy_climate_data.nc](./dummy_climate_data.nc)
 ```{code-cell} ipython3
 import xarray as xr
 import numpy as np
+from xarray import DataArray
 
 dataset = xr.open_dataset("./dummy_climate_data.nc")
 dataset
@@ -85,24 +86,70 @@ $$ RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
 $$
 
 ```{code-cell} ipython3
- dataset["rh2m"] = (
+dataset["rh2m"] = (
     100.0
     * (np.exp(17.625 * dataset["d2m_C"] / (243.04 + dataset["d2m_C"])) 
     / np.exp(17.625 * dataset["t2m_C"] / (243.04 + dataset["t2m_C"])))
     )
 ```
 
-### 4. Clean dataset and save netcdf
+### 4. Clean dataset and rename variables
+
+In this step, we delete the initial temperature variables (K) and rename the remaining
+variables according to the Virtual Rainforest naming convention (see
+[here](../../../virtual_rainforest/data_variables.toml) ).
 
 ```{code-cell} ipython3
-dataset_cleaned = dataset.drop_vars(["d2m","t2m","stl1"])
-dataset_cleaned
+dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m","stl1"])
+dataset_renamed = dataset_cleaned.rename({
+    'si10':'wind_speed_ref',
+    'sp':'atmospheric_pressure_ref',
+    'tp':'precipitation',
+    'swvl1':'soil_moisture_ref',
+    't2m_C':'air_temperature_ref',
+    'rh2m': 'relative_humidity_ref',
+    'stl1_C': 'top_soil_temperature_ref',
+    'tisr':'TOA_incoming_solar_radiation',
+    'tcc':'total_could_cover',
+    })
+dataset_renamed.data_vars
 ```
 
-Once you confirmed that your dataset is complete and your calculations are correct, save
-it as a new netcdf file. This can then be fed into the code data loading system, see
+### 5. Select required variables and add further required variables
+
+The set of required variables depends on the complexity of the abiotic model that is
+selected for the simulation. For the simple abiotic model, we require only a subset of
+the loaded climate data, and can therefore drop unrequired variables. In addition to the
+climatic variables, a time series of atmospheric CO2 is needed. We add this here as a
+constant field. Mean annual temperature is calculated from the full time series of air
+temperatures; in the future, this should be done for each year.
+
+```{code-cell} ipython3
+dataset_simple = dataset_renamed.drop_vars(
+  [
+    'wind_speed_ref',
+    'soil_moisture_ref',
+    'top_soil_temperature_ref',
+    'TOA_incoming_solar_radiation',
+    'total_could_cover',
+  ]
+)
+dataset_simple['atmospheric_co2_ref'] = DataArray(
+  np.full_like(dataset_simple['air_temperature_ref'],400),
+  dims=['time', 'latitude', 'longitude'],
+)
+dataset_simple['mean_annual_temperature'] = (
+  dataset_simple["air_temperature_ref"].mean(dim = 'time')
+  )
+dataset_simple
+```
+
+### 6. Save netcdf
+
+Once we confirmed that our dataset is complete and our calculations are correct, we save
+it as a new netcdf file. This can then be fed into the code data loading system here
 {mod}`~virtual_rainforest.core.data`.
 
 ```{code-block} ipython3
-dataset_cleaned.to_netcdf("./dummy_climate_data_processed.nc")
+dataset_simple.to_netcdf("./dummy_climate_data_processed.nc")
 ```

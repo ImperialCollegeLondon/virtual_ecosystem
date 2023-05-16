@@ -131,10 +131,10 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: Climate data pre-processing
-  :hidden:
 
-  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
-  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
+  Overview <data_recipes/data_recipes.md>
+  Download CORDEX data <data_recipes/CDS_toolbox_template.md>
+  Pre-processing ERA5 data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}
