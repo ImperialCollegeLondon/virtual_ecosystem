@@ -31,16 +31,6 @@ def abiotic_model_fixture(dummy_climate_data):
     return AbioticSimpleModel.from_config(dummy_climate_data, config)
 
 
-@pytest.fixture
-def layer_roles_fixture():
-    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        set_layer_roles,
-    )
-
-    return set_layer_roles(10, 2)
-
-
 def test_set_layer_roles():
     """Test correct order of layers."""
     from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
