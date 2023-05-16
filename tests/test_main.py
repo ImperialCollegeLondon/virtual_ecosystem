@@ -5,16 +5,16 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO
 from pathlib import Path
 
+import pint
 import pytest
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.main import vr_run
-from virtual_rainforest.models.soil.soil_model import SoilModel
 
 from .conftest import log_check
 
@@ -79,15 +79,12 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
 
 
 @pytest.mark.parametrize(
-    "config,output,raises,expected_log_entries",
+    "config,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            {  # valid config
-                "soil": {"model_time_step": "7 days"},
-                "core": {"timing": {"start_date": "2020-01-01"}},
-            },
-            "SoilModel(update_interval = 604800 seconds, next_update = "
-            "2020-01-08T00:00:00)",
+            {},
+            pint.Quantity("7 days"),
+            "SoilModel(update_interval = 7 day)",
             does_not_raise(),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
@@ -132,18 +129,20 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="valid config",
         ),
         pytest.param(
-            {  # model_time_step missing units
-                "soil": {"model_time_step": "7"},
-                "core": {"timing": {}},
-            },
+            {},
+            pint.Quantity("1 minute"),
             None,
             pytest.raises(InitialisationError),
             (
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+                (
                     ERROR,
-                    "Model timing error: Cannot convert from 'dimensionless' "
-                    "(dimensionless) to 'second' ([time])",
+                    "The update interval is shorter than the model's lower bound",
                 ),
                 (
                     CRITICAL,
@@ -151,12 +150,42 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                     "simulation.",
                 ),
             ),
-            id="model_time_step missing units",
+            id="update interval too short",
+        ),
+        pytest.param(
+            {},
+            pint.Quantity("1 year"),
+            None,
+            pytest.raises(InitialisationError),
+            (
+                (INFO, "Attempting to configure the following models: ['soil']"),
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+                (
+                    ERROR,
+                    "The update interval is longer than the model's upper bound",
+                ),
+                (
+                    CRITICAL,
+                    "Could not configure all the desired models, ending the "
+                    "simulation.",
+                ),
+            ),
+            id="update interval too long",
         ),
     ],
 )
 def test_configure_models(
-    caplog, dummy_carbon_data, config, output, raises, expected_log_entries
+    caplog,
+    dummy_carbon_data,
+    config,
+    update_interval,
+    output,
+    raises,
+    expected_log_entries,
 ):
     """Test the function that configures the models."""
     from virtual_rainforest.main import configure_models, select_models
@@ -164,7 +193,9 @@ def test_configure_models(
     with raises:
         model_list = select_models(["soil"])
 
-        models = configure_models(config, dummy_carbon_data, model_list)
+        models = configure_models(
+            config, dummy_carbon_data, model_list, update_interval
+        )
 
         if output is None:
             assert models == [None]
@@ -183,7 +214,8 @@ def test_configure_models(
                     "modules": ["soil"],
                     "timing": {
                         "start_date": "2020-01-01",
-                        "end_date": "2120-01-01",
+                        "run_length": "50 years",
+                        "update_interval": "0.5 martian days",
                     },
                     "data": [],
                     "grid": {
@@ -192,9 +224,6 @@ def test_configure_models(
                         "cell_nx": 3,
                         "cell_ny": 3,
                     },
-                },
-                "soil": {
-                    "model_time_step": "0.5 martian days",
                 },
             },
             (
@@ -207,13 +236,9 @@ def test_configure_models(
                     "to configure them.",
                 ),
                 (
-                    ERROR,
-                    "Model timing error: 'martian' is not defined in the unit registry",
-                ),
-                (
                     CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation. The following models failed: ['soil'].",
+                    "Units for core.timing.update_interval are not valid time units: "
+                    "0.5 martian days",
                 ),
             ),
             id="bad_config_data",
@@ -288,15 +313,16 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
             {
                 "start_time": datetime64("2020-01-01"),
                 "update_interval": timedelta64(10, "m"),
+                "update_interval_as_quantity": pint.Quantity("10 minutes"),
                 "end_time": datetime64("2049-12-31T12:00"),
             },
             does_not_raise(),
             (
                 (
                     INFO,
-                    "Virtual Rainforest simulation will run from 2020-01-01 until 2049-"
-                    "12-31T12:00. This is a run length of 15778800 minutes, the user "
-                    "requested 15778800 minutes",
+                    "Virtual Rainforest simulation will run from 2020-01-01 until "
+                    "2049-12-31T12:00:00. This is a run length of 946728000 seconds, "
+                    "the user requested 946728000 seconds",
                 ),
             ),
             id="timing correct",
@@ -316,8 +342,8 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
             (
                 (
                     CRITICAL,
-                    "Models will never update as the update interval (10 minutes) is "
-                    "larger than the run length (1 minutes)",
+                    "Models will never update as the update interval (600 seconds) is "
+                    "larger than the run length (60 seconds)",
                 ),
             ),
             id="run length < update interval",
@@ -364,6 +390,26 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
             ),
             id="invalid update_interval units",
         ),
+        pytest.param(
+            {  # update_interval missing units
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "7",
+                        "run_length": "30 years",
+                    }
+                },
+            },
+            {},  # Fails so no output to check
+            pytest.raises(InitialisationError),
+            (
+                (
+                    CRITICAL,
+                    "Units for core.timing.update_interval are not valid time units: 7",
+                ),
+            ),
+            id="model_time_step missing units",
+        ),
     ],
 )
 def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
@@ -371,40 +417,15 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     from virtual_rainforest.main import extract_timing_details
 
     with raises:
-        current_time, update_interval, end_time = extract_timing_details(config)
+        (
+            current_time,
+            update_interval,
+            update_interval_as_quantity,
+            end_time,
+        ) = extract_timing_details(config)
         assert end_time == output["end_time"]
         assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "update_interval,expected_log_entries",
-    [
-        pytest.param(timedelta64(2, "W"), (), id="valid"),
-        pytest.param(
-            timedelta64(5, "W"),
-            (
-                (
-                    WARNING,
-                    "The following models have shorter time steps than the main model: "
-                    "['soil']",
-                ),
-            ),
-            id="fast model",
-        ),
-    ],
-)
-def test_check_for_fast_models(caplog, update_interval, expected_log_entries):
-    """Test that function to warn user about short module time steps works."""
-    from virtual_rainforest.main import check_for_fast_models
-
-    # Create SoilModel instance and then populate the update_interval
-    model = SoilModel.__new__(SoilModel)
-    model.update_interval = timedelta64(3, "W")
-    models_cfd = {"soil": model}
-
-    check_for_fast_models(models_cfd, update_interval)
+        assert update_interval_as_quantity == output["update_interval_as_quantity"]
 
     log_check(caplog, expected_log_entries)

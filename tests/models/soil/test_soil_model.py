@@ -5,6 +5,7 @@ from copy import deepcopy
 from logging import DEBUG, ERROR, INFO
 
 import numpy as np
+import pint
 import pytest
 from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
@@ -21,10 +22,9 @@ def soil_model_fixture(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "soil": {"model_time_step": "12 hours"},
+        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
     }
-    return SoilModel.from_config(dummy_carbon_data, config)
+    return SoilModel.from_config(dummy_carbon_data, config, pint.Quantity("12 hours"))
 
 
 @pytest.mark.parametrize(
@@ -181,13 +181,9 @@ def test_soil_model_initialization(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
-            model = SoilModel(
-                carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
-            )
+            model = SoilModel(carbon_data, pint.Quantity("1 week"))
         else:
-            model = SoilModel(
-                dummy_carbon_data, np.timedelta64(1, "W"), np.datetime64("2022-11-01")
-            )
+            model = SoilModel(dummy_carbon_data, pint.Quantity("1 week"))
 
         # In cases where it passes then checks that the object has the right properties
         assert set(
@@ -202,10 +198,7 @@ def test_soil_model_initialization(
         ).issubset(dir(model))
         assert model.model_name == "soil"
         assert str(model) == "A soil model instance"
-        assert (
-            repr(model)
-            == "SoilModel(update_interval = 1 weeks, next_update = 2022-11-08)"
-        )
+        assert repr(model) == "SoilModel(update_interval = 1 week)"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -222,10 +215,14 @@ def test_soil_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "soil": {"model_time_step": "12 hours"},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    }
+                },
             },
-            np.timedelta64(12, "h"),
+            pint.Quantity("12 hours"),
             does_not_raise(),
             (
                 (
@@ -281,12 +278,12 @@ def test_generate_soil_model(
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = SoilModel.from_config(dummy_carbon_data, config)
-        assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == np.datetime64(config["core"]["timing"]["start_date"]) + time_interval
+        model = SoilModel.from_config(
+            dummy_carbon_data,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
+        assert model.update_interval == time_interval
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -314,11 +311,6 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
 
     # Check that integrator is called once (and once only)
     mock_integrate.assert_called_once()
-
-    # Check that time has incremented correctly
-    assert soil_model_fixture.next_update == np.datetime64(
-        "2020-01-01"
-    ) + 2 * np.timedelta64(12, "h")
 
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
@@ -448,10 +440,9 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
     # Use this new data to make a new soil model object
     config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "soil": {"model_time_step": "12 hours"},
+        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
     }
-    new_soil_model = SoilModel.from_config(new_data, config)
+    new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
 
     # Integrate using both data objects
     output = soil_model_fixture.integrate()

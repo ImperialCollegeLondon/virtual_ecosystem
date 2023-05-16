@@ -13,7 +13,7 @@ from numpy import datetime64, timedelta64
 from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 
@@ -56,7 +56,10 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any], data: Data, model_list: list[Type[BaseModel]]
+    config: dict[str, Any],
+    data: Data,
+    model_list: list[Type[BaseModel]],
+    update_interval: pint.Quantity,
 ) -> dict[str, BaseModel]:
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
@@ -64,6 +67,7 @@ def configure_models(
         config: The full virtual rainforest configuration
         data: A Data instance.
         modules: A set of models to be configured
+        update_interval: The interval with which each model is updated
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
@@ -74,9 +78,9 @@ def configure_models(
     models_cfd = {}
     for model in model_list:
         try:
-            this_model = model.from_config(data, config)
+            this_model = model.from_config(data, config, update_interval)
             models_cfd[this_model.model_name] = this_model
-        except InitialisationError:
+        except (InitialisationError, ConfigurationError):
             failed_models.append(model.model_name)
 
     # If any models fail to configure inform the user about it
@@ -93,7 +97,7 @@ def configure_models(
 
 def extract_timing_details(
     config: dict[str, Any]
-) -> tuple[datetime64, timedelta64, datetime64]:
+) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
     The start time, run length and update interval are all extracted from the
@@ -116,7 +120,7 @@ def extract_timing_details(
 
     # Catch bad time dimensions
     try:
-        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("minutes")
+        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("seconds")
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
         to_raise = InitialisationError(
             "Units for core.timing.run_length are not valid time units: %s"
@@ -125,13 +129,14 @@ def extract_timing_details(
         LOGGER.critical(to_raise)
         raise to_raise
     else:
-        # Round raw time interval to nearest minute
-        run_length = timedelta64(int(round(raw_length.magnitude)), "m")
+        # Round raw time interval to nearest second
+        run_length = timedelta64(round(raw_length.magnitude), "s")
 
     # Catch bad time dimensions
     try:
+        # This averages across months and years (i.e. 1 month => 30.4375 days)
         raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
-            "minutes"
+            "seconds"
         )
     except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
         to_raise = InitialisationError(
@@ -140,10 +145,9 @@ def extract_timing_details(
         )
         LOGGER.critical(to_raise)
         raise to_raise
-
     else:
-        # Round raw time interval to nearest minute
-        update_interval = timedelta64(int(round(raw_interval.magnitude)), "m")
+        # Round raw time interval to nearest second
+        update_interval = timedelta64(round(raw_interval.magnitude), "s")
 
     if run_length < update_interval:
         to_raise = InitialisationError(
@@ -164,28 +168,7 @@ def extract_timing_details(
         % (start_time, end_time, end_time - start_time, run_length)
     )
 
-    return start_time, update_interval, end_time
-
-
-def check_for_fast_models(
-    models_cfd: dict[str, BaseModel], update_interval: timedelta64
-) -> None:
-    """Warn user of any models using a faster time step than update interval.
-
-    Args:
-        models_cfd: Set of initialised models
-        update_interval: Time step of the main model loop
-    """
-    fast_models = [
-        model.model_name
-        for model in models_cfd.values()
-        if model.update_interval < update_interval
-    ]
-    if fast_models:
-        LOGGER.warning(
-            "The following models have shorter time steps than the main model: %s"
-            % fast_models
-        )
+    return start_time, update_interval, raw_interval, end_time
 
 
 def vr_run(
@@ -215,21 +198,19 @@ def vr_run(
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
-    models_cfd = configure_models(config, data, model_list)
+    # Extract all the relevant timing details
+    (
+        current_time,
+        update_interval,
+        update_interval_as_quantity,
+        end_time,
+    ) = extract_timing_details(config)
+
+    models_cfd = configure_models(config, data, model_list, update_interval_as_quantity)
 
     LOGGER.info(
         "All models successfully configured, now attempting to initialise them."
     )
-
-    # Extract all the relevant timing details
-    current_time, update_interval, end_time = extract_timing_details(config)
-
-    # Identify models with shorter time steps than main loop and warn user about them
-    check_for_fast_models(models_cfd, update_interval)
-
-    # Setup all models (those with placeholder setup processes won't change at all)
-    for mod_nm in models_cfd:
-        models_cfd[mod_nm].setup()
 
     # TODO - A model spin up might be needed here in future
 
@@ -239,20 +220,13 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
-    # Get the list of date times of the next update.
-    update_due = {mod.model_name: mod.next_update for mod in models_cfd.values()}
-
     # Setup the timing loop
     while current_time < end_time:
         current_time += update_interval
 
-        # Get the names of models that have expired due dates
-        update_needed = [nm for nm, upd in update_due.items() if upd <= current_time]
-
-        # Run their update() method and update due dates for all expired models
-        for mod_nm in update_needed:
+        # Run update() method for every model
+        for mod_nm in models_cfd:
             models_cfd[mod_nm].update()
-            update_due[mod_nm] = models_cfd[mod_nm].next_update
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:

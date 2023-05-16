@@ -20,17 +20,22 @@ The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides d
 implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
 and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
 
-The :class:`~virtual_rainforest.core.base_model.BaseModel` has two class attributes that
-must be defined in subclasses:
+The :class:`~virtual_rainforest.core.base_model.BaseModel` has four class attributes
+that must be defined in subclasses:
 
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` atttribute and
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute and
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
   attribute.
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+  attribute
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+  attribute
 
-The usage of these two attributes is described in their docstrings and two private
+The usage of these four attributes is described in their docstrings and three private
 methods are provided to validate that the properties are set and valid in subclasses
-(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name` and
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`).
+(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
 
 Model registration
 ------------------
@@ -73,10 +78,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Type
 
-from numpy import datetime64, timedelta64
+import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
@@ -113,6 +119,31 @@ class BaseModel(ABC):
 
     @property
     @abstractmethod
+    def lower_bound_on_time_scale(cls) -> str:
+        """The shortest time scale for which the model is reasonable to use.
+
+        Whether or not a model is an acceptable representation of reality depends on the
+        time scale of interest. At large time scales some processes can be treated as
+        transient (and therefore ignored), but at shorter time scales these processes
+        can be vital to capture. We thus require each model to define a lower bound on
+        the time scale for which it is thought to be a reasonable approximation.
+        """
+
+    @property
+    @abstractmethod
+    def upper_bound_on_time_scale(cls) -> str:
+        """The longest time scale for which the model is reasonable to use.
+
+        Whether or not a model is an acceptable representation of reality depends on the
+        time scale of interest. Processes that can be sensibly simulated in detail at
+        shorter time scales often need to approximated as time scales get longer (e.g.
+        impacts of diurnal or seasonal cycles). We thus require each model to define an
+        upper bound on the time scale for which it is thought to be a reasonable
+        approximation.
+        """
+
+    @property
+    @abstractmethod
     def required_init_vars(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         """Required variables for model initialisation.
 
@@ -128,8 +159,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
-        start_time: datetime64,
+        update_interval: pint.Quantity,
         **kwargs: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
@@ -138,8 +168,7 @@ class BaseModel(ABC):
         performs the following core steps:
 
         * It populates the shared instance attributes
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.data`,
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.next_update` and
+          :attr:`~virtual_rainforest.core.base_model.BaseModel.data` and
           :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
         * It uses the
           :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data`
@@ -148,11 +177,9 @@ class BaseModel(ABC):
         """
         self.data = data
         """A Data instance providing access to the shared simulation data."""
-        self.update_interval = update_interval
+        self.update_interval = self._check_update_speed(update_interval)
         """The time interval between model updates."""
-        self.next_update = start_time + update_interval
-        """The simulation time at which the model should next run the update method"""
-        self._repr = ["update_interval", "next_update"]
+        self._repr = ["update_interval"]
         """A list of attributes to be included in the class __repr__ output"""
 
         # Check the required init variables
@@ -176,7 +203,9 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> BaseModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+    ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod
@@ -263,6 +292,90 @@ class BaseModel(ABC):
             raise to_raise
 
     @classmethod
+    def _check_time_bounds_units(
+        cls, which: str = "lower_bound_on_time_scale"
+    ) -> pint.Quantity:
+        """Check that the time bounds defined by each model have time units.
+
+        Args:
+            which: Which bound should be checked (i.e. lower or upper)
+
+        Raises:
+            NotImplementedError: If either of the bounds is not defined
+            ValueError: If model time bounds either don't have units or have non-time
+                units
+
+        Returns:
+            The requested time scale bound
+        """
+
+        # First check that upper and lower bounds are set
+        if isinstance(getattr(cls, which), property):
+            to_raise: Exception = NotImplementedError(
+                f"Property {which} is not implemented in {cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Assume time bound has valid units until we learn otherwise
+        valid_bound = True
+
+        # Making bound naming nicer so that it can be printed
+        if which == "lower_bound_on_time_scale":
+            bound_name = "Lower bound"
+        elif which == "upper_bound_on_time_scale":
+            bound_name = "Upper bound"
+
+        # Check unit for lower bound first
+        try:
+            bound = pint.Quantity(getattr(cls, which))
+            if not bound.check("[time]"):
+                LOGGER.error(f"{bound_name} for {cls.__name__} given a non-time unit.")
+                valid_bound = False
+        except pint.errors.UndefinedUnitError:
+            LOGGER.error(f"{bound_name} for {cls.__name__} not given a valid unit.")
+            valid_bound = False
+
+        if not valid_bound:
+            to_raise = ValueError(
+                "Invalid units for model time bound, see above errors."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+        else:
+            return bound
+
+    def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
+        """Function to check that the update speed of a specific model is within bounds.
+
+        Args:
+            update_interval: Simulation update interval
+
+        Returns:
+            The update interval for the overall model
+
+        Raises:
+            ConfigurationError: If the update interval does not fit with the model's
+                time bounds
+        """
+
+        # Check if either bound is violated
+        if update_interval < pint.Quantity(self.lower_bound_on_time_scale):
+            to_raise = ConfigurationError(
+                "The update interval is shorter than the model's lower bound"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+        elif update_interval > pint.Quantity(self.upper_bound_on_time_scale):
+            to_raise = ConfigurationError(
+                "The update interval is longer than the model's upper bound"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        return update_interval
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -279,6 +392,16 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
+            lower_bound = cls._check_time_bounds_units("lower_bound_on_time_scale")
+            upper_bound = cls._check_time_bounds_units("upper_bound_on_time_scale")
+            # Once bounds units are checked their relative values can be validated
+            if upper_bound <= lower_bound:
+                to_raise = ValueError(
+                    f"Lower time bound for {cls.__name__} is not less than the upper "
+                    f"bound."
+                )
+                LOGGER.error(to_raise)
+                raise to_raise
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
