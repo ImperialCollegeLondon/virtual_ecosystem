@@ -1,34 +1,19 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
-# TODO the tests are incomplete and inconsistent because of incomplete implementation of
-# sew timing here, please ignore this file
 from contextlib import nullcontext as does_not_raise
 from logging import DEBUG, ERROR, INFO
 
 import numpy as np
+import pint
 import pytest
 import xarray as xr
-from numpy import timedelta64
+from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     AbioticSimpleModel,
 )
-
-
-@pytest.fixture
-def abiotic_model_fixture(dummy_climate_data):
-    """Create a simple abiotic model fixture based on the dummy carbon data."""
-
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        AbioticSimpleModel,
-    )
-
-    config = {
-        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
-    }
-    return AbioticSimpleModel.from_config(dummy_climate_data, config)
 
 
 def test_set_layer_roles():
@@ -43,17 +28,55 @@ def test_set_layer_roles():
 
 
 @pytest.mark.parametrize(
-    "soil_layers,canopy_layers,raises,expected_log_entries",
+    "soil_layers,canopy_layers,ini_soil_moisture,raises,expected_log_entries",
     [
         (
             2,
-            3,
+            10,
+            50,
             does_not_raise(),
-            (),
+            (
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'relative_humidity_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'precipitation' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'mean_annual_temperature' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'leaf_area_index' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'layer_heights' checked",
+                ),
+            ),
         ),
         (
             -2,
             3,
+            50,
             pytest.raises(InitialisationError),
             (
                 (
@@ -65,6 +88,7 @@ def test_set_layer_roles():
         (
             2,
             -3,
+            50,
             pytest.raises(InitialisationError),
             (
                 (
@@ -76,6 +100,7 @@ def test_set_layer_roles():
         (
             2.5,
             3,
+            50,
             pytest.raises(InitialisationError),
             (
                 (
@@ -87,6 +112,7 @@ def test_set_layer_roles():
         (
             2,
             3.4,
+            50,
             pytest.raises(InitialisationError),
             (
                 (
@@ -102,6 +128,7 @@ def test_abiotic_simple_model_initialization(
     dummy_climate_data,
     soil_layers,
     canopy_layers,
+    ini_soil_moisture,
     raises,
     expected_log_entries,
     layer_roles_fixture,
@@ -112,22 +139,25 @@ def test_abiotic_simple_model_initialization(
         # Initialize model
         model = AbioticSimpleModel(
             dummy_climate_data,
-            timedelta64(1, "W"),
+            pint.Quantity("1 week"),
             soil_layers,
             canopy_layers,
+            ini_soil_moisture,
         )
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+        assert set(
+            [
+                "setup",
+                "spinup",
+                "update",
+                "cleanup",
+            ]
+        ).issubset(dir(model))
         assert model.model_name == "abiotic_simple"
-        assert (
-            repr(model) == f"AbioticSimpleModel(update_interval = 1 weeks, "
-            f"soil_layers = {int(soil_layers)}, "
-            f"canopy_layers = {int(canopy_layers)})"
-        )
-        assert model.soil_layers == soil_layers
-        assert model.canopy_layers == canopy_layers
+        assert repr(model) == "AbioticSimpleModel(update_interval = 1 week)"
         assert model.layer_roles == layer_roles_fixture
+        assert model.initial_soil_moisture == ini_soil_moisture
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -147,61 +177,103 @@ def test_abiotic_simple_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
+                        "update_interval": "1 week",
                     }
                 },
                 "abiotic_simple": {
                     "soil_layers": 2,
-                    "canopy_layers": 3,
+                    "canopy_layers": 10,
+                    "initial_soil_moisture": 50,
                 },
             },
-            timedelta64(12, "h"),
+            pint.Quantity("1 week"),
             does_not_raise(),
             (
                 (
                     INFO,
-                    "Information required to initialise the abiotic model successfully "
-                    "extracted.",
+                    "Information required to initialise the abiotic simple model "
+                    "successfully extracted.",
                 ),
                 (
                     DEBUG,
-                    "abiotic simple model: required var 'air_temperature_ref' checked",
+                    "abiotic_simple model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'relative_humidity_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'precipitation' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'mean_annual_temperature' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'leaf_area_index' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'layer_heights' checked",
                 ),
             ),
         ),
     ],
 )
 def test_generate_abiotic_simple_model(
-    caplog, data_instance, config, time_interval, raises, expected_log_entries
+    caplog,
+    dummy_climate_data,
+    config,
+    time_interval,
+    raises,
+    expected_log_entries,
+    layer_roles_fixture,
 ):
-    """Test that the function to initialise the soil model behaves as expected."""
+    """Test that the initialisation of the simple abiotic model works as expected."""
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AbioticSimpleModel.from_config(data_instance, config)
-        assert model.soil_layers == config["abiotic_simle"]["soil_layers"]
-        assert model.canopy_layers == config["abiotic_simple"]["canopy_layers"]
+        model = AbioticSimpleModel.from_config(
+            dummy_climate_data,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
+        assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
 
-        model.setup()
-        xr.testing.assert_allclose(
-            data_instance["air_temperature"],
-            xr.DataArray(
-                np.full((15, 2), np.nan),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": np.arange(0, 15),
-                    "layer_roles": (
-                        "layers",
-                        model.layer_roles[0:15],
-                    ),
-                    "cell_id": [0, 1, 2],
-                },
-                name="air_temperature",
-            ),
-        )
-        # Run the update step (once this does something should check output)
-        model.update()
+        # TODO Setup and update has to wait for simple_regression.py
+        # model.setup()
+        # xr.testing.assert_allclose(
+        #     dummy_climate_data["air_temperature"],
+        #     xr.DataArray(
+        #         np.full((15, 3), np.nan),
+        #         dims=["layers", "cell_id"],
+        #         coords={
+        #             "layers": np.arange(0, 15),
+        #             "layer_roles": (
+        #                 "layers",
+        #                 model.layer_roles_fixture,
+        #             ),
+        #             "cell_id": [0, 1, 2],
+        #         },
+        #         name="air_temperature",
+        #     ),
+        # )
+        # # Run the update step
+        # model.update()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -209,8 +281,6 @@ def test_generate_abiotic_simple_model(
 
 def test_update_data_object(dummy_climate_data):
     """Test reading from dict."""
-    import numpy as np
-    from xarray import DataArray
 
     from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
         update_data_object,
@@ -240,12 +310,12 @@ def test_update_data_object(dummy_climate_data):
     update_data_object(dummy_climate_data, var_dict)
 
     xr.testing.assert_allclose(
-        dummy_climate_data["air_temperature_ref"],
+        dummy_climate_data["air_temperature"],
         DataArray(
             np.full((3, 3), 20),
             dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature_ref"].coords,
-            name="air_temperature_ref",
+            coords=dummy_climate_data["air_temperature"].coords,
+            name="air_temperature",
         ),
     )
     xr.testing.assert_allclose(

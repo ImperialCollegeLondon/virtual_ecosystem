@@ -2,6 +2,20 @@
 creates a
 :class:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
 class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
+At present a lot of the abstract methods of the parent class (e.g.
+:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
+:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the Virtual Rainforest
+model develops. The factory method
+:func:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel.from_config`
+exists in a
+more complete state, and unpacks a small number of parameters from our currently pretty
+minimal configuration dictionary. These parameters are then used to generate a class
+instance. If errors crop here when converting the information from the config dictionary
+to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and then
+logged, and at the end of the unpacking an error is thrown. This error should be caught
+and handled by downstream functions so that all model configuration failures can be
+reported as one.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -15,12 +29,10 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.abiotic_simple import simple_regression
+
+# from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
-# TODO THIS IS A DRAFT
-# this is still very inconsistent as the new timing is not fully implemented
-# the corresponding test are also incomplete and inconsistent
 class AbioticSimpleModel(BaseModel):
     """A class describing the simple abiotic model.
 
@@ -39,7 +51,7 @@ class AbioticSimpleModel(BaseModel):
     """Shortest time scale that soil model can sensibly capture."""
     upper_bound_on_time_scale = "30 day"
     """Longest time scale that soil model can sensibly capture."""
-    required_init_vars = (
+    required_init_vars = (  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
@@ -135,12 +147,12 @@ class AbioticSimpleModel(BaseModel):
         """
 
         # Find number of soil and canopy layers
-        soil_layers = config["abiotic"]["soil_layers"]
-        canopy_layers = config["abiotic"]["canopy_layers"]
-        initial_soil_moisture = config["abiotic"]["initial_soil_moisture"]
+        soil_layers = config["abiotic_simple"]["soil_layers"]
+        canopy_layers = config["abiotic_simple"]["canopy_layers"]
+        initial_soil_moisture = config["abiotic_simple"]["initial_soil_moisture"]
 
         LOGGER.info(
-            "Information required to initialise the abiotic model successfully "
+            "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
         return cls(
@@ -150,26 +162,25 @@ class AbioticSimpleModel(BaseModel):
     def setup(self) -> None:
         """Function to set up the abiotic model."""
 
-        setup_variables = simple_regression.setup_simple_regression(
-            layer_roles=self.layer_roles,
-            data=self.data,
-            initial_soil_moisture=self.initial_soil_moisture,
-        )
-        update_data_object(data=self.data, output_dict=setup_variables)
+        # setup_variables = simple_regression.setup_simple_regression(
+        #     layer_roles=self.layer_roles,
+        #     data=self.data,
+        #     initial_soil_moisture=self.initial_soil_moisture,
+        # )
+        # update_data_object(data=self.data, output_dict=setup_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
 
     def update(self) -> None:
         """Placeholder function to update the abiotic model."""
-        # TODO do I need a counter to access the correct time index from the input data?
 
-        output_variables = simple_regression.run_simple_regression(
-            data=self.data,
-            layer_roles=self.layer_roles,
-            time_index=self.time_index,
-        )
-        update_data_object(data=self.data, output_dict=output_variables)
+        # output_variables = simple_regression.run_simple_regression(
+        #     data=self.data,
+        #     layer_roles=self.layer_roles,
+        #     time_index=self.time_index,
+        # )
+        # update_data_object(data=self.data, output_dict=output_variables)
         self.time_index += 1
 
     def cleanup(self) -> None:
@@ -220,4 +231,4 @@ def update_data_object(data: Data, output_dict: Dict[str, DataArray]) -> None:
     """
 
     for variable in output_dict:
-        data[variable] = variable
+        data[variable] = output_dict[variable]
