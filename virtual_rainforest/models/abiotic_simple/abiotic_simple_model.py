@@ -6,9 +6,10 @@ class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` c
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Dict, List
 
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -151,7 +152,7 @@ class AbioticSimpleModel(BaseModel):
             data=self.data,
             initial_soil_moisture=self.initial_soil_moisture,
         )
-        update_data_object(data=self.data, output_list=setup_variables)
+        update_data_object(data=self.data, output_dict=setup_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
@@ -164,7 +165,7 @@ class AbioticSimpleModel(BaseModel):
             layer_roles=self.layer_roles,
             time_index=0,
         )
-        update_data_object(data=self.data, output_list=output_variables)
+        update_data_object(data=self.data, output_dict=output_variables)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
@@ -199,19 +200,19 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
     )
 
 
-def update_data_object(data: Data, output_list: List) -> None:
-    """Update data object from list of variables.
+def update_data_object(data: Data, output_dict: Dict[str, DataArray]) -> None:
+    """Update data object from dict of variables.
 
-    This function takes a list of variables from a submodule to update
+    This function takes a dict of variables from a submodule to update
     the corresponding variables in the data object.
 
     Args:
         data: Data instance
-        output_list: list of variables from submodule
+        output_dict: dict of variables from submodule
 
     Returns:
         an updated data object for the current time step
     """
 
-    for variable in output_list:
-        data[variable.name] = variable
+    for variable in output_dict:
+        data[variable] = variable

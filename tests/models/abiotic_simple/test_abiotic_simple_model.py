@@ -226,26 +226,27 @@ def test_update_data_object(dummy_climate_data):
         update_data_object,
     )
 
-    var_list = [
-        DataArray(
+    var_list = {
+        "air_temperature": DataArray(
             np.full((3, 3), 20),
             dims=["cell_id", "time"],
             coords=dummy_climate_data["air_temperature_ref"].coords,
             name="air_temperature_ref",
         ),
-        DataArray(
+        "mean_annual_temperature": DataArray(
             np.full((3), 40),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
         ),
-        DataArray(
+        "new_variable": DataArray(
             np.full((3), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
         ),
-    ]
+    }
+
     update_data_object(dummy_climate_data, var_list)
 
     xr.testing.assert_allclose(
