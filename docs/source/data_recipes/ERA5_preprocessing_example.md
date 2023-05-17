@@ -14,31 +14,29 @@ kernelspec:
   name: vr_python3
 ---
 
-# Simple climate data pre-processing example for dummy module
+# Simple climate data pre-processing example for dummy model
 
 This section illustrates how to perform simple manipulations to adjust ERA5 data to use
-in the Virtual Rainforest. This includes reading climate data from netcdf, converting
+in the Virtual Rainforest. This includes reading climate data from grib, converting
 the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
 Celsius conversion), adding further required variables, and writing the output in a new
-netcdf file. This does not include scaling or topographic adjustment.
+netcdf file. **This does not include scaling or topographic adjustment**.
 
 ## Dummy data set
 
-Example file: [dummy_climate_data.nc](./dummy_climate_data.nc)
+Example file: [ERA5_land.nc](./ERA5_land.nc)
 
 ### Metadata
 
-- Reference: Hersbach, H., Bell, B., Berrisford, P., Biavati, G., Horányi, A., Muñoz
-  Sabater, J., Nicolas, J., Peubey, C., Radu, R., Rozum, I., Schepers, D., Simmons, A.,
-  Soci, C., Dee, D., Thépaut, J-N. (2019): ERA5 monthly averaged data on single levels
-  from 1959 to present. Copernicus Climate Change Service (C3S) Climate Data Store
-  (CDS). (Accessed on \< DD-MMM-YYYY >), 10.24381/cds.f17050d7
+- Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
+  land applications, Earth Syst. Sci. Data,13, 4349–4383, 2021.
+  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
+  .
 
 - Product type: Monthly averaged reanalysis
 
-- Variable: 10m wind speed, 2m dewpoint temperature, 2m temperature, Soil temperature
-  level 1, Surface pressure, TOA incident solar radiation, Total cloud cover, Total
-  precipitation, Volumetric soil water layer 1
+- Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
+  precipitation
 
 - Year: 2013, 2014
 
@@ -49,7 +47,7 @@ Example file: [dummy_climate_data.nc](./dummy_climate_data.nc)
 
 - Sub-region extraction: North 6°, West 116°, South 4°, East 118°
 
-- Format: NetCDF (experimental)
+- Format: NetCDF3
 
 ## Code example
 
@@ -60,26 +58,25 @@ import xarray as xr
 import numpy as np
 from xarray import DataArray
 
-dataset = xr.open_dataset("./dummy_climate_data.nc")
+dataset = xr.open_dataset("./ERA5_land.nc")
 dataset
 ```
 
-### 2. Convert temperatures
+### 2. Convert temperatures to Celsius
 
-The standard output unit of ERA5 tempertures is Kelvin which we need to convert into
-degree Celsius for the Virtual Rainforest. This includes 2m air temperature, 2m dewpoint
-temperature (used to calculate relative humidity in next step), and topsoil temperature.
+The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
+to degree Celsius for the Virtual Rainforest. This includes `2m air temperature` and
+`2m dewpoint temperature` which are used to calculate relative humidity in next step.
 
 ```{code-cell} ipython3
 dataset["t2m_C"] = dataset["t2m"]-273.15 # 2m air temperature
 dataset["d2m_C"] = dataset["d2m"]-273.15 # 2m dewpoint temperature
-dataset["stl1_C"] = dataset["stl1"]-273.15 # top soil temperature
 ```
 
 ### 3. Calculate relative humidity
 
-Relative humidity (RH) is not a standard output from ERA5 but can be calculated from 2m
-dewpoint temperature (DPT) and 2m temperature (T) as follows:
+Relative humidity (RH) is not a standard output from ERA5-Land but can be calculated
+from 2m dewpoint temperature (DPT) and 2m air temperature (T) as follows:
 
 $$ RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
                  {\exp(17.625 \cdot T)/(243.04+T)}
@@ -100,56 +97,78 @@ variables according to the Virtual Rainforest naming convention (see
 [here](../../../virtual_rainforest/data_variables.toml) ).
 
 ```{code-cell} ipython3
-dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m","stl1"])
+dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m"])
 dataset_renamed = dataset_cleaned.rename({
-    'si10':'wind_speed_ref',
     'sp':'atmospheric_pressure_ref',
     'tp':'precipitation',
-    'swvl1':'soil_moisture_ref',
     't2m_C':'air_temperature_ref',
     'rh2m': 'relative_humidity_ref',
-    'stl1_C': 'top_soil_temperature_ref',
-    'tisr':'TOA_incoming_solar_radiation',
-    'tcc':'total_could_cover',
     })
 dataset_renamed.data_vars
 ```
 
-### 5. Select required variables and add further required variables
+### 5. Add further required variables
 
-The set of required variables depends on the complexity of the abiotic model that is
-selected for the simulation. For the simple abiotic model, we require only a subset of
-the loaded climate data, and can therefore drop unrequired variables. In addition to the
-climatic variables, a time series of atmospheric CO2 is needed. We add this here as a
-constant field. Mean annual temperature is calculated from the full time series of air
-temperatures; in the future, this should be done for each year.
+In addition to the variables from the ERA5-Land datasset, a time series of atmospheric
+$\ce{CO_{2}}$ is needed. We add this here as a constant field. Mean annual temperature
+is calculated from the full time series of air temperatures; in the future, this should
+be done for each year.
 
 ```{code-cell} ipython3
-dataset_simple = dataset_renamed.drop_vars(
-  [
-    'wind_speed_ref',
-    'soil_moisture_ref',
-    'top_soil_temperature_ref',
-    'TOA_incoming_solar_radiation',
-    'total_could_cover',
-  ]
-)
-dataset_simple['atmospheric_co2_ref'] = DataArray(
-  np.full_like(dataset_simple['air_temperature_ref'],400),
+dataset_renamed['atmospheric_co2_ref'] = DataArray(
+  np.full_like(dataset_renamed['air_temperature_ref'],400),
   dims=['time', 'latitude', 'longitude'],
 )
-dataset_simple['mean_annual_temperature'] = (
-  dataset_simple["air_temperature_ref"].mean(dim = 'time')
+dataset_renamed['mean_annual_temperature'] = (
+  dataset_renamed["air_temperature_ref"].mean(dim = 'time')
   )
-dataset_simple
+dataset_renamed.data_vars
 ```
 
-### 6. Save netcdf
+### 7. Change coordinates to x-y in meters
+
+The following code segment changes the coordinate names from `longitude/latitude` to
+`x/y` and the units from `minutes` to `meters`. The ERA5-Land coordinates are treated as
+the centre points of the grid cells which means that when setting up the grid, an offset
+of 4.5 km has to be added.
+
+```{code-cell} ipython3
+dataset_xy = dataset_renamed.rename_dims({'longitude':'x','latitude':'y'}).assign_coords({'x':np.arange(0,180000,9000),'y':np.arange(0,180000,9000)}).drop({'longitude','latitude'})
+dataset_xy.coords
+```
+
+### 8. Scale to 90 m resolution
+
+The Virtual Rainforest run on a 90 x 90 m grid. This means that some form of spatial
+scaling has to be applied to the dataset, **which is not yet implemented!**
+
+For the purpose of a dummy simulation in the development stage, the coordinates can be
+overwritten to match the Virtual Rainforest grid and we can select a smaller area.
+When setting up the grid, an offset of 45 m has to be added. Note that the resulting
+dataset does no longer match a digital elevation model for the area!
+
+```{code-cell} ipython3
+dataset_xy_100 = dataset_renamed.rename_dims({'longitude':'x','latitude':'y'}).assign_coords({'x':np.arange(0,1800,90),'y':np.arange(0,1800,90)}).drop({'longitude','latitude'})
+dataset_xy_dummy = dataset_xy_100.isel(x=np.arange(9),y=np.arange(9))
+dataset_xy_dummy.coords
+```
+
+### 9. Add time_index
+
+The dummy model iterates over time indices rather than real datetime. Therefore, we add
+a `time_index` coordinate to the dataset:
+
+```{code-cell} ipython3
+dataset_xy_timeindex = dataset_xy_dummy.rename_dims({'time':'time_index'}).assign_coords({'time_index':np.arange(0,24,1)})
+dataset_xy_timeindex.coords
+```
+
+### 10. Save netcdf
 
 Once we confirmed that our dataset is complete and our calculations are correct, we save
 it as a new netcdf file. This can then be fed into the code data loading system here
 {mod}`~virtual_rainforest.core.data`.
 
 ```{code-block} ipython3
-dataset_simple.to_netcdf("./dummy_climate_data_processed.nc")
+dataset_xy_timeindex.to_netcdf("./ERA5_land_dummy.nc")
 ```
