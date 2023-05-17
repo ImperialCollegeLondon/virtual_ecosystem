@@ -115,7 +115,10 @@ intersphinx_mapping = {
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
-    "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    # TODO - This is pinned to a particular pint version as the package is making
+    # changes to how it handles typing, at some point it should be unpinned, i.e. set to
+    # stable
+    "pint": ("https://pint.readthedocs.io/en/0.21/", None),
 }
 
 
