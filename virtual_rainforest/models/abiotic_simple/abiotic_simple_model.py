@@ -46,9 +46,9 @@ class AbioticSimpleModel(BaseModel):
     model_name = "abiotic_simple"
     """The model name for use in registering the model and logging."""
     lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that soil model can sensibly capture."""
+    """Shortest time scale that abiotic simple model can sensibly capture."""
     upper_bound_on_time_scale = "30 day"
-    """Longest time scale that soil model can sensibly capture."""
+    """Longest time scale that abiotic simple model can sensibly capture."""
     required_init_vars = (  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
@@ -78,7 +78,7 @@ class AbioticSimpleModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        if soil_layers != int(soil_layers):
+        if not isinstance(soil_layers, int):
             to_raise = InitialisationError(
                 "The number of soil layers must be an integer!"
             )

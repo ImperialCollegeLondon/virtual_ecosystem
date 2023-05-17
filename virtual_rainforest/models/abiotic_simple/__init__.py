@@ -15,6 +15,7 @@ Each of the abiotic sub-modules has its own API reference page:
   soil temperature and soil moisture profiles.
 
 """  # noqa: D205, D415
+# TODO add links to simple regression model in intro doc string
 
 from importlib import resources
 
