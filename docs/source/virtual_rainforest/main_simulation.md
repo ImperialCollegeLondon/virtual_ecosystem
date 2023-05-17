@@ -45,11 +45,12 @@ the configuration, they are then all configured.
 
 ## Extracting simulation timing details
 
-The configuration contains a start time, an end time and an time interval for checking
-whether models need to be updated. Once these details are extracted from the
-configuration, a check is performed to ensure that the simulation update interval works
-suitably with the time steps for individual models, i.e. that no model has a shorter
-time step than the overall simulation update interval.
+The configuration contains a start time, an end time and a time interval for the update
+of all models. These details are extracted from configuration, with a check performed
+to ensure that the simulation will update at least once between the start and end time
+of the simulation. It is important to note that because months and years are of
+inconsistent length they are currently averaged over. This means that 1 month becomes
+30.4375 days, and 1 year becomes 365.25 days.
 
 ## Saving the initial state
 
@@ -61,8 +62,7 @@ a single data file of the initial model state.
 
 The previously extracted timing details are used to setup a timing loop, which runs from
 the start time to the end time with a time step set by the update interval. At each
-step a check is performed to determine if any models need to be updated. Any that do
-need to be updated are then updated.
+step all models are updated.
 
 ## Saving the final state
 

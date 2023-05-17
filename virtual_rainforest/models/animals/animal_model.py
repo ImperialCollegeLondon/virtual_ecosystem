@@ -21,12 +21,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import datetime64, timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_model_time_details
 
 
 class AnimalModel(BaseModel):
@@ -44,20 +43,26 @@ class AnimalModel(BaseModel):
 
     model_name = "animal"
     """The model name for use in registering the model and logging."""
+    # TODO - Check with Taran that these are sensible bounds
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "1 month"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
 
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
-        start_time: datetime64,
+        update_interval: Quantity,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> AnimalModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -67,16 +72,14 @@ class AnimalModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
-
-        # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time)
+        return cls(data, update_interval)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
@@ -86,9 +89,6 @@ class AnimalModel(BaseModel):
 
     def update(self) -> None:
         """Placeholder function to solve the animal model."""
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
