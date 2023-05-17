@@ -95,7 +95,6 @@ team.
   Soil Constants <api/soil/constants.md>
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
-  Abiotic Simple Regression Model <api/abiotic_simple/simple_regression.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Tools <api/abiotic/abiotic_tools.md>
