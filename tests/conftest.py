@@ -209,7 +209,7 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 1.5),
         dims=["cell_id", "time"],
     )
-    data["atmospheric_co2"] = DataArray(
+    data["atmospheric_co2_ref"] = DataArray(
         np.full((3, 3), 400),
         dims=["cell_id", "time"],
     )

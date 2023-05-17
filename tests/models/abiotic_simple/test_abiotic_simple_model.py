@@ -56,7 +56,7 @@ def test_set_layer_roles():
                 ),
                 (
                     DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
                 ),
                 (
                     DEBUG,
@@ -238,7 +238,7 @@ def test_abiotic_simple_model_initialization(
                 ),
                 (
                     DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
                 ),
                 (
                     DEBUG,

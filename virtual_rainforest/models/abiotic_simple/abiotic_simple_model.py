@@ -27,9 +27,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-
-# The simple_regression.py is called by self.setup and self.update, will follow soon
-# from virtual_rainforest.models.abiotic_simple import simple_regression
+from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
 class AbioticSimpleModel(BaseModel):
@@ -54,7 +52,7 @@ class AbioticSimpleModel(BaseModel):
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
         ("precipitation", ("spatial",)),
-        ("atmospheric_co2", ("spatial",)),
+        ("atmospheric_co2_ref", ("spatial",)),
         ("mean_annual_temperature", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
         ("layer_heights", ("spatial",)),
@@ -160,12 +158,12 @@ class AbioticSimpleModel(BaseModel):
     def setup(self) -> None:
         """Function to set up the abiotic simple model."""
 
-        # setup_variables = simple_regression.setup_simple_regression(
-        #     layer_roles=self.layer_roles,
-        #     data=self.data,
-        #     initial_soil_moisture=self.initial_soil_moisture,
-        # )
-        # update_data_object(data=self.data, output_dict=setup_variables)
+        setup_variables = simple_regression.setup_simple_regression(
+            layer_roles=self.layer_roles,
+            data=self.data,
+            initial_soil_moisture=self.initial_soil_moisture,
+        )
+        update_data_object(data=self.data, output_dict=setup_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -173,12 +171,12 @@ class AbioticSimpleModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the abiotic simple model."""
 
-        # output_variables = simple_regression.run_simple_regression(
-        #     data=self.data,
-        #     layer_roles=self.layer_roles,
-        #     time_index=self.time_index,
-        # )
-        # update_data_object(data=self.data, output_dict=output_variables)
+        output_variables = simple_regression.run_simple_regression(
+            data=self.data,
+            layer_roles=self.layer_roles,
+            time_index=self.time_index,
+        )
+        update_data_object(data=self.data, output_dict=output_variables)
         self.time_index += 1
 
     def cleanup(self) -> None:
