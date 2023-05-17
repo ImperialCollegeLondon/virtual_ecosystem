@@ -1,0 +1,38 @@
+{
+    "type": "object",
+    "properties": {
+        "abiotic_simple": {
+            "description": "Configuration settings for the simple abiotic module",
+            "type": "object",
+            "properties": {
+                "soil_layers": {
+                    "description": "Number of soil layers to simulate",
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "default": 2
+                },
+                "canopy_layers": {
+                    "description": "Number of canopy layers to simulate",
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "default": 10
+                },
+                "initial_soil_moisture": {
+                    "description": "Initial soil moisture for all layers",
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "default": 50
+                }
+            },
+            "default": {},
+            "required": [
+                "soil_layers",
+                "canopy_layers",
+                "initial_soil_moisture"
+            ]
+        }
+    },
+    "required": [
+        "abiotic_simple"
+    ]
+}
