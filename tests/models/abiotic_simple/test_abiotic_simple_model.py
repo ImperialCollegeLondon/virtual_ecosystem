@@ -33,7 +33,7 @@ def test_set_layer_roles():
         (
             2,
             10,
-            50,
+            50.0,
             does_not_raise(),
             (
                 (
@@ -75,8 +75,8 @@ def test_set_layer_roles():
         ),
         (
             -2,
-            3,
-            50,
+            10,
+            50.0,
             pytest.raises(InitialisationError),
             (
                 (
@@ -88,7 +88,7 @@ def test_set_layer_roles():
         (
             2,
             -3,
-            50,
+            50.0,
             pytest.raises(InitialisationError),
             (
                 (
@@ -99,8 +99,8 @@ def test_set_layer_roles():
         ),
         (
             2.5,
-            3,
-            50,
+            10,
+            50.0,
             pytest.raises(InitialisationError),
             (
                 (
@@ -112,12 +112,36 @@ def test_set_layer_roles():
         (
             2,
             3.4,
-            50,
+            50.0,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
                     "The number of canopy layers must be an integer!",
+                ),
+            ),
+        ),
+        (
+            2,
+            10,
+            -50.0,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The initial soil moisture has to be between 0 and 100!",
+                ),
+            ),
+        ),
+        (
+            2,
+            10,
+            DataArray([50, 30, 20]),
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The initial soil moisture must be a float!",
                 ),
             ),
         ),
@@ -183,7 +207,7 @@ def test_abiotic_simple_model_initialization(
                 "abiotic_simple": {
                     "soil_layers": 2,
                     "canopy_layers": 10,
-                    "initial_soil_moisture": 50,
+                    "initial_soil_moisture": 50.0,
                 },
             },
             pint.Quantity("1 week"),
@@ -280,7 +304,7 @@ def test_generate_abiotic_simple_model(
 
 
 def test_update_data_object(dummy_climate_data):
-    """Test reading from dict."""
+    """Test reading from dictionary."""
 
     from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
         update_data_object,

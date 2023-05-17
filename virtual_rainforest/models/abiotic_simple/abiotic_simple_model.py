@@ -3,7 +3,6 @@ creates a
 :class:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
 class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
 :func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the Virtual Rainforest
 model develops. The factory method
@@ -12,10 +11,9 @@ exists in a
 more complete state, and unpacks a small number of parameters from our currently pretty
 minimal configuration dictionary. These parameters are then used to generate a class
 instance. If errors crop here when converting the information from the config dictionary
-to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and then
-logged, and at the end of the unpacking an error is thrown. This error should be caught
-and handled by downstream functions so that all model configuration failures can be
-reported as one.
+to the required types they are caught and then logged, and at the end of the unpacking
+an error is thrown. This error should be caught and handled by downstream functions so
+that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -30,15 +28,15 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
+# The simple_regression.py is called by self.setup and self.update, will follow soon
 # from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
 class AbioticSimpleModel(BaseModel):
-    """A class describing the simple abiotic model.
+    """A class describing the abiotic simple model.
 
     Args:
         data: The data object to be used in the model.
-        start_time: A datetime64 value setting the start time of the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
@@ -61,7 +59,7 @@ class AbioticSimpleModel(BaseModel):
         ("leaf_area_index", ("spatial",)),
         ("layer_heights", ("spatial",)),
     )
-    """The required variables and axes for the simple abiotic model"""
+    """The required variables and axes for the abiotic simple model"""
 
     def __init__(
         self,
@@ -101,9 +99,12 @@ class AbioticSimpleModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        super().__init__(data, update_interval, **kwargs)
-
         # sanity checks for initial soil moisture
+        if type(initial_soil_moisture) is not float:
+            to_raise = InitialisationError("The initial soil moisture must be a float!")
+            LOGGER.error(to_raise)
+            raise to_raise
+
         if initial_soil_moisture < 0 or initial_soil_moisture > 100:
             to_raise = InitialisationError(
                 "The initial soil moisture has to be between 0 and 100!"
@@ -111,10 +112,7 @@ class AbioticSimpleModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        if initial_soil_moisture != float(initial_soil_moisture):
-            to_raise = InitialisationError("The initial soil moisture must be a float!")
-            LOGGER.error(to_raise)
-            raise to_raise
+        super().__init__(data, update_interval, **kwargs)
 
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -134,7 +132,7 @@ class AbioticSimpleModel(BaseModel):
     def from_config(
         cls, data: Data, config: dict[str, Any], update_interval: Quantity
     ) -> AbioticSimpleModel:
-        """Factory function to initialise the simple abiotic model from configuration.
+        """Factory function to initialise the abiotic simple model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
         then uses it to initialise the model. If any information from the config is
@@ -160,7 +158,7 @@ class AbioticSimpleModel(BaseModel):
         )
 
     def setup(self) -> None:
-        """Function to set up the abiotic model."""
+        """Function to set up the abiotic simple model."""
 
         # setup_variables = simple_regression.setup_simple_regression(
         #     layer_roles=self.layer_roles,
@@ -170,10 +168,10 @@ class AbioticSimpleModel(BaseModel):
         # update_data_object(data=self.data, output_dict=setup_variables)
 
     def spinup(self) -> None:
-        """Placeholder function to spin up the abiotic model."""
+        """Placeholder function to spin up the abiotic simple model."""
 
     def update(self) -> None:
-        """Placeholder function to update the abiotic model."""
+        """Placeholder function to update the abiotic simple model."""
 
         # output_variables = simple_regression.run_simple_regression(
         #     data=self.data,
@@ -217,14 +215,14 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
 
 
 def update_data_object(data: Data, output_dict: Dict[str, DataArray]) -> None:
-    """Update data object from dict of variables.
+    """Update data object from dictionary of variables.
 
-    This function takes a dict of variables from a submodule to update
+    This function takes a dictionary of variables from a submodule to update
     the corresponding variables in the data object.
 
     Args:
         data: Data instance
-        output_dict: dict of variables from submodule
+        output_dict: dictionary of variables from submodule
 
     Returns:
         an updated data object for the current time step
