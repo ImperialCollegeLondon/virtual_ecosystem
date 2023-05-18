@@ -107,6 +107,48 @@ def setup_simple_regression(
         initial_soil_moisture,
     )
 
+    # TODO until the plant model is ready, these variables are initialised here
+    output["layer_heights"] = xr.concat(
+        [
+            DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
+            DataArray(np.full((7, 3), np.nan)),
+            DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
+            DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
+        ],
+        dim="dim_0",
+    )
+    output["layer_heights"] = (
+        output["layer_heights"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
+    output["leaf_area_index"] = xr.concat(
+        [
+            DataArray(np.full((1, 3), np.nan)),
+            DataArray(np.full((1, 3), 3)),
+            DataArray(np.full((13, 3), np.nan)),
+        ],
+        dim="dim_0",
+    )
+    output["leaf_area_index"] = (
+        output["leaf_area_index"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
     return output
 
 

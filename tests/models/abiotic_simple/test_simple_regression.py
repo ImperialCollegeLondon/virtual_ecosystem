@@ -36,6 +36,14 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     for name in variable_list:
         assert name in result
 
+    # TODO temporary test for hardcoded layer heights and leaf area index
+    xr.testing.assert_allclose(
+        result["layer_heights"], dummy_climate_data["layer_heights"]
+    )
+    xr.testing.assert_allclose(
+        result["leaf_area_index"], dummy_climate_data["leaf_area_index"]
+    )
+
     # check that copied variables have the same shape and dims as air_temperature
     xr.testing.assert_allclose(
         result["relative_humidity"],

@@ -215,7 +215,11 @@ def dummy_climate_data(layer_roles_fixture):
     )
 
     data["leaf_area_index"] = xr.concat(
-        [DataArray(np.full((1, 3), 3)), DataArray(np.full((14, 3), np.nan))],
+        [
+            DataArray(np.full((1, 3), np.nan)),
+            DataArray(np.full((1, 3), 3)),
+            DataArray(np.full((13, 3), np.nan)),
+        ],
         dim="dim_0",
     )
     data["leaf_area_index"] = (
