@@ -139,7 +139,7 @@ dataset_xy.coords
 
 ### 8. Scale to 90 m resolution
 
-The Virtual Rainforest run on a 90 x 90 m grid. This means that some form of spatial
+The Virtual Rainforest is run on a 90 x 90 m grid. This means that some form of spatial
 scaling has to be applied to the dataset, **which is not yet implemented!**
 
 For the purpose of a dummy simulation in the development stage, the coordinates can be
