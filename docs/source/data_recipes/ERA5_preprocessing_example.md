@@ -180,7 +180,7 @@ dataset_xy_timeindex.to_netcdf("./ERA5_land_dummy.nc")
 ### 11. Update grid config `TOML`
 
 The final step is to add the grid information to the grid config `TOML` to load this
-data correctly when setting up a Virtual Rainforest Simulation, [see here](../../build/html/virtual_rainforest/core/config.html)
+data correctly when setting up a Virtual Rainforest Simulation, [see here](../virtual_rainforest/core/config.md)
 . Here, we can also add the 45m offset to position the coordinated at the
 centre of the grid cell.
 
