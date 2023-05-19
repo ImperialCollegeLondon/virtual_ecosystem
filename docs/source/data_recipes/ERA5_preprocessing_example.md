@@ -16,11 +16,13 @@ kernelspec:
 
 # Simple climate data pre-processing example for dummy module
 
-This section illustrates how to perform simple manipulations to adjust ERA5 data to use
-in the Virtual Rainforest. This includes reading climate data from netcdf, converting
-the data into an input formate that is suitable for the abiotic module (e.g. Kelvin to
-Celsius conversion), adding further required variables, and writing the output in a new
-netcdf file. This does not include scaling or topographic adjustment.
+This section illustrates how to perform simple manipulations to adjust ERA5-Land data to
+use in the Virtual Rainforest. This includes reading climate data from netcdf,
+converting the data into an input format that is suitable for the abiotic module (e.g.
+Kelvin to Celsius conversion), adding further required variables, and writing the output
+in a new netcdf file.
+**This does not include spatially interpolating coarser resolution climate data**
+**and including the effects of local topography**.
 
 ## Dummy data set
 
@@ -144,12 +146,68 @@ dataset_simple['mean_annual_temperature'] = (
 dataset_simple
 ```
 
-### 6. Save netcdf
+### 7. Change coordinates to x-y in meters
+
+The following code segment changes the coordinate names from `longitude/latitude` to
+`x/y` and the units from `minutes` to `meters`. The ERA5-Land coordinates are treated as
+the centre points of the grid cells which means that when setting up the grid, an offset
+of 4.5 km has to be added (see Section 11).
+
+```{code-cell} ipython3
+dataset_xy = dataset_renamed.rename_dims({'longitude':'x','latitude':'y'}).assign_coords({'x':np.arange(0,180000,9000),'y':np.arange(0,180000,9000)}).drop({'longitude','latitude'})
+dataset_xy.coords
+```
+
+### 8. Scale to 90 m resolution
+
+The Virtual Rainforest is run on a 90 x 90 m grid. This means that some form of spatial
+downscaling has to be applied to the dataset, for example by spatially interpolating
+coarser resolution climate data and including the effects of local topography.
+**This is not yet implemented!**
+
+For the purpose of a dummy simulation in the development stage, the coordinates can be
+overwritten to match the Virtual Rainforest grid and we can select a smaller area.
+When setting up the grid (see Section 11), an offset of 45 m has to be added. Note that
+the resulting dataset does no longer match a digital elevation model for the area!
+
+```{code-cell} ipython3
+dataset_xy_100 = dataset_renamed.rename_dims({'longitude':'x','latitude':'y'}).assign_coords({'x':np.arange(0,1800,90),'y':np.arange(0,1800,90)}).drop({'longitude','latitude'})
+dataset_xy_dummy = dataset_xy_100.isel(x=np.arange(9),y=np.arange(9))
+dataset_xy_dummy.coords
+```
+
+### 9. Add time_index
+
+The dummy model iterates over time indices rather than real datetime. Therefore, we add
+a `time_index` coordinate to the dataset:
+
+```{code-cell} ipython3
+dataset_xy_timeindex = dataset_xy_dummy.rename_dims({'time':'time_index'}).assign_coords({'time_index':np.arange(0,24,1)})
+dataset_xy_timeindex.coords
+```
+
+### 10. Save netcdf
 
 Once we confirmed that our dataset is complete and our calculations are correct, we save
 it as a new netcdf file. This can then be fed into the code data loading system here
 {mod}`~virtual_rainforest.core.data`.
 
 ```{code-block} ipython3
-dataset_simple.to_netcdf("./dummy_climate_data_processed.nc")
+dataset_xy_timeindex.to_netcdf("./ERA5_land_dummy.nc")
+```
+
+### 11. Update grid config `TOML`
+
+The final step is to add the grid information to the grid config `TOML` to load this
+data correctly when setting up a Virtual Rainforest Simulation, [see here](../virtual_rainforest/core/config.md)
+. Here, we can also add the 45m offset to position the coordinated at the
+centre of the grid cell.
+
+```toml
+[core.grid]
+cell_nx = 9
+cell_ny = 9
+cell_area = 8100
+xoff = -45.0
+yoff = -45.0
 ```
