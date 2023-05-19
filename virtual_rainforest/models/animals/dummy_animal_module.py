@@ -90,13 +90,13 @@ class AnimalCommunity:
         functional_groups: list[FunctionalGroup],
     ) -> None:
         """The constructor of the AnimalCommunity class."""
-        self.functional_groups = functional_groups
+        self.functional_groups = tuple(functional_groups)
         """A list of all FunctionalGroup types in the model."""
 
         self.cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
         }
-        """Generate a dictionary of functional groups."""
+        """Generate a dictionary of functional groups within the community."""
 
     def immigrate(self, immigrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
@@ -126,7 +126,7 @@ class AnimalCommunity:
 
         if cohort.is_alive:
             cohort.is_alive = False
-            LOGGER.info("An animal cohort has died")
+            LOGGER.debug("An animal cohort has died")
             self.cohorts[cohort.name].remove(cohort)
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
@@ -145,10 +145,10 @@ class AnimalCommunity:
             A new age 0 AnimalCohort.
 
         """
-        new_cohort = AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
-        self.cohorts[cohort.name].append(new_cohort)
-
-        return new_cohort
+        self.cohorts[cohort.name].append(
+            AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
+        )
+        return self.cohorts[cohort.name][-1]
 
 
 class AnimalCohort:
