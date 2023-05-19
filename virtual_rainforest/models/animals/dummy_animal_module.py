@@ -98,23 +98,23 @@ class AnimalCommunity:
         }
         """Generate a dictionary of functional groups."""
 
-    def immigrate(self, cohort: AnimalCohort, destination: AnimalCommunity) -> None:
+    def immigrate(self, immigrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
 
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
         Args:
-            cohort: The AnimalCohort moving between AnimalCommunities.
+            immigrant: The AnimalCohort moving between AnimalCommunities.
             destination: The AnimalCommunity the cohort is moving to.
 
         """
-        immigrant = self.cohorts[cohort.name].pop(
-            self.cohorts[cohort.name].index(cohort)
+
+        destination.cohorts[immigrant.name].append(
+            self.cohorts[immigrant.name].pop(
+                self.cohorts[immigrant.name].index(immigrant)
+            )
         )
-        # Remove target cohort from source community
-        destination.cohorts[immigrant.name].append(immigrant)
-        # Add cohort to destination community
 
     def die_cohort(self, cohort: AnimalCohort) -> None:
         """The function to change the cohort status from alive to dead.
