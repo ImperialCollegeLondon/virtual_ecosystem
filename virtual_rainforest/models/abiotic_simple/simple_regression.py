@@ -49,7 +49,12 @@ Bounds: Dict[str, float] = {
     "soil_temperature_min": -10,
     "soil_temperature_max": 50,
 }
-"""Upper and lower bounds for abiotic variables."""
+"""Upper and lower bounds for abiotic variables. When a values falls outside these
+bounds, it is set to the bound value. Note that this approach does not conserve energy
+and matter in the system. This will be implemented at a later stage.
+"""
+# TODO move bounds to core.bound_checking once that is implemented and introduce method
+# to conserve energy and matter
 
 
 def setup_simple_regression(
@@ -74,6 +79,7 @@ def setup_simple_regression(
         atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
     """
 
+    # TODO: make sure variables are representing correct time interval, see #222
     output = {}
 
     # Initialise DataArrays filled with NaN
@@ -107,7 +113,7 @@ def setup_simple_regression(
     )
 
     # TODO until the plant model is ready, these variables are initialised here
-    output["layer_heights"] = xr.concat(
+    layer_heights = xr.concat(
         [
             DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
             DataArray(np.full((7, 3), np.nan)),
@@ -116,19 +122,17 @@ def setup_simple_regression(
         ],
         dim="dim_0",
     )
-    output["layer_heights"] = (
-        output["layer_heights"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    output["layer_heights"] = layer_heights.rename(
+        {"dim_0": "layers", "dim_1": "cell_id"}
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": data.grid.cell_id,
+        }
     )
 
-    output["leaf_area_index"] = xr.concat(
+    leaf_area_index = xr.concat(
         [
             DataArray(np.full((1, 3), np.nan)),
             DataArray(np.full((1, 3), 3)),
@@ -136,16 +140,14 @@ def setup_simple_regression(
         ],
         dim="dim_0",
     )
-    output["leaf_area_index"] = (
-        output["leaf_area_index"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    output["leaf_area_index"] = leaf_area_index.rename(
+        {"dim_0": "layers", "dim_1": "cell_id"}
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": data.grid.cell_id,
+        }
     )
 
     return output
@@ -220,7 +222,7 @@ def run_simple_regression(
         time_index: time index, integer
         MicroclimateGradients: gradients for linear regression
             :cite:p:`hardwick_relationship_2015`
-        Bounds: upper and lower allowed values for vertical profiles, used to adjust
+        Bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
         water_interception_factor: Factor that determines how much rainfall is
             intercepted by stem and canopy
@@ -233,6 +235,7 @@ def run_simple_regression(
     """
 
     # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
+    # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
@@ -356,8 +359,9 @@ def log_interpolation(
         leaf_area_index_sum: leaf area index summed over all layers, [m m-1]
         layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
         layer_heights: vertical layer heights, [m]
-        lower_bound: minimum allowed value
-        upper_bound: maximum allowed value
+        lower_bound: minimum allowed value, used to constrain log interpolation. Note
+            that currently no conservation of water and energy!
+        upper_bound: maximum allowed value, used to constrain log interpolation.
         gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
 
     Returns:
@@ -456,8 +460,9 @@ def interpolate_soil_temperature(
             surface, soil)
         surface_temperature: surface temperature, [C]
         mean_annual_temperature: mean annual temperature, [C]
-        upper_bound: maximum allowed value
-        lower_bound: minimum allowed values
+        upper_bound: maximum allowed value, used to constrain log interpolation. Note
+            that currently no conservation of water and energy!
+        lower_bound: minimum allowed value, used to constrain log interpolation.
 
     Returns:
         soil temperature profile, [C]
