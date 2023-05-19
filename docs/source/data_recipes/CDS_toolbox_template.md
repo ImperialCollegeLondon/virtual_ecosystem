@@ -41,7 +41,12 @@ variables (or derivatives) at each time step (default: monthly means):
 * Relative humidity (typically 2m; relative or specific humidity)
 * Atmospheric pressure (typically mean sealevel or surface pressure)
 * Precipitation
-* optional: atmospheric $\ce{CO_{2}}$ concentration, soil temperature, soil moisture
+  
+and optionally:
+
+* atmospheric $\ce{CO_{2}}$ concentration
+* soil temperature
+* soil moisture
 
 ## Recommended data sets
 
