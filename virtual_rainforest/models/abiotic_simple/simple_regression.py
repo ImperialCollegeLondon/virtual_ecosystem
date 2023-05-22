@@ -127,7 +127,7 @@ def setup_simple_regression(
         },
         name="layer_heights",
     )
-    leaf_area_index = np.repeat(a=[np.nan, 3.0, np.nan], repeats=[1, 3, 11])
+    leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
 
     output["leaf_area_index"] = DataArray(
         np.broadcast_to(leaf_area_index, (3, 15)).T,
