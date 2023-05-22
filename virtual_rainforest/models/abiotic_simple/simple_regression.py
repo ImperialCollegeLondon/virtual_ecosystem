@@ -1,9 +1,11 @@
-r"""The ``models.abiotic_simple.simple_regression`` module uses linear regression
-and logarithmic interpolation to calculate atmospheric temperature and humidity profiles
-as a function of leaf area index and canopy layer height. The relationships are derived
-from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018`.
-Soil temperature is interpolated between the surface layer and the air
-temperature at 1 m depth which equals the mean annual temperature.
+r"""The ``models.abiotic_simple.simple_regression`` module uses linear regressions from
+:cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
+atmospheric temperature and relative humidity at ground level (2m) given the above
+canopy conditions and leaf area index of intervening canopy. A within canopy profile is
+then interpolated using a logarithmic curve between the above canopy observation and
+ground level prediction.
+Soil temperature is interpolated between the surface layer and the air temperature at
+1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
 Soil moisture and surface runoff are calculated with a simple bucket model based on
