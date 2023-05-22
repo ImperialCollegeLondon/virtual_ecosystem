@@ -296,15 +296,21 @@ def run_simple_regression(
     )
 
     # Mean atmospheric pressure profile, [kPa]
-    output["atmospheric_pressure"] = data["atmospheric_pressure"].where(
-        data["atmospheric_pressure"].coords["layer_roles"] == "soil",
-        (data["atmospheric_pressure_ref"].isel(time=time_index)),
+    output["atmospheric_pressure"] = (
+        data["atmospheric_pressure_ref"]
+        .isel(time=time_index)
+        .where(data["atmospheric_pressure"].coords["layer_roles"] != "soil")
+        .rename("atmospheric_pressure")
+        .T
     )
 
     # Mean atmospheric C02 profile, [ppm]
-    output["atmospheric_co2"] = data["atmospheric_co2"].where(
-        data["atmospheric_co2"].coords["layer_roles"] == "soil",
-        (data["atmospheric_co2_ref"].isel(time=time_index)),
+    output["atmospheric_co2"] = (
+        data["atmospheric_co2_ref"]
+        .isel(time=0)
+        .where(data["atmospheric_co2"].coords["layer_roles"] != "soil")
+        .rename("atmospheric_co2")
+        .T
     )
 
     # Precipitation at the surface is reduced as a function of leaf area index
