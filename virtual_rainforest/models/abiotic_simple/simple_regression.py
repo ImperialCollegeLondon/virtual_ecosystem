@@ -113,41 +113,31 @@ def setup_simple_regression(
     )
 
     # TODO until the plant model is ready, these variables are initialised here
-    layer_heights = xr.concat(
-        [
-            DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
-            DataArray(np.full((7, 3), np.nan)),
-            DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
-            DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
-        ],
-        dim="dim_0",
+    layer_heights = np.repeat(
+        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
     )
-    output["layer_heights"] = layer_heights.rename(
-        {"dim_0": "layers", "dim_1": "cell_id"}
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
+    output["layer_heights"] = DataArray(
+        np.broadcast_to(layer_heights, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
             "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
-        }
+        },
+        name="layer_heights",
     )
+    leaf_area_index = np.repeat(a=[np.nan, 3.0, np.nan], repeats=[1, 3, 11])
 
-    leaf_area_index = xr.concat(
-        [
-            DataArray(np.full((1, 3), np.nan)),
-            DataArray(np.full((1, 3), 3)),
-            DataArray(np.full((13, 3), np.nan)),
-        ],
-        dim="dim_0",
-    )
-    output["leaf_area_index"] = leaf_area_index.rename(
-        {"dim_0": "layers", "dim_1": "cell_id"}
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
+    output["leaf_area_index"] = DataArray(
+        np.broadcast_to(leaf_area_index, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
             "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
-        }
+        },
+        name="leaf_area_index",
     )
 
     return output
