@@ -22,6 +22,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
+from pint import Quantity
 from scipy.integrate import solve_ivp
 from xarray import DataArray, Dataset
 
@@ -29,7 +30,6 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_model_time_details
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
 
@@ -54,6 +54,10 @@ class SoilModel(BaseModel):
 
     model_name = "soil"
     """An internal name used to register the model and schema"""
+    lower_bound_on_time_scale = "30 minutes"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "3 months"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = (
         ("soil_c_pool_maom", ("spatial",)),
         ("soil_c_pool_lmwc", ("spatial",)),
@@ -73,11 +77,10 @@ class SoilModel(BaseModel):
     def __init__(
         self,
         data: Data,
-        update_interval: np.timedelta64,
-        start_time: np.datetime64,
+        update_interval: Quantity,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
 
         # Check that soil pool data is appropriately bounded
         if (
@@ -95,11 +98,11 @@ class SoilModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
-        self.next_update
-        """The simulation time at which the model should next run the update method"""
 
     @classmethod
-    def from_config(cls, data: Data, config: dict[str, Any]) -> SoilModel:
+    def from_config(
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
         This function unpacks the relevant information from the configuration file, and
@@ -109,16 +112,14 @@ class SoilModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) Virtual Rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
-
-        # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time)
+        return cls(data, update_interval)
 
     def setup(self) -> None:
         """Placeholder function to setup up the soil model."""
@@ -135,9 +136,6 @@ class SoilModel(BaseModel):
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
         self.replace_soil_pools(updated_carbon_pools)
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
@@ -182,7 +180,7 @@ class SoilModel(BaseModel):
         no_cells = self.data.grid.n_cells
 
         # Extract update interval (in units of number of days)
-        update_time = self.update_interval / np.timedelta64(1, "D")
+        update_time = self.update_interval.to("days").magnitude
         t_span = (0.0, update_time)
 
         # Construct vector of initial values y0

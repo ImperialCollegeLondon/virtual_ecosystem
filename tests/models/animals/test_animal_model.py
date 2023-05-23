@@ -1,13 +1,12 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import ERROR, INFO
+from logging import INFO
 
+import pint
 import pytest
-from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import InitialisationError
 
 
 @pytest.fixture
@@ -32,8 +31,7 @@ def test_animal_model_initialization(
     # Initialize model
     model = AnimalModel(
         data_instance,
-        timedelta64(1, "W"),
-        datetime64("2022-11-01"),
+        pint.Quantity("1 week"),
         functional_group_list_instance,
     )
 
@@ -41,10 +39,7 @@ def test_animal_model_initialization(
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
-    assert (
-        repr(model)
-        == "AnimalModel(update_interval = 1 weeks, next_update = 2022-11-08)"
-    )
+    assert repr(model) == "AnimalModel(update_interval = 1 week)"
     assert type(model.communities) is dict
 
 
@@ -59,7 +54,12 @@ def test_animal_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "7 days",
+                    }
+                },
                 "animals": {
                     "model_time_step": "12 hours",
                     "functional_groups": (
@@ -70,34 +70,13 @@ def test_animal_model_initialization(
                     ),
                 },
             },
-            timedelta64(12, "h"),
+            pint.Quantity("7 days"),
             does_not_raise(),
             (
                 (
                     INFO,
                     "Information required to initialise the animal model successfully "
                     "extracted.",
-                ),
-            ),
-        ),
-        (
-            {
-                "core": {"timing": {"start_date": "2020-01-01"}},
-                "animals": {"model_time_step": "20 interminable minutes"},
-                "functional_groups": (
-                    ("carnivorous_bird", "bird", "carnivore"),
-                    ("herbivorous_bird", "bird", "herbivore"),
-                    ("carnivorous_mammal", "mammal", "carnivore"),
-                    ("herbivorous_mammal", "mammal", "herbivore"),
-                ),
-            },
-            None,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "Model timing error: 'interminable' is not defined in the unit "
-                    "registry",
                 ),
             ),
         ),
@@ -116,19 +95,14 @@ def test_generate_animal_model(
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AnimalModel.from_config(data_instance, config)
+        model = AnimalModel.from_config(
+            data_instance,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
         assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
-        )
-        # Run the update step and check that next_update has incremented properly
+        # Run the update step (once this does something should check output)
         model.update()
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
-        )
-        assert len(model.communities) == 100
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

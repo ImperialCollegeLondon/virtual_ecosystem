@@ -47,12 +47,12 @@ The research is based at [Imperial College London](https://imperial.ac.uk):
 ## Project Team
 
 - Professor Robert Ewers
-- Olivia Daniels
+- Olivia Daniel
 - Dr. Jaideep Joshi
 - Dr. David Orme
 - Dr. Vivienne Groner
 - Dr. Jacob Cook
-- Taran Rallings
+- Dr. Taran Rallings
 
 The research team are supported by the Imperial College London
 [Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
@@ -93,6 +93,8 @@ team.
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
   Soil Constants <api/soil/constants.md>
+  Abiotic Simple Overview <api/abiotic_simple.md>
+  Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Tools <api/abiotic/abiotic_tools.md>
@@ -128,10 +130,10 @@ team.
 .. toctree::
   :maxdepth: 4
   :caption: Climate data pre-processing
-  :hidden:
 
-  Download Copernicus data <data_recipes/CDS_toolbox_template.md>
-  Preprocess Copernicus data <data_recipes/ERA5_preprocessing_example.md>
+  Overview <data_recipes/data_recipes.md>
+  Download CORDEX data <data_recipes/CDS_toolbox_template.md>
+  Pre-processing ERA5 data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}

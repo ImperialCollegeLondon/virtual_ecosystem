@@ -2,7 +2,7 @@
     "python.linting.flake8Enabled": true,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
-    "python.formatting.provider": "black",
+    "python.formatting.provider": "none",
     "editor.formatOnSave": true,
     "editor.rulers": [
         88
@@ -19,4 +19,7 @@
         "*.ipynb": "jupyter-notebook"
     },
     "cSpell.words": [],
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
 }

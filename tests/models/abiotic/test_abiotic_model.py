@@ -3,8 +3,8 @@
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
+import pint
 import pytest
-from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -75,8 +75,7 @@ def test_abiotic_model_initialization(
         # Initialize model
         model = AbioticModel(
             data_instance,
-            timedelta64(1, "W"),
-            datetime64("2022-11-01"),
+            pint.Quantity("1 hour"),
             soil_layers,
             canopy_layers,
         )
@@ -85,8 +84,7 @@ def test_abiotic_model_initialization(
         assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
         assert model.model_name == "abiotic"
         assert (
-            repr(model)
-            == f"AbioticModel(update_interval = 1 weeks, next_update = 2022-11-08, "
+            repr(model) == f"AbioticModel(update_interval = 1 hour, "
             f"soil_layers = {int(soil_layers)}, "
             f"canopy_layers = {int(canopy_layers)})"
         )
@@ -108,14 +106,18 @@ def test_abiotic_model_initialization(
         ),
         (
             {
-                "core": {"timing": {"start_date": "2020-01-01"}},
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    }
+                },
                 "abiotic": {
                     "soil_layers": 2,
                     "canopy_layers": 3,
-                    "model_time_step": "12 hours",
                 },
             },
-            timedelta64(12, "h"),
+            pint.Quantity("12 hours"),
             does_not_raise(),
             (
                 (
@@ -134,20 +136,17 @@ def test_generate_abiotic_model(
 
     # Check whether model is initialised (or not) as expected
     with raises:
-        model = AbioticModel.from_config(data_instance, config)
+        model = AbioticModel.from_config(
+            data_instance,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
         assert model.soil_layers == config["abiotic"]["soil_layers"]
         assert model.canopy_layers == config["abiotic"]["canopy_layers"]
         assert model.update_interval == time_interval
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + time_interval
-        )
-        # Run the update step and check that next_update has incremented properly
+
+        # Run the update step (once this does something should check output)
         model.update()
-        assert (
-            model.next_update
-            == datetime64(config["core"]["timing"]["start_date"]) + 2 * time_interval
-        )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

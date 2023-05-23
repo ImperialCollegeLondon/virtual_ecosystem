@@ -22,12 +22,11 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
-from numpy import datetime64, timedelta64
+from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import extract_model_time_details
 from virtual_rainforest.models.animals.dummy_animal_module import AnimalCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
@@ -47,18 +46,23 @@ class AnimalModel(BaseModel):
 
     model_name = "animals"
     """The model name for use in registering the model and logging."""
+    # TODO - Check with Taran that these are sensible bounds
+    lower_bound_on_time_scale = "1 day"
+    """Shortest time scale that soil model can sensibly capture."""
+    upper_bound_on_time_scale = "1 month"
+    """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
 
     def __init__(
         self,
         data: Data,
-        update_interval: timedelta64,
-        start_time: datetime64,
+        update_interval: Quantity,
         functional_groups: list[FunctionalGroup],
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, start_time, **kwargs)
+        super().__init__(data, update_interval, **kwargs)
+
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
         """Run a new set_neighbours (temporary solution)."""
 
@@ -69,9 +73,7 @@ class AnimalModel(BaseModel):
 
     @classmethod
     def from_config(
-        cls,
-        data: Data,
-        config: dict[str, Any],
+        cls, data: Data, config: dict[str, Any], update_interval: Quantity
     ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
@@ -82,10 +84,10 @@ class AnimalModel(BaseModel):
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: The complete (and validated) virtual rainforest configuration.
+            update_interval: Frequency with which all models are updated
         """
 
         # Find timing details
-        start_time, update_interval = extract_model_time_details(config, cls.model_name)
 
         functional_groups_raw = config["animals"]["functional_groups"]
 
@@ -98,7 +100,7 @@ class AnimalModel(BaseModel):
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, start_time, functional_groups)
+        return cls(data, update_interval, functional_groups)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
@@ -108,9 +110,6 @@ class AnimalModel(BaseModel):
 
     def update(self) -> None:
         """Placeholder function to solve the animal model."""
-
-        # Finally increment timing
-        self.next_update += self.update_interval
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
