@@ -1,13 +1,44 @@
 {
     "type": "object",
     "properties": {
-        "animal": {
-            "description": "Configuration settings for the animal module",
+        "animals": {
+            "description": "Configuration settings for the animal module.",
             "type": "object",
-            "properties": {}
+            "properties": {
+                "functional_groups": {
+                    "description": "Details of the animal functional types.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "default": ""
+                            },
+                            "taxa": {
+                                "type": "string",
+                                "default": ""
+                            },
+                            "diet": {
+                                "type": "string",
+                                "default": ""
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "taxa",
+                            "diet"
+                        ]
+                    }
+                }
+            },
+            "default": {},
+            "required": [
+                "functional_groups"
+            ]
         }
     },
     "required": [
-        "animal"
+        "animals"
     ]
 }

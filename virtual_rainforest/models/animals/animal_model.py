@@ -19,6 +19,7 @@ by downstream functions so that all model configuration failures can be reported
 
 from __future__ import annotations
 
+from math import sqrt
 from typing import Any
 
 from pint import Quantity
@@ -26,6 +27,8 @@ from pint import Quantity
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.animals.dummy_animal_module import AnimalCommunity
+from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
 class AnimalModel(BaseModel):
@@ -41,7 +44,7 @@ class AnimalModel(BaseModel):
         start_time: Time at which the model is initialized.
     """
 
-    model_name = "animal"
+    model_name = "animals"
     """The model name for use in registering the model and logging."""
     # TODO - Check with Taran that these are sensible bounds
     lower_bound_on_time_scale = "1 day"
@@ -55,9 +58,18 @@ class AnimalModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
+        functional_groups: list[FunctionalGroup],
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
+
+        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+        """Run a new set_neighbours (temporary solution)."""
+
+        self.communities: dict[int, AnimalCommunity] = {
+            k: AnimalCommunity(functional_groups) for k in self.data.grid.cell_id
+        }
+        """ Generate a dictionary of AnimalCommunity objects, one per grid cell."""
 
     @classmethod
     def from_config(
@@ -75,11 +87,20 @@ class AnimalModel(BaseModel):
             update_interval: Frequency with which all models are updated
         """
 
+        # Find timing details
+
+        functional_groups_raw = config["animals"]["functional_groups"]
+
+        functional_groups = []
+        for k in functional_groups_raw:
+            functional_groups.append(FunctionalGroup(k[0], k[1], k[2]))
+        """create list of functional group objects to initialize  communities with."""
+
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval)
+        return cls(data, update_interval, functional_groups)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
