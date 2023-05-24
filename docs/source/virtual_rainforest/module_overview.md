@@ -125,10 +125,11 @@ then interpolated using a logarithmic curve between the above canopy observation
 ground level prediction.
 Soil temperature is interpolated between the surface layer and the air temperature at
 1 m depth which equals the mean annual temperature.
-The moduel also provides a constant vertical profile of atmospheric pressure and
+The model also provides a constant vertical profile of atmospheric pressure and
 $\ce{CO_{2}}$.
 Soil moisture and surface runoff are calculated with a simple bucket model based on
-{cite}`davis_simple_2017`; vertical flow is currently not implemented.
+{cite}`davis_simple_2017`; vertical flow and horizontal from between grid cells are
+currently not implemented.
 
 ### Process-based abiotic model
 
