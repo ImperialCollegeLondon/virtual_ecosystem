@@ -2,7 +2,7 @@
 # modules. Each value has been chosen to be different from the default value, so that
 # this file can be used to test that providing non-default values works.
 [core]
-modules = ["plants", "soil"]
+modules = ["plants", "soil", "animals"]
 
 [core.grid]
 cell_nx = 10
@@ -29,3 +29,23 @@ maxh = 1.0
 [[plants.ftypes]]
 pft_name = "broadleaf"
 maxh = 50.0
+
+[[animals.functional_groups]]
+name = "carnivorous_bird"
+taxa = "bird"
+diet = "carnivore"
+
+[[animals.functional_groups]]
+name = "herbivorous_bird"
+taxa = "bird"
+diet = "herbivore"
+
+[[animals.functional_groups]]
+name = "carnivorous_mammal"
+taxa = "mammal"
+diet = "carnivore"
+
+[[animals.functional_groups]]
+name = "herbivorous_mammal"
+taxa = "mammal"
+diet = "herbivore"
