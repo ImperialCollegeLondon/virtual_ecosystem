@@ -33,25 +33,6 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
     for name in variable_list:
         assert name in result
 
-    # TODO temporary test for hardcoded layer heights and leaf area index
-    xr.testing.assert_allclose(
-        result["layer_heights"], dummy_climate_data["layer_heights"]
-    )
-
-    leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
-
-    expected_lai = DataArray(
-        np.broadcast_to(leaf_area_index, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": [0, 1, 2],
-        },
-        name="leaf_area_index",
-    )
-    xr.testing.assert_allclose(result["leaf_area_index"], expected_lai)
-
     # check that copied variables have the same shape and dims as air_temperature
     xr.testing.assert_allclose(
         result["relative_humidity"],
