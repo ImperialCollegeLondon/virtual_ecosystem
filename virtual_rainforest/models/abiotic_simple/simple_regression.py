@@ -114,34 +114,6 @@ def setup_simple_regression(
         initial_soil_moisture,
     )
 
-    # TODO until the plant model is ready, these variables are initialised here
-    layer_heights = np.repeat(
-        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
-        repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
-    )
-    output["layer_heights"] = DataArray(
-        np.broadcast_to(layer_heights, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-        name="layer_heights",
-    )
-
-    leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
-    output["leaf_area_index"] = DataArray(
-        np.broadcast_to(leaf_area_index, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-        name="leaf_area_index",
-    )
-
     # calculate vapour pressure deficit time series at reference height first
     output["vapour_pressure_deficit_ref"] = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature_ref"],
