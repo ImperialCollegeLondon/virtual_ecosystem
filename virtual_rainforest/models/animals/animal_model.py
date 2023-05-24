@@ -27,7 +27,7 @@ from pint import Quantity
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.dummy_animal_module import AnimalCommunity
+from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
