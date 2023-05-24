@@ -119,7 +119,8 @@ the Virtual Rainforest in high temporal resolution or for representative days pe
 
 The abiotic simple model uses linear regressions from
 {cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
-atmospheric temperature and relative humidity at ground level (2m) given the above
+atmospheric temperature, relative humidity, and vapour pressure deficit
+at ground level (2m) given the above
 canopy conditions and leaf area index of intervening canopy. A within canopy profile is
 then interpolated using a logarithmic curve between the above canopy observation and
 ground level prediction.
