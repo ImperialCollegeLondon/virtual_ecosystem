@@ -22,6 +22,7 @@ def test_setup_simple_regression(dummy_climate_data, layer_roles_fixture):
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
+        "vapour_pressure_deficit_ref",
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",

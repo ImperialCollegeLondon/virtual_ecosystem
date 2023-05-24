@@ -205,6 +205,10 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 90),
         dims=["cell_id", "time"],
     )
+    data["vapour_pressure_deficit_ref"] = DataArray(
+        np.full((3, 3), 0.14),
+        dims=["cell_id", "time"],
+    )
     data["atmospheric_pressure_ref"] = DataArray(
         np.full((3, 3), 1.5),
         dims=["cell_id", "time"],

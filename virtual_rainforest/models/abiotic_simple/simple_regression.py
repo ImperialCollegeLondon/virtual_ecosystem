@@ -142,6 +142,12 @@ def setup_simple_regression(
         name="leaf_area_index",
     )
 
+    # calculate vapour pressure deficit time series at reference height first
+    output["vapour_pressure_deficit_ref"] = calculate_vapour_pressure_deficit(
+        temperature=data["air_temperature_ref"],
+        relative_humidity=data["relative_humidity_ref"],
+    ).rename("vapour_pressure_deficit_ref")
+
     return output
 
 
@@ -200,6 +206,7 @@ def run_simple_regression(
 
     * air_temperature_ref
     * relative_humidity_ref
+    * vapour_pressure_deficit_ref
     * atmospheric_pressure_ref
     * atmospheric_co2_ref
     * leaf_area_index
@@ -230,70 +237,21 @@ def run_simple_regression(
     # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
+    # sum leaf area index over all canopy layers
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
-    # Mean air temperature profile, [C]
-    output["air_temperature"] = log_interpolation(
-        data=data,
-        reference_data=data["air_temperature_ref"].isel(time=time_index),
-        leaf_area_index_sum=leaf_area_index_sum,
-        layer_roles=layer_roles,
-        layer_heights=data["layer_heights"],
-        upper_bound=Bounds["air_temperature_max"],
-        lower_bound=Bounds["air_temperature_min"],
-        gradient=MicroclimateGradients["air_temperature_gradient"],
-    ).rename("air_temperature")
-
-    # Mean relative humidity profile, []
-    output["relative_humidity"] = log_interpolation(
-        data=data,
-        reference_data=data["relative_humidity_ref"].isel(time=time_index),
-        leaf_area_index_sum=leaf_area_index_sum,
-        layer_roles=layer_roles,
-        layer_heights=data["layer_heights"],
-        upper_bound=Bounds["relative_humidity_max"],
-        lower_bound=Bounds["relative_humidity_min"],
-        gradient=MicroclimateGradients["relative_humidity_gradient"],
-    ).rename("relative_humidity")
-
-    # Mean vapour pressure deficit, [kPa]
-    # calculate vapour pressure deficit at reference height first
-    vapour_pressure_deficit_ref = calculate_vapour_pressure_deficit(
-        temperature=data["air_temperature_ref"].isel(time=time_index),
-        relative_humidity=data["relative_humidity_ref"].isel(time=time_index),
-    )
-
-    output["vapour_pressure_deficit"] = log_interpolation(
-        data=data,
-        reference_data=vapour_pressure_deficit_ref,
-        leaf_area_index_sum=leaf_area_index_sum,
-        layer_roles=layer_roles,
-        layer_heights=data["layer_heights"],
-        upper_bound=Bounds["vapour_pressure_deficit_max"],
-        lower_bound=Bounds["vapour_pressure_deficit_min"],
-        gradient=MicroclimateGradients["vapour_pressure_deficit_gradient"],
-    ).rename("vapour_pressure_deficit")
-
-    # Mean soil temperature profile, [C]
-    soil_temperature_only = interpolate_soil_temperature(
-        layer_heights=data["layer_heights"],
-        surface_temperature=output["air_temperature"].isel(
-            layers=len(layer_roles) - layer_roles.count("soil") - 1
-        ),
-        mean_annual_temperature=data["mean_annual_temperature"],
-        upper_bound=Bounds["soil_temperature_max"],
-        lower_bound=Bounds["soil_temperature_min"],
-    )
-    # add above-ground vertical layers back
-    output["soil_temperature"] = xr.concat(
-        [
-            data["soil_temperature"].isel(
-                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
-            ),
-            soil_temperature_only,
-        ],
-        dim="layers",
-    )
+    # interpolate atmospheric profiles
+    for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
+        output[var] = log_interpolation(
+            data=data,
+            reference_data=data[var + "_ref"].isel(time=time_index),
+            leaf_area_index_sum=leaf_area_index_sum,
+            layer_roles=layer_roles,
+            layer_heights=data["layer_heights"],
+            upper_bound=Bounds[var + "_max"],
+            lower_bound=Bounds[var + "_min"],
+            gradient=MicroclimateGradients[var + "_gradient"],
+        ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
@@ -311,6 +269,28 @@ def run_simple_regression(
         .where(data["atmospheric_co2"].coords["layer_roles"] != "soil")
         .rename("atmospheric_co2")
         .T
+    )
+
+    # Calculate soil temperatures
+    soil_temperature_only = interpolate_soil_temperature(
+        layer_heights=data["layer_heights"],
+        surface_temperature=output["air_temperature"].isel(
+            layers=len(layer_roles) - layer_roles.count("soil") - 1
+        ),
+        mean_annual_temperature=data["mean_annual_temperature"],
+        upper_bound=Bounds["soil_temperature_max"],
+        lower_bound=Bounds["soil_temperature_min"],
+    )
+
+    # add above-ground vertical layers back
+    output["soil_temperature"] = xr.concat(
+        [
+            data["soil_temperature"].isel(
+                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
+            ),
+            soil_temperature_only,
+        ],
+        dim="layers",
     )
 
     # Precipitation at the surface is reduced as a function of leaf area index
