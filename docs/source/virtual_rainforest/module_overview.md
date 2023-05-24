@@ -100,45 +100,56 @@ Further theoretical background for the soil module can be found
 ## Abiotic Module
 
 The abiotic module provides the microclimate and hydrology for the Virtual Rainforest.
-Using a small set of input variables from external sources such as WFDE5
-{cite}`cucchi_wfde5_2020` or regional climate models, the module calculates
-atmospheric and soil parameters that drive the dynamics of plants, animals, and microbes
-at different vertical levels. Four subroutines - the radiation balance, the energy
-balance, the water balance, and the atmospheric $\ce{CO_{2}}$ balance - provide the
-following variables at different vertical levels:
+Using a small set of input variables from external sources such as reanalysis or
+regional climate models, the module calculates atmospheric and soil parameters that
+drive the dynamics of plants, animals, and microbes at different vertical levels:
+
+- above canopy (canopy height + reference measurement height, typically 2m)
+- canopy layers (maximum of ten layers, minimum one layers)
+- subcanopy (2 m)
+- surface layer (10 cm)
+- soil layers (currently one near surface layer and one layer at 1 m below ground)
+
+At the moment, the default option is a simple regression based model that estimates
+microclimate for a monthly time step. We are also working on a process-based abiotic
+model that runs on a shorter time step, typically sub-daily, and could be used to run
+the Virtual Rainforest in high temporal resolution or for representative days per month.
+
+### Abiotic simple model
+
+The abiotic simple model uses linear regressions from
+{cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
+atmospheric temperature and relative humidity at ground level (2m) given the above
+canopy conditions and leaf area index of intervening canopy. A within canopy profile is
+then interpolated using a logarithmic curve between the above canopy observation and
+ground level prediction.
+Soil temperature is interpolated between the surface layer and the air temperature at
+1 m depth which equals the mean annual temperature.
+The moduel also provides a constant vertical profile of atmospheric pressure and
+$\ce{CO_{2}}$.
+Soil moisture and surface runoff are calculated with a simple bucket model based on
+{cite}`davis_simple_2017`; vertical flow is currently not implemented.
+
+### Process-based abiotic model
+
+The process-based abiotic model contains four subroutines - the radiation balance, the
+energy balance, the water balance, and the atmospheric $\ce{CO_{2}}$ balance - provide
+the following variables at different vertical levels:
 
 - Net radiation and Photosynthetic photon flux density
-- Air temperature, relative humidity, and vapor pressure deficit
+- Air temperature, relative humidity, and vapour pressure deficit
 - Soil temperature and soil moisture
 - Atmospheric $\ce{CO_{2}}$ concentration
 - above- and belowground runoff, mean vertical flow, and streamflow (at catchment scale)
 
-### Vertical structure of atmosphere and soil
-
-The atmosphere is divided in four vertical levels:
-
-1. the top of the canopy which links the external driver to the module,
-2. the upper canopy where most photosynthetic activity occurs (~20 m to  top of canopy,
-   subdivided in dynamic canopy layers),
-3. the understorey where most large animal are active (1 m to 20 m), and
-4. the near surface which homes ground-dwelling organisms and links the atmosphere to
-   the top soil level (> 1 m).
-
-The soil is represented by four vertical levels:
-
-1. the litter/humus level (~ -10 cm)
-2. the topsoil where most microbial activity occurs (-10 to -30 cm)
-3. the root zone where plant water extraction is the prevalent process (-30 cm to -1 m),
-4. the deep soil where changes in water storage and subsurface drainage are modelled.
-
-### The Radiation balance
+#### The Radiation balance
 
 The radiation balance submodule calculates location-specific solar irradiance
 (shortwave), reflection and scattering of shortwave radiation from canopy and surface,
 vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
 and surface.
 
-### The Energy balance
+#### The Energy balance
 
 The Energy balance submodule derives sensible and latent heat fluxes from canopy and
 surface to the atmosphere, and updates air temperature, relative humidity, and vapor
@@ -148,7 +159,7 @@ driven by heat conductance because turbulence is typically low below the canopy
 flux. The vertical exchange of heat between soil levels is coupled to the atmospheric
 mixing.
 
-### The Water balance
+#### The Water balance
 
 The first part of the water balance submodule determines the water balance within each
 grid cell including rainfall, intercept, throughfall and stemflow, surface water storage
@@ -160,7 +171,7 @@ The second part of the module caluclates the water balance across the full model
 based on the TOPMODEL (e.g. {cite:t}`metcalfe_dynamic_2015`) including surface runoff,
 subsurface flow, return flow, and streamflow.
 
-### The atmospheric $\ce{CO_{2}}$ balance
+#### The atmospheric $\ce{CO_{2}}$ balance
 
 The atmospheric $\ce{CO_{2}}$ submodule calculates the vertical profile of atmospheric
 $\ce{CO_{2}}$ below the canopy. It takes into account the carbon assimilation/
