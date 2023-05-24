@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import xarray as xr
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
@@ -707,3 +708,60 @@ def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log)
         Path(out_path).unlink()
 
     log_check(caplog, exp_log)
+
+
+def test_Data_replace_from_dict(dummy_climate_data):
+    """Test reading from dictionary."""
+
+    from virtual_rainforest.core.data import Data
+
+    var_dict = {
+        "air_temperature": DataArray(
+            np.full((3, 3), 20),
+            dims=["cell_id", "time"],
+            coords=dummy_climate_data["air_temperature_ref"].coords,
+            name="air_temperature_ref",
+        ),
+        "mean_annual_temperature": DataArray(
+            np.full((3), 40),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="mean_annual_temperature",
+        ),
+        "new_variable": DataArray(
+            np.full((3), 100),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="new_variable",
+        ),
+    }
+
+    Data.replace_from_dict(dummy_climate_data, var_dict)
+
+    xr.testing.assert_allclose(
+        dummy_climate_data["air_temperature"],
+        DataArray(
+            np.full((3, 3), 20),
+            dims=["cell_id", "time"],
+            coords=dummy_climate_data["air_temperature"].coords,
+            name="air_temperature",
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy_climate_data["mean_annual_temperature"],
+        DataArray(
+            np.full((3), 40),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="mean_annual_temperature",
+        ),
+    )
+    xr.testing.assert_allclose(
+        dummy_climate_data["new_variable"],
+        DataArray(
+            np.full((3), 100),
+            dims=["cell_id"],
+            coords=dummy_climate_data["mean_annual_temperature"].coords,
+            name="new_variable",
+        ),
+    )

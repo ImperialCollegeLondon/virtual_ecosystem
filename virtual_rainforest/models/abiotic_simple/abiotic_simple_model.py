@@ -18,10 +18,9 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, List
 
 from pint import Quantity
-from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -163,7 +162,7 @@ class AbioticSimpleModel(BaseModel):
             data=self.data,
             initial_soil_moisture=self.initial_soil_moisture,
         )
-        update_data_object(data=self.data, output_dict=setup_variables)
+        self.data.replace_from_dict(output_dict=setup_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -176,7 +175,7 @@ class AbioticSimpleModel(BaseModel):
             layer_roles=self.layer_roles,
             time_index=self.time_index,
         )
-        update_data_object(data=self.data, output_dict=output_variables)
+        self.data.replace_from_dict(output_dict=output_variables)
         self.time_index += 1
 
     def cleanup(self) -> None:
@@ -210,21 +209,3 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
         + ["surface"]
         + ["soil"] * soil_layers
     )
-
-
-def update_data_object(data: Data, output_dict: Dict[str, DataArray]) -> None:
-    """Update data object from dictionary of variables.
-
-    This function takes a dictionary of variables from a submodule to update
-    the corresponding variables in the data object.
-
-    Args:
-        data: Data instance
-        output_dict: dictionary of variables from submodule
-
-    Returns:
-        an updated data object for the current time step
-    """
-
-    for variable in output_dict:
-        data[variable] = output_dict[variable]
