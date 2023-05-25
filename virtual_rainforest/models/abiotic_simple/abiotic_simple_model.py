@@ -204,6 +204,9 @@ class AbioticSimpleModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the abiotic simple model."""
 
+        # This section perfomes a series of calculations to update the variables in the
+        # abiotic model. This could be moved to here and written directly to the data
+        # object. For now, we leave it as a separate routine.
         output_variables = simple_regression.run_simple_regression(
             data=self.data,
             layer_roles=self.layer_roles,
