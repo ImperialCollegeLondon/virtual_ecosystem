@@ -20,7 +20,9 @@ from __future__ import annotations
 
 from typing import Any, List
 
+import numpy as np
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -155,14 +157,46 @@ class AbioticSimpleModel(BaseModel):
         )
 
     def setup(self) -> None:
-        """Function to set up the abiotic simple model."""
+        """Function to set up the abiotic simple model.
 
-        setup_variables = simple_regression.setup_simple_regression(
-            layer_roles=self.layer_roles,
-            data=self.data,
-            initial_soil_moisture=self.initial_soil_moisture,
+        At the moment, this function only initializes soil moisture homogenously for all
+        soil layers and calculates the reference vapour pressure deficit for all time
+        steps. Both variables are added directly to the self.data object.
+        """
+
+        # Create 1-dimenaional numpy array filled with initial soil moisture values for
+        # all soil layers and np.nan for atmosphere layers
+        soil_moisture_values = np.repeat(
+            a=[np.nan, self.initial_soil_moisture],
+            repeats=[
+                len(self.layer_roles) - self.layer_roles.count("soil"),
+                self.layer_roles.count("soil"),
+            ],
         )
-        self.data.replace_from_dict(output_dict=setup_variables)
+        # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
+        self.data["soil_moisture"] = DataArray(
+            np.broadcast_to(
+                soil_moisture_values,
+                (len(self.data.grid.cell_id), len(self.layer_roles)),
+            ).T,
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(15),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_moisture",
+        )
+
+        # calculate vapour pressure deficit at reference height for all time steps
+        self.data[
+            "vapour_pressure_deficit_ref"
+        ] = simple_regression.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+        ).rename(
+            "vapour_pressure_deficit_ref"
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""

@@ -346,7 +346,9 @@ class Data:
         """Update data object from dictionary of variables.
 
         This function takes a dictionary of updated variables to replace the
-        corresponding variables in the data object.
+        corresponding variables in the data object. If a variable is not in data, it is
+        added. This will need to be reassessed as the model evolves; TODO we might want
+        to split the function in strict 'replace' and 'add' functionalities.
 
         Args:
             output_dict: dictionary of variables from submodule

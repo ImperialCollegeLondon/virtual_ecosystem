@@ -321,22 +321,34 @@ def test_setup(
     assert model.update_interval == time_interval
 
     model.setup()
+
+    soil_moisture_values = np.repeat(a=[np.nan, 50], repeats=[13, 2])
+
     xr.testing.assert_allclose(
-        dummy_climate_data["air_temperature"],
-        xr.DataArray(
-            np.full((15, 3), np.nan),
+        dummy_climate_data["soil_moisture"],
+        DataArray(
+            np.broadcast_to(soil_moisture_values, (3, 15)).T,
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    model.layer_roles,
-                ),
+                "layers": np.arange(15),
+                "layer_roles": ("layers", layer_roles_fixture),
                 "cell_id": [0, 1, 2],
             },
-            name="air_temperature",
+            name="soil_moisture",
         ),
     )
+
+    xr.testing.assert_allclose(
+        dummy_climate_data["vapour_pressure_deficit_ref"],
+        DataArray(
+            np.full((3, 3), 0.141727),
+            dims=["cell_id", "time"],
+            coords={
+                "cell_id": [0, 1, 2],
+            },
+        ),
+    )
+
     # Run the update step
     model.update()
 

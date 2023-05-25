@@ -59,70 +59,6 @@ and matter in the system. This will be implemented at a later stage.
 # to conserve energy and matter
 
 
-def setup_simple_regression(
-    layer_roles: List[str],
-    data: Data,
-    initial_soil_moisture: float = 50,
-) -> Dict[str, DataArray]:
-    r"""Set up abiotic environment variables.
-
-    This function initialises all abiotic variables as DataArrays filled with NaN,
-    except for soil moisture which has a homogenous value across all soil layers.
-
-    Args:
-        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
-            surface, soil)
-        data: Data object
-        initial_soil_moisture: initial soil moisture
-
-    Returns:
-        Dict of DataArrays for air temperature [C], relative humidity [-], vapour
-        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
-        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
-    """
-
-    # TODO: make sure variables are representing correct time interval, see #222
-    output = {}
-
-    # Initialise DataArrays filled with NaN
-    output["air_temperature"] = DataArray(
-        np.full((len(layer_roles), len(data.grid.cell_id)), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-        name="air_temperature",
-    )
-
-    # copy and assign new variable names
-    for name in (
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "soil_temperature",
-        "atmospheric_pressure",
-        "atmospheric_co2",
-        "surface_runoff",
-    ):
-        output[name] = output["air_temperature"].copy().rename(name)
-
-    # The initial soil moisture constant in all soil layers, all other layers set to NaN
-    soil_moisture = output["air_temperature"].copy().rename("soil_moisture")
-    output["soil_moisture"] = soil_moisture.where(
-        soil_moisture.coords["layer_roles"] != "soil",
-        initial_soil_moisture,
-    )
-
-    # calculate vapour pressure deficit time series at reference height first
-    output["vapour_pressure_deficit_ref"] = calculate_vapour_pressure_deficit(
-        temperature=data["air_temperature_ref"],
-        relative_humidity=data["relative_humidity_ref"],
-    ).rename("vapour_pressure_deficit_ref")
-
-    return output
-
-
 def run_simple_regression(
     data: Data,
     layer_roles: List[str],
@@ -229,7 +165,7 @@ def run_simple_regression(
     output["atmospheric_pressure"] = (
         data["atmospheric_pressure_ref"]
         .isel(time=time_index)
-        .where(data["atmospheric_pressure"].coords["layer_roles"] != "soil")
+        .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
         .T
     )
@@ -238,7 +174,7 @@ def run_simple_regression(
     output["atmospheric_co2"] = (
         data["atmospheric_co2_ref"]
         .isel(time=0)
-        .where(data["atmospheric_co2"].coords["layer_roles"] != "soil")
+        .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_co2")
         .T
     )
