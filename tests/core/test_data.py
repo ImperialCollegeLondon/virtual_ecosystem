@@ -710,7 +710,7 @@ def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log)
     log_check(caplog, exp_log)
 
 
-def test_Data_replace_from_dict(dummy_climate_data):
+def test_Data_add_from_dict(dummy_climate_data):
     """Test reading from dictionary."""
 
     from virtual_rainforest.core.data import Data
@@ -736,7 +736,7 @@ def test_Data_replace_from_dict(dummy_climate_data):
         ),
     }
 
-    Data.replace_from_dict(dummy_climate_data, var_dict)
+    Data.add_from_dict(dummy_climate_data, var_dict)
 
     xr.testing.assert_allclose(
         dummy_climate_data["air_temperature"],

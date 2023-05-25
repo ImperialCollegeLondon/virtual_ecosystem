@@ -342,7 +342,7 @@ class Data:
         # If the file path is okay then write the model state out as a NetCDF
         self.data.to_netcdf(output_file_path)
 
-    def replace_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
+    def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
 
         This function takes a dictionary of updated variables to replace the

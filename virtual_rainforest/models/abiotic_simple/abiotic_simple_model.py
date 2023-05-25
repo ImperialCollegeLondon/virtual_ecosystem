@@ -212,7 +212,7 @@ class AbioticSimpleModel(BaseModel):
             layer_roles=self.layer_roles,
             time_index=self.time_index,
         )
-        self.data.replace_from_dict(output_dict=output_variables)
+        self.data.add_from_dict(output_dict=output_variables)
         self.time_index += 1
 
     def cleanup(self) -> None:
