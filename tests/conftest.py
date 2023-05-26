@@ -140,13 +140,24 @@ def dummy_carbon_data(layer_roles_fixture):
     )
     data["soil_temperature"] = xr.concat(
         [
-            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"]),
-            DataArray(np.full((1, 4), 22.5), dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), 22.5), dims=["dim_0", "cell_id"]),
         ],
-        dim="layers",
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
     )
 
     return data
