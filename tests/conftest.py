@@ -152,12 +152,10 @@ def dummy_carbon_data(layer_roles_fixture):
     return data
 
 
-# TODO - At the moment this returns a constant but this should be calculated from the
-# data object in future
 @pytest.fixture
-def top_soil_layer_index():
-    """The index of the top soil layer in the data object."""
-    return 13
+def top_soil_layer_index(layer_roles_fixture):
+    """The index of the top soil layer in the data fixtures."""
+    return next(i for i, v in enumerate(layer_roles_fixture) if v == "soil")
 
 
 @pytest.fixture
