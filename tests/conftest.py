@@ -103,7 +103,7 @@ def data_instance():
 
 
 @pytest.fixture
-def dummy_carbon_data():
+def dummy_carbon_data(layer_roles_fixture):
     """Creates a dummy carbon data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
@@ -113,10 +113,10 @@ def dummy_carbon_data():
     grid = Grid(cell_nx=4, cell_ny=1)
     data = Data(grid)
 
-    # The required data is now added. This includes the two carbon pools: mineral
-    # associated organic matter and low molecular weight carbon. It also includes
-    # various factors of the physical environment: pH, bulk density, soil moisture, soil
-    # temperature, percentage clay in soil.
+    # The required data is now added. This includes the three carbon pools: mineral
+    # associated organic matter, low molecular weight carbon, and microbial carbon. It
+    # also includes various factors of the physical environment: pH, bulk density, soil
+    # moisture, soil temperature, percentage clay in soil.
     data["soil_c_pool_lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["soil_c_pool_maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
@@ -125,9 +125,29 @@ def dummy_carbon_data():
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
-    data["soil_moisture"] = DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"])
-    data["soil_temperature"] = DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+
+    # The layer dependant data has to be handled separately
+    data["soil_moisture"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"]),
+            DataArray(np.full((1, 4), 0.1), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
+    data["soil_temperature"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"]),
+            DataArray(np.full((1, 4), 22.5), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
 
     return data
 
