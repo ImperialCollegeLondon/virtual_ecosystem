@@ -98,6 +98,12 @@ class SoilModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        # TODO - This should not be hardcoded in here
+        # Ideally this can be calculated from the data object
+        self.top_soil_layer_index = 13
+        """The layer in the data object representing the first soil layer."""
 
     @classmethod
     def from_config(
@@ -204,8 +210,8 @@ class SoilModel(BaseModel):
             construct_full_soil_model,
             t_span,
             y0,
-            args=(self.data, no_cells, 13, delta_pools_ordered),
-        )  # TODO - This should not be hardcoded in here
+            args=(self.data, no_cells, self.top_soil_layer_index, delta_pools_ordered),
+        )
 
         # Check if integration failed
         if not output.success:
