@@ -204,8 +204,8 @@ class SoilModel(BaseModel):
             construct_full_soil_model,
             t_span,
             y0,
-            args=(self.data, no_cells, delta_pools_ordered),
-        )
+            args=(self.data, no_cells, 13, delta_pools_ordered),
+        )  # TODO - This should not be hardcoded in here
 
         # Check if integration failed
         if not output.success:
@@ -232,6 +232,7 @@ def construct_full_soil_model(
     pools: NDArray[np.float32],
     data: Data,
     no_cells: int,
+    top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
@@ -243,6 +244,7 @@ def construct_full_soil_model(
         pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
+        top_soil_layer_index: Index for layer in data object representing top soil layer
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
 
@@ -257,10 +259,6 @@ def construct_full_soil_model(
     soil_pools = {
         str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
-
-    # TODO - THIS SHOULD BE CALCULATED DIRECTLY FROM THE DATA OBJECT
-    # AND ALSO PASSED INTO THE FUNCTION
-    top_soil_layer_index = 13
 
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(

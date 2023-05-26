@@ -453,7 +453,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
-def test_construct_full_soil_model(dummy_carbon_data):
+def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     """Test that the function that creates the object to integrate exists and works."""
 
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
@@ -490,7 +490,7 @@ def test_construct_full_soil_model(dummy_carbon_data):
     }
 
     rate_of_change = construct_full_soil_model(
-        0.0, pools, dummy_carbon_data, 4, delta_pools_ordered
+        0.0, pools, dummy_carbon_data, 4, top_soil_layer_index, delta_pools_ordered
     )
 
     assert np.allclose(delta_pools, rate_of_change)
