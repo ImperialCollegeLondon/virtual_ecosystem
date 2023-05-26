@@ -7,7 +7,9 @@ To Do:
 
 """  # noqa: D205, D415
 
-from math import ceil
+from math import ceil, exp
+
+from virtual_rainforest.models.animals.constants import BOLTZMANN_CONSTANT
 
 
 def damuths_law(mass: float, terms: tuple) -> int:
@@ -31,23 +33,36 @@ def damuths_law(mass: float, terms: tuple) -> int:
     return ceil(terms[1] * mass ** terms[0])
 
 
-def metabolic_rate(mass: float, terms: tuple) -> float:
-    """The function to set the metabolic rate of animal cohorts.
-
-        Currently, this function provides the allometric scaling of the basal metabolic
-        rate of terrestrial mammals. This will be later expanded to be a more complex
-        function of metabolic type, functional type, activity levels, and temperature.
+def metabolic_rate(
+    mass: float, temperature: float, terms: tuple, metabolic_type: str
+) -> float:
+    """Calculates the metabolic rate of animal cohorts.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
+        temperature: The temperature [Celsius] of the environment.
         terms: The tuple of metabolic rate terms used.
+        metabolic_type: The metabolic type of the animal ("endothermic", "ectothermic").
 
     Returns:
         The metabolic rate of an individual of the given cohort in [J/s].
 
-    """
+    Raises:
+        ValueError: If the metabolic_type is neither "endothermic" nor "ectothermic".
 
-    return terms[1] * (mass * 1000) ** terms[0]
+    """
+    mass_g = mass * 1000  # Convert mass to grams
+    temperature_k = temperature + 273.15  # Convert temperature to Kelvin
+
+    if metabolic_type == "endothermic":
+        return terms[1] * mass_g ** terms[0]
+    elif metabolic_type == "ectothermic":
+        b0, exponent = terms
+        return (
+            b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
+        )
+    else:
+        raise ValueError("metabolic_type must be either 'endothermic' or 'ectothermic'")
 
 
 def muscle_mass_scaling(mass: float, terms: tuple) -> float:

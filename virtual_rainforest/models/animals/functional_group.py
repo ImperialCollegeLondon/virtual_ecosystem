@@ -8,7 +8,8 @@ import csv
 from virtual_rainforest.models.animals.constants import (
     CONVERSION_EFFICIENCY,
     DAMUTHS_LAW_TERMS,
-    ENDOTHERM_METABOLIC_RATE_TERMS,
+    ECTOTHERMIC_METABOLIC_RATE_TERMS,
+    ENDOTHERMIC_METABOLIC_RATE_TERMS,
     FAT_MASS_TERMS,
     INTAKE_RATE_TERMS,
     MUSCLE_MASS_TERMS,
@@ -28,15 +29,38 @@ class FunctionalGroup:
 
     """
 
-    def __init__(self, name: str, taxa: str, diet: str) -> None:
+    def __init__(self, name: str, taxa: str, diet: str, metabolic_type: str) -> None:
         """The constructor for the FunctionalGroup class."""
+        # Check for valid inputs
+        valid_taxa = ["mammal", "bird", "insect"]
+        if taxa not in valid_taxa:
+            raise ValueError(f"Invalid taxa: {taxa}. Valid options are: {valid_taxa}")
+
+        valid_diets = ["herbivore", "carnivore"]
+        if diet not in valid_diets:
+            raise ValueError(f"Invalid diet: {diet}. Valid options are: {valid_diets}")
+
+        valid_metabolic_types = ["endothermic", "ectothermic"]
+        if metabolic_type not in valid_metabolic_types:
+            raise ValueError(
+                "Invalid metabolic type: "
+                f"{metabolic_type}. Valid options are: "
+                f"{valid_metabolic_types}"
+            )
+
         self.name = name
         """The name of the functional group."""
         self.taxa = taxa
         """The taxa of the functional group ("mammal" or "bird")."""
         self.diet = diet
         """The diet of the functional group ("herbivore" or "carnivore")."""
-        self.metabolic_rate_terms = ENDOTHERM_METABOLIC_RATE_TERMS[taxa]
+        self.metabolic_type = metabolic_type
+        """The metabolic type of the functional group (endotherm or ectotherm)"""
+        self.metabolic_rate_terms = (
+            ENDOTHERMIC_METABOLIC_RATE_TERMS[taxa]
+            if metabolic_type == "endothermic"
+            else ECTOTHERMIC_METABOLIC_RATE_TERMS[taxa]
+        )
         """The coefficient and exponent of metabolic rate."""
         self.damuths_law_terms = DAMUTHS_LAW_TERMS[taxa][diet]
         """The coefficient and exponent of damuth's law for population density."""
@@ -73,10 +97,30 @@ def import_functional_groups(fg_file: str) -> list[FunctionalGroup]:
 
     with open(fg_file, newline="") as csv_file:
         reader = csv.reader(csv_file)
-        next(reader, None)  # skip the header
-        # unpack the row directly in the head of the for-loop
-        for name, taxa, diet in reader:
+        header = next(reader, None)  # get the header
+
+        # Check that the header has the expected columns
+        expected_header = ["name", "taxa", "diet", "metabolic_type"]
+        if header != expected_header:
+            raise ValueError(
+                f"Invalid header. Expected {expected_header}, but got {header}"
+            )
+
+        for row in reader:
+            # Check that the row has the correct number of values
+            # This is important to ensure each value can be properly assigned
+            # to name, taxa, diet, and metabolic_type when unpacking the row
+            if len(row) != len(expected_header):
+                raise ValueError(
+                    f"Invalid row: {row}. Expected {len(expected_header)} values."
+                )
+
+            name, taxa, diet, metabolic_type = row
             # create the FG instance and append it to the list
-            functional_group_list.append(FunctionalGroup(name, taxa, diet))
+            # It's expected that the FunctionalGroup __init__ method
+            # will handle further error checking for the values
+            functional_group_list.append(
+                FunctionalGroup(name, taxa, diet, metabolic_type)
+            )
 
     return functional_group_list

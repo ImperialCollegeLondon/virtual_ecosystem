@@ -22,7 +22,7 @@ from numpy import timedelta64
 
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.carcasses import CarcassPool
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
+from virtual_rainforest.models.animals.constants import ENERGY_DENSITY, TEMPERATURE
 from virtual_rainforest.models.animals.dummy_plants_and_soil import (
     PalatableSoil,
     PlantCommunity,
@@ -63,7 +63,10 @@ class AnimalCohort:
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = metabolic_rate(
-            self.mass, self.functional_group.metabolic_rate_terms
+            self.mass,
+            TEMPERATURE,
+            self.functional_group.metabolic_rate_terms,
+            self.functional_group.metabolic_type,
         )
         """The rate at which energy is expended in [J/s]."""
         self.stored_energy: float = energetic_reserve_scaling(

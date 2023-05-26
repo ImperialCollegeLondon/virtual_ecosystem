@@ -10,11 +10,16 @@ avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
 
-ENDOTHERM_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
-    "mammal": (0.75, 0.047),
-    # Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]
+ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
+    "mammal": (0.75, 0.018),
+    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [g]
     "bird": (0.75, 0.05),
     # Toy values.
+}
+
+ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
+    "insect": (0.75, 0.08)
+    # Insect metabolic rate scaling from Metabolic Ecology p210. [g]
 }
 
 DAMUTHS_LAW_TERMS: dict[str, dict[str, tuple[float, float]]] = {
@@ -30,12 +35,20 @@ DAMUTHS_LAW_TERMS: dict[str, dict[str, tuple[float, float]]] = {
         "carnivore": (-0.75, 2.00),
         # Toy values.
     },
+    "insect": {
+        "herbivore": (-0.75, 5.00),
+        # Toy values.
+        "carnivore": (-0.75, 2.00),
+        # Toy values.
+    },
 }
 
 FAT_MASS_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (1.19, 0.02),
     # Scaling of mammalian herbivore fat mass (citation from Rallings). [g]
     "bird": (1.19, 0.05),
+    # Toy Values
+    "insect": (1.19, 0.05),
     # Toy Values
 }
 
@@ -44,12 +57,16 @@ MUSCLE_MASS_TERMS: dict[str, tuple[float, float]] = {
     # Scaling of mammalian herbivore muscle mass (citation from Rallings).[g]
     "bird": (1.0, 0.40),
     # Toy Values
+    "insect": (1.0, 0.40),
+    # Toy Values
 }
 
 INTAKE_RATE_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (0.71, 0.63),
     # Mammalian maximum intake rate (g/min) from (Shipley 1994).
     "bird": (0.7, 0.50),
+    # Toy Values
+    "insect": (0.7, 0.50),
     # Toy Values
 }
 
@@ -67,3 +84,7 @@ CONVERSION_EFFICIENCY: dict[str, float] = {
     "carnivore": 0.25,
     # Toy value [unitless].
 }
+
+BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
+
+TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].

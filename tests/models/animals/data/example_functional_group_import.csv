@@ -1,5 +1,7 @@
-name,taxa,diet
-carnivorous_bird,bird,carnivore
-herbivorous_bird,bird,herbivore
-carnivorous_mammal,mammal,carnivore
-herbivorous_mammal,mammal,herbivore
+name,taxa,diet,metabolic_type
+carnivorous_bird,bird,carnivore,endothermic
+herbivorous_bird,bird,herbivore,endothermic
+carnivorous_mammal,mammal,carnivore,endothermic
+herbivorous_mammal,mammal,herbivore,endothermic
+carnivorous_insect,insect,carnivore,ectothermic
+herbivorous_insect,insect,herbivore,ectothermic

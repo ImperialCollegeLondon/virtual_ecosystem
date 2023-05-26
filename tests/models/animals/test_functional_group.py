@@ -7,36 +7,79 @@ class TestFunctionalGroup:
     """Test Animal class."""
 
     @pytest.mark.parametrize(
-        "name, taxa, diet, dam_law_exp, dam_law_coef, conv_eff",
+        "name, taxa, diet, metabolic_type, dam_law_exp, dam_law_coef, conv_eff",
         [
-            ("herbivorous_mammal", "mammal", "herbivore", -0.75, 4.23, 0.1),
-            ("carnivorous_mammal", "mammal", "carnivore", -0.75, 1.00, 0.25),
-            ("herbivorous_bird", "bird", "herbivore", -0.75, 5.00, 0.1),
-            ("carnivorous_bird", "bird", "carnivore", -0.75, 2.00, 0.25),
+            (
+                "herbivorous_mammal",
+                "mammal",
+                "herbivore",
+                "endothermic",
+                -0.75,
+                4.23,
+                0.1,
+            ),
+            (
+                "carnivorous_mammal",
+                "mammal",
+                "carnivore",
+                "endothermic",
+                -0.75,
+                1.00,
+                0.25,
+            ),
+            ("herbivorous_bird", "bird", "herbivore", "endothermic", -0.75, 5.00, 0.1),
+            ("carnivorous_bird", "bird", "carnivore", "endothermic", -0.75, 2.00, 0.25),
+            (
+                "herbivorous_insect",
+                "insect",
+                "herbivore",
+                "ectothermic",
+                -0.75,
+                5.00,
+                0.1,
+            ),
+            (
+                "carnivorous_insect",
+                "insect",
+                "carnivore",
+                "ectothermic",
+                -0.75,
+                2.00,
+                0.25,
+            ),
         ],
     )
     def test_initialization(
-        self, name, taxa, diet, dam_law_exp, dam_law_coef, conv_eff
+        self, name, taxa, diet, metabolic_type, dam_law_exp, dam_law_coef, conv_eff
     ):
         """Testing initialization of derived parameters for animal cohorts."""
+
         from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
-        func_group = FunctionalGroup(name, taxa, diet)
+        func_group = FunctionalGroup(name, taxa, diet, metabolic_type)
+        assert func_group.name == name
+        assert func_group.taxa == taxa
+        assert func_group.diet == diet
+        assert func_group.metabolic_type == metabolic_type
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
 
 
 @pytest.mark.parametrize(
-    "index, name, taxa, diet",
+    "index, name, taxa, diet, metabolic_type",
     [
-        (0, "carnivorous_bird", "bird", "carnivore"),
-        (1, "herbivorous_bird", "bird", "herbivore"),
-        (2, "carnivorous_mammal", "mammal", "carnivore"),
-        (3, "herbivorous_mammal", "mammal", "herbivore"),
+        (0, "carnivorous_bird", "bird", "carnivore", "endothermic"),
+        (1, "herbivorous_bird", "bird", "herbivore", "endothermic"),
+        (2, "carnivorous_mammal", "mammal", "carnivore", "endothermic"),
+        (3, "herbivorous_mammal", "mammal", "herbivore", "endothermic"),
+        (4, "carnivorous_insect", "insect", "carnivore", "ectothermic"),
+        (5, "herbivorous_insect", "insect", "herbivore", "ectothermic"),
     ],
 )
-def test_import_functional_groups(shared_datadir, index, name, taxa, diet):
+def test_import_functional_groups(
+    shared_datadir, index, name, taxa, diet, metabolic_type
+):
     """Testing import functional groups."""
     from virtual_rainforest.models.animals.functional_group import (
         FunctionalGroup,
@@ -45,8 +88,9 @@ def test_import_functional_groups(shared_datadir, index, name, taxa, diet):
 
     file = shared_datadir / "example_functional_group_import.csv"
     fg_list = import_functional_groups(file)
-    assert len(fg_list) == 4
-    assert type(fg_list[index]) == FunctionalGroup
+    assert len(fg_list) == 6
+    assert isinstance(fg_list[index], FunctionalGroup)
     assert fg_list[index].name == name
     assert fg_list[index].taxa == taxa
     assert fg_list[index].diet == diet
+    assert fg_list[index].metabolic_type == metabolic_type
