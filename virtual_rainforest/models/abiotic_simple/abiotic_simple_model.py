@@ -119,7 +119,7 @@ class AbioticSimpleModel(BaseModel):
         self.data
         """A Data instance providing access to the shared simulation data."""
         self.layer_roles = layer_roles
-        "A list of vertical layer roles."
+        """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
