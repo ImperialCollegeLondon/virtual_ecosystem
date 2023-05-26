@@ -14,14 +14,14 @@ kernelspec:
   name: vr_python3
 ---
 
-<!-- markdownlint-disable-next-line  MD013 -->
+<!-- markdownlint-disable-next-line  MD013 -->
 # API documentation for the {mod}`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model` module
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.models.abiotic_simple.abiotic_simple_model
 ```
 
-<!-- markdownlint-disable-next-line  MD013 -->
+<!-- markdownlint-disable-next-line  MD013 -->
 ## The {mod}`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel` class
 
 ```{eval-rst}

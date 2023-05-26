@@ -9,13 +9,12 @@ Each of the abiotic sub-modules has its own API reference page:
   abiotic simple module into a single class, which the high level functions of the
   Virtual Rainforest can then use.
 
-* The virtual_rainforest.models.abiotic_simple.simple_regression submodule
+* The :mod:`~virtual_rainforest.models.abiotic_simple.simple_regression` submodule
   contains a set functions and parameters that are used to calculate atmospheric
   temperature, humidity, :math:`\ce{CO2}`, and atmospheric pressure profiles as well as
   soil temperature and soil moisture profiles.
 
 """  # noqa: D205, D415
-# TODO add links to simple regression model in intro doc string
 
 from importlib import resources
 

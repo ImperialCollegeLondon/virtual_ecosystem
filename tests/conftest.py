@@ -205,50 +205,44 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 90),
         dims=["cell_id", "time"],
     )
+    data["vapour_pressure_deficit_ref"] = DataArray(
+        np.full((3, 3), 0.14),
+        dims=["cell_id", "time"],
+    )
     data["atmospheric_pressure_ref"] = DataArray(
         np.full((3, 3), 1.5),
         dims=["cell_id", "time"],
     )
-    data["atmospheric_co2"] = DataArray(
+    data["atmospheric_co2_ref"] = DataArray(
         np.full((3, 3), 400),
         dims=["cell_id", "time"],
     )
 
-    data["leaf_area_index"] = xr.concat(
-        [DataArray(np.full((1, 3), 3)), DataArray(np.full((14, 3), np.nan))],
-        dim="dim_0",
-    )
-    data["leaf_area_index"] = (
-        data["leaf_area_index"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
+    data["leaf_area_index"] = DataArray(
+        np.broadcast_to(leaf_area_index, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        },
+        name="leaf_area_index",
     )
 
-    data["layer_heights"] = xr.concat(
-        [
-            DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
-            DataArray(np.full((7, 3), np.nan)),
-            DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
-            DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
-        ],
-        dim="dim_0",
+    layer_heights = np.repeat(
+        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
     )
-    data["layer_heights"] = (
-        data["layer_heights"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    data["layer_heights"] = DataArray(
+        np.broadcast_to(layer_heights, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        },
+        name="layer_heights",
     )
 
     data["precipitation"] = DataArray(
@@ -256,16 +250,24 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["soil_moisture"] = xr.concat(
         [
-            DataArray(
-                np.full((13, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(
-                np.full((2, 3), 20),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(np.full((2, 3), 20), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
-
+    data["soil_temperature"] = xr.concat(
+        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
     return data

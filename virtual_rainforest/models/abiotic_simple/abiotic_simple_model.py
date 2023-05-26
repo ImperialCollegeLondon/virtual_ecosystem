@@ -18,8 +18,9 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, List
 
+import numpy as np
 from pint import Quantity
 from xarray import DataArray
 
@@ -27,9 +28,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-
-# The simple_regression.py is called by self.setup and self.update, will follow soon
-# from virtual_rainforest.models.abiotic_simple import simple_regression
+from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
 class AbioticSimpleModel(BaseModel):
@@ -54,7 +53,7 @@ class AbioticSimpleModel(BaseModel):
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
         ("precipitation", ("spatial",)),
-        ("atmospheric_co2", ("spatial",)),
+        ("atmospheric_co2_ref", ("spatial",)),
         ("mean_annual_temperature", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
         ("layer_heights", ("spatial",)),
@@ -158,14 +157,46 @@ class AbioticSimpleModel(BaseModel):
         )
 
     def setup(self) -> None:
-        """Function to set up the abiotic simple model."""
+        """Function to set up the abiotic simple model.
 
-        # setup_variables = simple_regression.setup_simple_regression(
-        #     layer_roles=self.layer_roles,
-        #     data=self.data,
-        #     initial_soil_moisture=self.initial_soil_moisture,
-        # )
-        # update_data_object(data=self.data, output_dict=setup_variables)
+        At the moment, this function only initializes soil moisture homogenously for all
+        soil layers and calculates the reference vapour pressure deficit for all time
+        steps. Both variables are added directly to the self.data object.
+        """
+
+        # Create 1-dimenaional numpy array filled with initial soil moisture values for
+        # all soil layers and np.nan for atmosphere layers
+        soil_moisture_values = np.repeat(
+            a=[np.nan, self.initial_soil_moisture],
+            repeats=[
+                len(self.layer_roles) - self.layer_roles.count("soil"),
+                self.layer_roles.count("soil"),
+            ],
+        )
+        # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
+        self.data["soil_moisture"] = DataArray(
+            np.broadcast_to(
+                soil_moisture_values,
+                (len(self.data.grid.cell_id), len(self.layer_roles)),
+            ).T,
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(15),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_moisture",
+        )
+
+        # calculate vapour pressure deficit at reference height for all time steps
+        self.data[
+            "vapour_pressure_deficit_ref"
+        ] = simple_regression.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+        ).rename(
+            "vapour_pressure_deficit_ref"
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -173,12 +204,15 @@ class AbioticSimpleModel(BaseModel):
     def update(self) -> None:
         """Placeholder function to update the abiotic simple model."""
 
-        # output_variables = simple_regression.run_simple_regression(
-        #     data=self.data,
-        #     layer_roles=self.layer_roles,
-        #     time_index=self.time_index,
-        # )
-        # update_data_object(data=self.data, output_dict=output_variables)
+        # This section perfomes a series of calculations to update the variables in the
+        # abiotic model. This could be moved to here and written directly to the data
+        # object. For now, we leave it as a separate routine.
+        output_variables = simple_regression.run_simple_regression(
+            data=self.data,
+            layer_roles=self.layer_roles,
+            time_index=self.time_index,
+        )
+        self.data.add_from_dict(output_dict=output_variables)
         self.time_index += 1
 
     def cleanup(self) -> None:
@@ -212,21 +246,3 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
         + ["surface"]
         + ["soil"] * soil_layers
     )
-
-
-def update_data_object(data: Data, output_dict: Dict[str, DataArray]) -> None:
-    """Update data object from dictionary of variables.
-
-    This function takes a dictionary of variables from a submodule to update
-    the corresponding variables in the data object.
-
-    Args:
-        data: Data instance
-        output_dict: dictionary of variables from submodule
-
-    Returns:
-        an updated data object for the current time step
-    """
-
-    for variable in output_dict:
-        data[variable] = output_dict[variable]
