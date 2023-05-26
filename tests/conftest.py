@@ -152,6 +152,14 @@ def dummy_carbon_data(layer_roles_fixture):
     return data
 
 
+# TODO - At the moment this returns a constant but this should be calculated from the
+# data object in future
+@pytest.fixture
+def top_soil_layer_index():
+    """The index of the top soil layer in the data object."""
+    return 13
+
+
 @pytest.fixture
 def new_axis_validators():
     """Create new axis validators to test methods and registration."""

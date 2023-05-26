@@ -258,12 +258,16 @@ def construct_full_soil_model(
         str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
 
+    # TODO - THIS SHOULD BE CALCULATED DIRECTLY FROM THE DATA OBJECT
+    # AND ALSO PASSED INTO THE FUNCTION
+    top_soil_layer_index = 13
+
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
-        soil_moisture=data["soil_moisture"].to_numpy(),
-        soil_temp=data["soil_temperature"].to_numpy(),
+        soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
+        soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,
         **soil_pools,
