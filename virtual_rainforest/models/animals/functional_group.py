@@ -51,11 +51,11 @@ class FunctionalGroup:
         self.name = name
         """The name of the functional group."""
         self.taxa = taxa
-        """The taxa of the functional group ("mammal" or "bird")."""
+        """The taxa of the functional group."""
         self.diet = diet
-        """The diet of the functional group ("herbivore" or "carnivore")."""
+        """The diet of the functional group."""
         self.metabolic_type = metabolic_type
-        """The metabolic type of the functional group (endotherm or ectotherm)"""
+        """The metabolic type of the functional group"""
         self.metabolic_rate_terms = (
             ENDOTHERMIC_METABOLIC_RATE_TERMS[taxa]
             if metabolic_type == "endothermic"

@@ -63,6 +63,8 @@ class TestAnimalCommunity:
             "herbivorous_bird",
             "carnivorous_mammal",
             "herbivorous_mammal",
+            "carnivorous_insect",
+            "herbivorous_insect",
         ]
 
     def test_immigrate(

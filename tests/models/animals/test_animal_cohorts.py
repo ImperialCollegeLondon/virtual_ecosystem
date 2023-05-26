@@ -72,7 +72,7 @@ class TestAnimalCohort:
         """Testing initialization of derived parameters for animal cohorts."""
         assert animal_cohort_instance.individuals == 1
         assert animal_cohort_instance.metabolic_rate == pytest.approx(
-            8357.913227, rel=1e-6
+            3200.9029380, rel=1e-6
         )
         assert animal_cohort_instance.stored_energy == pytest.approx(
             56531469253.03123, rel=1e-6
@@ -81,10 +81,10 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "dt, initial_energy, final_energy",
         [
-            (timedelta64(1, "D"), 28266000000.0, 27543876297.171394),
+            (timedelta64(1, "D"), 28266000000.0, 27989441986.150745),
             (timedelta64(1, "D"), 500.0, 0.0),
             (timedelta64(1, "D"), 0.0, 0.0),
-            (timedelta64(3, "D"), 28266000000.0, 26099628891.514183),
+            (timedelta64(3, "D"), 28266000000.0, 27436325958.45224),
         ],
     )
     def test_metabolize(self, animal_cohort_instance, dt, initial_energy, final_energy):
