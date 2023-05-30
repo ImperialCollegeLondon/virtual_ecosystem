@@ -88,7 +88,7 @@ dummy_soil_data = Dataset(
 )
 ```
 
-```{code-cell} ipython3
+```python
 # Save the dummy soil data file as netcdf
 dummy_soil_data.to_netcdf("./dummy_soil_data.nc")
 ```
