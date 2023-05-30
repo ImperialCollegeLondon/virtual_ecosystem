@@ -13,20 +13,38 @@ from tests.conftest import log_check
 
 
 @pytest.fixture
-def moist_temp_scalars(dummy_carbon_data):
+def moist_temp_scalars(dummy_carbon_data, top_soil_layer_index):
     """Combined moisture and temperature scalars based on dummy carbon data."""
     from virtual_rainforest.models.soil.carbon import (
         convert_moisture_to_scalar,
         convert_temperature_to_scalar,
     )
 
-    moist_scalars = convert_moisture_to_scalar(dummy_carbon_data["soil_moisture"])
-    temp_scalars = convert_temperature_to_scalar(dummy_carbon_data["soil_temperature"])
+    moist_scalars = convert_moisture_to_scalar(
+        dummy_carbon_data["soil_moisture"][top_soil_layer_index]
+    )
+    temp_scalars = convert_temperature_to_scalar(
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+    )
 
     return moist_scalars * temp_scalars
 
 
-def test_calculate_soil_carbon_updates(dummy_carbon_data):
+def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
+    """Test that top soil data can be extracted from the data object correctly."""
+
+    top_soil_temps = [35.0, 37.5, 40.0, 25.0]
+    top_soil_moistures = [0.5, 0.7, 0.6, 0.2]
+
+    assert np.allclose(
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index], top_soil_temps
+    )
+    assert np.allclose(
+        dummy_carbon_data["soil_moisture"][top_soil_layer_index], top_soil_moistures
+    )
+
+
+def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     """Test that the two pool update functions work correctly."""
 
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
@@ -43,8 +61,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data):
         dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
-        dummy_carbon_data["soil_moisture"],
-        dummy_carbon_data["soil_temperature"],
+        dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         dummy_carbon_data["percent_clay"],
         {"soil_c_pool_lmwc": np.array([]), "soil_c_pool_maom": np.array([])},
     )
@@ -151,13 +169,15 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
     assert np.allclose(binding_coefs, output_coefs)
 
 
-def test_convert_temperature_to_scalar(dummy_carbon_data):
+def test_convert_temperature_to_scalar(dummy_carbon_data, top_soil_layer_index):
     """Test that scalar_temperature runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_temperature_to_scalar
 
     output_scalars = [1.27113, 1.27196, 1.27263, 1.26344]
 
-    temp_scalar = convert_temperature_to_scalar(dummy_carbon_data["soil_temperature"])
+    temp_scalar = convert_temperature_to_scalar(
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+    )
 
     assert np.allclose(temp_scalar, output_scalars)
 
@@ -181,7 +201,13 @@ def test_convert_temperature_to_scalar(dummy_carbon_data):
     ],
 )
 def test_convert_moisture_to_scalar(
-    caplog, dummy_carbon_data, alternative, output_scalars, raises, expected_log_entries
+    caplog,
+    dummy_carbon_data,
+    alternative,
+    output_scalars,
+    raises,
+    expected_log_entries,
+    top_soil_layer_index,
 ):
     """Test that scalar_moisture runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
@@ -194,7 +220,7 @@ def test_convert_moisture_to_scalar(
             )
         else:
             moist_scalar = convert_moisture_to_scalar(
-                dummy_carbon_data["soil_moisture"]
+                dummy_carbon_data["soil_moisture"][top_soil_layer_index]
             )
 
         assert np.allclose(moist_scalar, output_scalars)
@@ -228,13 +254,15 @@ def test_calculate_necromass_adsorption(dummy_carbon_data, moist_temp_scalars):
     assert np.allclose(actual_adsorps, expected_adsorps)
 
 
-def test_calculate_carbon_use_efficiency(dummy_carbon_data):
+def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index):
     """Check carbon use efficiency calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_carbon_use_efficiency
 
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
-    actual_cues = calculate_carbon_use_efficiency(dummy_carbon_data["soil_temperature"])
+    actual_cues = calculate_carbon_use_efficiency(
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+    )
 
     assert np.allclose(actual_cues, expected_cues)
 
@@ -252,7 +280,9 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     assert np.allclose(actual_saturated, expected_saturated)
 
 
-def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars):
+def test_calculate_microbial_carbon_uptake(
+    dummy_carbon_data, top_soil_layer_index, moist_temp_scalars
+):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
@@ -262,7 +292,7 @@ def test_calculate_microbial_carbon_uptake(dummy_carbon_data, moist_temp_scalars
         dummy_carbon_data["soil_c_pool_lmwc"],
         dummy_carbon_data["soil_c_pool_microbe"],
         moist_temp_scalars,
-        dummy_carbon_data["soil_temperature"],
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
