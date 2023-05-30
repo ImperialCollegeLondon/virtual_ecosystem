@@ -132,7 +132,7 @@ team.
   :maxdepth: 4
   :caption: Data recipes
 
-  Overview climate data <data_recipes/data_recipes.md>
+  Overview climate data <data_recipes/climate_data_recipes.md>
   Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
   Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
 ```
