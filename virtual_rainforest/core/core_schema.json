@@ -18,29 +18,29 @@
                      "description": "The area of each grid cell (m^2)",
                      "type": "number",
                      "exclusiveMinimum": 0,
-                     "default": 10000
+                     "default": 8100
                   },
                   "cell_nx": {
                      "description": "Number of grid cells in x direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
-                     "default": 100
+                     "default": 9
                   },
                   "cell_ny": {
                      "description": "Number of grid cells in y direction",
                      "type": "integer",
                      "exclusiveMinimum": 0,
-                     "default": 100
+                     "default": 9
                   },
                   "xoff": {
                      "description": "The x offset of the grid origin",
                      "type": "number",
-                     "default": 0
+                     "default": -45.0
                   },
                   "yoff": {
                      "description": "The y offset of the grid origin",
                      "type": "number",
-                     "default": 0
+                     "default": -45.0
                   }
                },
                "default": {},
@@ -54,7 +54,7 @@
                      "description": "Simulation start date",
                      "type": "string",
                      "format": "date",
-                     "default": "2015-01-01"
+                     "default": "2013-01-01"
                   },
                   "update_interval": {
                      "description": "Interval at which all models are updated",
@@ -64,7 +64,7 @@
                   "run_length": {
                      "description": "How long the simulation should be run for",
                      "type": "string",
-                     "default": "30 years"
+                     "default": "2 years"
                   }
                },
                "default": {},
@@ -81,7 +81,7 @@
                   "type": "string"
                },
                "default": [
-                  "plants",
+                  "abiotic_simple",
                   "soil"
                ],
                "uniqueItems": true
