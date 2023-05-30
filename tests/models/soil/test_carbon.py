@@ -30,6 +30,20 @@ def moist_temp_scalars(dummy_carbon_data, top_soil_layer_index):
     return moist_scalars * temp_scalars
 
 
+def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
+    """Test that top soil data can be extracted from the data object correctly."""
+
+    top_soil_temps = [35.0, 37.5, 40.0, 25.0]
+    top_soil_moistures = [0.5, 0.7, 0.6, 0.2]
+
+    assert np.allclose(
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index], top_soil_temps
+    )
+    assert np.allclose(
+        dummy_carbon_data["soil_moisture"][top_soil_layer_index], top_soil_moistures
+    )
+
+
 def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     """Test that the two pool update functions work correctly."""
 
