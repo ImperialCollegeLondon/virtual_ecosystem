@@ -62,5 +62,5 @@ plant_dummy
 
 ```{code-cell} ipython3
 # write to NetCDF
-xr.Dataset(plant_dummy).to_netcdf("/Users/vgroner/Desktop/virtual_rainforest_vg/plants_dummy.nc")
+xr.Dataset(plant_dummy).to_netcdf("./plants_dummy.nc")
 ```
