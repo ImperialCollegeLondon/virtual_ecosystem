@@ -16,7 +16,10 @@ kernelspec:
 
 # Necessary soil data for dummy module
 
-TODO - Add some text here talking about what data is necessary
+This section explains how to generate the data required to run the soil component of the
+dummy model. **It is important to note that none of this data is real data**. Instead,
+this data is a set of plausible values for which the soil model absolutely has to
+function sensibly for.
 
 TODO - Add some justification for values in each case (in doc strings)
 
