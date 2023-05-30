@@ -133,7 +133,7 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"]),
+            DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
             DataArray(np.full((1, 4), 0.1), dims=["layers", "cell_id"]),
         ],
         dim="layers",
@@ -143,7 +143,7 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"]),
+            DataArray([[35.0, 37.5, 40.0, 25.0]], dims=["dim_0", "cell_id"]),
             DataArray(np.full((1, 4), 22.5), dims=["dim_0", "cell_id"]),
         ],
         dim="dim_0",
