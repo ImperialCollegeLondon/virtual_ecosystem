@@ -138,6 +138,13 @@ def dummy_carbon_data(layer_roles_fixture):
         ],
         dim="layers",
     )
+    data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
+    )
     data["soil_temperature"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),

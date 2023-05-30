@@ -101,7 +101,7 @@ class SoilModel(BaseModel):
         # Find first soil layer from the soil temperature in data object
         self.top_soil_layer_index = next(
             i
-            for i, v in enumerate(data["soil_temperature"].coords["layer_roles"])
+            for i, v in enumerate(data["soil_moisture"].coords["layer_roles"])
             if v == "soil"
         )
         """The layer in the data object representing the first soil layer."""
