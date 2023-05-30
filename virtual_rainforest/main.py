@@ -212,6 +212,12 @@ def vr_run(
         "All models successfully configured, now attempting to initialise them."
     )
 
+    # Setup all models (those with placeholder setup processes won't change at all)
+    for mod_nm in models_cfd:
+        models_cfd[mod_nm].setup()
+
+    LOGGER.info("All models successfully set up, now attempting to run them.")
+
     # TODO - A model spin up might be needed here in future
 
     # Save the initial state of the model
