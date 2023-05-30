@@ -130,11 +130,11 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: Climate data pre-processing
+  :caption: Data recipes
 
-  Overview <data_recipes/data_recipes.md>
-  Download CORDEX data <data_recipes/CDS_toolbox_template.md>
-  Pre-processing ERA5 data <data_recipes/ERA5_preprocessing_example.md>
+  Overview climate data <data_recipes/data_recipes.md>
+  Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
+  Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
 ```
 
 ```{eval-rst}
