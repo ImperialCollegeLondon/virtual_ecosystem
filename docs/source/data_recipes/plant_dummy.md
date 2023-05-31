@@ -60,7 +60,7 @@ plant_dummy["leaf_area_index"] = DataArray(
 plant_dummy
 ```
 
-```{code-cell} ipython3
+```python
 # write to NetCDF
 xr.Dataset(plant_dummy).to_netcdf("./plants_dummy.nc")
 ```
