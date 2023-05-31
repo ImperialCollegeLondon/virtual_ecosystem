@@ -74,18 +74,23 @@ def generate_microbial_C_values(x: float, y: float) -> float:
     return 0.0015 + 0.0035 * (x * y) / (64)
 
 
-# Generate range of x and y values
-x_coords = range(0, 9)
-y_coords = range(0, 9)
+# Generate range of cell numbers in the a x and y directions. Here we have a 9x9 grid,
+# so cells are numbered from 0 to 8 in each direction.
+x_cell_ids = range(0, 9)
+y_cell_ids = range(0, 9)
 
 # Make matrices containing all the relevant values
-pH_values = [[generate_pH_values(x, y) for y in y_coords] for x in x_coords]
-bulk_density_values = [[generate_BD_values(x, y) for y in y_coords] for x in x_coords]
-percent_clay_values = [[generate_clay_values(x, y) for y in y_coords] for x in x_coords]
-lmwc_values = [[generate_lmwc_values(x, y) for y in y_coords] for x in x_coords]
-maom_values = [[generate_maom_values(x, y) for y in y_coords] for x in x_coords]
+pH_values = [[generate_pH_values(x, y) for y in y_cell_ids] for x in x_cell_ids]
+bulk_density_values = [
+    [generate_BD_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
+percent_clay_values = [
+    [generate_clay_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
+lmwc_values = [[generate_lmwc_values(x, y) for y in y_cell_ids] for x in x_cell_ids]
+maom_values = [[generate_maom_values(x, y) for y in y_cell_ids] for x in x_cell_ids]
 microbial_C_values = [
-    [generate_microbial_C_values(x, y) for y in y_coords] for x in x_coords
+    [generate_microbial_C_values(x, y) for y in y_cell_ids] for x in x_cell_ids
 ]
 
 # List of displacements (applies to both x and y)
