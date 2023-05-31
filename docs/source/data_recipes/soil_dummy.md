@@ -107,6 +107,7 @@ dummy_soil_data = Dataset(
     ),
     attrs=dict(description="Soil data for dummy Virtual Rainforest model."),
 )
+dummy_soil_data
 ```
 
 ```python
