@@ -21,38 +21,56 @@ dummy model. **It is important to note that none of this data is real data**. In
 this data is a set of plausible values for which the soil model absolutely has to
 function sensibly for.
 
-TODO - Add some justification for values in each case (in doc strings)
-
 ```{code-cell} ipython3
 from xarray import Dataset
 
 def generate_pH_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of pH values."""
+    """Function to generate a reasonable range of pH values.
+    
+    We're looking at acidic soils so a range of 3.5-4.5 seems plausible.
+    """
     return 3.5 + (x * y) / (64)
 
 
 def generate_BD_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of bulk density values."""
-    return 1200.0 + 600 * (x * y) / (64)
+    """Function to generate a reasonable range of bulk density values.
+    
+    Bulk density can vary quite a lot so a range of 1200-1800 kg m^-3 seems sensible.
+    """
+    return 1200.0 + 600.0 * (x * y) / (64)
 
 
 def generate_clay_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of clay content values."""
+    """Function to generate a reasonable range of clay content values.
+    
+    We're considering fairly clayey soils, so look at a range of 27.0-40.0 % clay.
+    """
     return 27.0 + 13.0 * (x * y) / (64)
 
 
 def generate_lmwc_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of lmwc values."""
+    """Function to generate a reasonable range of lmwc values.
+    
+    LMWC generally a very small carbon pool, so a range of 0.005-0.01 kg C m^-3 is used.
+    """
     return 0.005 + 0.005 * (x * y) / (64)
 
 
 def generate_maom_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of maom values."""
+    """Function to generate a reasonable range of maom values.
+    
+    A huge amount of carbon can be locked away as MAOM, so a range of 1.0-3.0 kg C m^-3
+    is used.
+    """
     return 1.0 + 2.0 * (x * y) / (64)
 
 
 def generate_microbial_C_values(x: float, y: float) -> float:
-    """Function to generate a reasonable range of microbial C values."""
+    """Function to generate a reasonable range of microbial C values.
+    
+    The carbon locked up as microbial biomass is tiny, so a range of 0.0015-0.005
+    kg C m^-3 is used.
+    """
     return 0.0015 + 0.0035 * (x * y) / (64)
 
 
