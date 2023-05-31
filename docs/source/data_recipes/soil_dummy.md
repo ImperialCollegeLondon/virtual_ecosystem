@@ -93,8 +93,10 @@ microbial_C_values = [
     [generate_microbial_C_values(x, y) for y in y_cell_ids] for x in x_cell_ids
 ]
 
-# List of displacements (applies to both x and y)
-disps = [0, 90, 180, 270, 360, 450, 540, 630, 720]
+# How far the center of each cell is from the origin. This applies to both the x and y
+# direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
+# from the origin in the x direction and 270m in the y direction.
+cell_displacements = [0, 90, 180, 270, 360, 450, 540, 630, 720]
 
 # Make dummy soil dataset
 dummy_soil_data = Dataset(
@@ -107,8 +109,8 @@ dummy_soil_data = Dataset(
         soil_c_pool_microbe=(["x", "y"], microbial_C_values),
     ),
     coords=dict(
-        x=(["x"], disps),
-        y=(["y"], disps),
+        x=(["x"], cell_displacements),
+        y=(["y"], cell_displacements),
     ),
     attrs=dict(description="Soil data for dummy Virtual Rainforest model."),
 )
