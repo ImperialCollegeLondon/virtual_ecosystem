@@ -117,7 +117,7 @@ Data configurations must not contain repeated data variable names.
 """  # noqa: D205, D415
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 from xarray import DataArray, Dataset
@@ -341,6 +341,24 @@ class Data:
 
         # If the file path is okay then write the model state out as a NetCDF
         self.data.to_netcdf(output_file_path)
+
+    def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
+        """Update data object from dictionary of variables.
+
+        This function takes a dictionary of updated variables to replace the
+        corresponding variables in the data object. If a variable is not in data, it is
+        added. This will need to be reassessed as the model evolves; TODO we might want
+        to split the function in strict 'replace' and 'add' functionalities.
+
+        Args:
+            output_dict: dictionary of variables from submodule
+
+        Returns:
+            an updated data object for the current time step
+        """
+
+        for variable in output_dict:
+            self.data[variable] = output_dict[variable]
 
 
 class DataGenerator:

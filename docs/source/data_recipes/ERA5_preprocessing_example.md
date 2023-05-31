@@ -173,7 +173,7 @@ Once we confirmed that our dataset is complete and our calculations are correct,
 it as a new netcdf file. This can then be fed into the code data loading system here
 {mod}`~virtual_rainforest.core.data`.
 
-```{code-block} ipython3
+```python
 dataset_xy_timeindex.to_netcdf("./ERA5_land_dummy.nc")
 ```
 

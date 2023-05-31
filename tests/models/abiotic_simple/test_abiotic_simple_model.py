@@ -56,7 +56,7 @@ def test_set_layer_roles():
                 ),
                 (
                     DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
                 ),
                 (
                     DEBUG,
@@ -238,7 +238,7 @@ def test_abiotic_simple_model_initialization(
                 ),
                 (
                     DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2' checked",
+                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
                 ),
                 (
                     DEBUG,
@@ -278,85 +278,114 @@ def test_generate_abiotic_simple_model(
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
 
-        # TODO Setup and update has to wait for simple_regression.py
-        # model.setup()
-        # xr.testing.assert_allclose(
-        #     dummy_climate_data["air_temperature"],
-        #     xr.DataArray(
-        #         np.full((15, 3), np.nan),
-        #         dims=["layers", "cell_id"],
-        #         coords={
-        #             "layers": np.arange(0, 15),
-        #             "layer_roles": (
-        #                 "layers",
-        #                 model.layer_roles_fixture,
-        #             ),
-        #             "cell_id": [0, 1, 2],
-        #         },
-        #         name="air_temperature",
-        #     ),
-        # )
-        # # Run the update step
-        # model.update()
-
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
 
-def test_update_data_object(dummy_climate_data):
-    """Test reading from dictionary."""
+@pytest.mark.parametrize(
+    "config,time_interval",
+    [
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 week",
+                    }
+                },
+                "abiotic_simple": {
+                    "soil_layers": 2,
+                    "canopy_layers": 10,
+                    "initial_soil_moisture": 50.0,
+                },
+            },
+            pint.Quantity("1 week"),
+        )
+    ],
+)
+def test_setup(
+    dummy_climate_data,
+    config,
+    layer_roles_fixture,
+    time_interval,
+):
+    """Test set up and update."""
 
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        update_data_object,
+    # initialise model
+    model = AbioticSimpleModel.from_config(
+        dummy_climate_data,
+        config,
+        pint.Quantity(config["core"]["timing"]["update_interval"]),
+    )
+    assert model.layer_roles == layer_roles_fixture
+    assert model.update_interval == time_interval
+
+    model.setup()
+
+    soil_moisture_values = np.repeat(a=[np.nan, 50], repeats=[13, 2])
+
+    xr.testing.assert_allclose(
+        dummy_climate_data["soil_moisture"],
+        DataArray(
+            np.broadcast_to(soil_moisture_values, (3, 15)).T,
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": [0, 1, 2],
+            },
+            name="soil_moisture",
+        ),
     )
 
-    var_dict = {
-        "air_temperature": DataArray(
-            np.full((3, 3), 20),
+    xr.testing.assert_allclose(
+        dummy_climate_data["vapour_pressure_deficit_ref"],
+        DataArray(
+            np.full((3, 3), 0.141727),
             dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature_ref"].coords,
-            name="air_temperature_ref",
+            coords={
+                "cell_id": [0, 1, 2],
+            },
         ),
-        "mean_annual_temperature": DataArray(
-            np.full((3), 40),
-            dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="mean_annual_temperature",
-        ),
-        "new_variable": DataArray(
-            np.full((3), 100),
-            dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
-        ),
-    }
+    )
 
-    update_data_object(dummy_climate_data, var_dict)
+    # Run the update step
+    model.update()
 
-    xr.testing.assert_allclose(
-        dummy_climate_data["air_temperature"],
-        DataArray(
-            np.full((3, 3), 20),
-            dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature"].coords,
-            name="air_temperature",
-        ),
+    exp_temperature = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.91965, 29.91965, 29.91965],
+                    [29.414851, 29.414851, 29.414851],
+                    [28.551891, 28.551891, 28.551891],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [26.19, 26.19, 26.19],
+                    [22.81851, 22.81851, 22.81851],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": (
+                "layers",
+                model.layer_roles,
+            ),
+            "cell_id": [0, 1, 2],
+        },
     )
-    xr.testing.assert_allclose(
-        dummy_climate_data["mean_annual_temperature"],
-        DataArray(
-            np.full((3), 40),
-            dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="mean_annual_temperature",
-        ),
-    )
-    xr.testing.assert_allclose(
-        dummy_climate_data["new_variable"],
-        DataArray(
-            np.full((3), 100),
-            dims=["cell_id"],
-            coords=dummy_climate_data["mean_annual_temperature"].coords,
-            name="new_variable",
-        ),
-    )
+
+    xr.testing.assert_allclose(dummy_climate_data["air_temperature"], exp_temperature)
+
+    # test that time_index was updated
+    assert model.time_index == 1

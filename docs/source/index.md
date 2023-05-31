@@ -95,6 +95,7 @@ team.
   Soil Constants <api/soil/constants.md>
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
+  Abiotic Simple Regression <api/abiotic_simple/simple_regression.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
   Abiotic Tools <api/abiotic/abiotic_tools.md>
@@ -129,11 +130,13 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: Climate data pre-processing
+  :caption: Data recipes
 
-  Overview <data_recipes/data_recipes.md>
-  Download CORDEX data <data_recipes/CDS_toolbox_template.md>
-  Pre-processing ERA5 data <data_recipes/ERA5_preprocessing_example.md>
+  Overview climate data <data_recipes/climate_data_recipes.md>
+  Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
+  Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
+  Create dummy soil data <data_recipes/soil_dummy.md>
+  Create dummy plant data <data_recipes/plant_dummy.md>
 ```
 
 ```{eval-rst}

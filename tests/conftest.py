@@ -103,7 +103,7 @@ def data_instance():
 
 
 @pytest.fixture
-def dummy_carbon_data():
+def dummy_carbon_data(layer_roles_fixture):
     """Creates a dummy carbon data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
@@ -113,10 +113,10 @@ def dummy_carbon_data():
     grid = Grid(cell_nx=4, cell_ny=1)
     data = Data(grid)
 
-    # The required data is now added. This includes the two carbon pools: mineral
-    # associated organic matter and low molecular weight carbon. It also includes
-    # various factors of the physical environment: pH, bulk density, soil moisture, soil
-    # temperature, percentage clay in soil.
+    # The required data is now added. This includes the three carbon pools: mineral
+    # associated organic matter, low molecular weight carbon, and microbial carbon. It
+    # also includes various factors of the physical environment: pH, bulk density, soil
+    # moisture, soil temperature, percentage clay in soil.
     data["soil_c_pool_lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["soil_c_pool_maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
@@ -125,11 +125,55 @@ def dummy_carbon_data():
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
-    data["soil_moisture"] = DataArray([0.5, 0.7, 0.6, 0.2], dims=["cell_id"])
-    data["soil_temperature"] = DataArray([35.0, 37.5, 40.0, 25.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
 
+    # The layer dependant data has to be handled separately
+    data["soil_moisture"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), 0.1), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
+    data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+    data["soil_temperature"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[35.0, 37.5, 40.0, 25.0]], dims=["dim_0", "cell_id"]),
+            DataArray(np.full((1, 4), 22.5), dims=["dim_0", "cell_id"]),
+        ],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
     return data
+
+
+@pytest.fixture
+def top_soil_layer_index(layer_roles_fixture):
+    """The index of the top soil layer in the data fixtures."""
+    return next(i for i, v in enumerate(layer_roles_fixture) if v == "soil")
 
 
 @pytest.fixture
@@ -205,50 +249,44 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 90),
         dims=["cell_id", "time"],
     )
+    data["vapour_pressure_deficit_ref"] = DataArray(
+        np.full((3, 3), 0.14),
+        dims=["cell_id", "time"],
+    )
     data["atmospheric_pressure_ref"] = DataArray(
         np.full((3, 3), 1.5),
         dims=["cell_id", "time"],
     )
-    data["atmospheric_co2"] = DataArray(
+    data["atmospheric_co2_ref"] = DataArray(
         np.full((3, 3), 400),
         dims=["cell_id", "time"],
     )
 
-    data["leaf_area_index"] = xr.concat(
-        [DataArray(np.full((1, 3), 3)), DataArray(np.full((14, 3), np.nan))],
-        dim="dim_0",
-    )
-    data["leaf_area_index"] = (
-        data["leaf_area_index"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
+    data["leaf_area_index"] = DataArray(
+        np.broadcast_to(leaf_area_index, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        },
+        name="leaf_area_index",
     )
 
-    data["layer_heights"] = xr.concat(
-        [
-            DataArray([[32, 32, 32], [30, 30, 30], [20, 20, 20], [10, 10, 10]]),
-            DataArray(np.full((7, 3), np.nan)),
-            DataArray([[1.5, 1.5, 1.5], [0.1, 0.1, 0.1]]),
-            DataArray([[-0.1, -0.1, -0.1], [-1, -1, -1]]),
-        ],
-        dim="dim_0",
+    layer_heights = np.repeat(
+        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
     )
-    data["layer_heights"] = (
-        data["layer_heights"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    data["layer_heights"] = DataArray(
+        np.broadcast_to(layer_heights, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        },
+        name="layer_heights",
     )
 
     data["precipitation"] = DataArray(
@@ -256,16 +294,24 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["soil_moisture"] = xr.concat(
         [
-            DataArray(
-                np.full((13, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(
-                np.full((2, 3), 20),
-                dims=["layers", "cell_id"],
-            ),
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(np.full((2, 3), 20), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
-
+    data["soil_temperature"] = xr.concat(
+        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
     return data
