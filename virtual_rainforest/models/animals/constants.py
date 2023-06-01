@@ -12,20 +12,21 @@ avoid frequent searches through this constants file for values.
 
 ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (0.75, 0.018),
-    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [g]
+    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
     "bird": (0.75, 0.05),
     # Toy values.
 }
 
 ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
     "insect": (0.75, 0.08)
-    # Insect metabolic rate scaling from Metabolic Ecology p210. [g]
+    # Insect metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
 }
 
 DAMUTHS_LAW_TERMS: dict[str, dict[str, tuple[float, float]]] = {
     "mammal": {
         "herbivore": (-0.75, 4.23),
-        # Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]
+        # Mammalian herbivore population density, observed allometry (Damuth 1987).
+        # [assumes kg mass]
         "carnivore": (-0.75, 1.00),
         # Toy values.
     },
@@ -45,7 +46,7 @@ DAMUTHS_LAW_TERMS: dict[str, dict[str, tuple[float, float]]] = {
 
 FAT_MASS_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (1.19, 0.02),
-    # Scaling of mammalian herbivore fat mass (citation from Rallings). [g]
+    # Scaling of mammalian herbivore fat mass (citation from Rallings). [assumes g mass]
     "bird": (1.19, 0.05),
     # Toy Values
     "insect": (1.19, 0.05),
@@ -54,7 +55,8 @@ FAT_MASS_TERMS: dict[str, tuple[float, float]] = {
 
 MUSCLE_MASS_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (1.0, 0.38),
-    # Scaling of mammalian herbivore muscle mass (citation from Rallings).[g]
+    # Scaling of mammalian herbivore muscle mass (citation from Rallings).
+    # [assumes g mass]
     "bird": (1.0, 0.40),
     # Toy Values
     "insect": (1.0, 0.40),
@@ -63,7 +65,7 @@ MUSCLE_MASS_TERMS: dict[str, tuple[float, float]] = {
 
 INTAKE_RATE_TERMS: dict[str, tuple[float, float]] = {
     "mammal": (0.71, 0.63),
-    # Mammalian maximum intake rate (g/min) from (Shipley 1994).
+    # Mammalian maximum intake rate (g/min) from (Shipley 1994). [assumes kg mass]
     "bird": (0.7, 0.50),
     # Toy Values
     "insect": (0.7, 0.50),
