@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.models.animal.animal_model` module creates a
-:class:`~virtual_rainforest.models.animal.animal_model.AnimalModel` class as a
-child of the :class:`~virtual_rainforest.core.model.BaseModel` class.
+"""The :mod:`~virtual_rainforest.models.animals.animal_model` module creates a
+:class:`~virtual_rainforest.models.animals.animal_model.AnimalModel` class as a
+child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.model.BaseModel.setup` and
-:func:`~virtual_rainforest.core.model.BaseModel.spinup`) are overwritten using
+:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
+:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
-:mod:`virtual_rainforest` model develops. The factory method
-:func:`~virtual_rainforest.models.animal.animal_model.AnimalModel.from_config`
+Virtual Rainforest model develops. The factory method
+:func:`~virtual_rainforest.models.animals.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
 from our currently pretty minimal configuration dictionary. These parameters are
 then used to generate a class instance. If errors crop up here when converting the

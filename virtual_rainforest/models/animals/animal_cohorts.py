@@ -1,4 +1,4 @@
-"""The ''animal'' module provides animal module functionality.
+"""The ''animals'' module provides animal module functionality.
 
 Todo:
 - send portion of dead to carcass pool

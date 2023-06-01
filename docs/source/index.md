@@ -103,7 +103,7 @@ team.
   Abiotic Wind <api/abiotic/wind.md>
   Abiotic Atmospheric CO2 <api/abiotic/atmospheric_co2.md>
   Animal Overview <api/animals>
-  Animal Model <api/animals/animal_communities.md> 
+  Animal Model <api/animals/animal_model.md> 
   Animal Communities <api/animals/animal_communities.md> 
   Animal Cohorts <api/animals/animal_cohorts.md> 
   Animal Functional Groups <api/animals/functional_group.md> 
