@@ -655,12 +655,14 @@ def test_on_core_axis(
 
 
 @pytest.mark.parametrize(
-    argnames=["out_path", "raises", "exp_log"],
+    argnames=["out_path", "raises", "save_specific", "exp_log"],
     argvalues=[
-        ("./initial.nc", does_not_raise(), ()),
+        ("./initial.nc", does_not_raise(), False, ()),
+        ("./initial.nc", does_not_raise(), True, ()),
         (
             "bad_folder/initial.nc",
             pytest.raises(ConfigurationError),
+            "",
             (
                 (
                     CRITICAL,
@@ -671,6 +673,7 @@ def test_on_core_axis(
         (
             "pyproject.toml/initial.nc",
             pytest.raises(ConfigurationError),
+            False,
             (
                 (
                     CRITICAL,
@@ -682,6 +685,7 @@ def test_on_core_axis(
         (
             "./final.nc",
             pytest.raises(ConfigurationError),
+            False,
             (
                 (
                     CRITICAL,
@@ -693,7 +697,9 @@ def test_on_core_axis(
         ),
     ],
 )
-def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log):
+def test_save_to_netcdf(
+    mocker, caplog, dummy_carbon_data, out_path, save_specific, raises, exp_log
+):
     """Test that data object can save as NetCDF."""
 
     # Configure the mock to return a specific list of files
@@ -702,9 +708,25 @@ def test_save_to_netcdf(mocker, caplog, fixture_data, out_path, raises, exp_log)
         mock_content.return_value = True
 
     with raises:
-        fixture_data.save_to_netcdf(Path(out_path))
-        # Remove generated output file, as a bonus this  tests that output file was
-        # generated correctly + to the right location
+        if save_specific:
+            dummy_carbon_data.save_to_netcdf(
+                Path(out_path), variables_to_save=["soil_c_pool_lmwc"]
+            )
+        else:
+            dummy_carbon_data.save_to_netcdf(Path(out_path))
+
+        # Load in netcdf data to check the contents
+        saved_data = xr.open_dataset(Path(out_path))
+
+        # Then check that expected keys are in it
+        if save_specific:
+            assert "soil_c_pool_lmwc" in saved_data
+            assert "soil_c_pool_maom" not in saved_data
+        else:
+            assert "soil_c_pool_lmwc" in saved_data
+            assert "soil_c_pool_maom" in saved_data
+
+        # Remove generated output file
         Path(out_path).unlink()
 
     log_check(caplog, exp_log)
