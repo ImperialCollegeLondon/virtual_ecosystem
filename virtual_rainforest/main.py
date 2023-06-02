@@ -171,8 +171,21 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
-def output_current_state() -> None:
-    """TODO - Give this function a proper docstring."""
+# TODO - Add tests for this
+# Particularly important to test that time data doesn't get saved over and over
+def output_current_state(
+    data: Data, data_options: dict[str, Any], new_file: bool = False
+) -> None:
+    """Function to output the current state of the data object.
+
+    TODO - Give further details of what this does
+
+    Args:
+        data: Data object to output current state of
+        data_options: Set of options concerning what to output and where
+        new_file: Whether or not to generate a new file, rather than appending to an
+            existing one
+    """
 
 
 def vr_run(
@@ -233,7 +246,7 @@ def vr_run(
     # TODO - Create data file to save to
     # Should this contain the relevant initial state? Probably
     if config["core"]["data_output_options"]["save_continuous_data"]:
-        output_current_state()
+        output_current_state(data, config["core"]["data_output_options"], new_file=True)
 
     # Setup the timing loop
     while current_time < end_time:
@@ -245,7 +258,7 @@ def vr_run(
 
         # TODO - Append data here
         if config["core"]["data_output_options"]["save_continuous_data"]:
-            output_current_state()
+            output_current_state(data, config["core"]["data_output_options"])
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
