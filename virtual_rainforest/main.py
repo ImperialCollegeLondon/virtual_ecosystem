@@ -16,7 +16,6 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_outfile
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -188,7 +187,9 @@ def output_current_state(
             existing one
 
     Raises:
-        ConfigurationError: If the file to append to is missing
+        ConfigurationError: If the final output directory doesn't exist, isn't a
+           directory, or the final output file already exists (when in new file mode).
+           If the file to append to is missing (when not in new file mode).
     """
 
     # TODO - Actually find variables to save
@@ -196,11 +197,9 @@ def output_current_state(
 
     # First decide whether to generate a new file or append to an existing one
     if new_file:
-        # Check that file path is valid, and that there isn't already output there
-        check_outfile(Path(data_options["out_path_continuous"]))
-        # If the file path is okay then save relevant model variables as NetCDF
-        data.data[variables_to_save].to_netcdf(
-            Path(data_options["out_path_continuous"])
+        # Save the required variables (as a new file)
+        data.save_to_netcdf(
+            Path(data_options["out_path_continuous"]), variables_to_save
         )
     else:
         # Check that the file to append to exists

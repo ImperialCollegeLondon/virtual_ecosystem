@@ -328,19 +328,28 @@ class Data:
         if not clean_load:
             raise ConfigurationError("Data configuration did not load cleanly")
 
-    def save_to_netcdf(self, output_file_path: Path) -> None:
+    # TODO - Add extra tests for this function as it has changed
+    def save_to_netcdf(
+        self, output_file_path: Path, variables_to_save: Optional[list[str]] = None
+    ) -> None:
         """Save the entire contents of the data object as a NetCDF file.
 
         Args:
             output_file_path: Path location to save the Virtual Rainforest model state.
+            variables_to_save: List of variables to be saved. If not provided then all
+                variables are saved.
         """
 
         # Check that the folder to save to exists and that there isn't already a file
         # saved there
         check_outfile(output_file_path)
 
-        # If the file path is okay then write the model state out as a NetCDF
-        self.data.to_netcdf(output_file_path)
+        # If the file path is okay then write the model state out as a NetCDF. Should
+        # check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            self.data[variables_to_save].to_netcdf(output_file_path)
+        else:
+            self.data.to_netcdf(output_file_path)
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
