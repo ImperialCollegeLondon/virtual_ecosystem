@@ -185,9 +185,30 @@ def output_current_state(
         data_options: Set of options concerning what to output and where
         new_file: Whether or not to generate a new file, rather than appending to an
             existing one
+
+    Raises:
+        ConfigurationError: If the file to append to is missing
     """
 
     # TODO - Work out the actual content for this function
+    # First decide whether to generate a new file or append to an existing one
+    if new_file:
+        # TODO - Change this to only save non-continuous initial variables
+        data.save_to_netcdf(Path(data_options["out_path_continuous"]))
+    else:
+        # Check that the file to append to exists
+        if not Path(data_options["out_path_continuous"]).exists():
+            to_raise = ConfigurationError(
+                f"The continuous data file ({data_options['out_path_continuous']}) "
+                f"doesn't exist to be appended to!"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        # TODO - Change this so it appends rather than writes
+        # TODO - Change this to only save non-continuous initial variables
+        # If the file path is okay then write the model state out as a NetCDF
+        data.data.to_netcdf(Path(data_options["out_path_continuous"]))
 
 
 def vr_run(
