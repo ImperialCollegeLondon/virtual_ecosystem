@@ -657,8 +657,7 @@ def test_on_core_axis(
 @pytest.mark.parametrize(
     argnames=["out_path", "raises", "save_specific", "exp_log"],
     argvalues=[
-        # TODO - Uncomment the below test once I've worked out what's going on
-        # ("./initial.nc", does_not_raise(), False, ()),
+        ("./initial.nc", does_not_raise(), False, ()),
         ("./initial.nc", does_not_raise(), True, ()),
         (
             "bad_folder/initial.nc",
@@ -726,6 +725,9 @@ def test_save_to_netcdf(
         else:
             assert "soil_c_pool_lmwc" in saved_data
             assert "soil_c_pool_maom" in saved_data
+
+        # Close the dataset (otherwise windows has a problem)
+        saved_data.close()
 
         # Remove generated output file
         Path(out_path).unlink()
