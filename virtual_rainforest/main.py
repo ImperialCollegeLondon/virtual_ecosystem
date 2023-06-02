@@ -16,6 +16,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import check_outfile
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -190,11 +191,17 @@ def output_current_state(
         ConfigurationError: If the file to append to is missing
     """
 
-    # TODO - Work out the actual content for this function
+    # TODO - Actually find variables to save
+    variables_to_save = [""]
+
     # First decide whether to generate a new file or append to an existing one
     if new_file:
-        # TODO - Change this to only save non-continuous initial variables
-        data.save_to_netcdf(Path(data_options["out_path_continuous"]))
+        # Check that file path is valid, and that there isn't already output there
+        check_outfile(Path(data_options["out_path_continuous"]))
+        # If the file path is okay then save relevant model variables as NetCDF
+        data.data[variables_to_save].to_netcdf(
+            Path(data_options["out_path_continuous"])
+        )
     else:
         # Check that the file to append to exists
         if not Path(data_options["out_path_continuous"]).exists():
@@ -205,10 +212,12 @@ def output_current_state(
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # TODO - Change this so it appends rather than writes
-        # TODO - Change this to only save non-continuous initial variables
-        # If the file path is okay then write the model state out as a NetCDF
-        data.data.to_netcdf(Path(data_options["out_path_continuous"]))
+        # TODO - to_netcdf(mode="a") doesn't actually work, need to think of an
+        # alternative
+        # If the file path is okay then appends the model state to existing NetCDF file
+        data.data[variables_to_save].to_netcdf(
+            Path(data_options["out_path_continuous"]), mode="a"
+        )
 
 
 def vr_run(
