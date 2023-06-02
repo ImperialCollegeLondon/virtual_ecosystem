@@ -171,6 +171,10 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
+def output_current_state() -> None:
+    """TODO - Give this function a proper docstring."""
+
+
 def vr_run(
     cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
 ) -> None:
@@ -226,6 +230,11 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
+    # TODO - Create data file to save to
+    # Should this contain the relevant initial state? Probably
+    if config["core"]["data_output_options"]["save_continuous_data"]:
+        output_current_state()
+
     # Setup the timing loop
     while current_time < end_time:
         current_time += update_interval
@@ -233,6 +242,10 @@ def vr_run(
         # Run update() method for every model
         for mod_nm in models_cfd:
             models_cfd[mod_nm].update()
+
+        # TODO - Append data here
+        if config["core"]["data_output_options"]["save_continuous_data"]:
+            output_current_state()
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:

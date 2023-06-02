@@ -122,6 +122,11 @@
                      "type": "boolean",
                      "default": false
                   },
+                  "save_continuous_data": {
+                     "description": "Whether continuous data should be saved",
+                     "type": "boolean",
+                     "default": true
+                  },
                   "save_final_state": {
                      "description": "Whether the final state should be saved",
                      "type": "boolean",
