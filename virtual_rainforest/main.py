@@ -187,6 +187,8 @@ def output_current_state(
             existing one
     """
 
+    # TODO - Work out the actual content for this function
+
 
 def vr_run(
     cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
@@ -243,8 +245,8 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
-    # TODO - Create data file to save to
-    # Should this contain the relevant initial state? Probably
+    # Make file and save time = 0 data to it. This is different to the initial state as
+    # it only contains variables we update with time (i.e. not the input climate data)
     if config["core"]["data_output_options"]["save_continuous_data"]:
         output_current_state(data, config["core"]["data_output_options"], new_file=True)
 
@@ -256,7 +258,7 @@ def vr_run(
         for mod_nm in models_cfd:
             models_cfd[mod_nm].update()
 
-        # TODO - Append data here
+        # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:
             output_current_state(data, config["core"]["data_output_options"])
 
