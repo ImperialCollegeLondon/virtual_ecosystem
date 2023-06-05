@@ -44,15 +44,11 @@ class AnimalCohort:
         mass: float,
         age: float,
     ) -> None:
-        if not isinstance(functional_group, FunctionalGroup):
-            raise TypeError("functional_group must be an instance of FunctionalGroup.")
-        """Check if functional_group is an instance of FunctionalGroup."""
-
-        if not isinstance(age, (int, float)) or age < 0:
+        if age < 0:
             raise ValueError("Age must be a positive number.")
         """Check if age is a positive number. """
 
-        if not isinstance(mass, (int, float)) or mass < 0:
+        if mass < 0:
             raise ValueError("Mass must be a positive number.")
         """Check if mass is a positive number."""
 
@@ -99,13 +95,9 @@ class AnimalCohort:
 
         """
 
-        if not isinstance(dt, timedelta64):
-            raise TypeError("dt should be a numpy timedelta64 instance.")
         if dt < timedelta64(0, "D"):
             raise ValueError("dt cannot be negative.")
 
-        if not isinstance(self.stored_energy, (int, float)):
-            raise TypeError("stored_energy should be numeric.")
         if self.stored_energy < 0:
             raise ValueError("stored_energy cannot be negative.")
 

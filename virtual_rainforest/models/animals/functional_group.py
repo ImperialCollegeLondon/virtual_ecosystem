@@ -3,8 +3,6 @@ constants and rate equations used by AnimalCohorts in the
 :mod:`~virtual_rainforest.models.animals` module.
 """  # noqa: D205, D415
 
-import csv
-
 from virtual_rainforest.models.animals.constants import (
     CONVERSION_EFFICIENCY,
     DAMUTHS_LAW_TERMS,
@@ -74,7 +72,7 @@ class FunctionalGroup:
         """The conversion efficiency of the functional group based on diet."""
 
 
-def import_functional_groups(fg_file: str) -> list[FunctionalGroup]:
+def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 
     This function is a first-pass of how we might import pre-defined functional groups.
@@ -95,32 +93,19 @@ def import_functional_groups(fg_file: str) -> list[FunctionalGroup]:
     """
     functional_group_list: list[FunctionalGroup] = []
 
-    with open(fg_file, newline="") as csv_file:
-        reader = csv.reader(csv_file)
-        header = next(reader, None)  # get the header
+    import pandas as pd
 
-        # Check that the header has the expected columns
-        expected_header = ["name", "taxa", "diet", "metabolic_type"]
-        if header != expected_header:
-            raise ValueError(
-                f"Invalid header. Expected {expected_header}, but got {header}"
-            )
+    fg = pd.read_csv(fg_csv_file)
 
-        for row in reader:
-            # Check that the row has the correct number of values
-            # This is important to ensure each value can be properly assigned
-            # to name, taxa, diet, and metabolic_type when unpacking the row
-            if len(row) != len(expected_header):
-                raise ValueError(
-                    f"Invalid row: {row}. Expected {len(expected_header)} values."
-                )
+    expected_header = ["name", "taxa", "diet", "metabolic_type"]
+    if not set(expected_header).issubset(fg.columns):
+        raise ValueError(
+            f"Invalid header. Expected at least {expected_header}, but got {fg.columns}"
+        )
 
-            name, taxa, diet, metabolic_type = row
-            # create the FG instance and append it to the list
-            # It's expected that the FunctionalGroup __init__ method
-            # will handle further error checking for the values
-            functional_group_list.append(
-                FunctionalGroup(name, taxa, diet, metabolic_type)
-            )
+    functional_group_list = [
+        FunctionalGroup(row.name, row.taxa, row.diet, row.metabolic_type)
+        for row in fg.itertuples()
+    ]
 
     return functional_group_list

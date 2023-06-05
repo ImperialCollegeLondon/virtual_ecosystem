@@ -81,11 +81,8 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "functional_group, mass, age, error_type",
         [
-            (lambda fg: "Not a FunctionalGroup", 1000.0, 1.0, TypeError),
             (lambda fg: fg, -1000.0, 1.0, ValueError),
-            (lambda fg: fg, "Not a number", 1.0, ValueError),
             (lambda fg: fg, 1000.0, -1.0, ValueError),
-            (lambda fg: fg, 1000.0, "Not a number", ValueError),
         ],
     )
     def test_invalid_animal_cohort_initialization(
@@ -115,9 +112,7 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "dt, initial_energy, error_type",
         [
-            (-1, 28266000000.0, TypeError),
-            ("1", 28266000000.0, TypeError),
-            (timedelta64(1, "D"), "500.0", TypeError),
+            (-1, 28266000000.0, ValueError),
             (timedelta64(1, "D"), -100.0, ValueError),
         ],
     )
