@@ -119,6 +119,7 @@ Data configurations must not contain repeated data variable names.
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import netCDF4
 import numpy as np
 from xarray import DataArray, Dataset
 
@@ -352,6 +353,50 @@ class Data:
             self.data[variables_to_save].to_netcdf(output_file_path)
         else:
             self.data.to_netcdf(output_file_path)
+
+    def append_to_netcdf(
+        self, output_file_path: Path, variables_to_save: list[str]
+    ) -> None:
+        """Append specific variables from the data object to an existing NetCDF file.
+
+        At present, this function appends data for each time step individually. In
+        future, this function might be altered to append multiple time steps at once, as
+        this could improve performance significantly.
+
+        Args:
+            output_file_path: Path location to existing NetCDF file. variables_to_save:
+            List of variables to append to the file
+
+        Raises:
+            ConfigurationError: If the file to append to can't be found
+        """
+
+        # Check that the file to append to exists
+        if not Path(output_file_path).exists():
+            to_raise = ConfigurationError(
+                f"The continuous data file ({output_file_path}) doesn't exist to be "
+                "appended to!"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        # Open the existing NetCDF file in "append" mode
+        nc_file = netCDF4.Dataset("existing_file.nc", mode="a")
+
+        # TODO - Need to work out how to handle time dimensions here!
+        # I'm quite sceptical of this honestly
+        time_dim = nc_file.dimensions["time"]
+
+        for variable in variables_to_save:
+            # TODO - Work out if this works when layered data exists?
+            nc_file.variables[variable][len(time_dim) :] = self.data[variable]
+
+        # Update the dimension size for the time dimension, at the moment we append each
+        # time step individually
+        nc_file.dimensions["time"] = len(time_dim) + 1
+
+        # Close the NetCDF file
+        nc_file.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.

@@ -171,8 +171,9 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
-# TODO - Add tests for this
-# Particularly important to test that time data doesn't get saved over and over
+# TODO - Add tests for this. Particularly important to test that time data doesn't get
+# saved over and over. This is probably a mocked call_once_with test, that checks that
+# variables_to_save is generated correctly
 def output_current_state(
     data: Data, data_options: dict[str, Any], new_file: bool = False
 ) -> None:
@@ -202,20 +203,9 @@ def output_current_state(
             Path(data_options["out_path_continuous"]), variables_to_save
         )
     else:
-        # Check that the file to append to exists
-        if not Path(data_options["out_path_continuous"]).exists():
-            to_raise = ConfigurationError(
-                f"The continuous data file ({data_options['out_path_continuous']}) "
-                f"doesn't exist to be appended to!"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-
-        # TODO - to_netcdf(mode="a") doesn't actually work, need to think of an
-        # alternative
-        # If the file path is okay then appends the model state to existing NetCDF file
-        data.data[variables_to_save].to_netcdf(
-            Path(data_options["out_path_continuous"]), mode="a"
+        # Save the required variables by appending to existing file
+        data.append_to_netcdf(
+            Path(data_options["out_path_continuous"]), variables_to_save
         )
 
 
