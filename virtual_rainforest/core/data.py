@@ -364,8 +364,8 @@ class Data:
         this could improve performance significantly.
 
         Args:
-            output_file_path: Path location to existing NetCDF file. variables_to_save:
-            List of variables to append to the file
+            output_file_path: Path location to existing NetCDF file.
+            variables_to_save: List of variables to append to the file
 
         Raises:
             ConfigurationError: If the file to append to can't be found
@@ -381,7 +381,7 @@ class Data:
             raise to_raise
 
         # Open the existing NetCDF file in "append" mode
-        nc_file = netCDF4.Dataset("existing_file.nc", mode="a")
+        nc_file = netCDF4.Dataset(Path(output_file_path), mode="a")
 
         # TODO - Need to work out how to handle time dimensions here!
         # I'm quite sceptical of this honestly
