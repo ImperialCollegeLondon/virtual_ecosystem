@@ -144,8 +144,8 @@ class AbioticSimpleModel(BaseModel):
         """
 
         # Find number of soil and canopy layers
-        soil_layers = config["abiotic_simple"]["soil_layers"]
-        canopy_layers = config["abiotic_simple"]["canopy_layers"]
+        soil_layers = config["core"]["layers"]["soil_layers"]
+        canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["abiotic_simple"]["initial_soil_moisture"]
 
         LOGGER.info(

@@ -202,11 +202,13 @@ def test_abiotic_simple_model_initialization(
                     "timing": {
                         "start_date": "2020-01-01",
                         "update_interval": "1 week",
-                    }
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
                 },
                 "abiotic_simple": {
-                    "soil_layers": 2,
-                    "canopy_layers": 10,
                     "initial_soil_moisture": 50.0,
                 },
             },
@@ -291,11 +293,13 @@ def test_generate_abiotic_simple_model(
                     "timing": {
                         "start_date": "2020-01-01",
                         "update_interval": "1 week",
-                    }
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
                 },
                 "abiotic_simple": {
-                    "soil_layers": 2,
-                    "canopy_layers": 10,
                     "initial_soil_moisture": 50.0,
                 },
             },
