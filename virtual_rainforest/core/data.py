@@ -121,6 +121,7 @@ from typing import Any, Dict, Optional
 
 import netCDF4
 import numpy as np
+import xarray as xr
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
@@ -355,7 +356,7 @@ class Data:
             self.data.to_netcdf(output_file_path)
 
     def append_to_netcdf(
-        self, output_file_path: Path, variables_to_save: list[str]
+        self, append_file_path: Path, variables_to_save: list[str]
     ) -> None:
         """Append specific variables from the data object to an existing NetCDF file.
 
@@ -364,7 +365,7 @@ class Data:
         this could improve performance significantly.
 
         Args:
-            output_file_path: Path location to existing NetCDF file.
+            append_file_path: Path location to existing NetCDF file.
             variables_to_save: List of variables to append to the file
 
         Raises:
@@ -372,31 +373,54 @@ class Data:
         """
 
         # Check that the file to append to exists
-        if not Path(output_file_path).exists():
+        if not Path(append_file_path).exists():
             to_raise = ConfigurationError(
-                f"The continuous data file ({output_file_path}) doesn't exist to be "
+                f"The continuous data file ({append_file_path}) doesn't exist to be "
                 "appended to!"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Open the existing NetCDF file in "append" mode
-        nc_file = netCDF4.Dataset(Path(output_file_path), mode="a")
+        # Instead open with xarray
+        # TODO - Think whether this should instead be netCDF4.Dataset
+        xarray_dataset = xr.open_dataset(Path(append_file_path))
 
-        # TODO - Need to work out how to handle time dimensions here!
-        # I'm quite sceptical of this honestly
-        time_dim = nc_file.dimensions["time"]
+        # Check if time index exists as a dimension (if not it must be created)
+        if "time_index" in xarray_dataset.dims:
+            # TODO - Work out if this section works
+            # Open the existing NetCDF file in "append" mode
+            nc_file = netCDF4.Dataset(Path(append_file_path), mode="a")
+            # Find number of previous time steps saved in the model
+            time_dim = nc_file.dimensions["time_index"]
+            for variable in variables_to_save:
+                nc_file.variables[variable][len(time_dim) :] = self.data[variable]
 
-        for variable in variables_to_save:
-            # TODO - Work out if this works when layered data exists?
-            nc_file.variables[variable][len(time_dim) :] = self.data[variable]
+            # Update the dimension size for the time dimension, at the moment we append
+            # each time step individually
+            nc_file.dimensions["time_index"] = len(time_dim) + 1
 
-        # Update the dimension size for the time dimension, at the moment we append each
-        # time step individually
-        nc_file.dimensions["time"] = len(time_dim) + 1
+            # Close the NetCDF file
+            nc_file.close()
+        else:
+            # TODO - make a new xarray data set here
+            # TODO - Then add everything to new dataset rather than previous one
+            # In this case time index doesn't exist, so arrays should be concatenated
+            # along it.
+            for variable in variables_to_save:
+                xarray_dataset[variable] = xr.concat(
+                    [DataArray(xarray_dataset[variable]), self.data[variable]],
+                    dim="time_index",
+                    # coords={"time_index": [0, 1]},
+                )
 
-        # Close the NetCDF file
-        nc_file.close()
+            # TODO - Work out how to actually set the coordinate values
+
+            print(xarray_dataset)
+
+            # Close the dataset and save
+            # TODO - Save new dataset here rather than resaving the previous one
+            xarray_dataset.to_netcdf(Path(append_file_path))
+            xarray_dataset.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
