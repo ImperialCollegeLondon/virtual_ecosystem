@@ -56,14 +56,6 @@ def soil_model_fixture(dummy_carbon_data):
                 ),
                 (
                     DEBUG,
-                    "soil model: required var 'soil_moisture' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_temperature' checked",
-                ),
-                (
-                    DEBUG,
                     "soil model: required var 'percent_clay' checked",
                 ),
             ),
@@ -92,14 +84,6 @@ def soil_model_fixture(dummy_carbon_data):
                 (
                     ERROR,
                     "soil model: init data missing required var 'bulk_density'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var 'soil_moisture'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var 'soil_temperature'",
                 ),
                 (
                     ERROR,
@@ -138,14 +122,6 @@ def soil_model_fixture(dummy_carbon_data):
                 (
                     DEBUG,
                     "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_moisture' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_temperature' checked",
                 ),
                 (
                     DEBUG,
@@ -249,14 +225,6 @@ def test_soil_model_initialization(
                 (
                     DEBUG,
                     "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_moisture' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_temperature' checked",
                 ),
                 (
                     DEBUG,
