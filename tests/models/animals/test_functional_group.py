@@ -54,13 +54,18 @@ class TestFunctionalGroup:
     ):
         """Testing initialization of derived parameters for animal cohorts."""
 
+        from virtual_rainforest.models.animals.animal_traits import (
+            DietType,
+            MetabolicType,
+            TaxaType,
+        )
         from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
         func_group = FunctionalGroup(name, taxa, diet, metabolic_type)
         assert func_group.name == name
-        assert func_group.taxa == taxa
-        assert func_group.diet == diet
-        assert func_group.metabolic_type == metabolic_type
+        assert func_group.taxa == TaxaType.from_str(taxa)
+        assert func_group.diet == DietType.from_str(diet)
+        assert func_group.metabolic_type == MetabolicType.from_str(metabolic_type)
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
@@ -81,6 +86,11 @@ def test_import_functional_groups(
     shared_datadir, index, name, taxa, diet, metabolic_type
 ):
     """Testing import functional groups."""
+    from virtual_rainforest.models.animals.animal_traits import (
+        DietType,
+        MetabolicType,
+        TaxaType,
+    )
     from virtual_rainforest.models.animals.functional_group import (
         FunctionalGroup,
         import_functional_groups,
@@ -91,6 +101,6 @@ def test_import_functional_groups(
     assert len(fg_list) == 6
     assert isinstance(fg_list[index], FunctionalGroup)
     assert fg_list[index].name == name
-    assert fg_list[index].taxa == taxa
-    assert fg_list[index].diet == diet
-    assert fg_list[index].metabolic_type == metabolic_type
+    assert fg_list[index].taxa == TaxaType.from_str(taxa)
+    assert fg_list[index].diet == DietType.from_str(diet)
+    assert fg_list[index].metabolic_type == MetabolicType.from_str(metabolic_type)

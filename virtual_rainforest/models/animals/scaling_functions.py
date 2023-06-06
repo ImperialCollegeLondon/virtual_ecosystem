@@ -9,6 +9,7 @@ To Do:
 
 from math import ceil, exp
 
+from virtual_rainforest.models.animals.animal_traits import MetabolicType
 from virtual_rainforest.models.animals.constants import BOLTZMANN_CONSTANT
 
 
@@ -34,7 +35,7 @@ def damuths_law(mass: float, terms: tuple) -> int:
 
 
 def metabolic_rate(
-    mass: float, temperature: float, terms: tuple, metabolic_type: str
+    mass: float, temperature: float, terms: tuple, metabolic_type: MetabolicType
 ) -> float:
     """Calculates the metabolic rate of animal cohorts.
 
@@ -42,27 +43,25 @@ def metabolic_rate(
         mass: The body-mass [kg] of an AnimalCohort.
         temperature: The temperature [Celsius] of the environment.
         terms: The tuple of metabolic rate terms used.
-        metabolic_type: The metabolic type of the animal ("endothermic", "ectothermic").
+        metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
 
     Returns:
         The metabolic rate of an individual of the given cohort in [J/s].
-
-    Raises:
-        ValueError: If the metabolic_type is neither "endothermic" nor "ectothermic".
 
     """
     mass_g = mass * 1000  # Convert mass to grams
     temperature_k = temperature + 273.15  # Convert temperature to Kelvin
 
-    if metabolic_type == "endothermic":
-        return terms[1] * mass_g ** terms[0]
-    elif metabolic_type == "ectothermic":
-        b0, exponent = terms
-        return (
-            b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
-        )
-    else:
-        raise ValueError("metabolic_type must be either 'endothermic' or 'ectothermic'")
+    match metabolic_type:
+        case MetabolicType.ENDOTHERMIC:
+            return terms[1] * mass_g ** terms[0]
+        case MetabolicType.ECTOTHERMIC:
+            b0, exponent = terms
+            return (
+                b0
+                * mass_g**exponent
+                * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
+            )
 
 
 def muscle_mass_scaling(mass: float, terms: tuple) -> float:

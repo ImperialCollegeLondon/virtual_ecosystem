@@ -48,9 +48,12 @@ def test_damuths_law(mass, population_density, terms):
 def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     """Testing metabolic rate for various body-masses."""
 
+    from virtual_rainforest.models.animals.animal_traits import MetabolicType
     from virtual_rainforest.models.animals.scaling_functions import metabolic_rate
 
-    testing_rate = metabolic_rate(mass, temperature, terms, metabolic_type)
+    testing_rate = metabolic_rate(
+        mass, temperature, terms, MetabolicType.from_str(metabolic_type)
+    )
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
 
