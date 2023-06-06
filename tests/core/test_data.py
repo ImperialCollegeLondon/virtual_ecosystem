@@ -735,6 +735,68 @@ def test_save_to_netcdf(
     log_check(caplog, exp_log)
 
 
+@pytest.mark.parametrize(
+    argnames=["append_path", "raises", "error_msg"],
+    argvalues=[
+        (
+            "initial.nc",
+            pytest.raises(ConfigurationError),
+            "The continuous data file (initial.nc) doesn't exist to be appended to!",
+        ),
+        (
+            "output.nc",
+            does_not_raise(),
+            "",
+        ),
+    ],
+)
+def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
+    """Test that data object can append to an existing NetCDF file."""
+
+    # Create initial netcdf file
+    dummy_carbon_data.save_to_netcdf(
+        Path("output.nc"), variables_to_save=["soil_c_pool_lmwc", "soil_temperature"]
+    )
+
+    with raises as excep:
+        # Change data to check that appending works
+        dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+            [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
+        )
+        # Append data to netcdf file
+        dummy_carbon_data.append_to_netcdf(
+            Path(append_path),
+            variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
+        )
+
+        # Append data again to netcdf file to check that multiple appends work
+        dummy_carbon_data["soil_temperature"][13][0] = 15.0
+        dummy_carbon_data.append_to_netcdf(
+            Path(append_path),
+            variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
+        )
+
+        # TODO - Work out why this isn't working
+        # Load file, and then check that contents meet expectation
+        saved_data = xr.open_dataset(Path(append_path))
+        xr.testing.assert_allclose(
+            saved_data["soil_c_pool_lmwc"],
+            DataArray(
+                [0.05, 0.02, 0.1, 0.005],
+                dims=["cell_id"],
+                coords={"cell_id": [0, 1, 2, 3]},
+            ),
+        )
+        # TODO - Check soil temp values as well.
+
+    # Remove generated output file
+    Path("output.nc").unlink()
+
+    # Finally check that the error message was as expected
+    if error_msg:
+        assert str(excep.value) == error_msg
+
+
 def test_Data_add_from_dict(dummy_climate_data):
     """Test reading from dictionary."""
 
