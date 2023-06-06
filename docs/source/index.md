@@ -107,6 +107,7 @@ team.
   Animal Communities <api/animals/animal_communities.md> 
   Animal Cohorts <api/animals/animal_cohorts.md> 
   Animal Functional Groups <api/animals/functional_group.md> 
+  Animal Traits <api/animals/animal_traits.md>
   Animal Scaling Functions <api/animals/scaling_functions.md> 
   Animal Constants <api/animals/constants.md> 
   Animal Carcasses <api/animals/carcasses.md> 

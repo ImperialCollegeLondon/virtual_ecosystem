@@ -13,6 +13,8 @@ Each of the animal sub-modules has its own API reference page:
   individual animal cohorts, their attributes, and behaviors.
 * The :mod:`~virtual_rainforest.models.animals.functional_group` provides a class for
   the animal functional groups that define the type of animal in an animal cohort.
+* The :mod:`~virtual_rainforest.models.animals.animal_traits` provides classes for
+  the traits that feed into the functional group class definitions.
 * The :mod:`~virtual_rainforest.models.animals.scaling_functions` provides a set of
   allometric scaling functions that define the biological rates used in the animal
   module.
