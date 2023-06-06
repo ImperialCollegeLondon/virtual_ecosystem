@@ -64,8 +64,6 @@ class SoilModel(BaseModel):
         ("soil_c_pool_microbe", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
-        ("soil_moisture", ("spatial",)),
-        ("soil_temperature", ("spatial",)),
         ("percent_clay", ("spatial",)),
     )
     """Required initialisation variables for the soil model.
