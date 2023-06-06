@@ -77,7 +77,8 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     ERROR,
-                    "There has to be at least one soil layer in the abiotic model!",
+                    "There has to be at least one soil layer in the Virtual "
+                    "Rainforest!",
                 ),
             ),
         ),
@@ -88,7 +89,8 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     ERROR,
-                    "There has to be at least one canopy layer in the abiotic model!",
+                    "There has to be at least one canopy layer in the Virtual "
+                    "Rainforest!",
                 ),
             ),
         ),

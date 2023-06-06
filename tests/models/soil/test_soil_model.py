@@ -22,7 +22,10 @@ def soil_model_fixture(dummy_carbon_data):
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     config = {
-        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
+        "core": {
+            "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
+            "layers": {"soil_layers": 2, "canopy_layers": 10},
+        },
     }
     return SoilModel.from_config(dummy_carbon_data, config, pint.Quantity("12 hours"))
 
@@ -157,9 +160,9 @@ def test_soil_model_initialization(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
-            model = SoilModel(carbon_data, pint.Quantity("1 week"))
+            model = SoilModel(carbon_data, pint.Quantity("1 week"), 2, 10)
         else:
-            model = SoilModel(dummy_carbon_data, pint.Quantity("1 week"))
+            model = SoilModel(dummy_carbon_data, pint.Quantity("1 week"), 2, 10)
 
         # In cases where it passes then checks that the object has the right properties
         assert set(
@@ -195,7 +198,8 @@ def test_soil_model_initialization(
                     "timing": {
                         "start_date": "2020-01-01",
                         "update_interval": "12 hours",
-                    }
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
                 },
             },
             pint.Quantity("12 hours"),
@@ -408,7 +412,10 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
     # Use this new data to make a new soil model object
     config = {
-        "core": {"timing": {"start_date": "2020-01-01", "update_interval": "12 hours"}},
+        "core": {
+            "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
+            "layers": {"soil_layers": 2, "canopy_layers": 10},
+        },
     }
     new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
 
