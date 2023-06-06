@@ -402,25 +402,21 @@ class Data:
             # Close the NetCDF file
             nc_file.close()
         else:
-            # TODO - make a new xarray data set here
-            # TODO - Then add everything to new dataset rather than previous one
-            # In this case time index doesn't exist, so arrays should be concatenated
-            # along it.
+            # Create new dataset to be extended
+            extended_dataset = xr.Dataset()
+
+            # In this case time index doesn't exist, so a new dataset must be generated
+            # with a time index defined.
             for variable in variables_to_save:
-                xarray_dataset[variable] = xr.concat(
+                extended_dataset[variable] = xr.concat(
                     [DataArray(xarray_dataset[variable]), self.data[variable]],
                     dim="time_index",
-                    # coords={"time_index": [0, 1]},
-                )
+                ).assign_coords(time_index=[0, 1])
 
-            # TODO - Work out how to actually set the coordinate values
-
-            print(xarray_dataset)
-
-            # Close the dataset and save
-            # TODO - Save new dataset here rather than resaving the previous one
-            xarray_dataset.to_netcdf(Path(append_file_path))
+            # Close original dataset and save and close new dataset
             xarray_dataset.close()
+            extended_dataset.to_netcdf(Path(append_file_path))
+            extended_dataset.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
