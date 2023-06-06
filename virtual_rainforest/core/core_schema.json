@@ -145,19 +145,36 @@
                   "out_path_initial",
                   "out_path_final"
                ]
-            }
-         },
-         "default": {},
-         "required": [
-            "data",
-            "data_output_options",
-            "grid",
-            "timing",
-            "modules"
-         ]
-      }
-   },
-   "required": [
-      "core"
-   ]
+            },
+            "layers": {
+               "properties": {
+                  "soil_layers": {
+                     "description": "Number of soil layers to simulate",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 2
+                  },
+                  "canopy_layers": {
+                     "description": "Number of canopy layers to simulate",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 10
+                  }
+               }
+            },
+            "default": {},
+            "required": [
+               "data",
+               "data_output_options",
+               "grid",
+               "timing",
+               "modules",
+               "layers"
+            ]
+         }
+      },
+      "required": [
+         "core"
+      ]
+   }
 }
