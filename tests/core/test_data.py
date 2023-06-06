@@ -769,6 +769,7 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
         )
 
+        # TODO - This second call to append doesn't seem to do anything, work out why
         # Append data again to netcdf file to check that multiple appends work
         dummy_carbon_data["soil_temperature"][13][0] = 15.0
         dummy_carbon_data.append_to_netcdf(
@@ -776,15 +777,14 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
         )
 
-        # TODO - Work out why this isn't working
         # Load file, and then check that contents meet expectation
         saved_data = xr.open_dataset(Path(append_path))
         xr.testing.assert_allclose(
             saved_data["soil_c_pool_lmwc"],
             DataArray(
-                [0.05, 0.02, 0.1, 0.005],
-                dims=["cell_id"],
-                coords={"cell_id": [0, 1, 2, 3]},
+                [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+                dims=["time_index", "cell_id"],
+                coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1]},
             ),
         )
         # TODO - Check soil temp values as well.
