@@ -9,7 +9,8 @@
                     "description": "Initial soil moisture for all layers",
                     "type": "number",
                     "exclusiveMinimum": 0,
-                    "default": 50.0
+                    "default": 0.5,
+                    "units": "Relative water content (between 0.0 and 1.0)"
                 }
             },
             "default": {},
