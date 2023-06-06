@@ -46,7 +46,7 @@ class AbioticSimpleModel(BaseModel):
     """The model name for use in registering the model and logging."""
     lower_bound_on_time_scale = "1 day"
     """Shortest time scale that abiotic simple model can sensibly capture."""
-    upper_bound_on_time_scale = "30 day"
+    upper_bound_on_time_scale = "1 month"
     """Longest time scale that abiotic simple model can sensibly capture."""
     required_init_vars = (  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
