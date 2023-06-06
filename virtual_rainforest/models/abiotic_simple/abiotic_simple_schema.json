@@ -11,12 +11,12 @@
                     "exclusiveMinimum": 0,
                     "default": 50.0
                 }
-            }
-        },
-        "default": {},
-        "required": [
-            "initial_soil_moisture"
-        ]
+            },
+            "default": {},
+            "required": [
+                "initial_soil_moisture"
+            ]
+        }
     },
     "required": [
         "abiotic_simple"
