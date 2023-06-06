@@ -65,8 +65,8 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
 
     This function creates a list of layer roles for the vertical dimension of the
     Virtual Rainforest. The layer above the canopy is defined as 0 (canopy height + 2m)
-    and the index increases towards the bottom of the soil column. The canopy includes
-    a maximum number of canopy layers (defined in config) which are filled from the top
+    and the index increases towards the bottom of the soil column. The canopy includes a
+    maximum number of canopy layers (defined in config) which are filled from the top
     with canopy node heights from the plant module (the rest is set to NaN). Below the
     canopy, we currently set one subcanopy layer (around 1.5m above ground) and one
     surface layer (0.1 m above ground). Below ground, we include a maximum number of
@@ -74,8 +74,11 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
     temperature there is fairly constant and equals the mean annual temperature.
 
     Args:
-        canopy_layers: number of canopy layers
-        soil_layers: number of soil layers
+        canopy_layers: number of canopy layers soil_layers: number of soil layers
+
+    Raises:
+        InitialisationError: If the number soil or canopy layers are not both positive
+            integers
 
     Returns:
         List of canopy layer roles
@@ -84,7 +87,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
     # sanity checks for soil and canopy layers
     if soil_layers < 1:
         to_raise = InitialisationError(
-            "There has to be at least one soil layer in the abiotic model!"
+            "There has to be at least one soil layer in the Virtual Rainforest!"
         )
         LOGGER.error(to_raise)
         raise to_raise
@@ -96,7 +99,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
 
     if canopy_layers < 1:
         to_raise = InitialisationError(
-            "There has to be at least one canopy layer in the abiotic model!"
+            "There has to be at least one canopy layer in the Virtual Rainforest!"
         )
         LOGGER.error(to_raise)
         raise to_raise
