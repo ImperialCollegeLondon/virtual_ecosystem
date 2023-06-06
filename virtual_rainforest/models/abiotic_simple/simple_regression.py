@@ -152,7 +152,7 @@ def run_simple_regression(
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
         output[var] = log_interpolation(
             data=data,
-            reference_data=data[var + "_ref"].isel(time=time_index),
+            reference_data=data[var + "_ref"].isel(time_index=time_index),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_roles=layer_roles,
             layer_heights=data["layer_heights"],
@@ -164,7 +164,7 @@ def run_simple_regression(
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
         data["atmospheric_pressure_ref"]
-        .isel(time=time_index)
+        .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
         .T
@@ -173,7 +173,7 @@ def run_simple_regression(
     # Mean atmospheric C02 profile, [ppm]
     output["atmospheric_co2"] = (
         data["atmospheric_co2_ref"]
-        .isel(time=0)
+        .isel(time_index=0)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_co2")
         .T
@@ -202,7 +202,7 @@ def run_simple_regression(
     )
 
     # Precipitation at the surface is reduced as a function of leaf area index
-    precipitation_surface = data["precipitation"].isel(time=time_index) * (
+    precipitation_surface = data["precipitation"].isel(time_index=time_index) * (
         1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
     )
 
