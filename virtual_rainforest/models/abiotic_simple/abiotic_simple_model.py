@@ -160,6 +160,18 @@ class AbioticSimpleModel(BaseModel):
             name="soil_moisture",
         )
 
+        # create soil temperature array
+        self.data["soil_temperature"] = DataArray(
+            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, len(self.layer_roles)),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_temperature",
+        )
+
         # calculate vapour pressure deficit at reference height for all time steps
         self.data[
             "vapour_pressure_deficit_ref"
