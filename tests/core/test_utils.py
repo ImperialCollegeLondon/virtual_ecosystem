@@ -1,12 +1,13 @@
 """Testing the utility functions."""
 
-from logging import CRITICAL
+from contextlib import nullcontext as does_not_raise
+from logging import CRITICAL, ERROR
 from pathlib import Path
 
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 
 
 @pytest.mark.parametrize(
@@ -58,3 +59,73 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
         check_outfile(Path(out_path))
 
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "soil_layers, canopy_layers, raises, exp_log",
+    [
+        (
+            2,
+            10,
+            does_not_raise(),
+            (),
+        ),
+        (
+            -2,
+            10,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "There has to be at least one soil layer in the abiotic model!",
+                ),
+            ),
+        ),
+        (
+            2,
+            -3,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "There has to be at least one canopy layer in the abiotic model!",
+                ),
+            ),
+        ),
+        (
+            2.5,
+            10,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The number of soil layers must be an integer!",
+                ),
+            ),
+        ),
+        (
+            2,
+            3.4,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The number of canopy layers must be an integer!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
+    """Test correct order of layers."""
+    from virtual_rainforest.core.utils import set_layer_roles
+
+    with raises:
+        result = set_layer_roles(canopy_layers, soil_layers)
+
+        assert result == (
+            ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
+        )
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, exp_log)
