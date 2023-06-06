@@ -381,12 +381,11 @@ class Data:
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Instead open with xarray
-        # TODO - Think whether this should instead be netCDF4.Dataset
-        xarray_dataset = xr.open_dataset(Path(append_file_path))
+        # Open file using netCDF4
+        nc_file = netCDF4.Dataset(Path(append_file_path), mode="a")
 
         # Check if time index exists as a dimension (if not it must be created)
-        if "time_index" in xarray_dataset.dims:
+        if "time_index" in nc_file.dimensions:
             # TODO - Work out if this section works
             # Open the existing NetCDF file in "append" mode
             nc_file = netCDF4.Dataset(Path(append_file_path), mode="a")
@@ -402,19 +401,24 @@ class Data:
             # Close the NetCDF file
             nc_file.close()
         else:
+            # Easier to work with xarray here, so close file and open with xarray
+            nc_file.close()
+            original_dataset = xr.open_dataset(Path(append_file_path))
+
             # Create new dataset to be extended
             extended_dataset = xr.Dataset()
 
             # In this case time index doesn't exist, so a new dataset must be generated
             # with a time index defined.
             for variable in variables_to_save:
+                # For some reason this gets read in without named dimensions???
                 extended_dataset[variable] = xr.concat(
-                    [DataArray(xarray_dataset[variable]), self.data[variable]],
+                    [original_dataset[variable], self.data[variable]],
                     dim="time_index",
                 ).assign_coords(time_index=[0, 1])
 
-            # Close original dataset and save and close new dataset
-            xarray_dataset.close()
+            # Close original dataset, then save and close new dataset
+            original_dataset.close()
             extended_dataset.to_netcdf(Path(append_file_path))
             extended_dataset.close()
 
