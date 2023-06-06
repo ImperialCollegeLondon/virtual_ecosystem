@@ -281,7 +281,7 @@ def test_setup(
         dummy_climate_data["vapour_pressure_deficit_ref"],
         DataArray(
             np.full((3, 3), 0.141727),
-            dims=["cell_id", "time"],
+            dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2],
             },

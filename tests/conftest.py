@@ -239,7 +239,7 @@ def dummy_climate_data(layer_roles_fixture):
 
     data["air_temperature_ref"] = DataArray(
         np.full((3, 3), 30),
-        dims=["cell_id", "time"],
+        dims=["cell_id", "time_index"],
     )
     data["mean_annual_temperature"] = DataArray(
         np.full((3), 20),
@@ -247,19 +247,19 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["relative_humidity_ref"] = DataArray(
         np.full((3, 3), 90),
-        dims=["cell_id", "time"],
+        dims=["cell_id", "time_index"],
     )
     data["vapour_pressure_deficit_ref"] = DataArray(
         np.full((3, 3), 0.14),
-        dims=["cell_id", "time"],
+        dims=["cell_id", "time_index"],
     )
     data["atmospheric_pressure_ref"] = DataArray(
         np.full((3, 3), 1.5),
-        dims=["cell_id", "time"],
+        dims=["cell_id", "time_index"],
     )
     data["atmospheric_co2_ref"] = DataArray(
         np.full((3, 3), 400),
-        dims=["cell_id", "time"],
+        dims=["cell_id", "time_index"],
     )
 
     leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
@@ -290,7 +290,7 @@ def dummy_climate_data(layer_roles_fixture):
     )
 
     data["precipitation"] = DataArray(
-        [[20, 30, 200], [20, 30, 200], [20, 30, 200]], dims=["time", "cell_id"]
+        [[20, 30, 200], [20, 30, 200], [20, 30, 200]], dims=["time_index", "cell_id"]
     )
     data["soil_moisture"] = xr.concat(
         [
