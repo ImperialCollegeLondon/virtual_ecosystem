@@ -21,7 +21,7 @@
                     "description": "Initial soil moisture for all layers",
                     "type": "number",
                     "exclusiveMinimum": 0,
-                    "default": 50
+                    "default": 50.0
                 }
             },
             "default": {},
