@@ -40,7 +40,8 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-        initial_soil_moisture: The initial soil moisture for all layers.
+        initial_soil_moisture: The initial soil moisture for all layers,
+            [relative water content] (between 0.0 and 1.0).
     """
 
     model_name = "abiotic_simple"
@@ -76,9 +77,9 @@ class AbioticSimpleModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        if initial_soil_moisture < 0 or initial_soil_moisture > 100:
+        if initial_soil_moisture < 0 or initial_soil_moisture > 1:
             to_raise = InitialisationError(
-                "The initial soil moisture has to be between 0 and 100!"
+                "The initial soil moisture has to be between 0 and 1!"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -136,7 +137,7 @@ class AbioticSimpleModel(BaseModel):
         steps. Both variables are added directly to the self.data object.
         """
 
-        # Create 1-dimenaional numpy array filled with initial soil moisture values for
+        # Create 1-dimensional numpy array filled with initial soil moisture values for
         # all soil layers and np.nan for atmosphere layers
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],

@@ -20,7 +20,7 @@ from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     "ini_soil_moisture,raises,expected_log_entries",
     [
         (
-            50.0,
+            0.5,
             does_not_raise(),
             (
                 (
@@ -61,12 +61,12 @@ from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
             ),
         ),
         (
-            -50.0,
+            -0.5,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "The initial soil moisture has to be between 0 and 100!",
+                    "The initial soil moisture has to be between 0 and 1!",
                 ),
             ),
         ),
@@ -144,7 +144,7 @@ def test_abiotic_simple_model_initialization(
                     },
                 },
                 "abiotic_simple": {
-                    "initial_soil_moisture": 50.0,
+                    "initial_soil_moisture": 0.5,
                 },
             },
             pint.Quantity("1 week"),
@@ -235,7 +235,7 @@ def test_generate_abiotic_simple_model(
                     },
                 },
                 "abiotic_simple": {
-                    "initial_soil_moisture": 50.0,
+                    "initial_soil_moisture": 0.5,
                 },
             },
             pint.Quantity("1 week"),
@@ -261,7 +261,7 @@ def test_setup(
 
     model.setup()
 
-    soil_moisture_values = np.repeat(a=[np.nan, 50], repeats=[13, 2])
+    soil_moisture_values = np.repeat(a=[np.nan, 0.5], repeats=[13, 2])
 
     xr.testing.assert_allclose(
         dummy_climate_data["soil_moisture"],
