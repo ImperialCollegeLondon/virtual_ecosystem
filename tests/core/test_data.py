@@ -788,7 +788,32 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
                 coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1]},
             ),
         )
-        # TODO - Check soil temp values as well.
+        xr.testing.assert_allclose(
+            saved_data["soil_temperature"].isel(layers=range(12, 15)),
+            DataArray(
+                [
+                    [
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [35.0, 37.5, 40.0, 25.0],
+                        [22.5, 22.5, 22.5, 22.5],
+                    ],
+                    [
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [35.0, 37.5, 40.0, 25.0],
+                        [22.5, 22.5, 22.5, 22.5],
+                    ],
+                ],
+                dims=["time_index", "layers", "cell_id"],
+                coords={
+                    "cell_id": [0, 1, 2, 3],
+                    "time_index": [0, 1],
+                    "layers": [12, 13, 14],
+                    "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                },
+            ),
+        )
+        # TODO - Also need a check that extra variables were not added
+        saved_data.close()
 
     # Remove generated output file
     Path("output.nc").unlink()
