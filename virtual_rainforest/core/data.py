@@ -107,7 +107,13 @@ structure is as follows:
     [[core.data.variable]]
     var_name="elev"
 
-Data configurations must not contain repeated data variable names.
+Data configurations must not contain repeated data variable names. NOTE: At the moment,
+```core.data.variable``` tags cannot be used across multiple toml config files without
+causing ```ConfigurationError: Duplicated entries in config files: core.data.variable```
+to be raised. This means that all variables need to be combined in one ```config```
+file.
+
+
 
 .. code-block:: python
 
