@@ -52,7 +52,7 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     from virtual_rainforest.models.animals.scaling_functions import metabolic_rate
 
     testing_rate = metabolic_rate(
-        mass, temperature, terms, MetabolicType.from_str(metabolic_type)
+        mass, temperature, terms, MetabolicType(metabolic_type)
     )
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 

@@ -52,15 +52,16 @@ def metabolic_rate(
     mass_g = mass * 1000  # Convert mass to grams
     temperature_k = temperature + 273.15  # Convert temperature to Kelvin
 
-    if metabolic_type == MetabolicType.ENDOTHERMIC:
-        return terms[1] * mass_g ** terms[0]
-    elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        b0, exponent = terms
-        return (
-            b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
-        )
-    else:
-        raise ValueError("Invalid metabolic type: {metabolic_type}")
+    match metabolic_type:
+        case MetabolicType.ENDOTHERMIC:
+            return terms[1] * mass_g ** terms[0]
+        case MetabolicType.ECTOTHERMIC:
+            b0, exponent = terms
+            return (
+                b0
+                * mass_g**exponent
+                * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
+            )
 
 
 def muscle_mass_scaling(mass: float, terms: tuple) -> float:

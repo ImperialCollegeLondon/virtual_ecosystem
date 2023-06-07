@@ -38,11 +38,11 @@ class FunctionalGroup:
 
         self.name = name
         """The name of the functional group."""
-        self.taxa = TaxaType.from_str(taxa)
+        self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType.from_str(diet)
+        self.diet = DietType(diet)
         """The diet of the functional group."""
-        self.metabolic_type = MetabolicType.from_str(metabolic_type)
+        self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group"""
         self.metabolic_rate_terms = METABOLIC_RATE_TERMS[self.metabolic_type][self.taxa]
         """The coefficient and exponent of metabolic rate."""
