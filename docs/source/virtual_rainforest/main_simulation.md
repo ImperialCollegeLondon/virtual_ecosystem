@@ -31,6 +31,15 @@ procedures to ensure that the loaded data can be mapped onto the spatial grid an
 other core dimensions for the configured simulation. Further details can be found in the
 [data system](./core/data.md) and [core axes](./core/axes.md) documentation.
 
+## Extracting simulation timing details
+
+The `core` configuration contains a start time, an end time and a time interval for the
+update of all models. These details are extracted from configuration, with a check
+performed to ensure that the simulation will update at least once between the start and
+end time of the simulation. It is important to note that because months and years are of
+inconsistent length they are currently averaged over. This means that 1 month becomes
+30.4375 days, and 1 year becomes 365.25 days.
+
 ## Configuration of specific models
 
 The Virtual Rainforest is implemented as model objects, each of which is responsible for
@@ -43,14 +52,14 @@ see [this page](../development/defining_new_models.md) about the required module
 structure and the model API. Once a list of models to configure has been extracted from
 the configuration, they are then all configured.
 
-## Extracting simulation timing details
+## Additional setup of (some) models
 
-The configuration contains a start time, an end time and a time interval for the update
-of all models. These details are extracted from configuration, with a check performed
-to ensure that the simulation will update at least once between the start and end time
-of the simulation. It is important to note that because months and years are of
-inconsistent length they are currently averaged over. This means that 1 month becomes
-30.4375 days, and 1 year becomes 365.25 days.
+Some models have more complex setup processes than other models, meaning that they
+require an additional setup step before they can run. These setup steps will generally
+involve populating the data array with sensible initial values for variables we wish to
+simulate but for which we have insufficient initialisation data. This step is likely to
+be followed by a spin up step in future. At present, only the `abiotic_simple` model
+requires additional setup, but this may well change in the future.
 
 ## Saving the initial state
 
