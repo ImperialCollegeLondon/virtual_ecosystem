@@ -1,5 +1,5 @@
 """The `models.animals.scaling_functions` module contains a set of functions containing
-scaling equations" (relationships between body-mass and a train) required by the broader
+scaling equations" (relationships between body-mass and a trait) required by the broader
 :mod:`~virtual_rainforest.models.animals` module
 
 To Do:
