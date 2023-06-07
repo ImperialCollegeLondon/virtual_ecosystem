@@ -812,7 +812,13 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
                 },
             ),
         )
-        # TODO - Also need a check that extra variables were not added
+
+        # Check that only expected variables were added
+        assert (
+            set(saved_data.keys()) - set(["soil_c_pool_lmwc", "soil_temperature"])
+            == set()
+        )
+        # Finally, close the dataset
         saved_data.close()
 
     # Remove generated output file
