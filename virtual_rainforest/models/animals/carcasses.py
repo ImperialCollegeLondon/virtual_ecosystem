@@ -1,4 +1,4 @@
-"""The ''carcass'' module provides toy carcass module functionality for developing
+"""The ''carcasses'' module provides toy carcass module functionality for developing
 the animal and soil modules.
 """  # noqa: #D205, D415
 

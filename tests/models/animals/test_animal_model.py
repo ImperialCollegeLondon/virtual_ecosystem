@@ -63,10 +63,10 @@ def test_animal_model_initialization(
                 "animals": {
                     "model_time_step": "12 hours",
                     "functional_groups": (
-                        ("carnivorous_bird", "bird", "carnivore"),
-                        ("herbivorous_bird", "bird", "herbivore"),
-                        ("carnivorous_mammal", "mammal", "carnivore"),
-                        ("herbivorous_mammal", "mammal", "herbivore"),
+                        ("carnivorous_bird", "bird", "carnivore", "endothermic"),
+                        ("herbivorous_bird", "bird", "herbivore", "endothermic"),
+                        ("carnivorous_mammal", "mammal", "carnivore", "endothermic"),
+                        ("herbivorous_mammal", "mammal", "herbivore", "endothermic"),
                     ),
                 },
             },

@@ -9,47 +9,86 @@ parameters required for determining the function of a specific AnimalCohort and 
 avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
+from virtual_rainforest.models.animals.animal_traits import (
+    DietType,
+    MetabolicType,
+    TaxaType,
+)
 
-ENDOTHERM_METABOLIC_RATE_TERMS: dict[str, tuple[float, float]] = {
-    "mammal": (0.75, 0.047),
-    # Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]
-    "bird": (0.75, 0.05),
+ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.MAMMAL: (0.75, 0.018),
+    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
+    TaxaType.BIRD: (0.75, 0.05),
     # Toy values.
 }
 
-DAMUTHS_LAW_TERMS: dict[str, dict[str, tuple[float, float]]] = {
-    "mammal": {
-        "herbivore": (-0.75, 4.23),
-        # Mammalian herbivore population density, observed allometry (Damuth 1987). [kg]
-        "carnivore": (-0.75, 1.00),
+ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.INSECT: (0.75, 0.08)
+    # Insect metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
+}
+
+METABOLIC_RATE_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = {
+    MetabolicType.ENDOTHERMIC: {
+        TaxaType.MAMMAL: (0.75, 0.018),
+        # Mammalian herbivore population density, observed allometry (Damuth 1987).
+        # [assumes kg mass]
+        TaxaType.BIRD: (0.75, 0.05),
         # Toy values.
     },
-    "bird": {
-        "herbivore": (-0.75, 5.00),
-        # Toy values.
-        "carnivore": (-0.75, 2.00),
+    MetabolicType.ECTOTHERMIC: {
+        TaxaType.INSECT: (0.75, 0.08)
         # Toy values.
     },
 }
 
-FAT_MASS_TERMS: dict[str, tuple[float, float]] = {
-    "mammal": (1.19, 0.02),
-    # Scaling of mammalian herbivore fat mass (citation from Rallings). [g]
-    "bird": (1.19, 0.05),
+
+DAMUTHS_LAW_TERMS: dict[TaxaType, dict[DietType, tuple[float, float]]] = {
+    TaxaType.MAMMAL: {
+        DietType.HERBIVORE: (-0.75, 4.23),
+        # Mammalian herbivore population density, observed allometry (Damuth 1987).
+        # [assumes kg mass]
+        DietType.CARNIVORE: (-0.75, 1.00),
+        # Toy values.
+    },
+    TaxaType.BIRD: {
+        DietType.HERBIVORE: (-0.75, 5.00),
+        # Toy values.
+        DietType.CARNIVORE: (-0.75, 2.00),
+        # Toy values.
+    },
+    TaxaType.INSECT: {
+        DietType.HERBIVORE: (-0.75, 5.00),
+        # Toy values.
+        DietType.CARNIVORE: (-0.75, 2.00),
+        # Toy values.
+    },
+}
+
+FAT_MASS_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.MAMMAL: (1.19, 0.02),
+    # Scaling of mammalian herbivore fat mass (citation from Rallings). [assumes g mass]
+    TaxaType.BIRD: (1.19, 0.05),
+    # Toy Values
+    TaxaType.INSECT: (1.19, 0.05),
     # Toy Values
 }
 
-MUSCLE_MASS_TERMS: dict[str, tuple[float, float]] = {
-    "mammal": (1.0, 0.38),
-    # Scaling of mammalian herbivore muscle mass (citation from Rallings).[g]
-    "bird": (1.0, 0.40),
+MUSCLE_MASS_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.MAMMAL: (1.0, 0.38),
+    # Scaling of mammalian herbivore muscle mass (citation from Rallings).
+    # [assumes g mass]
+    TaxaType.BIRD: (1.0, 0.40),
+    # Toy Values
+    TaxaType.INSECT: (1.0, 0.40),
     # Toy Values
 }
 
-INTAKE_RATE_TERMS: dict[str, tuple[float, float]] = {
-    "mammal": (0.71, 0.63),
-    # Mammalian maximum intake rate (g/min) from (Shipley 1994).
-    "bird": (0.7, 0.50),
+INTAKE_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.MAMMAL: (0.71, 0.63),
+    # Mammalian maximum intake rate (g/min) from (Shipley 1994). [assumes kg mass]
+    TaxaType.BIRD: (0.7, 0.50),
+    # Toy Values
+    TaxaType.INSECT: (0.7, 0.50),
     # Toy Values
 }
 
@@ -61,9 +100,13 @@ ENERGY_DENSITY: dict[str, float] = {
     # Temporary realistic plant food value: Alfalfa ¬ 18,200,000 J/kg DM.
 }
 
-CONVERSION_EFFICIENCY: dict[str, float] = {
-    "herbivore": 0.1,
+CONVERSION_EFFICIENCY: dict[DietType, float] = {
+    DietType.HERBIVORE: 0.1,
     # Toy value [unitless].
-    "carnivore": 0.25,
+    DietType.CARNIVORE: 0.25,
     # Toy value [unitless].
 }
+
+BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
+
+TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
