@@ -119,7 +119,6 @@ Data configurations must not contain repeated data variable names.
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import netCDF4
 import numpy as np
 import xarray as xr
 from xarray import DataArray, Dataset
@@ -381,46 +380,41 @@ class Data:
             LOGGER.critical(to_raise)
             raise to_raise
 
-        # Open file using netCDF4
-        nc_file = netCDF4.Dataset(Path(append_file_path), mode="a")
+        # Open original dataset
+        original_dataset = xr.open_dataset(Path(append_file_path))
+
+        # Create new dataset to be extended
+        extended_dataset = xr.Dataset()
 
         # Check if time index exists as a dimension (if not it must be created)
-        if "time_index" in nc_file.dimensions:
-            # TODO - Work out if this section works
-            # Open the existing NetCDF file in "append" mode
-            nc_file = netCDF4.Dataset(Path(append_file_path), mode="a")
-            # Find number of previous time steps saved in the model
-            time_dim = nc_file.dimensions["time_index"]
+        if "time_index" not in original_dataset.keys():
+            # Loop over variables adding them to the new dataset
             for variable in variables_to_save:
-                nc_file.variables[variable][len(time_dim) :] = self.data[variable]
-
-            # Update the dimension size for the time dimension, at the moment we append
-            # each time step individually
-            nc_file.dimensions["time_index"] = len(time_dim) + 1
-
-            # Close the NetCDF file
-            nc_file.close()
-        else:
-            # Easier to work with xarray here, so close file and open with xarray
-            nc_file.close()
-            original_dataset = xr.open_dataset(Path(append_file_path))
-
-            # Create new dataset to be extended
-            extended_dataset = xr.Dataset()
-
-            # In this case time index doesn't exist, so a new dataset must be generated
-            # with a time index defined.
-            for variable in variables_to_save:
-                # For some reason this gets read in without named dimensions???
                 extended_dataset[variable] = xr.concat(
                     [original_dataset[variable], self.data[variable]],
                     dim="time_index",
                 ).assign_coords(time_index=[0, 1])
+        else:
+            # Find final time index in existing file (and add one)
+            new_index = original_dataset.coords["time_index"].values[-1] + 1
+            # Loop over variables adding them to the new dataset
+            for variable in variables_to_save:
+                # Add time dimension to the data array for the variable
+                data_with_time = (
+                    self.data[variable]
+                    .expand_dims(dim="time_index")
+                    .assign_coords(time_index=[new_index])
+                )
+                # Then cat the original and new values for the variable together
+                extended_dataset[variable] = xr.concat(
+                    [original_dataset[variable], data_with_time],
+                    dim="time_index",
+                )
 
-            # Close original dataset, then save and close new dataset
-            original_dataset.close()
-            extended_dataset.to_netcdf(Path(append_file_path))
-            extended_dataset.close()
+        # Close original dataset, then save and close new dataset
+        original_dataset.close()
+        extended_dataset.to_netcdf(Path(append_file_path))
+        extended_dataset.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.

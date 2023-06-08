@@ -781,9 +781,13 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
         xr.testing.assert_allclose(
             saved_data["soil_c_pool_lmwc"],
             DataArray(
-                [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+                [
+                    [0.05, 0.02, 0.1, 0.005],
+                    [0.1, 0.05, 0.2, 0.01],
+                    [0.1, 0.05, 0.2, 0.01],
+                ],
                 dims=["time_index", "cell_id"],
-                coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1]},
+                coords={"cell_id": [0, 1, 2, 3], "time_index": [0, 1, 2]},
             ),
         )
         xr.testing.assert_allclose(
@@ -800,11 +804,16 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
                         [35.0, 37.5, 40.0, 25.0],
                         [22.5, 22.5, 22.5, 22.5],
                     ],
+                    [
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [15.0, 37.5, 40.0, 25.0],
+                        [22.5, 22.5, 22.5, 22.5],
+                    ],
                 ],
                 dims=["time_index", "layers", "cell_id"],
                 coords={
                     "cell_id": [0, 1, 2, 3],
-                    "time_index": [0, 1],
+                    "time_index": [0, 1, 2],
                     "layers": [12, 13, 14],
                     "layer_roles": ("layers", ["surface", "soil", "soil"]),
                 },
