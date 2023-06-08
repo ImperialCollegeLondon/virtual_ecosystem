@@ -25,7 +25,6 @@ jsonschema = "^4.14.0"
 Shapely = "^1.8.4"
 pint = "^0.20.1"
 xarray = "^2022.11.0"
-netcdf4 = "^1.6.3"
 
 [tool.poetry.group.types.dependencies]
 types-jsonschema = "^4.16.1"
