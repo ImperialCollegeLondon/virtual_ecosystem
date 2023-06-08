@@ -88,12 +88,13 @@ days), ignoring leap years.
 
 The Virtual Rainforest is implemented as model objects, each of which is responsible for
 simulating a particular aspect of the rainforest ecosystem. The models used for the
-specific simulation run can be set in the configuration. This will typically be the four
-standard models:
+specific simulation run can be set in the configuration and will typically include the
+four standard models:
 
-* [`AbioticModel`](../api/abiotic.md),
-* `AnimalModel`,
-* `PlantModel` and
+* the [`AbioticModel`](../api/abiotic.md) or
+  [`AbioticSimpleModel`](../api/abiotic_simple.md),
+* the `AnimalModel`,
+* the `PlantModel` and the
 * [`SoilModel`](../api/soil.md)
 
 but this can be [extended to include new models](../development/defining_new_models.md)
@@ -106,7 +107,7 @@ order.
 
 ### Model configuration
 
-The core configuration will include the configuration details for each individual
+The loaded configuration should include the configuration details for each individual
 science model. These are now used to initialise each requested model using the
 {meth}`~virtual_rainforest.core.base_model.BaseModel.from_config` method defined
 for each model. This method checks that the configuration is valid for the science
