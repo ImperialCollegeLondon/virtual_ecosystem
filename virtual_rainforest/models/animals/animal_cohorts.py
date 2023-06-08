@@ -139,7 +139,7 @@ class AnimalCohort:
         soil.energy += waste_energy * self.individuals
         # The amount of waste by the average cohort member * number individuals.
 
-    def forage(self, food: PlantCommunity, soil: PalatableSoil) -> None:
+    def forage_cohort(self, food: PlantCommunity, soil: PalatableSoil) -> None:
         """The function to enact multi-step foraging behaviors.
 
         Currently, this wraps the acts of consuming plants and excreting wastes. It will

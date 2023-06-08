@@ -5,7 +5,6 @@ Todo:
 
 Current simplifications:
 - only herbivory (want: carnivory and omnivory)
-- only endothermy (want: ectothermy)
 - only iteroparity (want: semelparity)
 - no development
 
@@ -13,7 +12,6 @@ Notes to self:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
-- waste_energy pool likely unnecessary, better to excrete directly to external pools
 """  # noqa: #D205, D415
 
 
@@ -93,3 +91,7 @@ class AnimalCommunity:
             AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
         )
         return self.cohorts[cohort.name][-1]
+
+    def forage_community(self) -> None:
+        """This function needs to handle the foraging of animal cohorts."""
+        pass

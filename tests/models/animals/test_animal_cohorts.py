@@ -238,7 +238,7 @@ class TestAnimalCohort:
             (0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0),
         ],
     )
-    def test_forage(
+    def test_forage_cohort(
         self,
         animal_cohort_instance,
         animal_initial,
@@ -254,7 +254,7 @@ class TestAnimalCohort:
         animal_cohort_instance.stored_energy = animal_initial
         plant_instance.energy = plant_initial
         soil_instance.energy = soil_initial
-        animal_cohort_instance.forage(plant_instance, soil_instance)
+        animal_cohort_instance.forage_cohort(plant_instance, soil_instance)
         assert animal_cohort_instance.stored_energy == pytest.approx(
             animal_final, rel=1e-6
         )

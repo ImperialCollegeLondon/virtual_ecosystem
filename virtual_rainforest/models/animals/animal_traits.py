@@ -7,21 +7,41 @@ from enum import Enum
 
 
 class MetabolicType(Enum):
-    """Enumeration for metabolic types."""
+    """Enumeration for metabolic types.
+
+    The current allowable metabolic types are:
+        - endothermic
+        - ectothermic
+
+    """
 
     ENDOTHERMIC = "endothermic"
     ECTOTHERMIC = "ectothermic"
 
 
 class DietType(Enum):
-    """Enumeration for diet types."""
+    """Enumeration for diet types.
+
+    The current allowable metabolic types are:
+        - herbivore
+        - carnivore
+
+    """
 
     HERBIVORE = "herbivore"
     CARNIVORE = "carnivore"
 
 
 class TaxaType(Enum):
-    """Enumeration for taxa types."""
+    """Enumeration for taxa types.
+
+    The current allowable taxa types are:
+        - mammal
+        - bird
+        - insect
+
+
+    """
 
     MAMMAL = "mammal"
     BIRD = "bird"
