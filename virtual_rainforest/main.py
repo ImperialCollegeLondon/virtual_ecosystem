@@ -171,15 +171,14 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
-# TODO - Add tests for this. Particularly important to test that time data doesn't get
-# saved over and over. This is probably a mocked call_once_with test, that checks that
-# variables_to_save is generated correctly
 def output_current_state(
     data: Data, data_options: dict[str, Any], new_file: bool = False
 ) -> None:
     """Function to output the current state of the data object.
 
-    TODO - Give further details of what this does
+    This function outputs all variables stored in the data object, except for any data
+    with a "time_index" dimension defined (at present only climate input data has this).
+    This data can either be saved as a new file or appended to an existing file.
 
     Args:
         data: Data object to output current state of
@@ -193,8 +192,13 @@ def output_current_state(
            If the file to append to is missing (when not in new file mode).
     """
 
-    # TODO - Actually find variables to save
-    variables_to_save = [""]
+    # Only variables in the data object without a time_index dimension should be saved,
+    # as the method is only designed to append snapshot data.
+    variables_to_save = [
+        str(variable)
+        for variable in data.data.keys()
+        if "time_index" not in data[str(variable)].dims
+    ]
 
     # First decide whether to generate a new file or append to an existing one
     if new_file:
