@@ -429,3 +429,35 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert update_interval_as_quantity == output["update_interval_as_quantity"]
 
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize("new_file", [True, False])
+def test_output_current_state(mocker, dummy_climate_data, new_file):
+    """Test that function to output the current data state works as intended."""
+
+    from virtual_rainforest.main import output_current_state
+
+    data_options = {"out_path_continuous": "outfile.nc"}
+
+    # Patch the relevant lower level function
+    if new_file:
+        mock_save = mocker.patch("virtual_rainforest.main.Data.save_to_netcdf")
+    else:
+        mock_save = mocker.patch("virtual_rainforest.main.Data.append_to_netcdf")
+
+    # Call the top level function
+    output_current_state(dummy_climate_data, data_options, new_file)
+
+    # Check that the mocked function was called once with correct input (which is
+    # calculated in the higher level function)
+    assert mock_save.call_count == 1
+    assert mock_save.call_args == mocker.call(
+        Path("outfile.nc"),
+        [
+            "mean_annual_temperature",
+            "leaf_area_index",
+            "layer_heights",
+            "soil_moisture",
+            "soil_temperature",
+        ],
+    )
