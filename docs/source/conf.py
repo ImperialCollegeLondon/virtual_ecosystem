@@ -67,6 +67,7 @@ extensions = [
     "sphinx.ext.autosummary",
     # "sphinx.ext.autosectionlabel",  # Generates hard to trace exception
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.mermaid",
     "myst_nb",
     "sphinx_rtd_theme",
 ]
