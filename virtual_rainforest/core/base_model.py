@@ -388,7 +388,11 @@ class BaseModel(ABC):
 
     @classmethod
     def _check_vars_updated(cls) -> None:
-        """Check that vars_updated has been set properly."""
+        """Check that vars_updated has been set properly.
+
+        Raises:
+            NotImplementedError: vars_updated has not been set in a subclass
+        """
 
         # Check that vars_updated is set
         if isinstance(cls.vars_updated, property):
