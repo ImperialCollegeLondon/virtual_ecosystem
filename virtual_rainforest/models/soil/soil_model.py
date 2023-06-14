@@ -73,6 +73,8 @@ class SoilModel(BaseModel):
     This is a set of variables that must be present in the data object used to create a
     SoilModel , along with any core axes that those variables must map on
     to."""
+    vars_updated = ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"]
+    """Variables updated by the soil model."""
 
     def __init__(
         self,

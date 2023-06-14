@@ -156,6 +156,17 @@ class BaseModel(ABC):
         For example: ``(('temperature', ('spatial', 'temporal')),)``
         """
 
+    @property
+    @abstractmethod
+    def vars_updated(cls) -> list[str]:
+        """Variables that are updated by the model.
+
+        At the moment, this list is used to decide which variables to output from the
+        :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
+        by a model used in the specific simulation. In future, this could also be used
+        to prevent multiple models from updating the same variable and similar problems.
+        """
+
     def __init__(
         self,
         data: Data,
