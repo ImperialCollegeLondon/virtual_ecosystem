@@ -82,6 +82,24 @@ def data_instance():
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
+                model_name = 'shouldnt_pass'
+                required_init_vars = tuple()
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property vars_updated is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property vars_updated is not implemented in UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Undefined vars_updated",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
                 model_name = 'should_pass'
                 required_init_vars = tuple()
                 vars_updated = []
