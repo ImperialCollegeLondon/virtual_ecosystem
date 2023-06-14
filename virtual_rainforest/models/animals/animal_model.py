@@ -46,13 +46,14 @@ class AnimalModel(BaseModel):
 
     model_name = "animals"
     """The model name for use in registering the model and logging."""
-    # TODO - Check with Taran that these are sensible bounds
     lower_bound_on_time_scale = "1 day"
     """Shortest time scale that soil model can sensibly capture."""
     upper_bound_on_time_scale = "1 month"
     """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
+    vars_updated = []
+    """The animal model doesn't currently use the data object so nothing to update."""
 
     def __init__(
         self,

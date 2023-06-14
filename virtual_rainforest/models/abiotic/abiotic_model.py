@@ -43,6 +43,8 @@ class AbioticModel(BaseModel):
     This is a set of variables that must be present in the data object used to create an
     AbioticModel instance, along with any core axes that those variables must map on
     to."""
+    vars_updated = []
+    """Once this model is functional variables should be included here."""
 
     def __init__(
         self,
