@@ -367,6 +367,7 @@ def test_check_failure_on_missing_methods(data_instance):
         lower_bound_on_time_scale = "1 second"
         upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
+        vars_updated = []
 
     with pytest.raises(TypeError) as err:
         inst = InitVarModel(  # noqa: F841
@@ -444,6 +445,7 @@ def test_check_required_init_vars(
         lower_bound_on_time_scale = "1 second"
         upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
+        vars_updated = []
 
         def setup(self) -> None:
             return super().setup()
@@ -566,6 +568,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
         lower_bound_on_time_scale = "1 day"
         upper_bound_on_time_scale = "1 month"
         required_init_vars = ()
+        vars_updated = []
 
         def setup(self) -> None:
             return super().setup()
