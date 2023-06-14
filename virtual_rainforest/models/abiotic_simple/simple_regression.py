@@ -31,7 +31,7 @@ vapour pressure deficit as a function of leaf area index from
 """
 
 MicroclimateParameters: Dict[str, float] = {
-    "soil_moisture_capacity": 90,
+    "soil_moisture_capacity": 0.9,
     "water_interception_factor": 0.1,
     "saturation_vapour_pressure_factor1": 0.61078,
     "saturation_vapour_pressure_factor2": 7.5,
@@ -133,12 +133,14 @@ def run_simple_regression(
             log interpolation. Note that currently no conservation of water and energy!
         water_interception_factor: Factor that determines how much rainfall is
             intercepted by stem and canopy
-        soil_moisture_capacity: soil moisture capacity for water
+        soil_moisture_capacity: soil moisture capacity for water, relative water content
+            (between 0.0 and 1.0)
 
     Returns:
         Dict of DataArrays for air temperature [C], relative humidity [-], vapour
         pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
-        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
+        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [relative water content], and
+        surface runoff [mm]
     """
 
     # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
@@ -152,7 +154,7 @@ def run_simple_regression(
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
         output[var] = log_interpolation(
             data=data,
-            reference_data=data[var + "_ref"].isel(time=time_index),
+            reference_data=data[var + "_ref"].isel(time_index=time_index),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_roles=layer_roles,
             layer_heights=data["layer_heights"],
@@ -164,7 +166,7 @@ def run_simple_regression(
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
         data["atmospheric_pressure_ref"]
-        .isel(time=time_index)
+        .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
         .T
@@ -173,7 +175,7 @@ def run_simple_regression(
     # Mean atmospheric C02 profile, [ppm]
     output["atmospheric_co2"] = (
         data["atmospheric_co2_ref"]
-        .isel(time=0)
+        .isel(time_index=0)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_co2")
         .T
@@ -202,7 +204,7 @@ def run_simple_regression(
     )
 
     # Precipitation at the surface is reduced as a function of leaf area index
-    precipitation_surface = data["precipitation"].isel(time=time_index) * (
+    precipitation_surface = data["precipitation"].isel(time_index=time_index) * (
         1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
     )
 
@@ -399,7 +401,7 @@ def calculate_soil_moisture(
         "soil_moisture_capacity"
     ],
 ) -> Tuple[DataArray, DataArray]:
-    """Calculate surface runoff and update soil mositure content.
+    """Calculate surface runoff and update soil moisture.
 
     Soil moisture and surface runoff are calculated with a simple bucket model: if
     precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
@@ -412,10 +414,12 @@ def calculate_soil_moisture(
             surface, soil)
         precipitation_surface: precipitation that reaches surface, [mm],
         current_soil_moisture: current soil moisture at upper layer, [mm],
-        soil_moisture_capacity: soil moisture capacity (optional)
+        soil_moisture_capacity: soil moisture capacity (optional), [relative water
+            content]
 
     Returns:
-        current soil moisture for one layer, [mm], surface runoff, [mm]
+        current soil moisture for one layer, [relative water content], surface runoff,
+            [mm]
     """
     # calculate how much water can be added to soil before capacity is reached
     available_capacity = soil_moisture_capacity - current_soil_moisture.mean(

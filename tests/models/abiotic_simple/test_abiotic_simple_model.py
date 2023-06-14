@@ -16,24 +16,11 @@ from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
 )
 
 
-def test_set_layer_roles():
-    """Test correct order of layers."""
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        set_layer_roles,
-    )
-
-    assert set_layer_roles(10, 2) == (
-        ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
-    )
-
-
 @pytest.mark.parametrize(
-    "soil_layers,canopy_layers,ini_soil_moisture,raises,expected_log_entries",
+    "ini_soil_moisture,raises,expected_log_entries",
     [
         (
-            2,
-            10,
-            50.0,
+            0.5,
             does_not_raise(),
             (
                 (
@@ -74,68 +61,16 @@ def test_set_layer_roles():
             ),
         ),
         (
-            -2,
-            10,
-            50.0,
+            -0.5,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "There has to be at least one soil layer in the abiotic model!",
+                    "The initial soil moisture has to be between 0 and 1!",
                 ),
             ),
         ),
         (
-            2,
-            -3,
-            50.0,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "There has to be at least one canopy layer in the abiotic model!",
-                ),
-            ),
-        ),
-        (
-            2.5,
-            10,
-            50.0,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "The number of soil layers must be an integer!",
-                ),
-            ),
-        ),
-        (
-            2,
-            3.4,
-            50.0,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "The number of canopy layers must be an integer!",
-                ),
-            ),
-        ),
-        (
-            2,
-            10,
-            -50.0,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "The initial soil moisture has to be between 0 and 100!",
-                ),
-            ),
-        ),
-        (
-            2,
-            10,
             DataArray([50, 30, 20]),
             pytest.raises(InitialisationError),
             (
@@ -150,12 +85,12 @@ def test_set_layer_roles():
 def test_abiotic_simple_model_initialization(
     caplog,
     dummy_climate_data,
-    soil_layers,
-    canopy_layers,
     ini_soil_moisture,
     raises,
     expected_log_entries,
     layer_roles_fixture,
+    soil_layers=2,
+    canopy_layers=10,
 ):
     """Test `AbioticSimpleModel` initialization."""
 
@@ -202,12 +137,14 @@ def test_abiotic_simple_model_initialization(
                     "timing": {
                         "start_date": "2020-01-01",
                         "update_interval": "1 week",
-                    }
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
                 },
                 "abiotic_simple": {
-                    "soil_layers": 2,
-                    "canopy_layers": 10,
-                    "initial_soil_moisture": 50.0,
+                    "initial_soil_moisture": 0.5,
                 },
             },
             pint.Quantity("1 week"),
@@ -291,12 +228,14 @@ def test_generate_abiotic_simple_model(
                     "timing": {
                         "start_date": "2020-01-01",
                         "update_interval": "1 week",
-                    }
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
                 },
                 "abiotic_simple": {
-                    "soil_layers": 2,
-                    "canopy_layers": 10,
-                    "initial_soil_moisture": 50.0,
+                    "initial_soil_moisture": 0.5,
                 },
             },
             pint.Quantity("1 week"),
@@ -322,7 +261,7 @@ def test_setup(
 
     model.setup()
 
-    soil_moisture_values = np.repeat(a=[np.nan, 50], repeats=[13, 2])
+    soil_moisture_values = np.repeat(a=[np.nan, 0.5], repeats=[13, 2])
 
     xr.testing.assert_allclose(
         dummy_climate_data["soil_moisture"],
@@ -342,7 +281,7 @@ def test_setup(
         dummy_climate_data["vapour_pressure_deficit_ref"],
         DataArray(
             np.full((3, 3), 0.141727),
-            dims=["cell_id", "time"],
+            dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2],
             },

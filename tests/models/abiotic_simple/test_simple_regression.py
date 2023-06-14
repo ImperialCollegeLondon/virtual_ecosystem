@@ -19,7 +19,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     # temperature
     result = log_interpolation(
         data=data,
-        reference_data=data["air_temperature_ref"].isel(time=0),
+        reference_data=data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
@@ -62,7 +62,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     # relative humidity
     result_hum = log_interpolation(
         data=data,
-        reference_data=data["relative_humidity_ref"].isel(time=0),
+        reference_data=data["relative_humidity_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=layer_roles_fixture,
         layer_heights=data["layer_heights"],
@@ -112,7 +112,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     data = dummy_climate_data
 
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time=0)
+        data["air_temperature_ref"].isel(time_index=0)
     )
 
     exp_output = DataArray(
@@ -324,7 +324,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     )
 
     data = dummy_climate_data
-    precipitation_surface = data["precipitation"].isel(time=0) * (
+    precipitation_surface = data["precipitation"].isel(time_index=0) * (
         1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
     )
 

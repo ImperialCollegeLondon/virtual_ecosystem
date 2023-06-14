@@ -18,7 +18,7 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 from pint import Quantity
@@ -28,6 +28,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic_simple import simple_regression
 
 
@@ -39,14 +40,15 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-        initial_soil_moisture: The initial soil moisture for all layers.
+        initial_soil_moisture: The initial soil moisture for all layers,
+            [relative water content] (between 0.0 and 1.0).
     """
 
     model_name = "abiotic_simple"
     """The model name for use in registering the model and logging."""
     lower_bound_on_time_scale = "1 day"
     """Shortest time scale that abiotic simple model can sensibly capture."""
-    upper_bound_on_time_scale = "30 day"
+    upper_bound_on_time_scale = "1 month"
     """Longest time scale that abiotic simple model can sensibly capture."""
     required_init_vars = (  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
@@ -69,44 +71,15 @@ class AbioticSimpleModel(BaseModel):
         initial_soil_moisture: float,
         **kwargs: Any,
     ):
-        # sanity checks for soil and canopy layers
-        if soil_layers < 1:
-            to_raise = InitialisationError(
-                "There has to be at least one soil layer in the abiotic model!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if not isinstance(soil_layers, int):
-            to_raise = InitialisationError(
-                "The number of soil layers must be an integer!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if canopy_layers < 1:
-            to_raise = InitialisationError(
-                "There has to be at least one canopy layer in the abiotic model!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if canopy_layers != int(canopy_layers):
-            to_raise = InitialisationError(
-                "The number of canopy layers must be an integer!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
         # sanity checks for initial soil moisture
         if type(initial_soil_moisture) is not float:
             to_raise = InitialisationError("The initial soil moisture must be a float!")
             LOGGER.error(to_raise)
             raise to_raise
 
-        if initial_soil_moisture < 0 or initial_soil_moisture > 100:
+        if initial_soil_moisture < 0 or initial_soil_moisture > 1:
             to_raise = InitialisationError(
-                "The initial soil moisture has to be between 0 and 100!"
+                "The initial soil moisture has to be between 0 and 1!"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -144,8 +117,8 @@ class AbioticSimpleModel(BaseModel):
         """
 
         # Find number of soil and canopy layers
-        soil_layers = config["abiotic_simple"]["soil_layers"]
-        canopy_layers = config["abiotic_simple"]["canopy_layers"]
+        soil_layers = config["core"]["layers"]["soil_layers"]
+        canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["abiotic_simple"]["initial_soil_moisture"]
 
         LOGGER.info(
@@ -164,7 +137,7 @@ class AbioticSimpleModel(BaseModel):
         steps. Both variables are added directly to the self.data object.
         """
 
-        # Create 1-dimenaional numpy array filled with initial soil moisture values for
+        # Create 1-dimensional numpy array filled with initial soil moisture values for
         # all soil layers and np.nan for atmosphere layers
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
@@ -186,6 +159,18 @@ class AbioticSimpleModel(BaseModel):
                 "cell_id": self.data.grid.cell_id,
             },
             name="soil_moisture",
+        )
+
+        # create soil temperature array
+        self.data["soil_temperature"] = DataArray(
+            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, len(self.layer_roles)),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_temperature",
         )
 
         # calculate vapour pressure deficit at reference height for all time steps
@@ -217,32 +202,3 @@ class AbioticSimpleModel(BaseModel):
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
-
-
-def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
-    """Create a list of layer roles.
-
-    This function creates a list of layer roles for the vertical dimension of the
-    Virtual Rainforest. The layer above the canopy is defined as 0 (canopy height + 2m)
-    and the index increases towards the bottom of the soil column. The canopy includes
-    a maximum number of canopy layers (defined in config) which are filled from the top
-    with canopy node heights from the plant module (the rest is set to NaN). Below the
-    canopy, we currently set one subcanopy layer (around 1.5m above ground) and one
-    surface layer (0.1 m above ground). Below ground, we include a maximum number of
-    soil layers (defined in config); the deepest layer is currently set to 1 m as the
-    temperature there is fairly constant and equals the mean annual temperature.
-
-    Args:
-        canopy_layers: number of canopy layers
-        soil_layers: number of soil layers
-
-    Returns:
-        List of canopy layer roles
-    """
-    return (
-        ["above"]
-        + ["canopy"] * canopy_layers
-        + ["subcanopy"]
-        + ["surface"]
-        + ["soil"] * soil_layers
-    )

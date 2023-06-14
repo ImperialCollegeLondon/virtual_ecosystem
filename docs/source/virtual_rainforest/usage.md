@@ -21,10 +21,19 @@ access to all relevant dependencies.
 
 ## Running an example Virtual Rainforest simulation
 
-An example configuration for the Virtual Rainforest model is provided in
-`data/example_config.toml`. A simulation using this configuration can be run through the
-command line by calling:
+An example configuration file and the dummy data required to run the `abiotic_simple`
+and `soil` models are stored in the Imperial College Research Data Store (RDS). To
+access this data you must have been added to the the Virtual Rainforest RDS project.
+Details of how to access RDS can be found
+[here](https://wiki.imperial.ac.uk/pages/viewpage.action?spaceKey=HPC&title=Research+Data+Store)
+(Imperial College login required).
+
+Once you are connected to RDS a simulation using this configuration and data set can be
+run through the command line by calling:
 
 ```shell
-vr_run data/example_config.toml
+vr_run /Volumes/virtual_rainforest/live/dummy_data/ 
 ```
+
+**Note:** The directory path above is specific to macOS and will be different for
+Windows and Linux machines.
