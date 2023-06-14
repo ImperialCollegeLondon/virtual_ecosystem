@@ -387,6 +387,18 @@ class BaseModel(ABC):
         return update_interval
 
     @classmethod
+    def _check_vars_updated(cls) -> None:
+        """Check that vars_updated has been set properly."""
+
+        # Check that vars_updated is set
+        if isinstance(cls.vars_updated, property):
+            to_raise = NotImplementedError(
+                f"Property vars_updated is not implemented in {cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -403,6 +415,7 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
+            cls._check_vars_updated()
             lower_bound = cls._check_time_bounds_units("lower_bound_on_time_scale")
             upper_bound = cls._check_time_bounds_units("upper_bound_on_time_scale")
             # Once bounds units are checked their relative values can be validated
