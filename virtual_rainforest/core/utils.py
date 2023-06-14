@@ -6,8 +6,9 @@ generated for tasks that are repeated across modules.
 """  # noqa: D205, D415
 
 from pathlib import Path
+from typing import List
 
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -57,3 +58,64 @@ def check_outfile(merge_file_path: Path) -> None:
         raise to_raise
 
     return None
+
+
+def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
+    """Create a list of layer roles.
+
+    This function creates a list of layer roles for the vertical dimension of the
+    Virtual Rainforest. The layer above the canopy is defined as 0 (canopy height + 2m)
+    and the index increases towards the bottom of the soil column. The canopy includes a
+    maximum number of canopy layers (defined in config) which are filled from the top
+    with canopy node heights from the plant module (the rest is set to NaN). Below the
+    canopy, we currently set one subcanopy layer (around 1.5m above ground) and one
+    surface layer (0.1 m above ground). Below ground, we include a maximum number of
+    soil layers (defined in config); the deepest layer is currently set to 1 m as the
+    temperature there is fairly constant and equals the mean annual temperature.
+
+    Args:
+        canopy_layers: number of canopy layers soil_layers: number of soil layers
+
+    Raises:
+        InitialisationError: If the number soil or canopy layers are not both positive
+            integers
+
+    Returns:
+        List of canopy layer roles
+    """
+
+    # sanity checks for soil and canopy layers
+    if soil_layers < 1:
+        to_raise = InitialisationError(
+            "There has to be at least one soil layer in the Virtual Rainforest!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if not isinstance(soil_layers, int):
+        to_raise = InitialisationError("The number of soil layers must be an integer!")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if canopy_layers < 1:
+        to_raise = InitialisationError(
+            "There has to be at least one canopy layer in the Virtual Rainforest!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if canopy_layers != int(canopy_layers):
+        to_raise = InitialisationError(
+            "The number of canopy layers must be an integer!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    layer_roles = (
+        ["above"]
+        + ["canopy"] * canopy_layers
+        + ["subcanopy"]
+        + ["surface"]
+        + ["soil"] * soil_layers
+    )
+    return layer_roles

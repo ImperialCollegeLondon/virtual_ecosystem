@@ -1,71 +1,159 @@
 # Virtual Rainforest simulation flow
 
-This document describes the main simulation flow of the Virtual Rainforest model. This
-flow will now be set out step by step.
+This document describes the main simulation flow of the Virtual Rainforest model. The
+main stages are:
 
-## Loading configuration files
+* setup of the **simulation core** that provides shared resources and functions
+* setup of the individual **science models** that simulate the behaviour of different
+components of the Virtual Rainforest, and
+* iteration of the simulation over the configured timescale.
 
-As a first step, configuration files are loaded in and validated. These files are of
-`toml` format and are found based on paths provided by the user. When these files are
-loaded in they are validated to ensure that they are valid `toml`, and that all the
-required settings are present and not duplicated. The Virtual Rainforest code provides
-default settings for some configuration options and these will be used automatically if
-that setting is not found in the configuration, but if no default is set then the
-validation will fail. Further details can be found in the [configuration
-documentation](./core/config.md).
+```{mermaid}
+flowchart TD
+    A[vr_run] --> B
+    B --> F
+    C --> F
+    D --> F
+    D --> G
+    E --> F
+    H --> H2
+    subgraph Core 
+    direction LR
+    B[Load configuration] --> C[Create grid]
+    C --> D[Load data]
+    D --> E[Validate timescale]
+    end
+    subgraph Setup science models
+    direction LR
+    F[Model configuration] --> G[Model setup]
+    G --> H[Model spinup]
+    end
+    subgraph Simulation
+    H2[Save initial state] --> I[Start time]
+    I --> J[Update interval]
+    J --> K[Update science models]
+    K --> J
+    K --> L[End time]
+    L --> M[Save final state]
+    end
+```
 
-## Grid creation
+## Core setup
 
-The next step is creating a grid, which defines the spatial structure of the simulation:
-the area, coordinate system and geometry of the individual cells that will be used in
-the simulation. The [grid documentation](./core/grid.md) describes this object further.
-This grid is then used to create an empty `Data` object of the correct size to describe
-the simulation.
+The first stage in the simulation is the configuration and initialisation of the core
+resources and functionality.
 
-## Loading and validation of input data
+### Loading configuration files
 
-This `Data` object now needs to be populated with data. The data used in the simulation
-is stored in a set of data files which are specified in the configuration. This data is
-then loaded using the `data.load_data_config` method, which has built in validation
-procedures to ensure that the loaded data can be mapped onto the spatial grid and also
-other core dimensions for the configured simulation. Further details can be found in the
-[data system](./core/data.md) and [core axes](./core/axes.md) documentation.
+First, a set of user-provided configuration files in `TOML` format for a simulation are
+loaded. These files are then validated to ensure:
 
-## Configuration of specific models
+* that they are valid `TOML`,
+* and that all the required settings are present and not duplicated.
+
+Some settings will be filled automatically from defaults settings and so can be omitted,
+but validation will fail if mandatory settings are omitted. Further details can be found
+in the [configuration documentation](./core/config.md).
+
+### Grid creation
+
+Next, the spatial structure of the simulation is configured as a [`Grid`
+object](./core/grid.md) that defines the area, coordinate system and geometry of the
+individual cells that will be used in the simulation.
+
+### Loading and validation of input data
+
+All of the data required to initialise and run the simulation is then loaded into an
+internal [`Data` object](./core/data.md). The model configuration sets the locations of
+files containing required variables and this configuration is passed into the
+{meth}`~virtual_rainforest.core.data.Data.load_data_config` method, which ensures that:
+
+* the input files are valid and can be read, and
+* that the data in files is congruent with the rest of the configuration, such as
+  checking the dimensionality and shape of [core axes](./core/axes.md) like the spatial
+  grid.
+
+### Simulation timescale
+
+The simulation runs between two dates with an update interval at which each science
+model is recalculated. These values are defined in the `core` configuration and are
+now validated to ensure that the start date, end date and update interval are sensible.
+
+```{note}
+The simulation uses 12 equal length months (30.4375 days) and equal length years (365.25
+days), ignoring leap years.
+```
+
+## Science models
 
 The Virtual Rainforest is implemented as model objects, each of which is responsible for
 simulating a particular aspect of the rainforest ecosystem. The models used for the
-specific simulation run can be set in the configuration. This will typically be the four
-standard models ([`AbioticModel`](../api/abiotic.md), `AnimalModel`, `PlantModel` and
-[`SoilModel`](../api/soil.md)), but this can be extended to include new models or
-different combinations of models. For more information about implementing new models,
-see [this page](../development/defining_new_models.md) about the required module
-structure and the model API. Once a list of models to configure has been extracted from
-the configuration, they are then all configured.
+specific simulation run can be set in the configuration and will typically include the
+four standard models:
 
-## Extracting simulation timing details
+* the [`AbioticModel`](../api/abiotic.md) or
+  [`AbioticSimpleModel`](../api/abiotic_simple.md),
+* the `AnimalModel`,
+* the `PlantModel` and the
+* [`SoilModel`](../api/soil.md)
 
-The configuration contains a start time, an end time and a time interval for the update
-of all models. These details are extracted from configuration, with a check performed
-to ensure that the simulation will update at least once between the start and end time
-of the simulation. It is important to note that because months and years are of
-inconsistent length they are currently averaged over. This means that 1 month becomes
-30.4375 days, and 1 year becomes 365.25 days.
+but this can be [extended to include new models](../development/defining_new_models.md)
+or adopt different combinations of models.
 
-## Saving the initial state
+Once a list of models to configure has been extracted from the configuration, all
+science models run through a set of steps to prepare for the simulation to start. Each
+step is represented using a set of standard model methods that are run in the following
+order.
+
+### Model configuration
+
+The loaded configuration should include the configuration details for each individual
+science model. These are now used to initialise each requested model using the
+{meth}`~virtual_rainforest.core.base_model.BaseModel.from_config` method defined
+for each model. This method checks that the configuration is valid for the science
+model.
+
+### Model setup
+
+Some models require an additional setup step to calculate values for internal variables
+from the initial loaded data or to set up further structures within the model, such as
+representations of plant or animal communities. Each model will run the
+{meth}`~virtual_rainforest.core.base_model.BaseModel.setup` method defined for the
+specific model. In simple science models, this method may not actually need to do
+anything.
+
+### Model spinup
+
+Some models may then require a spin up step to allow initial variables to reach an
+equilibrium before running the main simulation. Again, each model will run the
+{meth}`~virtual_rainforest.core.base_model.BaseModel.spinup` method defined for the
+specific model, and again this may not need to do anything for simple models.
+
+### Model update
+
+At this point, the model instance is now ready for simulation. The
+{meth}`~virtual_rainforest.core.base_model.BaseModel.update` method for each science
+model is run as part of the simulation process described below.
+
+## Simulation process
+
+Now that the simulation core and science models have been configure and initialised,
+along with any setup or spinup steps, the simulation itself starts.
+
+### Saving the initial state
 
 The `data` object has now been populated with all of the configured data required to run
-the model. It can now optionally be saved to a file set in the configuration to generate
-a single data file of the initial model state.
+the model. The simulation configuration can optionally provide a filepath that will be
+used to output a single data file of the initial simulation state.
 
-## Simulating over time
+### Simulation
 
-The previously extracted timing details are used to setup a timing loop, which runs from
-the start time to the end time with a time step set by the update interval. At each
+The science models are now iterated over the configured simulation timescale, running
+from the start time to the end time with a time step set by the update interval. At each
 step all models are updated.
 
-## Saving the final state
+### Saving the final state
 
-After the full simulation loop has been completed the final simulation state can be
-saved. Whether to save this state and where to save it to are again configuration
-options, but in this case the default is for the final state to be saved.
+After the full simulation loop has been completed, the final simulation state held in
+the `Data` object can be optionally be saved to a path provided in the configuration,
+defaulting to saving the data.

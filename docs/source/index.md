@@ -102,6 +102,18 @@ team.
   Abiotic Radiation <api/abiotic/radiation.md>
   Abiotic Wind <api/abiotic/wind.md>
   Abiotic Atmospheric CO2 <api/abiotic/atmospheric_co2.md>
+  Animal Overview <api/animals>
+  Animal Model <api/animals/animal_model.md> 
+  Animal Communities <api/animals/animal_communities.md> 
+  Animal Cohorts <api/animals/animal_cohorts.md> 
+  Animal Functional Groups <api/animals/functional_group.md> 
+  Animal Traits <api/animals/animal_traits.md>
+  Animal Scaling Functions <api/animals/scaling_functions.md> 
+  Animal Constants <api/animals/constants.md> 
+  Animal Carcasses <api/animals/carcasses.md> 
+  Animal Dummy Plants and Soils <api/animals/dummy_plants_and_soil.md> 
+  
+  
 ```
 
 ```{eval-rst}

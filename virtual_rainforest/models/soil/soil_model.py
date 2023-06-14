@@ -30,6 +30,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
 
@@ -64,8 +65,6 @@ class SoilModel(BaseModel):
         ("soil_c_pool_microbe", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
-        ("soil_moisture", ("spatial",)),
-        ("soil_temperature", ("spatial",)),
         ("percent_clay", ("spatial",)),
     )
     """Required initialisation variables for the soil model.
@@ -80,6 +79,8 @@ class SoilModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
+        soil_layers: int,
+        canopy_layers: int,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -100,11 +101,11 @@ class SoilModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
-        # Find first soil layer from the soil temperature in data object
+        # create a list of layer roles
+        layer_roles = set_layer_roles(canopy_layers, soil_layers)
+        # Find first soil layer from the list of layer roles
         self.top_soil_layer_index = next(
-            i
-            for i, v in enumerate(data["soil_moisture"].coords["layer_roles"])
-            if v == "soil"
+            i for i, v in enumerate(layer_roles) if v == "soil"
         )
         """The layer in the data object representing the first soil layer."""
         # TODO - At the moment the soil model only cares about the very top layer. As
@@ -126,11 +127,15 @@ class SoilModel(BaseModel):
             update_interval: Frequency with which all models are updated
         """
 
+        # Find number of soil and canopy layers
+        soil_layers = config["core"]["layers"]["soil_layers"]
+        canopy_layers = config["core"]["layers"]["canopy_layers"]
+
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
-        return cls(data, update_interval)
+        return cls(data, update_interval, soil_layers, canopy_layers)
 
     def setup(self) -> None:
         """Placeholder function to setup up the soil model."""

@@ -21,19 +21,39 @@ def test_damuths_law(mass, population_density, terms):
 
 
 @pytest.mark.parametrize(
-    "mass, met_rate, terms",
+    "mass, temperature, terms, metabolic_type, met_rate",
     [
-        (0.0, 0.0, (0.75, 0.047)),
-        (1.0, 8.357913, (0.75, 0.047)),
-        (1000.0, 1486.270500, (0.75, 0.047)),
+        # Test cases for an endothermic animal
+        (0.0, 25, (0.75, 0.047), "endothermic", 0.0),
+        (1.0, 25, (0.75, 0.047), "endothermic", 8.357913),
+        (1000.0, 25, (0.75, 0.047), "endothermic", 1486.270500),
+        # Test cases for an ectothermic animal
+        (0.0, 25, (0.75, 0.047), "ectothermic", 0.0),
+        (
+            1.0,
+            25,
+            (0.75, 0.047),
+            "ectothermic",
+            1.068530698734203e-11,
+        ),
+        (
+            1000.0,
+            25,
+            (0.75, 0.047),
+            "ectothermic",
+            1.478383149667868e-11,
+        ),
     ],
 )
-def test_metabolic_rate(mass, met_rate, terms):
+def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     """Testing metabolic rate for various body-masses."""
 
+    from virtual_rainforest.models.animals.animal_traits import MetabolicType
     from virtual_rainforest.models.animals.scaling_functions import metabolic_rate
 
-    testing_rate = metabolic_rate(mass, terms)
+    testing_rate = metabolic_rate(
+        mass, temperature, terms, MetabolicType(metabolic_type)
+    )
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
 

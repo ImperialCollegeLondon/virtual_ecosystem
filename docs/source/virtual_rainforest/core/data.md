@@ -194,6 +194,11 @@ configuration section. This can be used to automatically load multiple datasets 
 a Data object. The configuration file is TOML formatted and should contain an entry
 like the example below for each variable to be loaded.
 
+**NOTE**: At the moment,
+`core.data.variable` tags cannot be used across multiple toml config files without
+causing `ConfigurationError: Duplicated entries in config files: core.data.variable` to
+be raised. This means that all variables need to be combined in one `config` file.
+
 ```toml
 [[core.data.variable]]
 file="'../../data/xy_dim.nc'"

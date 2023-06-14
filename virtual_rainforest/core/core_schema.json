@@ -157,6 +157,29 @@
                   "out_path_continuous",
                   "out_path_final"
                ]
+            },
+            "layers": {
+               "description": "Layers to create vertical structure",
+               "type": "object",
+               "properties": {
+                  "soil_layers": {
+                     "description": "Number of soil layers to simulate",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 2
+                  },
+                  "canopy_layers": {
+                     "description": "Number of canopy layers to simulate",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 10
+                  }
+               },
+               "default": {},
+               "required": [
+                  "soil_layers",
+                  "canopy_layers"
+               ]
             }
          },
          "default": {},
@@ -165,7 +188,8 @@
             "data_output_options",
             "grid",
             "timing",
-            "modules"
+            "modules",
+            "layers"
          ]
       }
    },

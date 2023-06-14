@@ -31,7 +31,7 @@ vapour pressure deficit as a function of leaf area index from
 """
 
 MicroclimateParameters: Dict[str, float] = {
-    "soil_moisture_capacity": 90,
+    "soil_moisture_capacity": 0.9,
     "water_interception_factor": 0.1,
     "saturation_vapour_pressure_factor1": 0.61078,
     "saturation_vapour_pressure_factor2": 7.5,
@@ -133,12 +133,14 @@ def run_simple_regression(
             log interpolation. Note that currently no conservation of water and energy!
         water_interception_factor: Factor that determines how much rainfall is
             intercepted by stem and canopy
-        soil_moisture_capacity: soil moisture capacity for water
+        soil_moisture_capacity: soil moisture capacity for water, relative water content
+            (between 0.0 and 1.0)
 
     Returns:
         Dict of DataArrays for air temperature [C], relative humidity [-], vapour
         pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
-        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [-], and surface runoff [mm]
+        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [relative water content], and
+        surface runoff [mm]
     """
 
     # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
@@ -399,7 +401,7 @@ def calculate_soil_moisture(
         "soil_moisture_capacity"
     ],
 ) -> Tuple[DataArray, DataArray]:
-    """Calculate surface runoff and update soil mositure content.
+    """Calculate surface runoff and update soil moisture.
 
     Soil moisture and surface runoff are calculated with a simple bucket model: if
     precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
@@ -412,10 +414,12 @@ def calculate_soil_moisture(
             surface, soil)
         precipitation_surface: precipitation that reaches surface, [mm],
         current_soil_moisture: current soil moisture at upper layer, [mm],
-        soil_moisture_capacity: soil moisture capacity (optional)
+        soil_moisture_capacity: soil moisture capacity (optional), [relative water
+            content]
 
     Returns:
-        current soil moisture for one layer, [mm], surface runoff, [mm]
+        current soil moisture for one layer, [relative water content], surface runoff,
+            [mm]
     """
     # calculate how much water can be added to soil before capacity is reached
     available_capacity = soil_moisture_capacity - current_soil_moisture.mean(

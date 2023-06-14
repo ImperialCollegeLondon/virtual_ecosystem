@@ -1,14 +1,10 @@
-"""The ''dummy animal'' module provides toy animal module functionality as well 
-as self-contained dummy versions of the abiotic, soil, and plant modules that 
-are required for setting up and testing the early stages of the animal module.
+"""The ''animals'' module provides animal module functionality.
 
 Todo:
-- rework dispersal
 - send portion of dead to carcass pool
 
 Current simplifications:
 - only herbivory (want: carnivory and omnivory)
-- only endothermy (want: ectothermy)
 - only iteroparity (want: semelparity)
 - no development
 
@@ -21,15 +17,15 @@ Notes to self:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from numpy import timedelta64
-
-from virtual_rainforest.core.logger import LOGGER
 
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.carcasses import CarcassPool
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
+from virtual_rainforest.models.animals.constants import ENERGY_DENSITY, TEMPERATURE
+from virtual_rainforest.models.animals.dummy_plants_and_soil import (
+    PalatableSoil,
+    PlantCommunity,
+)
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
@@ -37,118 +33,6 @@ from virtual_rainforest.models.animals.scaling_functions import (
     intake_rate_scaling,
     metabolic_rate,
 )
-
-# from random import choice
-
-
-class PlantCommunity:
-    """This is a dummy class of plant cohorts for testing the animal module."""
-
-    def __init__(self, mass: float, position: int) -> None:
-        """The constructor for Plant class."""
-        self.mass = mass
-        """The mass of the plant cohort [kg]."""
-        self.energy_density: float = ENERGY_DENSITY["plant"]
-        """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
-        self.energy_max: float = self.mass * self.energy_density
-        """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
-        self.energy = self.energy_max
-        """The amount of energy in the plant cohort [J] [toy]."""
-        self.is_alive: bool = True
-        """Whether the cohort is alive [True] or dead [False]."""
-        self.position = position
-        """The grid location of the cohort."""
-
-    def grow(self) -> None:
-        """The function to logistically modify cohort energy to the energy_max value."""
-        self.energy += self.energy * (1 - self.energy / self.energy_max)
-
-    def die(self) -> None:
-        """The function to kill a plant cohort."""
-        if self.is_alive:
-            self.is_alive = False
-            LOGGER.info("A Plant Community has died")
-        elif not self.is_alive:
-            LOGGER.warning("A Plant Community which is dead cannot die.")
-
-
-@dataclass
-class PalatableSoil:
-    """This is a dummy class of soil pools for testing the animal module."""
-
-    energy: float
-    """The amount of energy in the soil pool [J]."""
-    position: int
-    """The grid position of the soil pool."""
-
-
-class AnimalCommunity:
-    """This is a class for the animal community of a grid cell."""
-
-    def __init__(
-        self,
-        functional_groups: list[FunctionalGroup],
-    ) -> None:
-        """The constructor of the AnimalCommunity class."""
-        self.functional_groups = tuple(functional_groups)
-        """A list of all FunctionalGroup types in the model."""
-
-        self.cohorts: dict[str, list[AnimalCohort]] = {
-            k.name: [] for k in self.functional_groups
-        }
-        """Generate a dictionary of functional groups within the community."""
-
-    def immigrate(self, immigrant: AnimalCohort, destination: AnimalCommunity) -> None:
-        """Function to move an AnimalCohort between AnimalCommunity objects.
-
-        This function should take a cohort and a destination community and then pop the
-        cohort from this community to the destination.
-
-        Args:
-            immigrant: The AnimalCohort moving between AnimalCommunities.
-            destination: The AnimalCommunity the cohort is moving to.
-
-        """
-
-        destination.cohorts[immigrant.name].append(
-            self.cohorts[immigrant.name].pop(
-                self.cohorts[immigrant.name].index(immigrant)
-            )
-        )
-
-    def die_cohort(self, cohort: AnimalCohort) -> None:
-        """The function to change the cohort status from alive to dead.
-
-        Args:
-            cohort: The AnimalCohort instance that has lost all individuals.
-
-        """
-
-        if cohort.is_alive:
-            cohort.is_alive = False
-            LOGGER.debug("An animal cohort has died")
-            self.cohorts[cohort.name].remove(cohort)
-        elif not cohort.is_alive:
-            LOGGER.exception("An animal cohort which is dead cannot die.")
-
-    def birth(self, cohort: AnimalCohort) -> AnimalCohort:
-        """The function to produce a new AnimalCohort through reproduction.
-
-        Currently, the birth function returns an identical cohort of adults with age
-        0. In the future, the offspring will be modified to have appropriate juvenile
-        traits based on parental type.
-
-        Args:
-            cohort: The AnimalCohort instance which is producing a new AnimalCohort.
-
-        Returns:
-            A new age 0 AnimalCohort.
-
-        """
-        self.cohorts[cohort.name].append(
-            AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
-        )
-        return self.cohorts[cohort.name][-1]
 
 
 class AnimalCohort:
@@ -160,6 +44,14 @@ class AnimalCohort:
         mass: float,
         age: float,
     ) -> None:
+        if age < 0:
+            raise ValueError("Age must be a positive number.")
+        """Check if age is a positive number. """
+
+        if mass < 0:
+            raise ValueError("Mass must be a positive number.")
+        """Check if mass is a positive number."""
+
         """The constructor for the AnimalCohort class."""
         self.functional_group = functional_group
         """The functional group of the animal cohort which holds constants."""
@@ -176,7 +68,10 @@ class AnimalCohort:
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.metabolic_rate: float = metabolic_rate(
-            self.mass, self.functional_group.metabolic_rate_terms
+            self.mass,
+            TEMPERATURE,
+            self.functional_group.metabolic_rate_terms,
+            self.functional_group.metabolic_type,
         )
         """The rate at which energy is expended in [J/s]."""
         self.stored_energy: float = energetic_reserve_scaling(
@@ -200,12 +95,15 @@ class AnimalCohort:
 
         """
 
-        energy_burned = float(dt / timedelta64(1, "s")) * self.metabolic_rate
+        if dt < timedelta64(0, "D"):
+            raise ValueError("dt cannot be negative.")
+
+        if self.stored_energy < 0:
+            raise ValueError("stored_energy cannot be negative.")
+
         # Number of seconds in a day * J/s metabolic rate, consider daily rate.
-        if self.stored_energy >= energy_burned:
-            self.stored_energy -= energy_burned
-        elif self.stored_energy < energy_burned:
-            self.stored_energy = 0.0
+        energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
+        self.stored_energy -= min(self.stored_energy, energy_needed)
 
     def eat(self, food: PlantCommunity) -> float:
         """The function to transfer energy from a food source to the animal cohort.
