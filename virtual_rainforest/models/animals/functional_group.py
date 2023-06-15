@@ -15,6 +15,7 @@ from virtual_rainforest.models.animals.constants import (
     DAMUTHS_LAW_TERMS,
     FAT_MASS_TERMS,
     INTAKE_RATE_TERMS,
+    MECHANICAL_EFFICIENCY,
     METABOLIC_RATE_TERMS,
     MUSCLE_MASS_TERMS,
 )
@@ -56,6 +57,7 @@ class FunctionalGroup:
         """The coefficient and exponent of intake allometry."""
         self.conversion_efficiency = CONVERSION_EFFICIENCY[self.diet]
         """The conversion efficiency of the functional group based on diet."""
+        self.mechanical_efficiency = MECHANICAL_EFFICIENCY[self.diet]
 
 
 def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:

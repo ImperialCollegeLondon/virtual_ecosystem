@@ -127,14 +127,14 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "animal_initial, animal_final, plant_initial, plant_final",
         [
-            (28266000000.0, 28646761627.80271, 182000000000.0, 178192383721.97287),
-            (0.0, 380761627.80271316, 182000000000.0, 178192383721.97287),
-            (28266000000.0, 28266000010.0, 100.0, 0.0),
+            (28266000000.0, 28608685465.02244, 182000000000.0, 178192383721.97287),
+            (0.0, 342685465.02244186, 182000000000.0, 178192383721.97287),
+            (28266000000.0, 28266000009.0, 100.0, 0.0),
             (28266000000.0, 28266000000.0, 0.0, 0.0),
             (0.0, 0.0, 0.0, 0.0),
         ],
     )
-    def test_eat(
+    def test_herbivory(
         self,
         animal_cohort_instance,
         animal_initial,
@@ -142,11 +142,12 @@ class TestAnimalCohort:
         plant_instance,
         plant_initial,
         plant_final,
+        soil_instance,
     ):
         """Testing eat for varying plant and animal energy levels."""
         animal_cohort_instance.stored_energy = animal_initial
         plant_instance.energy = plant_initial
-        animal_cohort_instance.eat(plant_instance)
+        animal_cohort_instance.herbivory(plant_instance, soil_instance)
         assert animal_cohort_instance.stored_energy == animal_final
         assert plant_instance.energy == plant_final
 
@@ -219,21 +220,21 @@ class TestAnimalCohort:
         [
             (
                 28266000000.0,
-                28646761627.80271,
+                28608685465.02244,
                 182000000000.0,
                 178192383721.97287,
                 1000.0,
-                380762627.802713,
+                761524255.60542,
             ),
             (
                 0.0,
-                380761627.802713,
+                342685465.02244,
                 182000000000.0,
                 178192383721.97287,
                 1000.0,
-                380762627.802713,
+                761524255.60542,
             ),
-            (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1010.0),
+            (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1020.0),
             (28266000000.0, 28266000000.0, 0.0, 0.0, 1000.0, 1000.0),
             (0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0),
         ],
