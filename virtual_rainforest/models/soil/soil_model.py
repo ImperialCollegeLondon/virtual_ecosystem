@@ -143,8 +143,12 @@ class SoilModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self) -> None:
-        """Update the soil model by integrating."""
+    def update(self, time_index: int) -> None:
+        """Update the soil model by integrating.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
         # Find carbon pool updates by integration
         updated_carbon_pools = self.integrate()

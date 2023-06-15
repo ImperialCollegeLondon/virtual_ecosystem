@@ -202,6 +202,8 @@ def output_current_state(
     ]
     # Then flatten the list
     variables_to_save = [item for sublist in all_variables for item in sublist]
+    # TODO - Find time_index so that it can be used to create the file name
+    # TODO - Work out how to sensibly create the file name
 
     # First decide whether to generate a new file or append to an existing one
     if new_file:
@@ -210,6 +212,8 @@ def output_current_state(
             Path(data_options["out_path_continuous"]), variables_to_save
         )
     else:
+        # TODO - Append function should become save_with_index or similar, as it no
+        # longer appends but it is different from the other
         # Save the required variables by appending to existing file
         data.append_to_netcdf(
             Path(data_options["out_path_continuous"]), variables_to_save
@@ -279,12 +283,16 @@ def vr_run(
         )
 
     # Setup the timing loop
+    time_index = 0
     while current_time < end_time:
         current_time += update_interval
 
         # Run update() method for every model
         for mod_nm in models_cfd:
-            models_cfd[mod_nm].update()
+            models_cfd[mod_nm].update(time_index)
+
+        # With updates complete increment the time_index
+        time_index += 1
 
         # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:

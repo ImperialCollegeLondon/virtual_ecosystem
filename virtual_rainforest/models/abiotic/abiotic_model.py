@@ -128,8 +128,12 @@ class AbioticModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
 
-    def update(self) -> None:
-        """Placeholder function to update the abiotic model."""
+    def update(self, time_index: int) -> None:
+        """Placeholder function to update the abiotic model.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

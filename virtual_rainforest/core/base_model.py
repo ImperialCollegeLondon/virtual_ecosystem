@@ -205,8 +205,12 @@ class BaseModel(ABC):
         """Function to spin up the model."""
 
     @abstractmethod
-    def update(self) -> None:
-        """Function to update the model."""
+    def update(self, time_index: int) -> None:
+        """Function to update the model.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
     @abstractmethod
     def cleanup(self) -> None:

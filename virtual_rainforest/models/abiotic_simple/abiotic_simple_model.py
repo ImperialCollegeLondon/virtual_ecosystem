@@ -108,8 +108,6 @@ class AbioticSimpleModel(BaseModel):
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
         """Initial soil moisture for all layers and grill cells identical."""
-        self.time_index = 0
-        """Start counter for extracting correct input data."""
 
     @classmethod
     def from_config(
@@ -197,8 +195,12 @@ class AbioticSimpleModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
-    def update(self) -> None:
-        """Placeholder function to update the abiotic simple model."""
+    def update(self, time_index: int) -> None:
+        """Function to update the abiotic simple model.
+
+        Args:
+            time_index: The index of the current time step in the data object.
+        """
 
         # This section perfomes a series of calculations to update the variables in the
         # abiotic model. This could be moved to here and written directly to the data
@@ -206,10 +208,9 @@ class AbioticSimpleModel(BaseModel):
         output_variables = simple_regression.run_simple_regression(
             data=self.data,
             layer_roles=self.layer_roles,
-            time_index=self.time_index,
+            time_index=time_index,
         )
         self.data.add_from_dict(output_dict=output_variables)
-        self.time_index += 1
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

@@ -289,7 +289,7 @@ def test_setup(
     )
 
     # Run the update step
-    model.update()
+    model.update(time_index=0)
 
     exp_temperature = xr.concat(
         [
@@ -325,6 +325,3 @@ def test_setup(
     )
 
     xr.testing.assert_allclose(dummy_climate_data["air_temperature"], exp_temperature)
-
-    # test that time_index was updated
-    assert model.time_index == 1

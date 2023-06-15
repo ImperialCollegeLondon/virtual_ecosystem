@@ -109,8 +109,12 @@ class AnimalModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
 
-    def update(self) -> None:
-        """Placeholder function to solve the animal model."""
+    def update(self, time_index: int) -> None:
+        """Placeholder function to solve the animal model.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
