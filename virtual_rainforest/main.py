@@ -172,7 +172,10 @@ def extract_timing_details(
 
 
 def output_current_state(
-    data: Data, data_options: dict[str, Any], new_file: bool = False
+    data: Data,
+    models_cfd: dict[str, BaseModel],
+    data_options: dict[str, Any],
+    new_file: bool = False,
 ) -> None:
     """Function to output the current state of the data object.
 
@@ -182,6 +185,7 @@ def output_current_state(
 
     Args:
         data: Data object to output current state of
+        models_cfd: Set of models configured for use in the simulation
         data_options: Set of options concerning what to output and where
         new_file: Whether or not to generate a new file, rather than appending to an
             existing one
@@ -192,13 +196,12 @@ def output_current_state(
            If the file to append to is missing (when not in new file mode).
     """
 
-    # Only variables in the data object without a time_index dimension should be saved,
-    # as the method is only designed to append snapshot data.
-    variables_to_save = [
-        str(variable)
-        for variable in data.data.keys()
-        if "time_index" not in data[str(variable)].dims
+    # Only variables in the data object that are updated by a model should be outputted
+    all_variables = [
+        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
     ]
+    # Then flatten the list
+    variables_to_save = [item for sublist in all_variables for item in sublist]
 
     # First decide whether to generate a new file or append to an existing one
     if new_file:
@@ -271,7 +274,9 @@ def vr_run(
     # Make file and save time = 0 data to it. This is different to the initial state as
     # it only contains variables we update with time (i.e. not the input climate data)
     if config["core"]["data_output_options"]["save_continuous_data"]:
-        output_current_state(data, config["core"]["data_output_options"], new_file=True)
+        output_current_state(
+            data, models_cfd, config["core"]["data_output_options"], new_file=True
+        )
 
     # Setup the timing loop
     while current_time < end_time:
@@ -283,7 +288,9 @@ def vr_run(
 
         # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:
-            output_current_state(data, config["core"]["data_output_options"])
+            output_current_state(
+                data, models_cfd, config["core"]["data_output_options"]
+            )
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
