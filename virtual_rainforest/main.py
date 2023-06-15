@@ -175,7 +175,7 @@ def output_current_state(
     data: Data,
     models_cfd: dict[str, BaseModel],
     data_options: dict[str, Any],
-    new_file: bool = False,
+    time_index: int,
 ) -> None:
     """Function to output the current state of the data object.
 
@@ -187,8 +187,7 @@ def output_current_state(
         data: Data object to output current state of
         models_cfd: Set of models configured for use in the simulation
         data_options: Set of options concerning what to output and where
-        new_file: Whether or not to generate a new file, rather than appending to an
-            existing one
+        time_index: The index representing the current time step in the data object.
 
     Raises:
         ConfigurationError: If the final output directory doesn't exist, isn't a
@@ -202,22 +201,12 @@ def output_current_state(
     ]
     # Then flatten the list
     variables_to_save = [item for sublist in all_variables for item in sublist]
-    # TODO - Find time_index so that it can be used to create the file name
-    # TODO - Work out how to sensibly create the file name
+    # TODO - Create output file name from time index
 
-    # First decide whether to generate a new file or append to an existing one
-    if new_file:
-        # Save the required variables (as a new file)
-        data.save_to_netcdf(
-            Path(data_options["out_path_continuous"]), variables_to_save
-        )
-    else:
-        # TODO - Append function should become save_with_index or similar, as it no
-        # longer appends but it is different from the other
-        # Save the required variables by appending to existing file
-        data.append_to_netcdf(
-            Path(data_options["out_path_continuous"]), variables_to_save
-        )
+    # TODO - Rename this function to save_with_index or similar, as it no longer appends
+    # but it is different from the other
+    # Save the required variables by appending to existing file
+    data.append_to_netcdf(Path(data_options["out_path_continuous"]), variables_to_save)
 
 
 def vr_run(
@@ -279,7 +268,7 @@ def vr_run(
     # it only contains variables we update with time (i.e. not the input climate data)
     if config["core"]["data_output_options"]["save_continuous_data"]:
         output_current_state(
-            data, models_cfd, config["core"]["data_output_options"], new_file=True
+            data, models_cfd, config["core"]["data_output_options"], time_index=0
         )
 
     # Setup the timing loop
@@ -297,7 +286,7 @@ def vr_run(
         # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:
             output_current_state(
-                data, models_cfd, config["core"]["data_output_options"]
+                data, models_cfd, config["core"]["data_output_options"], time_index
             )
 
     # Save the final model state
