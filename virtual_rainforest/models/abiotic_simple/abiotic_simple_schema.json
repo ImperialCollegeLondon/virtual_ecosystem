@@ -1,0 +1,15 @@
+{
+    "type": "object",
+    "properties": {
+        "abiotic_simple": {
+            "description": "Configuration settings for the abiotic_simple module",
+            "type": "object",
+            "properties": {},
+            "default": {},
+            "required": []
+        }
+    },
+    "required": [
+        "abiotic_simple"
+    ]
+}

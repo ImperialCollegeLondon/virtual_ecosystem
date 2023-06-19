@@ -1,12 +1,20 @@
 r"""The :mod:`~virtual_rainforest.models.hydrology` module is one of the component
-models of the Virtual Rainforest. It calculates the hydrology for the Virtual
-Rainforest, currently loosely based on the SPLASH model :cite:p:`davis_simple_2017`. In
-the future, this simple bucket-model will be replaced by a process-based model that
-calculated within grid cell water balance as well as the catchment water balance on a
-daily time step.
+models of the Virtual Rainforest. It is comprised of several submodules that calculate
+the microclimate for the Virtual Rainforest.
 
-parameters and constants for the hydrology model are temporarily places in
-:mod:`~virtual_rainforest.models.hydrology.hydrology_constants`.
+Each of the abiotic sub-modules has its own API reference page:
+
+* The :mod:`~virtual_rainforest.models.hydrology.hydrology_model` submodule
+  instantiates the HydrologyModel class which consolidates the functionality of the
+  hydrology module into a single class, which the high level functions of the
+  Virtual Rainforest can then use. At the momemnt, the model calculates the hydrology
+  loosely based on the SPLASH model :cite:p:`davis_simple_2017`. In the future, this
+  simple bucket-model will be replaced by a process-based model that calculates a within
+  grid cell water balance as well as the catchment water balance on a daily time step.
+
+* The :mod:`~virtual_rainforest.models.hydrology.hydrology_constants` submodule contains
+  parameters and constants for the hydrology model are temporarily places in
+  :mod:`~virtual_rainforest.models.hydrology.hydrology_constants`.
 """  # noqa: D205, D415
 
 from importlib import resources

@@ -1,6 +1,6 @@
 r"""The :mod:`~virtual_rainforest.models.abiotic_simple` module is one of the component
 models of the Virtual Rainforest. It is comprised of several submodules that calculate
-the microclimate and hydrology for the Virtual Rainforest.
+the microclimate for the Virtual Rainforest.
 
 Each of the abiotic sub-modules has its own API reference page:
 
