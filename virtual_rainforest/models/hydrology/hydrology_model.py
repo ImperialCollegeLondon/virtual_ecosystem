@@ -18,9 +18,10 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
+import xarray as xr
 from pint import Quantity
 from xarray import DataArray
 
@@ -29,6 +30,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.models.hydrology.hydrology_constants import HydrologyParameters
 
 
 class HydrologyModel(BaseModel):
@@ -48,7 +50,10 @@ class HydrologyModel(BaseModel):
     """Shortest time scale that hydrology model can sensibly capture."""
     upper_bound_on_time_scale = "30 day"
     """Longest time scale that hydrology model can sensibly capture."""
-    required_init_vars = (("precipitation", ("spatial",)),)  # TODO add time
+    required_init_vars = (
+        ("precipitation", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+    )  # TODO add time
     """The required variables and axes for the hydrology model"""
 
     def __init__(
@@ -152,11 +157,120 @@ class HydrologyModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self) -> None:
-        """Placeholder function to update the hydrology model."""
+    def update(
+        self,
+        HydrologyParameters: Dict = HydrologyParameters,
+    ) -> None:
+        """This step updates the soil moisture and surface runoff.
 
-        # self.data['soil_moisture']=
+        The update function uses a simple bucket model based on
+        :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity
+        (see
+        :data:`~virtual_rainforest.models.hydrology.hydrology_constants.HydrologyParameters`)
+        , the excess water is added to runoff and soil moisture is set to soil moisture
+        capacity value; if the soil is not saturated, precipitation is added to the
+        current soil moisture level and runoff is set to zero.
+        """
+
+        # Precipitation at the surface is reduced as a function of leaf area index
+        precipitation_surface = self.data["precipitation"].isel(
+            time_index=self.time_index
+        ) * (
+            1
+            - HydrologyParameters["water_interception_factor"]
+            * self.data["leaf_area_index"].sum(dim="layers")
+        )
+
+        # Mean soil moisture profile, [] and Runoff, [mm]
+        soil_moisture_only, surface_run_off = calculate_soil_moisture(
+            layer_roles=self.layer_roles,
+            precipitation_surface=precipitation_surface,
+            current_soil_moisture=self.data["soil_moisture"],
+            soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
+        )
+
+        self.data["soil_moisture"] = xr.concat(
+            [
+                self.data["soil_moisture"].isel(
+                    layers=np.arange(
+                        0, len(self.layer_roles) - self.layer_roles.count("soil")
+                    )
+                ),
+                soil_moisture_only,
+            ],
+            dim="layers",
+        )
+        self.data["surface_run_off"] = surface_run_off
+
         self.time_index += 1
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
+
+
+def calculate_soil_moisture(
+    layer_roles: List,
+    precipitation_surface: DataArray,
+    current_soil_moisture: DataArray,
+    soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
+        "soil_moisture_capacity"
+    ],
+) -> Tuple[DataArray, DataArray]:
+    """Calculate surface runoff and update soil moisture.
+
+    Soil moisture and surface runoff are calculated with a simple bucket model: if
+    precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
+    excess water is added to runoff and soil moisture is set to soil moisture capacity
+    value; if the soil is not saturated, precipitation is added to the current soil
+    moisture level and runoff is set to zero.
+
+    Args:
+        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+            surface, soil)
+        precipitation_surface: precipitation that reaches surface, [mm],
+        current_soil_moisture: current soil moisture at upper layer, [mm],
+        soil_moisture_capacity: soil moisture capacity (optional), [relative water
+            content]
+
+    Returns:
+        current soil moisture for one layer, [relative water content], surface runoff,
+            [mm]
+    """
+    # calculate how much water can be added to soil before capacity is reached
+    available_capacity = soil_moisture_capacity - current_soil_moisture.mean(
+        dim="layers"
+    )
+
+    # calculate where precipitation exceeds available capacity
+    surface_runoff_cells = precipitation_surface.where(
+        precipitation_surface > available_capacity
+    )
+    # calculate runoff
+    surface_runoff = (
+        DataArray(surface_runoff_cells.data - available_capacity.data)
+        .fillna(0)
+        .rename("surface_runoff")
+        .rename({"dim_0": "cell_id"})
+        .assign_coords({"cell_id": current_soil_moisture.cell_id})
+    )
+
+    # calculate total water in each grid cell
+    total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
+
+    # calculate soil moisture for one layer and copy to all layers
+    soil_moisture = (
+        DataArray(np.clip(total_water, 0, soil_moisture_capacity))
+        .expand_dims(dim={"layers": np.arange(layer_roles.count("soil"))}, axis=0)
+        .assign_coords(
+            {
+                "cell_id": current_soil_moisture.cell_id,
+                "layers": [
+                    len(layer_roles) - layer_roles.count("soil"),
+                    len(layer_roles) - 1,
+                ],
+                "layer_roles": ("layers", layer_roles.count("soil") * ["soil"]),
+            }
+        )
+    )
+
+    return soil_moisture, surface_runoff
