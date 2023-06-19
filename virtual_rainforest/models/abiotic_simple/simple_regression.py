@@ -8,11 +8,9 @@ Soil temperature is interpolated between the surface layer and the air temperatu
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
-Soil moisture and surface runoff are calculated with a simple bucket model based on
-:cite:t:`davis_simple_2017`.
 """  # noqa: D205, D415
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List
 
 import numpy as np
 import xarray as xr
@@ -31,8 +29,6 @@ vapour pressure deficit as a function of leaf area index from
 """
 
 MicroclimateParameters: Dict[str, float] = {
-    "soil_moisture_capacity": 0.9,
-    "water_interception_factor": 0.1,
     "saturation_vapour_pressure_factor1": 0.61078,
     "saturation_vapour_pressure_factor2": 7.5,
     "saturation_vapour_pressure_factor3": 237.3,
@@ -46,8 +42,6 @@ Bounds: Dict[str, float] = {
     "relative_humidity_max": 100,
     "vapour_pressure_deficit_min": 0,
     "vapour_pressure_deficit_max": 10,
-    "soil_moisture_min": 0,
-    "soil_moisture_max": 100,
     "soil_temperature_min": -10,
     "soil_temperature_max": 50,
 }
@@ -65,12 +59,6 @@ def run_simple_regression(
     time_index: int,  # could be datetime?
     MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
     Bounds: Dict[str, float] = Bounds,
-    water_interception_factor: Union[DataArray, float] = MicroclimateParameters[
-        "water_interception_factor"
-    ],
-    soil_moisture_capacity: Union[DataArray, float] = MicroclimateParameters[
-        "soil_moisture_capacity"
-    ],
 ) -> Dict[str, DataArray]:
     r"""Calculate simple microclimate.
 
@@ -94,14 +82,6 @@ def run_simple_regression(
     The function also provides constant atmospheric pressure and :math:`\ce{CO2}` for
     all atmospheric levels.
 
-    Soil moisture and surface runoff are calculated with a simple bucket model based
-    on :cite:t:`davis_simple_2017`: if
-    precipitation exceeds soil moisture capacity (see
-    :data:`~virtual_rainforest.models.abiotic_simple.simple_regression.MicroclimateParameters`)
-    , the excess water is added to runoff and soil moisture is set to soil moisture
-    capacity value; if the soil is not saturated, precipitation is added to the current
-    soil moisture level and runoff is set to zero.
-
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
     * above canopy (canopy height + reference measurement height, typically 2m)
@@ -119,8 +99,6 @@ def run_simple_regression(
     * atmospheric_co2_ref
     * leaf_area_index
     * layer_heights
-    * precipitation
-    * soil_moisture
 
     Args:
         data: Data object
@@ -131,16 +109,11 @@ def run_simple_regression(
             :cite:p:`hardwick_relationship_2015`
         Bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
-        water_interception_factor: Factor that determines how much rainfall is
-            intercepted by stem and canopy
-        soil_moisture_capacity: soil moisture capacity for water, relative water content
-            (between 0.0 and 1.0)
 
     Returns:
         Dict of DataArrays for air temperature [C], relative humidity [-], vapour
-        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
-        atmospheric :math:`\ce{CO2}` [ppm], soil moisture [relative water content], and
-        surface runoff [mm]
+        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa], and
+        atmospheric :math:`\ce{CO2}` [ppm]
     """
 
     # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
@@ -202,29 +175,6 @@ def run_simple_regression(
         ],
         dim="layers",
     )
-
-    # Precipitation at the surface is reduced as a function of leaf area index
-    precipitation_surface = data["precipitation"].isel(time_index=time_index) * (
-        1 - water_interception_factor * data["leaf_area_index"].sum(dim="layers")
-    )
-
-    # Mean soil moisture profile, [] and Runoff, [mm]
-    soil_moisture_only, surface_run_off = calculate_soil_moisture(
-        layer_roles=layer_roles,
-        precipitation_surface=precipitation_surface,
-        current_soil_moisture=data["soil_moisture"],
-        soil_moisture_capacity=soil_moisture_capacity,
-    )
-    output["soil_moisture"] = xr.concat(
-        [
-            data["soil_moisture"].isel(
-                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
-            ),
-            soil_moisture_only,
-        ],
-        dim="layers",
-    )
-    output["surface_run_off"] = surface_run_off
 
     return output
 
@@ -387,75 +337,3 @@ def interpolate_soil_temperature(
         np.clip(layer_values, lower_bound, upper_bound),
         coords=interpolation_heights.coords,
     ).drop_isel(layers=0)
-
-
-# TODO HYDROLOGY grid based in simple model?
-# Stream flow could be estimated as P-ET
-
-
-def calculate_soil_moisture(
-    layer_roles: List,
-    precipitation_surface: DataArray,
-    current_soil_moisture: DataArray,
-    soil_moisture_capacity: Union[DataArray, float] = MicroclimateParameters[
-        "soil_moisture_capacity"
-    ],
-) -> Tuple[DataArray, DataArray]:
-    """Calculate surface runoff and update soil moisture.
-
-    Soil moisture and surface runoff are calculated with a simple bucket model: if
-    precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
-    excess water is added to runoff and soil moisture is set to soil moisture capacity
-    value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero.
-
-    Args:
-        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
-            surface, soil)
-        precipitation_surface: precipitation that reaches surface, [mm],
-        current_soil_moisture: current soil moisture at upper layer, [mm],
-        soil_moisture_capacity: soil moisture capacity (optional), [relative water
-            content]
-
-    Returns:
-        current soil moisture for one layer, [relative water content], surface runoff,
-            [mm]
-    """
-    # calculate how much water can be added to soil before capacity is reached
-    available_capacity = soil_moisture_capacity - current_soil_moisture.mean(
-        dim="layers"
-    )
-
-    # calculate where precipitation exceeds available capacity
-    surface_runoff_cells = precipitation_surface.where(
-        precipitation_surface > available_capacity
-    )
-    # calculate runoff
-    surface_runoff = (
-        DataArray(surface_runoff_cells.data - available_capacity.data)
-        .fillna(0)
-        .rename("surface_runoff")
-        .rename({"dim_0": "cell_id"})
-        .assign_coords({"cell_id": current_soil_moisture.cell_id})
-    )
-
-    # calculate total water in each grid cell
-    total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
-
-    # calculate soil moisture for one layer and copy to all layers
-    soil_moisture = (
-        DataArray(np.clip(total_water, 0, soil_moisture_capacity))
-        .expand_dims(dim={"layers": np.arange(layer_roles.count("soil"))}, axis=0)
-        .assign_coords(
-            {
-                "cell_id": current_soil_moisture.cell_id,
-                "layers": [
-                    len(layer_roles) - layer_roles.count("soil"),
-                    len(layer_roles) - 1,
-                ],
-                "layer_roles": ("layers", layer_roles.count("soil") * ["soil"]),
-            }
-        )
-    )
-
-    return soil_moisture, surface_runoff
