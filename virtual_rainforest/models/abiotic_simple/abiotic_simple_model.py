@@ -28,7 +28,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.abiotic_simple import simple_regression
+from virtual_rainforest.models.abiotic_simple import microclimate
 
 
 class AbioticSimpleModel(BaseModel):
@@ -129,7 +129,7 @@ class AbioticSimpleModel(BaseModel):
         # calculate vapour pressure deficit at reference height for all time steps
         self.data[
             "vapour_pressure_deficit_ref"
-        ] = simple_regression.calculate_vapour_pressure_deficit(
+        ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
         ).rename(
@@ -145,7 +145,7 @@ class AbioticSimpleModel(BaseModel):
         # This section perfomes a series of calculations to update the variables in the
         # abiotic model. This could be moved to here and written directly to the data
         # object. For now, we leave it as a separate routine.
-        output_variables = simple_regression.run_simple_regression(
+        output_variables = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=self.time_index,

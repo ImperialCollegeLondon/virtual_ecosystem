@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.abiotic_simple.simple_regression` module
+#  API for the {mod}`~virtual_rainforest.models.abiotic_simple.microclimate` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic_simple.simple_regression
+.. automodule:: virtual_rainforest.models.abiotic_simple.microclimate
     :autosummary:
     :members:
     :special-members: __init__

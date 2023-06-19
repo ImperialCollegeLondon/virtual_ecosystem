@@ -1,4 +1,4 @@
-r"""The ``models.abiotic_simple.simple_regression`` module uses linear regressions from
+r"""The ``models.abiotic_simple.microclimate`` module uses linear regressions from
 :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
 atmospheric temperature and relative humidity at ground level (2m) given the above
 canopy conditions and leaf area index of intervening canopy. A within canopy profile is
@@ -53,7 +53,7 @@ and matter in the system. This will be implemented at a later stage.
 # to conserve energy and matter
 
 
-def run_simple_regression(
+def run_microclimate(
     data: Data,
     layer_roles: List[str],
     time_index: int,  # could be datetime?
@@ -71,7 +71,7 @@ def run_simple_regression(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, math:`m` is the gradient
-    (:data:`~virtual_rainforest.models.abiotic_simple.simple_regression.MicroclimateGradients`)
+    (:data:`~virtual_rainforest.models.abiotic_simple.microclimate.MicroclimateGradients`)
     and :math:`c` is the intersect which we set to the
     external data values. We assume that the gradient remains constant.
 

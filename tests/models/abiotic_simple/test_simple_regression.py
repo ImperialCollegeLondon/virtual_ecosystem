@@ -1,4 +1,4 @@
-"""Test module for abiotic_simple.simple_regression.py."""
+"""Test module for abiotic_simple.microclimate.py."""
 
 import numpy as np
 import xarray as xr
@@ -8,9 +8,7 @@ from xarray import DataArray
 def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     """Test interpolation for temperature and humidity non-negative."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        log_interpolation,
-    )
+    from virtual_rainforest.models.abiotic_simple.microclimate import log_interpolation
 
     data = dummy_climate_data
 
@@ -105,7 +103,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     """Test."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_saturation_vapour_pressure,
     )
 
@@ -126,7 +124,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 def test_calculate_vapour_pressure_deficit():
     """Test."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_vapour_pressure_deficit,
     )
 
@@ -204,12 +202,10 @@ def test_calculate_vapour_pressure_deficit():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
+def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
     """Test interpolation."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        run_simple_regression,
-    )
+    from virtual_rainforest.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data
 
@@ -222,7 +218,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     data["atmospheric_co2"] = (
         data["atmospheric_pressure"].copy().rename("atmospheric_co2")
     )
-    result = run_simple_regression(
+    result = run_microclimate(
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
@@ -284,7 +280,7 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
 def test_interpolate_soil_temperature(dummy_climate_data):
     """Test."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         interpolate_soil_temperature,
     )
 
@@ -319,7 +315,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
 def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     """Test."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_soil_moisture,
     )
 
