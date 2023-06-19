@@ -101,7 +101,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
 
 
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
-    """Test."""
+    """Test calculation of saturation vapour pressure."""
 
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_saturation_vapour_pressure,
@@ -122,7 +122,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 
 
 def test_calculate_vapour_pressure_deficit():
-    """Test."""
+    """Test calculation of VPD."""
 
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_vapour_pressure_deficit,
@@ -203,7 +203,7 @@ def test_calculate_vapour_pressure_deficit():
 
 
 def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
-    """Test interpolation."""
+    """Test interpolation of all variables."""
 
     from virtual_rainforest.models.abiotic_simple.microclimate import run_microclimate
 
@@ -263,7 +263,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
 
 
 def test_interpolate_soil_temperature(dummy_climate_data):
-    """Test."""
+    """Test soil temperature interpolation."""
 
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         interpolate_soil_temperature,

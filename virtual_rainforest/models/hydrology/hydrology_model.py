@@ -42,6 +42,9 @@ class HydrologyModel(BaseModel):
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial soil moisture for all layers.
+
+    Raises:
+        InitialisationError: when initial soil moisture is out of bounds.
     """
 
     model_name = "hydrology"
@@ -161,7 +164,10 @@ class HydrologyModel(BaseModel):
         self,
         HydrologyParameters: Dict = HydrologyParameters,
     ) -> None:
-        """This step updates the soil moisture and surface runoff."""
+        """Function to update the hydrology model.
+
+        At the moment, this step updates the soil moisture and surface runoff .
+        """
 
         # Precipitation at the surface is reduced as a function of leaf area index
         precipitation_surface = self.data["precipitation"].isel(
@@ -207,10 +213,10 @@ def calculate_soil_moisture(
         "soil_moisture_capacity"
     ],
 ) -> Tuple[DataArray, DataArray]:
-    """Calculate surface runoff and update soil moisture.
+    """Calculate surface runoff and update soil moisture for one time step.
 
-    Soil moisture and surface runoff are calculated with a simple bucket model: if
-    precipitation exceeds soil moisture capacity (see MicroclimateParameters), the
+    Soil moisture and surface runoff are calculated with a simple bucket model based on
+    :cite:p`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
     moisture level and runoff is set to zero.
@@ -227,8 +233,10 @@ def calculate_soil_moisture(
         current soil moisture for one layer, [relative water content], surface runoff,
             [mm]
     """
-    # calculate how much water can be added to soil before capacity is reached
-    # relative water content is converted to mm at 1 m depth
+    # calculate how much water can be added to soil before capacity is reached.
+    # The relative water content is converted to mm at 1 m depth with the equation:
+    # water content in mm = relative water content / 100 * depth in mm
+    # for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
     available_capacity = (
         soil_moisture_capacity - current_soil_moisture.mean(dim="layers")
     ) * 1000
@@ -251,7 +259,8 @@ def calculate_soil_moisture(
         current_soil_moisture.mean(dim="layers") + precipitation_surface / 1000
     )
 
-    # calculate soil moisture for one layer and copy to all layers
+    # calculate soil moisture for one layer (1 m depth) and copy to all layers
+    # TODO variable soil moisture with depth
     soil_moisture = (
         DataArray(np.clip(total_water, 0, soil_moisture_capacity))
         .expand_dims(dim={"layers": np.arange(layer_roles.count("soil"))}, axis=0)

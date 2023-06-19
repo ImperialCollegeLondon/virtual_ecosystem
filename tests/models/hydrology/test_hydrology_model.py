@@ -244,7 +244,7 @@ def test_setup(
 
 
 def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
-    """Test."""
+    """Test that soil moisture and runoff are calculated correctly."""
 
     from virtual_rainforest.models.hydrology.hydrology_model import (
         calculate_soil_moisture,

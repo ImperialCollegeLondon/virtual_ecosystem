@@ -1,5 +1,5 @@
 """The :mod:`~virtual_rainforest.models.hydrology.hydrology_constants` module contains
-constants and paratemters for the hydrology model. This is a temporaty solution.
+constants and paratemters for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415
 
 from typing import Dict

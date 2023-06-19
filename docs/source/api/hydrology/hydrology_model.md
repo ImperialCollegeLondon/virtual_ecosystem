@@ -21,7 +21,6 @@ kernelspec:
 .. automodule:: virtual_rainforest.models.hydrology.hydrology_model
 ```
 
-<!-- markdownlint-disable-next-line  MD013 -->
 ## The {mod}`~virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel` class
 
 ```{eval-rst}

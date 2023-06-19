@@ -13,8 +13,7 @@ Each of the abiotic sub-modules has its own API reference page:
   grid cell water balance as well as the catchment water balance on a daily time step.
 
 * The :mod:`~virtual_rainforest.models.hydrology.hydrology_constants` submodule contains
-  parameters and constants for the hydrology model are temporarily places in
-  :mod:`~virtual_rainforest.models.hydrology.hydrology_constants`.
+  parameters and constants for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415
 
 from importlib import resources
