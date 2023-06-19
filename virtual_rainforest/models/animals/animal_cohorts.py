@@ -116,7 +116,7 @@ class AnimalCohort:
             plant_food: The targeted PlantCommunity instance from which energy is
                 transferred.
             soil: The soil community to which plant waste from consumption (leftovers)
-            is deposited for decomposition.
+                is deposited for decomposition.
 
         Returns:
             A float containing the amount of energy consumed in the herbivory bout.
