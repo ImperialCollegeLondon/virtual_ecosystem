@@ -161,16 +161,7 @@ class HydrologyModel(BaseModel):
         self,
         HydrologyParameters: Dict = HydrologyParameters,
     ) -> None:
-        """This step updates the soil moisture and surface runoff.
-
-        The update function uses a simple bucket model based on
-        :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity
-        (see
-        :data:`~virtual_rainforest.models.hydrology.hydrology_constants.HydrologyParameters`)
-        , the excess water is added to runoff and soil moisture is set to soil moisture
-        capacity value; if the soil is not saturated, precipitation is added to the
-        current soil moisture level and runoff is set to zero.
-        """
+        """This step updates the soil moisture and surface runoff."""
 
         # Precipitation at the surface is reduced as a function of leaf area index
         precipitation_surface = self.data["precipitation"].isel(
@@ -237,9 +228,10 @@ def calculate_soil_moisture(
             [mm]
     """
     # calculate how much water can be added to soil before capacity is reached
-    available_capacity = soil_moisture_capacity - current_soil_moisture.mean(
-        dim="layers"
-    )
+    # relative water content is converted to mm at 1 m depth
+    available_capacity = (
+        soil_moisture_capacity - current_soil_moisture.mean(dim="layers")
+    ) * 1000
 
     # calculate where precipitation exceeds available capacity
     surface_runoff_cells = precipitation_surface.where(
@@ -247,7 +239,7 @@ def calculate_soil_moisture(
     )
     # calculate runoff
     surface_runoff = (
-        DataArray(surface_runoff_cells.data - available_capacity.data)
+        DataArray(surface_runoff_cells.data - available_capacity.data / 1000)
         .fillna(0)
         .rename("surface_runoff")
         .rename({"dim_0": "cell_id"})
@@ -255,7 +247,9 @@ def calculate_soil_moisture(
     )
 
     # calculate total water in each grid cell
-    total_water = current_soil_moisture.mean(dim="layers") + precipitation_surface
+    total_water = (
+        current_soil_moisture.mean(dim="layers") + precipitation_surface / 1000
+    )
 
     # calculate soil moisture for one layer and copy to all layers
     soil_moisture = (
