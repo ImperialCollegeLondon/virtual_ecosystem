@@ -18,7 +18,7 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 import xarray as xr
@@ -160,10 +160,7 @@ class HydrologyModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(
-        self,
-        HydrologyParameters: Dict = HydrologyParameters,
-    ) -> None:
+    def update(self) -> None:
         """Function to update the hydrology model.
 
         At the moment, this step updates the soil moisture and surface runoff .
@@ -202,7 +199,7 @@ class HydrologyModel(BaseModel):
         self.time_index += 1
 
     def cleanup(self) -> None:
-        """Placeholder function for abiotic model cleanup."""
+        """Placeholder function for hydrology model cleanup."""
 
 
 def calculate_soil_moisture(
@@ -216,10 +213,11 @@ def calculate_soil_moisture(
     """Calculate surface runoff and update soil moisture for one time step.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
-    :cite:p`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
+    :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero.
+    moisture level and runoff is set to zero. Vertical flow, subsurface flow, and stream
+    flow are currently not simulated.
 
     Args:
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,

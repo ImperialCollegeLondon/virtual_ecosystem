@@ -1,8 +1,8 @@
-r"""The :mod:`~virtual_rainforest.models.hydrology` module is one of the component
+r"""The :mod:`~virtual_rainforest.models.hydrology` model is one of the component
 models of the Virtual Rainforest. It is comprised of several submodules that calculate
-the microclimate for the Virtual Rainforest.
+the hydrology for the Virtual Rainforest.
 
-Each of the abiotic sub-modules has its own API reference page:
+Each of the hydrology sub-modules has its own API reference page:
 
 * The :mod:`~virtual_rainforest.models.hydrology.hydrology_model` submodule
   instantiates the HydrologyModel class which consolidates the functionality of the
