@@ -2,14 +2,14 @@
     "type": "object",
     "properties": {
         "hydrology": {
-            "description": "Configuration settings for the simple abiotic module",
+            "description": "Configuration settings for the hydrology module",
             "type": "object",
             "properties": {
                 "initial_soil_moisture": {
                     "description": "Initial soil moisture for all layers",
                     "type": "number",
                     "exclusiveMinimum": 0,
-                    "default": 50
+                    "default": 0.5
                 }
             },
             "default": {},
