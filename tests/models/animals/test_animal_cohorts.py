@@ -58,6 +58,14 @@ def animal_cohort_instance(functional_group_instance):
 
 
 @pytest.fixture
+def prey_cohort_instance(functional_group_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(functional_group_instance, 100.0, 1)
+
+
+@pytest.fixture
 def carcass_instance():
     """Fixture for an carcass pool used in tests."""
     from virtual_rainforest.models.animals.carcasses import CarcassPool
@@ -150,6 +158,68 @@ class TestAnimalCohort:
         animal_cohort_instance.herbivory(plant_instance, soil_instance)
         assert animal_cohort_instance.stored_energy == animal_final
         assert plant_instance.energy == plant_final
+
+    @pytest.mark.parametrize(
+        (
+            "predator_initial",
+            "predator_final",
+            "prey_initial",
+            "prey_final",
+            "prey_population_initial",
+            "prey_population_final",
+            "carcass_initial",
+            "carcass_final",
+        ),
+        [
+            (
+                28266000000.0,
+                28266126000.0,
+                182000000000.0,
+                181998740000.0,
+                5000,
+                4998,
+                0.0,
+                125999.99999999997,
+            ),
+            (
+                0.0,
+                126000.0,
+                182000000000.0,
+                181998740000.0,
+                5000,
+                4998,
+                0.0,
+                125999.99999999997,
+            ),
+            (28266000000.0, 28266000010.0, 100.0, 0.0, 1, 0, 0.0, 9.999999999999998),
+            (28266000000.0, 28266000000.0, 0.0, 0.0, 0, 0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0.0),
+        ],
+    )
+    def test_predation(
+        self,
+        animal_cohort_instance,
+        predator_initial,
+        predator_final,
+        prey_cohort_instance,
+        prey_initial,
+        prey_final,
+        prey_population_initial,
+        prey_population_final,
+        carcass_instance,
+        carcass_initial,
+        carcass_final,
+    ):
+        """Testing predation for varying predator and prey energy levels."""
+        animal_cohort_instance.stored_energy = predator_initial
+        prey_cohort_instance.stored_energy = prey_initial
+        prey_cohort_instance.individuals = prey_population_initial
+        carcass_instance.energy = carcass_initial
+        animal_cohort_instance.predation(prey_cohort_instance, carcass_instance)
+        assert animal_cohort_instance.stored_energy == predator_final
+        assert prey_cohort_instance.stored_energy == prey_final
+        assert prey_cohort_instance.individuals == prey_population_final
+        assert carcass_instance.energy == carcass_final
 
     @pytest.mark.parametrize(
         "soil_initial, soil_final, consumed_energy",

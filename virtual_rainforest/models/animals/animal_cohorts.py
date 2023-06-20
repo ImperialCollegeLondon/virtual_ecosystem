@@ -163,11 +163,14 @@ class AnimalCohort:
 
         # Calculate the energy gain from eating prey
         # Here we assume all eaten mass is converted to energy
-        energy_gain = (
-            number_eaten
-            * prey.mass
-            * ENERGY_DENSITY["meat"]
-            * self.functional_group.mechanical_efficiency
+        energy_gain = min(
+            (
+                number_eaten
+                * prey.mass
+                * ENERGY_DENSITY["meat"]
+                * self.functional_group.mechanical_efficiency
+            ),
+            prey.stored_energy,
         )
 
         # Reduce the number of individuals in the prey cohort and add energy to predator
@@ -175,6 +178,10 @@ class AnimalCohort:
         carcass_pool.energy += energy_gain * (
             1 - self.functional_group.mechanical_efficiency
         )
+
+        # Increase predator's stored energy with the energy gained from eating
+        self.stored_energy += energy_gain * self.functional_group.conversion_efficiency
+        prey.stored_energy -= energy_gain
 
         return energy_gain * self.functional_group.conversion_efficiency
 
