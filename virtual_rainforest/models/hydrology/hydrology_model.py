@@ -51,7 +51,7 @@ class HydrologyModel(BaseModel):
     """The model name for use in registering the model and logging."""
     lower_bound_on_time_scale = "1 day"
     """Shortest time scale that hydrology model can sensibly capture."""
-    upper_bound_on_time_scale = "30 day"
+    upper_bound_on_time_scale = "1 month"
     """Longest time scale that hydrology model can sensibly capture."""
     required_init_vars = (
         ("precipitation", ("spatial",)),
