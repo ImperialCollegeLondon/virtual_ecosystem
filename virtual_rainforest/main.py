@@ -207,7 +207,7 @@ def output_current_state(
     )
 
     # Save the required variables by appending to existing file
-    data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save)
+    data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save, time_index)
 
 
 def vr_run(
