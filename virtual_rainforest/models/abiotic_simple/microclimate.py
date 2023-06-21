@@ -4,7 +4,7 @@ atmospheric temperature and relative humidity at ground level (2m) given the abo
 canopy conditions and leaf area index of intervening canopy. A within canopy profile is
 then interpolated using a logarithmic curve between the above canopy observation and
 ground level prediction.
-Soil temperature is interpolated between the surface layer and the air temperature at
+Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
