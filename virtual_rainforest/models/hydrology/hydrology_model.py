@@ -176,7 +176,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Mean soil moisture profile, [] and Runoff, [mm]
-        soil_moisture_only, surface_run_off = calculate_soil_moisture(
+        soil_moisture_only, surface_runoff = calculate_soil_moisture(
             layer_roles=self.layer_roles,
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
@@ -194,7 +194,7 @@ class HydrologyModel(BaseModel):
             ],
             dim="layers",
         )
-        self.data["surface_run_off"] = surface_run_off
+        self.data["surface_runoff"] = surface_runoff
 
     def cleanup(self) -> None:
         """Placeholder function for hydrology model cleanup."""
