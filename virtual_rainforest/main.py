@@ -206,10 +206,8 @@ def output_current_state(
         f"{data_options['out_folder_continuous']}/continuous_state{time_index}.nc"
     )
 
-    # TODO - Rename this function to save_with_index or similar, as it no longer appends
-    # but it is different from the other
     # Save the required variables by appending to existing file
-    data.append_to_netcdf(Path(out_path_name), variables_to_save)
+    data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save)
 
 
 def vr_run(

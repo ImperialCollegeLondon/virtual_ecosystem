@@ -360,34 +360,35 @@ class Data:
         else:
             self.data.to_netcdf(output_file_path)
 
-    def append_to_netcdf(
-        self, append_file_path: Path, variables_to_save: list[str]
+    # TODO - Change this function to no longer read in data
+    def save_timeslice_to_netcdf(
+        self, save_file_path: Path, variables_to_save: list[str]
     ) -> None:
-        """Append specific variables from the data object to an existing NetCDF file.
+        """Save specific variables from current state of data as a NetCDF file.
 
-        At present, this function appends data for each time step individually. In
-        future, this function might be altered to append multiple time steps at once, as
-        this could improve performance significantly.
+        At present, this function save each time step individually. In future, this
+        function might be altered to append multiple time steps at once, as this could
+        improve performance significantly.
 
         Args:
-            append_file_path: Path location to existing NetCDF file.
-            variables_to_save: List of variables to append to the file
+            save_file_path: Path location to save NetCDF file to.
+            variables_to_save: List of variables to save in the file
 
         Raises:
-            ConfigurationError: If the file to append to can't be found
+            ConfigurationError: If the file to save to can't be found
         """
 
         # Check that the file to append to exists
-        if not Path(append_file_path).exists():
+        if not Path(save_file_path).exists():
             to_raise = ConfigurationError(
-                f"The continuous data file ({append_file_path}) doesn't exist to be "
+                f"The continuous data file ({save_file_path}) doesn't exist to be "
                 "appended to!"
             )
             LOGGER.critical(to_raise)
             raise to_raise
 
         # Open original dataset
-        original_dataset = xr.open_dataset(Path(append_file_path))
+        original_dataset = xr.open_dataset(Path(save_file_path))
 
         # Create new dataset to be extended
         extended_dataset = xr.Dataset()
@@ -419,7 +420,7 @@ class Data:
 
         # Close original dataset, then save and close new dataset
         original_dataset.close()
-        extended_dataset.to_netcdf(Path(append_file_path))
+        extended_dataset.to_netcdf(Path(save_file_path))
         extended_dataset.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:

@@ -433,7 +433,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     data_options = {"out_folder_continuous": "."}
 
     # Patch the relevant lower level function
-    mock_save = mocker.patch("virtual_rainforest.main.Data.append_to_netcdf")
+    mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
     configured_models = {"soil": MODEL_REGISTRY["soil"]}

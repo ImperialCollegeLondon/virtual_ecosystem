@@ -750,11 +750,11 @@ def test_save_to_netcdf(
         ),
     ],
 )
-def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
+def save_timeslice_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
     """Test that data object can append to an existing NetCDF file."""
 
     # Create initial netcdf file
-    dummy_carbon_data.save_to_netcdf(
+    dummy_carbon_data.save_timeslice_to_netcdf(
         Path("output.nc"), variables_to_save=["soil_c_pool_lmwc", "soil_temperature"]
     )
 
@@ -764,14 +764,14 @@ def test_append_to_netcdf(dummy_carbon_data, append_path, raises, error_msg):
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
         # Append data to netcdf file
-        dummy_carbon_data.append_to_netcdf(
+        dummy_carbon_data.save_timeslice_to_netcdf(
             Path(append_path),
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
         )
 
         # Append data again to netcdf file to check that multiple appends work
         dummy_carbon_data["soil_temperature"][13][0] = 15.0
-        dummy_carbon_data.append_to_netcdf(
+        dummy_carbon_data.save_timeslice_to_netcdf(
             Path(append_path),
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
         )
