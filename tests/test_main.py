@@ -423,31 +423,28 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     log_check(caplog, expected_log_entries)
 
 
-@pytest.mark.parametrize("new_file", [True, False])
-def test_output_current_state(mocker, dummy_carbon_data, new_file):
+@pytest.mark.parametrize("time_index", [0, 1])
+def test_output_current_state(mocker, dummy_carbon_data, time_index):
     """Test that function to output the current data state works as intended."""
 
     from virtual_rainforest.core.base_model import MODEL_REGISTRY
     from virtual_rainforest.main import output_current_state
 
-    data_options = {"out_path_continuous": "outfile.nc"}
+    data_options = {"out_folder_continuous": "."}
 
     # Patch the relevant lower level function
-    if new_file:
-        mock_save = mocker.patch("virtual_rainforest.main.Data.save_to_netcdf")
-    else:
-        mock_save = mocker.patch("virtual_rainforest.main.Data.append_to_netcdf")
+    mock_save = mocker.patch("virtual_rainforest.main.Data.append_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
     configured_models = {"soil": MODEL_REGISTRY["soil"]}
 
     # Then call the top level function
-    output_current_state(dummy_carbon_data, configured_models, data_options, new_file)
+    output_current_state(dummy_carbon_data, configured_models, data_options, time_index)
 
     # Check that the mocked function was called once with correct input (which is
     # calculated in the higher level function)
     assert mock_save.call_count == 1
     assert mock_save.call_args == mocker.call(
-        Path("outfile.nc"),
+        Path(f"./continuous_state{time_index}.nc"),
         ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"],
     )

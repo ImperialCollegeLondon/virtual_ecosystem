@@ -201,12 +201,15 @@ def output_current_state(
     ]
     # Then flatten the list
     variables_to_save = [item for sublist in all_variables for item in sublist]
-    # TODO - Create output file name from time index
+    # Create output file path for specific time index
+    out_path_name = (
+        f"{data_options['out_folder_continuous']}/continuous_state{time_index}.nc"
+    )
 
     # TODO - Rename this function to save_with_index or similar, as it no longer appends
     # but it is different from the other
     # Save the required variables by appending to existing file
-    data.append_to_netcdf(Path(data_options["out_path_continuous"]), variables_to_save)
+    data.append_to_netcdf(Path(out_path_name), variables_to_save)
 
 
 def vr_run(

@@ -137,10 +137,10 @@
                      "type": "string",
                      "default": "./initial_state.nc"
                   },
-                  "out_path_continuous": {
-                     "description": "File path to save state of simulation with time to",
+                  "out_folder_continuous": {
+                     "description": "Folder to save states of simulation with time to",
                      "type": "string",
-                     "default": "./continuous_state.nc"
+                     "default": "."
                   },
                   "out_path_final": {
                      "description": "File path to save final state to",
@@ -154,7 +154,7 @@
                   "save_continuous_data",
                   "save_final_state",
                   "out_path_initial",
-                  "out_path_continuous",
+                  "out_folder_continuous",
                   "out_path_final"
                ]
             },
