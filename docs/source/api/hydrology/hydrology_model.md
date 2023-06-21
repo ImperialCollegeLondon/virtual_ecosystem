@@ -19,12 +19,6 @@ kernelspec:
 
 ```{eval-rst}
 .. automodule:: virtual_rainforest.models.hydrology.hydrology_model
-```
-
-## The {mod}`~virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel` class
-
-```{eval-rst}
-.. autoclass:: virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel
     :autosummary:
     :members:
     :exclude-members: model_name
