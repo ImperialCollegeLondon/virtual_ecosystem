@@ -2,21 +2,11 @@
     "type": "object",
     "properties": {
         "abiotic_simple": {
-            "description": "Configuration settings for the simple abiotic module",
+            "description": "Configuration settings for the abiotic_simple module",
             "type": "object",
-            "properties": {
-                "initial_soil_moisture": {
-                    "description": "Initial soil moisture for all layers",
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "default": 0.5,
-                    "units": "Relative water content (between 0.0 and 1.0)"
-                }
-            },
+            "properties": {},
             "default": {},
-            "required": [
-                "initial_soil_moisture"
-            ]
+            "required": []
         }
     },
     "required": [
