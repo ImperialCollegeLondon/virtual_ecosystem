@@ -265,13 +265,6 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
-    # Make file and save time = 0 data to it. This is different to the initial state as
-    # it only contains variables we update with time (i.e. not the input climate data)
-    if config["core"]["data_output_options"]["save_continuous_data"]:
-        output_current_state(
-            data, models_cfd, config["core"]["data_output_options"], time_index=0
-        )
-
     # Setup the timing loop
     time_index = 0
     while current_time < end_time:
