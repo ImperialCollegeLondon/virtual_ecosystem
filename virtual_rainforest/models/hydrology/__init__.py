@@ -22,7 +22,7 @@ from virtual_rainforest.core.config import register_schema
 from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
 with resources.path(
-    "virtual_rainforest.models.hydrology", "hydrology.json"
+    "virtual_rainforest.models.hydrology", "hydrology_schema.json"
 ) as schema_file_path:
     register_schema(
         module_name=HydrologyModel.model_name, schema_file_path=schema_file_path
