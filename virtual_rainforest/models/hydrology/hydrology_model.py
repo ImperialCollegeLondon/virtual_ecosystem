@@ -231,10 +231,15 @@ def calculate_soil_moisture(
         current soil moisture for one layer, [relative water content], surface runoff,
             [mm]
     """
-    # calculate how much water can be added to soil before capacity is reached.
-    # The relative water content is converted to mm at 1 m depth with the equation:
+    # Calculate how much water can be added to soil before capacity is reached.
+
+    # To find out how much rain can be taken up by soil before bucket is full and rain
+    # goes to runoff, the relative water content (between 0 and 1) is converted to mm
+    # at defined depth with this equation:
     # water content in mm = relative water content / 100 * depth in mm
-    # for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
+    # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
+    # Here, we look at 1 m depth, so the relative water content is multiplied by 1000 mm
+    # to get the water content in mm
     available_capacity = (
         soil_moisture_capacity - current_soil_moisture.mean(dim="layers")
     ) * 1000
