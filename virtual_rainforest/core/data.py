@@ -126,7 +126,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import numpy as np
-import xarray as xr
 from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
@@ -360,9 +359,8 @@ class Data:
         else:
             self.data.to_netcdf(output_file_path)
 
-    # TODO - Change this function to no longer read in data
     def save_timeslice_to_netcdf(
-        self, save_file_path: Path, variables_to_save: list[str]
+        self, output_file_path: Path, variables_to_save: list[str], time_index: int
     ) -> None:
         """Save specific variables from current state of data as a NetCDF file.
 
@@ -371,57 +369,28 @@ class Data:
         improve performance significantly.
 
         Args:
-            save_file_path: Path location to save NetCDF file to.
+            output_file_path: Path location to save NetCDF file to.
             variables_to_save: List of variables to save in the file
+            time_index: The time index of the slice being saved
 
         Raises:
             ConfigurationError: If the file to save to can't be found
         """
 
-        # Check that the file to append to exists
-        if not Path(save_file_path).exists():
-            to_raise = ConfigurationError(
-                f"The continuous data file ({save_file_path}) doesn't exist to be "
-                "appended to!"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
+        # Check that the folder to save to exists and that there isn't already a file
+        # saved there
+        check_outfile(output_file_path)
 
-        # Open original dataset
-        original_dataset = xr.open_dataset(Path(save_file_path))
+        # Loop over variables adding them to the new dataset
+        time_slice = (
+            self.data[variables_to_save]
+            .expand_dims({"time_index": 1})
+            .assign_coords(time_index=[time_index])
+        )
 
-        # Create new dataset to be extended
-        extended_dataset = xr.Dataset()
-
-        # Check if time index exists as a dimension (if not it must be created)
-        if "time_index" not in original_dataset.keys():
-            # Loop over variables adding them to the new dataset
-            for variable in variables_to_save:
-                extended_dataset[variable] = xr.concat(
-                    [original_dataset[variable], self.data[variable]],
-                    dim="time_index",
-                ).assign_coords(time_index=[0, 1])
-        else:
-            # Find final time index in existing file (and add one)
-            new_index = original_dataset.coords["time_index"].values[-1] + 1
-            # Loop over variables adding them to the new dataset
-            for variable in variables_to_save:
-                # Add time dimension to the data array for the variable
-                data_with_time = (
-                    self.data[variable]
-                    .expand_dims(dim="time_index")
-                    .assign_coords(time_index=[new_index])
-                )
-                # Then cat the original and new values for the variable together
-                extended_dataset[variable] = xr.concat(
-                    [original_dataset[variable], data_with_time],
-                    dim="time_index",
-                )
-
-        # Close original dataset, then save and close new dataset
-        original_dataset.close()
-        extended_dataset.to_netcdf(Path(save_file_path))
-        extended_dataset.close()
+        # Save and close new dataset
+        time_slice.to_netcdf(Path(output_file_path))
+        time_slice.close()
 
     def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
