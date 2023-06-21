@@ -119,8 +119,8 @@ the Virtual Rainforest in high temporal resolution or for representative days pe
 ### Simple Abiotic Model
 
 The Simple Abiotic Model is a one-column model that operates on a grid cell basis and
-does not consider horizontal exchange of energy, water, and momentum. The model uses
-linear regressions from {cite}`hardwick_relationship_2015` and
+does not consider horizontal exchange of energy, atmospheric water, and momentum.
+The model uses linear regressions from {cite}`hardwick_relationship_2015` and
 {cite}`jucker_canopy_2018` to predict
 atmospheric temperature, relative humidity, and vapour pressure deficit
 at ground level (2m) given the above canopy conditions and leaf area index of
@@ -130,6 +130,15 @@ level prediction. Soil temperature is interpolated between the surface layer and
 temperature at 1 m depth which equals the mean annual temperature.
 The model also provides a constant vertical profile of atmospheric pressure and
 atmospheric $\ce{CO_{2}}$.
+
+### Simple Hydrology Model
+
+The simple version of the Hydrology Model is a one-column model that operates on a grid
+cell basis and does not consider horizontal exchange of water. We placed this
+functionality in a separate model in order to allow easy replacement with a different
+hydrology model, for example a process-based model that runs on a daily time step and
+returns monthly statistics to the data object for other modules to use.
+
 Soil moisture and surface runoff are calculated for each grid cell with a simple bucket
 model based on {cite}`davis_simple_2017`; vertical flow and horizontal flow (above and
 below ground) between grid cells are currently not implemented.

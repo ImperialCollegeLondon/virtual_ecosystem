@@ -26,10 +26,9 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.abiotic_simple import simple_regression
+from virtual_rainforest.models.abiotic_simple import microclimate
 
 
 class AbioticSimpleModel(BaseModel):
@@ -40,8 +39,6 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-        initial_soil_moisture: The initial soil moisture for all layers,
-            [relative water content] (between 0.0 and 1.0).
     """
 
     model_name = "abiotic_simple"
@@ -54,7 +51,6 @@ class AbioticSimpleModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
-        ("precipitation", ("spatial",)),
         ("atmospheric_co2_ref", ("spatial",)),
         ("mean_annual_temperature", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
@@ -68,22 +64,8 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
-        initial_soil_moisture: float,
         **kwargs: Any,
     ):
-        # sanity checks for initial soil moisture
-        if type(initial_soil_moisture) is not float:
-            to_raise = InitialisationError("The initial soil moisture must be a float!")
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if initial_soil_moisture < 0 or initial_soil_moisture > 1:
-            to_raise = InitialisationError(
-                "The initial soil moisture has to be between 0 and 1!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
         super().__init__(data, update_interval, **kwargs)
 
         # create a list of layer roles
@@ -95,8 +77,6 @@ class AbioticSimpleModel(BaseModel):
         """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
-        self.initial_soil_moisture = initial_soil_moisture
-        """Initial soil moisture for all layers and grill cells identical."""
         self.time_index = 0
         """Start counter for extracting correct input data."""
 
@@ -119,47 +99,20 @@ class AbioticSimpleModel(BaseModel):
         # Find number of soil and canopy layers
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
-        initial_soil_moisture = config["abiotic_simple"]["initial_soil_moisture"]
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(
-            data, update_interval, soil_layers, canopy_layers, initial_soil_moisture
-        )
+        return cls(data, update_interval, soil_layers, canopy_layers)
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.
 
-        At the moment, this function only initializes soil moisture homogenously for all
+        At the moment, this function only initializes soil temperature for all
         soil layers and calculates the reference vapour pressure deficit for all time
         steps. Both variables are added directly to the self.data object.
         """
-
-        # Create 1-dimensional numpy array filled with initial soil moisture values for
-        # all soil layers and np.nan for atmosphere layers
-        soil_moisture_values = np.repeat(
-            a=[np.nan, self.initial_soil_moisture],
-            repeats=[
-                len(self.layer_roles) - self.layer_roles.count("soil"),
-                self.layer_roles.count("soil"),
-            ],
-        )
-        # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
-        self.data["soil_moisture"] = DataArray(
-            np.broadcast_to(
-                soil_moisture_values,
-                (len(self.data.grid.cell_id), len(self.layer_roles)),
-            ).T,
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(15),
-                "layer_roles": ("layers", self.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_moisture",
-        )
 
         # create soil temperature array
         self.data["soil_temperature"] = DataArray(
@@ -176,7 +129,7 @@ class AbioticSimpleModel(BaseModel):
         # calculate vapour pressure deficit at reference height for all time steps
         self.data[
             "vapour_pressure_deficit_ref"
-        ] = simple_regression.calculate_vapour_pressure_deficit(
+        ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
         ).rename(
@@ -192,7 +145,7 @@ class AbioticSimpleModel(BaseModel):
         # This section perfomes a series of calculations to update the variables in the
         # abiotic model. This could be moved to here and written directly to the data
         # object. For now, we leave it as a separate routine.
-        output_variables = simple_regression.run_simple_regression(
+        output_variables = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=self.time_index,

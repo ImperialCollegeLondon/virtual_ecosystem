@@ -1,4 +1,4 @@
-"""Test module for abiotic_simple.simple_regression.py."""
+"""Test module for abiotic_simple.microclimate.py."""
 
 import numpy as np
 import xarray as xr
@@ -8,9 +8,7 @@ from xarray import DataArray
 def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     """Test interpolation for temperature and humidity non-negative."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        log_interpolation,
-    )
+    from virtual_rainforest.models.abiotic_simple.microclimate import log_interpolation
 
     data = dummy_climate_data
 
@@ -103,9 +101,9 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
 
 
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
-    """Test."""
+    """Test calculation of saturation vapour pressure."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_saturation_vapour_pressure,
     )
 
@@ -124,9 +122,9 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 
 
 def test_calculate_vapour_pressure_deficit():
-    """Test."""
+    """Test calculation of VPD."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_vapour_pressure_deficit,
     )
 
@@ -204,12 +202,10 @@ def test_calculate_vapour_pressure_deficit():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
-    """Test interpolation."""
+def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
+    """Test interpolation of all variables."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        run_simple_regression,
-    )
+    from virtual_rainforest.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data
 
@@ -222,11 +218,10 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     data["atmospheric_co2"] = (
         data["atmospheric_pressure"].copy().rename("atmospheric_co2")
     )
-    result = run_simple_regression(
+    result = run_microclimate(
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
-        soil_moisture_capacity=DataArray([30, 60, 90], dims="cell_id"),
     )
 
     exp_air_temperature = xr.concat(
@@ -266,25 +261,11 @@ def test_run_simple_regression(dummy_climate_data, layer_roles_fixture):
     ).assign_coords(data["layer_heights"].coords)
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_atmospheric_pressure)
 
-    exp_soil_moisture = xr.concat(
-        [
-            DataArray(
-                np.full((13, 3), np.nan),
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(
-                [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]], dims=["layers", "cell_id"]
-            ),
-        ],
-        dim="layers",
-    ).assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result["soil_moisture"], exp_soil_moisture)
-
 
 def test_interpolate_soil_temperature(dummy_climate_data):
-    """Test."""
+    """Test soil temperature interpolation."""
 
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
+    from virtual_rainforest.models.abiotic_simple.microclimate import (
         interpolate_soil_temperature,
     )
 
@@ -314,42 +295,3 @@ def test_interpolate_soil_temperature(dummy_climate_data):
     )
 
     xr.testing.assert_allclose(result, exp_output)
-
-
-def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
-    """Test."""
-
-    from virtual_rainforest.models.abiotic_simple.simple_regression import (
-        calculate_soil_moisture,
-    )
-
-    data = dummy_climate_data
-    precipitation_surface = data["precipitation"].isel(time_index=0) * (
-        1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
-    )
-
-    exp_soil_moisture = DataArray(
-        [[30.0, 41.0, 90.0], [30.0, 41.0, 90.0]],
-        dims=["layers", "cell_id"],
-        coords={
-            "cell_id": [0, 1, 2],
-            "layers": [13, 14],
-            "layer_roles": ("layers", ["soil", "soil"]),
-        },
-    )
-
-    exp_runoff = DataArray(
-        [4, 0, 70],
-        dims=["cell_id"],
-        coords={"cell_id": [0, 1, 2]},
-    )
-
-    result = calculate_soil_moisture(
-        layer_roles=layer_roles_fixture,
-        precipitation_surface=precipitation_surface,
-        current_soil_moisture=data["soil_moisture"],
-        soil_moisture_capacity=DataArray([30, 60, 90], dims=["cell_id"]),
-    )
-
-    xr.testing.assert_allclose(result[0], exp_soil_moisture)
-    xr.testing.assert_allclose(result[1], exp_runoff)

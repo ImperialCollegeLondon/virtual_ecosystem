@@ -14,11 +14,12 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.abiotic_simple.simple_regression` module
+<!-- markdownlint-disable-next-line  MD013 -->
+# API documentation for the {mod}`~virtual_rainforest.models.hydrology.hydrology_model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic_simple.simple_regression
+.. automodule:: virtual_rainforest.models.hydrology.hydrology_model
     :autosummary:
     :members:
-    :special-members: __init__
+    :exclude-members: model_name
 ```
