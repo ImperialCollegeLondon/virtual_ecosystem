@@ -222,6 +222,10 @@ def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
 
     Args:
         data_options: Set of options concerning what to output and where
+
+    Raises:
+        ConfigurationError: If output folder doesn't exist or if it output file already
+            exists
     """
     # Find Path of folder containing the continuous output
     out_folder = Path(data_options["out_folder_continuous"])
@@ -233,7 +237,12 @@ def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
 
     # Check that output file doesn't already exist
     out_path = Path(f"{out_folder}/all_continuous_data.nc")
-    check_outfile(out_path)
+    try:
+        check_outfile(out_path)
+    except ConfigurationError as e:
+        # Close dataset to prevent access problems on windows
+        all_data.close()
+        raise e
     # Save and close complete dataset
     all_data.to_netcdf(out_path)
     all_data.close()

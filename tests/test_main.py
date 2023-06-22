@@ -540,7 +540,7 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
 
     # Save first data file (as 33 to avoid access conflict on windows)
     dummy_carbon_data.save_timeslice_to_netcdf(
-        Path(f"{data_options['out_folder_continuous']}/continuous_state33.nc"),
+        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
         variables_to_save,
         1,
     )
@@ -569,4 +569,4 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
 
     # Delete the two temporary files
     Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc").unlink()
-    Path(f"{data_options['out_folder_continuous']}/continuous_state33.nc").unlink()
+    Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc").unlink()
