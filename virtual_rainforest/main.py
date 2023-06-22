@@ -9,6 +9,7 @@ from typing import Any, Type, Union
 
 import pint
 from numpy import datetime64, timedelta64
+from xarray import open_mfdataset
 
 from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
 from virtual_rainforest.core.config import Config
@@ -16,6 +17,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import check_outfile
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -282,6 +284,29 @@ def vr_run(
             output_current_state(
                 data, models_cfd, config["core"]["data_output_options"], time_index
             )
+
+    # TODO - Make this a separate function + add tests
+    if config["core"]["data_output_options"]["save_continuous_data"]:
+        # Find Path of folder containing the continuous output
+        out_folder = Path(
+            config["core"]["data_output_options"]["out_folder_continuous"]
+        )
+        # Find all relevant files in the given folder and convert to list
+        continuous_files = out_folder.rglob("continuous_state*.nc")
+
+        # Open all files as a single dataset
+        all_data = open_mfdataset(list(continuous_files))
+
+        # Check that output file doesn't already exist
+        out_path = Path(f"{out_folder}/all_continuous_data.nc")
+        check_outfile(out_path)
+        # Save and close complete dataset
+        all_data.to_netcdf(out_path)
+        all_data.close()
+
+        # Iterate over all continuous files and delete them
+        for file_path in list(out_folder.rglob("continuous_state*.nc")):
+            file_path.unlink()
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
