@@ -14,7 +14,7 @@ import pytest
 from xarray import DataArray, open_dataset, testing
 
 from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.main import vr_run
 
 from .conftest import log_check
@@ -452,9 +452,6 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     )
 
 
-# TODO - Add test of file handling
-
-
 def test_merge_continuous_data_files(dummy_carbon_data):
     """Test that function to merge the continuous data files works as intended."""
     from virtual_rainforest.main import merge_continuous_data_files
@@ -531,3 +528,45 @@ def test_merge_continuous_data_files(dummy_carbon_data):
     # Close data set and delete file
     full_data.close()
     out_file.unlink()
+
+
+def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
+    """Test that the merge continuous function fails if file name already used."""
+    from virtual_rainforest.main import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {"out_folder_continuous": "."}
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        variables_to_save,
+        1,
+    )
+    # Save data file with reserved name
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc"),
+        variables_to_save,
+        2,
+    )
+
+    with pytest.raises(ConfigurationError):
+        # Merge data
+        merge_continuous_data_files(data_options)
+
+    log_check(
+        caplog,
+        (
+            (
+                CRITICAL,
+                "A file in the user specified output folder (.) already makes use of "
+                "the specified output file name (all_continuous_data.nc), this file "
+                "should either be renamed or deleted!",
+            ),
+        ),
+    )
+
+    # Delete the two temporary files
+    Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc").unlink()
+    Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc").unlink()
