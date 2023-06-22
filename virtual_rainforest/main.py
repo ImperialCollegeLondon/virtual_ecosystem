@@ -212,6 +212,39 @@ def output_current_state(
     data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save, time_index)
 
 
+# TODO - Document this addition to main
+# TODO - test this
+def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
+    """Merge all continuous data files in a folder into a single file.
+
+    It is important to note that this function deletes all of the original continuos
+    output files once the combined output is saved. It also combines (and deletes) all
+    files matching the pattern 'continuous_state*.nc' that it finds in the specified
+    output folder.
+
+    Args:
+        data_options: Set of options concerning what to output and where
+    """
+    # Find Path of folder containing the continuous output
+    out_folder = Path(data_options["out_folder_continuous"])
+    # Find all relevant files in the given folder and convert to list
+    continuous_files = out_folder.rglob("continuous_state*.nc")
+
+    # Open all files as a single dataset
+    all_data = open_mfdataset(list(continuous_files))
+
+    # Check that output file doesn't already exist
+    out_path = Path(f"{out_folder}/all_continuous_data.nc")
+    check_outfile(out_path)
+    # Save and close complete dataset
+    all_data.to_netcdf(out_path)
+    all_data.close()
+
+    # Iterate over all continuous files and delete them
+    for file_path in list(out_folder.rglob("continuous_state*.nc")):
+        file_path.unlink()
+
+
 def vr_run(
     cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
 ) -> None:
@@ -287,26 +320,7 @@ def vr_run(
 
     # TODO - Make this a separate function + add tests
     if config["core"]["data_output_options"]["save_continuous_data"]:
-        # Find Path of folder containing the continuous output
-        out_folder = Path(
-            config["core"]["data_output_options"]["out_folder_continuous"]
-        )
-        # Find all relevant files in the given folder and convert to list
-        continuous_files = out_folder.rglob("continuous_state*.nc")
-
-        # Open all files as a single dataset
-        all_data = open_mfdataset(list(continuous_files))
-
-        # Check that output file doesn't already exist
-        out_path = Path(f"{out_folder}/all_continuous_data.nc")
-        check_outfile(out_path)
-        # Save and close complete dataset
-        all_data.to_netcdf(out_path)
-        all_data.close()
-
-        # Iterate over all continuous files and delete them
-        for file_path in list(out_folder.rglob("continuous_state*.nc")):
-            file_path.unlink()
+        merge_continuous_data_files(config["core"]["data_output_options"])
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
