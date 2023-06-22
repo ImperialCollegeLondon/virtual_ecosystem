@@ -212,7 +212,6 @@ def output_current_state(
     data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save, time_index)
 
 
-# TODO - test this
 def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
     """Merge all continuous data files in a folder into a single file.
 

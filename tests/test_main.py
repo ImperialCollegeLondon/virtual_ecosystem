@@ -8,9 +8,10 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 from pathlib import Path
 
+import numpy as np
 import pint
 import pytest
-from numpy import datetime64, timedelta64
+from xarray import DataArray, open_dataset, testing
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -303,10 +304,10 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
                 }
             },
             {
-                "start_time": datetime64("2020-01-01"),
-                "update_interval": timedelta64(10, "m"),
+                "start_time": np.datetime64("2020-01-01"),
+                "update_interval": np.timedelta64(10, "m"),
                 "update_interval_as_quantity": pint.Quantity("10 minutes"),
-                "end_time": datetime64("2049-12-31T12:00"),
+                "end_time": np.datetime64("2049-12-31T12:00"),
             },
             does_not_raise(),
             (
@@ -449,3 +450,84 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
         ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"],
         time_index,
     )
+
+
+# TODO - Add test of file handling
+
+
+def test_merge_continuous_data_files(dummy_carbon_data):
+    """Test that function to merge the continuous data files works as intended."""
+    from virtual_rainforest.main import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {"out_folder_continuous": "."}
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        variables_to_save,
+        1,
+    )
+
+    # Alter data so that files differ (slightly)
+    dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
+    )
+    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+
+    # Save second data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        Path(f"{data_options['out_folder_continuous']}/continuous_state2.nc"),
+        variables_to_save,
+        2,
+    )
+
+    # Merge data
+    merge_continuous_data_files(data_options)
+
+    # Check that original two files have been deleted
+    out_folder = Path(data_options["out_folder_continuous"])
+    assert len(list(out_folder.rglob("continuous_state*.nc"))) == 0
+
+    # Load in and test full combined data
+    out_file = Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc")
+    full_data = open_dataset(out_file)
+
+    # Check that data file is as expected
+    testing.assert_allclose(
+        full_data["soil_c_pool_lmwc"],
+        DataArray(
+            [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+            dims=["time_index", "cell_id"],
+            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
+        ),
+    )
+    testing.assert_allclose(
+        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        DataArray(
+            [
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [35.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [15.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+            ],
+            dims=["time_index", "layers", "cell_id"],
+            coords={
+                "cell_id": [0, 1, 2, 3],
+                "time_index": [1, 2],
+                "layers": [12, 13, 14],
+                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+            },
+        ),
+    )
+
+    # Close data set and delete file
+    full_data.close()
+    out_file.unlink()
