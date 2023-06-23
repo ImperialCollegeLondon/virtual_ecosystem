@@ -289,9 +289,9 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         soil_moisture_capacity=DataArray([0.3, 0.6, 0.6], dims=["cell_id"]),
     )
 
-    xr.testing.assert_allclose(result[0], exp_soil_moisture)
-    xr.testing.assert_allclose(result[1], exp_runoff)
-    xr.testing.assert_allclose(result[2], exp_vertical_flow)
+    xr.testing.assert_allclose(result["soil_moisture"], exp_soil_moisture)
+    xr.testing.assert_allclose(result["surface_runoff"], exp_runoff)
+    xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
 
 
 def test_calculate_vertical_flow(layer_roles_fixture):

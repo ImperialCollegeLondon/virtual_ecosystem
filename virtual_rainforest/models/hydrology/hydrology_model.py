@@ -18,7 +18,7 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 from pint import Quantity
@@ -177,7 +177,7 @@ class HydrologyModel(BaseModel):
 
         # Mean soil moisture profile, [relative water content], vertical flow, [m3/time
         # step], and Runoff, [mm]
-        soil_moisture, surface_run_off, vertical_flow = calculate_soil_moisture(
+        soil_hydrology = calculate_soil_moisture(
             layer_roles=self.layer_roles,
             layer_heights=self.data["layer_heights"],
             precipitation_surface=precipitation_surface,
@@ -185,9 +185,9 @@ class HydrologyModel(BaseModel):
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
 
-        self.data["soil_moisture"] = soil_moisture
-        self.data["surface_run_off"] = surface_run_off
-        self.data["vertical_flow"] = vertical_flow
+        self.data["soil_moisture"] = soil_hydrology["soil_moisture"]
+        self.data["surface_runoff"] = soil_hydrology["surface_runoff"]
+        self.data["vertical_flow"] = soil_hydrology["vertical_flow"]
 
         self.time_index += 1
 
@@ -204,7 +204,7 @@ def calculate_soil_moisture(
         "soil_moisture_capacity"
     ],
     meters_to_millimeters: float = 1000,
-) -> Tuple[DataArray, DataArray, DataArray]:
+) -> Dict[str, DataArray]:
     """Calculate surface runoff, vertical flow, and soil moisture.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
@@ -227,6 +227,7 @@ def calculate_soil_moisture(
         soil moisture, [relative water content], vertical flow, [m3/timestep], surface
             runoff,[mm]
     """
+    output = {}
     # calculate soil depth in mm
     soil_depth = (
         layer_heights.isel(
@@ -252,7 +253,7 @@ def calculate_soil_moisture(
     )
 
     # calculate runoff in mm
-    surface_runoff = (
+    output["surface_runoff"] = (
         DataArray(surface_runoff_cells.data - available_capacity_mm.data)
         .fillna(0)
         .rename("surface_runoff")
@@ -271,17 +272,19 @@ def calculate_soil_moisture(
     )
 
     # calculate vertical flow for mean soil moisture
-    vertical_flow = calculate_vertical_flow(
+    output["vertical_flow"] = calculate_vertical_flow(
         soil_moisture_residual=soil_moisture_infiltrated,
         soil_depth=soil_depth,
         soil_moisture_capacity=soil_moisture_capacity,
     )
 
     # reduce mean soil moisture by vertical flow
-    soil_moisture = DataArray(current_soil_moisture - (vertical_flow / soil_depth))
-    # TODO variable soil moisture with depth
+    output["soil_moisture"] = DataArray(
+        current_soil_moisture - (output["vertical_flow"] / soil_depth)
+    )
+    # TODO variable soil moisture with depth?
 
-    return soil_moisture, surface_runoff, vertical_flow
+    return output
 
 
 def calculate_vertical_flow(
