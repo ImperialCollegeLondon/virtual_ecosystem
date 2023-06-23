@@ -5,8 +5,13 @@ constants and parameters for the hydrology model. This is a temporary solution.
 from typing import Dict
 
 HydrologyParameters: Dict[str, float] = {
-    "soil_moisture_capacity": 0.9,
-    "water_interception_factor": 0.1,
+    "soil_moisture_capacity": 0.9,  # dimensionless
+    "water_interception_factor": 0.1,  # dimensionless
+    "hydraulic_conductivity": 0.001,  # m/s
+    "hydraulic_gradient": 0.01,  # m/m
+    "seconds_to_month": 2.628e6,
+    "alpha": 0.01,
+    "nonlinearily_parameter": 2.0,
 }
 """Parameters for hydrology model."""
 

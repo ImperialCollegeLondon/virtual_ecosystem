@@ -21,7 +21,6 @@ from __future__ import annotations
 from typing import Any, List, Tuple, Union
 
 import numpy as np
-import xarray as xr
 from pint import Quantity
 from xarray import DataArray
 
@@ -163,7 +162,8 @@ class HydrologyModel(BaseModel):
     def update(self) -> None:
         """Function to update the hydrology model.
 
-        At the moment, this step updates the soil moisture and surface runoff .
+        At the moment, this step calculates soil moisture, vertical flow, and surface
+        runoff.
         """
 
         # Precipitation at the surface is reduced as a function of leaf area index
@@ -175,26 +175,19 @@ class HydrologyModel(BaseModel):
             * self.data["leaf_area_index"].sum(dim="layers")
         )
 
-        # Mean soil moisture profile, [] and Runoff, [mm]
-        soil_moisture_only, surface_run_off = calculate_soil_moisture(
+        # Mean soil moisture profile, [relative water content], vertical flow, [m3/time
+        # step], and Runoff, [mm]
+        soil_moisture, surface_run_off, vertical_flow = calculate_soil_moisture(
             layer_roles=self.layer_roles,
+            layer_heights=self.data["layer_heights"],
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
 
-        self.data["soil_moisture"] = xr.concat(
-            [
-                self.data["soil_moisture"].isel(
-                    layers=np.arange(
-                        0, len(self.layer_roles) - self.layer_roles.count("soil")
-                    )
-                ),
-                soil_moisture_only,
-            ],
-            dim="layers",
-        )
+        self.data["soil_moisture"] = soil_moisture
         self.data["surface_run_off"] = surface_run_off
+        self.data["vertical_flow"] = vertical_flow
 
         self.time_index += 1
 
@@ -204,79 +197,160 @@ class HydrologyModel(BaseModel):
 
 def calculate_soil_moisture(
     layer_roles: List,
+    layer_heights: DataArray,
     precipitation_surface: DataArray,
     current_soil_moisture: DataArray,
     soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
         "soil_moisture_capacity"
     ],
-) -> Tuple[DataArray, DataArray]:
-    """Calculate surface runoff and update soil moisture for one time step.
+    meters_to_millimeters: float = 1000,
+) -> Tuple[DataArray, DataArray, DataArray]:
+    """Calculate surface runoff, vertical flow, and soil moisture.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
     :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero. Vertical flow, subsurface flow, and stream
-    flow are currently not simulated.
+    moisture level and runoff is set to zero. Vertical flow is calculated using the
+    Richards equation. Subsurface flow, and stream flow are currently not simulated.
 
     Args:
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
+        layer_heights: height of all layers, m
         precipitation_surface: precipitation that reaches surface, [mm],
         current_soil_moisture: current soil moisture at upper layer, [mm],
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
 
     Returns:
-        current soil moisture for one layer, [relative water content], surface runoff,
-            [mm]
+        soil moisture, [relative water content], vertical flow, [m3/timestep], surface
+            runoff,[mm]
     """
-    # Calculate how much water can be added to soil before capacity is reached.
+    # calculate soil depth in mm
+    soil_depth = (
+        layer_heights.isel(
+            layers=np.arange(
+                len(layer_roles) - layer_roles.count("soil"), len(layer_roles)
+            )
+        ).sum(dim="layers")
+    ) * (-meters_to_millimeters)
 
-    # To find out how much rain can be taken up by soil before bucket is full and rain
-    # goes to runoff, the relative water content (between 0 and 1) is converted to mm
-    # at defined depth with this equation:
+    # Calculate how much water can be added to soil before capacity is reached.
+    # To find out how much rain can be taken up by the topsoil before rain goes to
+    # runoff, the relative water content (between 0 and 1) is converted to mm with this
+    # equation:
     # water content in mm = relative water content / 100 * depth in mm
     # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
-    # Here, we look at 1 m depth, so the relative water content is multiplied by 1000 mm
-    # to get the water content in mm
-    available_capacity = (
+    available_capacity_mm = (
         soil_moisture_capacity - current_soil_moisture.mean(dim="layers")
-    ) * 1000
+    ) * soil_depth
 
     # calculate where precipitation exceeds available capacity
     surface_runoff_cells = precipitation_surface.where(
-        precipitation_surface > available_capacity
+        precipitation_surface > available_capacity_mm
     )
-    # calculate runoff
+
+    # calculate runoff in mm
     surface_runoff = (
-        DataArray(surface_runoff_cells.data - available_capacity.data / 1000)
+        DataArray(surface_runoff_cells.data - available_capacity_mm.data)
         .fillna(0)
         .rename("surface_runoff")
         .rename({"dim_0": "cell_id"})
         .assign_coords({"cell_id": current_soil_moisture.cell_id})
     )
 
-    # calculate total water in each grid cell
-    total_water = (
-        current_soil_moisture.mean(dim="layers") + precipitation_surface / 1000
+    # calculate total water in mm in each grid cell
+    total_water_mm = (
+        current_soil_moisture.mean(dim="layers") * soil_depth + precipitation_surface
     )
 
-    # calculate soil moisture for one layer (1 m depth) and copy to all layers
+    # calculate relative soil moisture incl infiltration and cap to capacity
+    soil_moisture_infiltrated = DataArray(
+        np.clip(total_water_mm / soil_depth, 0, soil_moisture_capacity)
+    )
+
+    # calculate vertical flow for mean soil moisture
+    vertical_flow = calculate_vertical_flow(
+        soil_moisture_residual=soil_moisture_infiltrated,
+        soil_depth=soil_depth,
+        soil_moisture_capacity=soil_moisture_capacity,
+    )
+
+    # reduce mean soil moisture by vertical flow
+    soil_moisture = DataArray(current_soil_moisture - (vertical_flow / soil_depth))
     # TODO variable soil moisture with depth
-    soil_moisture = (
-        DataArray(np.clip(total_water, 0, soil_moisture_capacity))
-        .expand_dims(dim={"layers": np.arange(layer_roles.count("soil"))}, axis=0)
-        .assign_coords(
-            {
-                "cell_id": current_soil_moisture.cell_id,
-                "layers": [
-                    len(layer_roles) - layer_roles.count("soil"),
-                    len(layer_roles) - 1,
-                ],
-                "layer_roles": ("layers", layer_roles.count("soil") * ["soil"]),
-            }
-        )
+
+    return soil_moisture, surface_runoff, vertical_flow
+
+
+def calculate_vertical_flow(
+    soil_moisture_residual: DataArray,
+    soil_depth: DataArray,
+    soil_moisture_capacity: Union[float, DataArray] = (
+        HydrologyParameters["soil_moisture_capacity"]
+    ),
+    hydraulic_conductivity: Union[float, DataArray] = (
+        HydrologyParameters["hydraulic_conductivity"]
+    ),
+    cross_sectional_area: float = 1.0,  # TODO precipitation per area assumption?
+    hydraulic_gradient: Union[float, DataArray] = (
+        HydrologyParameters["hydraulic_gradient"]
+    ),
+    time_conversion_factor: float = (HydrologyParameters["seconds_to_month"]),
+    alpha: Union[float, DataArray] = (HydrologyParameters["alpha"]),
+    nonlinearily_parameter: Union[float, DataArray] = (
+        HydrologyParameters["nonlinearily_parameter"]
+    ),
+) -> DataArray:
+    """Calculate vertical water flow.
+
+    To calculate the flow of water through unsaturated soil, this function uses the
+    Richards equation which considers both the hydraulic conductivity and the soil water
+    retention curve to account for the varying moisture content.
+
+    First, the function calculates the effective hydraulic conductivity based on the
+    moisture content using the van Genuchten equation. Then, it applies Darcy's law to
+    calculate the water flow rate considering the effective hydraulic conductivity.
+
+    Args:
+        soil_moisture_residual: residual soil moisture, [relative water content]
+        soil_depths: soil depths = length of the flow path, [m]
+        soil_moisture_capacity: soil moisture capacity, [relative water content]
+        hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
+        cross_sectional_area: cross-sectional area perpendicular to the flow, [m2]
+        hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
+            path, positive values indicate downward flow, [m/m]
+        time_conversion_factor: factor to convert flow from m3/s to model time step
+        alpha: dimensionless parameter in van Genuchten model that describes the
+            steepness of the water retention curve. Smaller values of alpha correspond
+            to steeper curves, indicating that the soil retains water at a higher matric
+            potential. Larger values of alpha result in flatter curves, indicating that
+            the soil retains water at a lower matric potential.
+        nonlinearily_parameter: dimensionless parameter in van Genuchten model that
+            describes the degree of nonlinearity of the relationship between the
+            volumetric water content and the soil matric potential.
+
+    Returns:
+        volumetric flow rate of water, [m3/timestep]
+    """
+    # Define the soil water retention curve parameters (van Genuchten model)
+    # TODO abs(hydraulic) gradient support for datatype to allow negative values
+    theta = soil_moisture_capacity - (
+        soil_moisture_capacity - soil_moisture_residual
+    ) / (1 + (alpha * hydraulic_gradient) ** nonlinearily_parameter) ** (
+        1 - 1 / nonlinearily_parameter
     )
 
-    return soil_moisture, surface_runoff
+    # Calculate the effective hydraulic conductivity
+    m = 1 - 1 / nonlinearily_parameter
+    effective_conductivity = (
+        hydraulic_conductivity
+        * (theta / soil_moisture_capacity) ** (0.5)
+        * (1 - (1 - (theta / soil_moisture_capacity) ** (1 / m)) ** m) ** 2
+    )
+
+    # Calculate the water flow rate in m3 per seconds and convert to timestep
+    return (
+        effective_conductivity * cross_sectional_area * hydraulic_gradient / soil_depth
+    ) * time_conversion_factor
