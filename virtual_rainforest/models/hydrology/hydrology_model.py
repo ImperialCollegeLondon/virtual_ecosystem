@@ -279,6 +279,7 @@ def calculate_soil_moisture(
     )
 
     # reduce mean soil moisture by vertical flow
+    #  TODO this shouldn't get negative
     output["soil_moisture"] = DataArray(
         current_soil_moisture - (output["vertical_flow"] / soil_depth)
     )
@@ -296,7 +297,7 @@ def calculate_vertical_flow(
     hydraulic_conductivity: Union[float, DataArray] = (
         HydrologyParameters["hydraulic_conductivity"]
     ),
-    cross_sectional_area: float = 1.0,  # TODO precipitation per area assumption?
+    cross_sectional_area: float = 10000.0,  # TODO calculate from data object
     hydraulic_gradient: Union[float, DataArray] = (
         HydrologyParameters["hydraulic_gradient"]
     ),
