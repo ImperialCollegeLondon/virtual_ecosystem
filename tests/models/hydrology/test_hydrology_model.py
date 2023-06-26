@@ -231,7 +231,7 @@ def test_setup(
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.49948, 0.499447, 0.478281], [0.49948, 0.499447, 0.478281]],
+                [[0.512207, 0.518538, 0.878281], [0.512207, 0.518538, 0.878281]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -262,7 +262,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.19841, 0.199937, 0.178281], [0.19841, 0.199937, 0.178281]],
+                [[0.211137, 0.219028, 0.578281], [0.211137, 0.219028, 0.578281]],
                 dims=["layers", "cell_id"],
             ),
         ],

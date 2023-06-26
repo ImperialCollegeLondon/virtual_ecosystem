@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Union
 
 import numpy as np
+import xarray as xr
 from pint import Quantity
 from xarray import DataArray
 
@@ -149,7 +150,7 @@ class HydrologyModel(BaseModel):
             ).T,
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(15),
+                "layers": np.arange(len(self.layer_roles)),
                 "layer_roles": ("layers", self.layer_roles),
                 "cell_id": self.data.grid.cell_id,
             },
@@ -168,7 +169,9 @@ class HydrologyModel(BaseModel):
         and
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
         functions.
-        Horizontal sub-surface flow and stream flow are currently not implemented.
+        TODO Horizontal sub-surface flow and stream flow are currently not implemented.
+        Also, the water extracted by plant roots (= evapotranspiration) is not
+        implemented.
         """
 
         # Interception: precipitation at the surface is reduced as a function of leaf
@@ -191,11 +194,10 @@ class HydrologyModel(BaseModel):
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
 
-        # update data object
-        self.data["soil_moisture"] = soil_hydrology["soil_moisture"]
-        self.data["surface_runoff"] = soil_hydrology["surface_runoff"]
-        self.data["vertical_flow"] = soil_hydrology["vertical_flow"]
+        # TODO reduce soil moisture by evapotranspiration
 
+        # update data object
+        self.data.add_from_dict(output_dict=soil_hydrology)
         self.time_index += 1
 
     def cleanup(self) -> None:
@@ -288,12 +290,40 @@ def calculate_soil_moisture(
         soil_moisture_capacity=soil_moisture_capacity,
     )
 
-    # reduce mean soil moisture by vertical flow
-    #  TODO this shouldn't get negative
-    output["soil_moisture"] = DataArray(
-        current_soil_moisture - (output["vertical_flow"] / soil_depth)
+    # reduce mean soil moisture by vertical flow - this shouldn't get negative
+    soil_moisture_reduced = DataArray(
+        np.clip(
+            soil_moisture_infiltrated - (output["vertical_flow"] / soil_depth),
+            0,
+            soil_moisture_capacity,
+        ),
     )
-    # TODO variable soil moisture with depth?
+
+    # fill all layers
+    output["soil_moisture"] = xr.concat(
+        [
+            DataArray(
+                np.full(
+                    (
+                        len(layer_roles) - layer_roles.count("soil"),
+                        len(layer_heights.cell_id),
+                    ),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+            ),
+            soil_moisture_reduced.expand_dims(
+                dim={"layers": layer_roles.count("soil")},
+            ),
+        ],
+        dim="layers",
+    ).assign_coords(
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": layer_heights.cell_id,
+        }
+    )
 
     return output
 
