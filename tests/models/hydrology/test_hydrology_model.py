@@ -231,7 +231,7 @@ def test_setup(
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.494798, 0.494471, 0.28281], [0.494798, 0.494471, 0.28281]],
+                [[0.49948, 0.499447, 0.478281], [0.49948, 0.499447, 0.478281]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -261,8 +261,8 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
                 np.full((13, 3), np.nan),
                 dims=["layers", "cell_id"],
             ),
-            DataArray(  # TODO this shouldn't get negative
-                [[0.184097, 0.199374, -0.01719], [0.184097, 0.199374, -0.01719]],
+            DataArray(
+                [[0.19841, 0.199937, 0.178281], [0.19841, 0.199937, 0.178281]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -276,7 +276,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     )
 
     exp_vertical_flow = DataArray(
-        [17.49375, 0.688368, 238.909091],
+        [1.749375, 0.068837, 23.890909],
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
@@ -304,5 +304,5 @@ def test_calculate_vertical_flow(layer_roles_fixture):
     soil_moisture_residual = DataArray([0.3, 0.6, 0.9], dims=["cell_id"])
     soil_depth = DataArray([1100, 1100, 1100], dims=["cell_id"])
     result = calculate_vertical_flow(soil_moisture_residual, soil_depth)
-    exp_flow = DataArray([0.451156, 12.6489435, 238.909091], dims=["cell_id"])
+    exp_flow = DataArray([0.045116, 1.264894, 23.890909], dims=["cell_id"])
     xr.testing.assert_allclose(result, exp_flow)

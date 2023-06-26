@@ -163,10 +163,16 @@ class HydrologyModel(BaseModel):
         """Function to update the hydrology model.
 
         At the moment, this step calculates soil moisture, vertical flow, and surface
-        runoff.
+        runoff. The processes are described in detail in the
+        :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_moisture`
+        and
+        :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
+        functions.
+        Horizontal sub-surface flow and stream flow are currently not implemented.
         """
 
-        # Precipitation at the surface is reduced as a function of leaf area index
+        # Interception: precipitation at the surface is reduced as a function of leaf
+        # area index
         precipitation_surface = self.data["precipitation"].isel(
             time_index=self.time_index
         ) * (
@@ -175,8 +181,8 @@ class HydrologyModel(BaseModel):
             * self.data["leaf_area_index"].sum(dim="layers")
         )
 
-        # Mean soil moisture profile, [relative water content], vertical flow, [m3/time
-        # step], and Runoff, [mm]
+        # Calculate soil moisture, [relative water content], vertical flow, [m3/time
+        # step], and surface runoff, [mm]
         soil_hydrology = calculate_soil_moisture(
             layer_roles=self.layer_roles,
             layer_heights=self.data["layer_heights"],
@@ -185,6 +191,7 @@ class HydrologyModel(BaseModel):
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
 
+        # update data object
         self.data["soil_moisture"] = soil_hydrology["soil_moisture"]
         self.data["surface_runoff"] = soil_hydrology["surface_runoff"]
         self.data["vertical_flow"] = soil_hydrology["vertical_flow"]
@@ -203,16 +210,18 @@ def calculate_soil_moisture(
     soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
         "soil_moisture_capacity"
     ],
-    meters_to_millimeters: float = 1000,
+    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
 ) -> Dict[str, DataArray]:
-    """Calculate surface runoff, vertical flow, and soil moisture.
+    """Calculate soil moisture, surface runoff, and vertical flow.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
     :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
     moisture level and runoff is set to zero. Vertical flow is calculated using the
-    Richards equation. Subsurface flow, and stream flow are currently not simulated.
+    Richards equation, see
+    :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
+    .
 
     Args:
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
@@ -222,6 +231,7 @@ def calculate_soil_moisture(
         current_soil_moisture: current soil moisture at upper layer, [mm],
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
+        meters_to_millimeters: conversion factor from meters to millimeters
 
     Returns:
         soil moisture, [relative water content], vertical flow, [m3/timestep], surface
@@ -247,7 +257,7 @@ def calculate_soil_moisture(
         soil_moisture_capacity - current_soil_moisture.mean(dim="layers")
     ) * soil_depth
 
-    # calculate where precipitation exceeds available capacity
+    # Find grid cells where precipitation exceeds available capacity
     surface_runoff_cells = precipitation_surface.where(
         precipitation_surface > available_capacity_mm
     )
@@ -271,7 +281,7 @@ def calculate_soil_moisture(
         np.clip(total_water_mm / soil_depth, 0, soil_moisture_capacity)
     )
 
-    # calculate vertical flow for mean soil moisture
+    # calculate vertical flow in mm per time step for mean soil moisture
     output["vertical_flow"] = calculate_vertical_flow(
         soil_moisture_residual=soil_moisture_infiltrated,
         soil_depth=soil_depth,
@@ -297,17 +307,17 @@ def calculate_vertical_flow(
     hydraulic_conductivity: Union[float, DataArray] = (
         HydrologyParameters["hydraulic_conductivity"]
     ),
-    cross_sectional_area: float = 10000.0,  # TODO calculate from data object
     hydraulic_gradient: Union[float, DataArray] = (
         HydrologyParameters["hydraulic_gradient"]
     ),
-    time_conversion_factor: float = (HydrologyParameters["seconds_to_month"]),
+    timestep_conversion_factor: float = (HydrologyParameters["seconds_to_month"]),
     alpha: Union[float, DataArray] = (HydrologyParameters["alpha"]),
     nonlinearily_parameter: Union[float, DataArray] = (
         HydrologyParameters["nonlinearily_parameter"]
     ),
+    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
 ) -> DataArray:
-    """Calculate vertical water flow.
+    """Calculate vertical water flow through soil column.
 
     To calculate the flow of water through unsaturated soil, this function uses the
     Richards equation which considers both the hydraulic conductivity and the soil water
@@ -322,10 +332,9 @@ def calculate_vertical_flow(
         soil_depths: soil depths = length of the flow path, [m]
         soil_moisture_capacity: soil moisture capacity, [relative water content]
         hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
-        cross_sectional_area: cross-sectional area perpendicular to the flow, [m2]
         hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
-        time_conversion_factor: factor to convert flow from m3/s to model time step
+        timestep_conversion_factor: factor to convert flow from m3/s to model time step
         alpha: dimensionless parameter in van Genuchten model that describes the
             steepness of the water retention curve. Smaller values of alpha correspond
             to steeper curves, indicating that the soil retains water at a higher matric
@@ -354,7 +363,11 @@ def calculate_vertical_flow(
         * (1 - (1 - (theta / soil_moisture_capacity) ** (1 / m)) ** m) ** 2
     )
 
-    # Calculate the water flow rate in m3 per seconds and convert to timestep
+    # Calculate the water flow rate in m3 per seconds and convert to mm per timestep
     return (
-        effective_conductivity * cross_sectional_area * hydraulic_gradient / soil_depth
-    ) * time_conversion_factor
+        effective_conductivity
+        * hydraulic_gradient
+        / soil_depth
+        * meters_to_millimeters
+        * timestep_conversion_factor
+    )

@@ -1,5 +1,10 @@
 """The :mod:`~virtual_rainforest.models.hydrology.hydrology_constants` module contains
-constants and parameters for the hydrology model. This is a temporary solution.
+constants and parameters for the
+:mod:`~virtual_rainforest.models.hydrology.hydrology_model`. This is a temporary
+solution; we are working on consistent use of constants across all models.
+
+TODO Soil parameters vary strongly with soil type and will require literature search and
+sensitivity analysis to produce meaningful results.
 """  # noqa: D205, D415
 
 from typing import Dict
@@ -12,8 +17,6 @@ HydrologyParameters: Dict[str, float] = {
     "seconds_to_month": 2.628e6,
     "alpha": 0.01,
     "nonlinearily_parameter": 2.0,
+    "meters_to_millimeters": 1000,
 }
 """Parameters for hydrology model."""
-
-# TODO move bounds to core.bound_checking once that is implemented and introduce method
-# to conserve energy and matter
