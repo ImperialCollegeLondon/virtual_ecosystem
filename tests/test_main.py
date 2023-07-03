@@ -446,7 +446,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     # calculated in the higher level function)
     assert mock_save.call_count == 1
     assert mock_save.call_args == mocker.call(
-        Path(f"./continuous_state{time_index}.nc"),
+        Path(f"./continuous_state{time_index:05}.nc"),
         ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"],
         time_index,
     )

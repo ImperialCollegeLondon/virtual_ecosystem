@@ -205,7 +205,7 @@ def output_current_state(
     variables_to_save = [item for sublist in all_variables for item in sublist]
     # Create output file path for specific time index
     out_path_name = (
-        f"{data_options['out_folder_continuous']}/continuous_state{time_index}.nc"
+        f"{data_options['out_folder_continuous']}/continuous_state{time_index:05}.nc"
     )
 
     # Save the required variables by appending to existing file
