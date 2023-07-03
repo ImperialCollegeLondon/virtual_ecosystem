@@ -229,20 +229,20 @@ def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
     """
     # Find Path of folder containing the continuous output
     out_folder = Path(data_options["out_folder_continuous"])
-    # Find all relevant files in the given folder and convert to list
-    continuous_files = out_folder.rglob("continuous_state*.nc")
-
-    # Open all files as a single dataset
-    all_data = open_mfdataset(list(continuous_files))
 
     # Check that output file doesn't already exist
     out_path = Path(f"{out_folder}/all_continuous_data.nc")
     try:
         check_outfile(out_path)
     except ConfigurationError as e:
-        # Close dataset to prevent access problems on windows
-        all_data.close()
         raise e
+
+    # Find all relevant files in the given folder and convert to list
+    continuous_files = out_folder.rglob("continuous_state*.nc")
+
+    # Open all files as a single dataset
+    all_data = open_mfdataset(list(continuous_files))
+
     # Save and close complete dataset
     all_data.to_netcdf(out_path)
     all_data.close()
