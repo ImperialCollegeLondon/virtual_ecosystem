@@ -458,7 +458,10 @@ def test_merge_continuous_data_files(dummy_carbon_data):
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
-    data_options = {"out_folder_continuous": "."}
+    data_options = {
+        "out_folder_continuous": ".",
+        "continuous_file_name": "all_continuous_data",
+    }
 
     # Save first data file
     dummy_carbon_data.save_timeslice_to_netcdf(
@@ -536,7 +539,10 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
-    data_options = {"out_folder_continuous": "."}
+    data_options = {
+        "out_folder_continuous": ".",
+        "continuous_file_name": "all_continuous_data",
+    }
 
     # Save first data file (as 33 to avoid access conflict on windows)
     dummy_carbon_data.save_timeslice_to_netcdf(

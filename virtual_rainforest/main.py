@@ -231,7 +231,7 @@ def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
     out_folder = Path(data_options["out_folder_continuous"])
 
     # Check that output file doesn't already exist
-    out_path = Path(f"{out_folder}/all_continuous_data.nc")
+    out_path = Path(f"{out_folder}/{data_options['continuous_file_name']}.nc")
     try:
         check_outfile(out_path)
     except ConfigurationError as e:
