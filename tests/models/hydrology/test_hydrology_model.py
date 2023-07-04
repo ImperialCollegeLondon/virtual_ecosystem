@@ -286,12 +286,19 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         layer_heights=data["layer_heights"],
         precipitation_surface=precipitation_surface,
         current_soil_moisture=data["soil_moisture"],
+        surface_temperature=data["air_temperature"]
+        .isel(layers=len(layer_roles_fixture) - layer_roles_fixture.count("soil") - 1)
+        .drop_vars(["layer_roles", "layers"]),
+        surface_relative_humidity=data["relative_humidity"]
+        .isel(layers=len(layer_roles_fixture) - layer_roles_fixture.count("soil") - 1)
+        .drop_vars(["layer_roles", "layers"]),
+        surface_wind_speed=DataArray([0.1, 0.5, 1.0], dims=["cell_id"]),
         soil_moisture_capacity=DataArray([0.3, 0.6, 0.6], dims=["cell_id"]),
     )
 
+    xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
     xr.testing.assert_allclose(result["soil_moisture"], exp_soil_moisture)
     xr.testing.assert_allclose(result["surface_runoff"], exp_runoff)
-    xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
 
 
 def test_calculate_vertical_flow(layer_roles_fixture):
@@ -306,3 +313,22 @@ def test_calculate_vertical_flow(layer_roles_fixture):
     result = calculate_vertical_flow(soil_moisture_residual, soil_depth)
     exp_flow = DataArray([0.045116, 1.264894, 23.890909], dims=["cell_id"])
     xr.testing.assert_allclose(result, exp_flow)
+
+
+def test_calculate_soil_evaporation():
+    """test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_soil_evaporation,
+    )
+
+    result = calculate_soil_evaporation(
+        temperature=DataArray([10.0, 20.0, 30.0], dims=["cell_id"]),
+        wind_speed=DataArray([0.1, 0.5, 2.0], dims=["cell_id"]),
+        relative_humidity=DataArray([70, 80, 90], dims=["cell_id"]),
+        soil_moisture=DataArray([0.3, 0.6, 0.9], dims=["cell_id"]),
+    )
+    xr.testing.assert_allclose(
+        result,
+        DataArray([1.486538, 2.9315, 1.51575], dims=["cell_id"]),
+    )
