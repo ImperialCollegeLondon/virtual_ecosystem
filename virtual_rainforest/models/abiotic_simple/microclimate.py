@@ -189,7 +189,7 @@ def log_interpolation(
     lower_bound: float,
     gradient: float,
 ) -> DataArray:
-    """LAI regression and logarithmic interpolation of variables for vertical profile.
+    """LAI regression and logarithmic interpolation of variables above ground.
 
     Args:
         data: Data object
@@ -218,7 +218,21 @@ def log_interpolation(
     intercept = lai_regression - slope * np.log(1.5)
 
     # Calculate the values within cells by layer
-    layer_values = np.log(layer_heights) * slope + intercept
+    positive_layer_heights = DataArray(
+        np.where(layer_heights > 0, layer_heights, np.nan),
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(0, len(layer_roles)),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": data.grid.cell_id,
+        },
+    )
+
+    layer_values = np.where(
+        np.logical_not(np.isnan(positive_layer_heights)),
+        (np.log(positive_layer_heights) * slope + intercept),
+        np.nan,
+    )
 
     # set upper and lower bounds
     return DataArray(
