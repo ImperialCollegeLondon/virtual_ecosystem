@@ -19,6 +19,11 @@ from __future__ import annotations
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+from virtual_rainforest.models.animals.carcasses import CarcassPool
+from virtual_rainforest.models.animals.dummy_plants_and_soil import (
+    PalatableSoil,
+    PlantCommunity,
+)
 
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -39,6 +44,9 @@ class AnimalCommunity:
             k.name: [] for k in self.functional_groups
         }
         """Generate a dictionary of functional groups within the community."""
+        self.plant_community: PlantCommunity = PlantCommunity(10000.0, 1)
+        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
+        self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
 
     def immigrate(self, immigrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
@@ -93,5 +101,29 @@ class AnimalCommunity:
         return self.cohorts[cohort.name][-1]
 
     def forage_community(self) -> None:
-        """This function needs to handle the foraging of animal cohorts."""
-        pass
+        """This function needs to handle the foraging of animal cohorts.
+
+        It should loop over every animal cohort in the community and call either
+        herbivory or predation functions. This will sooner be expanded to include
+        functions for handling scavenging and soil consumption behaviors specifically.
+
+
+        """
+        plant_list = [self.plant_community]
+        carcass_pool = self.carcass_pool
+        soil_pool = self.soil_pool
+
+        animal_list = []  # List to collect all animals
+
+        for functional_group, cohorts in self.cohorts.items():
+            animal_list.extend(cohorts)  # Add cohorts from the current functional group
+
+        for cohort in animal_list:
+            other_animals = [animal for animal in animal_list if animal != cohort]
+
+            cohort.forage_cohort(
+                plant_list=plant_list,
+                animal_list=other_animals,
+                carcass_pool=carcass_pool,
+                soil_pool=soil_pool,
+            )

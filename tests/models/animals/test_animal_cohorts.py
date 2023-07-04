@@ -21,22 +21,6 @@ def soil_instance():
 
 
 @pytest.fixture
-def animal_model_instance():
-    """Fixture for an animal model used in tests."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    test_grid = Grid(cell_nx=3, cell_ny=3)
-    test_data = Data(test_grid)
-    test_config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "animals": {"model_time_step": "12 hours"},
-    }
-    return AnimalModel.from_config(test_data, test_config)
-
-
-@pytest.fixture
 def functional_group_instance(shared_datadir):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
@@ -283,51 +267,3 @@ class TestAnimalCohort:
         animal_cohort_instance.die_individual(number_dead, carcass_instance)
         assert animal_cohort_instance.individuals == final_pop
         assert carcass_instance.energy == final_carcass
-
-    @pytest.mark.parametrize(
-        """animal_initial, animal_final, plant_initial, plant_final, soil_initial,
-        soil_final""",
-        [
-            (
-                28266000000.0,
-                28608685465.02244,
-                182000000000.0,
-                178192383721.97287,
-                1000.0,
-                761524255.60542,
-            ),
-            (
-                0.0,
-                342685465.02244,
-                182000000000.0,
-                178192383721.97287,
-                1000.0,
-                761524255.60542,
-            ),
-            (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1020.0),
-            (28266000000.0, 28266000000.0, 0.0, 0.0, 1000.0, 1000.0),
-            (0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0),
-        ],
-    )
-    def test_forage_cohort(
-        self,
-        animal_cohort_instance,
-        animal_initial,
-        animal_final,
-        plant_instance,
-        plant_initial,
-        plant_final,
-        soil_instance,
-        soil_initial,
-        soil_final,
-    ):
-        """Testing forage."""
-        animal_cohort_instance.stored_energy = animal_initial
-        plant_instance.energy = plant_initial
-        soil_instance.energy = soil_initial
-        animal_cohort_instance.forage_cohort(plant_instance, soil_instance)
-        assert animal_cohort_instance.stored_energy == pytest.approx(
-            animal_final, rel=1e-6
-        )
-        assert plant_instance.energy == pytest.approx(plant_final, rel=1e-6)
-        assert soil_instance.energy == pytest.approx(soil_final, rel=1e-6)

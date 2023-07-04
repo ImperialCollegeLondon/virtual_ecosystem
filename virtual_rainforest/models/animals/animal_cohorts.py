@@ -18,6 +18,8 @@ Notes to self:
 
 from __future__ import annotations
 
+from random import choice
+
 from numpy import timedelta64
 
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
@@ -163,7 +165,7 @@ class AnimalCohort:
 
         # Calculate the energy gain from eating prey
         # Here we assume all eaten mass is converted to energy
-        energy_gain = min(
+        consumed_energy = min(
             (
                 number_eaten
                 * prey.mass
@@ -175,15 +177,17 @@ class AnimalCohort:
 
         # Reduce the number of individuals in the prey cohort and add energy to predator
         prey.individuals -= number_eaten
-        carcass_pool.energy += energy_gain * (
+        carcass_pool.energy += consumed_energy * (
             1 - self.functional_group.mechanical_efficiency
         )
 
         # Increase predator's stored energy with the energy gained from eating
-        self.stored_energy += energy_gain * self.functional_group.conversion_efficiency
-        prey.stored_energy -= energy_gain
+        self.stored_energy += (
+            consumed_energy * self.functional_group.conversion_efficiency
+        )
+        prey.stored_energy -= consumed_energy
 
-        return energy_gain * self.functional_group.conversion_efficiency
+        return consumed_energy * self.functional_group.conversion_efficiency
 
     def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
         """The function to transfer waste energy from an animal cohort to the soil.
@@ -196,22 +200,6 @@ class AnimalCohort:
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
         soil.energy += waste_energy * self.individuals
         # The amount of waste by the average cohort member * number individuals.
-
-    def forage_cohort(self, plant_food: PlantCommunity, soil: PalatableSoil) -> None:
-        """The function to enact multi-step foraging behaviors.
-
-        Currently, this wraps the acts of consuming plants and excreting wastes. It will
-        later wrap additional functions for selecting a food choice and navigating
-        predation interactions.
-
-        Args:
-            plant_food: The targeted PlantCommunity instance from which energy is
-                transferred.
-            soil: The local PalatableSoil pool in which waste is deposited.
-
-        """
-        consumed_energy = self.herbivory(plant_food, soil)
-        self.excrete(soil, consumed_energy)
 
     def aging(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes.
@@ -240,3 +228,43 @@ class AnimalCohort:
         self.individuals -= number_dead
 
         carcass_pool.energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
+
+    def forage_cohort(
+        self,
+        plant_list: list[PlantCommunity],
+        animal_list: list[AnimalCohort],
+        carcass_pool: CarcassPool,
+        soil_pool: PalatableSoil,
+    ) -> float:
+        """Forage the environment for food depending on diet type.
+
+        Current version expected to search a single grid square and uses AnimalModel
+        dummy implementations of plants (PlantCommunity) and carcasses (CarcassPool).
+        This will be expanded to search and excrete over all occupied grid squares and
+        include more complicated diets (omnivory, scavenging, etc)
+
+        Args:
+            plant_list: A list of plant cohorts available for herbivory.
+            animal_list: A list of animal cohorts available for predation.
+            carcass_pool: A CarcassPool object representing available carcasses.
+            soil_pool: A PalatableSoil object representing soil nutrients.
+
+        Returns:
+            Energy gained from the forage event.
+        """
+        if self.functional_group.diet.value == "herbivore":
+            plant_prey = choice(plant_list)
+            energy = self.herbivory(plant_prey, soil_pool)
+        elif self.functional_group.diet.value == "carnivore":
+            if not animal_list:  # if the animal_list is empty
+                energy = (
+                    0  # the predator is unable to find prey and hence gets zero energy
+                )
+            else:
+                animal_prey = choice(animal_list)
+                energy = self.predation(animal_prey, carcass_pool)
+
+        else:
+            raise ValueError("Invalid diet type")
+
+        return energy
