@@ -32,15 +32,30 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         InitialisationError: If one or more models cannot be found in the registry
     """
 
-    # Remove "core" from model list as it is not a model
-    model_list_ = set(model_list) - {"core"}
+    # TODO - The steps below to generate a cleaned model list would be simpler if set
+    # was used, but we need to preserve the list order so that models are loaded in the
+    # correct order. I we find an alternative approach to the order problem, then we can
+    # switch to using sets here.
+    unique_models = []
 
-    LOGGER.info(
-        "Attempting to configure the following models: %s" % sorted(model_list_)
-    )
+    # Iterate over the original list
+    for model in model_list:
+        if model not in unique_models:
+            unique_models.append(model)
+
+    if len(unique_models) != len(model_list):
+        LOGGER.warning("Duplicate model names were provided, these have been ignored.")
+
+    # Remove "core" from model list as it is not a model
+    if "core" in unique_models:
+        unique_models.remove("core")
+
+    LOGGER.info("Attempting to configure the following models: %s" % unique_models)
 
     # Make list of missing models, and return an error if necessary
-    miss_model = [model for model in model_list_ if model not in MODEL_REGISTRY.keys()]
+    miss_model = [
+        model for model in unique_models if model not in MODEL_REGISTRY.keys()
+    ]
     if miss_model:
         to_raise = InitialisationError(
             f"The following models cannot be configured as they are not found in the "
@@ -50,7 +65,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         raise to_raise
 
     # Then extract each model from the registry
-    modules = [MODEL_REGISTRY[model] for model in model_list_]
+    modules = [MODEL_REGISTRY[model] for model in unique_models]
 
     return modules
 
