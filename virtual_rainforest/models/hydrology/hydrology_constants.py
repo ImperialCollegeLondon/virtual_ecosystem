@@ -18,5 +18,7 @@ HydrologyParameters: Dict[str, float] = {
     "alpha": 0.01,
     "nonlinearily_parameter": 2.0,
     "meters_to_millimeters": 1000,
+    "celsius_to_kelvin": 273.15,
+    "evaporation_coefficient": 0.25,
 }
 """Parameters for hydrology model."""
