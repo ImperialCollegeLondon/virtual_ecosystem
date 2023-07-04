@@ -364,7 +364,7 @@ class Data:
         """
 
         for variable in output_dict:
-            self.data[variable] = output_dict[variable]
+            self[variable] = output_dict[variable]
 
 
 class DataGenerator:
