@@ -314,4 +314,65 @@ def dummy_climate_data(layer_roles_fixture):
             }
         )
     )
+
+    data["air_temperature"] = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.844995, 29.844995, 29.844995],
+                    [28.87117, 28.87117, 28.87117],
+                    [27.206405, 27.206405, 27.206405],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [16.145945, 16.145945, 16.145945],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+
+    data["relative_humidity"] = xr.concat(
+        [
+            DataArray(
+                [
+                    [90.0, 90.0, 90.0],
+                    [90.341644, 90.341644, 90.341644],
+                    [92.488034, 92.488034, 92.488034],
+                    [96.157312, 96.157312, 96.157312],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [100, 100, 100],
+                    [100, 100, 100],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+
     return data
