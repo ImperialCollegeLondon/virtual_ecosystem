@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from pathlib import Path
 
 import pint
@@ -47,7 +47,7 @@ from .conftest import log_check
             id="ignores core",
         ),
         pytest.param(
-            ["soil", "freshwater"],  # Model that hasn't been defined
+            ["freshwater", "soil"],  # Model that hasn't been defined
             0,
             pytest.raises(InitialisationError),
             (
@@ -63,6 +63,23 @@ from .conftest import log_check
                 ),
             ),
             id="undefined model",
+        ),
+        pytest.param(
+            ["soil", "abiotic_simple", "abiotic_simple"],
+            2,
+            does_not_raise(),
+            (
+                (
+                    WARNING,
+                    "Duplicate model names were provided, these have been ignored.",
+                ),
+                (
+                    INFO,
+                    "Attempting to configure the following models: ['soil', "
+                    "'abiotic_simple']",
+                ),
+            ),
+            id="repeated model",
         ),
     ],
 )
