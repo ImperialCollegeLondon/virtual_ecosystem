@@ -440,7 +440,9 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     configured_models = {"soil": MODEL_REGISTRY["soil"]}
 
     # Then call the top level function
-    output_current_state(dummy_carbon_data, configured_models, data_options, time_index)
+    outpath = output_current_state(
+        dummy_carbon_data, configured_models, data_options, time_index
+    )
 
     # Check that the mocked function was called once with correct input (which is
     # calculated in the higher level function)
@@ -450,6 +452,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
         ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"],
         time_index,
     )
+    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
 
 
 def test_merge_continuous_data_files(dummy_carbon_data):

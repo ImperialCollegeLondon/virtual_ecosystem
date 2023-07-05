@@ -178,7 +178,7 @@ def output_current_state(
     models_cfd: dict[str, BaseModel],
     data_options: dict[str, Any],
     time_index: int,
-) -> None:
+) -> Path:
     """Function to output the current state of the data object.
 
     This function outputs all variables stored in the data object, except for any data
@@ -195,6 +195,9 @@ def output_current_state(
         ConfigurationError: If the final output directory doesn't exist, isn't a
            directory, or the final output file already exists (when in new file mode).
            If the file to append to is missing (when not in new file mode).
+
+    Returns:
+        A path to the file that the current state is saved in
     """
 
     # Only variables in the data object that are updated by a model should be outputted
@@ -210,6 +213,8 @@ def output_current_state(
 
     # Save the required variables by appending to existing file
     data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save, time_index)
+
+    return Path(out_path_name)
 
 
 def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
@@ -306,6 +311,9 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
+    # Container to store paths to continuous data files
+    continuous_data_files = []
+
     # Setup the timing loop
     time_index = 0
     while current_time < end_time:
@@ -320,11 +328,12 @@ def vr_run(
 
         # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:
-            output_current_state(
+            outfile_path = output_current_state(
                 data, models_cfd, config["core"]["data_output_options"], time_index
             )
+            continuous_data_files.append(outfile_path)
 
-    # TODO - Make this a separate function + add tests
+    # Merge all files together based on a list
     if config["core"]["data_output_options"]["save_continuous_data"]:
         merge_continuous_data_files(config["core"]["data_output_options"])
 
