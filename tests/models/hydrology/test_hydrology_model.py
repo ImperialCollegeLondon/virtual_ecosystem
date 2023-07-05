@@ -222,7 +222,7 @@ def test_setup(
     )
 
     # Run the update step
-    model.update()
+    model.update(time_index=1)
 
     exp_soil_moisture = xr.concat(
         [
@@ -231,7 +231,7 @@ def test_setup(
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.512207, 0.518538, 0.878281], [0.512207, 0.518538, 0.878281]],
+                [[0.512207, 0.518538, 0.625822], [0.512207, 0.518538, 0.625822]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -239,8 +239,6 @@ def test_setup(
     ).assign_coords(model.data["layer_heights"].coords)
 
     xr.testing.assert_allclose(model.data["soil_moisture"], exp_soil_moisture)
-    # test that time_index was updated
-    assert model.time_index == 1
 
 
 def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
