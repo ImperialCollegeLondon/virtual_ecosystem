@@ -123,7 +123,7 @@ file.
 """  # noqa: D205, D415
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import numpy as np
 from xarray import DataArray, Dataset
@@ -348,7 +348,7 @@ class Data:
         # If the file path is okay then write the model state out as a NetCDF
         self.data.to_netcdf(output_file_path)
 
-    def add_from_dict(self, output_dict: Dict[str, DataArray]) -> None:
+    def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.
 
         This function takes a dictionary of updated variables to replace the
@@ -364,7 +364,7 @@ class Data:
         """
 
         for variable in output_dict:
-            self.data[variable] = output_dict[variable]
+            self[variable] = output_dict[variable]
 
 
 class DataGenerator:
