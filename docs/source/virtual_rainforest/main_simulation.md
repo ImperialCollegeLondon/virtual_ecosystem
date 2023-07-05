@@ -163,7 +163,7 @@ defaulting to saving the data.
 
 ### Combining continuous data
 
-If the model has been set up to output continuos time data, then there is a final step
+If the model has been set up to output continuous time data, then there is a final step
 to combine the output files into a single file. This step is required as the continuous
 data is saved at every time step, resulting in a large number of files. Continuous data
 files are found by searching the output folder for files matching the pattern

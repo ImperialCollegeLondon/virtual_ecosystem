@@ -215,10 +215,9 @@ def output_current_state(
 def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
     """Merge all continuous data files in a folder into a single file.
 
-    It is important to note that this function deletes all of the original continuos
-    output files once the combined output is saved. It also combines (and deletes) all
-    files matching the pattern 'continuous_state*.nc' that it finds in the specified
-    output folder.
+    This function deletes all of the original continuous output files once the combined
+    output is saved. It also combines (and deletes) all files matching the pattern
+    'continuous_state*.nc' that it finds in the specified output folder.
 
     Args:
         data_options: Set of options concerning what to output and where
