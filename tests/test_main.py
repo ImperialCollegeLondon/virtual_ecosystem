@@ -486,8 +486,13 @@ def test_merge_continuous_data_files(dummy_carbon_data):
         2,
     )
 
+    continuous_files = [
+        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        Path(f"{data_options['out_folder_continuous']}/continuous_state2.nc"),
+    ]
+
     # Merge data
-    merge_continuous_data_files(data_options)
+    merge_continuous_data_files(data_options, continuous_files)
 
     # Check that original two files have been deleted
     out_folder = Path(data_options["out_folder_continuous"])
@@ -560,9 +565,14 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
         2,
     )
 
+    continuous_files = [
+        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc"),
+    ]
+
     with pytest.raises(ConfigurationError):
         # Merge data
-        merge_continuous_data_files(data_options)
+        merge_continuous_data_files(data_options, continuous_files)
 
     log_check(
         caplog,
@@ -576,6 +586,6 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
         ),
     )
 
-    # Delete the two temporary files
-    Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc").unlink()
-    Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc").unlink()
+    # Delete the temporary files
+    for continuous_file in continuous_files:
+        continuous_file.unlink()

@@ -217,21 +217,25 @@ def output_current_state(
     return Path(out_path_name)
 
 
-def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
+def merge_continuous_data_files(
+    data_options: dict[str, Any], continuous_data_files: list[Path]
+) -> None:
     """Merge all continuous data files in a folder into a single file.
 
-    This function deletes all of the original continuous output files once the combined
-    output is saved. It also combines (and deletes) all files matching the pattern
-    'continuous_state*.nc' that it finds in the specified output folder.
+    This function deletes all of the continuous output files it has been asked to merge
+    once the combined output is saved.
 
     Args:
         data_options: Set of options concerning what to output and where
+        continuous_data_files: Files containing previously output continuous data
 
     Raises:
         ConfigurationError: If output folder doesn't exist or if it output file already
             exists
     """
-    # Find Path of folder containing the continuous output
+
+    # Path to folder containing the continuous output (that merged file should be saved
+    # to)
     out_folder = Path(data_options["out_folder_continuous"])
 
     # Check that output file doesn't already exist
@@ -241,18 +245,15 @@ def merge_continuous_data_files(data_options: dict[str, Any]) -> None:
     except ConfigurationError as e:
         raise e
 
-    # Find all relevant files in the given folder and convert to list
-    continuous_files = out_folder.rglob("continuous_state*.nc")
-
     # Open all files as a single dataset
-    all_data = open_mfdataset(list(continuous_files))
+    all_data = open_mfdataset(continuous_data_files)
 
     # Save and close complete dataset
     all_data.to_netcdf(out_path)
     all_data.close()
 
     # Iterate over all continuous files and delete them
-    for file_path in list(out_folder.rglob("continuous_state*.nc")):
+    for file_path in continuous_data_files:
         file_path.unlink()
 
 
@@ -335,7 +336,9 @@ def vr_run(
 
     # Merge all files together based on a list
     if config["core"]["data_output_options"]["save_continuous_data"]:
-        merge_continuous_data_files(config["core"]["data_output_options"])
+        merge_continuous_data_files(
+            config["core"]["data_output_options"], continuous_data_files
+        )
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
