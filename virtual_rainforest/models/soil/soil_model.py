@@ -24,7 +24,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
 from scipy.integrate import solve_ivp
-from xarray import DataArray, Dataset
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -149,30 +149,12 @@ class SoilModel(BaseModel):
 
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
-        self.replace_soil_pools(updated_carbon_pools)
+        self.data.add_from_dict(updated_carbon_pools)
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
-    def replace_soil_pools(self, new_pools: Dataset) -> None:
-        """Replace soil pools with previously calculated new pool values.
-
-        The state of particular soil pools will effect the rate of other processes in
-        the soil module. These processes in turn can effect the exchange rates between
-        the original soil pools. Thus, a separate update function is necessary so that
-        the new values for all soil module components can be calculated on a single
-        state, which is then updated (using this function) when all values have been
-        calculated.
-
-        Args:
-            new_pools: Array of new pool values to insert into the data object
-        """
-
-        self.data["soil_c_pool_lmwc"] = new_pools["soil_c_pool_lmwc"]
-        self.data["soil_c_pool_maom"] = new_pools["soil_c_pool_maom"]
-        self.data["soil_c_pool_microbe"] = new_pools["soil_c_pool_microbe"]
-
-    def integrate(self) -> Dataset:
+    def integrate(self) -> dict[str, DataArray]:
         """Integrate the soil model.
 
         For now a single integration will be used to advance the entire soil module.
@@ -238,7 +220,7 @@ class SoilModel(BaseModel):
             for slc, pool in zip(slices, delta_pools_ordered.keys())
         }
 
-        return Dataset(data_vars=new_c_pools)
+        return new_c_pools
 
 
 def construct_full_soil_model(
