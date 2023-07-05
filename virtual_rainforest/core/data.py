@@ -334,19 +334,63 @@ class Data:
         if not clean_load:
             raise ConfigurationError("Data configuration did not load cleanly")
 
-    def save_to_netcdf(self, output_file_path: Path) -> None:
-        """Save the entire contents of the data object as a NetCDF file.
+    def save_to_netcdf(
+        self, output_file_path: Path, variables_to_save: Optional[list[str]] = None
+    ) -> None:
+        """Save the contents of the data object as a NetCDF file.
+
+        Either the whole contents of the data object or specific variables of interest
+        can be saved using this function.
 
         Args:
             output_file_path: Path location to save the Virtual Rainforest model state.
+            variables_to_save: List of variables to be saved. If not provided then all
+                variables are saved.
         """
 
         # Check that the folder to save to exists and that there isn't already a file
         # saved there
         check_outfile(output_file_path)
 
-        # If the file path is okay then write the model state out as a NetCDF
-        self.data.to_netcdf(output_file_path)
+        # If the file path is okay then write the model state out as a NetCDF. Should
+        # check if all variables should be saved or just the requested ones.
+        if variables_to_save:
+            self.data[variables_to_save].to_netcdf(output_file_path)
+        else:
+            self.data.to_netcdf(output_file_path)
+
+    def save_timeslice_to_netcdf(
+        self, output_file_path: Path, variables_to_save: list[str], time_index: int
+    ) -> None:
+        """Save specific variables from current state of data as a NetCDF file.
+
+        At present, this function save each time step individually. In future, this
+        function might be altered to append multiple time steps at once, as this could
+        improve performance significantly.
+
+        Args:
+            output_file_path: Path location to save NetCDF file to.
+            variables_to_save: List of variables to save in the file
+            time_index: The time index of the slice being saved
+
+        Raises:
+            ConfigurationError: If the file to save to can't be found
+        """
+
+        # Check that the folder to save to exists and that there isn't already a file
+        # saved there
+        check_outfile(output_file_path)
+
+        # Loop over variables adding them to the new dataset
+        time_slice = (
+            self.data[variables_to_save]
+            .expand_dims({"time_index": 1})
+            .assign_coords(time_index=[time_index])
+        )
+
+        # Save and close new dataset
+        time_slice.to_netcdf(Path(output_file_path))
+        time_slice.close()
 
     def add_from_dict(self, output_dict: dict[str, DataArray]) -> None:
         """Update data object from dictionary of variables.

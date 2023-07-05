@@ -43,6 +43,8 @@ class AbioticModel(BaseModel):
     This is a set of variables that must be present in the data object used to create an
     AbioticModel instance, along with any core axes that those variables must map on
     to."""
+    vars_updated = []
+    """Once this model is functional variables should be included here."""
 
     def __init__(
         self,
@@ -126,8 +128,12 @@ class AbioticModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
 
-    def update(self) -> None:
-        """Placeholder function to update the abiotic model."""
+    def update(self, time_index: int) -> None:
+        """Placeholder function to update the abiotic model.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

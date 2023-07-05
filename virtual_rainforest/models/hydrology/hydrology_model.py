@@ -58,6 +58,8 @@ class HydrologyModel(BaseModel):
         ("leaf_area_index", ("spatial",)),
     )  # TODO add time
     """The required variables and axes for the hydrology model"""
+    vars_updated = ["soil_moisture", "surface_runoff"]
+    """Variables updated by the hydrology model"""
 
     def __init__(
         self,
@@ -94,8 +96,6 @@ class HydrologyModel(BaseModel):
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
         """Initial soil moisture for all layers and grill cells identical."""
-        self.time_index = 0
-        """Start counter for extracting correct input data."""
 
     @classmethod
     def from_config(
@@ -160,7 +160,7 @@ class HydrologyModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self) -> None:
+    def update(self, time_index: int) -> None:
         """Function to update the hydrology model.
 
         At the moment, this step updates the soil moisture and surface runoff .
@@ -168,7 +168,7 @@ class HydrologyModel(BaseModel):
 
         # Precipitation at the surface is reduced as a function of leaf area index
         precipitation_surface = self.data["precipitation"].isel(
-            time_index=self.time_index
+            time_index=time_index
         ) * (
             1
             - HydrologyParameters["water_interception_factor"]
@@ -176,7 +176,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Mean soil moisture profile, [] and Runoff, [mm]
-        soil_moisture_only, surface_run_off = calculate_soil_moisture(
+        soil_moisture_only, surface_runoff = calculate_soil_moisture(
             layer_roles=self.layer_roles,
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
@@ -194,9 +194,7 @@ class HydrologyModel(BaseModel):
             ],
             dim="layers",
         )
-        self.data["surface_run_off"] = surface_run_off
-
-        self.time_index += 1
+        self.data["surface_runoff"] = surface_runoff
 
     def cleanup(self) -> None:
         """Placeholder function for hydrology model cleanup."""

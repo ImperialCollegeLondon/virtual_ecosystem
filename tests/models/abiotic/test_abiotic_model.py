@@ -146,7 +146,7 @@ def test_generate_abiotic_model(
         assert model.update_interval == time_interval
 
         # Run the update step (once this does something should check output)
-        model.update()
+        model.update(time_index=0)
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

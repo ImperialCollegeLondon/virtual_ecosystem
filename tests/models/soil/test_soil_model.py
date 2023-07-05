@@ -272,7 +272,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
         )
     )
 
-    soil_model_fixture.update()
+    soil_model_fixture.update(time_index=0)
 
     # Check that integrator is called once (and once only)
     mock_integrate.assert_called_once()

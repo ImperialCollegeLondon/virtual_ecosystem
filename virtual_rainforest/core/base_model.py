@@ -156,6 +156,17 @@ class BaseModel(ABC):
         For example: ``(('temperature', ('spatial', 'temporal')),)``
         """
 
+    @property
+    @abstractmethod
+    def vars_updated(cls) -> list[str]:
+        """Variables that are updated by the model.
+
+        At the moment, this list is used to decide which variables to output from the
+        :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
+        by a model used in the specific simulation. In future, this could also be used
+        to prevent multiple models from updating the same variable and similar problems.
+        """
+
     def __init__(
         self,
         data: Data,
@@ -194,8 +205,12 @@ class BaseModel(ABC):
         """Function to spin up the model."""
 
     @abstractmethod
-    def update(self) -> None:
-        """Function to update the model."""
+    def update(self, time_index: int) -> None:
+        """Function to update the model.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
     @abstractmethod
     def cleanup(self) -> None:
@@ -376,6 +391,22 @@ class BaseModel(ABC):
         return update_interval
 
     @classmethod
+    def _check_vars_updated(cls) -> None:
+        """Check that vars_updated has been set properly.
+
+        Raises:
+            NotImplementedError: vars_updated has not been set in a subclass
+        """
+
+        # Check that vars_updated is set
+        if isinstance(cls.vars_updated, property):
+            to_raise = NotImplementedError(
+                f"Property vars_updated is not implemented in {cls.__name__}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    @classmethod
     def __init_subclass__(cls) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -392,6 +423,7 @@ class BaseModel(ABC):
         try:
             cls._check_model_name()
             cls._check_required_init_vars()
+            cls._check_vars_updated()
             lower_bound = cls._check_time_bounds_units("lower_bound_on_time_scale")
             upper_bound = cls._check_time_bounds_units("upper_bound_on_time_scale")
             # Once bounds units are checked their relative values can be validated

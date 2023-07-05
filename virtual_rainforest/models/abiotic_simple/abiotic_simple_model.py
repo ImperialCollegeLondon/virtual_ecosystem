@@ -57,6 +57,15 @@ class AbioticSimpleModel(BaseModel):
         ("layer_heights", ("spatial",)),
     )
     """The required variables and axes for the abiotic simple model"""
+    vars_updated = [
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ]
+    """Variables updated by the abiotic_simple model"""
 
     def __init__(
         self,
@@ -77,8 +86,6 @@ class AbioticSimpleModel(BaseModel):
         """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
-        self.time_index = 0
-        """Start counter for extracting correct input data."""
 
     @classmethod
     def from_config(
@@ -139,8 +146,12 @@ class AbioticSimpleModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
-    def update(self) -> None:
-        """Placeholder function to update the abiotic simple model."""
+    def update(self, time_index: int) -> None:
+        """Function to update the abiotic simple model.
+
+        Args:
+            time_index: The index of the current time step in the data object.
+        """
 
         # This section perfomes a series of calculations to update the variables in the
         # abiotic model. This could be moved to here and written directly to the data
@@ -148,10 +159,9 @@ class AbioticSimpleModel(BaseModel):
         output_variables = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
-            time_index=self.time_index,
+            time_index=time_index,
         )
         self.data.add_from_dict(output_dict=output_variables)
-        self.time_index += 1
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
