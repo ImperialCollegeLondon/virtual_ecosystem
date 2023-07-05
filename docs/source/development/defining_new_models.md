@@ -346,8 +346,14 @@ def setup(self) -> None:
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
 
-def update(self) -> None:
-    """Function to update the freshwater model."""
+# While model updates have to take time_index as an argument, they do not necessarily
+# have to use it anywhere
+def update(self, time_index: int) -> None:
+    """Function to update the freshwater model.
+
+    Args:
+        time_index: The index representing the current time step in the data object.
+    """
 
     # Model simulation + update steps go in here.
 

@@ -82,8 +82,27 @@ def data_instance():
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
+                model_name = 'shouldnt_pass'
+                required_init_vars = tuple()
+            """,
+            None,
+            "UnnamedModel",
+            pytest.raises(NotImplementedError),
+            "Property vars_updated is not implemented in UnnamedModel",
+            [
+                (
+                    ERROR,
+                    "Property vars_updated is not implemented in UnnamedModel",
+                ),
+                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+            ],
+            id="Undefined vars_updated",
+        ),
+        pytest.param(
+            """class UnnamedModel(BaseModel):
                 model_name = 'should_pass'
                 required_init_vars = tuple()
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -104,6 +123,7 @@ def data_instance():
                 model_name = 'should_pass'
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 day"
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -125,6 +145,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 day"
                 upper_bound_on_time_scale = "1 time"
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -146,6 +167,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 day"
                 upper_bound_on_time_scale = "1 day"
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -167,6 +189,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 month"
                 upper_bound_on_time_scale = "1 day"
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -188,6 +211,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 meter"
                 upper_bound_on_time_scale = "1 month"
+                vars_updated = []
             """,
             None,
             "UnnamedModel",
@@ -209,6 +233,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 day"
                 upper_bound_on_time_scale = "1 month"
+                vars_updated = []
             """,
             "should_pass",
             "UnnamedModel",
@@ -223,6 +248,7 @@ def data_instance():
                 required_init_vars = tuple()
                 lower_bound_on_time_scale = "1 day"
                 upper_bound_on_time_scale = "1 month"
+                vars_updated = []
             """,
             "should_pass",
             "UnnamedModel2",
@@ -243,6 +269,7 @@ def data_instance():
                 required_init_vars = (('temperature', ('spatial',),),)
                 lower_bound_on_time_scale = "1 day"
                 upper_bound_on_time_scale = "1 month"
+                vars_updated = []
             """,
             "should_also_pass",
             "UnnamedModel",
@@ -343,6 +370,7 @@ def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg
         required_init_vars = {riv_value}
         lower_bound_on_time_scale = "1 day"
         upper_bound_on_time_scale = "1 month"
+        vars_updated = []
     """
 
     with exp_raise as err:
@@ -367,6 +395,7 @@ def test_check_failure_on_missing_methods(data_instance):
         lower_bound_on_time_scale = "1 second"
         upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
+        vars_updated = []
 
     with pytest.raises(TypeError) as err:
         inst = InitVarModel(  # noqa: F841
@@ -444,6 +473,7 @@ def test_check_required_init_vars(
         lower_bound_on_time_scale = "1 second"
         upper_bound_on_time_scale = "1 year"
         required_init_vars = ()
+        vars_updated = []
 
         def setup(self) -> None:
             return super().setup()
@@ -451,8 +481,8 @@ def test_check_required_init_vars(
         def spinup(self) -> None:
             return super().spinup()
 
-        def update(self) -> None:
-            return super().update()
+        def update(self, time_index: int) -> None:
+            return super().update(time_index)
 
         def cleanup(self) -> None:
             return super().cleanup()
@@ -566,6 +596,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
         lower_bound_on_time_scale = "1 day"
         upper_bound_on_time_scale = "1 month"
         required_init_vars = ()
+        vars_updated = []
 
         def setup(self) -> None:
             return super().setup()
@@ -573,8 +604,8 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
         def spinup(self) -> None:
             return super().spinup()
 
-        def update(self) -> None:
-            return super().update()
+        def update(self, time_index: int) -> None:
+            return super().update(time_index)
 
         def cleanup(self) -> None:
             return super().cleanup()

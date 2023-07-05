@@ -230,12 +230,17 @@ data
 
 ## Data output
 
-The contents of the `Data` object can be output using the
+The entire contents of the `Data` object can be output using the
 {meth}`~virtual_rainforest.core.data.Data.save_to_netcdf` method:
 
 ```python
 data.save_to_netcdf(output_file_path)
 ```
 
-At present this outputs the entire contents of the `Data` object as a single NetCDF, but
-this will likely be reworked in future.
+Alternatively, a smaller netCDF can be output containing only variables of interest.
+This is done by providing a list specifying what those variables are to the function.
+
+```python
+variables_to_save = ["variable_a", "variable_b"]
+data.save_to_netcdf(output_file_path, variables_to_save)
+```

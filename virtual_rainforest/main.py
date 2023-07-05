@@ -9,6 +9,7 @@ from typing import Any, Type, Union
 
 import pint
 from numpy import datetime64, timedelta64
+from xarray import open_mfdataset
 
 from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
 from virtual_rainforest.core.config import Config
@@ -16,6 +17,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import check_outfile
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -186,6 +188,90 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
+def output_current_state(
+    data: Data,
+    models_cfd: dict[str, BaseModel],
+    data_options: dict[str, Any],
+    time_index: int,
+) -> Path:
+    """Function to output the current state of the data object.
+
+    This function outputs all variables stored in the data object, except for any data
+    with a "time_index" dimension defined (at present only climate input data has this).
+    This data can either be saved as a new file or appended to an existing file.
+
+    Args:
+        data: Data object to output current state of
+        models_cfd: Set of models configured for use in the simulation
+        data_options: Set of options concerning what to output and where
+        time_index: The index representing the current time step in the data object.
+
+    Raises:
+        ConfigurationError: If the final output directory doesn't exist, isn't a
+           directory, or the final output file already exists (when in new file mode).
+           If the file to append to is missing (when not in new file mode).
+
+    Returns:
+        A path to the file that the current state is saved in
+    """
+
+    # Only variables in the data object that are updated by a model should be outputted
+    all_variables = [
+        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
+    ]
+    # Then flatten the list
+    variables_to_save = [item for sublist in all_variables for item in sublist]
+    # Create output file path for specific time index
+    out_path_name = (
+        f"{data_options['out_folder_continuous']}/continuous_state{time_index:05}.nc"
+    )
+
+    # Save the required variables by appending to existing file
+    data.save_timeslice_to_netcdf(Path(out_path_name), variables_to_save, time_index)
+
+    return Path(out_path_name)
+
+
+def merge_continuous_data_files(
+    data_options: dict[str, Any], continuous_data_files: list[Path]
+) -> None:
+    """Merge all continuous data files in a folder into a single file.
+
+    This function deletes all of the continuous output files it has been asked to merge
+    once the combined output is saved.
+
+    Args:
+        data_options: Set of options concerning what to output and where
+        continuous_data_files: Files containing previously output continuous data
+
+    Raises:
+        ConfigurationError: If output folder doesn't exist or if it output file already
+            exists
+    """
+
+    # Path to folder containing the continuous output (that merged file should be saved
+    # to)
+    out_folder = Path(data_options["out_folder_continuous"])
+
+    # Check that output file doesn't already exist
+    out_path = Path(f"{out_folder}/{data_options['continuous_file_name']}.nc")
+    try:
+        check_outfile(out_path)
+    except ConfigurationError as e:
+        raise e
+
+    # Open all files as a single dataset
+    all_data = open_mfdataset(continuous_data_files)
+
+    # Save and close complete dataset
+    all_data.to_netcdf(out_path)
+    all_data.close()
+
+    # Iterate over all continuous files and delete them
+    for file_path in continuous_data_files:
+        file_path.unlink()
+
+
 def vr_run(
     cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
 ) -> None:
@@ -241,13 +327,33 @@ def vr_run(
             Path(config["core"]["data_output_options"]["out_path_initial"])
         )
 
+    # Container to store paths to continuous data files
+    continuous_data_files = []
+
     # Setup the timing loop
+    time_index = 0
     while current_time < end_time:
         current_time += update_interval
 
         # Run update() method for every model
         for mod_nm in models_cfd:
-            models_cfd[mod_nm].update()
+            models_cfd[mod_nm].update(time_index)
+
+        # With updates complete increment the time_index
+        time_index += 1
+
+        # Append updated data to the continuous data file
+        if config["core"]["data_output_options"]["save_continuous_data"]:
+            outfile_path = output_current_state(
+                data, models_cfd, config["core"]["data_output_options"], time_index
+            )
+            continuous_data_files.append(outfile_path)
+
+    # Merge all files together based on a list
+    if config["core"]["data_output_options"]["save_continuous_data"]:
+        merge_continuous_data_files(
+            config["core"]["data_output_options"], continuous_data_files
+        )
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:

@@ -72,6 +72,8 @@ class SoilModel(BaseModel):
     This is a set of variables that must be present in the data object used to create a
     SoilModel , along with any core axes that those variables must map on
     to."""
+    vars_updated = ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"]
+    """Variables updated by the soil model."""
 
     def __init__(
         self,
@@ -141,8 +143,12 @@ class SoilModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self) -> None:
-        """Update the soil model by integrating."""
+    def update(self, time_index: int) -> None:
+        """Update the soil model by integrating.
+
+        Args:
+            time_index: The index representing the current time step in the data object.
+        """
 
         # Find carbon pool updates by integration
         updated_carbon_pools = self.integrate()
