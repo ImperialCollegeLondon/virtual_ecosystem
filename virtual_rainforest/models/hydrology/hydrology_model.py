@@ -56,7 +56,7 @@ class HydrologyModel(BaseModel):
     required_init_vars = (
         ("precipitation", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
-    )  # TODO add time
+    )  # TODO add time dimension
     """The required variables and axes for the hydrology model"""
     vars_updated = ["soil_moisture", "surface_runoff", "vertical_flow"]
     """Variables updated by the hydrology model"""
