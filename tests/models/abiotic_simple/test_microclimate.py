@@ -252,7 +252,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
     exp_atmospheric_pressure = xr.concat(
         [
             DataArray(
-                np.full((13, 3), 1.5),
+                np.full((13, 3), 96),
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
