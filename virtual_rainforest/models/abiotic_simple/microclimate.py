@@ -92,13 +92,13 @@ def run_microclimate(
 
     The function expects a data object with the following variables:
 
-    * air_temperature_ref
-    * relative_humidity_ref
-    * vapour_pressure_deficit_ref
-    * atmospheric_pressure_ref
-    * atmospheric_co2_ref
-    * leaf_area_index
-    * layer_heights
+    * air_temperature_ref [C]
+    * relative_humidity_ref []
+    * vapour_pressure_deficit_ref [kPa]
+    * atmospheric_pressure_ref [Pa]
+    * atmospheric_co2_ref [ppm]
+    * leaf_area_index [m m-1]
+    * layer_heights [m]
 
     Args:
         data: Data object
@@ -138,7 +138,7 @@ def run_microclimate(
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
-        data["atmospheric_pressure_ref"]
+        (data["atmospheric_pressure_ref"] / 1000)
         .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
