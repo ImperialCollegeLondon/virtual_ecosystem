@@ -350,5 +350,5 @@ def test_calculate_soil_evaporation():
     )
     xr.testing.assert_allclose(
         result,
-        DataArray([1.486538, 2.9315, 1.51575], dims=["cell_id"]),
+        DataArray([0.135643, 0.351785, 0.210181], dims=["cell_id"]),
     )

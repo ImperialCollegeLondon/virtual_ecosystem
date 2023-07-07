@@ -66,7 +66,7 @@ class HydrologyModel(BaseModel):
         "vertical_flow",
         "soil_evaporation",
     ]
-    """Variables updated by the hydrology model"""
+    """Variables updated by the hydrology model."""
 
     def __init__(
         self,
@@ -137,7 +137,7 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes soil moisture homogenously for all
-        soil layers and initiates air temperature and relative humidity to calculate
+        soil layers and initializes air temperature and relative humidity to calculate
         soil evaporation and soil moisture for the first update().
         """
 
@@ -164,6 +164,7 @@ class HydrologyModel(BaseModel):
             },
             name="soil_moisture",
         )
+
         # create initial air temperature profile with reference temperature at surface
         # for first soil evaporation update.
         self.data["air_temperature"] = (
@@ -265,12 +266,12 @@ class HydrologyModel(BaseModel):
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
         functions.
 
-        The water extracted by plant roots (= evapotranspiration) is not considered. In
+        The water extracted by plant roots (= evapotranspiration) is not included. In
         the Virtual Rainforest simulation, the reduction of soil moisture due to
         evaporation will be considered after running the plant model.
 
-        TODO make it less nested so the number of inputs are sensible
-        TODO Horizontal sub-surface flow and stream flow are currently not implemented.
+        TODO make it less nested so the number of inputs are sensible?
+        TODO Implement horizontal sub-surface flow and stream flow
         """
 
         # Interception: precipitation at the surface is reduced as a function of leaf
@@ -299,7 +300,7 @@ class HydrologyModel(BaseModel):
             surface_wind_speed=0.1,
             # TODO include wind in data set
             # self.data['wind_speed'].isel(
-            # layers=len(self.layer_roles)-self.layer_roles.count('soil')
+            # layers=len(self.layer_roles)-self.layer_roles.count('soil')-1
             # ),
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
@@ -324,15 +325,16 @@ def calculate_soil_moisture(
     ],
     meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
 ) -> Dict[str, DataArray]:
-    """Calculate soil moisture, surface runoff, and vertical flow.
+    """Calculate soil moisture, surface runoff, soil evaporation, and vertical flow.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
     :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero. Soil evaporation is calculated with the
-    FAO-56 Penman-Monteith equation. Vertical flow is calculated using the
-    Richards equation, see
+    moisture level and runoff is set to zero. Soil evaporation is calculated with a
+    simplified version of the Penman equation, see
+    :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
+    . Vertical flow is calculated using the Richards equation, see
     :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
     .
 
@@ -351,8 +353,9 @@ def calculate_soil_moisture(
 
     Returns:
         soil moisture, [relative water content], vertical flow, [m3/timestep], surface
-            runoff,[mm]
+            runoff, [mm], soil evaporation, [mm]
     """
+
     output = {}
     # calculate soil depth in mm
     soil_depth = (
@@ -378,7 +381,7 @@ def calculate_soil_moisture(
         precipitation_surface > available_capacity_mm
     )
 
-    # calculate runoff in mm
+    # Calculate runoff in mm
     output["surface_runoff"] = (
         DataArray(surface_runoff_cells.data - available_capacity_mm.data)
         .fillna(0)
@@ -387,16 +390,16 @@ def calculate_soil_moisture(
         .assign_coords({"cell_id": current_soil_moisture.cell_id})
     )
 
-    # calculate total water in mm in each grid cell
+    # Calculate total water in mm in each grid cell
     total_water_mm = (
         current_soil_moisture.mean(dim="layers") * soil_depth + precipitation_surface
     )
 
-    # calculate relative soil moisture incl infiltration and cap to capacity
+    # Calculate relative soil moisture incl infiltration and cap to capacity
     soil_moisture_infiltrated = DataArray(
         np.clip(total_water_mm / soil_depth, 0, soil_moisture_capacity)
     )
-    # Calculate surface evaporation
+    # Calculate soil (surface) evaporation
     output["soil_evaporation"] = calculate_soil_evaporation(
         surface_temperature,
         surface_wind_speed,
@@ -404,18 +407,19 @@ def calculate_soil_moisture(
         soil_moisture_infiltrated,
     )
 
+    # Calculate soil mositure after evaporation
     soil_moisture_residual = (
         soil_moisture_infiltrated - output["soil_evaporation"] / soil_depth
     )
 
-    # calculate vertical flow in mm per time step for mean soil moisture
+    # Calculate vertical flow in mm per time step for mean soil moisture
     output["vertical_flow"] = calculate_vertical_flow(
         soil_moisture_residual=soil_moisture_residual,
         soil_depth=soil_depth,
         soil_moisture_capacity=soil_moisture_capacity,
     )
 
-    # reduce mean soil moisture by vertical flow - this shouldn't get negative
+    # Reduce mean soil moisture by vertical flow - this shouldn't get negative
     soil_moisture_reduced = DataArray(
         np.clip(
             soil_moisture_infiltrated - (output["vertical_flow"] / soil_depth),
@@ -533,27 +537,53 @@ def calculate_soil_evaporation(
     wind_speed: Union[DataArray, float],
     relative_humidity: DataArray,
     soil_moisture: DataArray,
-    evaporation_coefficient: float = HydrologyParameters["evaporation_coefficient"],
     celsius_to_kelvin: float = HydrologyParameters["celsius_to_kelvin"],  # TODO move
+    psychrometric_constant: float = HydrologyParameters["psychrometric_constant"],
+    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
 ) -> DataArray:
-    """Calculate soil evaporation based on the FAO-56 Penman-Monteith equation.
+    """Calculate soil evaporation based on simplified Penman equation.
 
     Args:
         temperature: air temperature near the surface, [C]
         wind_speed: wind speed near the surface, [m s-1]
         relative_humidity: relative humidity near the surface, []
         soil_moisture: top soil moisture, [relative water content]
-        evaporation_coefficient: empirical evaporation coefficient
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
+        psychrometric_constant: Psychrometric constant, [kPa C-1]
 
     Returns:
         soil evaporation, [mm]
     """
 
-    return (
-        evaporation_coefficient
-        * (temperature + celsius_to_kelvin)
-        * wind_speed
-        * (1 - relative_humidity / 100)
-        * (1 - soil_moisture)
+    # TODO move constants to HydrologyParameters or CoreConstants and check values
+    # Slope of vapour pressure curve [kPa C-1]
+    delta = (
+        4098
+        * (0.6108 * np.exp(17.27 * temperature / (temperature + 237.3)))
+        / ((temperature + 237.3) ** 2)
     )
+
+    # Convert temperature to Kelvin
+    temperature += celsius_to_kelvin
+
+    # Calculate saturation vapor pressure
+    saturation_vapor_pressure = 0.6108 * np.exp(
+        (17.27 * temperature) / (temperature + 237.3)
+    )
+
+    # Calculate actual vapor pressure
+    vapor_pressure = (relative_humidity / 100) * saturation_vapor_pressure
+
+    # Calculate potential evaporation
+    potential_evaporation = (
+        delta
+        * (900 / (temperature + 273))
+        * wind_speed
+        * (saturation_vapor_pressure - vapor_pressure)
+    ) / (delta + (psychrometric_constant * (1 + 0.34 * wind_speed)))
+
+    # Calculate actual evaporation based on soil moisture
+    actual_evaporation = potential_evaporation * (1 - soil_moisture)
+
+    # Convert evaporation to millimeters per day
+    return actual_evaporation / meters_to_millimeters
