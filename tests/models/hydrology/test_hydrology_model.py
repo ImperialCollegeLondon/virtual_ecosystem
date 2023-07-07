@@ -29,6 +29,14 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                     DEBUG,
                     "hydrology model: required var 'leaf_area_index' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'relative_humidity_ref' checked",
+                ),
             ),
         ),
         (
@@ -133,6 +141,14 @@ def test_hydrology_model_initialization(
                 (
                     DEBUG,
                     "hydrology model: required var 'leaf_area_index' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'relative_humidity_ref' checked",
                 ),
             ),
         ),
@@ -278,6 +294,11 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
+    exp_soil_evap = DataArray(
+        [0, 0, 0],
+        dims=["cell_id"],
+        coords={"cell_id": [0, 1, 2]},
+    )
 
     result = calculate_soil_moisture(
         layer_roles=layer_roles_fixture,
@@ -297,6 +318,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
     xr.testing.assert_allclose(result["soil_moisture"], exp_soil_moisture)
     xr.testing.assert_allclose(result["surface_runoff"], exp_runoff)
+    xr.testing.assert_allclose(result["soil_evaporation"], exp_soil_evap)
 
 
 def test_calculate_vertical_flow(layer_roles_fixture):

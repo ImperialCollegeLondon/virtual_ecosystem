@@ -56,9 +56,16 @@ class HydrologyModel(BaseModel):
     required_init_vars = (
         ("precipitation", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
     )  # TODO add time dimension
     """The required variables and axes for the hydrology model"""
-    vars_updated = ["soil_moisture", "surface_runoff", "vertical_flow"]
+    vars_updated = [
+        "soil_moisture",
+        "surface_runoff",
+        "vertical_flow",
+        "soil_evaporation",
+    ]
     """Variables updated by the hydrology model"""
 
     def __init__(
@@ -129,11 +136,12 @@ class HydrologyModel(BaseModel):
     def setup(self) -> None:
         """Function to set up the hydrology model.
 
-        At the moment, this function only initializes soil moisture homogenously for all
-        soil layers.
+        At the moment, this function initializes soil moisture homogenously for all
+        soil layers and initiates air temperature and relative humidity to calculate
+        soil evaporation and soil moisture for the first update().
         """
 
-        # Create 1-dimenaional numpy array filled with initial soil moisture values for
+        # Create 1-dimensional numpy array filled with initial soil moisture values for
         # all soil layers and np.nan for atmosphere layers
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
@@ -156,6 +164,91 @@ class HydrologyModel(BaseModel):
             },
             name="soil_moisture",
         )
+        # create initial air temperature profile with reference temperature at surface
+        # for first soil evaporation update.
+        self.data["air_temperature"] = (
+            xr.concat(
+                [
+                    DataArray(
+                        np.full(
+                            (
+                                len(self.layer_roles)
+                                - self.layer_roles.count("soil")
+                                - 1,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                    self.data["air_temperature_ref"]
+                    .isel(time_index=0)
+                    .expand_dims("layers"),
+                    DataArray(
+                        np.full(
+                            (
+                                self.layer_roles.count("soil"),
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                ],
+                dim="layers",
+            )
+            .assign_coords(
+                coords={
+                    "layers": np.arange(len(self.layer_roles)),
+                    "layer_roles": ("layers", self.layer_roles),
+                    "cell_id": self.data.grid.cell_id,
+                },
+            )
+            .rename("air_temperature")
+        )
+
+        # create initial relative humidity profile with reference humidity at surface
+        # for first soil evaporation update.
+        self.data["relative_humidity"] = (
+            xr.concat(
+                [
+                    DataArray(
+                        np.full(
+                            (
+                                len(self.layer_roles)
+                                - self.layer_roles.count("soil")
+                                - 1,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                    self.data["relative_humidity_ref"]
+                    .isel(time_index=0)
+                    .expand_dims("layers"),
+                    DataArray(
+                        np.full(
+                            (
+                                self.layer_roles.count("soil"),
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                ],
+                dim="layers",
+            )
+            .assign_coords(
+                coords={
+                    "layers": np.arange(len(self.layer_roles)),
+                    "layer_roles": ("layers", self.layer_roles),
+                    "cell_id": self.data.grid.cell_id,
+                },
+            )
+            .rename("relative_humidity")
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
@@ -171,10 +264,13 @@ class HydrologyModel(BaseModel):
         and
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
         functions.
+
+        The water extracted by plant roots (= evapotranspiration) is not considered. In
+        the Virtual Rainforest simulation, the reduction of soil moisture due to
+        evaporation will be considered after running the plant model.
+
         TODO make it less nested so the number of inputs are sensible
         TODO Horizontal sub-surface flow and stream flow are currently not implemented.
-        Also, the water extracted by plant roots (= evapotranspiration) is not
-        implemented.
         """
 
         # Interception: precipitation at the surface is reduced as a function of leaf
@@ -301,14 +397,16 @@ def calculate_soil_moisture(
         np.clip(total_water_mm / soil_depth, 0, soil_moisture_capacity)
     )
     # Calculate surface evaporation
-    soil_evaporation = calculate_soil_evaporation(
+    output["soil_evaporation"] = calculate_soil_evaporation(
         surface_temperature,
         surface_wind_speed,
         surface_relative_humidity,
         soil_moisture_infiltrated,
     )
 
-    soil_moisture_residual = soil_moisture_infiltrated - soil_evaporation / soil_depth
+    soil_moisture_residual = (
+        soil_moisture_infiltrated - output["soil_evaporation"] / soil_depth
+    )
 
     # calculate vertical flow in mm per time step for mean soil moisture
     output["vertical_flow"] = calculate_vertical_flow(
