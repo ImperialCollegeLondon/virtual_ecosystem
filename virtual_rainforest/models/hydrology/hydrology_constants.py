@@ -20,5 +20,7 @@ HydrologyParameters: Dict[str, float] = {
     "meters_to_millimeters": 1000,
     "celsius_to_kelvin": 273.15,
     "psychrometric_constant": 0.067,  # kPa/C
+    "density_air": 1.225,  # kg m-3
+    "latent_heat_vapourisation": 2.45,  # MJ kg-1
 }
 """Parameters for hydrology model."""

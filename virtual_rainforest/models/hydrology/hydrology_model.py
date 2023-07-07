@@ -298,6 +298,7 @@ class HydrologyModel(BaseModel):
             .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 1)
             .drop_vars(["layer_roles", "layers"]),
             surface_wind_speed=0.1,
+            radiation=1000.0,  # TODO
             # TODO include wind in data set
             # self.data['wind_speed'].isel(
             # layers=len(self.layer_roles)-self.layer_roles.count('soil')-1
@@ -320,6 +321,7 @@ def calculate_soil_moisture(
     surface_temperature: DataArray,
     surface_relative_humidity: DataArray,
     surface_wind_speed: Union[DataArray, float],
+    radiation: Union[DataArray, float],
     soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
         "soil_moisture_capacity"
     ],
@@ -347,6 +349,7 @@ def calculate_soil_moisture(
         surface_temperature: air temperature near the surface, [C]
         surface_relative_humidity: relative humidity near the surface, []
         surface_wind_speed: wind speed near the surface, [m s-1]
+        radiation: solar radiation, [W m-2]
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
         meters_to_millimeters: conversion factor from meters to millimeters
@@ -399,11 +402,13 @@ def calculate_soil_moisture(
     soil_moisture_infiltrated = DataArray(
         np.clip(total_water_mm / soil_depth, 0, soil_moisture_capacity)
     )
+
     # Calculate soil (surface) evaporation
     output["soil_evaporation"] = calculate_soil_evaporation(
         surface_temperature,
         surface_wind_speed,
         surface_relative_humidity,
+        radiation,
         soil_moisture_infiltrated,
     )
 
@@ -536,10 +541,13 @@ def calculate_soil_evaporation(
     temperature: DataArray,
     wind_speed: Union[DataArray, float],
     relative_humidity: DataArray,
+    radiation: Union[float, DataArray],
     soil_moisture: DataArray,
     celsius_to_kelvin: float = HydrologyParameters["celsius_to_kelvin"],  # TODO move
     psychrometric_constant: float = HydrologyParameters["psychrometric_constant"],
     meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
+    density_air: float = HydrologyParameters["density_air"],
+    latent_heat_vapourisation: float = HydrologyParameters["latent_heat_vapourisation"],
 ) -> DataArray:
     """Calculate soil evaporation based on simplified Penman equation.
 
@@ -547,16 +555,20 @@ def calculate_soil_evaporation(
         temperature: air temperature near the surface, [C]
         wind_speed: wind speed near the surface, [m s-1]
         relative_humidity: relative humidity near the surface, []
+        radiation: solar radiation, [W m-2]
         soil_moisture: top soil moisture, [relative water content]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         psychrometric_constant: Psychrometric constant, [kPa C-1]
+        density_air: density if air
+        latent_heat_vapourisation: latent heat of vapourisation
 
     Returns:
         soil evaporation, [mm]
     """
 
     # TODO move constants to HydrologyParameters or CoreConstants and check values
-    # Slope of vapour pressure curve [kPa C-1]
+    # TODO check equations!
+    # Slope of vapor pressure curve [kPa C-1]
     delta = (
         4098
         * (0.6108 * np.exp(17.27 * temperature / (temperature + 237.3)))
@@ -576,14 +588,21 @@ def calculate_soil_evaporation(
 
     # Calculate potential evaporation
     potential_evaporation = (
-        delta
-        * (900 / (temperature + 273))
-        * wind_speed
-        * (saturation_vapor_pressure - vapor_pressure)
+        0.408 * delta * (radiation - 0)  # I think 0 is soil heat flux?
+        + (
+            psychrometric_constant
+            * (900 / (temperature + 273))
+            * wind_speed
+            * (saturation_vapor_pressure - vapor_pressure)
+        )
     ) / (delta + (psychrometric_constant * (1 + 0.34 * wind_speed)))
 
     # Calculate actual evaporation based on soil moisture
     actual_evaporation = potential_evaporation * (1 - soil_moisture)
 
     # Convert evaporation to millimeters per day
-    return actual_evaporation / meters_to_millimeters
+    return DataArray(
+        actual_evaporation
+        * (latent_heat_vapourisation * density_air)
+        / meters_to_millimeters
+    )
