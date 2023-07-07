@@ -23,9 +23,8 @@ section provides a recipe to create such an input conform with the dummy data fo
 [climate](./ERA5_preprocessing_example.md) and soil (add link here).
 
 ```{code-cell} ipython3
-import xarray as xr
 import numpy as np
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 # set layer roles
 layer_roles = ["above"] + 10 * ["canopy"] + ["subcanopy"] + ["surface"] + 2 * ["soil"]
@@ -57,10 +56,14 @@ plant_dummy["leaf_area_index"] = DataArray(
         },
         name="leaf_area_index",
 )
-plant_dummy
+
+# Make dictionary of DataArrays into a Dataset
+plant_dummy_dataset = Dataset(plant_dummy)
+
+plant_dummy_dataset
 ```
 
 ```python
 # write to NetCDF
-xr.Dataset(plant_dummy).to_netcdf("./plants_dummy.nc")
+plant_dummy_dataset.to_netcdf("./plants_dummy.nc")
 ```
