@@ -84,7 +84,7 @@ def calculate_soil_carbon_updates(
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc, moist_temp_scalar
     )
-    litter_input_to_lmwc = calculate_direct_litter_input_to_lmwc()
+    litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools()
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -411,11 +411,11 @@ def calculate_labile_carbon_leaching(
     return leaching_rate * moist_temp_scalar * soil_c_pool_lmwc
 
 
-def calculate_direct_litter_input_to_lmwc(
+def calculate_direct_litter_input_to_pools(
     carbon_input_to_pom: float = CARBON_INPUT_TO_POM,
     litter_input_rate: float = LITTER_INPUT_RATE,
-) -> float:
-    """Calculate direct input from litter to LMWC pool.
+) -> tuple[float, float]:
+    """Calculate direct input from litter to LMWC and POM pools.
 
     This process is very much specific to :cite:t:`abramoff_millennial_2018`, and I
     don't think we want to preserve it long term.
@@ -427,7 +427,10 @@ def calculate_direct_litter_input_to_lmwc(
             pools [kg C m^-2 day^-1].
 
     Returns:
-        Amount of carbon directly added to LMWC pool from litter.
+        Amount of carbon directly added to LMWC and POM pools from litter.
     """
 
-    return (1 - carbon_input_to_pom) * litter_input_rate
+    return (
+        litter_input_rate * (1 - carbon_input_to_pom),
+        litter_input_rate * carbon_input_to_pom,
+    )
