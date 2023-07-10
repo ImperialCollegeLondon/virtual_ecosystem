@@ -87,7 +87,13 @@ HALF_SAT_MICROBIAL_ACTIVITY: Final[float] = 0.0072
 """
 
 HALF_SAT_MICROBIAL_POM_MINERALISATION: Final[float] = 0.012
-"""Half saturation constant for microbial POM mineralisation [kg C m^-2].
+"""Half saturation constant for microbial POM mineralisation [kg C m^-2]."""
+
+MAX_DECOMP_RATE_POM: Final[float] = 0.01
+"""Maximum (theoretical) rate at which particulate organic matter can be broken down.
+
+Units of [kg C m^-2 day^-1]. Taken from :cite:t:`abramoff_millennial_2018`, where it was
+obtained by calibration.
 """
 
 LEACHING_RATE_LABILE_CARBON: Final[float] = 1.5e-3

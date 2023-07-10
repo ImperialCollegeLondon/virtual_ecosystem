@@ -15,6 +15,7 @@ from virtual_rainforest.models.soil.constants import (
     HALF_SAT_POM_DECOMPOSITION,
     LEACHING_RATE_LABILE_CARBON,
     LITTER_INPUT_RATE,
+    MAX_DECOMP_RATE_POM,
     MAX_UPTAKE_RATE_LABILE_C,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
@@ -463,6 +464,42 @@ def calculate_labile_carbon_leaching(
     """
 
     return leaching_rate * moist_temp_scalar * soil_c_pool_lmwc
+
+
+def calculate_pom_decomposition(
+    soil_c_pool_pom: NDArray[np.float32],
+    soil_c_pool_microbe: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
+    max_pom_decomp_rate: float = MAX_DECOMP_RATE_POM,
+) -> NDArray[np.float32]:
+    """Calculate decomposition of particulate organic matter into labile carbon (LMWC).
+
+    This is adopted from Abramoff et al. We definitely want to change this down the line
+    to something that uses enzymes explicitly.
+
+    Args:
+        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
+
+    Returns:
+        The amount of particulate organic matter (POM) decomposed into labile carbon
+            (LMWC)
+    """
+
+    # Calculate the two relevant saturations
+    saturation_with_biomass = calculate_microbial_pom_mineralisation_saturation(
+        soil_c_pool_microbe
+    )
+    saturation_with_pom = calculate_pom_decomposition_saturation(soil_c_pool_pom)
+
+    return (
+        max_pom_decomp_rate
+        * saturation_with_pom
+        * saturation_with_biomass
+        * moist_temp_scalar
+    )
 
 
 def calculate_direct_litter_input_to_pools(

@@ -342,6 +342,21 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars)
     assert np.allclose(actual_leaching, expected_leaching)
 
 
+def test_calculate_pom_decomposition(dummy_carbon_data, moist_temp_scalars):
+    """Check that particulate organic matter decomposition is calculated correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
+
+    expected_decomp = [0.0038056940, 0.0104286084, 0.0092200655, 0.0014665616]
+
+    actual_decomp = calculate_pom_decomposition(
+        dummy_carbon_data["soil_c_pool_pom"],
+        dummy_carbon_data["soil_c_pool_microbe"],
+        moist_temp_scalars,
+    )
+
+    assert np.allclose(actual_decomp, expected_decomp)
+
+
 def test_calculate_direct_litter_input_to_pools():
     """Check direct litter input to lmwc is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import (
