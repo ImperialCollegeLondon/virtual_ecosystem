@@ -11,6 +11,7 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     CARBON_INPUT_TO_POM,
     HALF_SAT_MICROBIAL_ACTIVITY,
+    HALF_SAT_MICROBIAL_POM_MINERALISATION,
     LEACHING_RATE_LABILE_CARBON,
     LITTER_INPUT_RATE,
     MAX_UPTAKE_RATE_LABILE_C,
@@ -347,6 +348,35 @@ def calculate_microbial_saturation(
     """
 
     return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
+
+
+def calculate_microbial_pom_mineralisation_saturation(
+    soil_c_pool_microbe: NDArray[np.float32],
+    half_sat_microbial_mineralisation: float = HALF_SAT_MICROBIAL_POM_MINERALISATION,
+) -> NDArray[np.float32]:
+    """Calculate microbial POM mineralisation saturation (with increasing biomass).
+
+    This ensures that microbial mineralisation of POM (per unit biomass) drops as
+    biomass density increases. This is adopted from Abramoff et al. This function is
+    very similar to the
+    :func:`~virtual_rainforest.models.soil.carbon.calculate_microbial_saturation`
+    function. They could in theory be reworked into a single function, but it doesn't
+    seem worth the effort as we do not anticipate using biomass saturation functions
+    beyond the first model draft.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        half_sat_microbial_mineralisation: Half saturation constant for microbial
+            mineralisation of POM
+
+    Returns:
+        A rescaling of microbial biomass that takes into account POM mineralisation rate
+        saturation with increasing biomass density
+    """
+
+    return soil_c_pool_microbe / (
+        soil_c_pool_microbe + half_sat_microbial_mineralisation
+    )
 
 
 def calculate_microbial_carbon_uptake(

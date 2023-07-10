@@ -280,6 +280,21 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     assert np.allclose(actual_saturated, expected_saturated)
 
 
+def test_calculate_microbial_pom_mineralisation_saturation(dummy_carbon_data):
+    """Check microbial mineralisation saturation calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_microbial_pom_mineralisation_saturation,
+    )
+
+    expected_saturated = [0.99793530, 0.99480968, 0.99893917, 0.98814229]
+
+    actual_saturated = calculate_microbial_pom_mineralisation_saturation(
+        dummy_carbon_data["soil_c_pool_microbe"]
+    )
+
+    assert np.allclose(actual_saturated, expected_saturated)
+
+
 def test_calculate_microbial_carbon_uptake(
     dummy_carbon_data, top_soil_layer_index, moist_temp_scalars
 ):

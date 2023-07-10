@@ -71,6 +71,10 @@ HALF_SAT_MICROBIAL_ACTIVITY: Final[float] = 0.0072
 """Half saturation constant for microbial activity (with increasing biomass)[kg C m^-2].
 """
 
+HALF_SAT_MICROBIAL_POM_MINERALISATION: Final[float] = 0.012
+"""Half saturation constant for microbial POM mineralisation [kg C m^-2].
+"""
+
 LEACHING_RATE_LABILE_CARBON: Final[float] = 1.5e-3
 """Leaching rate for labile carbon (lmwc) [day^-1]."""
 
