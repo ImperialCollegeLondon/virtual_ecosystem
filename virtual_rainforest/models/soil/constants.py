@@ -55,6 +55,21 @@ class TempScalar:
     """Reference temperature [degrees C]"""
 
 
+@dataclass(frozen=True)
+class CarbonUseEfficiency:
+    """Collection of carbon use efficiency parameters.
+
+    Taken from :cite:t:`abramoff_millennial_2018`, more investigation required in future
+    """
+
+    reference_cue = 0.6
+    """Carbon use efficiency of community at the reference temperature [no units]"""
+    reference_temp = 15.0
+    """Reference temperature [degrees C]"""
+    cue_with_temperature = 0.012
+    """Change in carbon use efficiency with increasing temperature [degree C^-1]."""
+
+
 MICROBIAL_TURNOVER_RATE: Final[float] = 0.036
 """Microbial turnover rate [day^-1], this isn't a constant but often treated as one."""
 
@@ -86,6 +101,10 @@ empirical work. However, this is something we will definitely completely alter d
 line so no need to worry too much about references.
 """
 
+HALF_SAT_POM_DECOMPOSITION: Final[float] = 0.150
+"""Half saturation constant for POM decomposition to LMWC [kg C m^-2].
+"""
+
 LITTER_INPUT_RATE: Final[float] = 0.172 / 365.25
 """Rate of litter input to the system [kg C m^-2 day^-1].
 
@@ -93,18 +112,3 @@ This definitely is not a constant for our purposes. However,
 :cite:t:`abramoff_millennial_2018` use a constant litter input rate, so we shall also
 use one initially.
 """
-
-
-@dataclass(frozen=True)
-class CarbonUseEfficiency:
-    """Collection of carbon use efficiency parameters.
-
-    Taken from :cite:t:`abramoff_millennial_2018`, more investigation required in future
-    """
-
-    reference_cue = 0.6
-    """Carbon use efficiency of community at the reference temperature [no units]"""
-    reference_temp = 15.0
-    """Reference temperature [degrees C]"""
-    cue_with_temperature = 0.012
-    """Change in carbon use efficiency with increasing temperature [degree C^-1]."""

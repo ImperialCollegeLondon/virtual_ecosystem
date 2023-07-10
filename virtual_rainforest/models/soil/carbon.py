@@ -12,6 +12,7 @@ from virtual_rainforest.models.soil.constants import (
     CARBON_INPUT_TO_POM,
     HALF_SAT_MICROBIAL_ACTIVITY,
     HALF_SAT_MICROBIAL_POM_MINERALISATION,
+    HALF_SAT_POM_DECOMPOSITION,
     LEACHING_RATE_LABILE_CARBON,
     LITTER_INPUT_RATE,
     MAX_UPTAKE_RATE_LABILE_C,
@@ -29,6 +30,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
+    soil_c_pool_pom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -46,6 +48,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
@@ -377,6 +380,27 @@ def calculate_microbial_pom_mineralisation_saturation(
     return soil_c_pool_microbe / (
         soil_c_pool_microbe + half_sat_microbial_mineralisation
     )
+
+
+def calculate_pom_decomposition_saturation(
+    soil_c_pool_pom: NDArray[np.float32],
+    half_sat_pom_decomposition: float = HALF_SAT_POM_DECOMPOSITION,
+) -> NDArray[np.float32]:
+    """Calculate particulate organic matter (POM) decomposition saturation.
+
+    This ensures that decomposition of POM to low molecular weight carbon (LMWC)
+    saturates with increasing POM. This effect arises from the saturation of enzymes
+    with increasing substrate.
+
+    Args:
+        soil_c_pool_pom: Particulate organic matter (carbon) pool [kg C m^-3]
+        half_sat_pom_decomposition: Half saturation constant for POM decomposition
+
+    Returns:
+        The saturation of the decomposition process
+    """
+
+    return soil_c_pool_pom / (soil_c_pool_pom + half_sat_pom_decomposition)
 
 
 def calculate_microbial_carbon_uptake(

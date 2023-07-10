@@ -59,6 +59,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
         dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
+        dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
         dummy_carbon_data["pH"],
         dummy_carbon_data["bulk_density"],
         dummy_carbon_data["soil_moisture"][top_soil_layer_index],
@@ -290,6 +291,21 @@ def test_calculate_microbial_pom_mineralisation_saturation(dummy_carbon_data):
 
     actual_saturated = calculate_microbial_pom_mineralisation_saturation(
         dummy_carbon_data["soil_c_pool_microbe"]
+    )
+
+    assert np.allclose(actual_saturated, expected_saturated)
+
+
+def test_calculate_pom_decomposition_saturation(dummy_carbon_data):
+    """Check POM decomposition saturation calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_pom_decomposition_saturation,
+    )
+
+    expected_saturated = [0.4, 0.86956521, 0.82352941, 0.7]
+
+    actual_saturated = calculate_pom_decomposition_saturation(
+        dummy_carbon_data["soil_c_pool_pom"]
     )
 
     assert np.allclose(actual_saturated, expected_saturated)
