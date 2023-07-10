@@ -263,6 +263,9 @@ def merge_continuous_data_files(
     # Open all files as a single dataset
     all_data = open_mfdataset(continuous_data_files)
 
+    # Specify type of the layer roles object to allow for quicker saving by dask
+    all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
+
     # Save and close complete dataset
     all_data.to_netcdf(out_path)
     all_data.close()
