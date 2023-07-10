@@ -58,6 +58,7 @@ class HydrologyModel(BaseModel):
         ("leaf_area_index", ("spatial",)),
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
+        ("atmospheric_pressure_ref", ("spatial",)),
     )  # TODO add time dimension
     """The required variables and axes for the hydrology model"""
     vars_updated = [
@@ -137,8 +138,7 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes soil moisture homogenously for all
-        soil layers and initializes air temperature and relative humidity to calculate
-        soil evaporation and soil moisture for the first update().
+        soil layers.
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -165,92 +165,6 @@ class HydrologyModel(BaseModel):
             name="soil_moisture",
         )
 
-        # create initial air temperature profile with reference temperature at surface
-        # for first soil evaporation update.
-        self.data["air_temperature"] = (
-            xr.concat(
-                [
-                    DataArray(
-                        np.full(
-                            (
-                                len(self.layer_roles)
-                                - self.layer_roles.count("soil")
-                                - 1,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                    self.data["air_temperature_ref"]
-                    .isel(time_index=0)
-                    .expand_dims("layers"),
-                    DataArray(
-                        np.full(
-                            (
-                                self.layer_roles.count("soil"),
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                ],
-                dim="layers",
-            )
-            .assign_coords(
-                coords={
-                    "layers": np.arange(len(self.layer_roles)),
-                    "layer_roles": ("layers", self.layer_roles),
-                    "cell_id": self.data.grid.cell_id,
-                },
-            )
-            .rename("air_temperature")
-        )
-
-        # create initial relative humidity profile with reference humidity at surface
-        # for first soil evaporation update.
-        self.data["relative_humidity"] = (
-            xr.concat(
-                [
-                    DataArray(
-                        np.full(
-                            (
-                                len(self.layer_roles)
-                                - self.layer_roles.count("soil")
-                                - 1,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                    self.data["relative_humidity_ref"]
-                    .isel(time_index=0)
-                    .expand_dims("layers"),
-                    DataArray(
-                        np.full(
-                            (
-                                self.layer_roles.count("soil"),
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                ],
-                dim="layers",
-            )
-            .assign_coords(
-                coords={
-                    "layers": np.arange(len(self.layer_roles)),
-                    "layer_roles": ("layers", self.layer_roles),
-                    "cell_id": self.data.grid.cell_id,
-                },
-            )
-            .rename("relative_humidity")
-        )
-
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
@@ -268,7 +182,7 @@ class HydrologyModel(BaseModel):
 
         The water extracted by plant roots (= evapotranspiration) is not included. In
         the Virtual Rainforest simulation, the reduction of soil moisture due to
-        evaporation will be considered after running the plant model.
+        evapotranspiration will be considered after running the plant model.
 
         TODO make it less nested so the number of inputs are sensible?
         TODO Implement horizontal sub-surface flow and stream flow
@@ -291,14 +205,16 @@ class HydrologyModel(BaseModel):
             layer_heights=self.data["layer_heights"],
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
-            surface_temperature=self.data["air_temperature"]
-            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 1)
-            .drop_vars(["layer_roles", "layers"]),
-            surface_relative_humidity=self.data["relative_humidity"]
-            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 1)
-            .drop_vars(["layer_roles", "layers"]),
-            surface_wind_speed=0.1,
-            radiation=1000.0,  # TODO
+            temperature=self.data["air_temperature_ref"].isel(time_index=time_index),
+            relative_humidity=(
+                self.data["relative_humidity_ref"].isel(time_index=time_index)
+            ),
+            atmospheric_pressure=(
+                (self.data["atmospheric_pressure_ref"] / 1000).isel(
+                    time_index=time_index
+                )
+            ),
+            wind_speed=0.1,
             # TODO include wind in data set
             # self.data['wind_speed'].isel(
             # layers=len(self.layer_roles)-self.layer_roles.count('soil')-1
@@ -318,10 +234,10 @@ def calculate_soil_moisture(
     layer_heights: DataArray,
     precipitation_surface: DataArray,
     current_soil_moisture: DataArray,
-    surface_temperature: DataArray,
-    surface_relative_humidity: DataArray,
-    surface_wind_speed: Union[DataArray, float],
-    radiation: Union[DataArray, float],
+    temperature: DataArray,
+    relative_humidity: DataArray,
+    atmospheric_pressure: DataArray,
+    wind_speed: Union[DataArray, float] = 0.1,
     soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
         "soil_moisture_capacity"
     ],
@@ -333,23 +249,27 @@ def calculate_soil_moisture(
     :cite:t:`davis_simple_2017`: if precipitation exceeds soil moisture capacity, the
     excess water is added to runoff and soil moisture is set to soil moisture capacity
     value; if the soil is not saturated, precipitation is added to the current soil
-    moisture level and runoff is set to zero. Soil evaporation is calculated with a
-    simplified version of the Penman equation, see
+    moisture level and runoff is set to zero.
+
+    Soil evaporation is calculated with classical bulk aerodynamic formulation,
+    following the so-called alpha method, see
     :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
-    . Vertical flow is calculated using the Richards equation, see
+    .
+
+    Vertical flow is calculated using the Richards equation, see
     :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
     .
 
     Args:
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
-        layer_heights: height of all layers, [m]
+        layer_heights: heights of all layers, [m]
         precipitation_surface: precipitation that reaches surface, [mm]
-        current_soil_moisture: current soil moisture at upper layer, [mm]
-        surface_temperature: air temperature near the surface, [C]
-        surface_relative_humidity: relative humidity near the surface, []
-        surface_wind_speed: wind speed near the surface, [m s-1]
-        radiation: solar radiation, [W m-2]
+        current_soil_moisture: current soil moisture at top soil layer, [mm]
+        temperature: air temperature at reference height, [C]
+        relative_humidity: relative humidity at reference height, []
+        atmospheric_pressure: atmospheric pressure at reference height, [kPa]
+        wind_speed: wind speed at reference height, [m s-1]
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
         meters_to_millimeters: conversion factor from meters to millimeters
@@ -360,6 +280,7 @@ def calculate_soil_moisture(
     """
 
     output = {}
+
     # calculate soil depth in mm
     soil_depth = (
         layer_heights.isel(
@@ -405,11 +326,11 @@ def calculate_soil_moisture(
 
     # Calculate soil (surface) evaporation
     output["soil_evaporation"] = calculate_soil_evaporation(
-        surface_temperature,
-        surface_wind_speed,
-        surface_relative_humidity,
-        radiation,
-        soil_moisture_infiltrated,
+        temperature=temperature,
+        relative_humidity=relative_humidity,
+        atmospheric_pressure=atmospheric_pressure,
+        soil_moisture=soil_moisture_infiltrated,
+        wind_speed=wind_speed,
     )
 
     # Calculate soil mositure after evaporation
@@ -433,7 +354,7 @@ def calculate_soil_moisture(
         ),
     )
 
-    # fill all layers
+    # Expand to all soil layers and add atmospheric layers (nan)
     output["soil_moisture"] = xr.concat(
         [
             DataArray(
@@ -475,7 +396,9 @@ def calculate_vertical_flow(
         HydrologyParameters["hydraulic_gradient"]
     ),
     timestep_conversion_factor: float = (HydrologyParameters["seconds_to_month"]),
-    alpha: Union[float, DataArray] = (HydrologyParameters["alpha"]),
+    steepness_water_retention_curve: Union[float, DataArray] = (
+        HydrologyParameters["steepness_water_retention_curve"]
+    ),
     nonlinearily_parameter: Union[float, DataArray] = (
         HydrologyParameters["nonlinearily_parameter"]
     ),
@@ -499,11 +422,11 @@ def calculate_vertical_flow(
         hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
         timestep_conversion_factor: factor to convert flow from m3/s to model time step
-        alpha: dimensionless parameter in van Genuchten model that describes the
-            steepness of the water retention curve. Smaller values of alpha correspond
-            to steeper curves, indicating that the soil retains water at a higher matric
-            potential. Larger values of alpha result in flatter curves, indicating that
-            the soil retains water at a lower matric potential.
+        steepness_water_retention_curve: dimensionless parameter in van Genuchten model
+            that describes the steepness of the water retention curve. Smaller values
+            correspond to steeper curves, indicating that the soil retains water at a
+            higher matric potential. Larger values result in flatter curves, indicating
+            that the soil retains water at a lower matric potential.
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
@@ -515,7 +438,11 @@ def calculate_vertical_flow(
     # TODO abs(hydraulic) gradient support for datatype to allow negative values
     theta = soil_moisture_capacity - (
         soil_moisture_capacity - soil_moisture_residual
-    ) / (1 + (alpha * hydraulic_gradient) ** nonlinearily_parameter) ** (
+    ) / (
+        1
+        + (steepness_water_retention_curve * hydraulic_gradient)
+        ** nonlinearily_parameter
+    ) ** (
         1 - 1 / nonlinearily_parameter
     )
 
@@ -539,70 +466,79 @@ def calculate_vertical_flow(
 
 def calculate_soil_evaporation(
     temperature: DataArray,
-    wind_speed: Union[DataArray, float],
     relative_humidity: DataArray,
-    radiation: Union[float, DataArray],
+    atmospheric_pressure: DataArray,
     soil_moisture: DataArray,
+    wind_speed: Union[float, DataArray] = 0.5,
     celsius_to_kelvin: float = HydrologyParameters["celsius_to_kelvin"],  # TODO move
-    psychrometric_constant: float = HydrologyParameters["psychrometric_constant"],
-    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
     density_air: float = HydrologyParameters["density_air"],
     latent_heat_vapourisation: float = HydrologyParameters["latent_heat_vapourisation"],
+    gas_constant_water_vapour: float = HydrologyParameters["gas_constant_water_vapour"],
+    heat_transfer_coefficient: float = HydrologyParameters["heat_transfer_coefficient"],
+    flux_to_mm_conversion: float = HydrologyParameters["flux_to_mm_conversion"],
+    timestep_conversion_factor: float = HydrologyParameters["seconds_to_month"],
 ) -> DataArray:
-    """Calculate soil evaporation based on simplified Penman equation.
+    """Calculate soil evaporation based classical bulk aerodynamic formulation.
+
+    TODO write description and add references
+    TODO move constants to HydrologyParameters or CoreConstants and check values
 
     Args:
-        temperature: air temperature near the surface, [C]
-        wind_speed: wind speed near the surface, [m s-1]
-        relative_humidity: relative humidity near the surface, []
-        radiation: solar radiation, [W m-2]
+        temperature: air temperature at reference height, [C]
+        relative_humidity: relative humidity at reference height, []
+        atmospheric_pressure: atmospheric pressure at reference height, [kPa]
         soil_moisture: top soil moisture, [relative water content]
+        wind_speed: wind speed at reference height, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
-        psychrometric_constant: Psychrometric constant, [kPa C-1]
-        density_air: density if air
-        latent_heat_vapourisation: latent heat of vapourisation
+        density_air: density if air, [kg m-3]
+        latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
+        gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
+        heat_transfer_coefficient: heat transfer coefficient of air
+        flux_to_mm_conversion: flux to mm conversion factor
 
     Returns:
         soil evaporation, [mm]
     """
 
-    # TODO move constants to HydrologyParameters or CoreConstants and check values
-    # TODO check equations!
-    # Slope of vapor pressure curve [kPa C-1]
-    delta = (
-        4098
-        * (0.6108 * np.exp(17.27 * temperature / (temperature + 237.3)))
-        / ((temperature + 237.3) ** 2)
+    # Estimate alpha using the Barton (1979) equation
+    alpha = np.where(
+        (1.8 * soil_moisture / soil_moisture + 0.3) > 1,
+        1,
+        (1.8 * soil_moisture / soil_moisture + 0.3),
     )
 
-    # Convert temperature to Kelvin
-    temperature += celsius_to_kelvin
-
-    # Calculate saturation vapor pressure
-    saturation_vapor_pressure = 0.6108 * np.exp(
-        (17.27 * temperature) / (temperature + 237.3)
+    saturation_vapour_pressure = DataArray(
+        (
+            0.6112
+            * np.exp(
+                (17.67 * (temperature + celsius_to_kelvin))
+                / (temperature + celsius_to_kelvin + 243.5)
+            )
+        ),
+        dims=["cell_id"],
     )
 
-    # Calculate actual vapor pressure
-    vapor_pressure = (relative_humidity / 100) * saturation_vapor_pressure
+    saturated_specific_humidity = DataArray(
+        (gas_constant_water_vapour / latent_heat_vapourisation)
+        * (
+            saturation_vapour_pressure
+            / (atmospheric_pressure - saturation_vapour_pressure)
+        ),
+        dims=temperature.dims,
+    )
 
-    # Calculate potential evaporation
-    potential_evaporation = (
-        0.408 * delta * (radiation - 0)  # I think 0 is soil heat flux?
-        + (
-            psychrometric_constant
-            * (900 / (temperature + 273))
-            * wind_speed
-            * (saturation_vapor_pressure - vapor_pressure)
-        )
-    ) / (delta + (psychrometric_constant * (1 + 0.34 * wind_speed)))
+    specific_humidity_air = DataArray(
+        (relative_humidity * saturated_specific_humidity) / 100,
+        dims=relative_humidity.dims,
+        name="specific_humidity",
+    )
 
-    # Calculate actual evaporation based on soil moisture
-    actual_evaporation = potential_evaporation * (1 - soil_moisture)
+    aerodynamic_resistance = heat_transfer_coefficient / np.sqrt(wind_speed)
 
-    # Convert evaporation to millimeters per day
-    return DataArray(
-        actual_evaporation
-        * (latent_heat_vapourisation * density_air)
-        / meters_to_millimeters
+    evaporative_flux = (density_air / aerodynamic_resistance) * (
+        alpha * saturation_vapour_pressure - specific_humidity_air
+    )
+
+    return DataArray(  # TODO check this
+        (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
     )

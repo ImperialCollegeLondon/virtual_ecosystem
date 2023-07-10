@@ -15,12 +15,14 @@ HydrologyParameters: Dict[str, float] = {
     "hydraulic_conductivity": 0.001,  # m/s
     "hydraulic_gradient": 0.01,  # m/m
     "seconds_to_month": 2.628e6,
-    "alpha": 0.01,
+    "steepness_water_retention_curve": 0.01,
     "nonlinearily_parameter": 2.0,
     "meters_to_millimeters": 1000,
     "celsius_to_kelvin": 273.15,
-    "psychrometric_constant": 0.067,  # kPa/C
     "density_air": 1.225,  # kg m-3
     "latent_heat_vapourisation": 2.45,  # MJ kg-1
+    "gas_constant_water_vapour": 461.51,  # J kg-1 K-1
+    "heat_transfer_coefficient": 12.5,  # `van_de_griend_bare_1994`
+    "flux_to_mm_conversion": 3.35e-4,
 }
 """Parameters for hydrology model."""
