@@ -59,7 +59,10 @@ class HydrologyModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
-    )  # TODO add time dimension
+    )
+    # TODO add time dimension
+    # TODO at the momement, the reference height is at 2m. This will change to a higher
+    # atmospheric level, likely 10m. Then this first step will return faulty values.
     """The required variables and axes for the hydrology model"""
     vars_updated = [
         "soil_moisture",
@@ -138,7 +141,8 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes soil moisture homogenously for all
-        soil layers.
+        soil layers and initializes air temperature and relative humidity to calculate
+        soil evaporation and soil moisture for the first update().
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -163,6 +167,92 @@ class HydrologyModel(BaseModel):
                 "cell_id": self.data.grid.cell_id,
             },
             name="soil_moisture",
+        )
+
+        # create initial air temperature profile with reference temperature at surface
+        # for first soil evaporation update.
+        self.data["air_temperature"] = (
+            xr.concat(
+                [
+                    DataArray(
+                        np.full(
+                            (
+                                len(self.layer_roles)
+                                - self.layer_roles.count("soil")
+                                - 2,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                    self.data["air_temperature_ref"]
+                    .isel(time_index=0)
+                    .expand_dims("layers"),
+                    DataArray(
+                        np.full(
+                            (
+                                self.layer_roles.count("soil") + 1,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                ],
+                dim="layers",
+            )
+            .assign_coords(
+                coords={
+                    "layers": np.arange(len(self.layer_roles)),
+                    "layer_roles": ("layers", self.layer_roles),
+                    "cell_id": self.data.grid.cell_id,
+                },
+            )
+            .rename("air_temperature")
+        )
+
+        # create initial relative humidity profile with reference humidity at surface
+        # for first soil evaporation update.
+        self.data["relative_humidity"] = (
+            xr.concat(
+                [
+                    DataArray(
+                        np.full(
+                            (
+                                len(self.layer_roles)
+                                - self.layer_roles.count("soil")
+                                - 2,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                    self.data["relative_humidity_ref"]
+                    .isel(time_index=0)
+                    .expand_dims("layers"),
+                    DataArray(
+                        np.full(
+                            (
+                                self.layer_roles.count("soil") + 1,
+                                len(self.data.grid.cell_id),
+                            ),
+                            np.nan,
+                        ),
+                        dims=["layers", "cell_id"],
+                    ),
+                ],
+                dim="layers",
+            )
+            .assign_coords(
+                coords={
+                    "layers": np.arange(len(self.layer_roles)),
+                    "layer_roles": ("layers", self.layer_roles),
+                    "cell_id": self.data.grid.cell_id,
+                },
+            )
+            .rename("relative_humidity")
         )
 
     def spinup(self) -> None:
@@ -205,20 +295,18 @@ class HydrologyModel(BaseModel):
             layer_heights=self.data["layer_heights"],
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
-            temperature=self.data["air_temperature_ref"].isel(time_index=time_index),
-            relative_humidity=(
-                self.data["relative_humidity_ref"].isel(time_index=time_index)
-            ),
+            temperature=self.data["air_temperature"]
+            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 2)
+            .drop_vars(["layer_roles", "layers"]),
+            relative_humidity=self.data["relative_humidity"]
+            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 2)
+            .drop_vars(["layer_roles", "layers"]),
             atmospheric_pressure=(
                 (self.data["atmospheric_pressure_ref"] / 1000).isel(
                     time_index=time_index
                 )
             ),
-            wind_speed=0.1,
-            # TODO include wind in data set
-            # self.data['wind_speed'].isel(
-            # layers=len(self.layer_roles)-self.layer_roles.count('soil')-1
-            # ),
+            wind_speed=0.1,  # TODO include wind in data set?
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
         )
 
