@@ -291,13 +291,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05103402, 0.02542457, 1.86156352, 0.00497357], dims="cell_id"
+                        [0.05290414, 0.03085044, 1.87779865, 0.00569224], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.56412463, 1.7271028, 2.8534901, 0.50265782], dims="cell_id"
+                        [2.5640905, 1.72670122, 2.84147024, 0.50266578], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.63675701, 2.21851098, 10.9601024, 0.993642], dims="cell_id"
+                        [5.63681284, 2.21869505, 10.96048678, 0.99364838],
+                        dims="cell_id",
+                    ),
+                    pom=DataArray(
+                        [0.09826415, 0.99494486, 0.69554961, 0.34942389], dims="cell_id"
                     ),
                 )
             ),
@@ -336,6 +340,7 @@ def test_integrate_soil_model(
         assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
         assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
+        assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -403,10 +408,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        1.44475655e-03,
-        1.01162673e-02,
-        7.04474125e-01,
-        -5.43915134e-05,
+        0.00525045055,
+        0.0205448757,
+        0.7136941904,
+        0.00141217,
         0.13088391,
         0.05654771,
         -0.39962841,
@@ -415,6 +420,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         -0.16636299,
         -0.76078599,
         -0.01275669,
+        -0.00349175378,
+        -0.01011466818,
+        -0.00890612528,
+        -0.00115262138,
     ]
 
     # make pools

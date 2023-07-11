@@ -90,14 +90,24 @@ def calculate_soil_carbon_updates(
         soil_c_pool_lmwc, moist_temp_scalar
     )
     litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools()
+    pom_decomposition_to_lmwc = calculate_pom_decomposition(
+        soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        litter_input_to_lmwc - lmwc_to_maom - microbial_uptake - labile_carbon_leaching
+        litter_input_to_lmwc
+        + pom_decomposition_to_lmwc
+        - lmwc_to_maom
+        - microbial_uptake
+        - labile_carbon_leaching
     )
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_uptake - microbial_respiration - necromass_adsorption
+    )
+    delta_pools_ordered["soil_c_pool_pom"] = (
+        litter_input_to_pom - pom_decomposition_to_lmwc
     )
 
     # Create output array of pools in desired order
