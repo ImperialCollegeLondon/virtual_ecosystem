@@ -73,6 +73,14 @@ def generate_microbial_C_values(x: float, y: float) -> float:
     """
     return 0.0015 + 0.0035 * (x * y) / (64)
 
+def generate_pom_values(x: float, y: float) -> float:
+    """Function to generate a reasonable range of pom values.
+    
+    A reasonable amount of carbon is stored as particulate organic matter (POM), so a
+    range of 0.1-1.0 kg C m^-3 is used.
+    """
+    return 0.1 + 0.9 * (x * y) / (64)
+
 
 # Generate range of cell numbers in the a x and y directions. Here we have a 9x9 grid,
 # so cells are numbered from 0 to 8 in each direction.
@@ -92,6 +100,7 @@ maom_values = [[generate_maom_values(x, y) for y in y_cell_ids] for x in x_cell_
 microbial_C_values = [
     [generate_microbial_C_values(x, y) for y in y_cell_ids] for x in x_cell_ids
 ]
+pom_values = [[generate_pom_values(x, y) for y in y_cell_ids] for x in x_cell_ids]
 
 # How far the center of each cell is from the origin. This applies to both the x and y
 # direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
@@ -107,6 +116,7 @@ dummy_soil_data = Dataset(
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
         soil_c_pool_microbe=(["x", "y"], microbial_C_values),
+        soil_c_pool_pom=(["x", "y"], pom_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),
