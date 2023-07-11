@@ -92,24 +92,33 @@ dataset["rh2m"] = (
     )
 ```
 
-### 4. Clean dataset and rename variables
+### 4. Convert precipitation to mm
 
-In this step, we delete the initial temperature variables (K) and rename the remaining
-variables according to the Virtual Rainforest naming convention (see
-[here](../../../virtual_rainforest/data_variables.toml) ).
+The standard output unit for total precipitation in ERA5-Land is m which we need to
+convert to mm.
 
 ```{code-cell} ipython3
-dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m"])
+dataset["tp_mm"] = dataset["tp"]*1000
+```
+
+### 5. Clean dataset and rename variables
+
+In this step, we delete the initial temperature variables (K) and precipitation (m) and
+rename the remaining variables according to the Virtual Rainforest naming convention
+(see [here](../../../virtual_rainforest/data_variables.toml) ).
+
+```{code-cell} ipython3
+dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m","tp"])
 dataset_renamed = dataset_cleaned.rename({
     'sp':'atmospheric_pressure_ref',
-    'tp':'precipitation',
+    'tp_mm':'precipitation',
     't2m_C':'air_temperature_ref',
     'rh2m': 'relative_humidity_ref',
     })
 dataset_renamed.data_vars
 ```
 
-### 5. Add further required variables
+### 6. Add further required variables
 
 In addition to the variables from the ERA5-Land datasset, a time series of atmospheric
 $\ce{CO_{2}}$ is needed. We add this here as a constant field. Mean annual temperature

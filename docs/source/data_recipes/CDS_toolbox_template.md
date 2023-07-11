@@ -48,7 +48,7 @@ and optionally:
 We recommend the following data sets to force the virtual rainforest microclimate
 simulations:
 
-* ERA5
+* ERA5 / ERA5-Land
   
   ERA5 is the fifth generation ECMWF reanalysis for the global climate and weather for
   the past 4 to 7 decades. This reanalysis dataset combines model data with
@@ -60,6 +60,14 @@ simulations:
   The full documentation and download link can be accessed
   [here for hourly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=overview)
   and [here for monthly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview)
+
+  ERA5-Land is a reanalysis dataset providing a consistent view of the evolution of land
+  variables over several decades at an enhanced resolution compared to ERA5 (0.1 x 0.1
+  deg resolution).
+
+  The full documentation and download link can be accessed
+  [here for hourly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=overview)
+  and [here for monthly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview)
 
 * WFDE5
   
