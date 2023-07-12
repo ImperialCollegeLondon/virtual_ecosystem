@@ -63,6 +63,7 @@ class SoilModel(BaseModel):
         ("soil_c_pool_maom", ("spatial",)),
         ("soil_c_pool_lmwc", ("spatial",)),
         ("soil_c_pool_microbe", ("spatial",)),
+        ("soil_c_pool_pom", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
         ("percent_clay", ("spatial",)),
@@ -72,7 +73,12 @@ class SoilModel(BaseModel):
     This is a set of variables that must be present in the data object used to create a
     SoilModel , along with any core axes that those variables must map on
     to."""
-    vars_updated = ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"]
+    vars_updated = [
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+    ]
     """Variables updated by the soil model."""
 
     def __init__(
@@ -90,6 +96,7 @@ class SoilModel(BaseModel):
             np.any(data["soil_c_pool_maom"] < 0.0)
             or np.any(data["soil_c_pool_lmwc"] < 0.0)
             or np.any(data["soil_c_pool_microbe"] < 0.0)
+            or np.any(data["soil_c_pool_pom"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"

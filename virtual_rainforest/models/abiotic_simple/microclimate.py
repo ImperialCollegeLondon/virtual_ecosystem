@@ -1,9 +1,9 @@
 r"""The ``models.abiotic_simple.microclimate`` module uses linear regressions from
 :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
-atmospheric temperature and relative humidity at ground level (2m) given the above
-canopy conditions and leaf area index of intervening canopy. A within canopy profile is
-then interpolated using a logarithmic curve between the above canopy observation and
-ground level prediction.
+atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
+(1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
+within canopy profile is then interpolated using a logarithmic curve between the above
+canopy observation and ground level prediction.
 Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
@@ -63,17 +63,19 @@ def run_microclimate(
     r"""Calculate simple microclimate.
 
     This function uses empirical relationships between leaf area index (LAI) and
-    atmospheric temperature and relative humidity to derive logarithmic
-    profiles of atmospheric temperature and humidity from external climate data such as
-    regional climate models or satellite observations. For below canopy values (1.5 m),
+    atmospheric temperature, relative humidity, and vapour pressure deficit to derive
+    logarithmic profiles of these variables from external climate data such as
+    regional climate models or satellite observations. Note that these sources provide
+    data at different heights and with different underlying assumptions which lead to
+    different biases in the model output. For below canopy values (1.5 m),
     the implementation is based on :cite:t:`hardwick_relationship_2015` as
 
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, math:`m` is the gradient
     (:data:`~virtual_rainforest.models.abiotic_simple.microclimate.MicroclimateGradients`)
-    and :math:`c` is the intersect which we set to the
-    external data values. We assume that the gradient remains constant.
+    and :math:`c` is the intersect which we set to the external data values. We assume
+    that the gradient remains constant.
 
     The other atmospheric layers are calculated by logaritmic regression and
     interpolation between the input at the top of the canopy and the 1.5 m values.
@@ -84,7 +86,7 @@ def run_microclimate(
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
-    * above canopy (canopy height + reference measurement height, typically 2m)
+    * above canopy (canopy height)
     * canopy layers (maximum of ten layers, minimum one layers)
     * subcanopy (1.5 m)
     * surface layer
@@ -95,7 +97,7 @@ def run_microclimate(
     * air_temperature_ref [C]
     * relative_humidity_ref []
     * vapour_pressure_deficit_ref [kPa]
-    * atmospheric_pressure_ref [Pa]
+    * atmospheric_pressure_ref [kPa]
     * atmospheric_co2_ref [ppm]
     * leaf_area_index [m m-1]
     * layer_heights [m]
@@ -116,7 +118,6 @@ def run_microclimate(
         atmospheric :math:`\ce{CO2}` [ppm]
     """
 
-    # TODO correct gap between 1.5 m and 2m reference height for LAI = 0
     # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
@@ -138,7 +139,7 @@ def run_microclimate(
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
-        (data["atmospheric_pressure_ref"] / 1000)
+        (data["atmospheric_pressure_ref"])
         .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
@@ -267,7 +268,7 @@ def calculate_saturation_vapour_pressure(
         factor3: factor 3 in saturation vapour pressure calculation
 
     Returns:
-        saturation vapour pressure, kPa
+        saturation vapour pressure, [kPa]
     """
 
     return DataArray(

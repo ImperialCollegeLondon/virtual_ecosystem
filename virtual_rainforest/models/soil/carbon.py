@@ -11,8 +11,11 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import (
     CARBON_INPUT_TO_POM,
     HALF_SAT_MICROBIAL_ACTIVITY,
+    HALF_SAT_MICROBIAL_POM_MINERALISATION,
+    HALF_SAT_POM_DECOMPOSITION,
     LEACHING_RATE_LABILE_CARBON,
     LITTER_INPUT_RATE,
+    MAX_DECOMP_RATE_POM,
     MAX_UPTAKE_RATE_LABILE_C,
     MICROBIAL_TURNOVER_RATE,
     NECROMASS_ADSORPTION_RATE,
@@ -28,6 +31,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
+    soil_c_pool_pom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -45,6 +49,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
@@ -84,15 +89,25 @@ def calculate_soil_carbon_updates(
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc, moist_temp_scalar
     )
-    litter_input_to_lmwc = calculate_direct_litter_input_to_lmwc()
+    litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools()
+    pom_decomposition_to_lmwc = calculate_pom_decomposition(
+        soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        litter_input_to_lmwc - lmwc_to_maom - microbial_uptake - labile_carbon_leaching
+        litter_input_to_lmwc
+        + pom_decomposition_to_lmwc
+        - lmwc_to_maom
+        - microbial_uptake
+        - labile_carbon_leaching
     )
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_uptake - microbial_respiration - necromass_adsorption
+    )
+    delta_pools_ordered["soil_c_pool_pom"] = (
+        litter_input_to_pom - pom_decomposition_to_lmwc
     )
 
     # Create output array of pools in desired order
@@ -349,6 +364,56 @@ def calculate_microbial_saturation(
     return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
 
 
+def calculate_microbial_pom_mineralisation_saturation(
+    soil_c_pool_microbe: NDArray[np.float32],
+    half_sat_microbial_mineralisation: float = HALF_SAT_MICROBIAL_POM_MINERALISATION,
+) -> NDArray[np.float32]:
+    """Calculate microbial POM mineralisation saturation (with increasing biomass).
+
+    This ensures that microbial mineralisation of POM (per unit biomass) drops as
+    biomass density increases. This is adopted from Abramoff et al. This function is
+    very similar to the
+    :func:`~virtual_rainforest.models.soil.carbon.calculate_microbial_saturation`
+    function. They could in theory be reworked into a single function, but it doesn't
+    seem worth the effort as we do not anticipate using biomass saturation functions
+    beyond the first model draft.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        half_sat_microbial_mineralisation: Half saturation constant for microbial
+            mineralisation of POM
+
+    Returns:
+        A rescaling of microbial biomass that takes into account POM mineralisation rate
+        saturation with increasing biomass density
+    """
+
+    return soil_c_pool_microbe / (
+        soil_c_pool_microbe + half_sat_microbial_mineralisation
+    )
+
+
+def calculate_pom_decomposition_saturation(
+    soil_c_pool_pom: NDArray[np.float32],
+    half_sat_pom_decomposition: float = HALF_SAT_POM_DECOMPOSITION,
+) -> NDArray[np.float32]:
+    """Calculate particulate organic matter (POM) decomposition saturation.
+
+    This ensures that decomposition of POM to low molecular weight carbon (LMWC)
+    saturates with increasing POM. This effect arises from the saturation of enzymes
+    with increasing substrate.
+
+    Args:
+        soil_c_pool_pom: Particulate organic matter (carbon) pool [kg C m^-3]
+        half_sat_pom_decomposition: Half saturation constant for POM decomposition
+
+    Returns:
+        The saturation of the decomposition process
+    """
+
+    return soil_c_pool_pom / (soil_c_pool_pom + half_sat_pom_decomposition)
+
+
 def calculate_microbial_carbon_uptake(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -411,11 +476,47 @@ def calculate_labile_carbon_leaching(
     return leaching_rate * moist_temp_scalar * soil_c_pool_lmwc
 
 
-def calculate_direct_litter_input_to_lmwc(
+def calculate_pom_decomposition(
+    soil_c_pool_pom: NDArray[np.float32],
+    soil_c_pool_microbe: NDArray[np.float32],
+    moist_temp_scalar: NDArray[np.float32],
+    max_pom_decomp_rate: float = MAX_DECOMP_RATE_POM,
+) -> NDArray[np.float32]:
+    """Calculate decomposition of particulate organic matter into labile carbon (LMWC).
+
+    This is adopted from Abramoff et al. We definitely want to change this down the line
+    to something that uses enzymes explicitly.
+
+    Args:
+        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
+            temperature on process rates
+
+    Returns:
+        The amount of particulate organic matter (POM) decomposed into labile carbon
+            (LMWC)
+    """
+
+    # Calculate the two relevant saturations
+    saturation_with_biomass = calculate_microbial_pom_mineralisation_saturation(
+        soil_c_pool_microbe
+    )
+    saturation_with_pom = calculate_pom_decomposition_saturation(soil_c_pool_pom)
+
+    return (
+        max_pom_decomp_rate
+        * saturation_with_pom
+        * saturation_with_biomass
+        * moist_temp_scalar
+    )
+
+
+def calculate_direct_litter_input_to_pools(
     carbon_input_to_pom: float = CARBON_INPUT_TO_POM,
     litter_input_rate: float = LITTER_INPUT_RATE,
-) -> float:
-    """Calculate direct input from litter to LMWC pool.
+) -> tuple[float, float]:
+    """Calculate direct input from litter to LMWC and POM pools.
 
     This process is very much specific to :cite:t:`abramoff_millennial_2018`, and I
     don't think we want to preserve it long term.
@@ -427,7 +528,10 @@ def calculate_direct_litter_input_to_lmwc(
             pools [kg C m^-2 day^-1].
 
     Returns:
-        Amount of carbon directly added to LMWC pool from litter.
+        Amount of carbon directly added to LMWC and POM pools from litter.
     """
 
-    return (1 - carbon_input_to_pom) * litter_input_rate
+    return (
+        litter_input_rate * (1 - carbon_input_to_pom),
+        litter_input_rate * carbon_input_to_pom,
+    )

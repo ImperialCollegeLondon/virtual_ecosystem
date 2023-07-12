@@ -415,6 +415,14 @@ updated_by = "soil"
 used_by = [ "soil"]
 
 [[variable]]
+name = "soil_c_pool_pom"
+description = "Size of microbial biomass pool"
+unit = "kg C m-3"
+initialised_by = "soil"
+updated_by = "soil"
+used_by = ["soil"]
+
+[[variable]]
 name = "bulk_density"
 description = "Bulk density of soil"
 unit = "kg m-3"

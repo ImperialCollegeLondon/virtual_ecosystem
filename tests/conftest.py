@@ -123,6 +123,8 @@ def dummy_carbon_data(layer_roles_fixture):
     """Mineral associated organic matter pool (kg C m^-3)"""
     data["soil_c_pool_microbe"] = DataArray([5.8, 2.3, 11.3, 1.0], dims=["cell_id"])
     """Microbial biomass (carbon) pool (kg C m^-3)"""
+    data["soil_c_pool_pom"] = DataArray([0.1, 1.0, 0.7, 0.35], dims=["cell_id"])
+    """Particulate organic matter pool (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
@@ -254,7 +256,7 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["cell_id", "time_index"],
     )
     data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96000),
+        np.full((3, 3), 96),
         dims=["cell_id", "time_index"],
     )
     data["atmospheric_co2_ref"] = DataArray(
