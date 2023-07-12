@@ -97,7 +97,7 @@ def run_microclimate(
     * air_temperature_ref [C]
     * relative_humidity_ref []
     * vapour_pressure_deficit_ref [kPa]
-    * atmospheric_pressure_ref [Pa]
+    * atmospheric_pressure_ref [kPa]
     * atmospheric_co2_ref [ppm]
     * leaf_area_index [m m-1]
     * layer_heights [m]
@@ -139,7 +139,7 @@ def run_microclimate(
 
     # Mean atmospheric pressure profile, [kPa]
     output["atmospheric_pressure"] = (
-        (data["atmospheric_pressure_ref"] / 1000)
+        (data["atmospheric_pressure_ref"])
         .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
@@ -268,7 +268,7 @@ def calculate_saturation_vapour_pressure(
         factor3: factor 3 in saturation vapour pressure calculation
 
     Returns:
-        saturation vapour pressure, kPa
+        saturation vapour pressure, [kPa]
     """
 
     return DataArray(
