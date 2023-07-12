@@ -182,7 +182,7 @@ The dummy model iterates over time indices rather than real datetime. Therefore,
 a `time_index` coordinate to the dataset:
 
 ```{code-cell} ipython3
-dataset_xy_timeindex = dataset_xy_dummy.assign_coords({'time_index':np.arange(0,24,1)})
+dataset_xy_timeindex = dataset_xy_dummy.rename_dims({'time':'time_index'}).assign_coords({'time_index':np.arange(0,24,1)})
 dataset_xy_timeindex.coords
 ```
 
