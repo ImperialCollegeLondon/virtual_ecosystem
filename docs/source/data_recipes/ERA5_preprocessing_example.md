@@ -64,11 +64,11 @@ dataset = xr.open_dataset("./ERA5_land.nc")
 dataset
 ```
 
-### 2. Convert temperatures to Celsius
+### 2. Convert temperatures units
 
 The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
-to degree Celsius for the Virtual Rainforest. This includes `2m air temperature` and
-`2m dewpoint temperature` which are used to calculate relative humidity in next step.
+to degree Celsius for the Virtual Rainforest. This includes 2m air temperature and
+2m dewpoint temperature which are used to calculate relative humidity in next step.
 
 ```{code-cell} ipython3
 dataset["t2m_C"] = dataset["t2m"]-273.15 # 2m air temperature
@@ -92,24 +92,43 @@ dataset["rh2m"] = (
     )
 ```
 
-### 4. Clean dataset and rename variables
+### 4. Convert precipitation units
 
-In this step, we delete the initial temperature variables (K) and rename the remaining
-variables according to the Virtual Rainforest naming convention (see
-[here](../../../virtual_rainforest/data_variables.toml) ).
+The standard output unit for total precipitation in ERA5-Land is meters which we need to
+convert to millimeters.
 
 ```{code-cell} ipython3
-dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m"])
+dataset["tp_mm"] = dataset["tp"]*1000
+```
+
+### 5. Convert surface pressure units
+
+The standard output unit for surface pressure in ERA5-Land is Pascal (Pa) which we need
+to convert to Kilopascal (kPa).
+
+```{code-cell} ipython3
+dataset["sp_kPa"] = dataset["sp"]/1000
+```
+
+### 6. Clean dataset and rename variables
+
+In this step, we delete the initial temperature variables (K), precipitation (m), and
+surface pressure(Pa) and rename the remaining variables according to the Virtual
+Rainforest naming convention
+(see [here](../../../virtual_rainforest/data_variables.toml) ).
+
+```{code-cell} ipython3
+dataset_cleaned = dataset.drop_vars(["d2m",'d2m_C',"t2m","tp","sp"])
 dataset_renamed = dataset_cleaned.rename({
-    'sp':'atmospheric_pressure_ref',
-    'tp':'precipitation',
+    'sp_kPa':'atmospheric_pressure_ref',
+    'tp_mm':'precipitation',
     't2m_C':'air_temperature_ref',
     'rh2m': 'relative_humidity_ref',
     })
 dataset_renamed.data_vars
 ```
 
-### 5. Add further required variables
+### 7. Add further required variables
 
 In addition to the variables from the ERA5-Land datasset, a time series of atmospheric
 $\ce{CO_{2}}$ is needed. We add this here as a constant field. Mean annual temperature
@@ -127,7 +146,7 @@ dataset_renamed['mean_annual_temperature'] = (
 dataset_renamed.data_vars
 ```
 
-### 7. Change coordinates to x-y in meters
+### 8. Change coordinates to x-y in meters
 
 The following code segment changes the coordinate names from `longitude/latitude` to
 `x/y` and the units from `minutes` to `meters`. The ERA5-Land coordinates are treated as
@@ -139,7 +158,7 @@ dataset_xy = dataset_renamed.rename_dims({'longitude':'x','latitude':'y'}).assig
 dataset_xy.coords
 ```
 
-### 8. Scale to 90 m resolution
+### 9. Scale to 90 m resolution
 
 The Virtual Rainforest is run on a 90 x 90 m grid. This means that some form of spatial
 downscaling has to be applied to the dataset, for example by spatially interpolating
@@ -157,7 +176,7 @@ dataset_xy_dummy = dataset_xy_100.isel(x=np.arange(9),y=np.arange(9))
 dataset_xy_dummy.coords
 ```
 
-### 9. Add time_index
+### 10. Add time_index
 
 The dummy model iterates over time indices rather than real datetime. Therefore, we add
 a `time_index` coordinate to the dataset:
@@ -167,7 +186,7 @@ dataset_xy_timeindex = dataset_xy_dummy.assign_coords({'time_index':np.arange(0,
 dataset_xy_timeindex.coords
 ```
 
-### 10. Save netcdf
+### 11. Save netcdf
 
 Once we confirmed that our dataset is complete and our calculations are correct, we save
 it as a new netcdf file. This can then be fed into the code data loading system here
