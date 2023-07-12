@@ -125,6 +125,10 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 ),
                 (
                     DEBUG,
+                    "soil model: required var 'soil_c_pool_pom' checked",
+                ),
+                (
+                    DEBUG,
                     "soil model: required var 'pH' checked",
                 ),
                 (
@@ -466,7 +470,12 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     assert mock_save.call_count == 1
     assert mock_save.call_args == mocker.call(
         Path(f"./continuous_state{time_index:05}.nc"),
-        ["soil_c_pool_maom", "soil_c_pool_lmwc", "soil_c_pool_microbe"],
+        [
+            "soil_c_pool_maom",
+            "soil_c_pool_lmwc",
+            "soil_c_pool_microbe",
+            "soil_c_pool_pom",
+        ],
         time_index,
     )
     assert outpath == Path(f"./continuous_state{time_index:05}.nc")
