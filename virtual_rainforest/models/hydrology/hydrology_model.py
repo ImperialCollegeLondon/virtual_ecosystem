@@ -302,9 +302,7 @@ class HydrologyModel(BaseModel):
             .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 2)
             .drop_vars(["layer_roles", "layers"]),
             atmospheric_pressure=(
-                (self.data["atmospheric_pressure_ref"] / 1000).isel(
-                    time_index=time_index
-                )
+                (self.data["atmospheric_pressure_ref"]).isel(time_index=time_index)
             ),
             wind_speed=0.1,  # TODO include wind in data set?
             soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
