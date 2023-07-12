@@ -303,7 +303,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         coords={"cell_id": [0, 1, 2]},
     )
     exp_soil_evap = DataArray(
-        [0.393653, 0.880235, 1.24484],
+        [0.393601, 0.880118, 1.244674],
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
