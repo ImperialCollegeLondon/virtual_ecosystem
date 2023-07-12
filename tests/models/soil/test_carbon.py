@@ -49,12 +49,22 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
 
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
-    change_in_pools = [
-        [0.00525045055, 0.0205448757, 0.7136941904, 0.00141217],
-        [0.13088391, 0.05654771, -0.39962841, 0.00533357],
-        [-0.33131188, -0.16636299, -0.76078599, -0.01275669],
-        [-0.00349175378, -0.01011466818, -0.00890612528, -0.00115262138],
-    ]
+    change_in_pools = {
+        "soil_c_pool_lmwc": [0.00525045055, 0.0205448757, 0.7136941904, 0.00141217],
+        "soil_c_pool_maom": [0.13088391, 0.05654771, -0.39962841, 0.00533357],
+        "soil_c_pool_microbe": [-0.33131188, -0.16636299, -0.76078599, -0.01275669],
+        "soil_c_pool_pom": [
+            -0.00349175378,
+            -0.01011466818,
+            -0.00890612528,
+            -0.00115262138,
+        ],
+    }
+
+    # Make order of pools object
+    pool_order = {}
+    for pool in change_in_pools.keys():
+        pool_order[pool] = np.array([])
 
     delta_pools = calculate_soil_carbon_updates(
         dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
@@ -66,14 +76,13 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_moisture"][top_soil_layer_index],
         dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         dummy_carbon_data["percent_clay"],
-        {"soil_c_pool_lmwc": np.array([]), "soil_c_pool_maom": np.array([])},
+        pool_order,
     )
 
-    # Check that the updates are correctly calculated
-    assert np.allclose(delta_pools[:4], change_in_pools[0])
-    assert np.allclose(delta_pools[4:8], change_in_pools[1])
-    assert np.allclose(delta_pools[8:12], change_in_pools[2])
-    assert np.allclose(delta_pools[12:], change_in_pools[3])
+    # Check that the updates are correctly calculated. Using a loop here implicitly
+    # checks that the output order matches the input order.
+    for i, pool in enumerate(change_in_pools.keys()):
+        assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
 def test_calculate_mineral_association(dummy_carbon_data, moist_temp_scalars):
