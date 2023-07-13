@@ -14,6 +14,9 @@ Each of the abiotic sub-modules has its own API reference page:
   temperature, humidity, :math:`\ce{CO2}`, and atmospheric pressure profiles as well as
   soil temperature profiles.
 
+* The :mod:`~virtual_rainforest.models.abiotic_simple.constants` submodule provides a
+  set of dataclasses containing the constants required by the broader soil model.
+
 """  # noqa: D205, D415
 
 from importlib import resources

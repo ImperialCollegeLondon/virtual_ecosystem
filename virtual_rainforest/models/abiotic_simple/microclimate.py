@@ -58,7 +58,7 @@ def run_microclimate(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, math:`m` is the gradient
-    (:data:`~virtual_rainforest.models.abiotic_simple.microclimate.MicroclimateGradients`)
+    (:data:`~virtual_rainforest.models.abiotic_simple.constants.MicroclimateGradients`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 

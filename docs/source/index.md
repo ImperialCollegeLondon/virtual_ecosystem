@@ -96,6 +96,7 @@ team.
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
   Abiotic Simple Microclimate <api/abiotic_simple/microclimate.md>
+  Abiotic Simple Constants <api/abiotic_simple/abiotic_constants.md>
   Abiotic Hydrology Overview <api/hydrology.md>
   Abiotic Hydrology Model <api/hydrology/hydrology_model.md>
   Abiotic Hydrology Constants <api/hydrology/hydrology_constants.md>
