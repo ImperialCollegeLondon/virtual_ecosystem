@@ -10,32 +10,17 @@ The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
 """  # noqa: D205, D415
 
-from typing import Dict, List
-
 import numpy as np
 import xarray as xr
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.models.abiotic_simple.constants import (
+    MicroclimateGradients,
+    MicroclimateParameters,
+)
 
-MicroclimateGradients: Dict[str, float] = {
-    "air_temperature_gradient": -1.27,
-    "relative_humidity_gradient": 5.4,
-    "vapour_pressure_deficit_gradient": -252.24,
-}
-"""Gradients for linear regression to calculate air temperature, relative humidity, and
-vapour pressure deficit as a function of leaf area index from
-:cite:t:`hardwick_relationship_2015`.
-"""
-
-MicroclimateParameters: Dict[str, float] = {
-    "saturation_vapour_pressure_factor1": 0.61078,
-    "saturation_vapour_pressure_factor2": 7.5,
-    "saturation_vapour_pressure_factor3": 237.3,
-}
-"""Parameters for simple abiotic regression model."""
-
-Bounds: Dict[str, float] = {
+Bounds: dict[str, float] = {
     "air_temperature_min": -20,
     "air_temperature_max": 80,
     "relative_humidity_min": 0,
@@ -55,11 +40,11 @@ and matter in the system. This will be implemented at a later stage.
 
 def run_microclimate(
     data: Data,
-    layer_roles: List[str],
+    layer_roles: list[str],
     time_index: int,  # could be datetime?
-    MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
-    Bounds: Dict[str, float] = Bounds,
-) -> Dict[str, DataArray]:
+    MicroclimateGradients: dict[str, float] = MicroclimateGradients,
+    Bounds: dict[str, float] = Bounds,
+) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
 
     This function uses empirical relationships between leaf area index (LAI) and
@@ -184,7 +169,7 @@ def log_interpolation(
     data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
-    layer_roles: List,
+    layer_roles: list,
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,
