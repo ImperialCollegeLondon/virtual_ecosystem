@@ -205,6 +205,7 @@ def test_calculate_vapour_pressure_deficit():
 def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
     """Test interpolation of all variables."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
     from virtual_rainforest.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data
@@ -222,6 +223,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
+        parameters=AbioticSimpleParams(),
     )
 
     exp_air_temperature = xr.concat(

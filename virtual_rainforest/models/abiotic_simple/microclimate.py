@@ -17,6 +17,8 @@ from xarray import DataArray
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
 
+# TODO - Remove the above import + remove defaults generally
+
 Bounds: dict[str, float] = {
     "air_temperature_min": -20,
     "air_temperature_max": 80,
@@ -39,8 +41,7 @@ def run_microclimate(
     data: Data,
     layer_roles: list[str],
     time_index: int,  # could be datetime?
-    # TODO - Sort out naming here
-    AbioticSimpleParams: AbioticSimpleParams = AbioticSimpleParams(),
+    parameters: AbioticSimpleParams,
     Bounds: dict[str, float] = Bounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -117,7 +118,7 @@ def run_microclimate(
             layer_heights=data["layer_heights"],
             upper_bound=Bounds[var + "_max"],
             lower_bound=Bounds[var + "_min"],
-            gradient=getattr(AbioticSimpleParams, var + "_gradient"),
+            gradient=getattr(parameters, var + "_gradient"),
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
