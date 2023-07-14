@@ -29,6 +29,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic_simple import microclimate
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
 
 
 class AbioticSimpleModel(BaseModel):
@@ -39,6 +40,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
+        parameters: Set of parameters for the abiotic simple model.
     """
 
     model_name = "abiotic_simple"
@@ -73,6 +75,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
+        parameters: AbioticSimpleParams,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -86,6 +89,8 @@ class AbioticSimpleModel(BaseModel):
         """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
+        self.parameters = parameters
+        """Set of parameters for the abiotic simple model"""
 
     @classmethod
     def from_config(
@@ -107,11 +112,22 @@ class AbioticSimpleModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
+        # Check if any constants have been supplied
+        if "abiotic_simple" in config and "constants" in config["abiotic_simple"]:
+            # TODO - This should be replaced by a utility function that logs sensible
+            # errors
+            parameters = AbioticSimpleParams(
+                **config["abiotic_simple"]["constants"]["AbioticSimpleParams"]
+            )
+        else:
+            # If no constants are supplied then the defaults should be used
+            parameters = AbioticSimpleParams()
+
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers)
+        return cls(data, update_interval, soil_layers, canopy_layers, parameters)
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.

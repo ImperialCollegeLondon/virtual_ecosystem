@@ -62,18 +62,18 @@ def test_abiotic_simple_model_initialization(
     raises,
     expected_log_entries,
     layer_roles_fixture,
-    soil_layers=2,
-    canopy_layers=10,
 ):
     """Test `AbioticSimpleModel` initialization."""
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
 
     with raises:
         # Initialize model
         model = AbioticSimpleModel(
             dummy_climate_data,
             pint.Quantity("1 week"),
-            soil_layers,
-            canopy_layers,
+            soil_layers=2,
+            canopy_layers=10,
+            parameters=AbioticSimpleParams(),
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -94,10 +94,11 @@ def test_abiotic_simple_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries",
+    "config,time_interval,relative_humid,raises,expected_log_entries",
     [
         (
             {},
+            None,
             None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
@@ -116,6 +117,67 @@ def test_abiotic_simple_model_initialization(
                 },
             },
             pint.Quantity("1 week"),
+            5.4,
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the abiotic simple model "
+                    "successfully extracted.",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'relative_humidity_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'mean_annual_temperature' "
+                    "checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'leaf_area_index' checked",
+                ),
+                (
+                    DEBUG,
+                    "abiotic_simple model: required var 'layer_heights' checked",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 week",
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
+                },
+                "abiotic_simple": {
+                    "constants": {
+                        "AbioticSimpleParams": {"relative_humidity_gradient": 10.2}
+                    }
+                },
+            },
+            pint.Quantity("1 week"),
+            10.2,
             does_not_raise(),
             (
                 (
@@ -157,12 +219,13 @@ def test_abiotic_simple_model_initialization(
             ),
         ),
     ],
-)
+)  # TODO - Test handling of bad dictionaries. Also need test for config parsing.
 def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
     config,
     time_interval,
+    relative_humid,
     raises,
     expected_log_entries,
     layer_roles_fixture,
@@ -178,6 +241,7 @@ def test_generate_abiotic_simple_model(
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
+        assert model.parameters.relative_humidity_gradient == relative_humid
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
