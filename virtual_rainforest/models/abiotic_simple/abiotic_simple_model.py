@@ -154,6 +154,7 @@ class AbioticSimpleModel(BaseModel):
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
+            parameters=self.parameters,
         ).rename(
             "vapour_pressure_deficit_ref"
         )

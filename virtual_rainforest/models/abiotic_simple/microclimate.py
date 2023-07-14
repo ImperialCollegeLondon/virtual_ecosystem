@@ -17,8 +17,6 @@ from xarray import DataArray
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
 
-# TODO - Remove the above import + remove defaults generally
-
 Bounds: dict[str, float] = {
     "air_temperature_min": -20,
     "air_temperature_max": 80,
@@ -91,8 +89,7 @@ def run_microclimate(
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
         time_index: time index, integer
-        MicroclimateGradients: gradients for linear regression
-            :cite:p:`hardwick_relationship_2015`
+        parameters: Set of parameters for the abiotic simple model
         Bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -232,10 +229,7 @@ def log_interpolation(
 
 
 def calculate_saturation_vapour_pressure(
-    temperature: DataArray,
-    factor1: float = AbioticSimpleParams.saturation_vapour_pressure_factor1,
-    factor2: float = AbioticSimpleParams.saturation_vapour_pressure_factor2,
-    factor3: float = AbioticSimpleParams.saturation_vapour_pressure_factor3,
+    temperature: DataArray, factor1: float, factor2: float, factor3: float
 ) -> DataArray:
     r"""Calculate saturation vapour pressure.
 
@@ -263,6 +257,7 @@ def calculate_saturation_vapour_pressure(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
+    parameters: AbioticSimpleParams,
 ) -> DataArray:
     """Calculate vapour pressure deficit.
 
@@ -272,11 +267,18 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
+        parameters: Set of parameters for the abiotic simple model
 
     Return:
         vapour pressure deficit, [kPa]
     """
-    saturation_vapour_pressure = calculate_saturation_vapour_pressure(temperature)
+
+    saturation_vapour_pressure = calculate_saturation_vapour_pressure(
+        temperature,
+        factor1=parameters.saturation_vapour_pressure_factor1,
+        factor2=parameters.saturation_vapour_pressure_factor2,
+        factor3=parameters.saturation_vapour_pressure_factor3,
+    )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
 
     return saturation_vapour_pressure - actual_vapour_pressure

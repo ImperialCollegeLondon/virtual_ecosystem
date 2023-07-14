@@ -103,14 +103,21 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     """Test calculation of saturation vapour pressure."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_saturation_vapour_pressure,
     )
 
     data = dummy_climate_data
 
+    # Extract saturation factors from parameters
+    parameters = AbioticSimpleParams()
+
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0)
+        data["air_temperature_ref"].isel(time_index=0),
+        factor1=parameters.saturation_vapour_pressure_factor1,
+        factor2=parameters.saturation_vapour_pressure_factor2,
+        factor3=parameters.saturation_vapour_pressure_factor3,
     )
 
     exp_output = DataArray(
@@ -124,6 +131,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 def test_calculate_vapour_pressure_deficit():
     """Test calculation of VPD."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_vapour_pressure_deficit,
     )
@@ -176,8 +184,7 @@ def test_calculate_vapour_pressure_deficit():
     )
 
     result = calculate_vapour_pressure_deficit(
-        temperature,
-        rel_humidity,
+        temperature, rel_humidity, parameters=AbioticSimpleParams()
     )
     exp_output = xr.concat(
         [
