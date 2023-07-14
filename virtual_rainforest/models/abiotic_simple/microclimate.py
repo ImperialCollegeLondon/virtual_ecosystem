@@ -15,10 +15,7 @@ import xarray as xr
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.abiotic_simple.constants import (
-    MicroclimateGradients,
-    MicroclimateParameters,
-)
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
 
 Bounds: dict[str, float] = {
     "air_temperature_min": -20,
@@ -42,7 +39,8 @@ def run_microclimate(
     data: Data,
     layer_roles: list[str],
     time_index: int,  # could be datetime?
-    MicroclimateGradients: dict[str, float] = MicroclimateGradients,
+    # TODO - Sort out naming here
+    AbioticSimpleParams: AbioticSimpleParams = AbioticSimpleParams(),
     Bounds: dict[str, float] = Bounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -57,12 +55,12 @@ def run_microclimate(
 
     :math:`y = m * LAI + c`
 
-    where :math:`y` is the variable of interest, math:`m` is the gradient
-    (:data:`~virtual_rainforest.models.abiotic_simple.constants.MicroclimateGradients`)
+    where :math:`y` is the variable of interest, :math:`m` is the gradient
+    (:data:`~virtual_rainforest.models.abiotic_simple.constants.AbioticSimpleParams`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 
-    The other atmospheric layers are calculated by logaritmic regression and
+    The other atmospheric layers are calculated by logarithmic regression and
     interpolation between the input at the top of the canopy and the 1.5 m values.
     Soil temperature is interpolated between the surface layer and the temperature at
     1 m depth which equals the mean annual temperature.
@@ -119,7 +117,7 @@ def run_microclimate(
             layer_heights=data["layer_heights"],
             upper_bound=Bounds[var + "_max"],
             lower_bound=Bounds[var + "_min"],
-            gradient=MicroclimateGradients[var + "_gradient"],
+            gradient=getattr(AbioticSimpleParams, var + "_gradient"),
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
@@ -234,9 +232,9 @@ def log_interpolation(
 
 def calculate_saturation_vapour_pressure(
     temperature: DataArray,
-    factor1: float = MicroclimateParameters["saturation_vapour_pressure_factor1"],
-    factor2: float = MicroclimateParameters["saturation_vapour_pressure_factor2"],
-    factor3: float = MicroclimateParameters["saturation_vapour_pressure_factor3"],
+    factor1: float = AbioticSimpleParams.saturation_vapour_pressure_factor1,
+    factor2: float = AbioticSimpleParams.saturation_vapour_pressure_factor2,
+    factor3: float = AbioticSimpleParams.saturation_vapour_pressure_factor3,
 ) -> DataArray:
     r"""Calculate saturation vapour pressure.
 

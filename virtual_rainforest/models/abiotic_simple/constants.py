@@ -4,19 +4,28 @@ containing parameters  required by the broader
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
-MicroclimateGradients: dict[str, float] = {
-    "air_temperature_gradient": -1.27,
-    "relative_humidity_gradient": 5.4,
-    "vapour_pressure_deficit_gradient": -252.24,
-}
-"""Gradients for linear regression to calculate air temperature, relative humidity, and
-vapour pressure deficit as a function of leaf area index from
-:cite:t:`hardwick_relationship_2015`.
-"""
+from dataclasses import dataclass
 
-MicroclimateParameters: dict[str, float] = {
-    "saturation_vapour_pressure_factor1": 0.61078,
-    "saturation_vapour_pressure_factor2": 7.5,
-    "saturation_vapour_pressure_factor3": 237.3,
-}
-"""Parameters for simple abiotic regression model."""
+
+@dataclass(frozen=True)
+class AbioticSimpleParams:
+    """Dataclass to store all parameters for the `abiotic_simple` model."""
+
+    air_temperature_gradient: float = -1.27
+    """Gradient for linear regression to calculate air temperature as a function of
+    leaf area index from :cite:t:`hardwick_relationship_2015`"""
+
+    relative_humidity_gradient: float = 5.4
+    """Gradient for linear regression to calculate relative humidity as a function of
+    leaf area index from :cite:t:`hardwick_relationship_2015`"""
+
+    vapour_pressure_deficit_gradient: float = -252.24
+    """Gradient for linear regression to calculate vapour pressure deficit as a function
+    of leaf area index from :cite:t:`hardwick_relationship_2015`"""
+
+    saturation_vapour_pressure_factor1: float = 0.61078
+    """factor 1 for saturation vapour pressure calculation."""
+    saturation_vapour_pressure_factor2: float = 7.5
+    """factor 2 for saturation vapour pressure calculation."""
+    saturation_vapour_pressure_factor3: float = 237.3
+    """factor 3 for saturation vapour pressure calculation."""
