@@ -5,8 +5,10 @@ future. Adding functions here can be a good way to reduce the amount boiler plat
 generated for tasks that are repeated across modules.
 """  # noqa: D205, D415
 
+import dataclasses
+from importlib import import_module
 from pathlib import Path
-from typing import List
+from typing import Any
 
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -60,7 +62,7 @@ def check_outfile(merge_file_path: Path) -> None:
     return None
 
 
-def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
+def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
     """Create a list of layer roles.
 
     This function creates a list of layer roles for the vertical dimension of the
@@ -119,3 +121,50 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> List[str]:
         + ["soil"] * soil_layers
     )
     return layer_roles
+
+
+# TODO - Write tests for this function
+def check_constants(config: dict[str, Any], model_name: str, class_name: str) -> None:
+    """Check that the constants defined in the config are expected.
+
+    This checks that the constants are expected for the specific dataclass that they are
+    assigned to, if not an error is raised.
+
+    Args:
+        config: The full virtual rainforest config
+        model_name: Name of the model the constants belong to
+        class_name: Name of the specific dataclass the constants belong to
+
+    Raises:
+        ConfigurationError: If unexpected constant names are used
+    """
+
+    # Import dataclass of interest
+    import_path = f"virtual_rainforest.models.{model_name}.constants"
+    consts_module = import_module(import_path)
+    ConstantsClass = getattr(consts_module, class_name)
+
+    # Extract the relevant set of constants
+    constants = config[model_name]["constants"][class_name]
+
+    # Create list of unexpected names
+    unexpected_names = []
+
+    # Iterate over every item in the constants dictionary
+    for const_name, const_value in constants.items():
+        try:
+            ConstantsClass(**{const_name: const_value})
+        except TypeError:
+            unexpected_names.append(const_name)
+
+    if unexpected_names:
+        LOGGER.error(
+            "Incorrect constant names supplied for %s dataclass: %s"
+            % (class_name, unexpected_names)
+        )
+        # Find all valid names and inform the user about them
+        valid_names = [fld.name for fld in dataclasses.fields(ConstantsClass)]
+        LOGGER.info("Valid names are as follows: %s" % (valid_names))
+        raise ConfigurationError()
+
+    return
