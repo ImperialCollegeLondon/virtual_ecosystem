@@ -219,7 +219,7 @@ def test_abiotic_simple_model_initialization(
             ),
         ),
     ],
-)  # TODO - Test handling of bad dictionaries. Also need test for config parsing.
+)  # TODO - Test handling of bad dictionaries.
 def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
