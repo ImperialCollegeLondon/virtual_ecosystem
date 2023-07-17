@@ -7,7 +7,6 @@ in that they should not be changed during a particular simulation.
 from dataclasses import dataclass
 
 
-# TODO - Document procedure to make dataclasses properly.
 @dataclass(frozen=True)
 class AbioticSimpleParams:
     """Dataclass to store all parameters for the `abiotic_simple` model."""
