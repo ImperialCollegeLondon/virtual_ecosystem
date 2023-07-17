@@ -39,7 +39,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-        parameters: Set of parameters for the abiotic simple model.
+        constants: Set of constants for the abiotic simple model.
     """
 
     model_name = "abiotic_simple"
@@ -74,7 +74,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
-        parameters: AbioticSimpleConsts,
+        constants: AbioticSimpleConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -88,8 +88,8 @@ class AbioticSimpleModel(BaseModel):
         """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
-        self.parameters = parameters
-        """Set of parameters for the abiotic simple model"""
+        self.constants = constants
+        """Set of constants for the abiotic simple model"""
 
     @classmethod
     def from_config(
@@ -116,18 +116,18 @@ class AbioticSimpleModel(BaseModel):
             # Checks that constants is config are as expected
             check_constants(config, "abiotic_simple", "AbioticSimpleConsts")
             # If an error isn't raised then generate the dataclass
-            parameters = AbioticSimpleConsts(
+            constants = AbioticSimpleConsts(
                 **config["abiotic_simple"]["constants"]["AbioticSimpleConsts"]
             )
         else:
             # If no constants are supplied then the defaults should be used
-            parameters = AbioticSimpleConsts()
+            constants = AbioticSimpleConsts()
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, parameters)
+        return cls(data, update_interval, soil_layers, canopy_layers, constants)
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.
@@ -155,7 +155,7 @@ class AbioticSimpleModel(BaseModel):
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            parameters=self.parameters,
+            constants=self.constants,
         ).rename(
             "vapour_pressure_deficit_ref"
         )
@@ -177,7 +177,7 @@ class AbioticSimpleModel(BaseModel):
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=time_index,
-            parameters=self.parameters,
+            constants=self.constants,
         )
         self.data.add_from_dict(output_dict=output_variables)
 

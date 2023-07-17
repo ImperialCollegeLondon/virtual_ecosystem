@@ -74,7 +74,7 @@ def test_abiotic_simple_model_initialization(
             pint.Quantity("1 week"),
             soil_layers=2,
             canopy_layers=10,
-            parameters=AbioticSimpleConsts(),
+            constants=AbioticSimpleConsts(),
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -275,7 +275,7 @@ def test_generate_abiotic_simple_model(
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
-        assert model.parameters.relative_humidity_gradient == relative_humid
+        assert model.constants.relative_humidity_gradient == relative_humid
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

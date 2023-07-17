@@ -110,14 +110,14 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 
     data = dummy_climate_data
 
-    # Extract saturation factors from parameters
-    parameters = AbioticSimpleConsts()
+    # Extract saturation factors from constants
+    constants = AbioticSimpleConsts()
 
     result = calculate_saturation_vapour_pressure(
         data["air_temperature_ref"].isel(time_index=0),
-        factor1=parameters.saturation_vapour_pressure_factor1,
-        factor2=parameters.saturation_vapour_pressure_factor2,
-        factor3=parameters.saturation_vapour_pressure_factor3,
+        factor1=constants.saturation_vapour_pressure_factor1,
+        factor2=constants.saturation_vapour_pressure_factor2,
+        factor3=constants.saturation_vapour_pressure_factor3,
     )
 
     exp_output = DataArray(
@@ -184,7 +184,7 @@ def test_calculate_vapour_pressure_deficit():
     )
 
     result = calculate_vapour_pressure_deficit(
-        temperature, rel_humidity, parameters=AbioticSimpleConsts()
+        temperature, rel_humidity, constants=AbioticSimpleConsts()
     )
     exp_output = xr.concat(
         [
@@ -230,7 +230,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
-        parameters=AbioticSimpleConsts(),
+        constants=AbioticSimpleConsts(),
     )
 
     exp_air_temperature = xr.concat(

@@ -39,7 +39,7 @@ def run_microclimate(
     data: Data,
     layer_roles: list[str],
     time_index: int,  # could be datetime?
-    parameters: AbioticSimpleConsts,
+    constants: AbioticSimpleConsts,
     Bounds: dict[str, float] = Bounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -89,7 +89,7 @@ def run_microclimate(
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
         time_index: time index, integer
-        parameters: Set of parameters for the abiotic simple model
+        constants: Set of constants for the abiotic simple model
         Bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -115,7 +115,7 @@ def run_microclimate(
             layer_heights=data["layer_heights"],
             upper_bound=Bounds[var + "_max"],
             lower_bound=Bounds[var + "_min"],
-            gradient=getattr(parameters, var + "_gradient"),
+            gradient=getattr(constants, var + "_gradient"),
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
@@ -257,7 +257,7 @@ def calculate_saturation_vapour_pressure(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    parameters: AbioticSimpleConsts,
+    constants: AbioticSimpleConsts,
 ) -> DataArray:
     """Calculate vapour pressure deficit.
 
@@ -267,7 +267,7 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        parameters: Set of parameters for the abiotic simple model
+        constants: Set of constants for the abiotic simple model
 
     Return:
         vapour pressure deficit, [kPa]
@@ -275,9 +275,9 @@ def calculate_vapour_pressure_deficit(
 
     saturation_vapour_pressure = calculate_saturation_vapour_pressure(
         temperature,
-        factor1=parameters.saturation_vapour_pressure_factor1,
-        factor2=parameters.saturation_vapour_pressure_factor2,
-        factor3=parameters.saturation_vapour_pressure_factor3,
+        factor1=constants.saturation_vapour_pressure_factor1,
+        factor2=constants.saturation_vapour_pressure_factor2,
+        factor3=constants.saturation_vapour_pressure_factor3,
     )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
 
