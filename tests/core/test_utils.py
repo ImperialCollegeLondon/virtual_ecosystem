@@ -140,7 +140,7 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
             {
                 "abiotic_simple": {
                     "constants": {
-                        "AbioticSimpleParams": {"air_temperature_gradient": -1.0}
+                        "AbioticSimpleConsts": {"air_temperature_gradient": -1.0}
                     }
                 }
             },
@@ -152,7 +152,7 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
             {
                 "abiotic_simple": {
                     "constants": {
-                        "AbioticSimpleParams": {
+                        "AbioticSimpleConsts": {
                             "air_temperature_gradient": -1.0,
                             "invented_constant": 37.9,
                             "saturation_vapour_pressure_factor4": 0.07,
@@ -164,7 +164,7 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
             (
                 (
                     ERROR,
-                    "Incorrect constant names supplied for AbioticSimpleParams "
+                    "Incorrect constant names supplied for AbioticSimpleConsts "
                     "dataclass: ['invented_constant', "
                     "'saturation_vapour_pressure_factor4']",
                 ),
@@ -183,7 +183,7 @@ def test_check_constants(caplog, config, raises, exp_log):
 
     with raises:
         check_constants(
-            config, model_name="abiotic_simple", class_name="AbioticSimpleParams"
+            config, model_name="abiotic_simple", class_name="AbioticSimpleConsts"
         )
 
     # Final check that expected logging entries are produced

@@ -65,7 +65,7 @@ def test_abiotic_simple_model_initialization(
     layer_roles_fixture,
 ):
     """Test `AbioticSimpleModel` initialization."""
-    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
     with raises:
         # Initialize model
@@ -74,7 +74,7 @@ def test_abiotic_simple_model_initialization(
             pint.Quantity("1 week"),
             soil_layers=2,
             canopy_layers=10,
-            parameters=AbioticSimpleParams(),
+            parameters=AbioticSimpleConsts(),
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -173,7 +173,7 @@ def test_abiotic_simple_model_initialization(
                 },
                 "abiotic_simple": {
                     "constants": {
-                        "AbioticSimpleParams": {"relative_humidity_gradient": 10.2}
+                        "AbioticSimpleConsts": {"relative_humidity_gradient": 10.2}
                     }
                 },
             },
@@ -233,7 +233,7 @@ def test_abiotic_simple_model_initialization(
                 },
                 "abiotic_simple": {
                     "constants": {
-                        "AbioticSimpleParams": {"relative_humidity_grad": 10.2}
+                        "AbioticSimpleConsts": {"relative_humidity_grad": 10.2}
                     }
                 },
             },
@@ -243,7 +243,7 @@ def test_abiotic_simple_model_initialization(
             (
                 (
                     ERROR,
-                    "Incorrect constant names supplied for AbioticSimpleParams "
+                    "Incorrect constant names supplied for AbioticSimpleConsts "
                     "dataclass: ['relative_humidity_grad']",
                 ),
                 (

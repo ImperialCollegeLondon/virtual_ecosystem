@@ -476,7 +476,7 @@ def test_Config_build_schema(
             {
                 "core": {"modules": ["abiotic_simple"]},
                 "abiotic_simple": {
-                    "constants": {"AbioticSimpleParams": {"constant1": 1.0}}
+                    "constants": {"AbioticSimpleConsts": {"constant1": 1.0}}
                 },
             },
             does_not_raise(),
@@ -493,7 +493,7 @@ def test_Config_build_schema(
                 (
                     ERROR,
                     "Configuration error in ['abiotic_simple', 'constants']: "
-                    "'AbioticSimpleParams' is a required property",
+                    "'AbioticSimpleConsts' is a required property",
                 ),
                 (
                     ERROR,
@@ -502,7 +502,7 @@ def test_Config_build_schema(
                 ),
                 (CRITICAL, "Configuration contains schema violations: check log"),
             ),
-            id="missing AbioticSimpleParams",
+            id="missing AbioticSimpleConsts",
         ),
     ],
 )

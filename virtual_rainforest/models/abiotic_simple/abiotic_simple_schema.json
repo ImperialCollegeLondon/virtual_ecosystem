@@ -9,12 +9,12 @@
                     "description": "Constants for the abiotic_simple module",
                     "type": "object",
                     "properties": {
-                        "AbioticSimpleParams": {
+                        "AbioticSimpleConsts": {
                             "type": "object"
                         }
                     },
                     "required": [
-                        "AbioticSimpleParams"
+                        "AbioticSimpleConsts"
                     ]
                 }
             },

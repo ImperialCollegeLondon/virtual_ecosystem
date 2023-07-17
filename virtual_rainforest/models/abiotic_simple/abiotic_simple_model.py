@@ -28,7 +28,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_constants, set_layer_roles
 from virtual_rainforest.models.abiotic_simple import microclimate
-from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleParams
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 class AbioticSimpleModel(BaseModel):
@@ -74,7 +74,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
-        parameters: AbioticSimpleParams,
+        parameters: AbioticSimpleConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -114,14 +114,14 @@ class AbioticSimpleModel(BaseModel):
         # Check if any constants have been supplied
         if "abiotic_simple" in config and "constants" in config["abiotic_simple"]:
             # Checks that constants is config are as expected
-            check_constants(config, "abiotic_simple", "AbioticSimpleParams")
+            check_constants(config, "abiotic_simple", "AbioticSimpleConsts")
             # If an error isn't raised then generate the dataclass
-            parameters = AbioticSimpleParams(
-                **config["abiotic_simple"]["constants"]["AbioticSimpleParams"]
+            parameters = AbioticSimpleConsts(
+                **config["abiotic_simple"]["constants"]["AbioticSimpleConsts"]
             )
         else:
             # If no constants are supplied then the defaults should be used
-            parameters = AbioticSimpleParams()
+            parameters = AbioticSimpleConsts()
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
