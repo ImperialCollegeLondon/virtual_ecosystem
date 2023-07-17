@@ -180,7 +180,7 @@ def __init__(
     data: Data,
     update_interval: pint.Quantity,
     no_of_ponds: int,
-    parameters: FreshwaterParams,
+    constants: FreshwaterConsts,
     **kwargs: Any,
 ):
         
@@ -198,8 +198,8 @@ def __init__(
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
     
-    # Store the parameters relevant to the freshwater model
-    self.parameters = parameters
+    # Store the constants relevant to the freshwater model
+    self.constants = constants
 
     # Save attribute names to be used by the __repr__
     self._repr.append("no_of_ponds")
@@ -308,11 +308,11 @@ return an initialised instance of the model using the settings. The `from_config
 method should raise an `InitialisationError` if the configuration fails.
 
 The `from_config` method should also check if any constants have been provided as part
-of the configuration. If they haven't a default set of parameters is generated. If they
-have been supplied they are used to generate a custom set of parameters. The
+of the configuration. If they haven't a default set of constants is generated. If they
+have been supplied they are used to generate a custom set of constants. The
 {func}`~virtual_rainforest.core.utils.check_constants` utility function is used to check
-that no constant has been supplied with an incorrect name. At least one parameter class
-should be created, but it's fine to split parameters across more classes if that makes
+that no constant has been supplied with an incorrect name. At least one constants class
+should be created, but it's fine to split constants across more classes if that makes
 for clearer code.
 
 As an example:
@@ -340,19 +340,19 @@ def from_config(
     # Check if any constants have been supplied
     if "freshwater" in config and "constants" in config["freshwater"]:
         # Checks that constants is config are as expected
-        check_constants(config, "freshwater", "FreshwaterParams")
+        check_constants(config, "freshwater", "FreshwaterConsts")
         # If an error isn't raised then generate the dataclass
-        parameters = FreshwaterParams(
-            **config["freshwater"]["constants"]["FreshwaterParams"]
+        constants = FreshwaterConsts(
+            **config["freshwater"]["constants"]["FreshwaterConsts"]
         )
     else:
         # If no constants are supplied then the defaults should be used
-        parameters = FreshwaterParams()
+        constants = FreshwaterConsts()
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
     )
-    return cls(data, update_interval, no_pools, parameters)
+    return cls(data, update_interval, no_pools, constants)
 
 ```
 
