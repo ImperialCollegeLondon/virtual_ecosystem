@@ -1,7 +1,7 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, INFO
+from logging import DEBUG, ERROR, INFO
 
 import numpy as np
 import pint
@@ -10,6 +10,7 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     AbioticSimpleModel,
 )
@@ -218,8 +219,41 @@ def test_abiotic_simple_model_initialization(
                 ),
             ),
         ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 week",
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
+                },
+                "abiotic_simple": {
+                    "constants": {
+                        "AbioticSimpleParams": {"relative_humidity_grad": 10.2}
+                    }
+                },
+            },
+            None,
+            None,
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Incorrect constant names supplied for AbioticSimpleParams "
+                    "dataclass: ['relative_humidity_grad']",
+                ),
+                (
+                    INFO,
+                    "Valid names are as follows: [",
+                ),
+            ),
+        ),
     ],
-)  # TODO - Test handling of bad dictionaries.
+)
 def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
