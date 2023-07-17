@@ -123,7 +123,6 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
     return layer_roles
 
 
-# TODO - Write tests for this function
 def check_constants(config: dict[str, Any], model_name: str, class_name: str) -> None:
     """Check that the constants defined in the config are expected.
 
