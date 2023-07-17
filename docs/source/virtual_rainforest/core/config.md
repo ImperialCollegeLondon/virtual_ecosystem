@@ -50,6 +50,21 @@ optional. A list of modules to be configured can be specified using the tag
 critically fail. If this tag isn't provided the default set of modules will be loaded,
 i.e. the standard versions of `animals`, `plants`, `soil`, and `abiotic`.
 
+## Model constants
+
+As well as general options to the setup the models, the configuration will contain
+constants. These will need to be varied in order for sensitivity analysis to be carried
+out. This means that they have to be specified in a standard way so that the sensitivity
+analysis can find and alter them straightforwardly. Each model should define its own set
+of constants under `model_name.constants`. Within this one or more groups of constants
+should be defined, these groups are each input for a particular dataclass in the relevant
+`constants.py` module, and should use the same name as this dataclass. Individual
+constants should then be defined within these groups. The full tag structure would take
+the following pattern `model_name.constants.SomeVars.constant_1`. It is important to
+note that **only** the constants you wish to change need to be included in the
+configuration, any constant that isn't given will just use the default value set in the
+relevant `constants.py` module.
+
 ## JSON schema
 
 The contents of the config files are validated using [`JSON
