@@ -18,7 +18,7 @@ that all model configuration failures can be reported as one.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import numpy as np
 import xarray as xr
@@ -260,7 +260,7 @@ class HydrologyModel(BaseModel):
 
 
 def calculate_soil_moisture(
-    layer_roles: List,
+    layer_roles: list,
     layer_heights: DataArray,
     precipitation_surface: DataArray,
     current_soil_moisture: DataArray,
@@ -272,7 +272,7 @@ def calculate_soil_moisture(
         "soil_moisture_capacity"
     ],
     meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
-) -> Dict[str, DataArray]:
+) -> dict[str, DataArray]:
     """Calculate soil moisture, surface runoff, soil evaporation, and vertical flow.
 
     Soil moisture and surface runoff are calculated with a simple bucket model based on
