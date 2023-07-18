@@ -284,7 +284,7 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.211151, 0.219029, 0.580884], [0.211151, 0.219029, 0.580884]],
+                [[0.211148, 0.219029, 0.580884], [0.211148, 0.219029, 0.580884]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -298,12 +298,12 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
     )
 
     exp_vertical_flow = DataArray(
-        [1.733734, 0.067676, 21.02778],
+        [1.737624, 0.067949, 21.027966],
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
     exp_soil_evap = DataArray(
-        [0.393601, 0.880118, 1.244674],
+        [0.295455, 0.671849, 1.244674],
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
@@ -356,5 +356,5 @@ def test_calculate_soil_evaporation():
     )
     xr.testing.assert_allclose(
         result,
-        DataArray([0.292173, 0.760504, 1.760455], dims=["cell_id"]),
+        DataArray([0.263425, 0.760504, 1.760455], dims=["cell_id"]),
     )

@@ -530,22 +530,15 @@ def calculate_soil_evaporation(
         soil evaporation, [mm]
     """
 
+    # Convert temperature to Kelvin
+    temperature_k = temperature + celsius_to_kelvin
+
     # Estimate alpha using the Barton (1979) equation
-    alpha = np.where(
-        (1.8 * soil_moisture / soil_moisture + 0.3) > 1,
-        1,
-        (1.8 * soil_moisture / soil_moisture + 0.3),
-    )
+    barton_ratio = (1.8 * soil_moisture) / (soil_moisture + 0.3)
+    alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
     saturation_vapour_pressure = DataArray(
-        (
-            0.6112
-            * np.exp(
-                (17.67 * (temperature + celsius_to_kelvin))
-                / (temperature + celsius_to_kelvin + 243.5)
-            )
-        ),
-        dims=["cell_id"],
+        0.6112 * np.exp((17.67 * (temperature_k)) / (temperature_k + 243.5))
     )
 
     saturated_specific_humidity = DataArray(
