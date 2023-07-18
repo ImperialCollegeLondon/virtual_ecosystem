@@ -30,7 +30,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.hydrology.hydrology_constants import HydrologyParameters
+from virtual_rainforest.models.hydrology.hydrology_constants import HydroConsts
 
 
 class HydrologyModel(BaseModel):
@@ -224,12 +224,11 @@ class HydrologyModel(BaseModel):
 
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
-        precipitation_surface = self.data["precipitation"].isel(
-            time_index=time_index
-        ) * (
-            1
-            - HydrologyParameters["water_interception_factor"]
-            * self.data["leaf_area_index"].sum(dim="layers")
+        current_precipitation = self.data["precipitation"].isel(time_index=time_index)
+        leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers")
+
+        precipitation_surface = current_precipitation * (
+            1 - HydroConsts["water_interception_factor"] * leaf_area_index_sum
         )
 
         # Calculate soil moisture, [relative water content], vertical flow, [m3/time
@@ -249,7 +248,8 @@ class HydrologyModel(BaseModel):
                 (self.data["atmospheric_pressure_ref"]).isel(time_index=time_index)
             ),
             wind_speed=0.1,  # TODO include wind in data set?
-            soil_moisture_capacity=HydrologyParameters["soil_moisture_capacity"],
+            soil_moisture_capacity=HydroConsts["soil_moisture_capacity"],
+            soil_moisture_residual=HydroConsts["soil_moisture_residual"],
         )
 
         # update data object
@@ -268,10 +268,13 @@ def calculate_soil_moisture(
     relative_humidity: DataArray,
     atmospheric_pressure: DataArray,
     wind_speed: Union[DataArray, float] = 0.1,
-    soil_moisture_capacity: Union[DataArray, float] = HydrologyParameters[
+    soil_moisture_capacity: Union[DataArray, float] = HydroConsts[
         "soil_moisture_capacity"
     ],
-    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
+    soil_moisture_residual: Union[DataArray, float] = HydroConsts[
+        "soil_moisture_residual"
+    ],
+    meters_to_millimeters: float = HydroConsts["meters_to_millimeters"],
 ) -> dict[str, DataArray]:
     """Calculate soil moisture, surface runoff, soil evaporation, and vertical flow.
 
@@ -302,6 +305,7 @@ def calculate_soil_moisture(
         wind_speed: wind speed at reference height, [m s-1]
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
+        soil_moisture_residual: residual soil moisture, [relative water content]
         meters_to_millimeters: conversion factor from meters to millimeters
 
     Returns:
@@ -363,16 +367,17 @@ def calculate_soil_moisture(
         wind_speed=wind_speed,
     )
 
-    # Calculate soil mositure after evaporation
-    soil_moisture_residual = (
+    # Calculate soil moisture after evaporation
+    soil_moisture_evap = (
         soil_moisture_infiltrated - output["soil_evaporation"] / soil_depth
     )
 
     # Calculate vertical flow in mm per time step for mean soil moisture
     output["vertical_flow"] = calculate_vertical_flow(
-        soil_moisture_residual=soil_moisture_residual,
+        soil_moisture=soil_moisture_evap,
         soil_depth=soil_depth,
         soil_moisture_capacity=soil_moisture_capacity,
+        soil_moisture_residual=soil_moisture_residual,
     )
 
     # Reduce mean soil moisture by vertical flow - this shouldn't get negative
@@ -414,25 +419,23 @@ def calculate_soil_moisture(
 
 
 def calculate_vertical_flow(
-    soil_moisture_residual: DataArray,
+    soil_moisture: DataArray,
     soil_depth: DataArray,
     soil_moisture_capacity: Union[float, DataArray] = (
-        HydrologyParameters["soil_moisture_capacity"]
+        HydroConsts["soil_moisture_capacity"]
+    ),
+    soil_moisture_residual: Union[float, DataArray] = (
+        HydroConsts["soil_moisture_residual"]
     ),
     hydraulic_conductivity: Union[float, DataArray] = (
-        HydrologyParameters["hydraulic_conductivity"]
+        HydroConsts["hydraulic_conductivity"]
     ),
-    hydraulic_gradient: Union[float, DataArray] = (
-        HydrologyParameters["hydraulic_gradient"]
-    ),
-    timestep_conversion_factor: float = (HydrologyParameters["seconds_to_month"]),
-    steepness_water_retention_curve: Union[float, DataArray] = (
-        HydrologyParameters["steepness_water_retention_curve"]
-    ),
+    hydraulic_gradient: Union[float, DataArray] = (HydroConsts["hydraulic_gradient"]),
+    timestep_conversion_factor: float = (HydroConsts["seconds_to_month"]),
     nonlinearily_parameter: Union[float, DataArray] = (
-        HydrologyParameters["nonlinearily_parameter"]
+        HydroConsts["nonlinearily_parameter"]
     ),
-    meters_to_millimeters: float = HydrologyParameters["meters_to_millimeters"],
+    meters_to_millimeters: float = HydroConsts["meters_to_millimeters"],
 ) -> DataArray:
     """Calculate vertical water flow through soil column.
 
@@ -441,22 +444,18 @@ def calculate_vertical_flow(
     retention curve to account for the varying moisture content.
 
     First, the function calculates the effective hydraulic conductivity based on the
-    moisture content using the van Genuchten equation. Then, it applies Darcy's law to
-    calculate the water flow rate considering the effective hydraulic conductivity.
+    moisture content using the van Genuchten/Mualem model. Then, it applies Darcy's law
+    to calculate the water flow rate considering the effective hydraulic conductivity.
 
     Args:
-        soil_moisture_residual: residual soil moisture, [relative water content]
+        soil_moisture: soil moisture in top soil, [relative water content]
         soil_depths: soil depths = length of the flow path, [m]
         soil_moisture_capacity: soil moisture capacity, [relative water content]
+        soil_moisture_residual: residual soil moisture, [relative water content]
         hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
         hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
         timestep_conversion_factor: factor to convert flow from m3/s to model time step
-        steepness_water_retention_curve: dimensionless parameter in van Genuchten model
-            that describes the steepness of the water retention curve. Smaller values
-            correspond to steeper curves, indicating that the soil retains water at a
-            higher matric potential. Larger values result in flatter curves, indicating
-            that the soil retains water at a lower matric potential.
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
@@ -464,24 +463,18 @@ def calculate_vertical_flow(
     Returns:
         volumetric flow rate of water, [m3/timestep]
     """
-    # Define the soil water retention curve parameters (van Genuchten model)
-    # TODO abs(hydraulic) gradient support for datatype to allow negative values
-    theta = soil_moisture_capacity - (
+    m = 1 - 1 / nonlinearily_parameter
+
+    # calculate soil saturation level
+    saturation_level = (soil_moisture - soil_moisture_residual) / (
         soil_moisture_capacity - soil_moisture_residual
-    ) / (
-        1
-        + (steepness_water_retention_curve * hydraulic_gradient)
-        ** nonlinearily_parameter
-    ) ** (
-        1 - 1 / nonlinearily_parameter
     )
 
     # Calculate the effective hydraulic conductivity
-    m = 1 - 1 / nonlinearily_parameter
     effective_conductivity = (
         hydraulic_conductivity
-        * (theta / soil_moisture_capacity) ** (0.5)
-        * (1 - (1 - (theta / soil_moisture_capacity) ** (1 / m)) ** m) ** 2
+        * saturation_level
+        * (1 - (1 - (saturation_level) ** (1 / m)) ** m) ** 2
     )
 
     # Calculate the water flow rate in m3 per seconds and convert to mm per timestep
@@ -500,18 +493,18 @@ def calculate_soil_evaporation(
     atmospheric_pressure: DataArray,
     soil_moisture: DataArray,
     wind_speed: Union[float, DataArray] = 0.5,
-    celsius_to_kelvin: float = HydrologyParameters["celsius_to_kelvin"],  # TODO move
-    density_air: float = HydrologyParameters["density_air"],
-    latent_heat_vapourisation: float = HydrologyParameters["latent_heat_vapourisation"],
-    gas_constant_water_vapour: float = HydrologyParameters["gas_constant_water_vapour"],
-    heat_transfer_coefficient: float = HydrologyParameters["heat_transfer_coefficient"],
-    flux_to_mm_conversion: float = HydrologyParameters["flux_to_mm_conversion"],
-    timestep_conversion_factor: float = HydrologyParameters["seconds_to_month"],
+    celsius_to_kelvin: float = HydroConsts["celsius_to_kelvin"],
+    density_air: float = HydroConsts["density_air"],
+    latent_heat_vapourisation: float = HydroConsts["latent_heat_vapourisation"],
+    gas_constant_water_vapour: float = HydroConsts["gas_constant_water_vapour"],
+    heat_transfer_coefficient: float = HydroConsts["heat_transfer_coefficient"],
+    flux_to_mm_conversion: float = HydroConsts["flux_to_mm_conversion"],
+    timestep_conversion_factor: float = HydroConsts["seconds_to_month"],
 ) -> DataArray:
     """Calculate soil evaporation based classical bulk aerodynamic formulation.
 
     TODO write description and add references
-    TODO move constants to HydrologyParameters or CoreConstants and check values
+    TODO move constants to HydroConsts or CoreConstants and check values
 
     Args:
         temperature: air temperature at reference height, [C]

@@ -9,13 +9,13 @@ sensitivity analysis to produce meaningful results.
 
 from typing import Dict
 
-HydrologyParameters: Dict[str, float] = {
+HydroConsts: Dict[str, float] = {
     "soil_moisture_capacity": 0.9,  # dimensionless
+    "soil_moisture_residual": 0.1,  # dimensionless
     "water_interception_factor": 0.1,  # dimensionless
     "hydraulic_conductivity": 0.001,  # m/s
     "hydraulic_gradient": 0.01,  # m/m
     "seconds_to_month": 2.628e6,
-    "steepness_water_retention_curve": 0.01,
     "nonlinearily_parameter": 2.0,
     "meters_to_millimeters": 1000,
     "celsius_to_kelvin": 273.15,
@@ -25,4 +25,4 @@ HydrologyParameters: Dict[str, float] = {
     "heat_transfer_coefficient": 12.5,  # `van_de_griend_bare_1994`
     "flux_to_mm_conversion": 3.35e-4,
 }
-"""Parameters for hydrology model."""
+"""Constants for hydrology model."""
