@@ -169,90 +169,34 @@ class HydrologyModel(BaseModel):
             name="soil_moisture",
         )
 
-        # create initial air temperature profile with reference temperature at surface
+        # create initial air temperature with reference temperature below the canopy
         # for first soil evaporation update.
         self.data["air_temperature"] = (
-            xr.concat(
-                [
-                    DataArray(
-                        np.full(
-                            (
-                                len(self.layer_roles)
-                                - self.layer_roles.count("soil")
-                                - 2,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                    self.data["air_temperature_ref"]
-                    .isel(time_index=0)
-                    .expand_dims("layers"),
-                    DataArray(
-                        np.full(
-                            (
-                                self.layer_roles.count("soil") + 1,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                ],
-                dim="layers",
-            )
+            DataArray(self.data["air_temperature_ref"].isel(time_index=0))
+            .expand_dims("layers")
+            .rename("air_temperature")
             .assign_coords(
                 coords={
-                    "layers": np.arange(len(self.layer_roles)),
-                    "layer_roles": ("layers", self.layer_roles),
+                    "layers": [self.layer_roles.index("subcanopy")],
+                    "layer_roles": ("layers", ["subcanopy"]),
                     "cell_id": self.data.grid.cell_id,
                 },
             )
-            .rename("air_temperature")
         )
 
-        # create initial relative humidity profile with reference humidity at surface
+        # create initial relative humidity  with reference humidity below the canopy
         # for first soil evaporation update.
         self.data["relative_humidity"] = (
-            xr.concat(
-                [
-                    DataArray(
-                        np.full(
-                            (
-                                len(self.layer_roles)
-                                - self.layer_roles.count("soil")
-                                - 2,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                    self.data["relative_humidity_ref"]
-                    .isel(time_index=0)
-                    .expand_dims("layers"),
-                    DataArray(
-                        np.full(
-                            (
-                                self.layer_roles.count("soil") + 1,
-                                len(self.data.grid.cell_id),
-                            ),
-                            np.nan,
-                        ),
-                        dims=["layers", "cell_id"],
-                    ),
-                ],
-                dim="layers",
-            )
+            DataArray(self.data["relative_humidity_ref"].isel(time_index=0))
+            .expand_dims("layers")
+            .rename("relative_humidity")
             .assign_coords(
                 coords={
-                    "layers": np.arange(len(self.layer_roles)),
-                    "layer_roles": ("layers", self.layer_roles),
+                    "layers": [self.layer_roles.index("subcanopy")],
+                    "layer_roles": ("layers", ["subcanopy"]),
                     "cell_id": self.data.grid.cell_id,
                 },
             )
-            .rename("relative_humidity")
         )
 
     def spinup(self) -> None:
@@ -296,10 +240,10 @@ class HydrologyModel(BaseModel):
             precipitation_surface=precipitation_surface,
             current_soil_moisture=self.data["soil_moisture"],
             temperature=self.data["air_temperature"]
-            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 2)
+            .isel(layers=self.layer_roles.index("subcanopy"))
             .drop_vars(["layer_roles", "layers"]),
             relative_humidity=self.data["relative_humidity"]
-            .isel(layers=len(self.layer_roles) - self.layer_roles.count("soil") - 2)
+            .isel(layers=self.layer_roles.index("subcanopy"))
             .drop_vars(["layer_roles", "layers"]),
             atmospheric_pressure=(
                 (self.data["atmospheric_pressure_ref"]).isel(time_index=time_index)
