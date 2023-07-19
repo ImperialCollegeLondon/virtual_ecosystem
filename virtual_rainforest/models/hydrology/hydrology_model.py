@@ -61,8 +61,6 @@ class HydrologyModel(BaseModel):
         ("atmospheric_pressure_ref", ("spatial",)),
     )
     # TODO add time dimension
-    # TODO at the momement, the reference height is at 2m. This will change to a higher
-    # atmospheric level, likely 10m. Then this first step will return faulty values.
     """The required variables and axes for the hydrology model"""
     vars_updated = [
         "soil_moisture",
@@ -141,8 +139,11 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes soil moisture homogenously for all
-        soil layers and initializes air temperature and relative humidity to calculate
-        soil evaporation and soil moisture for the first update().
+        soil layers and initializes air temperature and relative humidity below the
+        canopy to calculate soil hydrology for the first update(). This might change
+        with the implementation of the SPLASH model in the plant module which will take
+        care of the above-ground hydrology; the hydrology model will calculate the
+        catchment scale hydrology.
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -212,11 +213,12 @@ class HydrologyModel(BaseModel):
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
         and
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
-        functions.
+        functions. Note that this will likely change with the implementation of the
+        SPLASH model in the plant module which will take care of the above-ground
+        hydrology; the hydrology model will calculate the catchment scale hydrology.
 
-        The water extracted by plant roots (= evapotranspiration) is not included. In
-        the Virtual Rainforest simulation, the reduction of soil moisture due to
-        evapotranspiration will be considered after running the plant model.
+        The water extracted by plant roots (= evapotranspiration) and horizontal flow
+        between grid cells (above and below the surface) are currently not included.
 
         TODO make it less nested so the number of inputs are sensible?
         TODO Implement horizontal sub-surface flow and stream flow
@@ -227,6 +229,8 @@ class HydrologyModel(BaseModel):
         current_precipitation = self.data["precipitation"].isel(time_index=time_index)
         leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers")
 
+        # Interception: precipitation at the surface is reduced as a function of leaf
+        # area index
         precipitation_surface = current_precipitation * (
             1 - HydroConsts["water_interception_factor"] * leaf_area_index_sum
         )
