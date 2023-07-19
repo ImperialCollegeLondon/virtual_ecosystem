@@ -143,26 +143,19 @@ def check_constants(config: dict[str, Any], model_name: str, class_name: str) ->
     consts_module = import_module(import_path)
     ConstantsClass = getattr(consts_module, class_name)
 
-    # Extract the relevant set of constants
-    constants = config[model_name]["constants"][class_name]
+    # Extract a set of provided constant names
+    provided_names = set(config[model_name]["constants"][class_name].keys())
 
-    # Create list of unexpected names
-    unexpected_names = []
-
-    # Iterate over every item in the constants dictionary
-    for const_name, const_value in constants.items():
-        try:
-            ConstantsClass(**{const_name: const_value})
-        except TypeError:
-            unexpected_names.append(const_name)
-
+    # Get a set of valid names
+    valid_names = {fld.name for fld in dataclasses.fields(ConstantsClass)}
+    
+    # Check for unexpected names
+    unexpected_names = provided_names.difference(valid_names)
     if unexpected_names:
         LOGGER.error(
-            "Incorrect constant names supplied for %s dataclass: %s"
-            % (class_name, unexpected_names)
+            "Unknown names supplied for %s constants: %s"
+            % (class_name, ', '.join(unexpected_names))
         )
-        # Find all valid names and inform the user about them
-        valid_names = [fld.name for fld in dataclasses.fields(ConstantsClass)]
         LOGGER.info("Valid names are as follows: %s" % (valid_names))
         raise ConfigurationError()
 
