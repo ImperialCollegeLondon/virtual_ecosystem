@@ -444,15 +444,17 @@ def calculate_vertical_flow(
     """Calculate vertical water flow through soil column.
 
     To calculate the flow of water through unsaturated soil, this function uses the
-    Richards equation which considers both the hydraulic conductivity and the soil water
-    retention curve to account for the varying moisture content.
+    Richards equation. First, the function calculates the effective hydraulic
+    conductivity based on the moisture content using the van Genuchten/Mualem model.
+    Then, it applies Darcy's law to calculate the water flow rate considering the
+    effective hydraulic conductivity. We assume the whole soil column as one layer and
+    the soil moisture to be the mean soil moisture.
 
-    First, the function calculates the effective hydraulic conductivity based on the
-    moisture content using the van Genuchten/Mualem model. Then, it applies Darcy's law
-    to calculate the water flow rate considering the effective hydraulic conductivity.
+    This function could be replaced with a more sophisticaed, multi-layer model or a
+    simple residence time assumption.
 
     Args:
-        soil_moisture: soil moisture in top soil, [relative water content]
+        soil_moisture: (mean) soil moisture in top soil, [relative water content]
         soil_depths: soil depths = length of the flow path, [m]
         soil_moisture_capacity: soil moisture capacity, [relative water content]
         soil_moisture_residual: residual soil moisture, [relative water content]
