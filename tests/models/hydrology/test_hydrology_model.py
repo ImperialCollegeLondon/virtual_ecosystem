@@ -29,6 +29,18 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                     DEBUG,
                     "hydrology model: required var 'leaf_area_index' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'relative_humidity_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'atmospheric_pressure_ref' checked",
+                ),
             ),
         ),
         (
@@ -134,6 +146,18 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'leaf_area_index' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'relative_humidity_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'atmospheric_pressure_ref' checked",
+                ),
             ),
         ),
     ],
@@ -231,7 +255,7 @@ def test_setup(
                 dims=["layers", "cell_id"],
             ),
             DataArray(
-                [[0.514, 0.521, 0.64], [0.514, 0.521, 0.64]],
+                [[0.512498, 0.518842, 0.626396], [0.512498, 0.518842, 0.626396]],
                 dims=["layers", "cell_id"],
             ),
         ],
@@ -253,28 +277,84 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         1 - 0.1 * data["leaf_area_index"].sum(dim="layers")
     )
 
-    exp_soil_moisture = DataArray(
-        [[0.3, 0.6, 0.9], [0.3, 0.6, 0.9]],
-        dims=["layers", "cell_id"],
-        coords={
-            "cell_id": [0, 1, 2],
-            "layers": [13, 14],
-            "layer_roles": ("layers", ["soil", "soil"]),
-        },
-    )
+    exp_soil_moisture = xr.concat(
+        [
+            DataArray(
+                np.full((13, 3), np.nan),
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(
+                [[0.212362, 0.219087, 0.581146], [0.212362, 0.219087, 0.581146]],
+                dims=["layers", "cell_id"],
+            ),
+        ],
+        dim="layers",
+    ).assign_coords(data["layer_heights"].coords)
 
     exp_runoff = DataArray(
-        [33.7, 40.4, 159.1],
+        [0, 0, 260],
+        dims=["cell_id"],
+        coords={"cell_id": [0, 1, 2]},
+    )
+
+    exp_vertical_flow = DataArray(
+        [4.023463e-01, 4.592068e-03, 2.073912e01],
+        dims=["cell_id"],
+        coords={"cell_id": [0, 1, 2]},
+    )
+    exp_soil_evap = DataArray(
+        [0.295455, 0.671849, 1.244674],
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
 
     result = calculate_soil_moisture(
         layer_roles=layer_roles_fixture,
+        layer_heights=data["layer_heights"],
         precipitation_surface=precipitation_surface,
         current_soil_moisture=data["soil_moisture"],
-        soil_moisture_capacity=DataArray([0.3, 0.6, 0.9], dims=["cell_id"]),
+        temperature=data["air_temperature_ref"].isel(time_index=0),
+        relative_humidity=data["relative_humidity_ref"].isel(time_index=0),
+        atmospheric_pressure=data["atmospheric_pressure_ref"].isel(time_index=0) / 1000,
+        wind_speed=DataArray([0.1, 0.5, 1.0], dims=["cell_id"]),
+        soil_moisture_capacity=DataArray([0.3, 0.6, 0.6], dims=["cell_id"]),
     )
 
-    xr.testing.assert_allclose(result[0], exp_soil_moisture)
-    xr.testing.assert_allclose(result[1], exp_runoff)
+    xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
+    xr.testing.assert_allclose(result["soil_moisture"], exp_soil_moisture)
+    xr.testing.assert_allclose(result["surface_runoff"], exp_runoff)
+    xr.testing.assert_allclose(result["soil_evaporation"], exp_soil_evap)
+
+
+def test_calculate_vertical_flow(layer_roles_fixture):
+    """test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_vertical_flow,
+    )
+
+    soil_moisture = DataArray([0.3, 0.6, 0.9], dims=["cell_id"])
+    soil_depth = DataArray([1100, 1100, 1100], dims=["cell_id"])
+    result = calculate_vertical_flow(soil_moisture, soil_depth)
+    exp_flow = DataArray([6.022462e-03, 7.186012e-01, 2.389091e01], dims=["cell_id"])
+    xr.testing.assert_allclose(result, exp_flow)
+
+
+def test_calculate_soil_evaporation():
+    """test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_soil_evaporation,
+    )
+
+    result = calculate_soil_evaporation(
+        temperature=DataArray([10.0, 20.0, 30.0], dims=["cell_id"]),
+        wind_speed=DataArray([0.1, 0.5, 2.0], dims=["cell_id"]),
+        relative_humidity=DataArray([70, 80, 90], dims=["cell_id"]),
+        atmospheric_pressure=DataArray([90, 90, 90], dims=["cell_id"]),
+        soil_moisture=DataArray([0.3, 0.6, 0.9], dims=["cell_id"]),
+    )
+    xr.testing.assert_allclose(
+        result,
+        DataArray([0.263425, 0.760504, 1.760455], dims=["cell_id"]),
+    )
