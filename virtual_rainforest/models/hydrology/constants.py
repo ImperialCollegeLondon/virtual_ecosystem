@@ -7,9 +7,8 @@ TODO Soil parameters vary strongly with soil type and will require literature se
 sensitivity analysis to produce meaningful results.
 """  # noqa: D205, D415
 
-from typing import Dict
 
-HydroConsts: Dict[str, float] = {
+HydroConsts: dict[str, float] = {
     "soil_moisture_capacity": 0.9,  # dimensionless
     "soil_moisture_residual": 0.1,  # dimensionless
     "water_interception_factor": 0.1,  # dimensionless

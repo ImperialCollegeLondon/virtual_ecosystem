@@ -30,7 +30,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.hydrology.hydrology_constants import HydroConsts
+from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
 class HydrologyModel(BaseModel):
