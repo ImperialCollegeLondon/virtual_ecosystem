@@ -248,7 +248,7 @@ def test_abiotic_simple_model_initialization(
                 ),
                 (
                     INFO,
-                    "Valid names are as follows: {",
+                    "Valid names are as follows: ",
                 ),
             ),
         ),

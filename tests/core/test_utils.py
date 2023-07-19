@@ -168,7 +168,7 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
                 ),
                 (
                     INFO,
-                    "Valid names are as follows: {",
+                    "Valid names are as follows: ",
                 ),
             ),
             id="unexpected_constants",

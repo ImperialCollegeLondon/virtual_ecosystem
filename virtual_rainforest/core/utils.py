@@ -158,7 +158,7 @@ def check_valid_constant_names(
             "Unknown names supplied for %s: %s"
             % (class_name, ", ".join(unexpected_names))
         )
-        LOGGER.info("Valid names are as follows: %s" % (valid_names))
+        LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
         raise ConfigurationError()
 
     return
