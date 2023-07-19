@@ -79,7 +79,7 @@ class HydrologyModel(BaseModel):
         initial_soil_moisture: float,
         **kwargs: Any,
     ):
-        # sanity checks for initial soil moisture
+        # Sanity checks for initial soil moisture
         if type(initial_soil_moisture) is not float:
             to_raise = InitialisationError("The initial soil moisture must be a float!")
             LOGGER.error(to_raise)
@@ -94,7 +94,7 @@ class HydrologyModel(BaseModel):
 
         super().__init__(data, update_interval, **kwargs)
 
-        # create a list of layer roles
+        # Create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
 
         self.data
@@ -170,7 +170,7 @@ class HydrologyModel(BaseModel):
             name="soil_moisture",
         )
 
-        # create initial air temperature with reference temperature below the canopy
+        # Create initial air temperature with reference temperature below the canopy
         # for first soil evaporation update.
         self.data["air_temperature"] = (
             DataArray(self.data["air_temperature_ref"].isel(time_index=0))
@@ -185,7 +185,7 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # create initial relative humidity  with reference humidity below the canopy
+        # Create initial relative humidity  with reference humidity below the canopy
         # for first soil evaporation update.
         self.data["relative_humidity"] = (
             DataArray(self.data["relative_humidity_ref"].isel(time_index=0))
@@ -256,7 +256,7 @@ class HydrologyModel(BaseModel):
             soil_moisture_residual=HydroConsts["soil_moisture_residual"],
         )
 
-        # update data object
+        # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
 
     def cleanup(self) -> None:
@@ -313,13 +313,13 @@ def calculate_soil_moisture(
         meters_to_millimeters: conversion factor from meters to millimeters
 
     Returns:
-        soil moisture, [relative water content], vertical flow, [m3/timestep], surface
+        soil moisture, [relative water content], vertical flow, [mm/timestep], surface
             runoff, [mm], soil evaporation, [mm]
     """
 
     output = {}
 
-    # calculate soil depth in mm
+    # Calculate soil depth in mm
     soil_depth = (
         layer_heights.isel(
             layers=np.arange(
@@ -441,14 +441,32 @@ def calculate_vertical_flow(
     ),
     meters_to_millimeters: float = HydroConsts["meters_to_millimeters"],
 ) -> DataArray:
-    """Calculate vertical water flow through soil column.
+    r"""Calculate vertical water flow through soil column.
 
     To calculate the flow of water through unsaturated soil, this function uses the
-    Richards equation. First, the function calculates the effective hydraulic
-    conductivity based on the moisture content using the van Genuchten/Mualem model.
-    Then, it applies Darcy's law to calculate the water flow rate considering the
-    effective hydraulic conductivity. We assume the whole soil column as one layer and
-    the soil moisture to be the mean soil moisture.
+    Richards equation. First, the function calculates the effective saturation :math:`S`
+    and effective hydraulic conductivity :math:`K(S)` based on the moisture content
+    :math:`\Theta` using the van Genuchten/Mualem model:
+
+    :math:`S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}`
+
+    and
+
+    :math:`K(S) = K_{s}*(S*(1-S^{1/m})^{m})^{2}`
+
+    where :math:`\Theta_{r}` is the residual moisture content, :math:`\Theta_{s}` is the
+    saturated moisture content, :math:`K_{s}` is the saturated hydraulic conductivity,
+    and :math:`m=1-1/n` is a shape parameter derived from the non-linearity parameter
+    :math:`n`. Then, the function applies Darcy's law to calculate the water flow rate
+    :math:`q` in :math:`\frac{m^3}{s^1}` considering the effective hydraulic
+    conductivity:
+
+    :math:`q = K(S)*A*\frac{dh}{dl}`
+
+    where :math:`A` is the column cross section area (which will be dropped in the
+    conversion to mm) :math:`\frac{dh}{dl}` is the hydraulic gradient with :math:`l` the
+    length of the flow path in meters (here equal to the soil depth). We assume the
+    whole soil column as one layer and the soil moisture to be the mean soil moisture.
 
     This function could be replaced with a more sophisticaed, multi-layer model or a
     simple residence time assumption.
@@ -461,29 +479,31 @@ def calculate_vertical_flow(
         hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
         hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
-        timestep_conversion_factor: factor to convert flow from m3/s to model time step
+        timestep_conversion_factor: factor to convert flow from m^3 per second to mm per
+            model time step
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
 
     Returns:
-        volumetric flow rate of water, [m3/timestep]
+        volumetric flow rate of water, [mm/timestep]
     """
     m = 1 - 1 / nonlinearily_parameter
 
-    # calculate soil saturation level
-    saturation_level = (soil_moisture - soil_moisture_residual) / (
+    # Calculate soil effective saturation after van Genuchten (1980)
+    effective_saturation = (soil_moisture - soil_moisture_residual) / (
         soil_moisture_capacity - soil_moisture_residual
     )
 
-    # Calculate the effective hydraulic conductivity
+    # Calculate the effective hydraulic conductivity after Mualem (1976)
     effective_conductivity = (
         hydraulic_conductivity
-        * saturation_level
-        * (1 - (1 - (saturation_level) ** (1 / m)) ** m) ** 2
+        * effective_saturation
+        * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2
     )
 
-    # Calculate the water flow rate in m3 per seconds and convert to mm per timestep
+    # Calculate the water flow rate after Darcy (1856) in m^3 per seconds and convert to
+    # mm per timestep
     return (
         effective_conductivity
         * hydraulic_gradient
