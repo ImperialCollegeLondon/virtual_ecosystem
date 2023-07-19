@@ -12,35 +12,6 @@ despite many of them not being truly universal constants. This is to make it cle
 none of them should be changed within a given Virtual Rainforest simulation. Though it
 is fine to use different values for them across different simulations.
 
-## Defining constants and their default values
-
-Each model should define a `constants.py` submodule. Constants and their default values
-should be defined in this submodule using {func}`dataclasses.dataclass`. These constants
-can be stored in a single data class or spread over multiple data classes. However,
-having a large number of data classes is likely to make the downstream code messier, so
-constants should only be split across multiple classes when there's a strong reason to
-do so. It's also important that every constant is given an explicit type hint and unique
-name, otherwise the default value cannot be overwritten. An example `constants.py` file
-is shown below:
-
-```python
-from dataclasses import dataclass
-
-# The dataclass must be frozen to prevent constants from being accidentally altered
-# during runtime
-@dataclass(frozen=True)
-class ExampleConsts:
-    """Dataclass to store all constants for the `example_model` model."""
-    
-    # Each constant must be given a type hint, otherwise its default value cannot be
-    # changed
-    example_constant_1: float = -1.27
-    """Details of source of constant and its units."""
-
-    example_constant_2: float = 5.4
-    """Details of source of constant and its units."""
-```
-
 ## Using non-default values for constants
 
 If you want to use a non-default value for a constant this can be accomplished using the
@@ -57,4 +28,5 @@ example_constant_2 = -7.7
 Any values supplied in this way will be used to override the default values for the data
 class in question. Only constants for which non-default values are supplied will be
 replaced. Anything that is not included within the configuration will just take the
-default value, which is set in the data class.
+default value, which is set in the data class (see
+[here](../development/defining_new_models.md) for further details).
