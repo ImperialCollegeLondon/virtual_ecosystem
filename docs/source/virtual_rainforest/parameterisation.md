@@ -44,9 +44,9 @@ class ExampleConsts:
 ## Using non-default values for constants
 
 If you want to use a non-default value for a constant this can be accomplished using the
-configuration system. The configuration for specific models contains a `constants`
-section. Within this section each constants are grouped based on the name of the data
-class they belong to. An example of this can be seen below:
+[configuration system](core/config.md). The configuration for each specific model
+contains a `constants` section. Within this section constants are grouped based on the
+name of the data class they belong to. An example of this can be seen below:
 
 ```toml
 [example_model.constants.ExampleConsts]
@@ -56,5 +56,5 @@ example_constant_2 = -7.7
 
 Any values supplied in this way will be used to override the default values for the data
 class in question. Only constants for which non-default values are supplied will be
-replaced, anything that is not included within the configuration will just use the
-default value.
+replaced. Anything that is not included within the configuration will just take the
+default value, which is set in the data class.
