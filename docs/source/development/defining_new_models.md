@@ -44,7 +44,7 @@ to add other python modules containing different parts of the module functionali
 * A JSON Schema file defining the model configuration, called
   `{model_name}_schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model
-  (in one or more dataclasses).
+  (see [here](../virtual_rainforest/parameterisation.md) for details).
 
 For example:
 
