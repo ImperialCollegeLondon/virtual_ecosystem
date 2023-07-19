@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class AbioticSimpleConsts:
-    """Dataclass to store all parameters for the `abiotic_simple` model."""
+    """Dataclass to store all constants for the `abiotic_simple` model."""
 
     air_temperature_gradient: float = -1.27
     """Gradient for linear regression to calculate air temperature as a function of
