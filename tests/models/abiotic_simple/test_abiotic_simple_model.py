@@ -243,12 +243,12 @@ def test_abiotic_simple_model_initialization(
             (
                 (
                     ERROR,
-                    "Incorrect constant names supplied for AbioticSimpleConsts "
-                    "dataclass: ['relative_humidity_grad']",
+                    "Unknown names supplied for AbioticSimpleConsts: "
+                    "relative_humidity_grad",
                 ),
                 (
                     INFO,
-                    "Valid names are as follows: [",
+                    "Valid names are as follows: {",
                 ),
             ),
         ),

@@ -148,13 +148,13 @@ def check_constants(config: dict[str, Any], model_name: str, class_name: str) ->
 
     # Get a set of valid names
     valid_names = {fld.name for fld in dataclasses.fields(ConstantsClass)}
-    
+
     # Check for unexpected names
     unexpected_names = provided_names.difference(valid_names)
     if unexpected_names:
         LOGGER.error(
-            "Unknown names supplied for %s constants: %s"
-            % (class_name, ', '.join(unexpected_names))
+            "Unknown names supplied for %s: %s"
+            % (class_name, ", ".join(unexpected_names))
         )
         LOGGER.info("Valid names are as follows: %s" % (valid_names))
         raise ConfigurationError()

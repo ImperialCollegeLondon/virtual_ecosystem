@@ -164,13 +164,11 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
             (
                 (
                     ERROR,
-                    "Incorrect constant names supplied for AbioticSimpleConsts "
-                    "dataclass: ['invented_constant', "
-                    "'saturation_vapour_pressure_factor4']",
+                    "Unknown names supplied for AbioticSimpleConsts: ",
                 ),
                 (
                     INFO,
-                    "Valid names are as follows: [",
+                    "Valid names are as follows: {",
                 ),
             ),
             id="unexpected_constants",
