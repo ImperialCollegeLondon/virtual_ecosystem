@@ -19,8 +19,9 @@ should be defined in this submodule using {func}`dataclasses.dataclass`. These c
 can be stored in a single data class or spread over multiple data classes. However,
 having a large number of data classes is likely to make the downstream code messier, so
 constants should only be split across multiple classes when there's a strong reason to
-do so. It's also important that every constant is given an explicit type hint, otherwise
-the default value cannot be overwritten. An example `constants.py` file is shown below:
+do so. It's also important that every constant is given an explicit type hint and unique
+name, otherwise the default value cannot be overwritten. An example `constants.py` file
+is shown below:
 
 ```python
 from dataclasses import dataclass
@@ -43,7 +44,7 @@ class ExampleConsts:
 ## Using non-default values for constants
 
 If you want to use a non-default value for a constant this can be accomplished using the
-configuration system. The configuration for each specific model contains a `constants`
+configuration system. The configuration for specific models contains a `constants`
 section. Within this section each constants are grouped based on the name of the data
 class they belong to. An example of this can be seen below:
 
