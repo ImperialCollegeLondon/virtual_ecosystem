@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.models.hydrology.hydrology_constants` module contains
+"""The :mod:`~virtual_rainforest.models.hydrology.constants` module contains
 constants and parameters for the
 :mod:`~virtual_rainforest.models.hydrology.hydrology_model`. This is a temporary
 solution; we are working on consistent use of constants across all models.

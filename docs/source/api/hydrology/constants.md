@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.hydrology.hydrology_constants` module
+#  API for the {mod}`~virtual_rainforest.models.hydrology.constants` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.hydrology.hydrology_constants
+.. automodule:: virtual_rainforest.models.hydrology.constants
     :autosummary:
     :members:
     :special-members: __init__
