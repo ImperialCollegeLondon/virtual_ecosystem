@@ -123,8 +123,10 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
     return layer_roles
 
 
-def check_constants(config: dict[str, Any], model_name: str, class_name: str) -> None:
-    """Check that the constants defined in the config are expected.
+def check_valid_constant_names(
+    config: dict[str, Any], model_name: str, class_name: str
+) -> None:
+    """Check that the constant names given in the config are valid.
 
     This checks that the constants are expected for the specific dataclass that they are
     assigned to, if not an error is raised.

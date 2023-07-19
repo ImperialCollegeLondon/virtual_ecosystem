@@ -310,10 +310,10 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also check if any constants have been provided as part
 of the configuration. If they haven't a default set of constants is generated. If they
 have been supplied they are used to generate a custom set of constants. The
-{func}`~virtual_rainforest.core.utils.check_constants` utility function is used to check
-that no constant has been supplied with an incorrect name. At least one constants class
-should be created, but it's fine to split constants across more classes if that makes
-for clearer code.
+{func}`~virtual_rainforest.core.utils.check_valid_constant_names` utility function is
+used to check that no constant has been supplied with an incorrect name. At least one
+constants class should be created, but it's fine to split constants across more classes
+if that makes for clearer code.
 
 As an example:
 
@@ -340,7 +340,7 @@ def from_config(
     # Check if any constants have been supplied
     if "freshwater" in config and "constants" in config["freshwater"]:
         # Checks that constants is config are as expected
-        check_constants(config, "freshwater", "FreshwaterConsts")
+        check_valid_constant_names(config, "freshwater", "FreshwaterConsts")
         # If an error isn't raised then generate the dataclass
         constants = FreshwaterConsts(
             **config["freshwater"]["constants"]["FreshwaterConsts"]

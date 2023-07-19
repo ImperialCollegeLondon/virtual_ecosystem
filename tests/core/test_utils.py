@@ -175,12 +175,12 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
         ),
     ],
 )
-def test_check_constants(caplog, config, raises, exp_log):
+def test_check_valid_constant_names(caplog, config, raises, exp_log):
     """Check that function to check constants behaves as expected."""
-    from virtual_rainforest.core.utils import check_constants
+    from virtual_rainforest.core.utils import check_valid_constant_names
 
     with raises:
-        check_constants(
+        check_valid_constant_names(
             config, model_name="abiotic_simple", class_name="AbioticSimpleConsts"
         )
 

@@ -26,7 +26,7 @@ from xarray import DataArray
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_constants, set_layer_roles
+from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
@@ -114,7 +114,7 @@ class AbioticSimpleModel(BaseModel):
         # Check if any constants have been supplied
         if "abiotic_simple" in config and "constants" in config["abiotic_simple"]:
             # Checks that constants is config are as expected
-            check_constants(config, "abiotic_simple", "AbioticSimpleConsts")
+            check_valid_constant_names(config, "abiotic_simple", "AbioticSimpleConsts")
             # If an error isn't raised then generate the dataclass
             constants = AbioticSimpleConsts(
                 **config["abiotic_simple"]["constants"]["AbioticSimpleConsts"]
