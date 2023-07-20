@@ -253,16 +253,18 @@ class AnimalCohort:
             Energy gained from the forage event.
         """
         if self.functional_group.diet.value == "herbivore":
+            if not plant_list:
+                # the herbivore is unable to find prey and hence gets zero energy
+                return 0
             plant_prey = choice(plant_list)
             energy = self.herbivory(plant_prey, soil_pool)
         elif self.functional_group.diet.value == "carnivore":
             if not animal_list:  # if the animal_list is empty
-                energy = (
-                    0  # the predator is unable to find prey and hence gets zero energy
-                )
-            else:
-                animal_prey = choice(animal_list)
-                energy = self.predation(animal_prey, carcass_pool)
+                # the predator is unable to find prey and hence gets zero energy
+                return 0
+
+            animal_prey = choice(animal_list)
+            energy = self.predation(animal_prey, carcass_pool)
 
         else:
             raise ValueError("Invalid diet type")
