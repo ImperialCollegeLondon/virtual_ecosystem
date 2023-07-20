@@ -1,7 +1,7 @@
 """Testing the utility functions."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR
+from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
 import pytest
@@ -127,6 +127,61 @@ def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
 
         assert result == (
             ["above"] + ["canopy"] * 10 + ["subcanopy"] + ["surface"] + ["soil"] * 2
+        )
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, exp_log)
+
+
+@pytest.mark.parametrize(
+    "config,raises,exp_log",
+    [
+        pytest.param(
+            {
+                "abiotic_simple": {
+                    "constants": {
+                        "AbioticSimpleConsts": {"air_temperature_gradient": -1.0}
+                    }
+                }
+            },
+            does_not_raise(),
+            (),
+            id="expected_constants",
+        ),
+        pytest.param(
+            {
+                "abiotic_simple": {
+                    "constants": {
+                        "AbioticSimpleConsts": {
+                            "air_temperature_gradient": -1.0,
+                            "invented_constant": 37.9,
+                            "saturation_vapour_pressure_factor4": 0.07,
+                        }
+                    }
+                }
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Unknown names supplied for AbioticSimpleConsts: ",
+                ),
+                (
+                    INFO,
+                    "Valid names are as follows: ",
+                ),
+            ),
+            id="unexpected_constants",
+        ),
+    ],
+)
+def test_check_valid_constant_names(caplog, config, raises, exp_log):
+    """Check that function to check constants behaves as expected."""
+    from virtual_rainforest.core.utils import check_valid_constant_names
+
+    with raises:
+        check_valid_constant_names(
+            config, model_name="abiotic_simple", class_name="AbioticSimpleConsts"
         )
 
     # Final check that expected logging entries are produced

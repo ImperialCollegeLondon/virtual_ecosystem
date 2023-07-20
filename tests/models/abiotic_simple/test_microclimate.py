@@ -103,14 +103,21 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     """Test calculation of saturation vapour pressure."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_saturation_vapour_pressure,
     )
 
     data = dummy_climate_data
 
+    # Extract saturation factors from constants
+    constants = AbioticSimpleConsts()
+
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0)
+        data["air_temperature_ref"].isel(time_index=0),
+        factor1=constants.saturation_vapour_pressure_factor1,
+        factor2=constants.saturation_vapour_pressure_factor2,
+        factor3=constants.saturation_vapour_pressure_factor3,
     )
 
     exp_output = DataArray(
@@ -124,6 +131,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
 def test_calculate_vapour_pressure_deficit():
     """Test calculation of VPD."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
     from virtual_rainforest.models.abiotic_simple.microclimate import (
         calculate_vapour_pressure_deficit,
     )
@@ -176,8 +184,7 @@ def test_calculate_vapour_pressure_deficit():
     )
 
     result = calculate_vapour_pressure_deficit(
-        temperature,
-        rel_humidity,
+        temperature, rel_humidity, constants=AbioticSimpleConsts()
     )
     exp_output = xr.concat(
         [
@@ -205,6 +212,7 @@ def test_calculate_vapour_pressure_deficit():
 def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
     """Test interpolation of all variables."""
 
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
     from virtual_rainforest.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data
@@ -222,6 +230,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
         data=data,
         layer_roles=layer_roles_fixture,
         time_index=0,
+        constants=AbioticSimpleConsts(),
     )
 
     exp_air_temperature = xr.concat(

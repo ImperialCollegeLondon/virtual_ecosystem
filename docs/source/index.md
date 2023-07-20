@@ -66,6 +66,7 @@ team.
   virtual_rainforest/module_overview.md
   virtual_rainforest/usage.md
   virtual_rainforest/main_simulation.md
+  virtual_rainforest/constants.md
   virtual_rainforest/soil/soil_details.md
   virtual_rainforest/core/grid.md
   virtual_rainforest/core/data.md
@@ -96,6 +97,7 @@ team.
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
   Abiotic Simple Microclimate <api/abiotic_simple/microclimate.md>
+  Abiotic Simple Constants <api/abiotic_simple/abiotic_constants.md>
   Abiotic Hydrology Overview <api/hydrology.md>
   Abiotic Hydrology Model <api/hydrology/hydrology_model.md>
   Abiotic Hydrology Constants <api/hydrology/constants.md>

@@ -4,7 +4,20 @@
         "abiotic_simple": {
             "description": "Configuration settings for the abiotic_simple module",
             "type": "object",
-            "properties": {},
+            "properties": {
+                "constants": {
+                    "description": "Constants for the abiotic_simple module",
+                    "type": "object",
+                    "properties": {
+                        "AbioticSimpleConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "AbioticSimpleConsts"
+                    ]
+                }
+            },
             "default": {},
             "required": []
         }

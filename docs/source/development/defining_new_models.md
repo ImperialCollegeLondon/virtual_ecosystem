@@ -34,7 +34,7 @@ directory.
 mkdir virtual_rainforest/models/freshwater
 ```
 
-You will need to create at least three files within this folder, although you may choose
+You will need to create at least four files within this folder, although you may choose
 to add other python modules containing different parts of the module functionality.
 
 * An `__init__.py` file, which tells Python that the folder is a submodule within the
@@ -43,6 +43,7 @@ to add other python modules containing different parts of the module functionali
   object.
 * A JSON Schema file defining the model configuration, called
   `{model_name}_schema.json`.
+* A python module  `constants.py` that will contain the constants relevant to the model.
 
 For example:
 
@@ -50,6 +51,41 @@ For example:
 touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
 touch virtual_rainforest/models/freshwater/freshwater_schema.json
+touch virtual_rainforest/models/freshwater/constants.py
+```
+
+## Defining constants and their default values
+
+Each model should define a `constants.py` module. Constants and their default values
+should be defined in this module using {func}`dataclasses.dataclass`. These constants
+can be stored in a single data class or spread over multiple data classes. However,
+having a large number of data classes is likely to make the downstream code messier, so
+constants should only be split across multiple classes when there's a strong reason to
+do so.
+
+It's also important that every constant is given an explicit type hint. If a type hint
+is not provided then `dataclass` treats the constant as a class attribute rather than an
+instance attribute. This means that its value cannot be changed when a new instance is
+created.
+
+An example `constants.py` file is shown below:
+
+```python
+from dataclasses import dataclass
+
+# The dataclass must be frozen to prevent constants from being accidentally altered
+# during runtime
+@dataclass(frozen=True)
+class ExampleConsts:
+    """Dataclass to store all constants for the `example_model` model."""
+    
+    # Each constant must be given a type hint, otherwise its default value cannot be
+    # changed
+    example_constant_1: float = -1.27
+    """Details of source of constant and its units."""
+
+    example_constant_2: float = 5.4
+    """Details of source of constant and its units."""
 ```
 
 ## Defining the new model class
@@ -177,6 +213,7 @@ def __init__(
     data: Data,
     update_interval: pint.Quantity,
     no_of_ponds: int,
+    constants: FreshwaterConsts,
     **kwargs: Any,
 ):
         
@@ -193,6 +230,9 @@ def __init__(
 
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
+    
+    # Store the constants relevant to the freshwater model
+    self.constants = constants
 
     # Save attribute names to be used by the __repr__
     self._repr.append("no_of_ponds")
@@ -300,6 +340,14 @@ The method then uses those parsed arguments to actually call the `__init__` meth
 return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
+The `from_config` method should also check if any constants have been provided as part
+of the configuration. If they haven't a default set of constants is generated. If they
+have been supplied they are used to generate a custom set of constants. The
+{func}`~virtual_rainforest.core.utils.check_valid_constant_names` utility function is
+used to check that no constant has been supplied with an incorrect name. At least one
+constants class should be created, but it's fine to split constants across more classes
+if that makes for clearer code.
+
 As an example:
 
 ```python
@@ -322,11 +370,22 @@ def from_config(
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
-    LOGGER.info(
-            "Information required to initialise the soil model successfully "
-            "extracted."
+    # Check if any constants have been supplied
+    if "freshwater" in config and "constants" in config["freshwater"]:
+        # Checks that constants is config are as expected
+        check_valid_constant_names(config, "freshwater", "FreshwaterConsts")
+        # If an error isn't raised then generate the dataclass
+        constants = FreshwaterConsts(
+            **config["freshwater"]["constants"]["FreshwaterConsts"]
         )
-        return cls(data, update_interval, no_pools)
+    else:
+        # If no constants are supplied then the defaults should be used
+        constants = FreshwaterConsts()
+
+    LOGGER.info(
+        "Information required to initialise the soil model successfully extracted."
+    )
+    return cls(data, update_interval, no_pools, constants)
 
 ```
 

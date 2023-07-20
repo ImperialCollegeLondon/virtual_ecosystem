@@ -1,19 +1,18 @@
 """The :mod:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model` module
 creates a
 :class:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
-class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
-At present a lot of the abstract methods of the parent class (e.g.
+class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class. At
+present a lot of the abstract methods of the parent class (e.g.
 :func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the Virtual Rainforest
 model develops. The factory method
 :func:`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel.from_config`
-exists in a
-more complete state, and unpacks a small number of parameters from our currently pretty
-minimal configuration dictionary. These parameters are then used to generate a class
-instance. If errors crop here when converting the information from the config dictionary
-to the required types they are caught and then logged, and at the end of the unpacking
-an error is thrown. This error should be caught and handled by downstream functions so
-that all model configuration failures can be reported as one.
+exists in a more complete state, and unpacks a small number of parameters from our
+currently pretty minimal configuration dictionary. These parameters are then used to
+generate a class instance. If errors crop here when converting the information from the
+config dictionary to the required types they are caught and then logged, and at the end
+of the unpacking an error is thrown. This error should be caught and handled by
+downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -27,8 +26,9 @@ from xarray import DataArray
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.abiotic_simple import microclimate
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 class AbioticSimpleModel(BaseModel):
@@ -39,6 +39,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
+        constants: Set of constants for the abiotic simple model.
     """
 
     model_name = "abiotic_simple"
@@ -73,6 +74,7 @@ class AbioticSimpleModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
+        constants: AbioticSimpleConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -86,6 +88,8 @@ class AbioticSimpleModel(BaseModel):
         """A list of vertical layer roles."""
         self.update_interval
         """The time interval between model updates."""
+        self.constants = constants
+        """Set of constants for the abiotic simple model"""
 
     @classmethod
     def from_config(
@@ -107,11 +111,23 @@ class AbioticSimpleModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
+        # Check if any constants have been supplied
+        if "abiotic_simple" in config and "constants" in config["abiotic_simple"]:
+            # Checks that constants is config are as expected
+            check_valid_constant_names(config, "abiotic_simple", "AbioticSimpleConsts")
+            # If an error isn't raised then generate the dataclass
+            constants = AbioticSimpleConsts(
+                **config["abiotic_simple"]["constants"]["AbioticSimpleConsts"]
+            )
+        else:
+            # If no constants are supplied then the defaults should be used
+            constants = AbioticSimpleConsts()
+
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers)
+        return cls(data, update_interval, soil_layers, canopy_layers, constants)
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.
@@ -139,6 +155,7 @@ class AbioticSimpleModel(BaseModel):
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
+            constants=self.constants,
         ).rename(
             "vapour_pressure_deficit_ref"
         )
@@ -153,13 +170,14 @@ class AbioticSimpleModel(BaseModel):
             time_index: The index of the current time step in the data object.
         """
 
-        # This section perfomes a series of calculations to update the variables in the
+        # This section performs a series of calculations to update the variables in the
         # abiotic model. This could be moved to here and written directly to the data
         # object. For now, we leave it as a separate routine.
         output_variables = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=time_index,
+            constants=self.constants,
         )
         self.data.add_from_dict(output_dict=output_variables)
 

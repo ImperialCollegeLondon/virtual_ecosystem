@@ -10,32 +10,14 @@ The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
 """  # noqa: D205, D415
 
-from typing import Dict, List
-
 import numpy as np
 import xarray as xr
 from xarray import DataArray
 
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
-MicroclimateGradients: Dict[str, float] = {
-    "air_temperature_gradient": -1.27,
-    "relative_humidity_gradient": 5.4,
-    "vapour_pressure_deficit_gradient": -252.24,
-}
-"""Gradients for linear regression to calculate air temperature, relative humidity, and
-vapour pressure deficit as a function of leaf area index from
-:cite:t:`hardwick_relationship_2015`.
-"""
-
-MicroclimateParameters: Dict[str, float] = {
-    "saturation_vapour_pressure_factor1": 0.61078,
-    "saturation_vapour_pressure_factor2": 7.5,
-    "saturation_vapour_pressure_factor3": 237.3,
-}
-"""Parameters for simple abiotic regression model."""
-
-Bounds: Dict[str, float] = {
+Bounds: dict[str, float] = {
     "air_temperature_min": -20,
     "air_temperature_max": 80,
     "relative_humidity_min": 0,
@@ -55,11 +37,11 @@ and matter in the system. This will be implemented at a later stage.
 
 def run_microclimate(
     data: Data,
-    layer_roles: List[str],
+    layer_roles: list[str],
     time_index: int,  # could be datetime?
-    MicroclimateGradients: Dict[str, float] = MicroclimateGradients,
-    Bounds: Dict[str, float] = Bounds,
-) -> Dict[str, DataArray]:
+    constants: AbioticSimpleConsts,
+    Bounds: dict[str, float] = Bounds,
+) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
 
     This function uses empirical relationships between leaf area index (LAI) and
@@ -72,12 +54,12 @@ def run_microclimate(
 
     :math:`y = m * LAI + c`
 
-    where :math:`y` is the variable of interest, math:`m` is the gradient
-    (:data:`~virtual_rainforest.models.abiotic_simple.microclimate.MicroclimateGradients`)
+    where :math:`y` is the variable of interest, :math:`m` is the gradient
+    (:data:`~virtual_rainforest.models.abiotic_simple.constants.AbioticSimpleConsts`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 
-    The other atmospheric layers are calculated by logaritmic regression and
+    The other atmospheric layers are calculated by logarithmic regression and
     interpolation between the input at the top of the canopy and the 1.5 m values.
     Soil temperature is interpolated between the surface layer and the temperature at
     1 m depth which equals the mean annual temperature.
@@ -107,8 +89,7 @@ def run_microclimate(
         layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
         time_index: time index, integer
-        MicroclimateGradients: gradients for linear regression
-            :cite:p:`hardwick_relationship_2015`
+        constants: Set of constants for the abiotic simple model
         Bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -134,7 +115,7 @@ def run_microclimate(
             layer_heights=data["layer_heights"],
             upper_bound=Bounds[var + "_max"],
             lower_bound=Bounds[var + "_min"],
-            gradient=MicroclimateGradients[var + "_gradient"],
+            gradient=getattr(constants, var + "_gradient"),
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
@@ -184,7 +165,7 @@ def log_interpolation(
     data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
-    layer_roles: List,
+    layer_roles: list,
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,
@@ -248,10 +229,7 @@ def log_interpolation(
 
 
 def calculate_saturation_vapour_pressure(
-    temperature: DataArray,
-    factor1: float = MicroclimateParameters["saturation_vapour_pressure_factor1"],
-    factor2: float = MicroclimateParameters["saturation_vapour_pressure_factor2"],
-    factor3: float = MicroclimateParameters["saturation_vapour_pressure_factor3"],
+    temperature: DataArray, factor1: float, factor2: float, factor3: float
 ) -> DataArray:
     r"""Calculate saturation vapour pressure.
 
@@ -279,6 +257,7 @@ def calculate_saturation_vapour_pressure(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
+    constants: AbioticSimpleConsts,
 ) -> DataArray:
     """Calculate vapour pressure deficit.
 
@@ -288,11 +267,18 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
+        constants: Set of constants for the abiotic simple model
 
     Return:
         vapour pressure deficit, [kPa]
     """
-    saturation_vapour_pressure = calculate_saturation_vapour_pressure(temperature)
+
+    saturation_vapour_pressure = calculate_saturation_vapour_pressure(
+        temperature,
+        factor1=constants.saturation_vapour_pressure_factor1,
+        factor2=constants.saturation_vapour_pressure_factor2,
+        factor3=constants.saturation_vapour_pressure_factor3,
+    )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
 
     return saturation_vapour_pressure - actual_vapour_pressure

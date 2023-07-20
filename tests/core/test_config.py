@@ -464,6 +464,46 @@ def test_Config_build_schema(
             ),
             id="unexpected_property",
         ),
+        pytest.param(
+            {
+                "core": {"modules": ["abiotic_simple"]},
+            },
+            does_not_raise(),
+            ((INFO, "Configuration validated"),),
+            id="no constants",
+        ),
+        pytest.param(
+            {
+                "core": {"modules": ["abiotic_simple"]},
+                "abiotic_simple": {
+                    "constants": {"AbioticSimpleConsts": {"constant1": 1.0}}
+                },
+            },
+            does_not_raise(),
+            ((INFO, "Configuration validated"),),
+            id="correct constant",
+        ),
+        pytest.param(
+            {
+                "core": {"modules": ["abiotic_simple"]},
+                "abiotic_simple": {"constants": {"constant1": 1.0}},
+            },
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Configuration error in ['abiotic_simple', 'constants']: "
+                    "'AbioticSimpleConsts' is a required property",
+                ),
+                (
+                    ERROR,
+                    "Configuration error in ['abiotic_simple', 'constants']: Additional"
+                    " properties are not allowed ('constant1' was unexpected)",
+                ),
+                (CRITICAL, "Configuration contains schema violations: check log"),
+            ),
+            id="missing AbioticSimpleConsts",
+        ),
     ],
 )
 def test_Config_validate_config(
