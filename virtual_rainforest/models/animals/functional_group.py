@@ -18,6 +18,7 @@ from virtual_rainforest.models.animals.constants import (
     MECHANICAL_EFFICIENCY,
     METABOLIC_RATE_TERMS,
     MUSCLE_MASS_TERMS,
+    PREY_MASS_SCALING_TERMS,
 )
 
 
@@ -58,6 +59,8 @@ class FunctionalGroup:
         self.conversion_efficiency = CONVERSION_EFFICIENCY[self.diet]
         """The conversion efficiency of the functional group based on diet."""
         self.mechanical_efficiency = MECHANICAL_EFFICIENCY[self.diet]
+        """The mechanical transfer efficiency of a functional group based on diet."""
+        self.prey_scaling = PREY_MASS_SCALING_TERMS[self.metabolic_type][self.taxa]
 
 
 def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:

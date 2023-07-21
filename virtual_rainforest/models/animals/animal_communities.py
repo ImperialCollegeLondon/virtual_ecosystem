@@ -40,7 +40,7 @@ class AnimalCommunity:
         self.functional_groups = tuple(functional_groups)
         """A list of all FunctionalGroup types in the model."""
 
-        self.cohorts: dict[str, list[AnimalCohort]] = {
+        self.animal_cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
         }
         """Generate a dictionary of functional groups within the community."""
@@ -60,9 +60,9 @@ class AnimalCommunity:
 
         """
 
-        destination.cohorts[immigrant.name].append(
-            self.cohorts[immigrant.name].pop(
-                self.cohorts[immigrant.name].index(immigrant)
+        destination.animal_cohorts[immigrant.name].append(
+            self.animal_cohorts[immigrant.name].pop(
+                self.animal_cohorts[immigrant.name].index(immigrant)
             )
         )
 
@@ -77,7 +77,7 @@ class AnimalCommunity:
         if cohort.is_alive:
             cohort.is_alive = False
             LOGGER.debug("An animal cohort has died")
-            self.cohorts[cohort.name].remove(cohort)
+            self.animal_cohorts[cohort.name].remove(cohort)
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
@@ -95,10 +95,10 @@ class AnimalCommunity:
             A new age 0 AnimalCohort.
 
         """
-        self.cohorts[cohort.name].append(
+        self.animal_cohorts[cohort.name].append(
             AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
         )
-        return self.cohorts[cohort.name][-1]
+        return self.animal_cohorts[cohort.name][-1]
 
     def forage_community(self) -> None:
         """This function needs to handle the foraging of animal cohorts.
@@ -113,17 +113,28 @@ class AnimalCommunity:
         carcass_pool = self.carcass_pool
         soil_pool = self.soil_pool
 
-        animal_list = []  # List to collect all animals
+        for functional_group, cohorts in self.animal_cohorts.items():
+            # Create a separate list of prey for each functional group
+            prey = []
+            cohort = None  # Initialize 'cohort' before the loop
+            for cohort in cohorts:
+                if functional_group not in cohort.prey_groups:
+                    continue
 
-        for functional_group, cohorts in self.cohorts.items():
-            animal_list.extend(cohorts)  # Add cohorts from the current functional group
+                min_size, max_size = cohort.prey_groups[functional_group]
+                right_sized = [c for c in cohorts if min_size <= c.mass <= max_size]
+                prey.extend(right_sized)
 
-        for cohort in animal_list:
-            other_animals = [animal for animal in animal_list if animal != cohort]
+            # Skip to the next iteration if 'cohort' is None
+            if cohort is None:
+                continue
 
+            # Now, the 'prey' list contains all AnimalCohort objects that match the
+            # prey_groups criteria
+            # Use this 'prey' list in the forage_cohort method for each cohort
             cohort.forage_cohort(
                 plant_list=plant_list,
-                animal_list=other_animals,
+                animal_list=prey,
                 carcass_pool=carcass_pool,
                 soil_pool=soil_pool,
             )

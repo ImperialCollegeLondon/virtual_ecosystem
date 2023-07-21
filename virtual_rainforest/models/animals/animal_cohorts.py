@@ -35,6 +35,7 @@ from virtual_rainforest.models.animals.scaling_functions import (
     energetic_reserve_scaling,
     intake_rate_scaling,
     metabolic_rate,
+    prey_group_selection,
 )
 
 
@@ -89,6 +90,9 @@ class AnimalCohort:
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
+        self.prey_groups: dict[str, tuple[float, float]] = prey_group_selection(
+            self.mass, self.functional_group.prey_scaling
+        )
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -262,8 +266,9 @@ class AnimalCohort:
             if not animal_list:  # if the animal_list is empty
                 # the predator is unable to find prey and hence gets zero energy
                 return 0
-
+            print(animal_list)
             animal_prey = choice(animal_list)
+            print(animal_prey.name)
             energy = self.predation(animal_prey, carcass_pool)
 
         else:
