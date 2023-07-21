@@ -10,7 +10,8 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
+from virtual_rainforest.models.hydrology.constants import HydroConsts
 from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
 
@@ -85,6 +86,7 @@ def test_hydrology_model_initialization(
             soil_layers,
             canopy_layers,
             ini_soil_moisture,
+            constants=HydroConsts,
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -106,10 +108,11 @@ def test_hydrology_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries",
+    "config,time_interval,sm_capacity,raises,expected_log_entries",
     [
         (
             {},
+            None,
             None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
@@ -131,6 +134,7 @@ def test_hydrology_model_initialization(
                 },
             },
             pint.Quantity("1 week"),
+            0.9,
             does_not_raise(),
             (
                 (
@@ -160,6 +164,85 @@ def test_hydrology_model_initialization(
                 ),
             ),
         ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 week",
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
+                },
+                "hydrology": {
+                    "initial_soil_moisture": 0.5,
+                    "constants": {"HydroConsts": {"soil_moisture_capacity": 0.7}},
+                },
+            },
+            pint.Quantity("1 week"),
+            0.7,
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the hydrology model "
+                    "successfully extracted.",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'precipitation' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'leaf_area_index' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'air_temperature_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'relative_humidity_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'atmospheric_pressure_ref' checked",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 week",
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
+                },
+                "hydrology": {
+                    "initial_soil_moisture": 0.5,
+                    "constants": {"HydroConsts": {"soilm_cap": 0.7}},
+                },
+            },
+            None,
+            None,
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Unknown names supplied for HydroConsts: " "soilm_cap",
+                ),
+                (
+                    INFO,
+                    "Valid names are as follows: ",
+                ),
+            ),
+        ),
     ],
 )
 def test_generate_hydrology_model(
@@ -167,6 +250,7 @@ def test_generate_hydrology_model(
     dummy_climate_data,
     config,
     time_interval,
+    sm_capacity,
     raises,
     expected_log_entries,
     layer_roles_fixture,
@@ -182,6 +266,7 @@ def test_generate_hydrology_model(
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
+        assert model.constants.soil_moisture_capacity == sm_capacity
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -318,6 +403,8 @@ def test_calculate_soil_moisture(dummy_climate_data, layer_roles_fixture):
         atmospheric_pressure=data["atmospheric_pressure_ref"].isel(time_index=0) / 1000,
         wind_speed=DataArray([0.1, 0.5, 1.0], dims=["cell_id"]),
         soil_moisture_capacity=DataArray([0.3, 0.6, 0.6], dims=["cell_id"]),
+        soil_moisture_residual=DataArray([0.1, 0.1, 0.1], dims=["cell_id"]),
+        constants=HydroConsts,
     )
 
     xr.testing.assert_allclose(result["vertical_flow"], exp_vertical_flow)
@@ -335,7 +422,17 @@ def test_calculate_vertical_flow(layer_roles_fixture):
 
     soil_moisture = DataArray([0.3, 0.6, 0.9], dims=["cell_id"])
     soil_depth = DataArray([1100, 1100, 1100], dims=["cell_id"])
-    result = calculate_vertical_flow(soil_moisture, soil_depth)
+    result = calculate_vertical_flow(
+        soil_moisture,
+        soil_depth,
+        HydroConsts.soil_moisture_capacity,
+        HydroConsts.soil_moisture_residual,
+        HydroConsts.hydraulic_conductivity,
+        HydroConsts.hydraulic_gradient,
+        HydroConsts.seconds_to_month,
+        HydroConsts.nonlinearily_parameter,
+        HydroConsts.meters_to_millimeters,
+    )
     exp_flow = DataArray([6.022462e-03, 7.186012e-01, 2.389091e01], dims=["cell_id"])
     xr.testing.assert_allclose(result, exp_flow)
 
@@ -353,6 +450,13 @@ def test_calculate_soil_evaporation():
         relative_humidity=DataArray([70, 80, 90], dims=["cell_id"]),
         atmospheric_pressure=DataArray([90, 90, 90], dims=["cell_id"]),
         soil_moisture=DataArray([0.3, 0.6, 0.9], dims=["cell_id"]),
+        celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
+        density_air=HydroConsts.density_air,
+        latent_heat_vapourisation=HydroConsts.latent_heat_vapourisation,
+        gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
+        heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
+        flux_to_mm_conversion=HydroConsts.flux_to_mm_conversion,
+        timestep_conversion_factor=HydroConsts.seconds_to_month,
     )
     xr.testing.assert_allclose(
         result,

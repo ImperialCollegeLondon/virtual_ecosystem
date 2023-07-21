@@ -7,13 +7,12 @@ At present a lot of the abstract methods of the parent class (e.g.
 placeholder functions that don't do anything. This will change as the Virtual Rainforest
 model develops. The factory method
 :func:`~virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel.from_config`
-exists in a
-more complete state, and unpacks a small number of parameters from our currently pretty
-minimal configuration dictionary. These parameters are then used to generate a class
-instance. If errors crop here when converting the information from the config dictionary
-to the required types they are caught and then logged, and at the end of the unpacking
-an error is thrown. This error should be caught and handled by downstream functions so
-that all model configuration failures can be reported as one.
+exists in a more complete state, and unpacks a small number of parameters from our
+currently pretty minimal configuration dictionary. These parameters are then used to
+generate a class instance. If errors crop here when converting the information from the
+config dictionary to the required types they are caught and then logged, and at the end
+of the unpacking an error is thrown. This error should be caught and handled by
+downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -29,7 +28,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
@@ -42,6 +41,7 @@ class HydrologyModel(BaseModel):
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial soil moisture for all layers.
+        constants: Set of constants for the hydrology model.
 
     Raises:
         InitialisationError: when initial soil moisture is out of bounds.
@@ -77,6 +77,7 @@ class HydrologyModel(BaseModel):
         soil_layers: int,
         canopy_layers: int,
         initial_soil_moisture: float,
+        constants: HydroConsts,
         **kwargs: Any,
     ):
         # Sanity checks for initial soil moisture
@@ -105,6 +106,8 @@ class HydrologyModel(BaseModel):
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
         """Initial soil moisture for all layers and grill cells identical."""
+        self.constants = constants
+        """Set of constants for the hydrology model"""
 
     @classmethod
     def from_config(
@@ -127,12 +130,27 @@ class HydrologyModel(BaseModel):
         canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
 
+        # Check if any constants have been supplied
+        if "hydrology" in config and "constants" in config["hydrology"]:
+            # Checks that constants is config are as expected
+            check_valid_constant_names(config, "hydrology", "HydroConsts")
+            # If an error isn't raised then generate the dataclass
+            constants = HydroConsts(**config["hydrology"]["constants"]["HydroConsts"])
+        else:
+            # If no constants are supplied then the defaults should be used
+            constants = HydroConsts()
+
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
             "extracted."
         )
         return cls(
-            data, update_interval, soil_layers, canopy_layers, initial_soil_moisture
+            data,
+            update_interval,
+            soil_layers,
+            canopy_layers,
+            initial_soil_moisture,
+            constants,
         )
 
     def setup(self) -> None:
@@ -214,8 +232,9 @@ class HydrologyModel(BaseModel):
         and
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
         functions. Note that this will likely change with the implementation of the
-        SPLASH model in the plant module which will take care of the above-ground
-        hydrology; the hydrology model will calculate the catchment scale hydrology.
+        SPLASH model :cite:p:`davis_simple_2017` in the plant module which will take
+        care of the above-ground hydrology; the hydrology model will calculate the
+        catchment scale hydrology.
 
         The water extracted by plant roots (= evapotranspiration) and horizontal flow
         between grid cells (above and below the surface) are currently not included.
@@ -232,7 +251,7 @@ class HydrologyModel(BaseModel):
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
         precipitation_surface = current_precipitation * (
-            1 - HydroConsts["water_interception_factor"] * leaf_area_index_sum
+            1 - self.constants.water_interception_factor * leaf_area_index_sum
         )
 
         # Calculate soil moisture, [relative water content], vertical flow, [m3/time
@@ -252,8 +271,9 @@ class HydrologyModel(BaseModel):
                 (self.data["atmospheric_pressure_ref"]).isel(time_index=time_index)
             ),
             wind_speed=0.1,  # TODO include wind in data set?
-            soil_moisture_capacity=HydroConsts["soil_moisture_capacity"],
-            soil_moisture_residual=HydroConsts["soil_moisture_residual"],
+            soil_moisture_capacity=self.constants.soil_moisture_capacity,
+            soil_moisture_residual=self.constants.soil_moisture_residual,
+            constants=self.constants,
         )
 
         # Update data object
@@ -271,14 +291,10 @@ def calculate_soil_moisture(
     temperature: DataArray,
     relative_humidity: DataArray,
     atmospheric_pressure: DataArray,
-    wind_speed: Union[DataArray, float] = 0.1,
-    soil_moisture_capacity: Union[DataArray, float] = HydroConsts[
-        "soil_moisture_capacity"
-    ],
-    soil_moisture_residual: Union[DataArray, float] = HydroConsts[
-        "soil_moisture_residual"
-    ],
-    meters_to_millimeters: float = HydroConsts["meters_to_millimeters"],
+    wind_speed: Union[DataArray, float],
+    soil_moisture_capacity: Union[DataArray, float],
+    soil_moisture_residual: Union[DataArray, float],
+    constants: HydroConsts,
 ) -> dict[str, DataArray]:
     """Calculate soil moisture, surface runoff, soil evaporation, and vertical flow.
 
@@ -310,7 +326,7 @@ def calculate_soil_moisture(
         soil_moisture_capacity: soil moisture capacity (optional), [relative water
             content]
         soil_moisture_residual: residual soil moisture, [relative water content]
-        meters_to_millimeters: conversion factor from meters to millimeters
+        constants: set of constants for hydrology model
 
     Returns:
         soil moisture, [relative water content], vertical flow, [mm/timestep], surface
@@ -326,7 +342,7 @@ def calculate_soil_moisture(
                 len(layer_roles) - layer_roles.count("soil"), len(layer_roles)
             )
         ).sum(dim="layers")
-    ) * (-meters_to_millimeters)
+    ) * (-constants.meters_to_millimeters)
 
     # Calculate how much water can be added to soil before capacity is reached.
     # To find out how much rain can be taken up by the topsoil before rain goes to
@@ -369,6 +385,13 @@ def calculate_soil_moisture(
         atmospheric_pressure=atmospheric_pressure,
         soil_moisture=soil_moisture_infiltrated,
         wind_speed=wind_speed,
+        celsius_to_kelvin=constants.celsius_to_kelvin,
+        density_air=constants.density_air,
+        latent_heat_vapourisation=constants.latent_heat_vapourisation,
+        gas_constant_water_vapour=constants.gas_constant_water_vapour,
+        heat_transfer_coefficient=constants.heat_transfer_coefficient,
+        flux_to_mm_conversion=constants.flux_to_mm_conversion,
+        timestep_conversion_factor=constants.seconds_to_month,  # TODO flexible input
     )
 
     # Calculate soil moisture after evaporation
@@ -382,6 +405,11 @@ def calculate_soil_moisture(
         soil_depth=soil_depth,
         soil_moisture_capacity=soil_moisture_capacity,
         soil_moisture_residual=soil_moisture_residual,
+        hydraulic_conductivity=constants.hydraulic_conductivity,
+        hydraulic_gradient=constants.hydraulic_gradient,
+        timestep_conversion_factor=constants.seconds_to_month,
+        nonlinearily_parameter=constants.nonlinearily_parameter,
+        meters_to_millimeters=constants.meters_to_millimeters,
     )
 
     # Reduce mean soil moisture by vertical flow - this shouldn't get negative
@@ -425,21 +453,13 @@ def calculate_soil_moisture(
 def calculate_vertical_flow(
     soil_moisture: DataArray,
     soil_depth: DataArray,
-    soil_moisture_capacity: Union[float, DataArray] = (
-        HydroConsts["soil_moisture_capacity"]
-    ),
-    soil_moisture_residual: Union[float, DataArray] = (
-        HydroConsts["soil_moisture_residual"]
-    ),
-    hydraulic_conductivity: Union[float, DataArray] = (
-        HydroConsts["hydraulic_conductivity"]
-    ),
-    hydraulic_gradient: Union[float, DataArray] = (HydroConsts["hydraulic_gradient"]),
-    timestep_conversion_factor: float = (HydroConsts["seconds_to_month"]),
-    nonlinearily_parameter: Union[float, DataArray] = (
-        HydroConsts["nonlinearily_parameter"]
-    ),
-    meters_to_millimeters: float = HydroConsts["meters_to_millimeters"],
+    soil_moisture_capacity: Union[float, DataArray],
+    soil_moisture_residual: Union[float, DataArray],
+    hydraulic_conductivity: Union[float, DataArray],
+    hydraulic_gradient: Union[float, DataArray],
+    timestep_conversion_factor: float,
+    nonlinearily_parameter: Union[float, DataArray],
+    meters_to_millimeters: float,
 ) -> DataArray:
     r"""Calculate vertical water flow through soil column.
 
@@ -518,14 +538,14 @@ def calculate_soil_evaporation(
     relative_humidity: DataArray,
     atmospheric_pressure: DataArray,
     soil_moisture: DataArray,
-    wind_speed: Union[float, DataArray] = 0.5,
-    celsius_to_kelvin: float = HydroConsts["celsius_to_kelvin"],
-    density_air: float = HydroConsts["density_air"],
-    latent_heat_vapourisation: float = HydroConsts["latent_heat_vapourisation"],
-    gas_constant_water_vapour: float = HydroConsts["gas_constant_water_vapour"],
-    heat_transfer_coefficient: float = HydroConsts["heat_transfer_coefficient"],
-    flux_to_mm_conversion: float = HydroConsts["flux_to_mm_conversion"],
-    timestep_conversion_factor: float = HydroConsts["seconds_to_month"],
+    wind_speed: Union[float, DataArray],
+    celsius_to_kelvin: float,
+    density_air: float,
+    latent_heat_vapourisation: float,
+    gas_constant_water_vapour: float,
+    heat_transfer_coefficient: float,
+    flux_to_mm_conversion: float,
+    timestep_conversion_factor: float,
 ) -> DataArray:
     """Calculate soil evaporation based classical bulk aerodynamic formulation.
 
