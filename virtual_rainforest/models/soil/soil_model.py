@@ -30,8 +30,9 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
+from virtual_rainforest.models.soil.constants import SoilConsts
 
 
 class IntegrationError(Exception):
@@ -50,7 +51,9 @@ class SoilModel(BaseModel):
         data: The data object to be used in the model.
         start_time: A datetime64 value setting the start time of the model.
         update_interval: Time to wait between updates of the model state.
-        no_layers: The number of soil layers to be modelled.
+        soil_layers: The number of soil layers to be modelled.
+        canopy_layers: The number of canopy layers to be modelled.
+        constants: Set of constants for the soil model.
     """
 
     model_name = "soil"
@@ -87,6 +90,7 @@ class SoilModel(BaseModel):
         update_interval: Quantity,
         soil_layers: int,
         canopy_layers: int,
+        constants: SoilConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -117,6 +121,8 @@ class SoilModel(BaseModel):
         """The layer in the data object representing the first soil layer."""
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
+        self.constants = constants
+        """Set of constants for the soil model"""
 
     @classmethod
     def from_config(
@@ -138,11 +144,21 @@ class SoilModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
+        # Check if any constants have been supplied
+        if "soil" in config and "constants" in config["soil"]:
+            # Checks that constants is config are as expected
+            check_valid_constant_names(config, "soil", "SoilConsts")
+            # If an error isn't raised then generate the dataclass
+            constants = SoilConsts(**config["soil"]["constants"]["SoilConsts"])
+        else:
+            # If no constants are supplied then the defaults should be used
+            constants = SoilConsts()
+
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers)
+        return cls(data, update_interval, soil_layers, canopy_layers, constants)
 
     def setup(self) -> None:
         """Placeholder function to setup up the soil model."""
@@ -213,7 +229,13 @@ class SoilModel(BaseModel):
             construct_full_soil_model,
             t_span,
             y0,
-            args=(self.data, no_cells, self.top_soil_layer_index, delta_pools_ordered),
+            args=(
+                self.data,
+                no_cells,
+                self.top_soil_layer_index,
+                delta_pools_ordered,
+                self.constants,
+            ),
         )
 
         # Check if integration failed
@@ -243,6 +265,7 @@ def construct_full_soil_model(
     no_cells: int,
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -256,6 +279,7 @@ def construct_full_soil_model(
         top_soil_layer_index: Index for layer in data object representing top soil layer
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
+        constants: Set of constants for the soil model.
 
     Returns:
         The rate of change for each soil pool
@@ -277,6 +301,7 @@ def construct_full_soil_model(
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,
+        constants=constants,
         **soil_pools,
     )
 
