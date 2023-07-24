@@ -222,7 +222,7 @@ class HydrologyModel(BaseModel):
         """Placeholder function to spin up the hydrology model."""
 
     def update(self, time_index: int) -> None:
-        """Function to update the hydrology model.
+        r"""Function to update the hydrology model.
 
         At the moment, this step calculates soil moisture, vertical flow, soil
         evaporation, and surface runoff. Soil moisture and surface runoff are calculated
@@ -236,7 +236,7 @@ class HydrologyModel(BaseModel):
         will calculate the catchment scale hydrology.
 
         Soil evaporation is calculated with classical bulk aerodynamic formulation,
-        following the so-called alpha method, see
+        following the so-called ':math:`\alpha` method', see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
         .
 
@@ -248,7 +248,38 @@ class HydrologyModel(BaseModel):
         between grid cells (above and below the surface) are currently not included.
 
         TODO Implement horizontal sub-surface flow and stream flow
+
+        The function requires the following input variables from the data object:
+
+        * air temperature, [C]
+        * relative humidity, []
+        * atmospheric pressure, [kPa]
+        * precipitation, [mm]
+        * wind speed (currently not implemented, default = 0.1 m s-1)
+        * leaf area index, [m m-2]
+        * layer heights, [m]
+        * soil moisture (previous time step), [relative water content]
+
+        and the following soil parameters (defaults in
+        :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`):
+
+        * soil moisture capacity, [relative water content]
+        * soil moisture residual, [relative water content]
+        * soil hydraulic conductivity, [m s-1]
+        * soil hydraulic gradient, [m m-1]
+        * van Genuchten non-linearity parameter, dimensionless
+
+        and a number of additional parameters that as described in detail in
+        :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`.
+
         """
+        # select time conversion factor # TODO implement flexible time steps
+        if self.update_interval != Quantity("1 month"):
+            to_raise = NotImplementedError("This time step is currently not supported.")
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        time_conversion_factor = self.constants.seconds_to_month
 
         # Select variables at relevant heights for current time step
         current_precipitation = self.data["precipitation"].isel(time_index=time_index)
@@ -339,7 +370,7 @@ class HydrologyModel(BaseModel):
             gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
             heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
             flux_to_mm_conversion=self.constants.flux_to_mm_conversion,
-            timestep_conversion_factor=self.constants.seconds_to_month,  # TODO flexible
+            timestep_conversion_factor=time_conversion_factor,
         )
 
         # Calculate soil moisture after evaporation

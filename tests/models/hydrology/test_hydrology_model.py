@@ -82,7 +82,7 @@ def test_hydrology_model_initialization(
         # Initialize model
         model = HydrologyModel(
             dummy_climate_data,
-            pint.Quantity("1 week"),
+            pint.Quantity("1 month"),
             soil_layers,
             canopy_layers,
             ini_soil_moisture,
@@ -99,7 +99,7 @@ def test_hydrology_model_initialization(
             ]
         ).issubset(dir(model))
         assert model.model_name == "hydrology"
-        assert repr(model) == "HydrologyModel(update_interval = 1 week)"
+        assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
         assert model.initial_soil_moisture == ini_soil_moisture
 
@@ -122,7 +122,7 @@ def test_hydrology_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "1 week",
+                        "update_interval": "1 month",
                     },
                     "layers": {
                         "soil_layers": 2,
@@ -133,7 +133,7 @@ def test_hydrology_model_initialization(
                     "initial_soil_moisture": 0.5,
                 },
             },
-            pint.Quantity("1 week"),
+            pint.Quantity("1 month"),
             0.9,
             does_not_raise(),
             (
@@ -169,7 +169,7 @@ def test_hydrology_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "1 week",
+                        "update_interval": "1 month",
                     },
                     "layers": {
                         "soil_layers": 2,
@@ -181,7 +181,7 @@ def test_hydrology_model_initialization(
                     "constants": {"HydroConsts": {"soil_moisture_capacity": 0.7}},
                 },
             },
-            pint.Quantity("1 week"),
+            pint.Quantity("1 month"),
             0.7,
             does_not_raise(),
             (
@@ -217,7 +217,7 @@ def test_hydrology_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "1 week",
+                        "update_interval": "1 month",
                     },
                     "layers": {
                         "soil_layers": 2,
@@ -273,8 +273,27 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval",
+    "config,time_interval, raises",
     [
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "1 month",
+                    },
+                    "layers": {
+                        "soil_layers": 2,
+                        "canopy_layers": 10,
+                    },
+                },
+                "hydrology": {
+                    "initial_soil_moisture": 0.5,
+                },
+            },
+            pint.Quantity("1 month"),
+            does_not_raise(),
+        ),
         (
             {
                 "core": {
@@ -292,78 +311,86 @@ def test_generate_hydrology_model(
                 },
             },
             pint.Quantity("1 week"),
-        )
+            pytest.raises(NotImplementedError),
+        ),
     ],
 )
 def test_setup(
+    caplog,
     dummy_climate_data,
     config,
     layer_roles_fixture,
     time_interval,
+    raises,
 ):
     """Test set up and update."""
 
-    # initialise model
-    model = HydrologyModel.from_config(
-        dummy_climate_data,
-        config,
-        pint.Quantity(config["core"]["timing"]["update_interval"]),
-    )
-    assert model.layer_roles == layer_roles_fixture
-    assert model.update_interval == time_interval
+    with raises:
+        # initialise model
+        model = HydrologyModel.from_config(
+            dummy_climate_data,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
+        assert model.layer_roles == layer_roles_fixture
+        assert model.update_interval == time_interval
 
-    model.setup()
+        model.setup()
 
-    soil_moisture_values = np.repeat(a=[np.nan, 0.5], repeats=[13, 2])
+        soil_moisture_values = np.repeat(a=[np.nan, 0.5], repeats=[13, 2])
 
-    xr.testing.assert_allclose(
-        dummy_climate_data["soil_moisture"],
-        DataArray(
-            np.broadcast_to(soil_moisture_values, (3, 15)).T,
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": [0, 1, 2],
-            },
-            name="soil_moisture",
-        ),
-    )
-
-    # Run the update step
-    model.update(time_index=1)
-
-    exp_soil_moisture = xr.concat(
-        [
+        xr.testing.assert_allclose(
+            dummy_climate_data["soil_moisture"],
             DataArray(
-                np.full((13, 3), np.nan),
+                np.broadcast_to(soil_moisture_values, (3, 15)).T,
                 dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(15),
+                    "layer_roles": ("layers", layer_roles_fixture),
+                    "cell_id": [0, 1, 2],
+                },
+                name="soil_moisture",
             ),
-            DataArray(
-                [[0.512498, 0.518842, 0.626396], [0.512498, 0.518842, 0.626396]],
-                dims=["layers", "cell_id"],
-            ),
-        ],
-        dim="layers",
-    ).assign_coords(model.data["layer_heights"].coords)
+        )
 
-    exp_runoff = DataArray([0, 0, 0], dims=["cell_id"], coords={"cell_id": [0, 1, 2]})
+        # Run the update step
+        model.update(time_index=1)
 
-    exp_vertical_flow = DataArray(
-        [0.252134, 0.273622, 0.964253],
-        dims=["cell_id"],
-        coords={"cell_id": [0, 1, 2]},
-    )
-    exp_soil_evap = DataArray(
-        [0.393653, 0.393653, 0.393653],
-        dims=["cell_id"],
-        coords={"cell_id": [0, 1, 2]},
-    )
+        exp_soil_moisture = xr.concat(
+            [
+                DataArray(
+                    np.full((13, 3), np.nan),
+                    dims=["layers", "cell_id"],
+                ),
+                DataArray(
+                    [[0.512498, 0.518842, 0.626396], [0.512498, 0.518842, 0.626396]],
+                    dims=["layers", "cell_id"],
+                ),
+            ],
+            dim="layers",
+        ).assign_coords(model.data["layer_heights"].coords)
 
-    xr.testing.assert_allclose(model.data["soil_moisture"], exp_soil_moisture)
-    xr.testing.assert_allclose(model.data["vertical_flow"], exp_vertical_flow)
-    xr.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
-    xr.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
+        exp_runoff = DataArray(
+            [0, 0, 0],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
+
+        exp_vertical_flow = DataArray(
+            [0.252134, 0.273622, 0.964253],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
+        exp_soil_evap = DataArray(
+            [0.393653, 0.393653, 0.393653],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
+
+        xr.testing.assert_allclose(model.data["soil_moisture"], exp_soil_moisture)
+        xr.testing.assert_allclose(model.data["vertical_flow"], exp_vertical_flow)
+        xr.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
+        xr.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
 
 
 def test_calculate_vertical_flow(layer_roles_fixture):
