@@ -12,6 +12,7 @@ from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.soil_model import IntegrationError, SoilModel
 
 
@@ -172,9 +173,17 @@ def test_soil_model_initialization(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
-            model = SoilModel(carbon_data, pint.Quantity("1 week"), 2, 10)
+            model = SoilModel(
+                carbon_data, pint.Quantity("1 week"), 2, 10, constants=SoilConsts()
+            )
         else:
-            model = SoilModel(dummy_carbon_data, pint.Quantity("1 week"), 2, 10)
+            model = SoilModel(
+                dummy_carbon_data,
+                pint.Quantity("1 week"),
+                2,
+                10,
+                constants=SoilConsts(),
+            )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup", "integrate"]).issubset(
@@ -459,7 +468,13 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     }
 
     rate_of_change = construct_full_soil_model(
-        0.0, pools, dummy_carbon_data, 4, top_soil_layer_index, delta_pools_ordered
+        0.0,
+        pools,
+        dummy_carbon_data,
+        4,
+        top_soil_layer_index,
+        delta_pools_ordered,
+        constants=SoilConsts(),
     )
 
     assert np.allclose(delta_pools, rate_of_change)

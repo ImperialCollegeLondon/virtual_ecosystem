@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
+from virtual_rainforest.models.soil.constants import SoilConsts
 
 
 @pytest.fixture
@@ -21,10 +22,17 @@ def moist_temp_scalars(dummy_carbon_data, top_soil_layer_index):
     )
 
     moist_scalars = convert_moisture_to_scalar(
-        dummy_carbon_data["soil_moisture"][top_soil_layer_index]
+        dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+        SoilConsts().moisture_scalar_coefficient,
+        SoilConsts().moisture_scalar_exponent,
     )
     temp_scalars = convert_temperature_to_scalar(
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        SoilConsts().temp_scalar_coefficient_1,
+        SoilConsts().temp_scalar_coefficient_2,
+        SoilConsts().temp_scalar_coefficient_3,
+        SoilConsts().temp_scalar_coefficient_4,
+        SoilConsts().temp_scalar_reference_temp,
     )
 
     return moist_scalars * temp_scalars
@@ -77,6 +85,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         dummy_carbon_data["percent_clay"],
         pool_order,
+        constants=SoilConsts(),
     )
 
     # Check that the updates are correctly calculated. Using a loop here implicitly
@@ -100,6 +109,7 @@ def test_calculate_mineral_association(dummy_carbon_data, moist_temp_scalars):
         dummy_carbon_data["bulk_density"],
         moist_temp_scalars,
         dummy_carbon_data["percent_clay"],
+        constants=SoilConsts(),
     )
 
     # Check that expected values are generated
@@ -114,7 +124,10 @@ def test_calculate_equilibrium_maom(dummy_carbon_data):
     output_eqb_maoms = [2.13182275, 0.65105909, 0.36433141, 0.58717765]
 
     equib_maoms = calculate_equilibrium_maom(
-        dummy_carbon_data["pH"], Q_max, dummy_carbon_data["soil_c_pool_lmwc"]
+        dummy_carbon_data["pH"],
+        Q_max,
+        dummy_carbon_data["soil_c_pool_lmwc"],
+        constants=SoilConsts(),
     )
     assert np.allclose(equib_maoms, output_eqb_maoms)
 
@@ -159,10 +172,15 @@ def test_calculate_max_sorption_capacity(
             max_capacities = calculate_max_sorption_capacity(
                 dummy_carbon_data["bulk_density"],
                 np.array(alternative, dtype=np.float32),
+                SoilConsts().max_sorption_with_clay_slope,
+                SoilConsts().max_sorption_with_clay_intercept,
             )
         else:
             max_capacities = calculate_max_sorption_capacity(
-                dummy_carbon_data["bulk_density"], dummy_carbon_data["percent_clay"]
+                dummy_carbon_data["bulk_density"],
+                dummy_carbon_data["percent_clay"],
+                SoilConsts().max_sorption_with_clay_slope,
+                SoilConsts().max_sorption_with_clay_intercept,
             )
 
         assert np.allclose(max_capacities, output_capacities)
@@ -176,7 +194,11 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
 
     output_coefs = [168.26740611, 24.49063242, 12.88249552, 52.9419581]
 
-    binding_coefs = calculate_binding_coefficient(dummy_carbon_data["pH"])
+    binding_coefs = calculate_binding_coefficient(
+        dummy_carbon_data["pH"],
+        SoilConsts().binding_with_ph_slope,
+        SoilConsts().binding_with_ph_intercept,
+    )
 
     assert np.allclose(binding_coefs, output_coefs)
 
@@ -188,7 +210,12 @@ def test_convert_temperature_to_scalar(dummy_carbon_data, top_soil_layer_index):
     output_scalars = [1.27113, 1.27196, 1.27263, 1.26344]
 
     temp_scalar = convert_temperature_to_scalar(
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        SoilConsts().temp_scalar_coefficient_1,
+        SoilConsts().temp_scalar_coefficient_2,
+        SoilConsts().temp_scalar_coefficient_3,
+        SoilConsts().temp_scalar_coefficient_4,
+        SoilConsts().temp_scalar_reference_temp,
     )
 
     assert np.allclose(temp_scalar, output_scalars)
@@ -228,11 +255,15 @@ def test_convert_moisture_to_scalar(
     with raises:
         if alternative:
             moist_scalar = convert_moisture_to_scalar(
-                np.array(alternative, dtype=np.float32)
+                np.array(alternative, dtype=np.float32),
+                SoilConsts().moisture_scalar_coefficient,
+                SoilConsts().moisture_scalar_exponent,
             )
         else:
             moist_scalar = convert_moisture_to_scalar(
-                dummy_carbon_data["soil_moisture"][top_soil_layer_index]
+                dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+                SoilConsts().moisture_scalar_coefficient,
+                SoilConsts().moisture_scalar_exponent,
             )
 
         assert np.allclose(moist_scalar, output_scalars)
@@ -247,7 +278,9 @@ def test_calculate_maintenance_respiration(dummy_carbon_data, moist_temp_scalars
     expected_resps = [0.19906823, 0.0998193, 0.45592854, 0.00763283]
 
     main_resps = calculate_maintenance_respiration(
-        dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
+        dummy_carbon_data["soil_c_pool_microbe"],
+        moist_temp_scalars,
+        SoilConsts().microbial_turnover_rate,
     )
 
     assert np.allclose(main_resps, expected_resps)
@@ -260,7 +293,9 @@ def test_calculate_necromass_adsorption(dummy_carbon_data, moist_temp_scalars):
     expected_adsorps = [0.13824183, 0.06931897, 0.31661708, 0.00530057]
 
     actual_adsorps = calculate_necromass_adsorption(
-        dummy_carbon_data["soil_c_pool_microbe"], moist_temp_scalars
+        dummy_carbon_data["soil_c_pool_microbe"],
+        moist_temp_scalars,
+        SoilConsts().necromass_adsorption_rate,
     )
 
     assert np.allclose(actual_adsorps, expected_adsorps)
@@ -273,7 +308,10 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
     actual_cues = calculate_carbon_use_efficiency(
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index]
+        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        SoilConsts().reference_cue,
+        SoilConsts().cue_reference_temp,
+        SoilConsts().cue_with_temperature,
     )
 
     assert np.allclose(actual_cues, expected_cues)
@@ -286,7 +324,8 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     expected_saturated = [0.99876016, 0.99687933, 0.99936324, 0.99285147]
 
     actual_saturated = calculate_microbial_saturation(
-        dummy_carbon_data["soil_c_pool_microbe"]
+        dummy_carbon_data["soil_c_pool_microbe"],
+        SoilConsts().half_sat_microbial_activity,
     )
 
     assert np.allclose(actual_saturated, expected_saturated)
@@ -301,7 +340,8 @@ def test_calculate_microbial_pom_mineralisation_saturation(dummy_carbon_data):
     expected_saturated = [0.99793530, 0.99480968, 0.99893917, 0.98814229]
 
     actual_saturated = calculate_microbial_pom_mineralisation_saturation(
-        dummy_carbon_data["soil_c_pool_microbe"]
+        dummy_carbon_data["soil_c_pool_microbe"],
+        SoilConsts().half_sat_microbial_pom_mineralisation,
     )
 
     assert np.allclose(actual_saturated, expected_saturated)
@@ -316,7 +356,7 @@ def test_calculate_pom_decomposition_saturation(dummy_carbon_data):
     expected_saturated = [0.4, 0.86956521, 0.82352941, 0.7]
 
     actual_saturated = calculate_pom_decomposition_saturation(
-        dummy_carbon_data["soil_c_pool_pom"]
+        dummy_carbon_data["soil_c_pool_pom"], SoilConsts().half_sat_pom_decomposition
     )
 
     assert np.allclose(actual_saturated, expected_saturated)
@@ -335,6 +375,7 @@ def test_calculate_microbial_carbon_uptake(
         dummy_carbon_data["soil_c_pool_microbe"],
         moist_temp_scalars,
         dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        constants=SoilConsts(),
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
@@ -347,7 +388,9 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_temp_scalars)
     expected_leaching = [7.15045537e-05, 3.61665981e-05, 1.68115460e-04, 1.59018704e-06]
 
     actual_leaching = calculate_labile_carbon_leaching(
-        dummy_carbon_data["soil_c_pool_lmwc"], moist_temp_scalars
+        dummy_carbon_data["soil_c_pool_lmwc"],
+        moist_temp_scalars,
+        SoilConsts().leaching_rate_labile_carbon,
     )
 
     assert np.allclose(actual_leaching, expected_leaching)
@@ -363,6 +406,7 @@ def test_calculate_pom_decomposition(dummy_carbon_data, moist_temp_scalars):
         dummy_carbon_data["soil_c_pool_pom"],
         dummy_carbon_data["soil_c_pool_microbe"],
         moist_temp_scalars,
+        constants=SoilConsts(),
     )
 
     assert np.allclose(actual_decomp, expected_decomp)
@@ -373,10 +417,13 @@ def test_calculate_direct_litter_input_to_pools():
     from virtual_rainforest.models.soil.carbon import (
         calculate_direct_litter_input_to_pools,
     )
-    from virtual_rainforest.models.soil.constants import LITTER_INPUT_RATE
 
-    actual_input_lmwc, actual_input_pom = calculate_direct_litter_input_to_pools()
+    actual_input_lmwc, actual_input_pom = calculate_direct_litter_input_to_pools(
+        SoilConsts().carbon_input_to_pom, SoilConsts().litter_input_rate
+    )
 
     assert np.isclose(actual_input_lmwc, 0.00015697011)
     assert np.isclose(actual_input_pom, 0.00031394022)
-    assert np.isclose(actual_input_lmwc + actual_input_pom, LITTER_INPUT_RATE)
+    assert np.isclose(
+        actual_input_lmwc + actual_input_pom, SoilConsts().litter_input_rate
+    )
