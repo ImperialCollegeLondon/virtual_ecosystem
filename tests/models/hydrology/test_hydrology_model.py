@@ -316,7 +316,6 @@ def test_generate_hydrology_model(
     ],
 )
 def test_setup(
-    caplog,
     dummy_climate_data,
     config,
     layer_roles_fixture,
@@ -393,8 +392,27 @@ def test_setup(
         xr.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
 
 
-def test_calculate_vertical_flow(layer_roles_fixture):
-    """test."""
+@pytest.mark.parametrize(
+    "soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par",
+    [
+        (
+            HydroConsts.soil_moisture_capacity,
+            HydroConsts.soil_moisture_residual,
+            HydroConsts.hydraulic_conductivity,
+            HydroConsts.hydraulic_gradient,
+            HydroConsts.nonlinearily_parameter,
+        ),
+        (
+            DataArray([0.9, 0.9, 0.9], dims=["cell_id"]),
+            DataArray([0.1, 0.1, 0.1], dims=["cell_id"]),
+            DataArray([0.001, 0.001, 0.001], dims=["cell_id"]),
+            DataArray([0.01, 0.01, 0.01], dims=["cell_id"]),
+            DataArray([2, 2, 2], dims=["cell_id"]),
+        ),
+    ],
+)
+def test_calculate_vertical_flow(soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par):
+    """Test vertical flow with float or DataArray input."""
 
     from virtual_rainforest.models.hydrology.hydrology_model import (
         calculate_vertical_flow,
@@ -402,23 +420,39 @@ def test_calculate_vertical_flow(layer_roles_fixture):
 
     soil_moisture = DataArray([0.3, 0.6, 0.9], dims=["cell_id"])
     soil_depth = DataArray([1100, 1100, 1100], dims=["cell_id"])
+
     result = calculate_vertical_flow(
         soil_moisture,
         soil_depth,
-        HydroConsts.soil_moisture_capacity,
-        HydroConsts.soil_moisture_residual,
-        HydroConsts.hydraulic_conductivity,
-        HydroConsts.hydraulic_gradient,
+        soilm_cap,
+        soilm_res,
+        hydr_con,
+        hydr_grad,
         HydroConsts.seconds_to_month,
-        HydroConsts.nonlinearily_parameter,
+        nonlin_par,
         HydroConsts.meters_to_millimeters,
     )
     exp_flow = DataArray([6.022462e-03, 7.186012e-01, 2.389091e01], dims=["cell_id"])
     xr.testing.assert_allclose(result, exp_flow)
 
 
-def test_calculate_soil_evaporation():
-    """test."""
+@pytest.mark.parametrize(
+    "wind, dens_air, latvap",
+    [
+        (
+            0.1,
+            HydroConsts.density_air,
+            HydroConsts.latent_heat_vapourisation,
+        ),
+        (
+            DataArray([0.1, 0.1, 0.1], dims=["cell_id"]),
+            DataArray([1.225, 1.225, 1.225], dims=["cell_id"]),
+            DataArray([2.45, 2.45, 2.45], dims=["cell_id"]),
+        ),
+    ],
+)
+def test_calculate_soil_evaporation(wind, dens_air, latvap):
+    """Test soil evaporation with float and DataArray."""
 
     from virtual_rainforest.models.hydrology.hydrology_model import (
         calculate_soil_evaporation,
@@ -426,13 +460,13 @@ def test_calculate_soil_evaporation():
 
     result = calculate_soil_evaporation(
         temperature=DataArray([10.0, 20.0, 30.0], dims=["cell_id"]),
-        wind_speed=DataArray([0.1, 0.5, 2.0], dims=["cell_id"]),
+        wind_speed=wind,
         relative_humidity=DataArray([70, 80, 90], dims=["cell_id"]),
         atmospheric_pressure=DataArray([90, 90, 90], dims=["cell_id"]),
         soil_moisture=DataArray([0.3, 0.6, 0.9], dims=["cell_id"]),
         celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
-        density_air=HydroConsts.density_air,
-        latent_heat_vapourisation=HydroConsts.latent_heat_vapourisation,
+        density_air=dens_air,
+        latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
         flux_to_mm_conversion=HydroConsts.flux_to_mm_conversion,
@@ -440,5 +474,5 @@ def test_calculate_soil_evaporation():
     )
     xr.testing.assert_allclose(
         result,
-        DataArray([0.263425, 0.760504, 1.760455], dims=["cell_id"]),
+        DataArray([0.263425, 0.340108, 0.39365], dims=["cell_id"]),
     )
