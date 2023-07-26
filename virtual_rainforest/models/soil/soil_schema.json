@@ -4,7 +4,20 @@
       "soil": {
          "description": "Configuration settings for the soil module",
          "type": "object",
-         "properties": {},
+         "properties": {
+            "constants": {
+               "description": "Constants for the soil module",
+               "type": "object",
+               "properties": {
+                  "SoilConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "SoilConsts"
+               ]
+            }
+         },
          "default": {},
          "required": []
       }
