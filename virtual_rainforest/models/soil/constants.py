@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SoilConsts:
-    """Dataclass to store all constants for the `abiotic_simple` model."""
+    """Dataclass to store all constants for the `soil` model."""
 
     binding_with_ph_slope: float = -0.186
     """Units of [pH^-1]. From linear regression :cite:p:`mayes_relation_2012`."""
