@@ -1,5 +1,5 @@
 """The ``models.soil.constants`` module contains a set of dataclasses containing
-constants" (fitting relationships taken from the literature) required by the broader
+constants (fitting relationships taken from the literature) required by the broader
 :mod:`~virtual_rainforest.models.soil` module
 """  # noqa: D205, D415
 
