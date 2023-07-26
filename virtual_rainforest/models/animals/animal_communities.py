@@ -113,28 +113,37 @@ class AnimalCommunity:
         carcass_pool = self.carcass_pool
         soil_pool = self.soil_pool
 
-        for functional_group, cohorts in self.animal_cohorts.items():
-            # Create a separate list of prey for each functional group
-            prey = []
-            cohort = None  # Initialize 'cohort' before the loop
-            for cohort in cohorts:
-                if functional_group not in cohort.prey_groups:
-                    continue
+        for consumer_functional_group, consumer_cohorts in self.animal_cohorts.items():
+            for consumer_cohort in consumer_cohorts:
+                prey = []
+                for (
+                    prey_functional_group,
+                    potential_prey_cohorts,
+                ) in self.animal_cohorts.items():
+                    # Skip if this functional group is not a prey of current predator
+                    if prey_functional_group not in consumer_cohort.prey_groups:
+                        continue
 
-                min_size, max_size = cohort.prey_groups[functional_group]
-                right_sized = [c for c in cohorts if min_size <= c.mass <= max_size]
-                prey.extend(right_sized)
+                    # Get the size range of the prey this predator eats
+                    min_size, max_size = consumer_cohort.prey_groups[
+                        prey_functional_group
+                    ]
 
-            # Skip to the next iteration if 'cohort' is None
-            if cohort is None:
-                continue
+                    # Filter the potential prey cohorts based on their size
+                    right_sized_prey = [
+                        c
+                        for c in potential_prey_cohorts
+                        if min_size <= c.mass <= max_size
+                    ]
+                    prey.extend(right_sized_prey)
 
-            # Now, the 'prey' list contains all AnimalCohort objects that match the
-            # prey_groups criteria
-            # Use this 'prey' list in the forage_cohort method for each cohort
-            cohort.forage_cohort(
-                plant_list=plant_list,
-                animal_list=prey,
-                carcass_pool=carcass_pool,
-                soil_pool=soil_pool,
-            )
+                # Skip to the next iteration if 'prey' is empty
+                # if not prey:
+                #  continue
+
+                consumer_cohort.forage_cohort(
+                    plant_list=plant_list,
+                    animal_list=prey,
+                    carcass_pool=carcass_pool,
+                    soil_pool=soil_pool,
+                )

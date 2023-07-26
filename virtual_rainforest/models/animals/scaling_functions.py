@@ -143,7 +143,9 @@ def intake_rate_scaling(mass: float, terms: tuple) -> float:
     return terms[1] * mass ** terms[0] * 480 * (1 / 1000)
 
 
-def prey_group_selection(mass: float, terms: tuple) -> dict[str, tuple[float, float]]:
+def prey_group_selection(
+    diet: str, mass: float, terms: tuple
+) -> dict[str, tuple[float, float]]:
     """The function to set the type selection and mass scaling of predators.
 
     Currently, this function is in a toy form. It exists so the forage_community
@@ -161,13 +163,15 @@ def prey_group_selection(mass: float, terms: tuple) -> dict[str, tuple[float, fl
 
     """
 
-    all_prey = {
-        "herbivorous_mammal": (0.1, 1000.0),
-        "carnivorous_mammal": (0.1, 1000.0),
-        "herbivorous_bird": (0.1, 1000.0),
-        "carnivorous_bird": (0.1, 1000.0),
-        "herbivorous_insect": (0.1, 1000.0),
-        "carnivorous_insect": (0.1, 1000.0),
-    }
-
+    if diet == "herbivore":
+        all_prey = {"plants": (0.0, 0.0)}
+    else:
+        all_prey = {
+            "herbivorous_mammal": (0.1, 1000.0),
+            "carnivorous_mammal": (0.1, 1000.0),
+            "herbivorous_bird": (0.1, 1000.0),
+            "carnivorous_bird": (0.1, 1000.0),
+            "herbivorous_insect": (0.1, 1000.0),
+            "carnivorous_insect": (0.1, 1000.0),
+        }
     return all_prey

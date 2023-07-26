@@ -91,7 +91,9 @@ class AnimalCohort:
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups: dict[str, tuple[float, float]] = prey_group_selection(
-            self.mass, self.functional_group.prey_scaling
+            self.functional_group.diet.value,
+            self.mass,
+            self.functional_group.prey_scaling,
         )
 
     def metabolize(self, dt: timedelta64) -> None:
@@ -266,9 +268,9 @@ class AnimalCohort:
             if not animal_list:  # if the animal_list is empty
                 # the predator is unable to find prey and hence gets zero energy
                 return 0
-            print(animal_list)
+            print(animal_list)  # debugging
             animal_prey = choice(animal_list)
-            print(animal_prey.name)
+            print(animal_prey.name)  # debugging
             energy = self.predation(animal_prey, carcass_pool)
 
         else:
