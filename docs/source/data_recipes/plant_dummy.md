@@ -57,6 +57,17 @@ plant_dummy["leaf_area_index"] = DataArray(
         name="leaf_area_index",
 )
 
+evapotranspiration = np.repeat(a=[np.nan, 20.0, np.nan], repeats=[1, 3, 11])
+plant_dummy["evapotranspiration"] = DataArray(
+        np.broadcast_to(evapotranspiration, (81, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": np.arange(0,81),
+        },
+        name="evapotranspiration",
+)
 # Make dictionary of DataArrays into a Dataset
 plant_dummy_dataset = Dataset(plant_dummy)
 
