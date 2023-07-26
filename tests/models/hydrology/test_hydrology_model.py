@@ -42,6 +42,10 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'evapotranspiration' checked",
+                ),
             ),
         ),
         (
@@ -162,6 +166,10 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'evapotranspiration' checked",
+                ),
             ),
         ),
         (
@@ -209,6 +217,10 @@ def test_hydrology_model_initialization(
                 (
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'evapotranspiration' checked",
                 ),
             ),
         ),
@@ -385,11 +397,16 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-
+        exp_stream_flow = DataArray(
+            [0, 1.018733, 100.0],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
         xr.testing.assert_allclose(model.data["soil_moisture"], exp_soil_moisture)
         xr.testing.assert_allclose(model.data["vertical_flow"], exp_vertical_flow)
         xr.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
         xr.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
+        xr.testing.assert_allclose(model.data["stream_flow"], exp_stream_flow)
 
 
 @pytest.mark.parametrize(

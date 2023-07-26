@@ -75,3 +75,7 @@ class HydroConsts:
 
     flux_to_mm_conversion: float = 3.35e-4
     """Factor to convert evaporative flux to mm."""
+
+    stream_flow_capacity: float = 100.000
+    """Stream flow capacity, mm per timestep. This is curretly an arbitrary value, but
+    could be used in the future to flag flood events."""

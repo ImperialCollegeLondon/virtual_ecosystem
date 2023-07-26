@@ -59,6 +59,7 @@ class HydrologyModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
+        ("evapotranspiration", ("spatial",)),  # TODO decide on order of models
     )
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
@@ -67,6 +68,7 @@ class HydrologyModel(BaseModel):
         "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
+        "stream_flow",
     ]
     """Variables updated by the hydrology model."""
 
@@ -225,7 +227,8 @@ class HydrologyModel(BaseModel):
         r"""Function to update the hydrology model.
 
         At the moment, this step calculates soil moisture, vertical flow, soil
-        evaporation, and surface runoff. Soil moisture and surface runoff are calculated
+        evaporation, and surface runoff and estimates mean stream flow.
+        Soil moisture and surface runoff are calculated
         with a simple bucket model based on :cite:t:`davis_simple_2017`: if
         precipitation exceeds soil moisture capacity, the excess water is added to
         runoff and soil moisture is set to soil moisture capacity value; if the soil is
@@ -244,10 +247,19 @@ class HydrologyModel(BaseModel):
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
         .
 
-        The water extracted by plant roots (= evapotranspiration) and horizontal flow
-        between grid cells (above and below the surface) are currently not included.
+        Mean stream flow :math:`Q` is estimated as
+
+        :math:`Q = P - ET - \Delta S`
+
+        where :math:`P` is mean precipitation, :math:`ET` is evapotranspiration, and
+        :math:`\Delta S` is the change in soil moisture. Note that this has to be called
+        after evapotranspiration is calculated by the plant model; so this might move to
+        a different model or the order of models might change.
+        Horizontal flow between grid cells (above and below the surface) is currently
+        not explicitly calculated.
 
         TODO Implement horizontal sub-surface flow and stream flow
+        TODO set model order to get plant inputs (LAI, layer heights, ET)
 
         The function requires the following input variables from the data object:
 
@@ -259,6 +271,7 @@ class HydrologyModel(BaseModel):
         * leaf area index, [m m-2]
         * layer heights, [m]
         * soil moisture (previous time step), [relative water content]
+        * evapotranspiration (current time step), [mm]
 
         and the following soil parameters (defaults in
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`):
@@ -426,6 +439,28 @@ class HydrologyModel(BaseModel):
                 "cell_id": self.data["layer_heights"].cell_id,
             }
         )
+
+        # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
+        # assumption: ET has only the dimension `cell_id`
+        # The maximum stream flow capacity is set to an arbitray value, could be used to
+        # flag flood events
+        stream_flow = DataArray(
+            np.clip(
+                (
+                    precipitation_surface
+                    - self.data["evapotranspiration"].isel(time_index=time_index)
+                    - (
+                        self.data["soil_moisture"].mean(dim="layers")
+                        - soil_moisture_evap
+                    ),
+                ),
+                0,
+                HydroConsts.stream_flow_capacity,
+            ),
+        )
+        soil_hydrology["stream_flow"] = stream_flow.rename(
+            {"dim_1": "cell_id"}
+        ).squeeze("dim_0")
 
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
