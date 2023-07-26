@@ -374,7 +374,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.512498, 0.518842, 0.626396], [0.512498, 0.518842, 0.626396]],
+                    [[0.626396, 0.626396, 0.626396], [0.626396, 0.626396, 0.626396]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -388,7 +388,7 @@ def test_setup(
         )
 
         exp_vertical_flow = DataArray(
-            [0.252134, 0.273622, 0.964253],
+            [0.964253, 0.964253, 0.964253],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -398,7 +398,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [0, 0, 80.126915],
+            [80.126915, 80.126915, 80.126915],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )

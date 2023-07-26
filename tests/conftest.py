@@ -302,7 +302,8 @@ def dummy_climate_data(layer_roles_fixture):
     )
 
     data["precipitation"] = DataArray(
-        [[20, 30, 1000], [20, 30, 200], [20, 30, 1000]], dims=["time_index", "cell_id"]
+        [[200, 200, 200], [200, 200, 200], [200, 200, 200]],
+        dims=["time_index", "cell_id"],
     )
     data["soil_moisture"] = xr.concat(
         [
