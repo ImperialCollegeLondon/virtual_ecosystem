@@ -263,7 +263,10 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 400),
         dims=["cell_id", "time_index"],
     )
-
+    data["evapotranspiration"] = DataArray(
+        np.full((3, 3), 20),
+        dims=["cell_id", "time_index"],
+    )
     leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
     data["leaf_area_index"] = DataArray(
         np.broadcast_to(leaf_area_index, (3, 15)).T,
