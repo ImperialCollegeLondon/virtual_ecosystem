@@ -441,14 +441,13 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
-        # assumption: ET has only the dimension `cell_id`
         # The maximum stream flow capacity is set to an arbitray value, could be used to
         # flag flood events
         stream_flow = DataArray(
             np.clip(
                 (
                     precipitation_surface
-                    - self.data["evapotranspiration"].isel(time_index=time_index)
+                    - self.data["evapotranspiration"].sum(dim="layers")
                     - (
                         self.data["soil_moisture"].mean(dim="layers")
                         - soil_moisture_evap

@@ -398,7 +398,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [0, 1.018733, 100.0],
+            [0, 0., 80.126915],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
