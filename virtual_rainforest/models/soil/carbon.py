@@ -52,16 +52,16 @@ def calculate_soil_carbon_updates(
     # Find scalar factors that multiple rates
     temp_scalar = convert_temperature_to_scalar(
         soil_temp,
-        SoilConsts.temp_scalar_coefficient_1,
-        SoilConsts.temp_scalar_coefficient_2,
-        SoilConsts.temp_scalar_coefficient_3,
-        SoilConsts.temp_scalar_coefficient_4,
-        SoilConsts.temp_scalar_reference_temp,
+        constants.temp_scalar_coefficient_1,
+        constants.temp_scalar_coefficient_2,
+        constants.temp_scalar_coefficient_3,
+        constants.temp_scalar_coefficient_4,
+        constants.temp_scalar_reference_temp,
     )
     moist_scalar = convert_moisture_to_scalar(
         soil_moisture,
-        SoilConsts.moisture_scalar_coefficient,
-        SoilConsts.moisture_scalar_exponent,
+        constants.moisture_scalar_coefficient,
+        constants.moisture_scalar_exponent,
     )
     moist_temp_scalar = moist_scalar * temp_scalar
 
@@ -79,16 +79,16 @@ def calculate_soil_carbon_updates(
         soil_c_pool_lmwc, soil_c_pool_microbe, moist_temp_scalar, soil_temp, constants
     )
     microbial_respiration = calculate_maintenance_respiration(
-        soil_c_pool_microbe, moist_temp_scalar, SoilConsts.microbial_turnover_rate
+        soil_c_pool_microbe, moist_temp_scalar, constants.microbial_turnover_rate
     )
     necromass_adsorption = calculate_necromass_adsorption(
-        soil_c_pool_microbe, moist_temp_scalar, SoilConsts.necromass_adsorption_rate
+        soil_c_pool_microbe, moist_temp_scalar, constants.necromass_adsorption_rate
     )
     labile_carbon_leaching = calculate_labile_carbon_leaching(
-        soil_c_pool_lmwc, moist_temp_scalar, SoilConsts.leaching_rate_labile_carbon
+        soil_c_pool_lmwc, moist_temp_scalar, constants.leaching_rate_labile_carbon
     )
     litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools(
-        SoilConsts.carbon_input_to_pom, SoilConsts.litter_input_rate
+        constants.carbon_input_to_pom, constants.litter_input_rate
     )
     pom_decomposition_to_lmwc = calculate_pom_decomposition(
         soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar, constants
