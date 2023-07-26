@@ -20,7 +20,6 @@ class SoilConsts:
 
     Unit of [log(m^3 kg^-1)]. n.b. +3 converts from mg^-1 to kg^-1 and L to m^3
     """
-    """From linear regression :cite:p:`mayes_relation_2012`."""
 
     max_sorption_with_clay_slope: float = 0.483
     """From linear regression :cite:p:`mayes_relation_2012`. Units of [(% clay)^-1]."""
