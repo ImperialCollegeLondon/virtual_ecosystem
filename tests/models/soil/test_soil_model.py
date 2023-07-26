@@ -174,7 +174,7 @@ def test_soil_model_initialization(
                 )
             # Initialise model with bad data object
             model = SoilModel(
-                carbon_data, pint.Quantity("1 week"), 2, 10, constants=SoilConsts()
+                carbon_data, pint.Quantity("1 week"), 2, 10, constants=SoilConsts
             )
         else:
             model = SoilModel(
@@ -182,7 +182,7 @@ def test_soil_model_initialization(
                 pint.Quantity("1 week"),
                 2,
                 10,
-                constants=SoilConsts(),
+                constants=SoilConsts,
             )
 
         # In cases where it passes then checks that the object has the right properties
@@ -553,7 +553,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         4,
         top_soil_layer_index,
         delta_pools_ordered,
-        constants=SoilConsts(),
+        constants=SoilConsts,
     )
 
     assert np.allclose(delta_pools, rate_of_change)
