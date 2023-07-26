@@ -59,7 +59,10 @@ class HydrologyModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
-        ("evapotranspiration", ("spatial",)),  # TODO decide on order of models
+        ("evapotranspiration", ("spatial",)),
+        # TODO this requires the plant model to run before the hydrology; this works as
+        # long as the p-model does not require soil moisture as an input. If it does, we
+        # have to discuss where we move the calculation of stream flow.
     )
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
@@ -253,8 +256,9 @@ class HydrologyModel(BaseModel):
 
         where :math:`P` is mean precipitation, :math:`ET` is evapotranspiration, and
         :math:`\Delta S` is the change in soil moisture. Note that this has to be called
-        after evapotranspiration is calculated by the plant model; so this might move to
-        a different model or the order of models might change.
+        after evapotranspiration is calculated by the plant model which works as long as
+        the P-model does not require soil mositure as an input. In the future, this
+        might move to a different model or the order of models might change.
         Horizontal flow between grid cells (above and below the surface) is currently
         not explicitly calculated.
 
