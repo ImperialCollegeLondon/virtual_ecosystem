@@ -49,7 +49,6 @@ class SoilModel(BaseModel):
 
     Args:
         data: The data object to be used in the model.
-        start_time: A datetime64 value setting the start time of the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The number of canopy layers to be modelled.
