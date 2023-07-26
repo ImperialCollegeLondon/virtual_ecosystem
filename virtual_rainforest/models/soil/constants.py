@@ -10,24 +10,35 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SoilConsts:
-    """Dataclass to store all constants for the `soil` model."""
+    """Dataclass to store all constants for the `soil` model.
+
+    All constants are taken from :cite:t:`abramoff_millennial_2018` unless otherwise
+    stated.
+    """
 
     binding_with_ph_slope: float = -0.186
-    """Units of [pH^-1]. From linear regression :cite:p:`mayes_relation_2012`."""
+    """Change in the binding affinity of soil mineral with pH.
+
+    Units of [pH^-1]. From linear regression :cite:p:`mayes_relation_2012`."""
 
     binding_with_ph_intercept: float = -0.216 + 3.0
-    """From linear regression :cite:p:`mayes_relation_2012`.
+    """Binding affinity of soil minerals at zero pH.
 
-    Unit of [log(m^3 kg^-1)]. n.b. +3 converts from mg^-1 to kg^-1 and L to m^3
+    Unit of [log(m^3 kg^-1)]. n.b. +3 converts from mg^-1 to kg^-1 and L to m^3. From
+    linear regression :cite:p:`mayes_relation_2012`.
     """
 
     max_sorption_with_clay_slope: float = 0.483
-    """From linear regression :cite:p:`mayes_relation_2012`. Units of [(% clay)^-1]."""
+    """Change in the maximum size of the MAOM pool with increasing clay content.
+
+    Units of [(% clay)^-1]. From linear regression :cite:p:`mayes_relation_2012`.
+    """
 
     max_sorption_with_clay_intercept: float = 2.328 - 6.0
-    """From linear regression :cite:p:`mayes_relation_2012`.
+    """Maximum size of the MAOM pool at zero clay content.
 
-    Unit of [log(kg C kg soil ^-1)]. n.b. -6 converts from mg to kg
+    Unit of [log(kg C kg soil ^-1)]. n.b. -6 converts from mg to kg. From linear
+    regression :cite:p:`mayes_relation_2012`.
     """
 
     moisture_scalar_coefficient: float = 30.0
