@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 # TODO - Need to figure out a sensible area to volume conversion
 
+# TODO - Need to either work out what the temp and moisture scalars are, or find an
+# alternative way of capturing temperature and moisture effects
+
 
 @dataclass(frozen=True)
 class SoilConsts:
