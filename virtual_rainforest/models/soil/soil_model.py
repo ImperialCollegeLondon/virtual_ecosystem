@@ -43,7 +43,7 @@ class SoilModel(BaseModel):
 
     This model can be configured based on the data object and a config dictionary. It
     can be updated by numerical integration. At present the underlying model this class
-    wraps is quite simple (i.e. two soil carbon pools), but this will get more complex
+    wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Rainforest develops.
 
     Args:
