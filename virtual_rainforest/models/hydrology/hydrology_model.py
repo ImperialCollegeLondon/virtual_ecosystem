@@ -322,15 +322,8 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate soil depth in mm
-        soil_depth = (
-            self.data["layer_heights"]
-            .isel(
-                layers=np.arange(
-                    len(self.layer_roles) - self.layer_roles.count("soil"),
-                    len(self.layer_roles),
-                )
-            )
-            .sum(dim="layers")
+        soil_depth = self.data["layer_heights"].isel(layers=-1).drop_vars(
+            ["layers"]
         ) * (-self.constants.meters_to_millimeters)
 
         # Calculate how much water can be added to soil before capacity is reached.
