@@ -10,6 +10,18 @@
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "default": 0.5
+                },
+                "constants": {
+                    "description": "Constants for the hydrology module",
+                    "type": "object",
+                    "properties": {
+                        "HydroConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "HydroConsts"
+                    ]
                 }
             },
             "default": {},

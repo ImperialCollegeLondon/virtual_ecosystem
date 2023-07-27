@@ -123,25 +123,27 @@ does not consider horizontal exchange of energy, atmospheric water, and momentum
 The model uses linear regressions from {cite}`hardwick_relationship_2015` and
 {cite}`jucker_canopy_2018` to predict
 atmospheric temperature, relative humidity, and vapour pressure deficit
-at ground level (2m) given the above canopy conditions and leaf area index of
+at ground level (1.5 m) given the above canopy conditions and leaf area index of
 intervening canopy. A vertical profile across all atmospheric layers is then
 interpolated using a logarithmic curve between the above canopy observation and ground
 level prediction. Soil temperature is interpolated between the surface layer and the air
-temperature at 1 m depth which equals the mean annual temperature.
+temperature at around 1 m depth which equals the mean annual temperature.
 The model also provides a constant vertical profile of atmospheric pressure and
 atmospheric $\ce{CO_{2}}$.
 
-### Simple Hydrology Model
+### Hydrology Model
 
-The simple version of the Hydrology Model is a one-column model that operates on a grid
-cell basis and does not consider horizontal exchange of water. We placed this
-functionality in a separate model in order to allow easy replacement with a different
-hydrology model, for example a process-based model that runs on a daily time step and
-returns monthly statistics to the data object for other modules to use.
+The current version of the Hydrology Model is a one-column model that operates on a grid
+cell basis and does not consider horizontal flow of water (above and below ground)
+between grid cells. We placed hydrology in a separate model in order to allow
+easy replacement with a different hydrology model, for example a process-based model
+that runs on a daily time step and returns monthly statistics to the data object for
+other modules to use. Also, this provides more flexibility in defining the order of
+models an/or processes in the overall Virtual Rainforest workflow.
 
 Soil moisture and surface runoff are calculated for each grid cell with a simple bucket
-model based on {cite}`davis_simple_2017`; vertical flow and horizontal flow (above and
-below ground) between grid cells are currently not implemented.
+model based on {cite}`davis_simple_2017`; simple versions of vertical flow and surface
+evaporation are considered.
 
 ### Process-based Abiotic Model
 

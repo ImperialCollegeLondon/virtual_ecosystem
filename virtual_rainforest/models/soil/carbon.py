@@ -8,23 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.soil.constants import (
-    CARBON_INPUT_TO_POM,
-    HALF_SAT_MICROBIAL_ACTIVITY,
-    HALF_SAT_MICROBIAL_POM_MINERALISATION,
-    HALF_SAT_POM_DECOMPOSITION,
-    LEACHING_RATE_LABILE_CARBON,
-    LITTER_INPUT_RATE,
-    MAX_DECOMP_RATE_POM,
-    MAX_UPTAKE_RATE_LABILE_C,
-    MICROBIAL_TURNOVER_RATE,
-    NECROMASS_ADSORPTION_RATE,
-    BindingWithPH,
-    CarbonUseEfficiency,
-    MaxSorptionWithClay,
-    MoistureScalar,
-    TempScalar,
-)
+from virtual_rainforest.models.soil.constants import SoilConsts
 
 
 def calculate_soil_carbon_updates(
@@ -38,6 +22,7 @@ def calculate_soil_carbon_updates(
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate net change for each carbon pool.
 
@@ -57,6 +42,7 @@ def calculate_soil_carbon_updates(
         percent_clay: Percentage clay for each soil grid cell
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
+        constants: Set of constants for the soil model.
 
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
@@ -64,8 +50,19 @@ def calculate_soil_carbon_updates(
     # TODO - Add interactions which involve the three missing carbon pools
 
     # Find scalar factors that multiple rates
-    temp_scalar = convert_temperature_to_scalar(soil_temp)
-    moist_scalar = convert_moisture_to_scalar(soil_moisture)
+    temp_scalar = convert_temperature_to_scalar(
+        soil_temp,
+        constants.temp_scalar_coefficient_1,
+        constants.temp_scalar_coefficient_2,
+        constants.temp_scalar_coefficient_3,
+        constants.temp_scalar_coefficient_4,
+        constants.temp_scalar_reference_temp,
+    )
+    moist_scalar = convert_moisture_to_scalar(
+        soil_moisture,
+        constants.moisture_scalar_coefficient,
+        constants.moisture_scalar_exponent,
+    )
     moist_temp_scalar = moist_scalar * temp_scalar
 
     # Calculate transfers between pools
@@ -76,22 +73,25 @@ def calculate_soil_carbon_updates(
         bulk_density,
         moist_temp_scalar,
         percent_clay,
+        constants,
     )
     microbial_uptake = calculate_microbial_carbon_uptake(
-        soil_c_pool_lmwc, soil_c_pool_microbe, moist_temp_scalar, soil_temp
+        soil_c_pool_lmwc, soil_c_pool_microbe, moist_temp_scalar, soil_temp, constants
     )
     microbial_respiration = calculate_maintenance_respiration(
-        soil_c_pool_microbe, moist_temp_scalar
+        soil_c_pool_microbe, moist_temp_scalar, constants.microbial_turnover_rate
     )
     necromass_adsorption = calculate_necromass_adsorption(
-        soil_c_pool_microbe, moist_temp_scalar
+        soil_c_pool_microbe, moist_temp_scalar, constants.necromass_adsorption_rate
     )
     labile_carbon_leaching = calculate_labile_carbon_leaching(
-        soil_c_pool_lmwc, moist_temp_scalar
+        soil_c_pool_lmwc, moist_temp_scalar, constants.leaching_rate_labile_carbon
     )
-    litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools()
+    litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools(
+        constants.carbon_input_to_pom, constants.litter_input_rate
+    )
     pom_decomposition_to_lmwc = calculate_pom_decomposition(
-        soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar
+        soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar, constants
     )
 
     # Determine net changes to the pools
@@ -121,6 +121,7 @@ def calculate_mineral_association(
     bulk_density: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculates net rate of LMWC association with soil minerals.
 
@@ -139,14 +140,20 @@ def calculate_mineral_association(
         moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
             temperature on process rates
         percent_clay: Percentage clay for each soil grid cell
+        constants: Set of constants for the soil model.
 
     Returns:
         The net flux from LMWC to MAOM [kg C m^-3 day^-1]
     """
 
-    # Calculate
-    Q_max = calculate_max_sorption_capacity(bulk_density, percent_clay)
-    equib_maom = calculate_equilibrium_maom(pH, Q_max, soil_c_pool_lmwc)
+    # Calculate maximum sorption
+    Q_max = calculate_max_sorption_capacity(
+        bulk_density,
+        percent_clay,
+        constants.max_sorption_with_clay_slope,
+        constants.max_sorption_with_clay_intercept,
+    )
+    equib_maom = calculate_equilibrium_maom(pH, Q_max, soil_c_pool_lmwc, constants)
 
     return (
         moist_temp_scalar * soil_c_pool_lmwc * (equib_maom - soil_c_pool_maom) / Q_max
@@ -156,7 +163,8 @@ def calculate_mineral_association(
 def calculate_max_sorption_capacity(
     bulk_density: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
-    coef: MaxSorptionWithClay = MaxSorptionWithClay(),
+    max_sorption_with_clay_slope: float,
+    max_sorption_with_clay_intercept: float,
 ) -> NDArray[np.float32]:
     """Calculate maximum sorption capacity based on bulk density and clay content.
 
@@ -168,6 +176,10 @@ def calculate_max_sorption_capacity(
     Args:
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         percent_clay: Percentage clay for each soil grid cell
+        max_sorption_with_clay_slope: Slope of relationship between clay content and
+            maximum organic matter sorption [(% clay)^-1]
+        max_sorption_with_clay_intercept: Intercept of relationship between clay content
+            and maximum organic matter sorption [log(kg C kg soil ^-1)]
 
     Returns:
         Maximum sorption capacity [kg C m^-3]
@@ -181,7 +193,10 @@ def calculate_max_sorption_capacity(
         LOGGER.error(to_raise)
         raise to_raise
 
-    Q_max = bulk_density * 10 ** (coef.slope * np.log10(percent_clay) + coef.intercept)
+    Q_max = bulk_density * 10 ** (
+        max_sorption_with_clay_slope * np.log10(percent_clay)
+        + max_sorption_with_clay_intercept
+    )
     return Q_max
 
 
@@ -189,6 +204,7 @@ def calculate_equilibrium_maom(
     pH: NDArray[np.float32],
     Q_max: NDArray[np.float32],
     lmwc: NDArray[np.float32],
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate equilibrium MAOM concentration based on Langmuir coefficients.
 
@@ -200,17 +216,22 @@ def calculate_equilibrium_maom(
         pH: pH values for each soil grid cell
         Q_max: Maximum sorption capacities [kg C m^-3]
         lmwc: Low molecular weight carbon pool [kg C m^-3]
+        constants: Set of constants for the soil model.
 
     Returns:
         Equilibrium concentration of MAOM [kg C m^-3]
     """
 
-    binding_coefficient = calculate_binding_coefficient(pH)
+    binding_coefficient = calculate_binding_coefficient(
+        pH, constants.binding_with_ph_slope, constants.binding_with_ph_intercept
+    )
     return (binding_coefficient * Q_max * lmwc) / (1 + lmwc * binding_coefficient)
 
 
 def calculate_binding_coefficient(
-    pH: NDArray[np.float32], coef: BindingWithPH = BindingWithPH()
+    pH: NDArray[np.float32],
+    binding_with_ph_slope: float,
+    binding_with_ph_intercept: float,
 ) -> NDArray[np.float32]:
     """Calculate Langmuir binding coefficient based on pH.
 
@@ -219,17 +240,26 @@ def calculate_binding_coefficient(
 
     Args:
         pH: pH values for each soil grid cell
+        binding_with_ph_slope: Slope of relationship between pH and binding coefficient
+            [pH^-1]
+        binding_with_ph_intercept: Intercept of relationship between pH and binding
+            coefficient [log(m^3 kg^-1)]
 
     Returns:
         Langmuir binding coefficients for mineral association of labile carbon [m^3
         kg^-1]
     """
 
-    return 10.0 ** (coef.slope * pH + coef.intercept)
+    return 10.0 ** (binding_with_ph_slope * pH + binding_with_ph_intercept)
 
 
 def convert_temperature_to_scalar(
-    soil_temp: NDArray[np.float32], coef: TempScalar = TempScalar()
+    soil_temp: NDArray[np.float32],
+    temp_scalar_coefficient_1: float,
+    temp_scalar_coefficient_2: float,
+    temp_scalar_coefficient_3: float,
+    temp_scalar_coefficient_4: float,
+    temp_scalar_reference_temp: float,
 ) -> NDArray[np.float32]:
     """Convert soil temperature into a factor to multiply rates by.
 
@@ -239,18 +269,29 @@ def convert_temperature_to_scalar(
     needed.
 
     Args:
-       soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        temp_scalar_coefficient_1: Unclear exactly what this parameter is [degrees C]
+        temp_scalar_coefficient_2: Unclear exactly what this parameter is [unclear]
+        temp_scalar_coefficient_3: Unclear exactly what this parameter is [unclear]
+        temp_scalar_coefficient_4: Unclear exactly what this parameter is [unclear]
+        temp_scalar_reference_temp: Reference temperature for temperature scalar
+            [degrees C]
 
     Returns:
         A scalar that captures the impact of soil temperature on process rates
     """
 
     # This expression is drawn from Abramoff et al. (2018)
-    numerator = coef.t_2 + (coef.t_3 / np.pi) * np.arctan(
-        np.pi * (soil_temp - coef.t_1)
-    )
-    denominator = coef.t_2 + (coef.t_3 / np.pi) * np.arctan(
-        np.pi * coef.t_4 * (coef.ref_temp - coef.t_1)
+    numerator = temp_scalar_coefficient_2 + (
+        temp_scalar_coefficient_3 / np.pi
+    ) * np.arctan(np.pi * (soil_temp - temp_scalar_coefficient_1))
+
+    denominator = temp_scalar_coefficient_2 + (
+        temp_scalar_coefficient_3 / np.pi
+    ) * np.arctan(
+        np.pi
+        * temp_scalar_coefficient_4
+        * (temp_scalar_reference_temp - temp_scalar_coefficient_1)
     )
 
     return np.divide(numerator, denominator)
@@ -258,7 +299,8 @@ def convert_temperature_to_scalar(
 
 def convert_moisture_to_scalar(
     soil_moisture: NDArray[np.float32],
-    coef: MoistureScalar = MoistureScalar(),
+    moisture_scalar_coefficient: float,
+    moisture_scalar_exponent: float,
 ) -> NDArray[np.float32]:
     """Convert soil moisture into a factor to multiply rates by.
 
@@ -268,7 +310,9 @@ def convert_moisture_to_scalar(
     needed.
 
     Args:
-        soil_moisture: relative water content for each soil grid cell (unitless)
+        soil_moisture: relative water content for each soil grid cell [unitless]
+        moisture_scalar_coefficient: [unit less]
+        moisture_scalar_exponent: [(Relative water content)^-1]
 
     Returns:
         A scalar that captures the impact of soil moisture on process rates
@@ -282,13 +326,17 @@ def convert_moisture_to_scalar(
         raise to_raise
 
     # This expression is drawn from Abramoff et al. (2018)
-    return 1 / (1 + coef.coefficient * np.exp(-coef.exponent * soil_moisture))
+    return 1 / (
+        1
+        + moisture_scalar_coefficient
+        * np.exp(-moisture_scalar_exponent * soil_moisture)
+    )
 
 
 def calculate_maintenance_respiration(
     soil_c_pool_microbe: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
-    microbial_turnover_rate: float = MICROBIAL_TURNOVER_RATE,
+    microbial_turnover_rate: float,
 ) -> NDArray[np.float32]:
     """Calculate the maintenance respiration of the microbial pool.
 
@@ -308,7 +356,7 @@ def calculate_maintenance_respiration(
 def calculate_necromass_adsorption(
     soil_c_pool_microbe: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
-    necromass_adsorption_rate: float = NECROMASS_ADSORPTION_RATE,
+    necromass_adsorption_rate: float,
 ) -> NDArray[np.float32]:
     """Calculate adsorption of microbial necromass to soil minerals.
 
@@ -326,25 +374,30 @@ def calculate_necromass_adsorption(
 
 
 def calculate_carbon_use_efficiency(
-    soil_temp: NDArray[np.float32], paras: CarbonUseEfficiency = CarbonUseEfficiency()
+    soil_temp: NDArray[np.float32],
+    reference_cue: float,
+    cue_reference_temp: float,
+    cue_with_temperature: float,
 ) -> NDArray[np.float32]:
     """Calculate the (temperature dependant) carbon use efficiency.
 
     Args:
-       soil_temp: soil temperature for each soil grid cell [degrees C]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        reference_cue: Carbon use efficiency at reference temp [unitless]
+        cue_reference_temp: Reference temperature [degrees C]
+        cue_with_temperature: Rate of change in carbon use efficiency with increasing
+            temperature [degree C^-1]
 
     Returns:
         The carbon use efficiency (CUE) of the microbial community
     """
 
-    return paras.reference_cue - paras.cue_with_temperature * (
-        soil_temp - paras.reference_temp
-    )
+    return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
 
 
 def calculate_microbial_saturation(
     soil_c_pool_microbe: NDArray[np.float32],
-    half_sat_microbial_activity: float = HALF_SAT_MICROBIAL_ACTIVITY,
+    half_sat_microbial_activity: float,
 ) -> NDArray[np.float32]:
     """Calculate microbial activity saturation.
 
@@ -366,7 +419,7 @@ def calculate_microbial_saturation(
 
 def calculate_microbial_pom_mineralisation_saturation(
     soil_c_pool_microbe: NDArray[np.float32],
-    half_sat_microbial_mineralisation: float = HALF_SAT_MICROBIAL_POM_MINERALISATION,
+    half_sat_microbial_mineralisation: float,
 ) -> NDArray[np.float32]:
     """Calculate microbial POM mineralisation saturation (with increasing biomass).
 
@@ -395,7 +448,7 @@ def calculate_microbial_pom_mineralisation_saturation(
 
 def calculate_pom_decomposition_saturation(
     soil_c_pool_pom: NDArray[np.float32],
-    half_sat_pom_decomposition: float = HALF_SAT_POM_DECOMPOSITION,
+    half_sat_pom_decomposition: float,
 ) -> NDArray[np.float32]:
     """Calculate particulate organic matter (POM) decomposition saturation.
 
@@ -419,7 +472,7 @@ def calculate_microbial_carbon_uptake(
     soil_c_pool_microbe: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    max_uptake_rate: float = MAX_UPTAKE_RATE_LABILE_C,
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate amount of labile carbon taken up by microbes.
 
@@ -429,23 +482,29 @@ def calculate_microbial_carbon_uptake(
         moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
             temperature on process rates
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        max_uptake_rate: Maximum rate at which microbes can uptake labile carbon
-            [day^-1]
+        constants: Set of constants for the soil model.
 
     Returns:
         Uptake of low molecular weight carbon (LMWC) by the soil microbial biomass.
     """
 
     # Calculate carbon use efficiency and microbial saturation
-    carbon_use_efficency = calculate_carbon_use_efficiency(soil_temp)
-    microbial_saturation = calculate_microbial_saturation(soil_c_pool_microbe)
+    carbon_use_efficency = calculate_carbon_use_efficiency(
+        soil_temp,
+        constants.reference_cue,
+        constants.cue_reference_temp,
+        constants.cue_with_temperature,
+    )
+    microbial_saturation = calculate_microbial_saturation(
+        soil_c_pool_microbe, constants.half_sat_microbial_activity
+    )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
     return (
-        max_uptake_rate
+        constants.max_uptake_rate_labile_C
         * moist_temp_scalar
         * soil_c_pool_lmwc
         * microbial_saturation
@@ -456,7 +515,7 @@ def calculate_microbial_carbon_uptake(
 def calculate_labile_carbon_leaching(
     soil_c_pool_lmwc: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
-    leaching_rate: float = LEACHING_RATE_LABILE_CARBON,
+    leaching_rate: float,
 ) -> NDArray[np.float32]:
     """Calculate rate at which labile carbon is leached.
 
@@ -480,7 +539,7 @@ def calculate_pom_decomposition(
     soil_c_pool_pom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     moist_temp_scalar: NDArray[np.float32],
-    max_pom_decomp_rate: float = MAX_DECOMP_RATE_POM,
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate decomposition of particulate organic matter into labile carbon (LMWC).
 
@@ -492,6 +551,7 @@ def calculate_pom_decomposition(
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         moist_temp_scalar: A scalar capturing the combined impact of soil moisture and
             temperature on process rates
+        constants: Set of constants for the soil model.
 
     Returns:
         The amount of particulate organic matter (POM) decomposed into labile carbon
@@ -500,12 +560,14 @@ def calculate_pom_decomposition(
 
     # Calculate the two relevant saturations
     saturation_with_biomass = calculate_microbial_pom_mineralisation_saturation(
-        soil_c_pool_microbe
+        soil_c_pool_microbe, constants.half_sat_microbial_pom_mineralisation
     )
-    saturation_with_pom = calculate_pom_decomposition_saturation(soil_c_pool_pom)
+    saturation_with_pom = calculate_pom_decomposition_saturation(
+        soil_c_pool_pom, constants.half_sat_pom_decomposition
+    )
 
     return (
-        max_pom_decomp_rate
+        constants.max_decomp_rate_pom
         * saturation_with_pom
         * saturation_with_biomass
         * moist_temp_scalar
@@ -513,8 +575,8 @@ def calculate_pom_decomposition(
 
 
 def calculate_direct_litter_input_to_pools(
-    carbon_input_to_pom: float = CARBON_INPUT_TO_POM,
-    litter_input_rate: float = LITTER_INPUT_RATE,
+    carbon_input_to_pom: float,
+    litter_input_rate: float,
 ) -> tuple[float, float]:
     """Calculate direct input from litter to LMWC and POM pools.
 

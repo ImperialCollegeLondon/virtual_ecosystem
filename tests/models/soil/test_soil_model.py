@@ -11,7 +11,8 @@ from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
+from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.soil_model import IntegrationError, SoilModel
 
 
@@ -172,9 +173,17 @@ def test_soil_model_initialization(
                     [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
                 )
             # Initialise model with bad data object
-            model = SoilModel(carbon_data, pint.Quantity("1 week"), 2, 10)
+            model = SoilModel(
+                carbon_data, pint.Quantity("1 week"), 2, 10, constants=SoilConsts
+            )
         else:
-            model = SoilModel(dummy_carbon_data, pint.Quantity("1 week"), 2, 10)
+            model = SoilModel(
+                dummy_carbon_data,
+                pint.Quantity("1 week"),
+                2,
+                10,
+                constants=SoilConsts,
+            )
 
         # In cases where it passes then checks that the object has the right properties
         assert set(["setup", "spinup", "update", "cleanup", "integrate"]).issubset(
@@ -189,10 +198,11 @@ def test_soil_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries",
+    "config,time_interval,max_decomp,raises,expected_log_entries",
     [
         (
             {},
+            None,
             None,
             pytest.raises(KeyError),
             (),  # This error isn't handled so doesn't generate logging
@@ -208,6 +218,7 @@ def test_soil_model_initialization(
                 },
             },
             pint.Quantity("12 hours"),
+            0.01,
             does_not_raise(),
             (
                 (
@@ -245,6 +256,81 @@ def test_soil_model_initialization(
                 ),
             ),
         ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                },
+                "soil": {"constants": {"SoilConsts": {"max_decomp_rate_pom": 0.05}}},
+            },
+            pint.Quantity("12 hours"),
+            0.05,
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the soil model successfully "
+                    "extracted.",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_c_pool_maom' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_c_pool_lmwc' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_c_pool_microbe' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'soil_c_pool_pom' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'pH' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'bulk_density' checked",
+                ),
+                (
+                    DEBUG,
+                    "soil model: required var 'percent_clay' checked",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                },
+                "soil": {"constants": {"SoilConsts": {"max_decomp_rate": 0.05}}},
+            },
+            None,
+            None,
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Unknown names supplied for SoilConsts: max_decomp_rate",
+                ),
+                (
+                    INFO,
+                    "Valid names are as follows: ",
+                ),
+            ),
+        ),
     ],
 )
 def test_generate_soil_model(
@@ -252,6 +338,7 @@ def test_generate_soil_model(
     dummy_carbon_data,
     config,
     time_interval,
+    max_decomp,
     raises,
     expected_log_entries,
 ):
@@ -265,6 +352,7 @@ def test_generate_soil_model(
             pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.update_interval == time_interval
+        assert model.constants.max_decomp_rate_pom == max_decomp
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -459,7 +547,13 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     }
 
     rate_of_change = construct_full_soil_model(
-        0.0, pools, dummy_carbon_data, 4, top_soil_layer_index, delta_pools_ordered
+        0.0,
+        pools,
+        dummy_carbon_data,
+        4,
+        top_soil_layer_index,
+        delta_pools_ordered,
+        constants=SoilConsts,
     )
 
     assert np.allclose(delta_pools, rate_of_change)
