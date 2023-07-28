@@ -51,12 +51,15 @@ class LitterModel(BaseModel):
     """Shortest time scale that the litter model can sensibly capture."""
     upper_bound_on_time_scale = "3 months"
     """Longest time scale that the litter model can sensibly capture."""
-    required_init_vars = ()
+    required_init_vars = (
+        ("litter_pool_above_metabolic", ("spatial",)),
+        ("litter_pool_above_structural", ("spatial",)),
+    )
     """Required initialisation variables for the litter model.
 
     This is a set of variables that must be present in the data object used to create a
     LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = []
+    vars_updated = ["litter_pool_above_metabolic", "litter_pool_above_structural"]
     """Variables updated by the litter model."""
 
     def __init__(
