@@ -10,3 +10,21 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class LitterConsts:
     """Dataclass to store all constants for the `litter` model."""
+
+    litter_decomp_reference_temp: float = 40.0
+    """Reference temperature for litter decomposition [C].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
+    litter_decomp_offset_temp: float = 31.79
+    """Offset temperature for litter decomposition [C].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
+    litter_decomp_temp_response: float = 3.36
+    """Parameter controlling the temperature response strength of litter decomposition.
+
+    [unitless]. Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
