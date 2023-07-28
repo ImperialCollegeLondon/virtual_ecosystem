@@ -1,0 +1,6 @@
+[core]
+modules = [
+    "hydrology",
+    "abiotic_simple",
+    "soil"
+]

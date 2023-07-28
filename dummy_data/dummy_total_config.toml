@@ -1,0 +1,52 @@
+[core.data_output_options]
+save_initial_state = true
+
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "air_temperature_ref"
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "relative_humidity_ref"
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "atmospheric_pressure_ref"
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "precipitation"
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "atmospheric_co2_ref"
+[[core.data.variable]]
+file = "dummy_data/ERA5_land_dummy.nc"
+var_name = "mean_annual_temperature"
+[[core.data.variable]]
+file = "dummy_data/plants_dummy.nc"
+var_name = "layer_heights"
+[[core.data.variable]]
+file = "dummy_data/plants_dummy.nc"
+var_name = "leaf_area_index"
+[[core.data.variable]]
+file = "dummy_data/plants_dummy.nc"
+var_name = "evapotranspiration"
+
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "pH"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "bulk_density"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "percent_clay"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "soil_c_pool_lmwc"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "soil_c_pool_maom"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "soil_c_pool_microbe"
+[[core.data.variable]]
+file = "dummy_data/dummy_soil_data.nc"
+var_name = "soil_c_pool_pom"
