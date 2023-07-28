@@ -81,7 +81,7 @@ class AnimalCommunity:
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def birth(self, cohort: AnimalCohort) -> AnimalCohort:
+    def birth(self, cohort: AnimalCohort) -> None:
         """The function to produce a new AnimalCohort through reproduction.
 
         Currently, the birth function returns an identical cohort of adults with age
@@ -91,21 +91,21 @@ class AnimalCommunity:
         Args:
             cohort: The AnimalCohort instance which is producing a new AnimalCohort.
 
-        Returns:
-            A new age 0 AnimalCohort.
 
         """
         self.animal_cohorts[cohort.name].append(
             AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
         )
-        return self.animal_cohorts[cohort.name][-1]
 
     def forage_community(self) -> None:
         """This function needs to handle the foraging of animal cohorts.
 
-        It should loop over every animal cohort in the community and call either
-        herbivory or predation functions. This will sooner be expanded to include
-        functions for handling scavenging and soil consumption behaviors specifically.
+        It should loop over every animal cohort in the community and call the
+        collect_prey and forage_cohort functions. This will create a list of suitable
+        trophic resources and then action foraging on those resources. Details of
+        energy transfer are handled inside forage_cohort and its helper functions.
+        This will sooner be expanded to include functions for handling scavenging
+        and soil consumption behaviors specifically.
 
 
         """
@@ -115,31 +115,7 @@ class AnimalCommunity:
 
         for consumer_functional_group, consumer_cohorts in self.animal_cohorts.items():
             for consumer_cohort in consumer_cohorts:
-                prey = []
-                for (
-                    prey_functional_group,
-                    potential_prey_cohorts,
-                ) in self.animal_cohorts.items():
-                    # Skip if this functional group is not a prey of current predator
-                    if prey_functional_group not in consumer_cohort.prey_groups:
-                        continue
-
-                    # Get the size range of the prey this predator eats
-                    min_size, max_size = consumer_cohort.prey_groups[
-                        prey_functional_group
-                    ]
-
-                    # Filter the potential prey cohorts based on their size
-                    right_sized_prey = [
-                        c
-                        for c in potential_prey_cohorts
-                        if min_size <= c.mass <= max_size
-                    ]
-                    prey.extend(right_sized_prey)
-
-                # Skip to the next iteration if 'prey' is empty
-                # if not prey:
-                #  continue
+                prey = self.collect_prey(consumer_cohort)
 
                 consumer_cohort.forage_cohort(
                     plant_list=plant_list,
@@ -147,3 +123,37 @@ class AnimalCommunity:
                     carcass_pool=carcass_pool,
                     soil_pool=soil_pool,
                 )
+
+    def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
+        """Collect suitable prey for a given consumer cohort.
+
+        This is a helper function for forage_community to isolate the prey selection
+        functionality. It was already getting confusing and it will get much more so
+        as the Animal Module develops.
+
+        Args:
+            consumer_cohort: The AnimalCohort for which a prey list is being collected
+
+        Returns:
+            A list of AnimalCohorts that can be preyed upon.
+
+        """
+        prey = []
+        for (
+            prey_functional_group,
+            potential_prey_cohorts,
+        ) in self.animal_cohorts.items():
+            # Skip if this functional group is not a prey of current predator
+            if prey_functional_group not in consumer_cohort.prey_groups:
+                continue
+
+            # Get the size range of the prey this predator eats
+            min_size, max_size = consumer_cohort.prey_groups[prey_functional_group]
+
+            # Filter the potential prey cohorts based on their size
+            right_sized_prey = [
+                c for c in potential_prey_cohorts if min_size <= c.mass <= max_size
+            ]
+            prey.extend(right_sized_prey)
+
+        return prey
