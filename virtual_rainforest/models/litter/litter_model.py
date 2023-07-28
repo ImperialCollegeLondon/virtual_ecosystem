@@ -6,14 +6,14 @@ the abstract methods of the parent class (e.g.
 :func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the Virtual Rainforest
 model develops. The factory method
-:func:`~virtual_rainforest.models.litter.litter_model.SoilModel.from_config` exists in a
-more complete state, and unpacks a small number of parameters from our currently pretty
-minimal configuration dictionary. These parameters are then used to generate a class
-instance. If errors crop here when converting the information from the config dictionary
-to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and then
-logged, and at the end of the unpacking an error is thrown. This error should be caught
-and handled by downstream functions so that all model configuration failures can be
-reported as one.
+:func:`~virtual_rainforest.models.litter.litter_model.LitterModel.from_config` exists in
+a more complete state, and unpacks a small number of parameters from our currently
+pretty minimal configuration dictionary. These parameters are then used to generate a
+class instance. If errors crop here when converting the information from the config
+dictionary to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and
+then logged, and at the end of the unpacking an error is thrown. This error should be
+caught and handled by downstream functions so that all model configuration failures can
+be reported as one.
 """  # noqa: D205, D415
 
 from __future__ import annotations
