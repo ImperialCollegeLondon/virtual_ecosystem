@@ -27,6 +27,7 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.litter.constants import LitterConsts
+from virtual_rainforest.models.litter.litter_pools import calculate_litter_pool_updates
 
 
 class LitterModel(BaseModel):
@@ -75,6 +76,8 @@ class LitterModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.update_interval
         """The time interval between model updates."""
+        self.constants = constants
+        """Set of constants for the litter model"""
 
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -132,18 +135,17 @@ class LitterModel(BaseModel):
         """Placeholder function to spin up the litter model."""
 
     def update(self, time_index: int) -> None:
-        """Update the litter model by SOMEHOW.
-
-        TODO - Update the docstring when I've decided what this does
+        """Calculate changes in the litter pools and use them to update the pools.
 
         Args:
             time_index: The index representing the current time step in the data object.
         """
 
-        # TODO - Work out how litter pools updates should be calculated
+        # Find litter pool updates using the litter pool update function
+        updated_litter_pools = calculate_litter_pool_updates(self.data, self.constants)
 
-        # TODO - update the litter pools
-        # self.data.add_from_dict(updated_litter_pools)
+        # Update the litter pools
+        self.data.add_from_dict(updated_litter_pools)
 
     def cleanup(self) -> None:
         """Placeholder function for litter model cleanup."""
