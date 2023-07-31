@@ -9,6 +9,10 @@ from xarray import DataArray
 
 from virtual_rainforest.models.litter.constants import LitterConsts
 
+# TODO - At the moment this module does not use litter chemistry (relative lignin
+# content) at all. We need to decide how we handle this and adjust the below functions
+# to use this at some point.
+
 
 # TODO - Think about how time step is used here
 def calculate_litter_pool_updates(
@@ -38,9 +42,6 @@ def calculate_litter_pool_updates(
 
     # TODO - only returning this to shut mypy up, this needs to change down the line
     return {"litter_pool_above_metabolic": DataArray(litter_pool_above_metabolic)}
-
-
-# TODO - Functions for input to each compartment
 
 
 def calculate_temperature_effect_on_litter_decomp(
@@ -93,3 +94,38 @@ def calculate_litter_decay_metabolic_above(
     """
 
     return litter_decay_coefficient * temperature_factor * litter_pool_above_metabolic
+
+
+def calculate_litter_decay_structural_above(
+    temperature_factor: NDArray[np.float32],
+    litter_pool_above_structural: NDArray[np.float32],
+    litter_decay_coefficient: float,
+) -> NDArray[np.float32]:
+    """Calculate decay of above ground structural litter pool.
+
+    This function is taken from :cite:t:`kirschbaum_modelling_2002`.
+
+    Args:
+        temperature_factor: A multiplicative factor capturing the impact of temperature
+            on litter decomposition [unitless]
+        litter_pool_above_structural: The size of the above ground structural litter
+            pool [kg C m^-2]
+        litter_decay_coefficient: The decay coefficient for the above ground structural
+            litter pool [day^-1]
+
+    Returns:
+        Rate of decay of the above ground structural litter pool [kg C m^-2 day^-1]
+    """
+
+    # Factor capturing the impact of litter chemistry on decomposition, calculated based
+    # on formula in Kirschbaum and Paul (2002) with the assumption that structural
+    # litter is 50% lignin. Keeping as a hard coded constant for now, as how litter
+    # chemistry is dealt with is going to be revised in the near future.
+    litter_chemistry_factor = 0.082085
+
+    return (
+        litter_decay_coefficient
+        * temperature_factor
+        * litter_pool_above_structural
+        * litter_chemistry_factor
+    )
