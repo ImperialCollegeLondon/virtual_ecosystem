@@ -74,3 +74,22 @@ def test_calculate_litter_decay_metabolic_above(
     )
 
     assert np.allclose(actual_decay, expected_decay)
+
+
+def test_calculate_litter_decay_structural_above(
+    dummy_litter_data, temp_and_water_factors
+):
+    """Test calculation of above ground metabolic litter decay."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_decay_structural_above,
+    )
+
+    expected_decay = [0.000167429, 8.371483356e-5, 3.013734008e-5]
+
+    actual_decay = calculate_litter_decay_structural_above(
+        temperature_factor=temp_and_water_factors["temp_above"],
+        litter_pool_above_structural=dummy_litter_data["litter_pool_above_structural"],
+        litter_decay_coefficient=LitterConsts.litter_decay_constant_structural_above,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
