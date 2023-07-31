@@ -4,8 +4,37 @@ This module tests the functionality of the litter pools module
 """
 
 import numpy as np
+import pytest
 
 from virtual_rainforest.models.litter.constants import LitterConsts
+
+
+@pytest.fixture
+def temp_and_water_factors(
+    dummy_climate_data, surface_layer_index, top_soil_layer_index
+):
+    """Temperature and water factors for the various litter layers."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_temperature_effect_on_litter_decomp,
+    )
+
+    temp_above = calculate_temperature_effect_on_litter_decomp(
+        dummy_climate_data["air_temperature"][surface_layer_index],
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+
+    temp_below = calculate_temperature_effect_on_litter_decomp(
+        dummy_climate_data["soil_temperature"][top_soil_layer_index],
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+
+    # TODO - Add water_below in here when it becomes relevant
+
+    return {"temp_above": temp_above, "temp_below": temp_below}
 
 
 def test_calculate_temperature_effect_on_litter_decomp(
@@ -26,3 +55,22 @@ def test_calculate_temperature_effect_on_litter_decomp(
     )
 
     assert np.allclose(actual_factor, expected_factor)
+
+
+def test_calculate_litter_decay_metabolic_above(
+    dummy_litter_data, temp_and_water_factors
+):
+    """Test calculation of above ground metabolic litter decay."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_decay_metabolic_above,
+    )
+
+    expected_decay = [0.00450883464, 0.00225441732, 0.00105206141]
+
+    actual_decay = calculate_litter_decay_metabolic_above(
+        temperature_factor=temp_and_water_factors["temp_above"],
+        litter_pool_above_metabolic=dummy_litter_data["litter_pool_above_metabolic"],
+        litter_decay_coefficient=LitterConsts.litter_decay_constant_metabolic_above,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)

@@ -113,10 +113,11 @@ def dummy_carbon_data(layer_roles_fixture):
     grid = Grid(cell_nx=4, cell_ny=1)
     data = Data(grid)
 
-    # The required data is now added. This includes the three carbon pools: mineral
-    # associated organic matter, low molecular weight carbon, and microbial carbon. It
-    # also includes various factors of the physical environment: pH, bulk density, soil
-    # moisture, soil temperature, percentage clay in soil.
+    # The required data is now added. This includes the four carbon pools: mineral
+    # associated organic matter, low molecular weight carbon, microbial carbon and
+    # particulate organic matter. It also includes various factors of the physical
+    # environment: pH, bulk density, soil moisture, soil temperature, percentage clay in
+    # soil.
     data["soil_c_pool_lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["soil_c_pool_maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
@@ -173,9 +174,34 @@ def dummy_carbon_data(layer_roles_fixture):
 
 
 @pytest.fixture
+def dummy_litter_data(layer_roles_fixture):
+    """Creates a dummy litter data object for use in tests."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with four cells.
+    grid = Grid(cell_nx=3, cell_ny=1)
+    data = Data(grid)
+
+    # These values are taken from SAFE Project data, albeit in a very unsystematic
+    # manner
+    data["litter_pool_above_metabolic"] = DataArray([0.3, 0.15, 0.07], dims=["cell_id"])
+    """Above ground metabolic litter pool (kg C m^-3)"""
+
+    return data
+
+
+@pytest.fixture
 def top_soil_layer_index(layer_roles_fixture):
     """The index of the top soil layer in the data fixtures."""
     return next(i for i, v in enumerate(layer_roles_fixture) if v == "soil")
+
+
+@pytest.fixture
+def surface_layer_index(layer_roles_fixture):
+    """The index of the top soil layer in the data fixtures."""
+    return next(i for i, v in enumerate(layer_roles_fixture) if v == "surface")
 
 
 @pytest.fixture
