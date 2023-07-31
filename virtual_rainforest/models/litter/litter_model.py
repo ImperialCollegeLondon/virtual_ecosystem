@@ -20,10 +20,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.litter.constants import LitterConsts
@@ -75,7 +77,15 @@ class LitterModel(BaseModel):
     ):
         super().__init__(data, update_interval, **kwargs)
 
-        # TODO - Check for negative litter pools here
+        # Check that litter pool data is appropriately bounded
+        if np.any(data["litter_pool_above_metabolic"] < 0.0) or np.any(
+            data["litter_pool_above_structural"] < 0.0
+        ):
+            to_raise = InitialisationError(
+                "Initial litter pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
 
         self.data
         """A Data instance providing access to the shared simulation data."""
