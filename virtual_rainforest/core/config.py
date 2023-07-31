@@ -321,7 +321,7 @@ class Config(dict):
         self.config_errors: list[tuple[str, Any]] = []
         """Configuration errors, as a list of tuples of key path and error details."""
         self.merged_schema: dict = {}
-        """The merged schema for the core and modules present in the configutation."""
+        """The merged schema for the core and modules present in the configuration."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
 
