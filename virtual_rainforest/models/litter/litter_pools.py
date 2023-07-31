@@ -14,13 +14,26 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 # to use this at some point.
 
 
-# TODO - Think about how time step is used here
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
     litter_pool_above_metabolic: NDArray[np.float32],
+    litter_pool_above_structural: NDArray[np.float32],
+    update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
-    """TODO - add a proper docstring here."""
+    """Calculate updates for all litter pools.
+
+    Args:
+        surface_temp: Temperature of soil surface, which is assumed to be the same
+            temperature of the above ground litter [C]
+        litter_pool_above_metabolic: Above ground metabolic litter pool [kg C m^-2]
+        litter_pool_above_structural: Above ground structural litter pool [kg C m^-2]
+        update_interval: Interval that the litter pools are being updated for [days]
+        constants: Set of constants for the litter model
+
+    Returns:
+        The new value for each of the litter pools
+    """
 
     # Calculate temperature factor for the above ground litter layers
     temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
@@ -30,18 +43,36 @@ def calculate_litter_pool_updates(
         temp_response=constants.litter_decomp_temp_response,
     )
 
-    # What other info is needed for metabolic above ground decay?
-    # metabolic_above_decay
-    calculate_litter_decay_metabolic_above(
+    # Calculate the pool decay rates
+    metabolic_above_decay = calculate_litter_decay_metabolic_above(
         temperature_factor_above,
         litter_pool_above_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
+    structural_above_decay = calculate_litter_decay_structural_above(
+        temperature_factor_above,
+        litter_pool_above_structural,
+        litter_decay_coefficient=constants.litter_decay_constant_structural_above,
+    )
 
-    # TODO - Work out actual content here
+    # Combine with input rates and multiple by update time to find overall changes
+    change_in_metabolic_above = (
+        constants.litter_input_to_metabolic_above - metabolic_above_decay
+    ) * update_interval
+    change_in_structural_above = (
+        constants.litter_input_to_structural_above - structural_above_decay
+    ) * update_interval
 
-    # TODO - only returning this to shut mypy up, this needs to change down the line
-    return {"litter_pool_above_metabolic": DataArray(litter_pool_above_metabolic)}
+    # Construct dictionary of data arrays to return
+    new_litter_pools = {}
+    new_litter_pools["litter_pool_above_metabolic"] = DataArray(
+        litter_pool_above_metabolic + change_in_metabolic_above, dims="cell_id"
+    )
+    new_litter_pools["litter_pool_above_structural"] = DataArray(
+        litter_pool_above_structural + change_in_structural_above, dims="cell_id"
+    )
+
+    return new_litter_pools
 
 
 def calculate_temperature_effect_on_litter_decomp(

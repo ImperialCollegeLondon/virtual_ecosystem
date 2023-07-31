@@ -40,3 +40,17 @@ class LitterConsts:
 
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
+
+    litter_input_to_metabolic_above: float = 0.000280628
+    """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
+
+    litter_input_to_structural_above: float = 0.00071869
+    """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
