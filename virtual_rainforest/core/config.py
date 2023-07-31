@@ -31,7 +31,7 @@ import json
 import sys
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterator, Union
+from typing import Any, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -298,12 +298,16 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
+        extra_params: Extra parameters provided by the user.
         auto: flag to turn off automatic validation.
 
     """
 
     def __init__(
-        self, cfg_paths: Union[str, Path, list[Union[str, Path]]], auto: bool = True
+        self,
+        cfg_paths: Union[str, Path, list[Union[str, Path]]],
+        extra_params: Optional[list[dict[str, Any]]] = None,
+        auto: bool = True,
     ) -> None:
         # Standardise cfg_paths to list of Paths
         if isinstance(cfg_paths, (str, Path)):
@@ -312,6 +316,8 @@ class Config(dict):
             self.cfg_paths = [Path(p) for p in cfg_paths]
 
         # Define custom attributes
+        self.extra_params = deepcopy(extra_params) if extra_params else []
+        """A list of dictionaries of extra parameters supplied by the user."""
         self.toml_files: list[Path] = []
         """A list of TOML file paths resolved from the initial config paths."""
         self.toml_contents: dict[Path, dict] = {}
@@ -432,7 +438,7 @@ class Config(dict):
         """
 
         # Get the config dictionaries
-        input_dicts = list(self.toml_contents.values())
+        input_dicts = list(self.toml_contents.values()) + self.extra_params
 
         if len(input_dicts) == 0:
             # No input dicts, Config dict is empty

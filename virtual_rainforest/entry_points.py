@@ -5,6 +5,7 @@ set of configuration files.
 """  # noqa D210, D415
 
 import argparse
+import sys
 import textwrap
 from pathlib import Path
 
@@ -12,6 +13,13 @@ import virtual_rainforest as vr
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.main import vr_run
+
+if sys.version_info[:2] >= (3, 11):
+    import tomllib
+    from tomllib import TOMLDecodeError
+else:
+    import tomli as tomllib
+    from tomli import TOMLDecodeError
 
 
 def _vr_run_cli() -> None:
@@ -47,6 +55,15 @@ def _vr_run_cli() -> None:
         help="Path for merged config file.",
         dest="merge_file_path",
     )
+    parser.add_argument(
+        "-p",
+        "--param",
+        type=str,
+        default=[],
+        action="append",
+        help="Value for additional parameter (in the form parameter.name=something)",
+        dest="params",
+    )
 
     parser.add_argument(
         "--version",
@@ -62,6 +79,14 @@ def _vr_run_cli() -> None:
         )
         LOGGER.critical(to_raise)
         raise to_raise
-    else:
-        # Run the virtual rainforest run function
-        vr_run(args.cfg_paths, Path(args.merge_file_path))
+
+    # Parse any extra parameters passed using the --param flag
+    try:
+        extra_params = [tomllib.loads(p) for p in args.params]
+    except TOMLDecodeError:
+        to_raise = ConfigurationError("Invalid format for command-line parameters")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    # Run the virtual rainforest run function
+    vr_run(args.cfg_paths, extra_params, Path(args.merge_file_path))
