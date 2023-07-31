@@ -5,6 +5,7 @@ This module tests the functionality of the litter pools module
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from virtual_rainforest.models.litter.constants import LitterConsts
 
@@ -55,6 +56,39 @@ def test_calculate_temperature_effect_on_litter_decomp(
     )
 
     assert np.allclose(actual_factor, expected_factor)
+
+
+def test_calculate_litter_pool_updates(
+    dummy_climate_data, dummy_litter_data, surface_layer_index
+):
+    """Test that litter pool update calculation is correct."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_pool_updates,
+    )
+
+    expected_pools = {
+        "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
+        "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
+    }
+
+    result = calculate_litter_pool_updates(
+        surface_temp=dummy_climate_data["air_temperature"][
+            surface_layer_index
+        ].to_numpy(),
+        litter_pool_above_metabolic=dummy_litter_data[
+            "litter_pool_above_metabolic"
+        ].to_numpy(),
+        litter_pool_above_structural=dummy_litter_data[
+            "litter_pool_above_structural"
+        ].to_numpy(),
+        update_interval=1.0,
+        constants=LitterConsts,
+    )
+
+    for name in expected_pools.keys():
+        xr.testing.assert_allclose(
+            result[name], xr.DataArray(expected_pools[name], dims=["cell_id"])
+        )
 
 
 def test_calculate_litter_decay_metabolic_above(
