@@ -28,3 +28,9 @@ class LitterConsts:
 
     [unitless]. Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
+
+    litter_decay_constant_metabolic_above: float = 0.56 / 7.0
+    """Decay constant for the above ground metabolic litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
