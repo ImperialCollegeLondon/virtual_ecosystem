@@ -31,8 +31,6 @@ from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_
 from virtual_rainforest.models.litter.constants import LitterConsts
 from virtual_rainforest.models.litter.litter_pools import calculate_litter_pool_updates
 
-# TODO - test this entire module
-
 
 class LitterModel(BaseModel):
     """A class defining the litter model.
