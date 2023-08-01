@@ -163,7 +163,7 @@ class LitterModel(BaseModel):
 
         # Find litter pool updates using the litter pool update function
         updated_litter_pools = calculate_litter_pool_updates(
-            surface_temp=self.data["soil_temperature"][
+            surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),
             constants=self.constants,
