@@ -31,7 +31,7 @@ import json
 import sys
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -306,7 +306,7 @@ class Config(dict):
     def __init__(
         self,
         cfg_paths: Union[str, Path, list[Union[str, Path]]],
-        extra_params: Optional[list[dict[str, Any]]] = None,
+        extra_params: list[dict[str, Any]] = [],
         auto: bool = True,
     ) -> None:
         # Standardise cfg_paths to list of Paths
@@ -316,7 +316,7 @@ class Config(dict):
             self.cfg_paths = [Path(p) for p in cfg_paths]
 
         # Define custom attributes
-        self.extra_params = deepcopy(extra_params) if extra_params else []
+        self.extra_params = deepcopy(extra_params)
         """A list of dictionaries of extra parameters supplied by the user."""
         self.toml_files: list[Path] = []
         """A list of TOML file paths resolved from the initial config paths."""
