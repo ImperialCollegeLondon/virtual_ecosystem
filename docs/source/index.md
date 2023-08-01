@@ -82,6 +82,7 @@ team.
   Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
+  Example data <api/example_data.md>
   Logger <api/core/logger.md>
   Grid <api/core/grid.md>
   Data <api/core/data.md>
