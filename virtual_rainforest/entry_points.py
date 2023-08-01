@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import virtual_rainforest as vr
+from virtual_rainforest import example_data_path
 from virtual_rainforest.core.config import config_merge
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -110,6 +111,12 @@ def _vr_run_cli() -> None:
         help="Value for additional parameter (in the form parameter.name=something)",
         dest="params",
     )
+    parser.add_argument(
+        "--example",
+        action="store_true",
+        help="Run Virtual Rainforest with example data",
+        dest="example",
+    )
 
     parser.add_argument(
         "--version",
@@ -119,7 +126,13 @@ def _vr_run_cli() -> None:
 
     args = parser.parse_args()
 
-    if not args.cfg_paths:
+    cfg_paths: list[str] = []
+    if args.example:
+        cfg_paths.append(example_data_path)
+    if args.cfg_paths:
+        cfg_paths.extend(args.cfg_paths)
+
+    if not cfg_paths:
         to_raise = ConfigurationError(
             "Configuration paths must be provided! See vr_run --help"
         )
@@ -130,4 +143,4 @@ def _vr_run_cli() -> None:
     override_params = _parse_command_line_params(args.params)
 
     # Run the virtual rainforest run function
-    vr_run(args.cfg_paths, override_params, Path(args.merge_file_path))
+    vr_run(cfg_paths, override_params, Path(args.merge_file_path))
