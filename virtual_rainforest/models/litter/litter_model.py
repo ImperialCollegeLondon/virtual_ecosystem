@@ -123,7 +123,7 @@ class LitterModel(BaseModel):
 
         # Check if any constants have been supplied
         if "litter" in config and "constants" in config["litter"]:
-            # Checks that constants is config are as expected
+            # Checks that constants in config are as expected
             check_valid_constant_names(config, "litter", "LitterConsts")
             # If an error isn't raised then generate the dataclass
             constants = LitterConsts(**config["litter"]["constants"]["LitterConsts"])
