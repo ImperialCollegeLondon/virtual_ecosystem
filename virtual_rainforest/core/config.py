@@ -29,6 +29,7 @@ imported, which ensures that all modules schemas are registered in
 
 import json
 import sys
+from collections.abc import Iterable
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Iterator, Union
@@ -263,6 +264,41 @@ def config_merge(
     return dest, conflicts
 
 
+def _fix_up_paths_in_dict(config_dir: Path, params: dict[str, Any]) -> None:
+    """Find paths in a dict and make them relative to config_dir.
+
+    This function operates recursively on params, looking for "file" keys and then, if
+    they are relative paths, changing them to be relative to config_dir.
+
+    Args:
+        config_dir: The new folder to use as the root for relative paths
+        params: The dict to examine
+    """
+    # If there is a "file" key and it's a relative path, make it relative to config_dir
+    if "file" in params:
+        file_path = Path(params["file"])
+        if not file_path.is_absolute():
+            params["file"] = str(config_dir / file_path)
+
+    # As our config could contain lists containing dicts etc., we also need to
+    # recursively check for iterables containing dicts
+    _fix_up_paths_in_iterable(config_dir, params.values())
+
+
+def _fix_up_paths_in_iterable(config_dir: Path, values: Iterable) -> None:
+    """Recursively check for and fix up paths in an Iterable.
+
+    Args:
+        config_dir: The new folder to use as the root for relative paths
+        values: The Iterable to check
+    """
+    for value in values:
+        if isinstance(value, dict):
+            _fix_up_paths_in_dict(config_dir, value)
+        elif isinstance(value, list):
+            _fix_up_paths_in_iterable(config_dir, value)
+
+
 class Config(dict):
     """Configuration loading and validation.
 
@@ -333,6 +369,7 @@ class Config(dict):
         if auto:
             self.resolve_config_paths()
             self.load_config_toml()
+            self.fix_up_file_paths()
             self.build_config()
             self.override_config(override_params)
             self.build_schema()
@@ -424,6 +461,16 @@ class Config(dict):
             to_raise = ConfigurationError("Errors parsing config files: check log")
             LOGGER.critical(to_raise)
             raise to_raise
+
+    def fix_up_file_paths(self) -> None:
+        """Make any file paths relative to location of config files.
+
+        This method recursively checks for "file" keys and, if it finds any, updates the
+        paths so that they are relative to the config file they were read from, rather
+        than the CWD of the currently running process.
+        """
+        for config_file, contents in self.toml_contents.items():
+            _fix_up_paths_in_dict(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
