@@ -1,0 +1,3 @@
+cluster: "qsub -lwalltime=00:05:00 -lselect=1:ncpus=1:mem=4gb"
+cluster-cancel: qdel
+jobs: 500
