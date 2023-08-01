@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+from collections.abc import Sequence
 from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
@@ -276,7 +277,7 @@ def merge_continuous_data_files(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, list[Union[str, Path]]],
+    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
     override_params: dict[str, Any],
     merge_file_path: Path,
 ) -> None:

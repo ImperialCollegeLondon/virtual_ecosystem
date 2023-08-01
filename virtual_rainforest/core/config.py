@@ -26,9 +26,9 @@ The base Virtual Rainforest module will automatically import modules when it is
 imported, which ensures that all modules schemas are registered in
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
 """  # noqa: D205, D415
-
 import json
 import sys
+from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Iterator, Union
@@ -336,7 +336,7 @@ class Config(dict):
 
     def __init__(
         self,
-        cfg_paths: Union[str, Path, list[Union[str, Path]]],
+        cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
         override_params: dict[str, Any] = {},
         auto: bool = True,
     ) -> None:
