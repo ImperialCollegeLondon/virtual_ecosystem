@@ -606,9 +606,6 @@ class Config(dict):
 
         Args:
             override_params: Extra parameter settings
-        Raises:
-            ValidationError: if an invalid value is provided for any configuration
-                             settings.
         """
         updated, conflicts = config_merge(self, override_params, conflicts=tuple())
 
