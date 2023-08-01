@@ -1,9 +1,7 @@
 """The ''animals'' module provides animal module functionality.
 
 Todo:
-- send portion of dead to carcass pool
-- work out a big picture logic for what a month of foraging means and how to capture
-it in functions
+
 
 Current simplifications:
 - only iteroparity (want: semelparity)
@@ -13,12 +11,12 @@ Notes to self:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
-- waste_energy pool likely unnecessary, better to excrete directly to external pools
 """  # noqa: #D205, D415
 
 from __future__ import annotations
 
 from random import choice
+from typing import Sequence
 
 from numpy import timedelta64
 
@@ -26,11 +24,9 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import ENERGY_DENSITY, TEMPERATURE
-from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-    PalatableSoil,
-    PlantCommunity,
-)
+from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+from virtual_rainforest.models.animals.protocols import Consumer, Pool, Resource
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
     energetic_reserve_scaling,
@@ -115,81 +111,6 @@ class AnimalCohort:
         energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
-    def consumer_plants(self, plant_food: PlantCommunity, soil: PalatableSoil) -> float:
-        """The function to transfer energy from a food source to the animal cohort.
-
-        The flow to soil here will need to be replaced with a flow to a plant litter
-        pool.
-
-        Args:
-            plant_food: The targeted PlantCommunity instance from which energy is
-                transferred.
-            soil: The soil community to which plant waste from consumption (leftovers)
-                is deposited for decomposition.
-
-        Returns:
-            A float containing the amount of energy consumed in the herbivory bout.
-        """
-        consumed_energy = min(
-            plant_food.energy,
-            self.intake_rate * plant_food.energy_density * self.individuals,
-        )
-        # Minimum of the energy available and amount that can be consumed in an 8 hour
-        # foraging window .
-        plant_food.energy -= consumed_energy
-        # The energy [J] extracted from the PlantCommunity adjusted for energetic
-        # conversion efficiency and divided by the number of individuals in the cohort.
-        soil.energy += consumed_energy * (
-            1 - self.functional_group.mechanical_efficiency
-        )
-
-        return (
-            consumed_energy
-            * self.functional_group.conversion_efficiency
-            * self.functional_group.mechanical_efficiency
-        )
-
-    def consume_prey(self, prey: AnimalCohort, carcass_pool: CarcassPool) -> float:
-        """A predation event where this cohort preys on the given prey cohort.
-
-        Removing both individuals and prey energy is a temporary implementation.
-
-        Args:
-            prey: The AnimalCohort instance being preyed upon.
-            carcass_pool: The resident pool of animal carcasses to which the remains of
-              dead individuals are delivered.
-
-        Returns:
-            A float containing the amount of energy consumed in the herbivory bout.
-
-        """
-        # Calculate the number of individuals that can be eaten based on intake rate
-        # Here we assume predator can consume prey mass equivalent to its daily intake
-        number_eaten = int(min(self.intake_rate // prey.mass, prey.individuals))
-
-        # Calculate the energy gain from eating prey
-        # Here we assume all eaten mass is converted to energy
-        consumed_energy = min(
-            (
-                number_eaten
-                * prey.mass
-                * ENERGY_DENSITY["meat"]
-                * self.functional_group.mechanical_efficiency
-            ),
-            prey.stored_energy,
-        )
-
-        # Reduce the number of individuals in the prey cohort and add energy to predator
-        prey.individuals -= number_eaten
-        # Excess from deficits of efficiency flow to the carcass pool
-        carcass_pool.energy += consumed_energy * (
-            1 - self.functional_group.mechanical_efficiency
-        )
-
-        prey.stored_energy -= consumed_energy
-
-        return consumed_energy * self.functional_group.conversion_efficiency
-
     def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
         """The function to transfer waste energy from an animal cohort to the soil.
 
@@ -199,7 +120,7 @@ class AnimalCohort:
 
         """
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
-        soil.energy += waste_energy * self.individuals
+        soil.stored_energy += waste_energy * self.individuals
         # The amount of waste by the average cohort member * number individuals.
 
     def increase_age(self, dt: timedelta64) -> None:
@@ -228,22 +149,68 @@ class AnimalCohort:
         """
         self.individuals -= number_dead
 
-        carcass_pool.energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
+        carcass_pool.stored_energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
+
+    def get_eaten(self, predator: Consumer, carcass_pool: Pool) -> float:
+        """This function handles AnimalCohorts being subject to predation.
+
+        Note: AnimalCohort stored_energy is mean per individual energy within the
+            cohort. Energy is not lost from stored_energy from a predation event but the
+            number of individuals in the cohort is reduced.
+
+        Args:
+            predator: The AnimalCohort preying on the eaten cohort.
+            carcass_pool: The resident pool of animal carcasses to which the remains of
+              dead individuals are delivered.
+
+        Returns:
+            A float of the energy value of the lost individuals after digestive
+                efficiencies are accounted for.
+
+        """
+        # Calculate the number of individuals that can be eaten based on intake rate
+        # Here we assume predators can consume prey mass equivalent to daily intake
+        number_eaten = int(
+            min(
+                (predator.intake_rate * predator.individuals) // self.mass,
+                self.individuals,
+            )
+        )
+
+        # Calculate the energy gain from eating prey
+        # Here we assume all eaten mass is converted to energy
+        prey_energy = min(
+            (
+                number_eaten
+                * self.mass
+                * ENERGY_DENSITY["meat"]
+                * self.functional_group.mechanical_efficiency
+            ),
+            self.stored_energy,
+        )
+
+        # Reduce the number of individuals in the prey cohort
+        self.individuals -= number_eaten
+        # Excess from deficits of efficiency flow to the carcass pool
+        carcass_pool.stored_energy += prey_energy * (
+            1 - self.functional_group.mechanical_efficiency
+        )
+
+        # return the net energetic gain of predation
+        return prey_energy * predator.functional_group.conversion_efficiency
 
     def forage_cohort(
         self,
-        plant_list: list[PlantCommunity],
-        animal_list: list[AnimalCohort],
-        carcass_pool: CarcassPool,
-        soil_pool: PalatableSoil,
+        plant_list: Sequence[Resource],
+        animal_list: Sequence[Resource],
+        carcass_pool: Pool,
+        soil_pool: Pool,
     ) -> None:
-        """Forage the environment for food depending on diet type.
+        """This function handles selection of resources from a list of options.
 
-        Current version expected to search a single grid square and uses AnimalModel
-        dummy implementations of plants (PlantCommunity).
-        Direct interactions with food pools are handled with helper functions predation
-        and herbivory. Combining those individual trophic events and adding energy
-        gained to storage pools is handled here.
+        Currently, this function is passed a list of plant or animal resources from
+        AnimalCommunity.forage_community and performs a simple random uniform selection.
+        Later this function will involve more complex weightings of prey options.
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
@@ -252,38 +219,27 @@ class AnimalCohort:
             soil_pool: A PalatableSoil object representing soil nutrients.
 
         """
-        found_food = False
-        print(self.name)
-        print("Starting energy:")
-        print(self.stored_energy)
-        if self.functional_group.diet == DietType.HERBIVORE:
-            if plant_list:
-                plant_prey = choice(plant_list)
-                print("I found plants!")
-                energy = self.consumer_plants(plant_prey, soil_pool)
-                found_food = True
-        elif self.functional_group.diet == DietType.CARNIVORE:
-            if animal_list:
-                animal_prey = choice(animal_list)
-                print("I found prey!")
-                print(animal_prey.name)  # debugging
-                energy = self.consume_prey(animal_prey, carcass_pool)
-                found_food = True
+
+        if self.functional_group.diet == DietType.HERBIVORE and plant_list:
+            self.eat(choice(plant_list), soil_pool)
+        elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
+            self.eat(choice(animal_list), carcass_pool)
         else:
-            raise ValueError("Invalid diet type")
+            LOGGER.info("No food available.")
 
-        if not found_food:
-            print("didn't find food")  # debugging
-            # debugging info - I expect these to be rare occurances
-            if self.functional_group.diet.value == "herbivore":
-                LOGGER.info("No plant available for herbivory.")
-            elif self.functional_group.diet.value == "carnivore":
-                LOGGER.info("No animal available for predation.")
+    def eat(self, food: Resource, pool: Pool) -> None:
+        """This function handles the energy transfer of a trophic interaction.
 
-        if found_food:
-            # Increase consumer's stored energy with the energy gained from eating
-            self.stored_energy += energy
-            print("I gained energy:")
-            print(energy)
-        print("Final Energy:")
-        print(self.stored_energy)
+        Currently, all this does is call the food's get_eaten method and pass the
+        returned energy value to the consumer.
+
+        Args:
+            food: An object of a Resource class (currently: AnimalCohort, Plant
+                  Community)
+            pool: An object of a Pool class, which could represent depositional pools
+                  like soil or carcass pools.
+
+        """
+        # get the per-individual energetic gain from the bulk value
+        energy = food.get_eaten(self, pool) / self.individuals
+        self.stored_energy += energy

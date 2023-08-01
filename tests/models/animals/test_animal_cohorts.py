@@ -117,95 +117,6 @@ class TestAnimalCohort:
             animal_cohort_instance.metabolize(dt)
 
     @pytest.mark.parametrize(
-        "animal_initial, animal_final, plant_initial, plant_final",
-        [
-            (28266000000.0, 28608685465.02244, 182000000000.0, 178192383721.97287),
-            (0.0, 342685465.02244186, 182000000000.0, 178192383721.97287),
-            (28266000000.0, 28266000009.0, 100.0, 0.0),
-            (28266000000.0, 28266000000.0, 0.0, 0.0),
-            (0.0, 0.0, 0.0, 0.0),
-        ],
-    )
-    def test_herbivory(
-        self,
-        animal_cohort_instance,
-        animal_initial,
-        animal_final,
-        plant_instance,
-        plant_initial,
-        plant_final,
-        soil_instance,
-    ):
-        """Testing eat for varying plant and animal energy levels."""
-        animal_cohort_instance.stored_energy = animal_initial
-        plant_instance.energy = plant_initial
-        animal_cohort_instance.herbivory(plant_instance, soil_instance)
-        assert animal_cohort_instance.stored_energy == animal_final
-        assert plant_instance.energy == plant_final
-
-    @pytest.mark.parametrize(
-        (
-            "predator_initial",
-            "predator_final",
-            "prey_initial",
-            "prey_final",
-            "prey_population_initial",
-            "prey_population_final",
-            "carcass_initial",
-            "carcass_final",
-        ),
-        [
-            (
-                28266000000.0,
-                28266126000.0,
-                182000000000.0,
-                181998740000.0,
-                5000,
-                4998,
-                0.0,
-                125999.99999999997,
-            ),
-            (
-                0.0,
-                126000.0,
-                182000000000.0,
-                181998740000.0,
-                5000,
-                4998,
-                0.0,
-                125999.99999999997,
-            ),
-            (28266000000.0, 28266000010.0, 100.0, 0.0, 1, 0, 0.0, 9.999999999999998),
-            (28266000000.0, 28266000000.0, 0.0, 0.0, 0, 0, 0.0, 0.0),
-            (0.0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0.0),
-        ],
-    )
-    def test_predation(
-        self,
-        animal_cohort_instance,
-        predator_initial,
-        predator_final,
-        prey_cohort_instance,
-        prey_initial,
-        prey_final,
-        prey_population_initial,
-        prey_population_final,
-        carcass_instance,
-        carcass_initial,
-        carcass_final,
-    ):
-        """Testing predation for varying predator and prey energy levels."""
-        animal_cohort_instance.stored_energy = predator_initial
-        prey_cohort_instance.stored_energy = prey_initial
-        prey_cohort_instance.individuals = prey_population_initial
-        carcass_instance.energy = carcass_initial
-        animal_cohort_instance.predation(prey_cohort_instance, carcass_instance)
-        assert animal_cohort_instance.stored_energy == predator_final
-        assert prey_cohort_instance.stored_energy == prey_final
-        assert prey_cohort_instance.individuals == prey_population_final
-        assert carcass_instance.energy == carcass_final
-
-    @pytest.mark.parametrize(
         "soil_initial, soil_final, consumed_energy",
         [
             (1000.0, 1100.0, 1000.0),
@@ -223,9 +134,9 @@ class TestAnimalCohort:
         consumed_energy,
     ):
         """Testing excrete() for varying soil energy levels."""
-        soil_instance.energy = soil_initial
+        soil_instance.stored_energy = soil_initial
         animal_cohort_instance.excrete(soil_instance, consumed_energy)
-        assert soil_instance.energy == soil_final
+        assert soil_instance.stored_energy == soil_final
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -236,10 +147,10 @@ class TestAnimalCohort:
             (timedelta64(90, "D"), 10.0, 100.0),
         ],
     )
-    def test_aging(self, animal_cohort_instance, dt, initial_age, final_age):
+    def test_increase_age(self, animal_cohort_instance, dt, initial_age, final_age):
         """Testing aging at varying ages."""
         animal_cohort_instance.age = initial_age
-        animal_cohort_instance.aging(dt)
+        animal_cohort_instance.increase_age(dt)
         assert animal_cohort_instance.age == final_age
 
     @pytest.mark.parametrize(
@@ -261,9 +172,9 @@ class TestAnimalCohort:
         initial_carcass,
         final_carcass,
     ):
-        """Testing aging at varying ages."""
+        """Testing death."""
         animal_cohort_instance.individuals = initial_pop
-        carcass_instance.energy = initial_carcass
+        carcass_instance.stored_energy = initial_carcass
         animal_cohort_instance.die_individual(number_dead, carcass_instance)
         assert animal_cohort_instance.individuals == final_pop
-        assert carcass_instance.energy == final_carcass
+        assert carcass_instance.stored_energy == final_carcass

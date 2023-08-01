@@ -105,6 +105,7 @@ team.
   Animal Overview <api/animals>
   Animal Model <api/animals/animal_model.md> 
   Animal Communities <api/animals/animal_communities.md> 
+  Animal Protocols <api/animals/protocols.md>
   Animal Cohorts <api/animals/animal_cohorts.md> 
   Animal Functional Groups <api/animals/functional_group.md> 
   Animal Traits <api/animals/animal_traits.md>

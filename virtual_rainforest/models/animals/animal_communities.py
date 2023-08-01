@@ -28,6 +28,8 @@ from virtual_rainforest.models.animals.dummy_plants_and_soil import (
 # from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
+# from virtual_rainforest.models.animals.protocols import Consumer, Resource
+
 
 class AnimalCommunity:
     """This is a class for the animal community of a grid cell."""
@@ -98,7 +100,7 @@ class AnimalCommunity:
         )
 
     def forage_community(self) -> None:
-        """This function needs to handle the foraging of animal cohorts.
+        """This function needs to organize the foraging of animal cohorts.
 
         It should loop over every animal cohort in the community and call the
         collect_prey and forage_cohort functions. This will create a list of suitable

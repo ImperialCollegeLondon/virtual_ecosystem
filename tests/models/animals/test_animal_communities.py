@@ -58,7 +58,7 @@ class TestAnimalCommunity:
 
     def test_initialization(self, animal_community_instance):
         """Testing initialization of derived parameters for animal cohorts."""
-        assert list(animal_community_instance.cohorts.keys()) == [
+        assert list(animal_community_instance.animal_cohorts.keys()) == [
             "carnivorous_bird",
             "herbivorous_bird",
             "carnivorous_mammal",
@@ -74,50 +74,41 @@ class TestAnimalCommunity:
         animal_community_destination_instance,
     ):
         """Testing immigrate."""
-        animal_community_instance.cohorts["herbivorous_mammal"].append(
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
             animal_cohort_instance
         )
         assert (
             animal_cohort_instance
-            in animal_community_instance.cohorts["herbivorous_mammal"]
+            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
         animal_community_instance.immigrate(
-            animal_community_instance.cohorts["herbivorous_mammal"][0],
+            animal_community_instance.animal_cohorts["herbivorous_mammal"][0],
             animal_community_destination_instance,
         )
         assert (
             animal_cohort_instance
-            not in animal_community_instance.cohorts["herbivorous_mammal"]
+            not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
         assert (
             animal_cohort_instance
-            in animal_community_destination_instance.cohorts["herbivorous_mammal"]
+            in animal_community_destination_instance.animal_cohorts[
+                "herbivorous_mammal"
+            ]
         )
 
     def test_die_cohort(self, animal_cohort_instance, animal_community_instance):
         """Testing die_cohort."""
-        animal_community_instance.cohorts["herbivorous_mammal"].append(
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
             animal_cohort_instance
         )
         assert (
             animal_cohort_instance
-            in animal_community_instance.cohorts["herbivorous_mammal"]
+            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
         assert animal_cohort_instance.is_alive
         animal_community_instance.die_cohort(animal_cohort_instance)
         assert not animal_cohort_instance.is_alive
         assert (
             animal_cohort_instance
-            not in animal_community_instance.cohorts["herbivorous_mammal"]
+            not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
-
-    def test_birth(self, animal_cohort_instance, animal_community_instance):
-        """Testing birth."""
-        animal_community_instance.cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance
-        )
-        baby_instance = animal_community_instance.birth(animal_cohort_instance)
-        assert baby_instance.name == "herbivorous_mammal"
-        assert baby_instance.mass == 10000.0
-        assert baby_instance.age == 0.0
-        assert baby_instance in animal_community_instance.cohorts["herbivorous_mammal"]
