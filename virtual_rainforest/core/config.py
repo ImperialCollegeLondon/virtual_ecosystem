@@ -298,7 +298,7 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
-        extra_params: Extra parameters provided by the user.
+        override_params: Extra parameters provided by the user.
         auto: flag to turn off automatic validation.
 
     """
@@ -306,7 +306,7 @@ class Config(dict):
     def __init__(
         self,
         cfg_paths: Union[str, Path, list[Union[str, Path]]],
-        extra_params: list[dict[str, Any]] = [],
+        override_params: dict[str, Any] = {},
         auto: bool = True,
     ) -> None:
         # Standardise cfg_paths to list of Paths
@@ -316,8 +316,6 @@ class Config(dict):
             self.cfg_paths = [Path(p) for p in cfg_paths]
 
         # Define custom attributes
-        self.extra_params = deepcopy(extra_params)
-        """A list of dictionaries of extra parameters supplied by the user."""
         self.toml_files: list[Path] = []
         """A list of TOML file paths resolved from the initial config paths."""
         self.toml_contents: dict[Path, dict] = {}
@@ -336,6 +334,7 @@ class Config(dict):
             self.resolve_config_paths()
             self.load_config_toml()
             self.build_config()
+            self.override_config(override_params)
             self.build_schema()
             self.validate_config()
 
@@ -438,7 +437,7 @@ class Config(dict):
         """
 
         # Get the config dictionaries
-        input_dicts = list(self.toml_contents.values()) + self.extra_params
+        input_dicts = list(self.toml_contents.values())
 
         if len(input_dicts) == 0:
             # No input dicts, Config dict is empty
@@ -601,3 +600,23 @@ class Config(dict):
         with open(outfile, "wb") as toml_file:
             tomli_w.dump(self, toml_file)
         LOGGER.info("Saving config to: %s", outfile)
+
+    def override_config(self, override_params: dict[str, Any]) -> None:
+        """Override any parameters desired.
+
+        Args:
+            override_params: Extra parameter settings
+        Raises:
+            ValidationError: if an invalid value is provided for any configuration
+                             settings.
+        """
+        updated, conflicts = config_merge(self, override_params, conflicts=tuple())
+
+        # Conflicts are not errors as we want users to be able to override parameters
+        if conflicts:
+            LOGGER.info(
+                "The following parameter values were overridden: "
+                + ", ".join(conflicts)
+            )
+
+        self.update(updated)

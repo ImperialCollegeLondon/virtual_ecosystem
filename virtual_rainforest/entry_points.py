@@ -3,13 +3,15 @@ points to the virtual_rainforest package. At the moment a single entry point is 
 `vr_run`, which simply configures and runs a virtual rainforest simulation based on a
 set of configuration files.
 """  # noqa D210, D415
-
 import argparse
 import sys
 import textwrap
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import virtual_rainforest as vr
+from virtual_rainforest.core.config import config_merge
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.main import vr_run
@@ -20,6 +22,50 @@ if sys.version_info[:2] >= (3, 11):
 else:
     import tomli as tomllib
     from tomli import TOMLDecodeError
+
+
+def _parse_param_str(s: str) -> dict[str, Any]:
+    """Parse a single parameter string into a dict.
+
+    For example: hydrology.initial_soil_moisture=0.3
+
+    Raises:
+        ConfigurationError: If the command-line parameters are not valid TOML
+    """
+    try:
+        return tomllib.loads(s)
+    except TOMLDecodeError:
+        to_raise = ConfigurationError("Invalid format for command-line parameters")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+
+def _parse_command_line_params(params_str: Sequence[str]) -> dict[str, Any]:
+    """Parse extra parameters provided with command-line arguments.
+
+    Args:
+        params_str: Extra parameters in string format (e.g. my.parameter=0.2)
+
+    Returns:
+        A combined dict including all of the parameter values
+
+    Raises:
+        ConfigurationError: Invalid format for parameters or conflicting values supplied
+    """
+    all_params: dict[str, Any] = {}
+    conflicts: tuple = ()
+    for param_str in params_str:
+        param_dict = _parse_param_str(param_str)
+        all_params, conflicts = config_merge(all_params, param_dict, conflicts)
+
+    if conflicts:
+        to_raise = ConfigurationError(
+            "Conflicting values supplied for command-line arguments"
+        )
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return all_params
 
 
 def _vr_run_cli() -> None:
@@ -81,12 +127,7 @@ def _vr_run_cli() -> None:
         raise to_raise
 
     # Parse any extra parameters passed using the --param flag
-    try:
-        extra_params = [tomllib.loads(p) for p in args.params]
-    except TOMLDecodeError:
-        to_raise = ConfigurationError("Invalid format for command-line parameters")
-        LOGGER.critical(to_raise)
-        raise to_raise
+    override_params = _parse_command_line_params(args.params)
 
     # Run the virtual rainforest run function
-    vr_run(args.cfg_paths, extra_params, Path(args.merge_file_path))
+    vr_run(args.cfg_paths, override_params, Path(args.merge_file_path))
