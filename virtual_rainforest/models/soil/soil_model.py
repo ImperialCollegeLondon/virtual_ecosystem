@@ -107,10 +107,6 @@ class SoilModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
-        self.update_interval
-        """The time interval between model updates."""
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
         # Find first soil layer from the list of layer roles

@@ -85,10 +85,6 @@ class LitterModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
-        self.update_interval
-        """The time interval between model updates."""
         self.constants = constants
         """Set of constants for the litter model"""
 
