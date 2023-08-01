@@ -9,7 +9,7 @@ import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.models.litter.constants import LitterConsts
 from virtual_rainforest.models.litter.litter_model import LitterModel
 
@@ -134,4 +134,124 @@ def test_litter_model_initialization(
     log_check(caplog, expected_log_entries)
 
 
-# TODO - test other functions for this module
+@pytest.mark.parametrize(
+    "config,time_interval,temp_response,raises,expected_log_entries",
+    [
+        (
+            {},
+            None,
+            None,
+            pytest.raises(KeyError),
+            (),  # This error isn't handled so doesn't generate logging
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                },
+            },
+            pint.Quantity("12 hours"),
+            3.36,
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the litter model successfully "
+                    "extracted.",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                },
+                "litter": {
+                    "constants": {"LitterConsts": {"litter_decomp_temp_response": 4.44}}
+                },
+            },
+            pint.Quantity("12 hours"),
+            4.44,
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Information required to initialise the litter model successfully "
+                    "extracted.",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+            ),
+        ),
+        (
+            {
+                "core": {
+                    "timing": {
+                        "start_date": "2020-01-01",
+                        "update_interval": "12 hours",
+                    },
+                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                },
+                "litter": {"constants": {"LitterConsts": {"decomp_rate": 4.44}}},
+            },
+            None,
+            None,
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Unknown names supplied for LitterConsts: decomp_rate",
+                ),
+                (
+                    INFO,
+                    "Valid names are as follows: ",
+                ),
+            ),
+        ),
+    ],
+)
+def test_generate_litter_model(
+    caplog,
+    dummy_litter_data,
+    config,
+    time_interval,
+    temp_response,
+    raises,
+    expected_log_entries,
+):
+    """Test that the function to initialise the litter model behaves as expected."""
+
+    # Check whether model is initialised (or not) as expected
+    with raises:
+        model = LitterModel.from_config(
+            dummy_litter_data,
+            config,
+            pint.Quantity(config["core"]["timing"]["update_interval"]),
+        )
+        assert model.update_interval == time_interval
+        assert model.constants.litter_decomp_temp_response == temp_response
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
