@@ -1,3 +1,0 @@
-This folder contains all the data required to run a dummy simulation of the Virtual Rainforest model. At the moment, this includes the soil model and the abiotic simple model. It also contains the config (.toml) files required to inform the simulation of which variables to extract from each data file.
-
-It is important to note that the file paths in the configuration files will only work if the dummy_data folder is saved within the packages main (i.e. highest level) folder. It's absolutely fine to save this folder elsewhere, but all file paths in the config files will have to be altered.
