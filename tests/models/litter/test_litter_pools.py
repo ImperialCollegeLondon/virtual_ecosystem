@@ -12,7 +12,7 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 
 @pytest.fixture
 def temp_and_water_factors(
-    dummy_climate_data, surface_layer_index, top_soil_layer_index
+    dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Temperature and water factors for the various litter layers."""
     from virtual_rainforest.models.litter.litter_pools import (
@@ -20,14 +20,14 @@ def temp_and_water_factors(
     )
 
     temp_above = calculate_temperature_effect_on_litter_decomp(
-        dummy_climate_data["air_temperature"][surface_layer_index],
+        dummy_litter_data["air_temperature"][surface_layer_index],
         reference_temp=LitterConsts.litter_decomp_reference_temp,
         offset_temp=LitterConsts.litter_decomp_offset_temp,
         temp_response=LitterConsts.litter_decomp_temp_response,
     )
 
     temp_below = calculate_temperature_effect_on_litter_decomp(
-        dummy_climate_data["soil_temperature"][top_soil_layer_index],
+        dummy_litter_data["soil_temperature"][top_soil_layer_index],
         reference_temp=LitterConsts.litter_decomp_reference_temp,
         offset_temp=LitterConsts.litter_decomp_offset_temp,
         temp_response=LitterConsts.litter_decomp_temp_response,
@@ -58,9 +58,7 @@ def test_calculate_temperature_effect_on_litter_decomp(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_litter_pool_updates(
-    dummy_climate_data, dummy_litter_data, surface_layer_index
-):
+def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
     """Test that litter pool update calculation is correct."""
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_litter_pool_updates,
@@ -72,7 +70,7 @@ def test_calculate_litter_pool_updates(
     }
 
     result = calculate_litter_pool_updates(
-        surface_temp=dummy_climate_data["air_temperature"][
+        surface_temp=dummy_litter_data["air_temperature"][
             surface_layer_index
         ].to_numpy(),
         litter_pool_above_metabolic=dummy_litter_data[

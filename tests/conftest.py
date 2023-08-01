@@ -193,6 +193,52 @@ def dummy_litter_data(layer_roles_fixture):
     )
     """Above ground structural litter pool (kg C m^-3)"""
 
+    data["soil_temperature"] = xr.concat(
+        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(
+            {
+                "layers": np.arange(0, 15),
+                "layer_roles": ("layers", layer_roles_fixture),
+                "cell_id": data.grid.cell_id,
+            }
+        )
+    )
+
+    data["air_temperature"] = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.844995, 29.844995, 29.844995],
+                    [28.87117, 28.87117, 28.87117],
+                    [27.206405, 27.206405, 27.206405],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [16.145945, 16.145945, 16.145945],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+
     return data
 
 
