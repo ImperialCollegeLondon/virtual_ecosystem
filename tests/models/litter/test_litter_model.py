@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from copy import deepcopy
 from logging import DEBUG, ERROR, INFO
 
+import numpy as np
 import pint
 import pytest
 from xarray import DataArray
@@ -22,11 +23,11 @@ def litter_model_fixture(dummy_litter_data):
 
     config = {
         "core": {
-            "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
+            "timing": {"start_date": "2020-01-01", "update_interval": "24 hours"},
             "layers": {"soil_layers": 2, "canopy_layers": 10},
         },
     }
-    return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("12 hours"))
+    return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("24 hours"))
 
 
 @pytest.mark.parametrize(
@@ -149,12 +150,12 @@ def test_litter_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
+                        "update_interval": "24 hours",
                     },
                     "layers": {"soil_layers": 2, "canopy_layers": 10},
                 },
             },
-            pint.Quantity("12 hours"),
+            pint.Quantity("24 hours"),
             3.36,
             does_not_raise(),
             (
@@ -178,7 +179,7 @@ def test_litter_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
+                        "update_interval": "24 hours",
                     },
                     "layers": {"soil_layers": 2, "canopy_layers": 10},
                 },
@@ -186,7 +187,7 @@ def test_litter_model_initialization(
                     "constants": {"LitterConsts": {"litter_decomp_temp_response": 4.44}}
                 },
             },
-            pint.Quantity("12 hours"),
+            pint.Quantity("24 hours"),
             4.44,
             does_not_raise(),
             (
@@ -210,7 +211,7 @@ def test_litter_model_initialization(
                 "core": {
                     "timing": {
                         "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
+                        "update_interval": "24 hours",
                     },
                     "layers": {"soil_layers": 2, "canopy_layers": 10},
                 },
@@ -255,3 +256,18 @@ def test_generate_litter_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_update(litter_model_fixture, dummy_litter_data):
+    """Test to check that the update step works and increments the update step."""
+
+    end_above_meta = [0.29577179, 0.14802621, 0.06922856]
+    end_above_struct = [0.50055126, 0.25063497, 0.09068855]
+
+    litter_model_fixture.update(time_index=0)
+
+    # Check that data fixture has been updated correctly
+    assert np.allclose(dummy_litter_data["litter_pool_above_metabolic"], end_above_meta)
+    assert np.allclose(
+        dummy_litter_data["litter_pool_above_structural"], end_above_struct
+    )
