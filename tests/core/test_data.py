@@ -908,6 +908,42 @@ def test_Data_add_from_dict(dummy_climate_data):
     )
 
 
+@pytest.mark.parametrize("time_index", [0, 1])
+def test_output_current_state(mocker, dummy_carbon_data, time_index):
+    """Test that function to output the current data state works as intended."""
+
+    from virtual_rainforest.core.base_model import MODEL_REGISTRY
+    from virtual_rainforest.main import output_current_state
+
+    data_options = {"out_folder_continuous": "."}
+
+    # Patch the relevant lower level function
+    mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
+
+    # Extract model from registry and put into expected dictionary format
+    configured_models = {"soil": MODEL_REGISTRY["soil"]}
+
+    # Then call the top level function
+    outpath = output_current_state(
+        dummy_carbon_data, configured_models, data_options, time_index
+    )
+
+    # Check that the mocked function was called once with correct input (which is
+    # calculated in the higher level function)
+    assert mock_save.call_count == 1
+    assert mock_save.call_args == mocker.call(
+        Path(f"./continuous_state{time_index:05}.nc"),
+        [
+            "soil_c_pool_maom",
+            "soil_c_pool_lmwc",
+            "soil_c_pool_microbe",
+            "soil_c_pool_pom",
+        ],
+        time_index,
+    )
+    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
+
+
 def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     """Test that function to merge the continuous data files works as intended."""
     from virtual_rainforest.main import merge_continuous_data_files
