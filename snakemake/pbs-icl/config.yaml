@@ -1,3 +1,7 @@
-cluster: ./pbs-submit.py {resources.mem_mb}
+cluster: ./pbs-submit.py {resources.mem_mb} {resources.runtime}
 cluster-cancel: qdel
 jobs: 500
+default-resources:
+  # Imperial's cluster requires a runtime to be specified, so provide a default value of
+  # 15 minutes
+  runtime: 15
