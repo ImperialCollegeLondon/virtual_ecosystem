@@ -64,13 +64,14 @@ def calculate_litter_pool_updates(
     ) * update_interval
 
     # Construct dictionary of data arrays to return
-    new_litter_pools = {}
-    new_litter_pools["litter_pool_above_metabolic"] = DataArray(
-        litter_pool_above_metabolic + change_in_metabolic_above, dims="cell_id"
-    )
-    new_litter_pools["litter_pool_above_structural"] = DataArray(
-        litter_pool_above_structural + change_in_structural_above, dims="cell_id"
-    )
+    new_litter_pools = {
+        "litter_pool_above_metabolic": DataArray(
+            litter_pool_above_metabolic + change_in_metabolic_above, dims="cell_id"
+        ),
+        "litter_pool_above_structural": DataArray(
+            litter_pool_above_structural + change_in_structural_above, dims="cell_id"
+        ),
+    }
 
     return new_litter_pools
 
