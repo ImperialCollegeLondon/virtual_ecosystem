@@ -481,20 +481,20 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     assert outpath == Path(f"./continuous_state{time_index:05}.nc")
 
 
-def test_merge_continuous_data_files(dummy_carbon_data):
+def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     """Test that function to merge the continuous data files works as intended."""
     from virtual_rainforest.main import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
-        "out_folder_continuous": ".",
+        "out_folder_continuous": str(shared_datadir),
         "continuous_file_name": "all_continuous_data",
     }
 
     # Save first data file
     dummy_carbon_data.save_timeslice_to_netcdf(
-        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        shared_datadir / "continuous_state1.nc",
         variables_to_save,
         1,
     )
@@ -507,25 +507,24 @@ def test_merge_continuous_data_files(dummy_carbon_data):
 
     # Save second data file
     dummy_carbon_data.save_timeslice_to_netcdf(
-        Path(f"{data_options['out_folder_continuous']}/continuous_state2.nc"),
+        shared_datadir / "continuous_state2.nc",
         variables_to_save,
         2,
     )
 
     continuous_files = [
-        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
-        Path(f"{data_options['out_folder_continuous']}/continuous_state2.nc"),
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "continuous_state2.nc",
     ]
 
     # Merge data
     merge_continuous_data_files(data_options, continuous_files)
 
     # Check that original two files have been deleted
-    out_folder = Path(data_options["out_folder_continuous"])
-    assert len(list(out_folder.rglob("continuous_state*.nc"))) == 0
+    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
 
     # Load in and test full combined data
-    out_file = Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc")
+    out_file = shared_datadir / "all_continuous_data.nc"
     full_data = open_dataset(out_file)
 
     # Check that data file is as expected
@@ -567,33 +566,29 @@ def test_merge_continuous_data_files(dummy_carbon_data):
     out_file.unlink()
 
 
-def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
+def test_merge_continuous_file_already_exists(
+    shared_datadir, caplog, dummy_carbon_data
+):
     """Test that the merge continuous function fails if file name already used."""
     from virtual_rainforest.main import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
-        "out_folder_continuous": ".",
-        "continuous_file_name": "all_continuous_data",
+        "out_folder_continuous": str(shared_datadir),
+        "continuous_file_name": "already_exists",
     }
 
-    # Save first data file (as 33 to avoid access conflict on windows)
+    # Save first data file
     dummy_carbon_data.save_timeslice_to_netcdf(
-        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
+        shared_datadir / "continuous_state1.nc",
         variables_to_save,
         1,
     )
-    # Save data file with reserved name
-    dummy_carbon_data.save_timeslice_to_netcdf(
-        Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc"),
-        variables_to_save,
-        2,
-    )
 
     continuous_files = [
-        Path(f"{data_options['out_folder_continuous']}/continuous_state1.nc"),
-        Path(f"{data_options['out_folder_continuous']}/all_continuous_data.nc"),
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "already_exists.nc",
     ]
 
     with pytest.raises(ConfigurationError):
@@ -605,13 +600,7 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
         (
             (
                 CRITICAL,
-                "A file in the user specified output folder (.) already makes use of "
-                "the specified output file name (all_continuous_data.nc), this file "
-                "should either be renamed or deleted!",
+                "A file in the user specified output folder (",
             ),
         ),
     )
-
-    # Delete the temporary files
-    for continuous_file in continuous_files:
-        continuous_file.unlink()
