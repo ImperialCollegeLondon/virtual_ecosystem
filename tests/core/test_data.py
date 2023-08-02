@@ -736,43 +736,61 @@ def test_save_to_netcdf(
 
 
 @pytest.mark.parametrize(
-    argnames=["out_path", "raises", "error_msg"],
+    argnames=["folder", "file_name", "raises", "expected_log"],
     argvalues=[
         (
-            "bad_folder/initial.nc",
+            "bad_folder",
+            "initial.nc",
             pytest.raises(ConfigurationError),
-            "The user specified output directory (bad_folder) doesn't exist!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
         ),
         (
-            "pyproject.toml/initial.nc",
+            "pyproject.toml",
+            "initial.nc",
             pytest.raises(ConfigurationError),
-            "The user specified output folder (pyproject.toml) isn't a directory!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
         ),
         (
-            "./final.nc",
+            None,
+            "already_exists.nc",
             pytest.raises(ConfigurationError),
-            "A file in the user specified output folder (.) already makes use of the "
-            "specified output file name (final.nc), this file should either be renamed "
-            "or deleted!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (CRITICAL, "A file in the user specified output folder ("),
+            ),
         ),
         (
+            None,
             "continuous1.nc",
             does_not_raise(),
-            "",
+            (),
         ),
     ],
 )
 def test_save_timeslice_to_netcdf(
-    mocker, dummy_carbon_data, out_path, raises, error_msg
+    caplog, shared_datadir, dummy_carbon_data, folder, file_name, raises, expected_log
 ):
     """Test that data object can append to an existing NetCDF file."""
 
-    # Configure the mock to return a specific list of files
-    if out_path == "./final.nc":
-        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
-        mock_content.return_value = True
+    if folder:
+        out_path = Path(folder) / file_name
+    else:
+        out_path = shared_datadir / file_name
 
-    with raises as excep:
+    with raises:
         # Change data to check that appending works
         dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
@@ -780,13 +798,13 @@ def test_save_timeslice_to_netcdf(
         dummy_carbon_data["soil_temperature"][13][0] = 15.0
         # Append data to netcdf file
         dummy_carbon_data.save_timeslice_to_netcdf(
-            Path(out_path),
+            out_path,
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
             time_index=1,
         )
 
         # Load file, and then check that contents meet expectation
-        saved_data = xr.open_dataset(Path(out_path))
+        saved_data = xr.open_dataset(out_path)
         xr.testing.assert_allclose(
             saved_data["soil_c_pool_lmwc"],
             DataArray(
@@ -823,12 +841,9 @@ def test_save_timeslice_to_netcdf(
         # Finally, close the dataset
         saved_data.close()
 
-        # Remove generated output file
-        Path(out_path).unlink()
-
     # Finally check that the error message was as expected
-    if error_msg:
-        assert str(excep.value) == error_msg
+    if expected_log:
+        log_check(caplog, expected_log)
 
 
 def test_Data_add_from_dict(dummy_climate_data):
