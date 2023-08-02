@@ -73,12 +73,8 @@ def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
         surface_temp=dummy_litter_data["air_temperature"][
             surface_layer_index
         ].to_numpy(),
-        litter_pool_above_metabolic=dummy_litter_data[
-            "litter_pool_above_metabolic"
-        ].to_numpy(),
-        litter_pool_above_structural=dummy_litter_data[
-            "litter_pool_above_structural"
-        ].to_numpy(),
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
         update_interval=1.0,
         constants=LitterConsts,
     )

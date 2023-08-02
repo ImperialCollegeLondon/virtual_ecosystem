@@ -150,13 +150,6 @@ class LitterModel(BaseModel):
             time_index: The index representing the current time step in the data object.
         """
 
-        # Find all litter pools
-        litter_pools = {
-            str(name): self.data[str(name)].to_numpy()
-            for name in self.data.data.keys()
-            if str(name).startswith("litter_pool_")
-        }
-
         # Find litter pool updates using the litter pool update function
         updated_litter_pools = calculate_litter_pool_updates(
             surface_temp=self.data["air_temperature"][
@@ -164,7 +157,8 @@ class LitterModel(BaseModel):
             ].to_numpy(),
             constants=self.constants,
             update_interval=self.update_interval.to("day").magnitude,
-            **litter_pools,
+            above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
+            above_structural=self.data["litter_pool_above_structural"].to_numpy(),
         )
 
         # Update the litter pools

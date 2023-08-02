@@ -16,8 +16,8 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
-    litter_pool_above_metabolic: NDArray[np.float32],
-    litter_pool_above_structural: NDArray[np.float32],
+    above_metabolic: NDArray[np.float32],
+    above_structural: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
@@ -26,8 +26,8 @@ def calculate_litter_pool_updates(
     Args:
         surface_temp: Temperature of soil surface, which is assumed to be the same
             temperature of the above ground litter [C]
-        litter_pool_above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        litter_pool_above_structural: Above ground structural litter pool [kg C m^-2]
+        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
+        above_structural: Above ground structural litter pool [kg C m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -46,12 +46,12 @@ def calculate_litter_pool_updates(
     # Calculate the pool decay rates
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
         temperature_factor_above,
-        litter_pool_above_metabolic,
+        above_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
         temperature_factor_above,
-        litter_pool_above_structural,
+        above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
     )
 
@@ -66,10 +66,10 @@ def calculate_litter_pool_updates(
     # Construct dictionary of data arrays to return
     new_litter_pools = {
         "litter_pool_above_metabolic": DataArray(
-            litter_pool_above_metabolic + change_in_metabolic_above, dims="cell_id"
+            above_metabolic + change_in_metabolic_above, dims="cell_id"
         ),
         "litter_pool_above_structural": DataArray(
-            litter_pool_above_structural + change_in_structural_above, dims="cell_id"
+            above_structural + change_in_structural_above, dims="cell_id"
         ),
     }
 
