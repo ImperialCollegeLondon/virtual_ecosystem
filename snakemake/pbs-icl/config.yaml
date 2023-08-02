@@ -1,4 +1,4 @@
-cluster: ./pbs-submit.py {resources.mem_mb} {resources.runtime}
+cluster: ./pbs-submit.py {threads} {resources.mem_mb} {resources.runtime}
 cluster-cancel: qdel
 jobs: 500
 default-resources:

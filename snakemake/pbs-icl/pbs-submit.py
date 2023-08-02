@@ -11,7 +11,7 @@ def get_runtime_str(runtime_min: int) -> str:
     return f"{hours:02}:{mins:02}:00"
 
 
-def main(mem_mb: int, runtime_min: int, job_script: str) -> None:
+def main(threads: int, mem_mb: int, runtime_min: int, job_script: str) -> None:
     """The main entry point to this script."""
     # qsub wants memory requirement in whole gigabytes
     mem_gb = max(1, math.ceil(mem_mb / 1000))
@@ -20,8 +20,8 @@ def main(mem_mb: int, runtime_min: int, job_script: str) -> None:
         "qsub",
         (
             "qsub",
+            f"-lselect=1:ncpus={threads}:mem={mem_gb}gb",
             f"-lwalltime={get_runtime_str(runtime_min)}",
-            f"-lselect=1:ncpus=1:mem={mem_gb}gb",
             job_script,
         ),
     )
@@ -29,5 +29,5 @@ def main(mem_mb: int, runtime_min: int, job_script: str) -> None:
 
 if __name__ == "__main__":
     # TODO: Display help if args not given
-    assert len(sys.argv) == 4
-    main(int(sys.argv[1]), int(sys.argv[2]), sys.argv[-1])
+    assert len(sys.argv) == 5
+    main(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), sys.argv[-1])
