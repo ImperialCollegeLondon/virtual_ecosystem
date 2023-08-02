@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray, Dataset
+from xarray import DataArray, Dataset, open_dataset, testing
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -884,5 +884,130 @@ def test_Data_add_from_dict(dummy_climate_data):
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
+        ),
+    )
+
+
+def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
+    """Test that function to merge the continuous data files works as intended."""
+    from virtual_rainforest.main import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {
+        "out_folder_continuous": str(shared_datadir),
+        "continuous_file_name": "all_continuous_data",
+    }
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state1.nc",
+        variables_to_save,
+        1,
+    )
+
+    # Alter data so that files differ (slightly)
+    dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
+    )
+    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+
+    # Save second data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state2.nc",
+        variables_to_save,
+        2,
+    )
+
+    continuous_files = [
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "continuous_state2.nc",
+    ]
+
+    # Merge data
+    merge_continuous_data_files(data_options, continuous_files)
+
+    # Check that original two files have been deleted
+    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
+
+    # Load in and test full combined data
+    out_file = shared_datadir / "all_continuous_data.nc"
+    full_data = open_dataset(out_file)
+
+    # Check that data file is as expected
+    testing.assert_allclose(
+        full_data["soil_c_pool_lmwc"],
+        DataArray(
+            [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+            dims=["time_index", "cell_id"],
+            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
+        ),
+    )
+    testing.assert_allclose(
+        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        DataArray(
+            [
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [35.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [15.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+            ],
+            dims=["time_index", "layers", "cell_id"],
+            coords={
+                "cell_id": [0, 1, 2, 3],
+                "time_index": [1, 2],
+                "layers": [12, 13, 14],
+                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+            },
+        ),
+    )
+
+    # Close data set and delete file
+    full_data.close()
+    out_file.unlink()
+
+
+def test_merge_continuous_file_already_exists(
+    shared_datadir, caplog, dummy_carbon_data
+):
+    """Test that the merge continuous function fails if file name already used."""
+    from virtual_rainforest.main import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {
+        "out_folder_continuous": str(shared_datadir),
+        "continuous_file_name": "already_exists",
+    }
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state1.nc",
+        variables_to_save,
+        1,
+    )
+
+    continuous_files = [
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "already_exists.nc",
+    ]
+
+    with pytest.raises(ConfigurationError):
+        # Merge data
+        merge_continuous_data_files(data_options, continuous_files)
+
+    log_check(
+        caplog,
+        (
+            (
+                CRITICAL,
+                "A file in the user specified output folder (",
+            ),
         ),
     )
