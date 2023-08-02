@@ -655,12 +655,13 @@ def test_on_core_axis(
 
 
 @pytest.mark.parametrize(
-    argnames=["out_path", "raises", "save_specific", "exp_log"],
+    argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
     argvalues=[
-        ("./initial.nc", does_not_raise(), False, ()),
-        ("./initial.nc", does_not_raise(), True, ()),
+        (None, "initial.nc", does_not_raise(), False, ()),
+        (None, "initial.nc", does_not_raise(), True, ()),
         (
-            "bad_folder/initial.nc",
+            "bad_folder",
+            "initial.nc",
             pytest.raises(ConfigurationError),
             "",
             (
@@ -671,7 +672,8 @@ def test_on_core_axis(
             ),
         ),
         (
-            "pyproject.toml/initial.nc",
+            "pyproject.toml",
+            "initial.nc",
             pytest.raises(ConfigurationError),
             False,
             (
@@ -683,40 +685,46 @@ def test_on_core_axis(
             ),
         ),
         (
-            "./final.nc",
+            None,
+            "already_exists.nc",
             pytest.raises(ConfigurationError),
             False,
             (
                 (
                     CRITICAL,
-                    "A file in the user specified output folder (.) already makes use "
-                    "of the specified output file name (final.nc), this file should "
-                    "either be renamed or deleted!",
+                    "A file in the user specified output folder (",
                 ),
             ),
         ),
     ],
 )
 def test_save_to_netcdf(
-    mocker, caplog, dummy_carbon_data, out_path, save_specific, raises, exp_log
+    shared_datadir,
+    caplog,
+    dummy_carbon_data,
+    folder,
+    file_name,
+    save_specific,
+    raises,
+    exp_log,
 ):
     """Test that data object can save as NetCDF."""
 
-    # Configure the mock to return a specific list of files
-    if out_path == "./final.nc":
-        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
-        mock_content.return_value = True
+    if folder:
+        out_path = Path(folder) / file_name
+    else:
+        out_path = shared_datadir / file_name
 
     with raises:
         if save_specific:
             dummy_carbon_data.save_to_netcdf(
-                Path(out_path), variables_to_save=["soil_c_pool_lmwc"]
+                out_path, variables_to_save=["soil_c_pool_lmwc"]
             )
         else:
-            dummy_carbon_data.save_to_netcdf(Path(out_path))
+            dummy_carbon_data.save_to_netcdf(out_path)
 
         # Load in netcdf data to check the contents
-        saved_data = xr.open_dataset(Path(out_path))
+        saved_data = xr.open_dataset(out_path)
 
         # Then check that expected keys are in it
         if save_specific:
@@ -728,9 +736,6 @@ def test_save_to_netcdf(
 
         # Close the dataset (otherwise windows has a problem)
         saved_data.close()
-
-        # Remove generated output file
-        Path(out_path).unlink()
 
     log_check(caplog, exp_log)
 
