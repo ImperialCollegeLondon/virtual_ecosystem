@@ -913,7 +913,6 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     """Test that function to output the current data state works as intended."""
 
     from virtual_rainforest.core.base_model import MODEL_REGISTRY
-    from virtual_rainforest.main import output_current_state
 
     data_options = {"out_folder_continuous": "."}
 
@@ -921,11 +920,18 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
-    configured_models = {"soil": MODEL_REGISTRY["soil"]}
+    models_cfd = {"soil": MODEL_REGISTRY["soil"]}
+
+    # Only variables in the data object that are updated by a model should be output
+    all_variables = [
+        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
+    ]
+    # Then flatten the list to generate list of variables to output
+    variables_to_save = [item for sublist in all_variables for item in sublist]
 
     # Then call the top level function
-    outpath = output_current_state(
-        dummy_carbon_data, configured_models, data_options, time_index
+    outpath = dummy_carbon_data.output_current_state(
+        variables_to_save, data_options, time_index
     )
 
     # Check that the mocked function was called once with correct input (which is
@@ -946,7 +952,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
 
 def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     """Test that function to merge the continuous data files works as intended."""
-    from virtual_rainforest.main import merge_continuous_data_files
+    from virtual_rainforest.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
@@ -1033,7 +1039,7 @@ def test_merge_continuous_file_already_exists(
     shared_datadir, caplog, dummy_carbon_data
 ):
     """Test that the merge continuous function fails if file name already used."""
-    from virtual_rainforest.main import merge_continuous_data_files
+    from virtual_rainforest.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
