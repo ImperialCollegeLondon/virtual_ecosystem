@@ -276,7 +276,9 @@ def merge_continuous_data_files(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
+    cfg_paths: Union[str, Path, list[Union[str, Path]]],
+    override_params: dict[str, Any],
+    merge_file_path: Path,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -287,11 +289,12 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
+        override_params: Extra parameters provided by the user
         merge_file_path: Path to save merged config file to (i.e. folder location + file
             name)
     """
 
-    config = Config(cfg_paths)
+    config = Config(cfg_paths, override_params)
     config.export_config(merge_file_path)
 
     grid = Grid.from_config(config)

@@ -295,7 +295,7 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
     # Simple drop in replacement for the Config class that sidesteps TOML loading and
     # validation and simply asserts the resulting config dictionary contents.
     class MockConfig(dict):
-        def __init__(self, cfg_paths):
+        def __init__(self, cfg_paths, extra_params):
             self.update(config_content)
 
         def export_config(self, outfile: Path):
@@ -304,7 +304,7 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
     mocker.patch("virtual_rainforest.main.Config", MockConfig)
 
     with pytest.raises(InitialisationError):
-        vr_run([], Path("./delete_me.toml"))
+        vr_run([], [], Path("./delete_me.toml"))
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
 

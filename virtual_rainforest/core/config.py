@@ -298,12 +298,16 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
+        override_params: Extra parameters provided by the user.
         auto: flag to turn off automatic validation.
 
     """
 
     def __init__(
-        self, cfg_paths: Union[str, Path, list[Union[str, Path]]], auto: bool = True
+        self,
+        cfg_paths: Union[str, Path, list[Union[str, Path]]],
+        override_params: dict[str, Any] = {},
+        auto: bool = True,
     ) -> None:
         # Standardise cfg_paths to list of Paths
         if isinstance(cfg_paths, (str, Path)):
@@ -321,7 +325,7 @@ class Config(dict):
         self.config_errors: list[tuple[str, Any]] = []
         """Configuration errors, as a list of tuples of key path and error details."""
         self.merged_schema: dict = {}
-        """The merged schema for the core and modules present in the configutation."""
+        """The merged schema for the core and modules present in the configuration."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
 
@@ -330,6 +334,7 @@ class Config(dict):
             self.resolve_config_paths()
             self.load_config_toml()
             self.build_config()
+            self.override_config(override_params)
             self.build_schema()
             self.validate_config()
 
@@ -595,3 +600,20 @@ class Config(dict):
         with open(outfile, "wb") as toml_file:
             tomli_w.dump(self, toml_file)
         LOGGER.info("Saving config to: %s", outfile)
+
+    def override_config(self, override_params: dict[str, Any]) -> None:
+        """Override any parameters desired.
+
+        Args:
+            override_params: Extra parameter settings
+        """
+        updated, conflicts = config_merge(self, override_params, conflicts=tuple())
+
+        # Conflicts are not errors as we want users to be able to override parameters
+        if conflicts:
+            LOGGER.info(
+                "The following parameter values were overridden: "
+                + ", ".join(conflicts)
+            )
+
+        self.update(updated)
