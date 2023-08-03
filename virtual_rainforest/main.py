@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+import os
 from collections.abc import Sequence
 from math import ceil
 from pathlib import Path
@@ -255,21 +256,16 @@ def merge_continuous_data_files(
     out_folder = Path(data_options["out_folder_continuous"])
 
     # Check that output file doesn't already exist
-    out_path = Path(f"{out_folder}/{data_options['continuous_file_name']}.nc")
-    try:
-        check_outfile(out_path)
-    except ConfigurationError as e:
-        raise e
+    out_path = out_folder / data_options["continuous_file_name"]
+    check_outfile(out_path)
 
     # Open all files as a single dataset
-    all_data = open_mfdataset(continuous_data_files)
+    with open_mfdataset(continuous_data_files) as all_data:
+        # Specify type of the layer roles object to allow for quicker saving by dask
+        all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
 
-    # Specify type of the layer roles object to allow for quicker saving by dask
-    all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
-
-    # Save and close complete dataset
-    all_data.to_netcdf(out_path)
-    all_data.close()
+        # Save and close complete dataset
+        all_data.to_netcdf(out_path)
 
     # Iterate over all continuous files and delete them
     for file_path in continuous_data_files:
@@ -328,10 +324,14 @@ def vr_run(
 
     # TODO - A model spin up might be needed here in future
 
+    # Create output folder if it does not exist
+    out_path = Path(config["core"]["data_output_options"]["out_path"])
+    os.makedirs(out_path, exist_ok=True)
+
     # Save the initial state of the model
     if config["core"]["data_output_options"]["save_initial_state"]:
         data.save_to_netcdf(
-            Path(config["core"]["data_output_options"]["out_path_initial"])
+            out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
 
     # Container to store paths to continuous data files
@@ -365,7 +365,7 @@ def vr_run(
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
         data.save_to_netcdf(
-            Path(config["core"]["data_output_options"]["out_path_final"])
+            out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
 
     LOGGER.info("Virtual rainforest model run completed!")
