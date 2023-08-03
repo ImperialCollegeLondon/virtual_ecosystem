@@ -263,6 +263,37 @@ def config_merge(
     return dest, conflicts
 
 
+def _fix_up_variable_entry_paths(config_dir: Path, params: dict[str, Any]) -> None:
+    """Find paths in a dict and make them relative to config_dir.
+
+    Check for file paths in variable entries (i.e. core.data.variable) and make them
+    relative to config_dir.
+
+    Args:
+        config_dir: The new folder to use as the root for relative paths
+        params: The dict to examine
+    Todo:
+        We may want to fix up other potential paths in config files in future.
+    """
+    try:
+        var_entries = params["core"]["data"]["variable"]
+    except KeyError:
+        # No variable entries
+        return
+
+    if not isinstance(var_entries, list):
+        # Must be an array
+        return
+
+    for entry in var_entries:
+        # Though all variable entries should have a file attribute according to the
+        # schema, the config has not been verified at this stage so we need to check
+        if "file" in entry:
+            file_path = Path(entry["file"])
+            if not file_path.is_absolute():
+                entry["file"] = str(config_dir / file_path)
+
+
 class Config(dict):
     """Configuration loading and validation.
 
@@ -333,6 +364,7 @@ class Config(dict):
         if auto:
             self.resolve_config_paths()
             self.load_config_toml()
+            self.fix_up_file_paths()
             self.build_config()
             self.override_config(override_params)
             self.build_schema()
@@ -424,6 +456,11 @@ class Config(dict):
             to_raise = ConfigurationError("Errors parsing config files: check log")
             LOGGER.critical(to_raise)
             raise to_raise
+
+    def fix_up_file_paths(self) -> None:
+        """Make any file paths in the configs relative to location of config files."""
+        for config_file, contents in self.toml_contents.items():
+            _fix_up_variable_entry_paths(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
