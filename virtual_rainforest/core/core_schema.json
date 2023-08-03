@@ -145,8 +145,7 @@
                   },
                   "out_folder_continuous": {
                      "description": "Folder to save states of simulation with time to",
-                     "type": "string",
-                     "default": "."
+                     "type": "string"
                   },
                   "continuous_file_name": {
                      "description": "Name of file to save combined continuous data to",
@@ -167,7 +166,6 @@
                   "save_continuous_data",
                   "save_final_state",
                   "out_initial_file_name",
-                  "out_folder_continuous",
                   "continuous_file_name",
                   "out_final_file_name"
                ]

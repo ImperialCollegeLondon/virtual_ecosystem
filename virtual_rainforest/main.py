@@ -334,6 +334,10 @@ def vr_run(
             out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
 
+    # If no path for saving continuous data is specified, fall back on using out_path
+    if "out_folder_continuous" not in config["core"]["data_output_options"]:
+        config["core"]["data_output_options"]["out_folder_continuous"] = str(out_path)
+
     # Container to store paths to continuous data files
     continuous_data_files = []
 
