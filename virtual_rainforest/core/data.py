@@ -438,17 +438,15 @@ class Data:
         """
 
         # Create output file path for specific time index
-        out_path_name = (
-            f"{data_options['out_folder_continuous']}/"
-            f"continuous_state{time_index:05}.nc"
+        out_path = (
+            Path(data_options["out_folder_continuous"])
+            / f"continuous_state{time_index:05}.nc"
         )
 
         # Save the required variables by appending to existing file
-        self.save_timeslice_to_netcdf(
-            Path(out_path_name), variables_to_save, time_index
-        )
+        self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
 
-        return Path(out_path_name)
+        return out_path
 
 
 def merge_continuous_data_files(
