@@ -41,23 +41,24 @@ def _parse_param_str(s: str) -> dict[str, Any]:
         raise to_raise
 
 
-def _parse_command_line_params(params_str: Sequence[str]) -> dict[str, Any]:
+def _parse_command_line_params(
+    params_str: Sequence[str], override_params: dict[str, Any]
+) -> None:
     """Parse extra parameters provided with command-line arguments.
 
     Args:
         params_str: Extra parameters in string format (e.g. my.parameter=0.2)
-
-    Returns:
-        A combined dict including all of the parameter values
+        override_params: Dictionary to be appended to with additional parameters
 
     Raises:
         ConfigurationError: Invalid format for parameters or conflicting values supplied
     """
-    all_params: dict[str, Any] = {}
     conflicts: tuple = ()
     for param_str in params_str:
         param_dict = _parse_param_str(param_str)
-        all_params, conflicts = config_merge(all_params, param_dict, conflicts)
+        override_params, conflicts = config_merge(
+            override_params, param_dict, conflicts
+        )
 
     if conflicts:
         to_raise = ConfigurationError(
@@ -65,8 +66,6 @@ def _parse_command_line_params(params_str: Sequence[str]) -> dict[str, Any]:
         )
         LOGGER.critical(to_raise)
         raise to_raise
-
-    return all_params
 
 
 def _vr_run_cli() -> None:
@@ -95,6 +94,9 @@ def _vr_run_cli() -> None:
 
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
     parser.add_argument(
+        "-o", "--outpath", type=str, help="Path for output files", dest="outpath"
+    )
+    parser.add_argument(
         "-m",
         "--merge",
         type=str,
@@ -106,7 +108,6 @@ def _vr_run_cli() -> None:
         "-p",
         "--param",
         type=str,
-        default=[],
         action="append",
         help="Value for additional parameter (in the form parameter.name=something)",
         dest="params",
@@ -139,8 +140,13 @@ def _vr_run_cli() -> None:
         LOGGER.critical(to_raise)
         raise to_raise
 
-    # Parse any extra parameters passed using the --param flag
-    override_params = _parse_command_line_params(args.params)
+    override_params: dict[str, Any] = {}
+    if args.outpath:
+        # Set the output path
+        override_params |= {"core": {"data_output_options": {"out_path": args.outpath}}}
+    if args.params:
+        # Parse any extra parameters passed using the --param flag
+        _parse_command_line_params(args.params, override_params)
 
     # Run the virtual rainforest run function
     vr_run(cfg_paths, override_params, Path(args.merge_file_path))
