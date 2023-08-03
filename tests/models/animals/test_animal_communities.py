@@ -67,13 +67,13 @@ class TestAnimalCommunity:
             "herbivorous_insect",
         ]
 
-    def test_immigrate(
+    def test_migrate(
         self,
         animal_cohort_instance,
         animal_community_instance,
         animal_community_destination_instance,
     ):
-        """Testing immigrate."""
+        """Testing migrate."""
         animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
             animal_cohort_instance
         )
@@ -81,7 +81,7 @@ class TestAnimalCommunity:
             animal_cohort_instance
             in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
-        animal_community_instance.immigrate(
+        animal_community_instance.migrate(
             animal_community_instance.animal_cohorts["herbivorous_mammal"][0],
             animal_community_destination_instance,
         )

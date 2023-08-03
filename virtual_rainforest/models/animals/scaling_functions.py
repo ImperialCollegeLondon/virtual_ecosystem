@@ -164,9 +164,9 @@ def prey_group_selection(
     """
 
     if diet == "herbivore":
-        all_prey = {"plants": (0.0, 0.0)}
+        return {"plants": (0.0, 0.0)}
     else:
-        all_prey = {
+        return {
             "herbivorous_mammal": (0.1, 1000.0),
             "carnivorous_mammal": (0.1, 1000.0),
             "herbivorous_bird": (0.1, 1000.0),
@@ -174,4 +174,3 @@ def prey_group_selection(
             "herbivorous_insect": (0.1, 1000.0),
             "carnivorous_insect": (0.1, 1000.0),
         }
-    return all_prey

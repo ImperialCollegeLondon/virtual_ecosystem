@@ -17,6 +17,8 @@ Notes to self:
 
 from __future__ import annotations
 
+from itertools import chain
+
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.carcasses import CarcassPool
@@ -50,23 +52,20 @@ class AnimalCommunity:
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
         self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
 
-    def immigrate(self, immigrant: AnimalCohort, destination: AnimalCommunity) -> None:
+    def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
 
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
         Args:
-            immigrant: The AnimalCohort moving between AnimalCommunities.
+            migrant: The AnimalCohort moving between AnimalCommunities.
             destination: The AnimalCommunity the cohort is moving to.
 
         """
 
-        destination.animal_cohorts[immigrant.name].append(
-            self.animal_cohorts[immigrant.name].pop(
-                self.animal_cohorts[immigrant.name].index(immigrant)
-            )
-        )
+        self.animal_cohorts[migrant.name].remove(migrant)
+        destination.animal_cohorts[migrant.name].append(migrant)
 
     def die_cohort(self, cohort: AnimalCohort) -> None:
         """The function to change the cohort status from alive to dead.
@@ -115,16 +114,14 @@ class AnimalCommunity:
         carcass_pool = self.carcass_pool
         soil_pool = self.soil_pool
 
-        for consumer_functional_group, consumer_cohorts in self.animal_cohorts.items():
-            for consumer_cohort in consumer_cohorts:
-                prey = self.collect_prey(consumer_cohort)
-
-                consumer_cohort.forage_cohort(
-                    plant_list=plant_list,
-                    animal_list=prey,
-                    carcass_pool=carcass_pool,
-                    soil_pool=soil_pool,
-                )
+        for consumer_cohort in chain.from_iterable(self.animal_cohorts.values()):
+            prey = self.collect_prey(consumer_cohort)
+            consumer_cohort.forage_cohort(
+                plant_list=plant_list,
+                animal_list=prey,
+                carcass_pool=carcass_pool,
+                soil_pool=soil_pool,
+            )
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
@@ -140,7 +137,7 @@ class AnimalCommunity:
             A list of AnimalCohorts that can be preyed upon.
 
         """
-        prey = []
+        prey: list = []
         for (
             prey_functional_group,
             potential_prey_cohorts,
@@ -153,9 +150,9 @@ class AnimalCommunity:
             min_size, max_size = consumer_cohort.prey_groups[prey_functional_group]
 
             # Filter the potential prey cohorts based on their size
-            right_sized_prey = [
+            right_sized_prey = (
                 c for c in potential_prey_cohorts if min_size <= c.mass <= max_size
-            ]
+            )
             prey.extend(right_sized_prey)
 
         return prey

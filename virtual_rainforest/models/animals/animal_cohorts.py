@@ -87,7 +87,7 @@ class AnimalCohort:
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
-        self.prey_groups: dict[str, tuple[float, float]] = prey_group_selection(
+        self.prey_groups = prey_group_selection(
             self.functional_group.diet.value,
             self.mass,
             self.functional_group.prey_scaling,
@@ -170,11 +170,9 @@ class AnimalCohort:
         """
         # Calculate the number of individuals that can be eaten based on intake rate
         # Here we assume predators can consume prey mass equivalent to daily intake
-        number_eaten = int(
-            min(
-                (predator.intake_rate * predator.individuals) // self.mass,
-                self.individuals,
-            )
+        number_eaten = min(
+            int((predator.intake_rate * predator.individuals) // self.mass),
+            self.individuals,
         )
 
         # Calculate the energy gain from eating prey
@@ -240,6 +238,10 @@ class AnimalCohort:
                   like soil or carcass pools.
 
         """
+        # Check if self.individuals is greater than zero
+        if self.individuals == 0:
+            raise ValueError("Individuals cannot be 0.")
+
         # get the per-individual energetic gain from the bulk value
         energy = food.get_eaten(self, pool) / self.individuals
         self.stored_energy += energy
