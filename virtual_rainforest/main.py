@@ -256,7 +256,7 @@ def merge_continuous_data_files(
     out_folder = Path(data_options["out_folder_continuous"])
 
     # Check that output file doesn't already exist
-    out_path = out_folder / data_options["continuous_file_name"]
+    out_path = out_folder / data_options["out_continuous_file_name"]
     check_outfile(out_path)
 
     # Open all files as a single dataset

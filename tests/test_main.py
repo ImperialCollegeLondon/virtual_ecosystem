@@ -489,7 +489,7 @@ def test_merge_continuous_data_files(dummy_carbon_data):
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
         "out_folder_continuous": ".",
-        "continuous_file_name": "all_continuous_data.nc",
+        "out_continuous_file_name": "all_continuous_data.nc",
     }
 
     # Save first data file
@@ -575,7 +575,7 @@ def test_merge_continuous_file_already_exists(caplog, dummy_carbon_data):
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
         "out_folder_continuous": ".",
-        "continuous_file_name": "all_continuous_data.nc",
+        "out_continuous_file_name": "all_continuous_data.nc",
     }
 
     # Save first data file (as 33 to avoid access conflict on windows)
