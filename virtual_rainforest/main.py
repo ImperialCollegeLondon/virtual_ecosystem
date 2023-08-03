@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+from itertools import chain
 from math import ceil
 from pathlib import Path
 from typing import Any, Type, Union
@@ -245,11 +246,11 @@ def vr_run(
     continuous_data_files = []
 
     # Only variables in the data object that are updated by a model should be output
-    all_variables = [
+    all_variables = (
         models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
-    ]
+    )
     # Then flatten the list to generate list of variables to output
-    variables_to_save = [item for sublist in all_variables for item in sublist]
+    variables_to_save = list(chain.from_iterable(all_variables))
 
     # Setup the timing loop
     time_index = 0
