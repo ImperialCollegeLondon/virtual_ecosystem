@@ -321,8 +321,8 @@ def vr_run(
     )
 
     # Setup all models (those with placeholder setup processes won't change at all)
-    for mod_nm in models_cfd:
-        models_cfd[mod_nm].setup()
+    for model in models_cfd.values():
+        model.setup()
 
     LOGGER.info("All models successfully set up, now attempting to run them.")
 
@@ -343,8 +343,8 @@ def vr_run(
         current_time += update_interval
 
         # Run update() method for every model
-        for mod_nm in models_cfd:
-            models_cfd[mod_nm].update(time_index)
+        for model in models_cfd.values():
+            model.update(time_index)
 
         # With updates complete increment the time_index
         time_index += 1
