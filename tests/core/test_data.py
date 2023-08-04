@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import xarray as xr
-from xarray import DataArray, Dataset
+from xarray import DataArray, Dataset, open_dataset, testing
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -655,12 +655,13 @@ def test_on_core_axis(
 
 
 @pytest.mark.parametrize(
-    argnames=["out_path", "raises", "save_specific", "exp_log"],
+    argnames=["folder", "file_name", "raises", "save_specific", "exp_log"],
     argvalues=[
-        ("./initial.nc", does_not_raise(), False, ()),
-        ("./initial.nc", does_not_raise(), True, ()),
+        (None, "initial.nc", does_not_raise(), False, ()),
+        (None, "initial.nc", does_not_raise(), True, ()),
         (
-            "bad_folder/initial.nc",
+            "bad_folder",
+            "initial.nc",
             pytest.raises(ConfigurationError),
             "",
             (
@@ -671,7 +672,8 @@ def test_on_core_axis(
             ),
         ),
         (
-            "pyproject.toml/initial.nc",
+            "pyproject.toml",
+            "initial.nc",
             pytest.raises(ConfigurationError),
             False,
             (
@@ -683,40 +685,46 @@ def test_on_core_axis(
             ),
         ),
         (
-            "./final.nc",
+            None,
+            "already_exists.nc",
             pytest.raises(ConfigurationError),
             False,
             (
                 (
                     CRITICAL,
-                    "A file in the user specified output folder (.) already makes use "
-                    "of the specified output file name (final.nc), this file should "
-                    "either be renamed or deleted!",
+                    "A file in the user specified output folder (",
                 ),
             ),
         ),
     ],
 )
 def test_save_to_netcdf(
-    mocker, caplog, dummy_carbon_data, out_path, save_specific, raises, exp_log
+    shared_datadir,
+    caplog,
+    dummy_carbon_data,
+    folder,
+    file_name,
+    save_specific,
+    raises,
+    exp_log,
 ):
     """Test that data object can save as NetCDF."""
 
-    # Configure the mock to return a specific list of files
-    if out_path == "./final.nc":
-        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
-        mock_content.return_value = True
+    if folder:
+        out_path = Path(folder) / file_name
+    else:
+        out_path = shared_datadir / file_name
 
     with raises:
         if save_specific:
             dummy_carbon_data.save_to_netcdf(
-                Path(out_path), variables_to_save=["soil_c_pool_lmwc"]
+                out_path, variables_to_save=["soil_c_pool_lmwc"]
             )
         else:
-            dummy_carbon_data.save_to_netcdf(Path(out_path))
+            dummy_carbon_data.save_to_netcdf(out_path)
 
         # Load in netcdf data to check the contents
-        saved_data = xr.open_dataset(Path(out_path))
+        saved_data = xr.open_dataset(out_path)
 
         # Then check that expected keys are in it
         if save_specific:
@@ -729,50 +737,65 @@ def test_save_to_netcdf(
         # Close the dataset (otherwise windows has a problem)
         saved_data.close()
 
-        # Remove generated output file
-        Path(out_path).unlink()
-
     log_check(caplog, exp_log)
 
 
 @pytest.mark.parametrize(
-    argnames=["out_path", "raises", "error_msg"],
+    argnames=["folder", "file_name", "raises", "expected_log"],
     argvalues=[
         (
-            "bad_folder/initial.nc",
+            "bad_folder",
+            "initial.nc",
             pytest.raises(ConfigurationError),
-            "The user specified output directory (bad_folder) doesn't exist!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (
+                    CRITICAL,
+                    "The user specified output directory (bad_folder) doesn't exist!",
+                ),
+            ),
         ),
         (
-            "pyproject.toml/initial.nc",
+            "pyproject.toml",
+            "initial.nc",
             pytest.raises(ConfigurationError),
-            "The user specified output folder (pyproject.toml) isn't a directory!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (
+                    CRITICAL,
+                    "The user specified output folder (pyproject.toml) isn't a "
+                    "directory!",
+                ),
+            ),
         ),
         (
-            "./final.nc",
+            None,
+            "already_exists.nc",
             pytest.raises(ConfigurationError),
-            "A file in the user specified output folder (.) already makes use of the "
-            "specified output file name (final.nc), this file should either be renamed "
-            "or deleted!",
+            (
+                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (CRITICAL, "A file in the user specified output folder ("),
+            ),
         ),
         (
+            None,
             "continuous1.nc",
             does_not_raise(),
-            "",
+            (),
         ),
     ],
 )
 def test_save_timeslice_to_netcdf(
-    mocker, dummy_carbon_data, out_path, raises, error_msg
+    caplog, shared_datadir, dummy_carbon_data, folder, file_name, raises, expected_log
 ):
     """Test that data object can append to an existing NetCDF file."""
 
-    # Configure the mock to return a specific list of files
-    if out_path == "./final.nc":
-        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
-        mock_content.return_value = True
+    if folder:
+        out_path = Path(folder) / file_name
+    else:
+        out_path = shared_datadir / file_name
 
-    with raises as excep:
+    with raises:
         # Change data to check that appending works
         dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
@@ -780,13 +803,13 @@ def test_save_timeslice_to_netcdf(
         dummy_carbon_data["soil_temperature"][13][0] = 15.0
         # Append data to netcdf file
         dummy_carbon_data.save_timeslice_to_netcdf(
-            Path(out_path),
+            out_path,
             variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
             time_index=1,
         )
 
         # Load file, and then check that contents meet expectation
-        saved_data = xr.open_dataset(Path(out_path))
+        saved_data = xr.open_dataset(out_path)
         xr.testing.assert_allclose(
             saved_data["soil_c_pool_lmwc"],
             DataArray(
@@ -823,12 +846,9 @@ def test_save_timeslice_to_netcdf(
         # Finally, close the dataset
         saved_data.close()
 
-        # Remove generated output file
-        Path(out_path).unlink()
-
     # Finally check that the error message was as expected
-    if error_msg:
-        assert str(excep.value) == error_msg
+    if expected_log:
+        log_check(caplog, expected_log)
 
 
 def test_Data_add_from_dict(dummy_climate_data):
@@ -884,5 +904,172 @@ def test_Data_add_from_dict(dummy_climate_data):
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
+        ),
+    )
+
+
+@pytest.mark.parametrize("time_index", [0, 1])
+def test_output_current_state(mocker, dummy_carbon_data, time_index):
+    """Test that function to output the current data state works as intended."""
+
+    from virtual_rainforest.core.base_model import MODEL_REGISTRY
+
+    data_options = {"out_folder_continuous": "."}
+
+    # Patch the relevant lower level function
+    mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
+
+    # Extract model from registry and put into expected dictionary format
+    models_cfd = {"soil": MODEL_REGISTRY["soil"]}
+
+    # Only variables in the data object that are updated by a model should be output
+    all_variables = [
+        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
+    ]
+    # Then flatten the list to generate list of variables to output
+    variables_to_save = [item for sublist in all_variables for item in sublist]
+
+    # Then call the top level function
+    outpath = dummy_carbon_data.output_current_state(
+        variables_to_save, data_options, time_index
+    )
+
+    # Check that the mocked function was called once with correct input (which is
+    # calculated in the higher level function)
+    assert mock_save.call_count == 1
+    assert mock_save.call_args == mocker.call(
+        Path(f"./continuous_state{time_index:05}.nc"),
+        [
+            "soil_c_pool_maom",
+            "soil_c_pool_lmwc",
+            "soil_c_pool_microbe",
+            "soil_c_pool_pom",
+        ],
+        time_index,
+    )
+    assert outpath == Path(f"./continuous_state{time_index:05}.nc")
+
+
+def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
+    """Test that function to merge the continuous data files works as intended."""
+    from virtual_rainforest.core.data import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {
+        "out_folder_continuous": str(shared_datadir),
+        "continuous_file_name": "all_continuous_data",
+    }
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state1.nc",
+        variables_to_save,
+        1,
+    )
+
+    # Alter data so that files differ (slightly)
+    dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+        [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
+    )
+    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+
+    # Save second data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state2.nc",
+        variables_to_save,
+        2,
+    )
+
+    continuous_files = [
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "continuous_state2.nc",
+    ]
+
+    # Merge data
+    merge_continuous_data_files(data_options, continuous_files)
+
+    # Check that original two files have been deleted
+    assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
+
+    # Load in and test full combined data
+    out_file = shared_datadir / "all_continuous_data.nc"
+    full_data = open_dataset(out_file)
+
+    # Check that data file is as expected
+    testing.assert_allclose(
+        full_data["soil_c_pool_lmwc"],
+        DataArray(
+            [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+            dims=["time_index", "cell_id"],
+            coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
+        ),
+    )
+    testing.assert_allclose(
+        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        DataArray(
+            [
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [35.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+                [
+                    [np.nan, np.nan, np.nan, np.nan],
+                    [15.0, 37.5, 40.0, 25.0],
+                    [22.5, 22.5, 22.5, 22.5],
+                ],
+            ],
+            dims=["time_index", "layers", "cell_id"],
+            coords={
+                "cell_id": [0, 1, 2, 3],
+                "time_index": [1, 2],
+                "layers": [12, 13, 14],
+                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+            },
+        ),
+    )
+
+    # Close data set and delete file
+    full_data.close()
+    out_file.unlink()
+
+
+def test_merge_continuous_file_already_exists(
+    shared_datadir, caplog, dummy_carbon_data
+):
+    """Test that the merge continuous function fails if file name already used."""
+    from virtual_rainforest.core.data import merge_continuous_data_files
+
+    # Simple and slightly more complex data for the file
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    data_options = {
+        "out_folder_continuous": str(shared_datadir),
+        "continuous_file_name": "already_exists",
+    }
+
+    # Save first data file
+    dummy_carbon_data.save_timeslice_to_netcdf(
+        shared_datadir / "continuous_state1.nc",
+        variables_to_save,
+        1,
+    )
+
+    continuous_files = [
+        shared_datadir / "continuous_state1.nc",
+        shared_datadir / "already_exists.nc",
+    ]
+
+    with pytest.raises(ConfigurationError):
+        # Merge data
+        merge_continuous_data_files(data_options, continuous_files)
+
+    log_check(
+        caplog,
+        (
+            (
+                CRITICAL,
+                "A file in the user specified output folder (",
+            ),
         ),
     )
