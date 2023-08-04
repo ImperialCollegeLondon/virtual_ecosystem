@@ -1,7 +1,7 @@
 """The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
-Rainforest. At the moment only two pools are modelled, these are low molecular weight
-carbon (LMWC) and mineral associated organic matter (MAOM). More pools and their
-interactions will be added at a later date.
+Rainforest. At the moment four pools are modelled, these are low molecular weight carbon
+(LMWC), mineral associated organic matter (MAOM), microbial biomass, and particulate
+organic matter (POM).
 """  # noqa: D205, D415
 
 import numpy as np

@@ -82,6 +82,7 @@ team.
   Main <api/main.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
+  Example data <api/example_data.md>
   Logger <api/core/logger.md>
   Grid <api/core/grid.md>
   Data <api/core/data.md>
@@ -117,6 +118,10 @@ team.
   Animal Constants <api/animals/constants.md> 
   Animal Carcasses <api/animals/carcasses.md> 
   Animal Dummy Plants and Soils <api/animals/dummy_plants_and_soil.md> 
+  Litter Overview <api/litter.md>
+  Litter Model <api/litter/litter_model.md>
+  Litter Pools <api/litter/litter_pools.md>
+  Litter Constants <api/litter/constants.md>
   
   
 ```

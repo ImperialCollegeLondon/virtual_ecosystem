@@ -6,7 +6,9 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
+import sys
 from contextlib import nullcontext as does_not_raise
+from itertools import repeat
 from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
@@ -589,3 +591,106 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
     if auto:
         assert outpath.exists()
         assert outpath.is_file()
+
+
+_NEW_VAR_ENTRY_PATH = Path("new/path")
+_ABS_PATH = Path("C:" if sys.platform == "win32" else "/root")
+
+
+@pytest.mark.parametrize(
+    "params,expected",
+    (
+        pytest.param(
+            # params
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {"file": "file.txt", "var_name": "my_path"},
+                            {"file": "file2.txt", "var_name": "my_other_path"},
+                        ]
+                    }
+                },
+                "some": {"other": {"value": 5}},
+            },
+            # expected
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {
+                                "file": str(_NEW_VAR_ENTRY_PATH / "file.txt"),
+                                "var_name": "my_path",
+                            },
+                            {
+                                "file": str(_NEW_VAR_ENTRY_PATH / "file2.txt"),
+                                "var_name": "my_other_path",
+                            },
+                        ]
+                    }
+                },
+                "some": {"other": {"value": 5}},
+            },
+            id="normal",
+        ),
+        pytest.param(
+            *repeat(
+                {
+                    "core": {
+                        "data": {
+                            "variable": [
+                                {
+                                    "file": str(_ABS_PATH / "file.txt"),
+                                    "var_name": "my_path",
+                                },
+                            ]
+                        }
+                    },
+                },
+                times=2,
+            ),
+            id="leave_abs_paths_unchanged",
+        ),
+        pytest.param(
+            *repeat(
+                {
+                    "core": {
+                        "data": {
+                            # NB: Missing "file" key
+                            "variable": [
+                                {
+                                    "var_name": "my_path",
+                                },
+                            ]
+                        }
+                    },
+                },
+                times=2,
+            ),
+            id="ignore_missing_file_key",
+        ),
+        pytest.param(
+            *repeat(
+                {
+                    "core": {
+                        "data": {
+                            # NB: Not a list, as it should be
+                            "variable": {
+                                "file": "file.txt",
+                                "var_name": "my_path",
+                            },
+                        }
+                    },
+                },
+                times=2,
+            ),
+            id="variable_not_list",
+        ),
+    ),
+)
+def test_fix_up_variable_entry_paths(params, expected):
+    """Test the _fix_up_variable_entry_paths() function."""
+    from virtual_rainforest.core.config import _fix_up_variable_entry_paths
+
+    _fix_up_variable_entry_paths(Path(_NEW_VAR_ENTRY_PATH), params)
+    assert params == expected

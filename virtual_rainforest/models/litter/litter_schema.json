@@ -1,0 +1,28 @@
+{
+    "type": "object",
+    "properties": {
+        "litter": {
+            "description": "Configuration settings for the litter module",
+            "type": "object",
+            "properties": {
+                "constants": {
+                    "description": "Constants for the litter module",
+                    "type": "object",
+                    "properties": {
+                        "LitterConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "LitterConsts"
+                    ]
+                }
+            },
+            "default": {},
+            "required": []
+        }
+    },
+    "required": [
+        "litter"
+    ]
+}

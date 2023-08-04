@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+from collections.abc import Sequence
 from itertools import chain
 from math import ceil
 from pathlib import Path
@@ -188,7 +189,9 @@ def extract_timing_details(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, list[Union[str, Path]]], merge_file_path: Path
+    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
+    override_params: dict[str, Any],
+    merge_file_path: Path,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -199,11 +202,12 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
+        override_params: Extra parameters provided by the user
         merge_file_path: Path to save merged config file to (i.e. folder location + file
             name)
     """
 
-    config = Config(cfg_paths)
+    config = Config(cfg_paths, override_params)
     config.export_config(merge_file_path)
 
     grid = Grid.from_config(config)

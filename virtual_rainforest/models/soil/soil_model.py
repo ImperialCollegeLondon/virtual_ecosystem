@@ -44,7 +44,7 @@ class SoilModel(BaseModel):
 
     This model can be configured based on the data object and a config dictionary. It
     can be updated by numerical integration. At present the underlying model this class
-    wraps is quite simple (i.e. two soil carbon pools), but this will get more complex
+    wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Rainforest develops.
 
     Args:
@@ -107,10 +107,6 @@ class SoilModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
-        self.update_interval
-        """The time interval between model updates."""
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
         # Find first soil layer from the list of layer roles

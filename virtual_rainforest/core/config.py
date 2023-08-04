@@ -26,9 +26,9 @@ The base Virtual Rainforest module will automatically import modules when it is
 imported, which ensures that all modules schemas are registered in
 :attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
 """  # noqa: D205, D415
-
 import json
 import sys
+from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Iterator, Union
@@ -263,6 +263,37 @@ def config_merge(
     return dest, conflicts
 
 
+def _fix_up_variable_entry_paths(config_dir: Path, params: dict[str, Any]) -> None:
+    """Find paths in a dict and make them relative to config_dir.
+
+    Check for file paths in variable entries (i.e. core.data.variable) and make them
+    relative to config_dir.
+
+    Args:
+        config_dir: The new folder to use as the root for relative paths
+        params: The dict to examine
+    Todo:
+        We may want to fix up other potential paths in config files in future.
+    """
+    try:
+        var_entries = params["core"]["data"]["variable"]
+    except KeyError:
+        # No variable entries
+        return
+
+    if not isinstance(var_entries, list):
+        # Must be an array
+        return
+
+    for entry in var_entries:
+        # Though all variable entries should have a file attribute according to the
+        # schema, the config has not been verified at this stage so we need to check
+        if "file" in entry:
+            file_path = Path(entry["file"])
+            if not file_path.is_absolute():
+                entry["file"] = str(config_dir / file_path)
+
+
 class Config(dict):
     """Configuration loading and validation.
 
@@ -298,12 +329,16 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
+        override_params: Extra parameters provided by the user.
         auto: flag to turn off automatic validation.
 
     """
 
     def __init__(
-        self, cfg_paths: Union[str, Path, list[Union[str, Path]]], auto: bool = True
+        self,
+        cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
+        override_params: dict[str, Any] = {},
+        auto: bool = True,
     ) -> None:
         # Standardise cfg_paths to list of Paths
         if isinstance(cfg_paths, (str, Path)):
@@ -321,7 +356,7 @@ class Config(dict):
         self.config_errors: list[tuple[str, Any]] = []
         """Configuration errors, as a list of tuples of key path and error details."""
         self.merged_schema: dict = {}
-        """The merged schema for the core and modules present in the configutation."""
+        """The merged schema for the core and modules present in the configuration."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
 
@@ -329,7 +364,9 @@ class Config(dict):
         if auto:
             self.resolve_config_paths()
             self.load_config_toml()
+            self.fix_up_file_paths()
             self.build_config()
+            self.override_config(override_params)
             self.build_schema()
             self.validate_config()
 
@@ -419,6 +456,11 @@ class Config(dict):
             to_raise = ConfigurationError("Errors parsing config files: check log")
             LOGGER.critical(to_raise)
             raise to_raise
+
+    def fix_up_file_paths(self) -> None:
+        """Make any file paths in the configs relative to location of config files."""
+        for config_file, contents in self.toml_contents.items():
+            _fix_up_variable_entry_paths(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
@@ -595,3 +637,20 @@ class Config(dict):
         with open(outfile, "wb") as toml_file:
             tomli_w.dump(self, toml_file)
         LOGGER.info("Saving config to: %s", outfile)
+
+    def override_config(self, override_params: dict[str, Any]) -> None:
+        """Override any parameters desired.
+
+        Args:
+            override_params: Extra parameter settings
+        """
+        updated, conflicts = config_merge(self, override_params, conflicts=tuple())
+
+        # Conflicts are not errors as we want users to be able to override parameters
+        if conflicts:
+            LOGGER.info(
+                "The following parameter values were overridden: "
+                + ", ".join(conflicts)
+            )
+
+        self.update(updated)
