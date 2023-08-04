@@ -34,7 +34,7 @@ def calculate_litter_pool_updates(
         constants: Set of constants for the litter model
 
     Returns:
-        The new value for each of the litter pools
+        The new value for each of the litter pools, and the total mineralisation rate.
     """
 
     # Calculate temperature factor for the above ground litter layers
@@ -74,9 +74,8 @@ def calculate_litter_pool_updates(
         constants.litter_input_to_structural_above - structural_above_decay
     ) * update_interval
 
-    total_C_mineralisation = (
-        metabolic_above_mineral + structural_above_mineral
-    ) * update_interval
+    # Calculate mineralisation rate
+    total_C_mineralisation_rate = metabolic_above_mineral + structural_above_mineral
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
@@ -86,7 +85,9 @@ def calculate_litter_pool_updates(
         "litter_pool_above_structural": DataArray(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
-        "litter_C_mineralisation": DataArray(total_C_mineralisation, dims="cell_id"),
+        "litter_C_mineralisation_rate": DataArray(
+            total_C_mineralisation_rate, dims="cell_id"
+        ),
     }
 
     return new_litter_pools

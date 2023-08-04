@@ -272,4 +272,4 @@ def test_update(litter_model_fixture, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["litter_pool_above_structural"], end_above_struct
     )
-    assert np.allclose(dummy_litter_data["litter_C_mineralisation"], c_mineral)
+    assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)

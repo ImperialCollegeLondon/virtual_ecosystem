@@ -4,7 +4,7 @@ constants and parameters for the
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
-# TODO - Need to track down better estimates of the carbon use efficiency.
+# TODO - Need to track down better estimates of the carbon use efficiencies.
 
 from dataclasses import dataclass
 
