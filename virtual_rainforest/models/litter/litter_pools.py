@@ -13,9 +13,6 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 # content) at all. We need to decide how we handle this and adjust the below functions
 # to use this at some point.
 
-# TODO - Need to add functions to capture fraction of decayed carbon that goes to soil
-# pools
-
 # TODO - Then need to add this to a litter decay pool, which the soil model can use
 
 
@@ -60,12 +57,25 @@ def calculate_litter_pool_updates(
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
     )
 
+    # Calculate mineralisation from each pool
+    metabolic_above_mineral = calculate_carbon_mineralised(
+        metabolic_above_decay, carbon_use_efficiency=constants.cue_metabolic
+    )
+    structural_above_mineral = calculate_carbon_mineralised(
+        structural_above_decay,
+        carbon_use_efficiency=constants.cue_structural_above_ground,
+    )
+
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
         constants.litter_input_to_metabolic_above - metabolic_above_decay
     ) * update_interval
     change_in_structural_above = (
         constants.litter_input_to_structural_above - structural_above_decay
+    ) * update_interval
+
+    total_C_mineralisation = (
+        metabolic_above_mineral + structural_above_mineral
     ) * update_interval
 
     # Construct dictionary of data arrays to return
@@ -76,6 +86,7 @@ def calculate_litter_pool_updates(
         "litter_pool_above_structural": DataArray(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
+        "litter_C_mineralisation": DataArray(total_C_mineralisation, dims="cell_id"),
     }
 
     return new_litter_pools
