@@ -121,3 +121,20 @@ def test_calculate_litter_decay_structural_above(
     )
 
     assert np.allclose(actual_decay, expected_decay)
+
+
+def test_calculate_carbon_mineralised():
+    """Test that the calculation of litter decay mineralisation works as expected."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_carbon_mineralised,
+    )
+
+    litter_decay = np.array([0.000167429, 8.371483356e-5, 3.013734008e-5])
+
+    expected_mineral = [7.534305e-5, 3.767167e-5, 1.356180e-5]
+
+    actual_mineral = calculate_carbon_mineralised(
+        litter_decay, LitterConsts.cue_metabolic
+    )
+
+    assert np.allclose(actual_mineral, expected_mineral)

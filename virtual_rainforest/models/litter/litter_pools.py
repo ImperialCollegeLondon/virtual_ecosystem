@@ -13,6 +13,11 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 # content) at all. We need to decide how we handle this and adjust the below functions
 # to use this at some point.
 
+# TODO - Need to add functions to capture fraction of decayed carbon that goes to soil
+# pools
+
+# TODO - Then need to add this to a litter decay pool, which the soil model can use
+
 
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
@@ -161,3 +166,22 @@ def calculate_litter_decay_structural_above(
         * litter_pool_above_structural
         * litter_chemistry_factor
     )
+
+
+def calculate_carbon_mineralised(
+    litter_decay_rate: NDArray[np.float32], carbon_use_efficiency: float
+) -> NDArray[np.float32]:
+    """Calculate fraction of litter decay that gets mineralised.
+
+    TODO - This function could also be used to track carbon respired, if/when we decide
+    to track that.
+
+    Args:
+        litter_decay_rate: Rate at which litter pool is decaying [kg C m^-2 day^-1]
+        carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
+
+    Returns:
+        Rate at which carbon is mineralised from the litter pool [kg C m^-2 day^-1]
+    """
+
+    return carbon_use_efficiency * litter_decay_rate
