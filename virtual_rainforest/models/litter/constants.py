@@ -4,6 +4,8 @@ constants and parameters for the
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
+# TODO - Need to track down better estimates of the carbon use efficiency.
+
 from dataclasses import dataclass
 
 
@@ -53,4 +55,24 @@ class LitterConsts:
 
     This value was estimated (very unsystematically) from SAFE project data. This
     constant will eventually be removed once the litter is linked to other models.
+    """
+
+    cue_metabolic: float = 0.45
+    """Carbon use efficiency of metabolic litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`, but I can't
+    track down an empirical source.This carbon use efficiency is constant with
+    temperature, soil moisture and substrate stoichiometry. These assumptions are not
+    made in the soil model, but are used for the sake of simplicity here. If an improved
+    version of the litter model gets made, this is a key area to address.
+    """
+
+    cue_structural_above_ground: float = 0.55
+    """Carbon use efficiency of aboveground structural litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`, but I can't
+    track down an empirical source. This carbon use efficiency is constant with
+    temperature, soil moisture and substrate stoichiometry. These assumptions are not
+    made in the soil model, but are used for the sake of simplicity here. If an improved
+    version of the litter model gets made, this is a key area to address.
     """
