@@ -129,6 +129,9 @@ def dummy_carbon_data(layer_roles_fixture):
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+    data["litter_C_mineralisation_rate"] = DataArray(
+        [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
+    )
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(

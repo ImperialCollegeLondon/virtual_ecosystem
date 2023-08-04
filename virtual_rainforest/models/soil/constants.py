@@ -137,21 +137,5 @@ class SoilConsts:
     leaching_rate_labile_carbon: float = 1.5e-3
     """Leaching rate for labile carbon (lmwc) [day^-1]."""
 
-    carbon_input_to_pom: float = 2.0 / 3.0
-    """Proportion of carbon input that becomes particulate organic matter (POM).
-
-    [unitless]. Taken from :cite:t:`abramoff_millennial_2018`, this is justified there
-    based on previous empirical work. However, this is something we will definitely
-    completely alter down the line so no need to worry too much about references.
-    """
-
     half_sat_pom_decomposition: float = 0.150
     """Half saturation constant for POM decomposition to LMWC [kg C m^-2]."""
-
-    litter_input_rate: float = 0.172 / 365.25
-    """Rate of litter input to the system [kg C m^-2 day^-1].
-
-    This definitely is not a constant for our purposes. However,
-    :cite:t:`abramoff_millennial_2018` use a constant litter input rate, so we shall
-    also use one initially.
-    """

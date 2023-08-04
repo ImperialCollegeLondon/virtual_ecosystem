@@ -21,6 +21,7 @@ def calculate_soil_carbon_updates(
     soil_moisture: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
+    mineralisation_rate: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
@@ -40,6 +41,8 @@ def calculate_soil_carbon_updates(
         soil_moisture: relative water content for each soil grid cell [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         percent_clay: Percentage clay for each soil grid cell
+        mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3
+            day^-1]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         constants: Set of constants for the soil model.
@@ -47,7 +50,6 @@ def calculate_soil_carbon_updates(
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
     """
-    # TODO - Add interactions which involve the three missing carbon pools
 
     # Find scalar factors that multiple rates
     temp_scalar = convert_temperature_to_scalar(
@@ -87,17 +89,13 @@ def calculate_soil_carbon_updates(
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc, moist_temp_scalar, constants.leaching_rate_labile_carbon
     )
-    litter_input_to_lmwc, litter_input_to_pom = calculate_direct_litter_input_to_pools(
-        constants.carbon_input_to_pom, constants.litter_input_rate
-    )
     pom_decomposition_to_lmwc = calculate_pom_decomposition(
         soil_c_pool_pom, soil_c_pool_microbe, moist_temp_scalar, constants
     )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        litter_input_to_lmwc
-        + pom_decomposition_to_lmwc
+        pom_decomposition_to_lmwc
         - lmwc_to_maom
         - microbial_uptake
         - labile_carbon_leaching
@@ -107,7 +105,7 @@ def calculate_soil_carbon_updates(
         microbial_uptake - microbial_respiration - necromass_adsorption
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
-        litter_input_to_pom - pom_decomposition_to_lmwc
+        mineralisation_rate - pom_decomposition_to_lmwc
     )
 
     # Create output array of pools in desired order
@@ -571,29 +569,4 @@ def calculate_pom_decomposition(
         * saturation_with_pom
         * saturation_with_biomass
         * moist_temp_scalar
-    )
-
-
-def calculate_direct_litter_input_to_pools(
-    carbon_input_to_pom: float,
-    litter_input_rate: float,
-) -> tuple[float, float]:
-    """Calculate direct input from litter to LMWC and POM pools.
-
-    This process is very much specific to :cite:t:`abramoff_millennial_2018`, and I
-    don't think we want to preserve it long term.
-
-    Args:
-        carbon_input_to_pom: Proportion of litter carbon input that goes to POM (rather
-            than LMWC) [unitless].
-        litter_input_rate: Rate at which carbon moves from litter "pool" to soil carbon
-            pools [kg C m^-2 day^-1].
-
-    Returns:
-        Amount of carbon directly added to LMWC and POM pools from litter.
-    """
-
-    return (
-        litter_input_rate * (1 - carbon_input_to_pom),
-        litter_input_rate * carbon_input_to_pom,
     )

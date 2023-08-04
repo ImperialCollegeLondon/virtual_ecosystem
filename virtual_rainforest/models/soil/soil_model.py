@@ -295,6 +295,7 @@ def construct_full_soil_model(
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
+        mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,
         constants=constants,
         **soil_pools,
