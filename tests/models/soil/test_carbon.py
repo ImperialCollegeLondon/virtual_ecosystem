@@ -58,15 +58,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.00525045055, 0.0205448757, 0.7136941904, 0.00141217],
+        "soil_c_pool_lmwc": [0.00509349, 0.02038796, 0.71353723, 0.00125521],
         "soil_c_pool_maom": [0.13088391, 0.05654771, -0.39962841, 0.00533357],
         "soil_c_pool_microbe": [-0.33131188, -0.16636299, -0.76078599, -0.01275669],
-        "soil_c_pool_pom": [
-            -0.00349175378,
-            -0.01011466818,
-            -0.00890612528,
-            -0.00115262138,
-        ],
+        "soil_c_pool_pom": [-0.00168464, -0.00936813, -0.00873008, 0.00403342],
     }
 
     # Make order of pools object
@@ -84,6 +79,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_moisture"][top_soil_layer_index],
         dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         dummy_carbon_data["percent_clay"],
+        dummy_carbon_data["litter_C_mineralisation_rate"],
         pool_order,
         constants=SoilConsts,
     )
@@ -410,20 +406,3 @@ def test_calculate_pom_decomposition(dummy_carbon_data, moist_temp_scalars):
     )
 
     assert np.allclose(actual_decomp, expected_decomp)
-
-
-def test_calculate_direct_litter_input_to_pools():
-    """Check direct litter input to lmwc is calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import (
-        calculate_direct_litter_input_to_pools,
-    )
-
-    actual_input_lmwc, actual_input_pom = calculate_direct_litter_input_to_pools(
-        SoilConsts.carbon_input_to_pom, SoilConsts.litter_input_rate
-    )
-
-    assert np.isclose(actual_input_lmwc, 0.00015697011)
-    assert np.isclose(actual_input_pom, 0.00031394022)
-    assert np.isclose(
-        actual_input_lmwc + actual_input_pom, SoilConsts.litter_input_rate
-    )

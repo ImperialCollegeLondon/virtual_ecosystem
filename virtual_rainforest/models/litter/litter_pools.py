@@ -32,7 +32,7 @@ def calculate_litter_pool_updates(
         constants: Set of constants for the litter model
 
     Returns:
-        The new value for each of the litter pools
+        The new value for each of the litter pools, and the total mineralisation rate.
     """
 
     # Calculate temperature factor for the above ground litter layers
@@ -55,6 +55,15 @@ def calculate_litter_pool_updates(
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
     )
 
+    # Calculate mineralisation from each pool
+    metabolic_above_mineral = calculate_carbon_mineralised(
+        metabolic_above_decay, carbon_use_efficiency=constants.cue_metabolic
+    )
+    structural_above_mineral = calculate_carbon_mineralised(
+        structural_above_decay,
+        carbon_use_efficiency=constants.cue_structural_above_ground,
+    )
+
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
         constants.litter_input_to_metabolic_above - metabolic_above_decay
@@ -63,6 +72,9 @@ def calculate_litter_pool_updates(
         constants.litter_input_to_structural_above - structural_above_decay
     ) * update_interval
 
+    # Calculate mineralisation rate
+    total_C_mineralisation_rate = metabolic_above_mineral + structural_above_mineral
+
     # Construct dictionary of data arrays to return
     new_litter_pools = {
         "litter_pool_above_metabolic": DataArray(
@@ -70,6 +82,9 @@ def calculate_litter_pool_updates(
         ),
         "litter_pool_above_structural": DataArray(
             above_structural + change_in_structural_above, dims="cell_id"
+        ),
+        "litter_C_mineralisation_rate": DataArray(
+            total_C_mineralisation_rate, dims="cell_id"
         ),
     }
 
@@ -161,3 +176,22 @@ def calculate_litter_decay_structural_above(
         * litter_pool_above_structural
         * litter_chemistry_factor
     )
+
+
+def calculate_carbon_mineralised(
+    litter_decay_rate: NDArray[np.float32], carbon_use_efficiency: float
+) -> NDArray[np.float32]:
+    """Calculate fraction of litter decay that gets mineralised.
+
+    TODO - This function could also be used to track carbon respired, if/when we decide
+    to track that.
+
+    Args:
+        litter_decay_rate: Rate at which litter pool is decaying [kg C m^-2 day^-1]
+        carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
+
+    Returns:
+        Rate at which carbon is mineralised from the litter pool [kg C m^-2 day^-1]
+    """
+
+    return carbon_use_efficiency * litter_decay_rate

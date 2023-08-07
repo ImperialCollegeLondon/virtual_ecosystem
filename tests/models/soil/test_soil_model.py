@@ -395,17 +395,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05290414, 0.03085044, 1.87779865, 0.00569224], dims="cell_id"
+                        [0.05283173, 0.03076934, 1.87751275, 0.00561615], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.5640905, 1.72670122, 2.84147024, 0.50266578], dims="cell_id"
+                        [2.56409185, 1.72670677, 2.84168443, 0.50266489], dims="cell_id"
                     ),
                     microbe=DataArray(
                         [5.63681284, 2.21869505, 10.96048678, 0.99364838],
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.09826415, 0.99494486, 0.69554961, 0.34942389], dims="cell_id"
+                        [0.09916254, 0.99531802, 0.69563758, 0.35201611], dims="cell_id"
                     ),
                 )
             ),
@@ -473,6 +473,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         "soil_moisture",
         "soil_temperature",
         "percent_clay",
+        "litter_C_mineralisation_rate",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -512,10 +513,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        0.00525045055,
-        0.0205448757,
-        0.7136941904,
-        0.00141217,
+        0.00509349,
+        0.02038796,
+        0.71353723,
+        0.00125521,
         0.13088391,
         0.05654771,
         -0.39962841,
@@ -524,10 +525,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         -0.16636299,
         -0.76078599,
         -0.01275669,
-        -0.00349175378,
-        -0.01011466818,
-        -0.00890612528,
-        -0.00115262138,
+        -0.00168464,
+        -0.00936813,
+        -0.00873008,
+        0.00403342,
     ]
 
     # make pools

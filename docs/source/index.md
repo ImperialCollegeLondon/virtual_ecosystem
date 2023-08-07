@@ -158,6 +158,7 @@ team.
   Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
   Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
   Create dummy soil data <data_recipes/soil_dummy.md>
+  Create dummy litter data <data_recipes/litter_dummy.md>
   Create dummy plant data <data_recipes/plant_dummy.md>
 ```
 

@@ -129,6 +129,9 @@ def dummy_carbon_data(layer_roles_fixture):
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+    data["litter_C_mineralisation_rate"] = DataArray(
+        [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
+    )
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(
@@ -187,11 +190,11 @@ def dummy_litter_data(layer_roles_fixture):
     # These values are taken from SAFE Project data, albeit in a very unsystematic
     # manner
     data["litter_pool_above_metabolic"] = DataArray([0.3, 0.15, 0.07], dims=["cell_id"])
-    """Above ground metabolic litter pool (kg C m^-3)"""
+    """Above ground metabolic litter pool (kg C m^-2)"""
     data["litter_pool_above_structural"] = DataArray(
         [0.5, 0.25, 0.09], dims=["cell_id"]
     )
-    """Above ground structural litter pool (kg C m^-3)"""
+    """Above ground structural litter pool (kg C m^-2)"""
 
     data["soil_temperature"] = xr.concat(
         [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],

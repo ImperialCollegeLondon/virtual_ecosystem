@@ -67,6 +67,7 @@ def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
     expected_pools = {
         "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
+        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000],
     }
 
     result = calculate_litter_pool_updates(
@@ -121,3 +122,20 @@ def test_calculate_litter_decay_structural_above(
     )
 
     assert np.allclose(actual_decay, expected_decay)
+
+
+def test_calculate_carbon_mineralised():
+    """Test that the calculation of litter decay mineralisation works as expected."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_carbon_mineralised,
+    )
+
+    litter_decay = np.array([0.000167429, 8.371483356e-5, 3.013734008e-5])
+
+    expected_mineral = [7.534305e-5, 3.767167e-5, 1.356180e-5]
+
+    actual_mineral = calculate_carbon_mineralised(
+        litter_decay, LitterConsts.cue_metabolic
+    )
+
+    assert np.allclose(actual_mineral, expected_mineral)
