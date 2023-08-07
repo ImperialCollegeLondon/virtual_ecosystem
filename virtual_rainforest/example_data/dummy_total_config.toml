@@ -50,3 +50,10 @@ var_name = "soil_c_pool_microbe"
 [[core.data.variable]]
 file = "dummy_soil_data.nc"
 var_name = "soil_c_pool_pom"
+
+[[core.data.variable]]
+file = "dummy_litter_data.nc"
+var_name = "litter_pool_above_metabolic"
+[[core.data.variable]]
+file = "dummy_litter_data.nc"
+var_name = "litter_pool_above_structural"
