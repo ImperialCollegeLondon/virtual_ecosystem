@@ -107,6 +107,26 @@ CONVERSION_EFFICIENCY: dict[DietType, float] = {
     # Toy value [unitless].
 }
 
+MECHANICAL_EFFICIENCY: dict[DietType, float] = {
+    DietType.HERBIVORE: 0.9,
+    # Toy value [unitless].
+    DietType.CARNIVORE: 0.8,
+    # Toy Value [unitless]
+}
+
+PREY_MASS_SCALING_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = {
+    MetabolicType.ENDOTHERMIC: {
+        TaxaType.MAMMAL: (1.0, 1.0),
+        # Toy values.
+        TaxaType.BIRD: (1.0, 1.0),
+        # Toy values.
+    },
+    MetabolicType.ECTOTHERMIC: {
+        TaxaType.INSECT: (1.0, 1.0)
+        # Toy values.
+    },
+}
+
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].

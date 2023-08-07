@@ -141,3 +141,36 @@ def intake_rate_scaling(mass: float, terms: tuple) -> float:
     """
 
     return terms[1] * mass ** terms[0] * 480 * (1 / 1000)
+
+
+def prey_group_selection(
+    diet: str, mass: float, terms: tuple
+) -> dict[str, tuple[float, float]]:
+    """The function to set the type selection and mass scaling of predators.
+
+    Currently, this function is in a toy form. It exists so the forage_community
+    structure can be built properly. In the parameterization stage of development this
+    will be expanded into something realistic. I suspect some/much of the content will
+    be shifted into functional_group definitions.
+
+    Args:
+        mass: The body-mass [kg] of an AnimalCohort
+        terms: The tuple of predator-prey scaling terms used.
+
+    Returns:
+        The dictionary of functional group names and mass ranges that the predator
+        can prey upon.
+
+    """
+
+    if diet == "herbivore":
+        return {"plants": (0.0, 0.0)}
+    else:
+        return {
+            "herbivorous_mammal": (0.1, 1000.0),
+            "carnivorous_mammal": (0.1, 1000.0),
+            "herbivorous_bird": (0.1, 1000.0),
+            "carnivorous_bird": (0.1, 1000.0),
+            "herbivorous_insect": (0.1, 1000.0),
+            "carnivorous_insect": (0.1, 1000.0),
+        }

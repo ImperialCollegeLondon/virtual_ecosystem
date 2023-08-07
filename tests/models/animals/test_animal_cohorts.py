@@ -21,23 +21,7 @@ def soil_instance():
 
 
 @pytest.fixture
-def animal_model_instance():
-    """Fixture for an animal model used in tests."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    test_grid = Grid(cell_nx=3, cell_ny=3)
-    test_data = Data(test_grid)
-    test_config = {
-        "core": {"timing": {"start_date": "2020-01-01"}},
-        "animals": {"model_time_step": "12 hours"},
-    }
-    return AnimalModel.from_config(test_data, test_config)
-
-
-@pytest.fixture
-def functional_group_instance(shared_datadir):
+def herb_functional_group_instance(shared_datadir):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
@@ -50,11 +34,40 @@ def functional_group_instance(shared_datadir):
 
 
 @pytest.fixture
-def animal_cohort_instance(functional_group_instance):
+def pred_functional_group_instance(shared_datadir):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_rainforest.models.animals.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file)
+
+    return fg_list[2]
+
+
+@pytest.fixture
+def predator_cohort_instance(pred_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(functional_group_instance, 10000.0, 1)
+    return AnimalCohort(pred_functional_group_instance, 10000.0, 1)
+
+
+@pytest.fixture
+def prey_cohort_instance(herb_functional_group_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(herb_functional_group_instance, 100.0, 1)
+
+
+@pytest.fixture
+def herb_cohort_instance(herb_functional_group_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(herb_functional_group_instance, 10000.0, 1)
 
 
 @pytest.fixture
@@ -68,13 +81,13 @@ def carcass_instance():
 class TestAnimalCohort:
     """Test AnimalCohort class."""
 
-    def test_initialization(self, animal_cohort_instance):
+    def test_initialization(self, herb_cohort_instance):
         """Testing initialization of derived parameters for animal cohorts."""
-        assert animal_cohort_instance.individuals == 1
-        assert animal_cohort_instance.metabolic_rate == pytest.approx(
+        assert herb_cohort_instance.individuals == 1
+        assert herb_cohort_instance.metabolic_rate == pytest.approx(
             3200.9029380, rel=1e-6
         )
-        assert animal_cohort_instance.stored_energy == pytest.approx(
+        assert herb_cohort_instance.stored_energy == pytest.approx(
             56531469253.03123, rel=1e-6
         )
 
@@ -86,13 +99,13 @@ class TestAnimalCohort:
         ],
     )
     def test_invalid_animal_cohort_initialization(
-        self, functional_group_instance, functional_group, mass, age, error_type
+        self, herb_functional_group_instance, functional_group, mass, age, error_type
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
         with pytest.raises(error_type):
-            AnimalCohort(functional_group(functional_group_instance), mass, age)
+            AnimalCohort(functional_group(herb_functional_group_instance), mass, age)
 
     @pytest.mark.parametrize(
         "dt, initial_energy, final_energy",
@@ -103,11 +116,11 @@ class TestAnimalCohort:
             (timedelta64(3, "D"), 28266000000.0, 27436325958.45224),
         ],
     )
-    def test_metabolize(self, animal_cohort_instance, dt, initial_energy, final_energy):
+    def test_metabolize(self, herb_cohort_instance, dt, initial_energy, final_energy):
         """Testing metabolize at varying energy levels."""
-        animal_cohort_instance.stored_energy = initial_energy
-        animal_cohort_instance.metabolize(dt)
-        assert animal_cohort_instance.stored_energy == final_energy
+        herb_cohort_instance.stored_energy = initial_energy
+        herb_cohort_instance.metabolize(dt)
+        assert herb_cohort_instance.stored_energy == final_energy
 
     @pytest.mark.parametrize(
         "dt, initial_energy, error_type",
@@ -117,38 +130,12 @@ class TestAnimalCohort:
         ],
     )
     def test_metabolize_invalid_input(
-        self, animal_cohort_instance, dt, initial_energy, error_type
+        self, herb_cohort_instance, dt, initial_energy, error_type
     ):
         """Testing metabolize with invalid inputs."""
-        animal_cohort_instance.stored_energy = initial_energy
+        herb_cohort_instance.stored_energy = initial_energy
         with pytest.raises(error_type):
-            animal_cohort_instance.metabolize(dt)
-
-    @pytest.mark.parametrize(
-        "animal_initial, animal_final, plant_initial, plant_final",
-        [
-            (28266000000.0, 28646761627.80271, 182000000000.0, 178192383721.97287),
-            (0.0, 380761627.80271316, 182000000000.0, 178192383721.97287),
-            (28266000000.0, 28266000010.0, 100.0, 0.0),
-            (28266000000.0, 28266000000.0, 0.0, 0.0),
-            (0.0, 0.0, 0.0, 0.0),
-        ],
-    )
-    def test_eat(
-        self,
-        animal_cohort_instance,
-        animal_initial,
-        animal_final,
-        plant_instance,
-        plant_initial,
-        plant_final,
-    ):
-        """Testing eat for varying plant and animal energy levels."""
-        animal_cohort_instance.stored_energy = animal_initial
-        plant_instance.energy = plant_initial
-        animal_cohort_instance.eat(plant_instance)
-        assert animal_cohort_instance.stored_energy == animal_final
-        assert plant_instance.energy == plant_final
+            herb_cohort_instance.metabolize(dt)
 
     @pytest.mark.parametrize(
         "soil_initial, soil_final, consumed_energy",
@@ -161,16 +148,16 @@ class TestAnimalCohort:
     )
     def test_excrete(
         self,
-        animal_cohort_instance,
+        herb_cohort_instance,
         soil_instance,
         soil_initial,
         soil_final,
         consumed_energy,
     ):
         """Testing excrete() for varying soil energy levels."""
-        soil_instance.energy = soil_initial
-        animal_cohort_instance.excrete(soil_instance, consumed_energy)
-        assert soil_instance.energy == soil_final
+        soil_instance.stored_energy = soil_initial
+        herb_cohort_instance.excrete(soil_instance, consumed_energy)
+        assert soil_instance.stored_energy == soil_final
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -181,11 +168,11 @@ class TestAnimalCohort:
             (timedelta64(90, "D"), 10.0, 100.0),
         ],
     )
-    def test_aging(self, animal_cohort_instance, dt, initial_age, final_age):
+    def test_increase_age(self, herb_cohort_instance, dt, initial_age, final_age):
         """Testing aging at varying ages."""
-        animal_cohort_instance.age = initial_age
-        animal_cohort_instance.aging(dt)
-        assert animal_cohort_instance.age == final_age
+        herb_cohort_instance.age = initial_age
+        herb_cohort_instance.increase_age(dt)
+        assert herb_cohort_instance.age == final_age
 
     @pytest.mark.parametrize(
         "number_dead, initial_pop, final_pop, initial_carcass, final_carcass",
@@ -198,7 +185,7 @@ class TestAnimalCohort:
     )
     def test_die_individual(
         self,
-        animal_cohort_instance,
+        herb_cohort_instance,
         number_dead,
         initial_pop,
         final_pop,
@@ -206,57 +193,113 @@ class TestAnimalCohort:
         initial_carcass,
         final_carcass,
     ):
-        """Testing aging at varying ages."""
-        animal_cohort_instance.individuals = initial_pop
-        carcass_instance.energy = initial_carcass
-        animal_cohort_instance.die_individual(number_dead, carcass_instance)
-        assert animal_cohort_instance.individuals == final_pop
-        assert carcass_instance.energy == final_carcass
+        """Testing death."""
+        herb_cohort_instance.individuals = initial_pop
+        carcass_instance.stored_energy = initial_carcass
+        herb_cohort_instance.die_individual(number_dead, carcass_instance)
+        assert herb_cohort_instance.individuals == final_pop
+        assert carcass_instance.stored_energy == final_carcass
 
-    @pytest.mark.parametrize(
-        """animal_initial, animal_final, plant_initial, plant_final, soil_initial,
-        soil_final""",
-        [
-            (
-                28266000000.0,
-                28646761627.80271,
-                182000000000.0,
-                178192383721.97287,
-                1000.0,
-                380762627.802713,
-            ),
-            (
-                0.0,
-                380761627.802713,
-                182000000000.0,
-                178192383721.97287,
-                1000.0,
-                380762627.802713,
-            ),
-            (28266000000.0, 28266000010.0, 100.0, 0.0, 1000.0, 1010.0),
-            (28266000000.0, 28266000000.0, 0.0, 0.0, 1000.0, 1000.0),
-            (0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0),
-        ],
-    )
-    def test_forage(
-        self,
-        animal_cohort_instance,
-        animal_initial,
-        animal_final,
-        plant_instance,
-        plant_initial,
-        plant_final,
-        soil_instance,
-        soil_initial,
-        soil_final,
+    def test_get_eaten(
+        self, prey_cohort_instance, predator_cohort_instance, carcass_instance
     ):
-        """Testing forage."""
-        animal_cohort_instance.stored_energy = animal_initial
-        plant_instance.energy = plant_initial
-        soil_instance.energy = soil_initial
-        animal_cohort_instance.forage(plant_instance, soil_instance)
-        assert animal_cohort_instance.stored_energy == pytest.approx(
-            animal_final, rel=1e-6
+        """Testing get_eaten.
+
+        Currently, this just tests rough execution. As the model gets paramterized,
+        these tests will be expanded to specific values.
+        """
+
+        initial_individuals = prey_cohort_instance.individuals
+        initial_stored_energy = carcass_instance.stored_energy
+
+        # Execution
+        prey_cohort_instance.get_eaten(predator_cohort_instance, carcass_instance)
+
+        # Assertions
+        assert prey_cohort_instance.individuals < initial_individuals
+        assert carcass_instance.stored_energy > initial_stored_energy
+
+    def test_forage_cohort(
+        self, predator_cohort_instance, prey_cohort_instance, mocker
+    ):
+        """Testing forage_cohort."""
+        # Setup
+        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        from virtual_rainforest.models.animals.animal_traits import DietType
+        from virtual_rainforest.models.animals.carcasses import CarcassPool
+        from virtual_rainforest.models.animals.dummy_plants_and_soil import (
+            PalatableSoil,
+            PlantCommunity,
         )
-        assert plant_instance.energy == pytest.approx(plant_final, rel=1e-6)
-        assert soil_instance.energy == pytest.approx(soil_final, rel=1e-6)
+
+        # Mocking the eat method of AnimalCohort
+        mock_eat = mocker.patch.object(AnimalCohort, "eat")
+
+        # Instances
+        plant_list_instance = [mocker.MagicMock(spec=PlantCommunity)]
+        animal_list_instance = [
+            mocker.MagicMock(spec=AnimalCohort) for _ in range(3)
+        ]  # Assuming 3 animal cohorts
+        carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
+        soil_pool_instance = mocker.MagicMock(spec=PalatableSoil)
+
+        animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
+
+        for animal_cohort_instance in animal_cohort_instances:
+            # Execution
+            animal_cohort_instance.forage_cohort(
+                plant_list=plant_list_instance,
+                animal_list=animal_list_instance,
+                carcass_pool=carcass_pool_instance,
+                soil_pool=soil_pool_instance,
+            )
+
+            # Assertions
+            if animal_cohort_instance.functional_group.diet == DietType.HERBIVORE:
+                mock_eat.assert_called_with(
+                    plant_list_instance[0], soil_pool_instance
+                )  # Assuming just one plant instance for simplicity
+            elif animal_cohort_instance.functional_group.diet == DietType.CARNIVORE:
+                # Ensure eat was called for each animal in the list
+                assert len(mock_eat.call_args_list) == 1
+                for call in mock_eat.call_args_list:
+                    # Ensure each call had a single AnimalCohort and the CarcassPool
+                    args, _ = call
+                    assert args[0] in animal_list_instance
+                    assert args[1] == carcass_pool_instance
+
+            # Reset mock_eat for next iteration
+            mock_eat.reset_mock()
+
+    def test_eat(self, herb_cohort_instance, mocker):
+        """Testing eat."""
+        from virtual_rainforest.models.animals.protocols import Pool, Resource
+
+        mock_food = mocker.MagicMock(spec=Resource)
+        mock_pool = mocker.MagicMock(spec=Pool)
+
+        herb_cohort_instance.individuals = (
+            10  # Setting a non-zero value for individuals
+        )
+        herb_cohort_instance.stored_energy = (
+            0  # Setting initial energy to 0 for simplicity
+        )
+
+        # Mocking get_eaten to return a fixed energy value
+        mock_energy_return = 100  # Example energy return value
+        mock_food.get_eaten.return_value = mock_energy_return
+
+        # Execution
+        herb_cohort_instance.eat(mock_food, mock_pool)
+
+        # Assertions
+        mock_food.get_eaten.assert_called_once_with(herb_cohort_instance, mock_pool)
+        assert (
+            herb_cohort_instance.stored_energy
+            == mock_energy_return / herb_cohort_instance.individuals
+        )
+
+        # Test ValueError for zero individuals
+        herb_cohort_instance.individuals = 0
+        with pytest.raises(ValueError, match="Individuals cannot be 0."):
+            herb_cohort_instance.eat(mock_food, mock_pool)

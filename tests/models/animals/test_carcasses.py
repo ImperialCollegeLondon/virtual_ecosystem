@@ -12,4 +12,4 @@ class TestCarcassPool:
         from virtual_rainforest.models.animals.carcasses import CarcassPool
 
         c1 = CarcassPool(1000.7, 1)
-        assert c1.energy == 1000.7
+        assert c1.stored_energy == 1000.7

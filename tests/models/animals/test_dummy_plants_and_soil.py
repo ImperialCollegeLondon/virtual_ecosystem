@@ -20,9 +20,9 @@ class TestPlantCommunity:
     )
     def test_grow(self, plant_instance, initial, final):
         """Testing grow at 100%, 50%, and 0% maximum energy."""
-        plant_instance.energy = initial
+        plant_instance.stored_energy = initial
         plant_instance.grow()
-        assert plant_instance.energy == pytest.approx(final, rel=1e-6)
+        assert plant_instance.stored_energy == pytest.approx(final, rel=1e-6)
 
     def test_die(self, plant_instance):
         """Testing die."""
@@ -49,4 +49,4 @@ class TestPalatableSoil:
         )
 
         s1 = PalatableSoil(1000.7, 1)
-        assert s1.energy == 1000.7
+        assert s1.stored_energy == 1000.7

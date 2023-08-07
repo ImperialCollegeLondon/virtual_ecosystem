@@ -10,7 +10,7 @@ from dataclasses import dataclass
 class CarcassPool:
     """This is a class of carcass pools."""
 
-    energy: float
+    stored_energy: float
     """The amount of energy in the carcass pool [J]."""
     position: int
     """The grid position of the carcass pool."""
