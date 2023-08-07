@@ -13,8 +13,6 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 # content) at all. We need to decide how we handle this and adjust the below functions
 # to use this at some point.
 
-# TODO - Then need to add this to a litter decay pool, which the soil model can use
-
 
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
