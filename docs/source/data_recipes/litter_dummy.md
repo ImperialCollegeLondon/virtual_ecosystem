@@ -19,7 +19,8 @@ kernelspec:
 This section explains how to generate the data required to run the litter component of
 the dummy model. **It is important to note that none of this data is real data**.
 Instead, this data is a set of plausible values for which the litter model absolutely
-has to function sensibly for.
+has to function sensibly for. Descriptions of the relevant litter pools can be found
+[here](../virtual_rainforest/soil/soil_details).
 
 ```{code-cell} ipython3
 from xarray import Dataset
