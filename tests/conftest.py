@@ -190,11 +190,11 @@ def dummy_litter_data(layer_roles_fixture):
     # These values are taken from SAFE Project data, albeit in a very unsystematic
     # manner
     data["litter_pool_above_metabolic"] = DataArray([0.3, 0.15, 0.07], dims=["cell_id"])
-    """Above ground metabolic litter pool (kg C m^-3)"""
+    """Above ground metabolic litter pool (kg C m^-2)"""
     data["litter_pool_above_structural"] = DataArray(
         [0.5, 0.25, 0.09], dims=["cell_id"]
     )
-    """Above ground structural litter pool (kg C m^-3)"""
+    """Above ground structural litter pool (kg C m^-2)"""
 
     data["soil_temperature"] = xr.concat(
         [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
