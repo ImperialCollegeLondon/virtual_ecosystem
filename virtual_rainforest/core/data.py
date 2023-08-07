@@ -126,7 +126,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
-from xarray import DataArray, Dataset
+from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -409,6 +409,81 @@ class Data:
 
         for variable in output_dict:
             self[variable] = output_dict[variable]
+
+    def output_current_state(
+        self,
+        variables_to_save: list[str],
+        data_options: dict[str, Any],
+        time_index: int,
+    ) -> Path:
+        """Method to output the current state of the data object.
+
+        This function outputs all variables stored in the data object, except for any
+        data with a "time_index" dimension defined (at present only climate input data
+        has this). This data can either be saved as a new file or appended to an
+        existing file.
+
+        Args:
+            variables_to_save: List of variables to save
+            data_options: Set of options concerning what to output and where
+            time_index: The index representing the current time step in the data object.
+
+        Raises:
+            ConfigurationError: If the final output directory doesn't exist, isn't a
+               directory, or the final output file already exists (when in new file
+               mode). If the file to append to is missing (when not in new file mode).
+
+        Returns:
+            A path to the file that the current state is saved in
+        """
+
+        # Create output file path for specific time index
+        out_path = (
+            Path(data_options["out_folder_continuous"])
+            / f"continuous_state{time_index:05}.nc"
+        )
+
+        # Save the required variables by appending to existing file
+        self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
+
+        return out_path
+
+
+def merge_continuous_data_files(
+    data_options: dict[str, Any], continuous_data_files: list[Path]
+) -> None:
+    """Merge all continuous data files in a folder into a single file.
+
+    This function deletes all of the continuous output files it has been asked to merge
+    once the combined output is saved.
+
+    Args:
+        data_options: Set of options concerning what to output and where
+        continuous_data_files: Files containing previously output continuous data
+
+    Raises:
+        ConfigurationError: If output folder doesn't exist or if it output file already
+            exists
+    """
+
+    # Path to folder containing the continuous output (that merged file should be saved
+    # to)
+    out_folder = Path(data_options["out_folder_continuous"])
+
+    # Check that output file doesn't already exist
+    check_outfile(out_folder / f"{data_options['continuous_file_name']}.nc")
+
+    # Open all files as a single dataset
+    with open_mfdataset(continuous_data_files) as all_data:
+        # Specify type of the layer roles object to allow for quicker saving by dask
+        all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
+
+        # Save and close complete dataset
+        all_data.to_netcdf(out_folder / f"{data_options['continuous_file_name']}.nc")
+
+    # Iterate over all continuous files and delete them
+    for file_path in continuous_data_files:
+        file_path.unlink()
 
 
 class DataGenerator:
