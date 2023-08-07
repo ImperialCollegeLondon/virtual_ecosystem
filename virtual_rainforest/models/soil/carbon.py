@@ -41,7 +41,7 @@ def calculate_soil_carbon_updates(
         soil_moisture: relative water content for each soil grid cell [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         percent_clay: Percentage clay for each soil grid cell
-        mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3
+        mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-2
             day^-1]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
