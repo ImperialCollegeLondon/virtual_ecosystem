@@ -140,6 +140,10 @@ class LitterModel(BaseModel):
     def setup(self) -> None:
         """Placeholder function to setup up the litter model."""
 
+        # TODO - At some point this could be used to calculate an initial litter input
+        # rate so that the soil model can be run before the litter model. Think we need
+        # to decide how we are handling model order first though.
+
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
