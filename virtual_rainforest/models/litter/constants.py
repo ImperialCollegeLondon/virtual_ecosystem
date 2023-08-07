@@ -61,7 +61,7 @@ class LitterConsts:
     """Carbon use efficiency of metabolic litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`, but I can't
-    track down an empirical source.This carbon use efficiency is constant with
+    track down an empirical source. This carbon use efficiency is constant with
     temperature, soil moisture and substrate stoichiometry. These assumptions are not
     made in the soil model, but are used for the sake of simplicity here. If an improved
     version of the litter model gets made, this is a key area to address.
@@ -70,9 +70,6 @@ class LitterConsts:
     cue_structural_above_ground: float = 0.55
     """Carbon use efficiency of aboveground structural litter decay [unitless].
 
-    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`, but I can't
-    track down an empirical source. This carbon use efficiency is constant with
-    temperature, soil moisture and substrate stoichiometry. These assumptions are not
-    made in the soil model, but are used for the sake of simplicity here. If an improved
-    version of the litter model gets made, this is a key area to address.
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
+    documentation for :attr:`cue_metabolic` for details.
     """
