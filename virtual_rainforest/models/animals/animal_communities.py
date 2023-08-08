@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from itertools import chain
 
+from numpy import timedelta64
+
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.carcasses import CarcassPool
@@ -156,3 +158,42 @@ class AnimalCommunity:
             prey.extend(right_sized_prey)
 
         return prey
+
+    def populate_community(self) -> None:
+        """This function creates an instance of each functional group."""
+        pass
+
+    def migrate_community(self) -> None:
+        """This handles migrating all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            # insert check for migration
+            # insert random walk destination
+            destination = self
+            self.migrate(cohort, destination)
+
+    def birth_community(self) -> None:
+        """This handles birth for all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            # insert check for reproductive mass
+            self.birth(cohort)
+
+    def metabolize_community(self, dt: timedelta64) -> None:
+        """This handles metabolize for all cohorts in a community.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            cohort.metabolize(dt)
+
+    def increase_age_community(self, dt: timedelta64) -> None:
+        """This handles age for all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            cohort.increase_age(dt)
+
+    def mortality_community(self) -> None:
+        """This handles natural mortality for all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            # insert check for reproductive mass
+            cohort.die_individual(0, self.carcass_pool)

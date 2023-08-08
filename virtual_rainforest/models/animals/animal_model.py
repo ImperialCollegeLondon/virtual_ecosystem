@@ -118,3 +118,11 @@ class AnimalModel(BaseModel):
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
+
+    def apply_community_method(
+        self, community_method: str, *args: tuple, **kwargs: dict
+    ) -> None:
+        """This function applies community methods to all communities in the model."""
+        for community in self.communities:
+            method = getattr(community, community_method)
+            method(*args, **kwargs)
