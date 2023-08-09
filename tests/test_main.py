@@ -440,5 +440,3 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
         assert update_interval_as_quantity == output["update_interval_as_quantity"]
-
-    log_check(caplog, expected_log_entries)

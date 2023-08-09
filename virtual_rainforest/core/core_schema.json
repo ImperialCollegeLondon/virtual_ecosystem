@@ -132,25 +132,32 @@
                      "type": "boolean",
                      "default": true
                   },
-                  "out_path_initial": {
-                     "description": "File path to save initial state to",
-                     "type": "string",
-                     "default": "./initial_state.nc"
-                  },
-                  "out_folder_continuous": {
-                     "description": "Folder to save states of simulation with time to",
+                  "out_path": {
+                     "description": "File path for output files",
                      "type": "string",
                      "default": "."
                   },
-                  "continuous_file_name": {
+                  "out_initial_file_name": {
+                     "description": "File name for initial state output file",
+                     "type": "string",
+                     "default": "initial_state.nc",
+                     "pattern": "^[^/\\\\]+$"
+                  },
+                  "out_folder_continuous": {
+                     "description": "Folder to save states of simulation with time to",
+                     "type": "string"
+                  },
+                  "out_continuous_file_name": {
                      "description": "Name of file to save combined continuous data to",
                      "type": "string",
-                     "default": "all_continuous_data"
+                     "default": "all_continuous_data.nc",
+                     "pattern": "^[^/\\\\]+$"
                   },
-                  "out_path_final": {
-                     "description": "File path to save final state to",
+                  "out_final_file_name": {
+                     "description": "File name for final state output file",
                      "type": "string",
-                     "default": "./final_state.nc"
+                     "default": "final_state.nc",
+                     "pattern": "^[^/\\\\]+$"
                   }
                },
                "default": {},
@@ -158,10 +165,9 @@
                   "save_initial_state",
                   "save_continuous_data",
                   "save_final_state",
-                  "out_path_initial",
-                  "out_folder_continuous",
-                  "continuous_file_name",
-                  "out_path_final"
+                  "out_initial_file_name",
+                  "out_continuous_file_name",
+                  "out_final_file_name"
                ]
             },
             "layers": {

@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205, D415
 
+import os
 from collections.abc import Sequence
 from itertools import chain
 from math import ceil
@@ -233,26 +234,32 @@ def vr_run(
     )
 
     # Setup all models (those with placeholder setup processes won't change at all)
-    for mod_nm in models_cfd:
-        models_cfd[mod_nm].setup()
+    for model in models_cfd.values():
+        model.setup()
 
     LOGGER.info("All models successfully set up, now attempting to run them.")
 
     # TODO - A model spin up might be needed here in future
 
+    # Create output folder if it does not exist
+    out_path = Path(config["core"]["data_output_options"]["out_path"])
+    os.makedirs(out_path, exist_ok=True)
+
     # Save the initial state of the model
     if config["core"]["data_output_options"]["save_initial_state"]:
         data.save_to_netcdf(
-            Path(config["core"]["data_output_options"]["out_path_initial"])
+            out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
+
+    # If no path for saving continuous data is specified, fall back on using out_path
+    if "out_folder_continuous" not in config["core"]["data_output_options"]:
+        config["core"]["data_output_options"]["out_folder_continuous"] = str(out_path)
 
     # Container to store paths to continuous data files
     continuous_data_files = []
 
     # Only variables in the data object that are updated by a model should be output
-    all_variables = (
-        models_cfd[model_nm].vars_updated for model_nm in models_cfd.keys()
-    )
+    all_variables = (model.vars_updated for model in models_cfd.values())
     # Then flatten the list to generate list of variables to output
     variables_to_save = list(chain.from_iterable(all_variables))
 
@@ -262,8 +269,8 @@ def vr_run(
         current_time += update_interval
 
         # Run update() method for every model
-        for mod_nm in models_cfd:
-            models_cfd[mod_nm].update(time_index)
+        for model in models_cfd.values():
+            model.update(time_index)
 
         # With updates complete increment the time_index
         time_index += 1
@@ -284,7 +291,7 @@ def vr_run(
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
         data.save_to_netcdf(
-            Path(config["core"]["data_output_options"]["out_path_final"])
+            out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
 
     LOGGER.info("Virtual rainforest model run completed!")
