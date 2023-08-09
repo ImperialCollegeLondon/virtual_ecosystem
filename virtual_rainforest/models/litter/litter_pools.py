@@ -18,6 +18,7 @@ def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],
+    woody: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
@@ -28,6 +29,7 @@ def calculate_litter_pool_updates(
             temperature of the above ground litter [C]
         above_metabolic: Above ground metabolic litter pool [kg C m^-2]
         above_structural: Above ground structural litter pool [kg C m^-2]
+        woody: The woody litter pool [kg C m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -54,6 +56,11 @@ def calculate_litter_pool_updates(
         above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
     )
+    woody_decay = calculate_litter_decay_woody(
+        temperature_factor_above,
+        woody,
+        litter_decay_coefficient=constants.litter_decay_constant_woody,
+    )
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
@@ -63,6 +70,10 @@ def calculate_litter_pool_updates(
         structural_above_decay,
         carbon_use_efficiency=constants.cue_structural_above_ground,
     )
+    woody_mineral = calculate_carbon_mineralised(
+        woody_decay,
+        carbon_use_efficiency=constants.cue_woody,
+    )
 
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
@@ -71,9 +82,12 @@ def calculate_litter_pool_updates(
     change_in_structural_above = (
         constants.litter_input_to_structural_above - structural_above_decay
     ) * update_interval
+    change_in_woody = (constants.litter_input_to_woody - woody_decay) * update_interval
 
     # Calculate mineralisation rate
-    total_C_mineralisation_rate = metabolic_above_mineral + structural_above_mineral
+    total_C_mineralisation_rate = (
+        metabolic_above_mineral + structural_above_mineral + woody_mineral
+    )
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
@@ -83,6 +97,7 @@ def calculate_litter_pool_updates(
         "litter_pool_above_structural": DataArray(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
+        "litter_pool_woody": DataArray(woody + change_in_woody, dims="cell_id"),
         "litter_C_mineralisation_rate": DataArray(
             total_C_mineralisation_rate, dims="cell_id"
         ),
@@ -174,6 +189,40 @@ def calculate_litter_decay_structural_above(
         litter_decay_coefficient
         * temperature_factor
         * litter_pool_above_structural
+        * litter_chemistry_factor
+    )
+
+
+def calculate_litter_decay_woody(
+    temperature_factor: NDArray[np.float32],
+    litter_pool_woody: NDArray[np.float32],
+    litter_decay_coefficient: float,
+) -> NDArray[np.float32]:
+    """Calculate decay of the woody litter pool.
+
+    This function is taken from :cite:t:`kirschbaum_modelling_2002`.
+
+    Args:
+        temperature_factor: A multiplicative factor capturing the impact of temperature
+            on litter decomposition [unitless]
+        litter_pool_woody: The size of the woody litter pool [kg C m^-2]
+        litter_decay_coefficient: The decay coefficient for the woody litter pool
+            [day^-1]
+
+    Returns:
+        Rate of decay of the woody litter pool [kg C m^-2 day^-1]
+    """
+
+    # Factor capturing the impact of litter chemistry on decomposition, calculated based
+    # on formula in Kirschbaum and Paul (2002) with the assumption that dead wood is 50%
+    # lignin. Keeping as a hard coded constant for now, as how litter chemistry is dealt
+    # with is going to be revised in the near future.
+    litter_chemistry_factor = 0.082085
+
+    return (
+        litter_decay_coefficient
+        * temperature_factor
+        * litter_pool_woody
         * litter_chemistry_factor
     )
 

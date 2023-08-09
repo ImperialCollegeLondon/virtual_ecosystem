@@ -67,7 +67,8 @@ def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
     expected_pools = {
         "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
-        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000],
+        "litter_pool_woody": [4.702103, 11.801373, 7.301836],
+        "litter_C_mineralisation_rate": [0.00238682, 0.00172775, 0.00090278],
     }
 
     result = calculate_litter_pool_updates(
@@ -76,6 +77,7 @@ def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
         ].to_numpy(),
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
         above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
         update_interval=1.0,
         constants=LitterConsts,
     )
@@ -119,6 +121,23 @@ def test_calculate_litter_decay_structural_above(
         temperature_factor=temp_and_water_factors["temp_above"],
         litter_pool_above_structural=dummy_litter_data["litter_pool_above_structural"],
         litter_decay_coefficient=LitterConsts.litter_decay_constant_structural_above,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
+def test_calculate_litter_decay_woody(dummy_litter_data, temp_and_water_factors):
+    """Test calculation of woody litter decay."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_decay_woody,
+    )
+
+    expected_decay = [0.0004831961, 0.0012131307, 0.0007504961]
+
+    actual_decay = calculate_litter_decay_woody(
+        temperature_factor=temp_and_water_factors["temp_above"],
+        litter_pool_woody=dummy_litter_data["litter_pool_woody"],
+        litter_decay_coefficient=LitterConsts.litter_decay_constant_woody,
     )
 
     assert np.allclose(actual_decay, expected_decay)

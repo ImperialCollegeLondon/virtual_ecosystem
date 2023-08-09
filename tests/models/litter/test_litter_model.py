@@ -45,6 +45,10 @@ def litter_model_fixture(dummy_litter_data):
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
             ),
         ),
         (
@@ -60,6 +64,11 @@ def litter_model_fixture(dummy_litter_data):
                     ERROR,
                     "litter model: init data missing required var "
                     "'litter_pool_above_structural'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'litter_pool_woody'",
                 ),
                 (
                     ERROR,
@@ -82,6 +91,10 @@ def litter_model_fixture(dummy_litter_data):
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
                 ),
                 (
                     ERROR,
@@ -172,6 +185,10 @@ def test_litter_model_initialization(
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
             ),
         ),
         (
@@ -203,6 +220,10 @@ def test_litter_model_initialization(
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
                 ),
             ),
         ),
@@ -263,7 +284,8 @@ def test_update(litter_model_fixture, dummy_litter_data):
 
     end_above_meta = [0.29577179, 0.14802621, 0.06922856]
     end_above_struct = [0.50055126, 0.25063497, 0.09068855]
-    c_mineral = [0.00212106, 0.00106053, 0.00049000]
+    end_woody = [4.702103, 11.801373, 7.301836]
+    c_mineral = [0.00238682, 0.00172775, 0.00090278]
 
     litter_model_fixture.update(time_index=0)
 
@@ -272,4 +294,5 @@ def test_update(litter_model_fixture, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["litter_pool_above_structural"], end_above_struct
     )
+    assert np.allclose(dummy_litter_data["litter_pool_woody"], end_woody)
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)

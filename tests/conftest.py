@@ -195,6 +195,8 @@ def dummy_litter_data(layer_roles_fixture):
         [0.5, 0.25, 0.09], dims=["cell_id"]
     )
     """Above ground structural litter pool (kg C m^-2)"""
+    data["litter_pool_woody"] = DataArray([4.7, 11.8, 7.3], dims=["cell_id"])
+    """Woody litter pool (kg C m^-2)"""
 
     data["soil_temperature"] = xr.concat(
         [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],

@@ -43,6 +43,13 @@ class LitterConsts:
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
 
+    litter_decay_constant_woody: float = 1.0 / 150.0
+    """Decay constant for the woody litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002` as the average of fine wood
+    and coarse wood decay.
+    """
+
     litter_input_to_metabolic_above: float = 0.000280628
     """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
 
@@ -57,6 +64,16 @@ class LitterConsts:
     constant will eventually be removed once the litter is linked to other models.
     """
 
+    litter_input_to_woody: float = 0.002586
+    """Litter input rate to woody litter pool [kg C m^-2 day^-1].
+
+    This was calculated assuming that dead wood pools in old growth forest are at steady
+    state. So, that the input will equal the dead wood respiration divided by 1 minus
+    the carbon use efficiency. The value for dead wood respiration for old growth forest
+    was taken from :cite:t:`mills_tropical_2023`. This constant will eventually be
+    removed once the litter is linked to other models.
+    """
+
     cue_metabolic: float = 0.45
     """Carbon use efficiency of metabolic litter decay [unitless].
 
@@ -69,6 +86,13 @@ class LitterConsts:
 
     cue_structural_above_ground: float = 0.55
     """Carbon use efficiency of aboveground structural litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
+    documentation for :attr:`cue_metabolic` for details.
+    """
+
+    cue_woody: float = 0.55
+    """Carbon use efficiency of woody litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
     documentation for :attr:`cue_metabolic` for details.

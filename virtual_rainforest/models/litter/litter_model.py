@@ -56,12 +56,17 @@ class LitterModel(BaseModel):
     required_init_vars = (
         ("litter_pool_above_metabolic", ("spatial",)),
         ("litter_pool_above_structural", ("spatial",)),
+        ("litter_pool_woody", ("spatial",)),
     )
     """Required initialisation variables for the litter model.
 
     This is a set of variables that must be present in the data object used to create a
     LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = ["litter_pool_above_metabolic", "litter_pool_above_structural"]
+    vars_updated = [
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+    ]
     """Variables updated by the litter model."""
 
     def __init__(
@@ -76,8 +81,10 @@ class LitterModel(BaseModel):
         super().__init__(data, update_interval, **kwargs)
 
         # Check that litter pool data is appropriately bounded
-        if np.any(data["litter_pool_above_metabolic"] < 0.0) or np.any(
-            data["litter_pool_above_structural"] < 0.0
+        if (
+            np.any(data["litter_pool_above_metabolic"] < 0.0)
+            or np.any(data["litter_pool_above_structural"] < 0.0)
+            or np.any(data["litter_pool_woody"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial litter pools contain at least one negative value!"
@@ -163,6 +170,7 @@ class LitterModel(BaseModel):
             update_interval=self.update_interval.to("day").magnitude,
             above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
             above_structural=self.data["litter_pool_above_structural"].to_numpy(),
+            woody=self.data["litter_pool_woody"].to_numpy(),
         )
 
         # Update the litter pools
