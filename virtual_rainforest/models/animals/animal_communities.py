@@ -54,6 +54,12 @@ class AnimalCommunity:
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
         self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
 
+    def populate_community(self) -> None:
+        """This function creates an instance of each functional group."""
+        for functional_group in self.functional_groups:
+            cohort = AnimalCohort(functional_group, functional_group.adult_mass, 0.0)
+            self.animal_cohorts[functional_group.name].append(cohort)
+
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
 
@@ -97,7 +103,9 @@ class AnimalCommunity:
 
         """
         self.animal_cohorts[cohort.name].append(
-            AnimalCohort(cohort.functional_group, cohort.mass, 0.0)
+            AnimalCohort(
+                cohort.functional_group, cohort.functional_group.adult_mass, 0.0
+            )
         )
 
     def forage_community(self) -> None:
@@ -159,10 +167,6 @@ class AnimalCommunity:
 
         return prey
 
-    def populate_community(self) -> None:
-        """This function creates an instance of each functional group."""
-        pass
-
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
@@ -195,5 +199,6 @@ class AnimalCommunity:
     def mortality_community(self) -> None:
         """This handles natural mortality for all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # insert check for reproductive mass
+            # insert check for whether natural death occurs
+            # determine how many deaths occur
             cohort.die_individual(0, self.carcass_pool)

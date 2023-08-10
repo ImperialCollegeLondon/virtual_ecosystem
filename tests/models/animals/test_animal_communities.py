@@ -50,7 +50,9 @@ def animal_cohort_instance(functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(functional_group_instance, 10000.0, 1)
+    return AnimalCohort(
+        functional_group_instance, functional_group_instance.adult_mass, 1.0
+    )
 
 
 class TestAnimalCommunity:
