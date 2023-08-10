@@ -345,12 +345,10 @@ class HydrologyModel(BaseModel):
         # TODO We treat the soil as one bucket, in the future, there should be a
         # flow between layers and a gradient of soil moisture and soil water potential
         total_soil_moisture_mm = (
-            self.data["soil_moisture"]
+            self.data["soil_moisture"].isel(layers=-1)
             * (-self.constants.meters_to_millimeters)
-            * self.data["layer_heights"]
-            .where(self.data["layer_heights"].layer_roles == "soil")
-            .dropna(dim="layers")
-        ).sum(dim="layers")
+            * self.data["layer_heights"].isel(layers=-1)
+        ).drop_vars(["layers", "layer_roles"])
 
         # Calculate how much water can be added to soil before capacity is reached.
         available_capacity_mm = (
