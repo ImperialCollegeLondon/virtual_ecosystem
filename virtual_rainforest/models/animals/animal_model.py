@@ -22,6 +22,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
+from numpy import timedelta64
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -112,11 +113,20 @@ class AnimalModel(BaseModel):
         """Placeholder function to spin up the animal model."""
 
     def update(self, time_index: int) -> None:
-        """Placeholder function to solve the animal model.
+        """Function to step the animal model through time.
+
+        Currently this is a toy implementation.
 
         Args:
             time_index: The index representing the current time step in the data object.
         """
+
+        self.apply_community_method("forage_community")
+        self.apply_community_method("migrate_community")
+        self.apply_community_method("birth_community")
+        self.apply_community_method("metabolize_community", (timedelta64(1, "D"),))
+        self.apply_community_method("mortality_community")
+        self.apply_community_method("increase_age_community", (timedelta64(1, "D"),))
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
@@ -130,13 +140,13 @@ class AnimalModel(BaseModel):
         different functions later one. Right now, it can be used to call the following
         functions for each AnimalCommunity within the AnimalModel.
 
-        - populate_community()
-        - forage_community()
-        - migrate_community()
-        - birth_community()
-        - metabolize_community()
-        - increase_age_community()
-        - mortality_community()
+        - populate_community
+        - forage_community
+        - migrate_community
+        - birth_community
+        - metabolize_community
+        - increase_age_community
+        - mortality_community
 
 
         """
