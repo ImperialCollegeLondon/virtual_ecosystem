@@ -242,6 +242,7 @@ class TestAnimalCohort:
         ]  # Assuming 3 animal cohorts
         carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
         soil_pool_instance = mocker.MagicMock(spec=PalatableSoil)
+        soil_pool_instance.stored_energy = 0  # setting the attribute on the mock
 
         animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
 
