@@ -58,6 +58,26 @@ def test_calculate_temperature_effect_on_litter_decomp(
     assert np.allclose(actual_factor, expected_factor)
 
 
+def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
+    """Test that soil moisture effects on decomposition are calculated correctly."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_moisture_effect_on_litter_decomp,
+    )
+
+    water_potentials = [-10.0, -25.0, -100.0, -400.0]
+
+    expected_factor = [1.0, 0.88496823, 0.71093190, 0.53689556]
+
+    actual_factor = calculate_moisture_effect_on_litter_decomp(
+        water_potentials,
+        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
+        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
+        moisture_response_curvature=LitterConsts.moisture_response_curvature,
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
+
+
 def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
     """Test that litter pool update calculation is correct."""
     from virtual_rainforest.models.litter.litter_pools import (

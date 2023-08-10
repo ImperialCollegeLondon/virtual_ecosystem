@@ -31,6 +31,24 @@ class LitterConsts:
     [unitless]. Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
 
+    litter_decay_water_potential_optimum: float = -10.0
+    """The water potential at which below ground litter decay is maximised [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    litter_decay_water_potential_halt: float = -28800.0
+    """The water potential at which below ground litter decay stops entirely [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    moisture_response_curvature: float = 1.0
+    """Curvature of the litter decay moisture response function [unitless].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
     litter_decay_constant_metabolic_above: float = 0.56 / 7.0
     """Decay constant for the above ground metabolic litter pool [day^-1].
 

@@ -134,6 +134,39 @@ def calculate_temperature_effect_on_litter_decomp(
     )
 
 
+def calculate_moisture_effect_on_litter_decomp(
+    water_potential: NDArray[np.float32],
+    water_potential_halt: float,
+    water_potential_opt: float,
+    moisture_response_curvature: float,
+) -> NDArray[np.float32]:
+    """Calculate the effect that soil moisture has on litter decomposition rates.
+
+    This function is only relevant for the below ground litter pools. Its functional
+    form is taken from :cite:t:`moyano_responses_2013`.
+
+    Args:
+        water_potential: Soil water potential [kPa]
+        water_potential_halt: Water potential at which all microbial activity stops
+            [kPa]
+        water_potential_opt: Optimal water potential for microbial activity [kPa]
+        moisture_response_curvature: Parameter controlling the curvature of the moisture
+            response function [unitless]
+
+    Returns:
+        A multiplicative factor capturing the impact of moisture on below ground litter
+        decomposition [unitless]
+    """
+
+    # Calculate how much moisture suppresses microbial activity
+    supression = (
+        (np.log10(np.abs(water_potential)) - np.log10(abs(water_potential_opt)))
+        / (np.log10(abs(water_potential_halt)) - np.log10(abs(water_potential_opt)))
+    ) ** moisture_response_curvature
+
+    return 1 - supression
+
+
 def calculate_litter_decay_metabolic_above(
     temperature_factor: NDArray[np.float32],
     litter_pool_above_metabolic: NDArray[np.float32],
