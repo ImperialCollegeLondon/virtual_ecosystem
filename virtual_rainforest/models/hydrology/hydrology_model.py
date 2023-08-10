@@ -22,6 +22,7 @@ from typing import Any, Union
 import numpy as np
 import xarray as xr
 from pint import Quantity
+from pysheds.grid import Grid as PyshedsGrid
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -224,6 +225,47 @@ class HydrologyModel(BaseModel):
             )
         )
 
+        # create water flow map, TODO parts of this will move to spin up
+        # get DEM on pysheds grid
+        grid_dem = PyshedsGrid.from_raster("./900m.tif")
+        dem = grid_dem.read_raster("./900m.tif")
+
+        # Fill pits in DEM
+        pit_filled_dem = grid_dem.fill_pits(dem)
+
+        # Fill depressions in DEM
+        flooded_dem = grid_dem.fill_depressions(pit_filled_dem)
+
+        # Resolve flats in DEM
+        inflated_dem = grid_dem.resolve_flats(flooded_dem)
+        elevation = np.array(inflated_dem).flatten()
+
+        # map neighbors and identify downstream cell_ids
+        runoff = np.array(self.data["runoff"])
+        mapping = [neighbors(cell_id) for cell_id in range(len(runoff))]
+        downstream_ids = []
+        for cell_id, neighbors_id in enumerate(mapping):
+            # Find lowest neighbour
+            downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
+            downstream_ids.append(neighbors_id[downstream_id_loc])
+
+        # Invert mapping of cell_id: downstream neighbour to cell_id: upstream_neighbors
+        upstream_ids: list = [[] for i in range(len(runoff))]
+        for down_s, up_s in enumerate(downstream_ids):
+            upstream_ids[up_s].append(down_s)
+
+        # let the water run downstream until steady state is reached
+        # this is t=0 and in the update(), new runoff will be added
+        for itime in range(100):
+            # Get the run off created in this time step as the baseline:
+            out = np.array(self.data["runoff"])
+            for cell_id, upstream_id in enumerate(upstream_ids):
+                # add the sum of the upstream neighbours
+                # I think I'm doing something wrong here which is creating the minus
+                # numbers
+                out[cell_id] += np.sum(runoff[upstream_id])
+            runoff = out.copy()
+
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
@@ -363,7 +405,7 @@ class HydrologyModel(BaseModel):
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Calculate runoff in mm
+        # Calculate runoff in mm # TODO calculate surface runoff with flow map
         soil_hydrology["surface_runoff"] = (
             DataArray(surface_runoff_cells.data - available_capacity_mm.data)
             .fillna(0)
@@ -631,3 +673,42 @@ def calculate_soil_evaporation(
     return DataArray(  # TODO check this
         (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
     )
+
+
+# function to get neighbors, will be replaced by core methods
+M = 3
+N = 1
+
+
+def neighbors(index: int, shape: Any = (M, N)) -> list:
+    """Returns a callable.
+
+    (M,N) --> (number_of_rows, number_of_columns)
+    """
+
+    M, N = shape
+    # 2d index\n",
+    c, r = divmod(index, M)
+    # neighbors\n",
+    cplus, cminus = c + 1, c - 1
+    rplus, rminus = r + 1, r - 1
+    # dot product of (c,cplus,cminus) and (r,rplus,rminus)?
+    neighbors = [
+        (cminus, rminus),
+        (cminus, r),
+        (cminus, rplus),
+        (c, rplus),
+        (cplus, rplus),
+        (cplus, r),
+        (cplus, rminus),
+        (c, rminus),
+    ]
+
+    # validate filter
+    neighbors = [
+        (col, row) for col, row in neighbors if (0 <= col < N) and (0 <= row < M)
+    ]
+
+    # 1d indices
+    one_d = [(col * M) + row for col, row in neighbors]
+    return one_d
