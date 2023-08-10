@@ -285,7 +285,7 @@ def test_update(litter_model_fixture, dummy_litter_data):
     end_above_meta = [0.29577179, 0.14802621, 0.06922856]
     end_above_struct = [0.50055126, 0.25063497, 0.09068855]
     end_woody = [4.702103, 11.801373, 7.301836]
-    c_mineral = [0.00238682, 0.00172775, 0.00090278]
+    c_mineral = [0.00954728, 0.00691101, 0.0036111]
 
     litter_model_fixture.update(time_index=0)
 

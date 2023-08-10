@@ -100,7 +100,7 @@ def test_calculate_litter_pool_updates(dummy_litter_data, surface_layer_index):
         "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
         "litter_pool_woody": [4.702103, 11.801373, 7.301836],
-        "litter_C_mineralisation_rate": [0.00238682, 0.00172775, 0.00090278],
+        "litter_C_mineralisation_rate": [0.00954728, 0.006911, 0.00361112],
     }
 
     result = calculate_litter_pool_updates(

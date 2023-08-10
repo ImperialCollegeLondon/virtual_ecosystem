@@ -88,6 +88,8 @@ def calculate_litter_pool_updates(
     total_C_mineralisation_rate = (
         metabolic_above_mineral + structural_above_mineral + woody_mineral
     )
+    # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
+    total_C_mineralisation_rate /= constants.depth_of_active_layer
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
