@@ -16,6 +16,7 @@ def temp_and_water_factors(
 ):
     """Temperature and water factors for the various litter layers."""
     from virtual_rainforest.models.litter.litter_pools import (
+        calculate_moisture_effect_on_litter_decomp,
         calculate_temperature_effect_on_litter_decomp,
     )
 
@@ -33,9 +34,20 @@ def temp_and_water_factors(
         temp_response=LitterConsts.litter_decomp_temp_response,
     )
 
-    # TODO - Add water_below in here when it becomes relevant
+    # TODO - Actually use the dummy_litter_data here once there's a way of switching
+    # between soil moisture and water potential
+    water_below = calculate_moisture_effect_on_litter_decomp(
+        [-25.0, -100.0, -400.0],
+        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
+        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
+        moisture_response_curvature=LitterConsts.moisture_response_curvature,
+    )
 
-    return {"temp_above": temp_above, "temp_below": temp_below}
+    return {
+        "temp_above": temp_above,
+        "temp_below": temp_below,
+        "water_below": water_below,
+    }
 
 
 def test_calculate_temperature_effect_on_litter_decomp(
@@ -130,7 +142,7 @@ def test_calculate_litter_decay_metabolic_above(
 def test_calculate_litter_decay_structural_above(
     dummy_litter_data, temp_and_water_factors
 ):
-    """Test calculation of above ground metabolic litter decay."""
+    """Test calculation of above ground structural litter decay."""
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_litter_decay_structural_above,
     )
@@ -158,6 +170,26 @@ def test_calculate_litter_decay_woody(dummy_litter_data, temp_and_water_factors)
         temperature_factor=temp_and_water_factors["temp_above"],
         litter_pool_woody=dummy_litter_data["litter_pool_woody"],
         litter_decay_coefficient=LitterConsts.litter_decay_constant_woody,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
+def test_calculate_litter_decay_metabolic_below(
+    dummy_litter_data, temp_and_water_factors
+):
+    """Test calculation of below ground metabolic litter decay."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_decay_metabolic_below,
+    )
+
+    expected_decay = [0.0096709654, 0.0071864082, 0.0010267625]
+
+    actual_decay = calculate_litter_decay_metabolic_below(
+        temperature_factor=temp_and_water_factors["temp_below"],
+        moisture_factor=temp_and_water_factors["water_below"],
+        litter_pool_below_metabolic=dummy_litter_data["litter_pool_below_metabolic"],
+        litter_decay_coefficient=LitterConsts.litter_decay_constant_metabolic_below,
     )
 
     assert np.allclose(actual_decay, expected_decay)

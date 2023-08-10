@@ -98,6 +98,7 @@ def calculate_litter_pool_updates(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
         "litter_pool_woody": DataArray(woody + change_in_woody, dims="cell_id"),
+        # TODO - A unit conversion of this is needed somewhere
         "litter_C_mineralisation_rate": DataArray(
             total_C_mineralisation_rate, dims="cell_id"
         ),
@@ -257,6 +258,38 @@ def calculate_litter_decay_woody(
         * temperature_factor
         * litter_pool_woody
         * litter_chemistry_factor
+    )
+
+
+def calculate_litter_decay_metabolic_below(
+    temperature_factor: NDArray[np.float32],
+    moisture_factor: NDArray[np.float32],
+    litter_pool_below_metabolic: NDArray[np.float32],
+    litter_decay_coefficient: float,
+) -> NDArray[np.float32]:
+    """Calculate decay of below ground metabolic litter pool.
+
+    This function is taken from :cite:t:`kirschbaum_modelling_2002`.
+
+    Args:
+        temperature_factor: A multiplicative factor capturing the impact of temperature
+            on litter decomposition [unitless]
+        moisture_factor: A multiplicative factor capturing the impact of soil moisture
+            on litter decomposition [unitless]
+        litter_pool_below_metabolic: The size of the below ground metabolic litter pool
+            [kg C m^-2]
+        litter_decay_coefficient: The decay coefficient for the below ground metabolic
+            litter pool [day^-1]
+
+    Returns:
+        Rate of decay of the below ground metabolic litter pool [kg C m^-2 day^-1]
+    """
+
+    return (
+        litter_decay_coefficient
+        * temperature_factor
+        * moisture_factor
+        * litter_pool_below_metabolic
     )
 
 

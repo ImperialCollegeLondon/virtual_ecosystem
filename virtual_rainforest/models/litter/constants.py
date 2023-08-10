@@ -68,6 +68,12 @@ class LitterConsts:
     and coarse wood decay.
     """
 
+    litter_decay_constant_metabolic_below: float = 1.0 / 10.0
+    """Decay constant for the below ground metabolic litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
     litter_input_to_metabolic_above: float = 0.000280628
     """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
 
