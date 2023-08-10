@@ -293,6 +293,45 @@ def calculate_litter_decay_metabolic_below(
     )
 
 
+def calculate_litter_decay_structural_below(
+    temperature_factor: NDArray[np.float32],
+    moisture_factor: NDArray[np.float32],
+    litter_pool_below_structural: NDArray[np.float32],
+    litter_decay_coefficient: float,
+) -> NDArray[np.float32]:
+    """Calculate decay of below ground structural litter pool.
+
+    This function is taken from :cite:t:`kirschbaum_modelling_2002`.
+
+    Args:
+        temperature_factor: A multiplicative factor capturing the impact of temperature
+            on litter decomposition [unitless]
+        moisture_factor: A multiplicative factor capturing the impact of soil moisture
+            on litter decomposition [unitless]
+        litter_pool_below_structural: The size of the below ground structural litter
+            pool [kg C m^-2]
+        litter_decay_coefficient: The decay coefficient for the below ground structural
+            litter pool [day^-1]
+
+    Returns:
+        Rate of decay of the below ground structural litter pool [kg C m^-2 day^-1]
+    """
+
+    # Factor capturing the impact of litter chemistry on decomposition, calculated based
+    # on formula in Kirschbaum and Paul (2002) with the assumption that structural
+    # litter is 50% lignin. Keeping as a hard coded constant for now, as how litter
+    # chemistry is dealt with is going to be revised in the near future.
+    litter_chemistry_factor = 0.082085
+
+    return (
+        litter_decay_coefficient
+        * temperature_factor
+        * moisture_factor
+        * litter_chemistry_factor
+        * litter_pool_below_structural
+    )
+
+
 def calculate_carbon_mineralised(
     litter_decay_rate: NDArray[np.float32], carbon_use_efficiency: float
 ) -> NDArray[np.float32]:

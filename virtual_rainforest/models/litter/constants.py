@@ -74,6 +74,12 @@ class LitterConsts:
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
 
+    litter_decay_constant_structural_below: float = 1.0 / 37.0
+    """Decay constant for the below ground structural litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
     litter_input_to_metabolic_above: float = 0.000280628
     """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
 

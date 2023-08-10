@@ -195,6 +195,26 @@ def test_calculate_litter_decay_metabolic_below(
     assert np.allclose(actual_decay, expected_decay)
 
 
+def test_calculate_litter_decay_structural_below(
+    dummy_litter_data, temp_and_water_factors
+):
+    """Test calculation of below ground structural litter decay."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_decay_structural_below,
+    )
+
+    expected_decay = [0.000321827, 0.000133577, 6.508247e-6]
+
+    actual_decay = calculate_litter_decay_structural_below(
+        temperature_factor=temp_and_water_factors["temp_below"],
+        moisture_factor=temp_and_water_factors["water_below"],
+        litter_pool_below_structural=dummy_litter_data["litter_pool_below_structural"],
+        litter_decay_coefficient=LitterConsts.litter_decay_constant_structural_below,
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
 def test_calculate_carbon_mineralised():
     """Test that the calculation of litter decay mineralisation works as expected."""
     from virtual_rainforest.models.litter.litter_pools import (
