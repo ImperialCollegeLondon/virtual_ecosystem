@@ -162,7 +162,8 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes soil moisture homogenously for all
-        soil layers and initializes air temperature and relative humidity below the
+        soil layers, which are treated as one single bucket in this simple approach, and
+        initializes air temperature and relative humidity below the
         canopy to calculate soil hydrology for the first update(). This might change
         with the implementation of the SPLASH model in the plant module which will take
         care of the above-ground hydrology; the hydrology model will calculate the
@@ -236,7 +237,8 @@ class HydrologyModel(BaseModel):
         precipitation exceeds soil moisture capacity, the excess water is added to
         runoff and soil moisture is set to soil moisture capacity value; if the soil is
         not saturated, precipitation is added to the current soil moisture level and
-        runoff is set to zero. Note that this function will likely change with the
+        runoff is set to zero. All soil layers ae combined into one bucket. Note that
+        this function will likely change with the
         implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
         module which will take care of the above-ground hydrology; the hydrology model
         will calculate the catchment scale hydrology.
@@ -248,7 +250,9 @@ class HydrologyModel(BaseModel):
 
         Vertical flow is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
-        .
+        . Note that there are severe limitations to this approach on the temporal and
+        spatial scale of this model and this can only be treated as a very rough
+        approximation!
 
         Mean stream flow :math:`Q` is estimated as
 
@@ -317,6 +321,11 @@ class HydrologyModel(BaseModel):
 
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
+        # TODO the interception reservoir should be treated as a bucket that fills up
+        # before water falls through, and from which water evaporates back into the
+        # atmosphere. However, this is strongly affected by the intensity of rainfall
+        # and therefore currently not implemented. Instead we assume that a fraction of
+        # rainfall is intercepted and evaporated over the course of one time step
         precipitation_surface = current_precipitation * (
             1 - self.constants.water_interception_factor * leaf_area_index_sum
         )
@@ -326,16 +335,26 @@ class HydrologyModel(BaseModel):
             ["layers"]
         ) * (-self.constants.meters_to_millimeters)
 
-        # Calculate how much water can be added to soil before capacity is reached.
-        # To find out how much rain can be taken up by the topsoil before rain goes to
+        # Calculate total soil moisture (before rainfall) in mm
+        # To find out how much rain can be taken up by the soil before rain goes to
         # runoff, the relative water content (between 0 and 1) is converted to mm with
         # this equation:
         # water content in mm = relative water content / 100 * depth in mm
         # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
+        # TODO We treat the soil as one bucket, in the future, there should be a
+        # flow between layers and a gradient of soil moisture and soil water potential
+        total_soil_moisture_mm = (
+            self.data["soil_moisture"]
+            * (-self.constants.meters_to_millimeters)
+            * self.data["layer_heights"]
+            .where(self.data["layer_heights"].layer_roles == "soil")
+            .dropna(dim="layers")
+        ).sum(dim="layers")
+
+        # Calculate how much water can be added to soil before capacity is reached.
         available_capacity_mm = (
-            self.constants.soil_moisture_capacity
-            - self.data["soil_moisture"].mean(dim="layers")
-        ) * soil_depth
+            self.constants.soil_moisture_capacity * soil_depth - total_soil_moisture_mm
+        )
 
         # Find grid cells where precipitation exceeds available capacity
         surface_runoff_cells = precipitation_surface.where(
@@ -355,10 +374,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate total water in mm in each grid cell
-        total_water_mm = (
-            self.data["soil_moisture"].mean(dim="layers") * soil_depth
-            + precipitation_surface
-        )
+        total_water_mm = total_soil_moisture_mm + precipitation_surface
 
         # Calculate relative soil moisture incl infiltration and cap to capacity
         soil_moisture_infiltrated = DataArray(
