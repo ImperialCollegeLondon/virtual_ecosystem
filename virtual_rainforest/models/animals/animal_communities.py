@@ -104,9 +104,17 @@ class AnimalCommunity:
         """
         self.animal_cohorts[cohort.name].append(
             AnimalCohort(
-                cohort.functional_group, cohort.functional_group.adult_mass, 0.0
+                cohort.functional_group, cohort.functional_group.birth_mass, 0.0
             )
         )
+
+    def birth_community(self) -> None:
+        """This handles birth for all cohorts in a community."""
+        # Create a snapshot list of the current cohorts
+        current_cohorts = list(chain.from_iterable(self.animal_cohorts.values()))
+        for cohort in current_cohorts:
+            # insert check for reproductive mass
+            self.birth(cohort)
 
     def forage_community(self) -> None:
         """This function needs to organize the foraging of animal cohorts.
@@ -174,12 +182,6 @@ class AnimalCommunity:
             # insert random walk destination
             destination = self
             self.migrate(cohort, destination)
-
-    def birth_community(self) -> None:
-        """This handles birth for all cohorts in a community."""
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # insert check for reproductive mass
-            self.birth(cohort)
 
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
