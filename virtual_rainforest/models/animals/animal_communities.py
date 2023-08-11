@@ -1,14 +1,6 @@
 """The ''animals'' module provides animal module functionality.
 
-Todo:
-- send portion of dead to carcass pool
-
-Current simplifications:
-- only herbivory (want: carnivory and omnivory)
-- only iteroparity (want: semelparity)
-- no development
-
-Notes to self:
+Notes:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
@@ -28,11 +20,7 @@ from virtual_rainforest.models.animals.dummy_plants_and_soil import (
     PalatableSoil,
     PlantCommunity,
 )
-
-# from virtual_rainforest.models.animals.animal_model import AnimalModel
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-
-# from virtual_rainforest.models.animals.protocols import Consumer, Resource
 
 
 class AnimalCommunity:
@@ -55,7 +43,14 @@ class AnimalCommunity:
         self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
 
     def populate_community(self) -> None:
-        """This function creates an instance of each functional group."""
+        """This function creates an instance of each functional group.
+
+        Currently, this is the simplest implementation of populating the animal model.
+        In each AnimalCommunity one AnimalCohort of each FunctionalGroup type is
+        generated. So the more functional groups that are made, the denser the animal
+        community will be. This function will need to be reworked dramatically later on.
+
+        """
         for functional_group in self.functional_groups:
             cohort = AnimalCohort(functional_group, functional_group.adult_mass, 0.0)
             self.animal_cohorts[functional_group.name].append(cohort)
@@ -90,7 +85,7 @@ class AnimalCommunity:
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def birth(self, cohort: AnimalCohort) -> None:
+    def birth(self, parent_cohort: AnimalCohort) -> None:
         """The function to produce a new AnimalCohort through reproduction.
 
         Currently, the birth function returns an identical cohort of adults with age
@@ -98,13 +93,16 @@ class AnimalCommunity:
         traits based on parental type.
 
         Args:
-            cohort: The AnimalCohort instance which is producing a new AnimalCohort.
+            parent_cohort: The AnimalCohort instance which is producing a new
+            AnimalCohort.
 
 
         """
-        self.animal_cohorts[cohort.name].append(
+        self.animal_cohorts[parent_cohort.name].append(
             AnimalCohort(
-                cohort.functional_group, cohort.functional_group.birth_mass, 0.0
+                parent_cohort.functional_group,
+                parent_cohort.functional_group.birth_mass,
+                0.0,
             )
         )
 
@@ -113,7 +111,7 @@ class AnimalCommunity:
         # Create a snapshot list of the current cohorts
         current_cohorts = list(chain.from_iterable(self.animal_cohorts.values()))
         for cohort in current_cohorts:
-            # insert check for reproductive mass
+            # need: insert check for reproductive mass
             self.birth(cohort)
 
     def forage_community(self) -> None:
@@ -178,8 +176,8 @@ class AnimalCommunity:
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # insert check for migration
-            # insert random walk destination
+            # need: insert check for migration
+            # need: insert random walk destination
             destination = self
             self.migrate(cohort, destination)
 
@@ -194,12 +192,23 @@ class AnimalCommunity:
             cohort.metabolize(dt)
 
     def increase_age_community(self, dt: timedelta64) -> None:
-        """This handles age for all cohorts in a community."""
+        """This handles age for all cohorts in a community.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
             cohort.increase_age(dt)
 
     def mortality_community(self) -> None:
-        """This handles natural mortality for all cohorts in a community."""
+        """This handles natural mortality for all cohorts in a community.
+
+        This is a placeholder for running natural mortality rates at a community level.
+        Currently there is no working natural mortality implemented and so this calls
+        an effective rate of 0 through die_individual.
+
+        """
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
             # insert check for whether natural death occurs
             # determine how many deaths occur

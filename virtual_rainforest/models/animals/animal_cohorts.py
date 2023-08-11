@@ -1,13 +1,6 @@
 """The ''animals'' module provides animal module functionality.
 
-Todo:
-
-
-Current simplifications:
-- only iteroparity (want: semelparity)
-- no development
-
-Notes to self:
+Notes:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2

@@ -209,3 +209,67 @@ class TestAnimalCommunity:
         collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
 
         assert collected_prey == []
+
+    def test_populate_community(self, animal_community_instance):
+        """Testing populate_community."""
+        animal_community_instance.populate_community()
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            assert len(cohorts) == 1  # since it should have populated one of each
+
+    def test_birth_community(self, animal_community_instance):
+        """Testing birth_community."""
+        from itertools import chain
+
+        animal_community_instance.populate_community()
+        initial_cohort = list(
+            chain.from_iterable(animal_community_instance.animal_cohorts.values())
+        )[0]
+        initial_count = len(
+            animal_community_instance.animal_cohorts[initial_cohort.name]
+        )
+        animal_community_instance.birth_community()
+        new_count = len(animal_community_instance.animal_cohorts[initial_cohort.name])
+        assert new_count == initial_count + 1
+
+    def test_increase_age_community(self, animal_community_instance):
+        """Testing increase_age_community."""
+        from itertools import chain
+
+        from numpy import timedelta64
+
+        animal_community_instance.populate_community()
+
+        initial_age = list(
+            chain.from_iterable(animal_community_instance.animal_cohorts.values())
+        )[0].age
+        animal_community_instance.increase_age_community(timedelta64(5, "D"))
+        new_age = list(
+            chain.from_iterable(animal_community_instance.animal_cohorts.values())
+        )[0].age
+        assert new_age == initial_age + 5
+
+    def test_metabolize_community(self, animal_community_instance, mocker):
+        """Testing metabolize_community."""
+        from itertools import chain
+
+        from numpy import timedelta64
+
+        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+        mock_metabolize = mocker.patch.object(AnimalCohort, "metabolize")
+        animal_community_instance.metabolize_community(timedelta64(5, "D"))
+        assert mock_metabolize.call_count == len(
+            list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
+        )
+
+    def test_mortality_community(self, animal_community_instance, mocker):
+        """Testing mortality_community."""
+        from itertools import chain
+
+        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+        mock_die_individual = mocker.patch.object(AnimalCohort, "die_individual")
+        animal_community_instance.mortality_community()
+        assert mock_die_individual.call_count == len(
+            list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
+        )
