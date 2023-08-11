@@ -54,16 +54,14 @@ def calculate_litter_pool_updates(
         temp_response=constants.litter_decomp_temp_response,
     )
     # Calculate temperature factor for the below ground litter layers
-    # TODO - Use this 2nd temp factor for something
-    calculate_temperature_effect_on_litter_decomp(
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
         temperature=topsoil_temp,
         reference_temp=constants.litter_decomp_reference_temp,
         offset_temp=constants.litter_decomp_offset_temp,
         temp_response=constants.litter_decomp_temp_response,
     )
     # Calculate the water factor (relevant for below ground layers)
-    # TODO - use this water factor for something
-    calculate_moisture_effect_on_litter_decomp(
+    water_factor = calculate_moisture_effect_on_litter_decomp(
         water_potential=water_potential,
         water_potential_halt=constants.litter_decay_water_potential_halt,
         water_potential_opt=constants.litter_decay_water_potential_optimum,
@@ -86,6 +84,18 @@ def calculate_litter_pool_updates(
         woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
     )
+    metabolic_below_decay = calculate_litter_decay_metabolic_below(
+        temperature_factor_below,
+        water_factor,
+        below_metabolic,
+        litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
+    )
+    structural_below_decay = calculate_litter_decay_structural_below(
+        temperature_factor_below,
+        water_factor,
+        below_structural,
+        litter_decay_coefficient=constants.litter_decay_constant_structural_below,
+    )
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
@@ -99,6 +109,13 @@ def calculate_litter_pool_updates(
         woody_decay,
         carbon_use_efficiency=constants.cue_woody,
     )
+    metabolic_below_mineral = calculate_carbon_mineralised(
+        metabolic_below_decay, carbon_use_efficiency=constants.cue_metabolic
+    )
+    structural_below_mineral = calculate_carbon_mineralised(
+        structural_below_decay,
+        carbon_use_efficiency=constants.cue_structural_below_ground,
+    )
 
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
@@ -108,10 +125,20 @@ def calculate_litter_pool_updates(
         constants.litter_input_to_structural_above - structural_above_decay
     ) * update_interval
     change_in_woody = (constants.litter_input_to_woody - woody_decay) * update_interval
+    change_in_metabolic_below = (
+        constants.litter_input_to_metabolic_below - metabolic_below_decay
+    ) * update_interval
+    change_in_structural_below = (
+        constants.litter_input_to_structural_below - structural_below_decay
+    ) * update_interval
 
     # Calculate mineralisation rate
     total_C_mineralisation_rate = (
-        metabolic_above_mineral + structural_above_mineral + woody_mineral
+        metabolic_above_mineral
+        + structural_above_mineral
+        + woody_mineral
+        + metabolic_below_mineral
+        + structural_below_mineral
     )
     # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
     total_C_mineralisation_rate /= constants.depth_of_active_layer
@@ -125,7 +152,12 @@ def calculate_litter_pool_updates(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
         "litter_pool_woody": DataArray(woody + change_in_woody, dims="cell_id"),
-        # TODO - A unit conversion of this is needed somewhere
+        "litter_pool_below_metabolic": DataArray(
+            below_metabolic + change_in_metabolic_below, dims="cell_id"
+        ),
+        "litter_pool_below_structural": DataArray(
+            below_structural + change_in_structural_below, dims="cell_id"
+        ),
         "litter_C_mineralisation_rate": DataArray(
             total_C_mineralisation_rate, dims="cell_id"
         ),

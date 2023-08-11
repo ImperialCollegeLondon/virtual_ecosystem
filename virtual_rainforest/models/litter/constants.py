@@ -104,6 +104,20 @@ class LitterConsts:
     removed once the litter is linked to other models.
     """
 
+    litter_input_to_metabolic_below: float = 0.00042
+    """Litter input rate to metabolic below ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
+
+    litter_input_to_structural_below: float = 0.00048
+    """Litter input rate to structural below ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
+
     cue_metabolic: float = 0.45
     """Carbon use efficiency of metabolic litter decay [unitless].
 
@@ -123,6 +137,13 @@ class LitterConsts:
 
     cue_woody: float = 0.55
     """Carbon use efficiency of woody litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
+    documentation for :attr:`cue_metabolic` for details.
+    """
+
+    cue_structural_below_ground: float = 0.45
+    """Carbon use efficiency of belowground structural litter decay [unitless].
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
     documentation for :attr:`cue_metabolic` for details.

@@ -112,8 +112,9 @@ def test_calculate_litter_pool_updates(
         "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
         "litter_pool_woody": [4.702103, 11.801373, 7.301836],
-        # TODO - add extra pools here
-        "litter_C_mineralisation_rate": [0.00954728, 0.006911, 0.00361112],
+        "litter_pool_below_metabolic": [0.39503569, 0.36235665, 0.06916170],
+        "litter_pool_below_structural": [0.60030082, 0.31033012, 0.02047202],
+        "litter_C_mineralisation_rate": [0.01956154, 0.02169480, 0.00589040],
     }
 
     # Calculate water potential
