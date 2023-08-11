@@ -57,6 +57,8 @@ class LitterModel(BaseModel):
         ("litter_pool_above_metabolic", ("spatial",)),
         ("litter_pool_above_structural", ("spatial",)),
         ("litter_pool_woody", ("spatial",)),
+        ("litter_pool_below_metabolic", ("spatial",)),
+        ("litter_pool_below_structural", ("spatial",)),
     )
     """Required initialisation variables for the litter model.
 
@@ -66,6 +68,8 @@ class LitterModel(BaseModel):
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
         "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
     ]
     """Variables updated by the litter model."""
 
@@ -85,6 +89,8 @@ class LitterModel(BaseModel):
             np.any(data["litter_pool_above_metabolic"] < 0.0)
             or np.any(data["litter_pool_above_structural"] < 0.0)
             or np.any(data["litter_pool_woody"] < 0.0)
+            or np.any(data["litter_pool_below_metabolic"] < 0.0)
+            or np.any(data["litter_pool_below_structural"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial litter pools contain at least one negative value!"
@@ -166,11 +172,16 @@ class LitterModel(BaseModel):
             surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),
+            topsoil_temp=self.data["soil_temperature"][
+                self.top_soil_layer_index
+            ].to_numpy(),
             constants=self.constants,
             update_interval=self.update_interval.to("day").magnitude,
             above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
             above_structural=self.data["litter_pool_above_structural"].to_numpy(),
             woody=self.data["litter_pool_woody"].to_numpy(),
+            below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
+            below_structural=self.data["litter_pool_below_structural"].to_numpy(),
         )
 
         # Update the litter pools

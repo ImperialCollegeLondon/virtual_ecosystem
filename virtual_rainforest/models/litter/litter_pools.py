@@ -14,11 +14,41 @@ from virtual_rainforest.models.litter.constants import LitterConsts
 # to use this at some point.
 
 
+def convert_soil_moisture_to_water_potential(
+    soil_moisture: NDArray[np.float32],
+    air_entry_water_potential: float,
+    water_retention_curvature: float,
+) -> NDArray[np.float32]:
+    """Convert soil moisture into an estimate of water potential.
+
+    This function provides a coarse estimate of soil water potential. It is taken from
+    :cite:t:`campbell_simple_1974`.
+
+    TODO - This is a stopgap solution until we decide on a systematic way of handling
+    water potentials across the relevant models (`soil`, `litter`, `plants` and
+    `hydrology`).
+
+    Args:
+        soil_moisture: Volumetric relative water content [unitless]
+        air_entry_water_potential: Water potential at which soil pores begin to aerate
+            [kPa]
+        water_retention_curvature: Curvature of water retention curve [unitless]
+
+    Returns:
+        An estimate of the water potential of the soil [kPa]
+    """
+
+    return air_entry_water_potential * (soil_moisture**water_retention_curvature)
+
+
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
+    topsoil_temp: NDArray[np.float32],
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],
     woody: NDArray[np.float32],
+    below_metabolic: NDArray[np.float32],
+    below_structural: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
@@ -26,10 +56,14 @@ def calculate_litter_pool_updates(
 
     Args:
         surface_temp: Temperature of soil surface, which is assumed to be the same
-            temperature of the above ground litter [C]
+            temperature as the above ground litter [C]
+        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
+            temperature as the below ground litter [C]
         above_metabolic: Above ground metabolic litter pool [kg C m^-2]
         above_structural: Above ground structural litter pool [kg C m^-2]
         woody: The woody litter pool [kg C m^-2]
+        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
+        below_structural: Below ground structural litter pool [kg C m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 

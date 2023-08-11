@@ -140,3 +140,21 @@ class LitterConsts:
     constants are not yet setup, so this constant is being stored here for the time
     being.
     """
+
+    air_entry_water_potential: float = -3.815
+    """Water potential at which soil pores begin to aerate [kPa].
+
+    The constant is used to estimate soil water potential from soil moisture. As this
+    estimation is a stopgap this constant probably shouldn't become a core constant. The
+    value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`. In future, this could be calculated based on soil
+    texture.
+    """
+
+    water_retention_curvature: float = -7.22
+    """Curvature of the water retention curve.
+
+    The value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`; see documentation for
+    :attr:`air_entry_water_potential` for further details.
+    """
