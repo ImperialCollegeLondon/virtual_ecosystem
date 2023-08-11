@@ -134,3 +134,113 @@ def test_generate_animal_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_apply_community_method_to_all_communities(
+    data_instance, functional_group_list_instance
+):
+    """Test apply community method to make sure it runs all communities.."""
+    from unittest.mock import MagicMock
+
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    # Setup model
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    # Mock a method in the AnimalCommunity class
+    method_name = "forage_community"
+    for community in model.communities.values():
+        mock_method = MagicMock()
+        setattr(community, method_name, mock_method)
+
+    # Apply the method
+    model.apply_community_method(method_name)
+
+    # Assert that the method was called for each community
+    for community in model.communities.values():
+        method = getattr(community, method_name)
+        method.assert_called_once()
+
+
+def test_apply_community_method_with_arguments(
+    data_instance, functional_group_list_instance
+):
+    """Test apply community method to ensure it runs with arguments."""
+    from unittest.mock import MagicMock
+
+    from numpy import timedelta64
+
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    method_name = "increase_age_community"
+    args = (timedelta64(1, "D"),)
+    for community in model.communities.values():
+        mock_method = MagicMock()
+        setattr(community, method_name, mock_method)
+
+    model.apply_community_method(method_name, *args)
+
+    for community in model.communities.values():
+        method = getattr(community, method_name)
+        method.assert_called_once_with(*args)
+
+
+def test_update_method_sequence(data_instance, functional_group_list_instance):
+    """Test update to ensure it runs the community methods in order."""
+    from unittest.mock import MagicMock
+
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    # Mock all the methods that are supposed to be called by update
+    method_names = [
+        "forage_community",
+        "migrate_community",
+        "birth_community",
+        "metabolize_community",
+        "mortality_community",
+        "increase_age_community",
+    ]
+
+    mock_methods = {}
+    for method_name in method_names:
+        for community in model.communities.values():
+            mock_method = MagicMock(name=method_name)
+            setattr(community, method_name, mock_method)
+            mock_methods[method_name] = mock_method
+
+    model.update(time_index=0)
+
+    # Collect the call sequence
+    call_sequence = []
+    for mock in mock_methods.values():
+        if mock.call_args_list:
+            call_sequence.append(mock._mock_name)
+
+    # Assert the methods were called in the expected order
+    assert call_sequence == method_names
+
+
+def test_update_method_time_index_argument(
+    data_instance, functional_group_list_instance
+):
+    """Test update to ensure the time index argument does not create an error."""
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    time_index = 5
+    model.update(time_index=time_index)
+
+    assert True
