@@ -304,3 +304,28 @@ class TestAnimalCohort:
         herb_cohort_instance.individuals = 0
         with pytest.raises(ValueError, match="Individuals cannot be 0."):
             herb_cohort_instance.eat(mock_food, mock_pool)
+
+    def test_can_reproduce_method(self, herb_cohort_instance):
+        """Test the can_reproduce method of AnimalCohort."""
+
+        # 1. Test when stored_energy is exactly equal to the threshold
+        herb_cohort_instance.stored_energy = (
+            herb_cohort_instance.reproduction_energy_threshold
+        )
+        assert herb_cohort_instance.can_reproduce()
+
+        # 2. Test when stored_energy is just below the threshold
+        herb_cohort_instance.stored_energy = (
+            herb_cohort_instance.reproduction_energy_threshold - 0.01
+        )
+        assert not herb_cohort_instance.can_reproduce()
+
+        # 3. Test when stored_energy is above the threshold
+        herb_cohort_instance.stored_energy = (
+            herb_cohort_instance.reproduction_energy_threshold + 0.01
+        )
+        assert herb_cohort_instance.can_reproduce()
+
+        # 4. Test with stored_energy set to 0
+        herb_cohort_instance.stored_energy = 0.0
+        assert not herb_cohort_instance.can_reproduce()

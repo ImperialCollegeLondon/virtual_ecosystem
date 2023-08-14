@@ -216,20 +216,86 @@ class TestAnimalCommunity:
         for cohorts in animal_community_instance.animal_cohorts.values():
             assert len(cohorts) == 1  # since it should have populated one of each
 
+    def test_birth(self, animal_community_instance, animal_cohort_instance):
+        """Test the birth method in AnimalCommunity."""
+
+        # Setup initial conditions
+        parent_cohort_name = animal_cohort_instance.name
+        animal_community_instance.animal_cohorts[parent_cohort_name].append(
+            animal_cohort_instance
+        )
+        initial_cohort_count = len(
+            animal_community_instance.animal_cohorts[parent_cohort_name]
+        )
+
+        # Set up the energy level of the parent cohort to ensure it can reproduce
+        required_energy_for_birth = animal_cohort_instance.reproduction_cost
+
+        animal_cohort_instance.stored_energy = (
+            required_energy_for_birth + 10
+        )  # Setting it 10 units above the required
+
+        initial_stored_energy = animal_cohort_instance.stored_energy
+
+        # Call the birth method
+        animal_community_instance.birth(animal_cohort_instance)
+
+        # Assertions
+        # 1. Check that a new cohort of the same type as the parent cohort is added
+        new_cohort_count = len(
+            animal_community_instance.animal_cohorts[parent_cohort_name]
+        )
+        assert new_cohort_count == initial_cohort_count + 1
+
+        # 2. Check that the stored energy of the parent cohort is reduced correctly
+        expected_energy_after_birth = initial_stored_energy - required_energy_for_birth
+        assert animal_cohort_instance.stored_energy == expected_energy_after_birth
+
     def test_birth_community(self, animal_community_instance):
-        """Testing birth_community."""
+        """Test the thresholding behavior of birth_community."""
+
         from itertools import chain
 
+        # Preparation: populate the community
         animal_community_instance.populate_community()
-        initial_cohort = list(
+
+        # Choose a cohort to track
+        all_cohorts = list(
             chain.from_iterable(animal_community_instance.animal_cohorts.values())
-        )[0]
-        initial_count = len(
+        )
+        initial_cohort = all_cohorts[0]
+
+        # Set energy to just below the threshold
+        threshold_energy = initial_cohort.reproduction_energy_threshold
+
+        initial_cohort.stored_energy = threshold_energy - 0.1
+        initial_count_below_threshold = len(
             animal_community_instance.animal_cohorts[initial_cohort.name]
         )
+
+        # Execution: apply birth to the community
         animal_community_instance.birth_community()
-        new_count = len(animal_community_instance.animal_cohorts[initial_cohort.name])
-        assert new_count == initial_count + 1
+
+        # Assertion: check if the cohort count remains unchanged
+        new_count_below_threshold = len(
+            animal_community_instance.animal_cohorts[initial_cohort.name]
+        )
+        assert new_count_below_threshold == initial_count_below_threshold
+
+        # Set energy to just above the threshold
+        initial_cohort.stored_energy = threshold_energy + 0.1
+        initial_count_above_threshold = len(
+            animal_community_instance.animal_cohorts[initial_cohort.name]
+        )
+
+        # Execution: apply birth to the community again
+        animal_community_instance.birth_community()
+
+        # Assertion: check if the cohort count increased by 1 for the above case
+        new_count_above_threshold = len(
+            animal_community_instance.animal_cohorts[initial_cohort.name]
+        )
+        assert new_count_above_threshold == initial_count_above_threshold + 1
 
     def test_increase_age_community(self, animal_community_instance):
         """Testing increase_age_community."""

@@ -86,18 +86,18 @@ class AnimalCommunity:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
-        """The function to produce a new AnimalCohort through reproduction.
+        """Produce a new AnimalCohort through reproduction.
 
-        Currently, the birth function returns an identical cohort of adults with age
-        0. In the future, the offspring will be modified to have appropriate juvenile
-        traits based on parental type.
+        A cohort can only reproduce if it has an excess of stored energy above a
+        certain threshold. The offspring will be an identical cohort of adults
+        with age 0 and mass=birth_mass.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
             AnimalCohort.
 
-
         """
+        # add a new cohort of the parental type to the community
         self.animal_cohorts[parent_cohort.name].append(
             AnimalCohort(
                 parent_cohort.functional_group,
@@ -106,13 +106,19 @@ class AnimalCommunity:
             )
         )
 
+        # reduce the parent cohorts stored energy by the reproduction cost
+        parent_cohort.stored_energy -= parent_cohort.reproduction_cost
+
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
+
         # Create a snapshot list of the current cohorts
         current_cohorts = list(chain.from_iterable(self.animal_cohorts.values()))
+
+        # reproduction occurs for cohorts with sufficient energy
         for cohort in current_cohorts:
-            # need: insert check for reproductive mass
-            self.birth(cohort)
+            if cohort.can_reproduce():
+                self.birth(cohort)
 
     def forage_community(self) -> None:
         """This function needs to organize the foraging of animal cohorts.

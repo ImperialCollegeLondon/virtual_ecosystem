@@ -16,7 +16,12 @@ from numpy import timedelta64
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.carcasses import CarcassPool
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY, TEMPERATURE
+from virtual_rainforest.models.animals.constants import (
+    ENERGY_DENSITY,
+    REPRODUCTION_ENERGY_COST_MULTIPLIER,
+    REPRODUCTION_ENERGY_MULTIPLIER,
+    TEMPERATURE,
+)
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.protocols import Consumer, Pool, Resource
 from virtual_rainforest.models.animals.scaling_functions import (
@@ -74,6 +79,24 @@ class AnimalCohort:
         )
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
+        self.reproduction_energy_threshold: float = (
+            energetic_reserve_scaling(
+                mass,
+                self.functional_group.muscle_mass_terms,
+                self.functional_group.fat_mass_terms,
+            )
+            * REPRODUCTION_ENERGY_MULTIPLIER
+        )
+        """The energetic reserve threshold at which the cohort can reproduce."""
+        self.reproduction_cost: float = (
+            energetic_reserve_scaling(
+                mass,
+                self.functional_group.muscle_mass_terms,
+                self.functional_group.fat_mass_terms,
+            )
+            * REPRODUCTION_ENERGY_COST_MULTIPLIER
+        )
+        """The energetic reserve of reproduction."""
         self.intake_rate: float = intake_rate_scaling(
             self.mass, self.functional_group.intake_rate_terms
         )
@@ -244,3 +267,16 @@ class AnimalCohort:
         energy = food.get_eaten(self, pool) / self.individuals
         self.stored_energy += energy
         return energy  # for passing to excrete
+
+    def can_reproduce(self) -> bool:
+        """Checks if a cohort has sufficient energy to reproduce.
+
+        Currently this keys off an excess of stored_energy, later in development this
+        reproduction system will work around a specific pool of reproductive mass.
+
+        Return:
+            Boolean of whether or not the cohort exceeds the reproduction threshold and
+            can reproduce.
+
+        """
+        return self.stored_energy >= self.reproduction_energy_threshold
