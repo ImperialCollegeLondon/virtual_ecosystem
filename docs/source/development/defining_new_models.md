@@ -424,7 +424,7 @@ def cleanup(self) -> None:
 
 Lastly, you will need to set up the `__init__.py` file. The simple presence of the
 `__init__.py` file tells Python that the directory content should be treated as module,
-but then the file needs to contain code to do two things:
+but then the file needs to contain code to do three things:
 
 1. It also needs to import the main BaseModel subclass. So for example, it should import
     `FreshwaterModel` from the `virtual_rainforest.models.freshwater.freshwater_model`
@@ -446,6 +446,11 @@ but then the file needs to contain code to do two things:
     {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute: it is
     simplest to do this by using the imported class attribute directly!
 
+1. Any constants classes also need to be added to the registry. The
+   {meth}`~virtual_rainforest.core.constants.register_constants_class` function imports
+   the relevant constants class and adds it to the
+   {data}`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
+
 The resulting `__init__.py` file should then look something like this:
 
 ```python
@@ -456,6 +461,7 @@ short description of the overall model design and purpose.
 from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.constants import register_constants_class
 from virtual_rainforest.models.freshwater.freshwater_model import FreshWaterModel
 
 with resources.path(
@@ -464,4 +470,6 @@ with resources.path(
     register_schema(
         module_name=FreshWaterModel.model_name, schema_file_path=schema_file_path
     )
+
+register_constants_class("freshwater", "FreshWaterConsts")
 ```
