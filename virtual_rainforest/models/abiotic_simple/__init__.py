@@ -22,6 +22,7 @@ Each of the abiotic sub-modules has its own API reference page:
 from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.constants import register_constants_class
 from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     AbioticSimpleModel,
 )
@@ -32,3 +33,5 @@ with resources.path(
     register_schema(
         module_name=AbioticSimpleModel.model_name, schema_file_path=schema_file_path
     )
+
+register_constants_class("abiotic_simple", "AbioticSimpleConsts")
