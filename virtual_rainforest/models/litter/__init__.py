@@ -26,4 +26,4 @@ with resources.path(
         module_name=LitterModel.model_name, schema_file_path=schema_file_path
     )
 
-register_constants_class("soil", "SoilConsts")
+register_constants_class("litter", "LitterConsts")
