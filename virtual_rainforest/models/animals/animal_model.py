@@ -95,9 +95,7 @@ class AnimalModel(BaseModel):
 
         functional_groups = []
         for k in functional_groups_raw:
-            functional_groups.append(
-                FunctionalGroup(k[0], k[1], k[2], k[3], k[4], k[5])
-            )
+            functional_groups.append(FunctionalGroup(*k))
         """create list of functional group objects to initialize  communities with."""
 
         LOGGER.info(
@@ -121,12 +119,13 @@ class AnimalModel(BaseModel):
             time_index: The index representing the current time step in the data object.
         """
 
-        self.apply_community_method("forage_community")
-        self.apply_community_method("migrate_community")
-        self.apply_community_method("birth_community")
-        self.apply_community_method("metabolize_community", (timedelta64(1, "D"),))
-        self.apply_community_method("mortality_community")
-        self.apply_community_method("increase_age_community", (timedelta64(1, "D"),))
+        for community in self.communities.values():
+            community.forage_community()
+            community.migrate_community()
+            community.birth_community()
+            community.metabolize_community(timedelta64(1, "D"))
+            community.mortality_community()
+            community.increase_age_community(timedelta64(1, "D"))
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
