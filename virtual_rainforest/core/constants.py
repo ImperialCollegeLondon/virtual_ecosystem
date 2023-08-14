@@ -39,6 +39,9 @@ def register_constants_class(model_name: str, class_name: str) -> None:
             )
             LOGGER.critical(excep)
             raise excep
+    else:
+        # If model name is yet registered add it in as an empty dictionary
+        CONSTANTS_REGISTRY[model_name] = {}
 
     try:
         # Import dataclass of interest
@@ -48,7 +51,7 @@ def register_constants_class(model_name: str, class_name: str) -> None:
         CONSTANTS_REGISTRY[model_name][class_name] = getattr(consts_module, class_name)
     except Exception as excep:
         LOGGER.critical(
-            "Registration for %s.%s constant class failed: check log",
+            "Registration for %s.%s constants class failed: check log",
             model_name,
             class_name,
         )
