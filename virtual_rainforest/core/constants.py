@@ -8,10 +8,50 @@ contains the :attr:`CONSTANTS_REGISTRY`, which all constants classes should be
 registered in across models. This allows for all constants to be documented neatly.
 """  # noqa: D205, D415
 
-from typing import Any
+from importlib import import_module
+from typing import Callable
 
-CONSTANTS_REGISTRY: dict[str, Any] = {}
+from virtual_rainforest.core.logger import LOGGER
+
+CONSTANTS_REGISTRY: dict[str, dict[str, Callable]] = {}
 """A registry for all the constants data classes.
 
 :meta hide-value:
 """
+
+
+def register_constants_class(model_name: str, class_name: str) -> None:
+    """Simple function to add a constants class to the registry.
+
+    Args:
+        model_name: The name of the model that the constant class belongs to
+        class_name: The name of the constants class
+
+    Raises:
+        ValueError: If the model and class name have already been used to register a
+            constants class
+    """
+
+    if model_name in CONSTANTS_REGISTRY:
+        if class_name in CONSTANTS_REGISTRY[model_name]:
+            excep = ValueError(
+                f"The constants class {model_name}.{class_name} is already registered"
+            )
+            LOGGER.critical(excep)
+            raise excep
+
+    try:
+        # Import dataclass of interest
+        import_path = f"virtual_rainforest.models.{model_name}.constants"
+        consts_module = import_module(import_path)
+        # Add data class to the constants registry
+        CONSTANTS_REGISTRY[model_name][class_name] = getattr(consts_module, class_name)
+    except Exception as excep:
+        LOGGER.critical(
+            "Registration for %s.%s constant class failed: check log",
+            model_name,
+            class_name,
+        )
+        raise excep
+
+    LOGGER.info("Constants class %s.%s registered", model_name, class_name)
