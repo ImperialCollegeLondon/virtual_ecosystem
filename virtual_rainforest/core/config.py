@@ -9,11 +9,11 @@ expected configuration tags, their expected types, and any constraints on their 
 default values exist (e.g. 1 week for the model time step) they should also be included
 in the schema. This schema should be saved in the folder of the module that it relates
 to. In order to make this schema generally accessible the module's ``__init__.py``
-should call the :func:`~virtual_rainforest.core.config.register_schema` function, which
-will load and validate the schema before adding it to the registry. You will need to
-provides a module name to register the schema under, which should be unique to that
-model. The function also requires the path to the schema file, which should be located
-using the :func:`importlib.resources.path` context manager:
+should call the :func:`register_schema` function, which will load and validate the
+schema before adding it to the registry. You will need to provides a module name to
+register the schema under, which should be unique to that model. The function also
+requires the path to the schema file, which should be located using the
+:func:`importlib.resources.path` context manager:
 
 .. code-block:: python
 
@@ -24,7 +24,7 @@ using the :func:`importlib.resources.path` context manager:
 
 The base Virtual Rainforest module will automatically import modules when it is
 imported, which ensures that all modules schemas are registered in
-:attr:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
+:attr:`SCHEMA_REGISTRY`.
 """  # noqa: D205, D415
 import json
 import sys
