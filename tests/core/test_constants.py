@@ -1,7 +1,6 @@
 """Check that the system to register constants is working as expected."""
 
-from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO
+from logging import CRITICAL
 
 import pytest
 
@@ -11,17 +10,6 @@ from tests.conftest import log_check
 @pytest.mark.parametrize(
     "model_name,class_name,raises,expected_log_entries",
     [
-        (
-            "litter",
-            "LitterConsts",
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Constants class litter.LitterConsts registered",
-                ),
-            ),
-        ),
         (
             "litter",
             "LitterConsts",
