@@ -130,3 +130,6 @@ PREY_MASS_SCALING_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
+
+REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
+REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs

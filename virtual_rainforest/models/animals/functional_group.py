@@ -35,7 +35,15 @@ class FunctionalGroup:
 
     """
 
-    def __init__(self, name: str, taxa: str, diet: str, metabolic_type: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        taxa: str,
+        diet: str,
+        metabolic_type: str,
+        birth_mass: float,
+        adult_mass: float,
+    ) -> None:
         """The constructor for the FunctionalGroup class."""
 
         self.name = name
@@ -46,6 +54,10 @@ class FunctionalGroup:
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group"""
+        self.birth_mass = birth_mass
+        """The mass of the functional group at birth."""
+        self.adult_mass = adult_mass
+        """The mass of the functional group at adulthood."""
         self.metabolic_rate_terms = METABOLIC_RATE_TERMS[self.metabolic_type][self.taxa]
         """The coefficient and exponent of metabolic rate."""
         self.damuths_law_terms = DAMUTHS_LAW_TERMS[self.taxa][self.diet]
@@ -68,7 +80,7 @@ def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:
 
     This function is a first-pass of how we might import pre-defined functional groups.
     The current expected csv structure is:
-    - ["name", "taxa", "diet", "metabolic_type"]
+    - ["name", "taxa", "diet", "metabolic_type", "birth_mass", "adult_mass"]
     the specific options of which can be found in functional_group.py.
     This allows a user to set out a basic outline of functional groups that accept our
     definitions of parameters and scaling relationships based on those traits.
@@ -94,7 +106,14 @@ def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:
         )
 
     functional_group_list = [
-        FunctionalGroup(row.name, row.taxa, row.diet, row.metabolic_type)
+        FunctionalGroup(
+            row.name,
+            row.taxa,
+            row.diet,
+            row.metabolic_type,
+            row.birth_mass,
+            row.adult_mass,
+        )
         for row in fg.itertuples()
     ]
 
