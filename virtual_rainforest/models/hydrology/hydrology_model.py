@@ -40,7 +40,8 @@ class HydrologyModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         soil_layers: The number of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
-        initial_soil_moisture: The initial soil moisture for all layers.
+        initial_soil_moisture: The initial volumetric relative water content [unitless]
+            for all layers.
         constants: Set of constants for the hydrology model.
 
     Raises:
@@ -113,7 +114,8 @@ class HydrologyModel(BaseModel):
         self.update_interval
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
-        """Initial soil moisture for all layers and grill cells identical."""
+        """Initial volumetric relative water content [unitless] for all layers and grid
+        cells identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
 
@@ -221,7 +223,7 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # Create initial relative humidity  with reference humidity below the canopy
+        # Create initial relative humidity with reference humidity below the canopy
         # for first soil evaporation update.
         self.data["relative_humidity"] = (
             DataArray(self.data["relative_humidity_ref"].isel(time_index=0))
@@ -313,7 +315,7 @@ class HydrologyModel(BaseModel):
         where :math:`P` is mean precipitation, :math:`ET` is evapotranspiration, and
         :math:`\Delta S` is the change in soil moisture. Note that this has to be called
         after evapotranspiration is calculated by the plant model which works as long as
-        the P-model does not require soil mositure as an input. In the future, this
+        the P-model does not require moisture as an input. In the future, this
         might move to a different model or the order of models might change.
 
         TODO Implement horizontal sub-surface flow
@@ -328,15 +330,15 @@ class HydrologyModel(BaseModel):
         * wind speed (currently not implemented, default = 0.1 m s-1)
         * leaf area index, [m m-2]
         * layer heights, [m]
-        * soil moisture (previous time step), [relative water content]
+        * Volumetric relative water content (previous time step), [unitless]
         * evapotranspiration (current time step), [mm]
         * accumulated surface runoff (previous time step), [mm]
 
         and the following soil parameters (defaults in
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`):
 
-        * soil moisture capacity, [relative water content]
-        * soil moisture residual, [relative water content]
+        * soil moisture capacity, [unitless]
+        * soil moisture residual, [unitless]
         * soil hydraulic conductivity, [m s-1]
         * soil hydraulic gradient, [m m-1]
         * van Genuchten non-linearity parameter, dimensionless
@@ -388,8 +390,8 @@ class HydrologyModel(BaseModel):
 
         # Calculate total soil moisture (before rainfall) in mm
         # To find out how much rain can be taken up by the soil before rain goes to
-        # runoff, the relative water content (between 0 and 1) is converted to mm with
-        # this equation:
+        # runoff, the volumetric relative water content (between 0 and 1) is converted
+        # to mm with this equation:
         # water content in mm = relative water content / 100 * depth in mm
         # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
         # TODO We treat the soil as one bucket, in the future, there should be a
@@ -425,7 +427,8 @@ class HydrologyModel(BaseModel):
         # Calculate total water in mm in each grid cell
         total_water_mm = total_soil_moisture_mm + precipitation_surface
 
-        # Calculate relative soil moisture incl infiltration and cap to capacity
+        # Calculate volumetric relative soil moisture after infiltration and cap to
+        # soil moisture capacity
         soil_moisture_infiltrated = DataArray(
             np.clip(
                 total_water_mm / soil_depth, 0, self.constants.soil_moisture_capacity
@@ -584,10 +587,10 @@ def calculate_vertical_flow(
     sophisticaed, multi-layer model or a simple residence time assumption.
 
     Args:
-        soil_moisture: (mean) soil moisture in top soil, [relative water content]
+        soil_moisture: (mean) Volumetric relative water content in top soil, [unitless]
         soil_depths: soil depths = length of the flow path, [m]
-        soil_moisture_capacity: soil moisture capacity, [relative water content]
-        soil_moisture_residual: residual soil moisture, [relative water content]
+        soil_moisture_capacity: soil moisture capacity, [unitless]
+        soil_moisture_residual: residual soil moisture, [unitless]
         hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
         hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
@@ -648,7 +651,7 @@ def calculate_soil_evaporation(
         temperature: air temperature at reference height, [C]
         relative_humidity: relative humidity at reference height, []
         atmospheric_pressure: atmospheric pressure at reference height, [kPa]
-        soil_moisture: top soil moisture, [relative water content]
+        soil_moisture: Volumetric relative water content [unitless]
         wind_speed: wind speed at reference height, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
