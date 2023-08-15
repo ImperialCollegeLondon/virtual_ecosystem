@@ -136,61 +136,6 @@ def test_generate_animal_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_apply_community_method_to_all_communities(
-    data_instance, functional_group_list_instance
-):
-    """Test apply community method to make sure it runs all communities.."""
-    from unittest.mock import MagicMock
-
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    # Setup model
-    model = AnimalModel(
-        data_instance, pint.Quantity("1 week"), functional_group_list_instance
-    )
-
-    # Mock a method in the AnimalCommunity class
-    method_name = "forage_community"
-    for community in model.communities.values():
-        mock_method = MagicMock()
-        setattr(community, method_name, mock_method)
-
-    # Apply the method
-    model.apply_community_method(method_name)
-
-    # Assert that the method was called for each community
-    for community in model.communities.values():
-        method = getattr(community, method_name)
-        method.assert_called_once()
-
-
-def test_apply_community_method_with_arguments(
-    data_instance, functional_group_list_instance
-):
-    """Test apply community method to ensure it runs with arguments."""
-    from unittest.mock import MagicMock
-
-    from numpy import timedelta64
-
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    model = AnimalModel(
-        data_instance, pint.Quantity("1 week"), functional_group_list_instance
-    )
-
-    method_name = "increase_age_community"
-    args = (timedelta64(1, "D"),)
-    for community in model.communities.values():
-        mock_method = MagicMock()
-        setattr(community, method_name, mock_method)
-
-    model.apply_community_method(method_name, *args)
-
-    for community in model.communities.values():
-        method = getattr(community, method_name)
-        method.assert_called_once_with(*args)
-
-
 def test_update_method_sequence(data_instance, functional_group_list_instance):
     """Test update to ensure it runs the community methods in order."""
     from unittest.mock import MagicMock

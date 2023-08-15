@@ -129,26 +129,3 @@ class AnimalModel(BaseModel):
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
-
-    def apply_community_method(
-        self, community_method: str, *args: tuple, **kwargs: dict
-    ) -> None:
-        """This function applies community methods to all communities in the model.
-
-        This function is a simplifying placeholder for what may need to be a number of
-        different functions later one. Right now, it can be used to call the following
-        functions for each AnimalCommunity within the AnimalModel.
-
-        - populate_community
-        - forage_community
-        - migrate_community
-        - birth_community
-        - metabolize_community
-        - increase_age_community
-        - mortality_community
-
-
-        """
-        for community in self.communities.values():
-            method = getattr(community, community_method)
-            method(*args, **kwargs)
