@@ -167,10 +167,10 @@ class HydrologyModel(BaseModel):
         At the moment, this function initializes variables that are required to run the
         first update(). For the within grid cell hydrology, soil moisture is initialised
         homogenously for all soil layers, which are treated as one single bucket in this
-        simple approach. Air temperature and relative humidity below the canopy are set
-        to the reference values. This design might change with the implementation
-        of the SPLASH model in the plant module which will take care of the above-ground
-        hydrology.
+        simple approach. This design might change with the implementation of the SPLASH
+        model in the plant module which will take care of the above-ground hydrology.
+        Air temperature and relative humidity below the canopy are set to the 2m
+        reference values.
 
         For the hydrology across the grid (above-/below-ground and total runoff), this
         function identifies the upstream neighbours of each grid cell based on a digital
@@ -178,7 +178,7 @@ class HydrologyModel(BaseModel):
 
         TODO Identification of upstream neighbours should move to core as an attribute
         of the grid.
-        TODO implement below ground horizontal flow and update stream flow
+        TODO implement below-ground horizontal flow and update stream flow
         TODO The hydrology needs spin up
         """
 
@@ -255,27 +255,20 @@ class HydrologyModel(BaseModel):
         self.upstream_ids = upstream_ids
 
         # Get the runoff created by SPLASH or initial data set as the baseline:
-        # TODO replace with initial runoff
         baseline_runoff = np.array(self.data["surface_runoff"])
 
-        # set initial accumulated runoff to one cell value
+        # set initial accumulated runoff to zero
         accumulated_runoff = np.full_like(self.data["elevation"], 0)
 
         # calculate accumulated runoff for each cell (sum of the upstream neighbours)
-        # for the time_index: -1
-        # TODO spin up!
+        # TODO this requires a proper spin up!
         # TODO check for negative numbers
 
         for cell_id, upstream_id in enumerate(self.upstream_ids):
             accumulated_runoff[cell_id] += np.sum(baseline_runoff[upstream_id])
 
-        self.data["surface_runoff_accumulated"] = (
-            DataArray(
-                accumulated_runoff,
-                dims="cell_id",
-            )
-            .expand_dims("time_index")
-            .assign_coords({"cell_id": self.data.grid.cell_id, "time_index": [-1]})
+        self.data["surface_runoff_accumulated"] = DataArray(
+            accumulated_runoff, dims="cell_id"
         )
 
     def spinup(self) -> None:
@@ -417,7 +410,7 @@ class HydrologyModel(BaseModel):
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Calculate runoff in mm # TODO calculate surface runoff with flow map
+        # Calculate runoff of each grid cell in mm; might get replaced by SPLASH model
         soil_hydrology["surface_runoff"] = (
             DataArray(surface_runoff_cells.data - available_capacity_mm.data)
             .fillna(0)
@@ -500,31 +493,21 @@ class HydrologyModel(BaseModel):
             }
         )
 
-        # calculate surface total runoff, currently only surface
-        # Get the runoff created by SPLASH or initial data set as the baseline:
+        # Calculate accumulated surface runoff
+        # Get the runoff created by SPLASH or initial data set at time_index:
         single_cell_runoff = np.array(soil_hydrology["surface_runoff"])
 
-        # get accumulated runoff from previous time step
-        accumulated_runoff = np.array(
-            self.data["surface_runoff_accumulated"].isel(time_index=time_index - 1)
-        )
-        # calculate accumulated runoff for each cell (me + sum of upstream neighbours)
+        # Get accumulated runoff from previous time step
+        accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
+
+        # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
         for cell_id, upstream_id in enumerate(self.upstream_ids):
             accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
 
-        # TODO time index
-        soil_hydrology["surface_runoff_accumulated"] = xr.concat(
-            [
-                self.data["surface_runoff_accumulated"],
-                DataArray(accumulated_runoff, dims="cell_id")
-                .rename("surface_runoff_accumulated")
-                .expand_dims("time_index")
-                .assign_coords(
-                    {"cell_id": self.data.grid.cell_id, "time_index": [time_index]}
-                ),
-            ],
-            dim="time_index",
-        )
+        # TODO fix time index
+        soil_hydrology["surface_runoff_accumulated"] = DataArray(
+            accumulated_runoff, dims="cell_id"
+        ).assign_coords({"cell_id": self.data.grid.cell_id})
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
         # The maximum stream flow capacity is set to an arbitray value, could be used to
