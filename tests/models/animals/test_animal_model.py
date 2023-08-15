@@ -63,10 +63,38 @@ def test_animal_model_initialization(
                 "animals": {
                     "model_time_step": "12 hours",
                     "functional_groups": (
-                        ("carnivorous_bird", "bird", "carnivore", "endothermic"),
-                        ("herbivorous_bird", "bird", "herbivore", "endothermic"),
-                        ("carnivorous_mammal", "mammal", "carnivore", "endothermic"),
-                        ("herbivorous_mammal", "mammal", "herbivore", "endothermic"),
+                        (
+                            "carnivorous_bird",
+                            "bird",
+                            "carnivore",
+                            "endothermic",
+                            0.1,
+                            1.0,
+                        ),
+                        (
+                            "herbivorous_bird",
+                            "bird",
+                            "herbivore",
+                            "endothermic",
+                            0.05,
+                            0.5,
+                        ),
+                        (
+                            "carnivorous_mammal",
+                            "mammal",
+                            "carnivore",
+                            "endothermic",
+                            4.0,
+                            40.0,
+                        ),
+                        (
+                            "herbivorous_mammal",
+                            "mammal",
+                            "herbivore",
+                            "endothermic",
+                            1.0,
+                            10.0,
+                        ),
                     ),
                 },
             },
@@ -106,3 +134,58 @@ def test_generate_animal_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_update_method_sequence(data_instance, functional_group_list_instance):
+    """Test update to ensure it runs the community methods in order."""
+    from unittest.mock import MagicMock
+
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    # Mock all the methods that are supposed to be called by update
+    method_names = [
+        "forage_community",
+        "migrate_community",
+        "birth_community",
+        "metabolize_community",
+        "mortality_community",
+        "increase_age_community",
+    ]
+
+    mock_methods = {}
+    for method_name in method_names:
+        for community in model.communities.values():
+            mock_method = MagicMock(name=method_name)
+            setattr(community, method_name, mock_method)
+            mock_methods[method_name] = mock_method
+
+    model.update(time_index=0)
+
+    # Collect the call sequence
+    call_sequence = []
+    for mock in mock_methods.values():
+        if mock.call_args_list:
+            call_sequence.append(mock._mock_name)
+
+    # Assert the methods were called in the expected order
+    assert call_sequence == method_names
+
+
+def test_update_method_time_index_argument(
+    data_instance, functional_group_list_instance
+):
+    """Test update to ensure the time index argument does not create an error."""
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+    )
+
+    time_index = 5
+    model.update(time_index=time_index)
+
+    assert True

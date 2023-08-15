@@ -22,6 +22,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
+from numpy import timedelta64
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -94,7 +95,7 @@ class AnimalModel(BaseModel):
 
         functional_groups = []
         for k in functional_groups_raw:
-            functional_groups.append(FunctionalGroup(k[0], k[1], k[2], k[3]))
+            functional_groups.append(FunctionalGroup(*k))
         """create list of functional group objects to initialize  communities with."""
 
         LOGGER.info(
@@ -110,11 +111,21 @@ class AnimalModel(BaseModel):
         """Placeholder function to spin up the animal model."""
 
     def update(self, time_index: int) -> None:
-        """Placeholder function to solve the animal model.
+        """Function to step the animal model through time.
+
+        Currently this is a toy implementation.
 
         Args:
             time_index: The index representing the current time step in the data object.
         """
+
+        for community in self.communities.values():
+            community.forage_community()
+            community.migrate_community()
+            community.birth_community()
+            community.metabolize_community(timedelta64(1, "D"))
+            community.mortality_community()
+            community.increase_age_community(timedelta64(1, "D"))
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""

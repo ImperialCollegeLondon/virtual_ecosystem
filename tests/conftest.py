@@ -140,7 +140,7 @@ def dummy_carbon_data(layer_roles_fixture):
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
-            DataArray(np.full((1, 4), 0.1), dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
@@ -195,6 +195,14 @@ def dummy_litter_data(layer_roles_fixture):
         [0.5, 0.25, 0.09], dims=["cell_id"]
     )
     """Above ground structural litter pool (kg C m^-2)"""
+    data["litter_pool_woody"] = DataArray([4.7, 11.8, 7.3], dims=["cell_id"])
+    """Woody litter pool (kg C m^-2)"""
+    data["litter_pool_below_metabolic"] = DataArray([0.4, 0.37, 0.07], dims=["cell_id"])
+    """Below ground metabolic litter pool (kg C m^-2)"""
+    data["litter_pool_below_structural"] = DataArray(
+        [0.6, 0.31, 0.02], dims=["cell_id"]
+    )
+    """Below ground structural litter pool (kg C m^-2)"""
 
     data["soil_temperature"] = xr.concat(
         [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
@@ -210,6 +218,25 @@ def dummy_litter_data(layer_roles_fixture):
                 "cell_id": data.grid.cell_id,
             }
         )
+    )
+
+    # The layer dependant data has to be handled separately
+    data["soil_moisture"] = xr.concat(
+        [
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[0.25, 0.45, 0.3]], dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
+    data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
     )
 
     data["air_temperature"] = xr.concat(

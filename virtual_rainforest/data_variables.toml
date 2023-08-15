@@ -446,3 +446,50 @@ initialised_by = "external"
 updated_by = "soil"
 used_by = [ "soil"]
 
+[[variable]]
+name = "litter_pool_above_metabolic"
+description = "Above ground metabolic litter pool"
+unit = "kg C m^-2"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "litter"]
+
+[[variable]]
+name = "litter_pool_above_structural"
+description = "Above ground structural litter pool"
+unit = "kg C m^-2"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "litter"]
+
+[[variable]]
+name = "litter_pool_woody"
+description = "Woody litter pool"
+unit = "kg C m^-2"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "litter"]
+
+[[variable]]
+name = "litter_pool_below_metabolic"
+description = "Below ground metabolic litter pool"
+unit = "kg C m^-2"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "litter"]
+
+[[variable]]
+name = "litter_pool_below_structural"
+description = "Below ground structural litter pool"
+unit = "kg C m^-2"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "litter"]
+
+[[variable]]
+name = "litter_C_mineralisation_rate"
+description = "Rate of carbon addition to soil from litter"
+unit = "kg C m^-3 day^-1"
+initialised_by = "litter"
+updated_by = "litter"
+used_by = [ "soil"]

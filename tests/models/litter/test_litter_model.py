@@ -45,6 +45,18 @@ def litter_model_fixture(dummy_litter_data):
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_structural' checked",
+                ),
             ),
         ),
         (
@@ -60,6 +72,21 @@ def litter_model_fixture(dummy_litter_data):
                     ERROR,
                     "litter model: init data missing required var "
                     "'litter_pool_above_structural'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'litter_pool_woody'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'litter_pool_below_metabolic'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'litter_pool_below_structural'",
                 ),
                 (
                     ERROR,
@@ -82,6 +109,18 @@ def litter_model_fixture(dummy_litter_data):
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_structural' checked",
                 ),
                 (
                     ERROR,
@@ -172,6 +211,18 @@ def test_litter_model_initialization(
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_structural' checked",
+                ),
             ),
         ),
         (
@@ -203,6 +254,18 @@ def test_litter_model_initialization(
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_structural' checked",
                 ),
             ),
         ),
@@ -263,7 +326,10 @@ def test_update(litter_model_fixture, dummy_litter_data):
 
     end_above_meta = [0.29577179, 0.14802621, 0.06922856]
     end_above_struct = [0.50055126, 0.25063497, 0.09068855]
-    c_mineral = [0.00212106, 0.00106053, 0.00049000]
+    end_woody = [4.702103, 11.801373, 7.301836]
+    end_below_meta = [0.394145, 0.35923, 0.069006]
+    end_below_struct = ([0.600271, 0.310272, 0.020471],)
+    c_mineral = [0.0212182, 0.0274272, 0.00617274]
 
     litter_model_fixture.update(time_index=0)
 
@@ -272,4 +338,29 @@ def test_update(litter_model_fixture, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["litter_pool_above_structural"], end_above_struct
     )
+    assert np.allclose(dummy_litter_data["litter_pool_woody"], end_woody)
+    assert np.allclose(dummy_litter_data["litter_pool_below_metabolic"], end_below_meta)
+    assert np.allclose(
+        dummy_litter_data["litter_pool_below_structural"], end_below_struct
+    )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
+
+
+def test_convert_soil_moisture_to_water_potential(
+    dummy_litter_data, top_soil_layer_index
+):
+    """Test that function to convert soil moisture to a water potential works."""
+    from virtual_rainforest.models.litter.litter_model import (
+        convert_soil_moisture_to_water_potential,
+    )
+
+    expected_potentials = [-297.14104, -4.2647655, -79.666189]
+
+    actual_potentials = convert_soil_moisture_to_water_potential(
+        dummy_litter_data["soil_moisture"][top_soil_layer_index].to_numpy(),
+        air_entry_water_potential=LitterConsts.air_entry_water_potential,
+        water_retention_curvature=LitterConsts.water_retention_curvature,
+        saturated_water_content=LitterConsts.saturated_water_content,
+    )
+
+    assert np.allclose(actual_potentials, expected_potentials)
