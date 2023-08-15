@@ -268,7 +268,10 @@ class HydrologyModel(BaseModel):
             accumulated_runoff[cell_id] += np.sum(baseline_runoff[upstream_id])
 
         self.data["surface_runoff_accumulated"] = DataArray(
-            accumulated_runoff, dims="cell_id"
+            accumulated_runoff,
+            dims="cell_id",
+            name="surface_runoff_accumulated",
+            coords={"cell_id": self.data.grid.cell_id},
         )
 
     def spinup(self) -> None:
@@ -504,10 +507,9 @@ class HydrologyModel(BaseModel):
         for cell_id, upstream_id in enumerate(self.upstream_ids):
             accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
 
-        # TODO fix time index
         soil_hydrology["surface_runoff_accumulated"] = DataArray(
             accumulated_runoff, dims="cell_id"
-        ).assign_coords({"cell_id": self.data.grid.cell_id})
+        )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
         # The maximum stream flow capacity is set to an arbitray value, could be used to
