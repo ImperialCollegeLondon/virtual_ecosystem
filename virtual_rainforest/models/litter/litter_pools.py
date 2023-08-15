@@ -1,6 +1,21 @@
 """The ``models.litter.litter_pools`` module  simulates the litter pools for the Virtual
-Rainforest. At the moment only two pools are modelled, above ground metabolic and above
-ground structural, but a wider variety of pools will be simulated in future.
+Rainforest. Pools are divided into above and below ground pools, with below ground pools
+affected by both soil moisture and temperature, and above ground pools just affected by
+soil surface temperatures. The pools are also divided based on the recalcitrance of
+their inputs, dead wood is given a separate pool, and all other inputs are divided
+between metabolic and structural pools. Recalcitrant litter contains hard to break down
+compounds, principally lignin. The metabolic litter pool contains the non-recalcitrant
+litter and so breaks down quickly. Whereas, the structural litter contains the
+recalcitrant litter.
+
+We consider 5 pools rather than 6, as it's not really possible to parametrise the below
+ground dead wood pool. So, all dead wood gets included in the above ground woody litter
+pool.
+
+At present, litter chemistry is not explicitly considered so the three recalcitrant
+pools (woody, above_ground_structural, and below_ground_structural) are all assumed to
+be 50% lignin. In the near future the model will be explicitly consider litter
+chemistry.
 """  # noqa: D205, D415
 
 import numpy as np
