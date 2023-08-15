@@ -327,9 +327,9 @@ def test_update(litter_model_fixture, dummy_litter_data):
     end_above_meta = [0.29577179, 0.14802621, 0.06922856]
     end_above_struct = [0.50055126, 0.25063497, 0.09068855]
     end_woody = [4.702103, 11.801373, 7.301836]
-    end_below_meta = ([0.39503569, 0.36235665, 0.06916170],)
-    end_below_struct = ([0.60030082, 0.31033012, 0.02047202],)
-    c_mineral = [0.01956154, 0.02169480, 0.00589040]
+    end_below_meta = [0.394145, 0.35923, 0.069006]
+    end_below_struct = ([0.600271, 0.310272, 0.020471],)
+    c_mineral = [0.0212182, 0.0274272, 0.00617274]
 
     litter_model_fixture.update(time_index=0)
 
@@ -354,12 +354,13 @@ def test_convert_soil_moisture_to_water_potential(
         convert_soil_moisture_to_water_potential,
     )
 
-    expected_potentials = [-568.76270, -50.105649, -152.49040]
+    expected_potentials = [-297.14104, -4.2647655, -79.666189]
 
     actual_potentials = convert_soil_moisture_to_water_potential(
         dummy_litter_data["soil_moisture"][top_soil_layer_index].to_numpy(),
         air_entry_water_potential=LitterConsts.air_entry_water_potential,
         water_retention_curvature=LitterConsts.water_retention_curvature,
+        saturated_water_content=LitterConsts.saturated_water_content,
     )
 
     assert np.allclose(actual_potentials, expected_potentials)

@@ -41,6 +41,7 @@ def temp_and_water_factors(
         dummy_litter_data["soil_moisture"][top_soil_layer_index],
         air_entry_water_potential=LitterConsts.air_entry_water_potential,
         water_retention_curvature=LitterConsts.water_retention_curvature,
+        saturated_water_content=LitterConsts.saturated_water_content,
     )
 
     water_below = calculate_moisture_effect_on_litter_decomp(
@@ -112,9 +113,9 @@ def test_calculate_litter_pool_updates(
         "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
         "litter_pool_woody": [4.702103, 11.801373, 7.301836],
-        "litter_pool_below_metabolic": [0.39503569, 0.36235665, 0.06916170],
-        "litter_pool_below_structural": [0.60030082, 0.31033012, 0.02047202],
-        "litter_C_mineralisation_rate": [0.01956154, 0.02169480, 0.00589040],
+        "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
+        "litter_pool_below_structural": [0.600271, 0.310272, 0.020471],
+        "litter_C_mineralisation_rate": [0.0212182, 0.0274272, 0.00617274],
     }
 
     # Calculate water potential
@@ -122,6 +123,7 @@ def test_calculate_litter_pool_updates(
         dummy_litter_data["soil_moisture"][top_soil_layer_index].to_numpy(),
         air_entry_water_potential=LitterConsts.air_entry_water_potential,
         water_retention_curvature=LitterConsts.water_retention_curvature,
+        saturated_water_content=LitterConsts.saturated_water_content,
     )
 
     result = calculate_litter_pool_updates(
@@ -210,7 +212,7 @@ def test_calculate_litter_decay_metabolic_below(
         calculate_litter_decay_metabolic_below,
     )
 
-    expected_decay = [0.0053843028, 0.0080633471, 0.0012582914]
+    expected_decay = [0.00627503, 0.01118989, 0.00141417]
 
     actual_decay = calculate_litter_decay_metabolic_below(
         temperature_factor=temp_and_water_factors["temp_below"],
@@ -230,7 +232,7 @@ def test_calculate_litter_decay_structural_below(
         calculate_litter_decay_structural_below,
     )
 
-    expected_decay = [0.000179177, 0.000149877, 7.975818e-6]
+    expected_decay = [2.08818455e-04, 2.07992589e-04, 8.96385948e-06]
 
     actual_decay = calculate_litter_decay_structural_below(
         temperature_factor=temp_and_water_factors["temp_below"],

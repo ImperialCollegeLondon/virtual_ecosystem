@@ -170,6 +170,9 @@ class LitterConsts:
     value is the average across all soil types found in
     :cite:t:`cosby_statistical_1984`. In future, this could be calculated based on soil
     texture.
+
+    TODO: This estimation of water potential will either be moved to or superseded by
+    the hydrology model. So these constants should **not** remain here in the long term.
     """
 
     water_retention_curvature: float = -7.22
@@ -178,4 +181,15 @@ class LitterConsts:
     The value is the average across all soil types found in
     :cite:t:`cosby_statistical_1984`; see documentation for
     :attr:`air_entry_water_potential` for further details.
+    """
+
+    saturated_water_content: float = 0.457
+    """Relative water content at which the soil is completely saturated [unitless].
+
+    The value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`; see documentation for
+    :attr:`air_entry_water_potential` for further details.
+
+    TODO: This constant already exists within the hydrology model, once the hydrology
+    model handles soil water potential, this constant **must** be deleted.
     """

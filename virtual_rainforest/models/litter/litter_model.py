@@ -175,6 +175,7 @@ class LitterModel(BaseModel):
             ].to_numpy(),
             air_entry_water_potential=self.constants.air_entry_water_potential,
             water_retention_curvature=self.constants.water_retention_curvature,
+            saturated_water_content=self.constants.saturated_water_content,
         )
 
         # Find litter pool updates using the litter pool update function
@@ -206,6 +207,7 @@ def convert_soil_moisture_to_water_potential(
     soil_moisture: NDArray[np.float32],
     air_entry_water_potential: float,
     water_retention_curvature: float,
+    saturated_water_content: float,
 ) -> NDArray[np.float32]:
     """Convert soil moisture into an estimate of water potential.
 
@@ -221,9 +223,13 @@ def convert_soil_moisture_to_water_potential(
         air_entry_water_potential: Water potential at which soil pores begin to aerate
             [kPa]
         water_retention_curvature: Curvature of water retention curve [unitless]
+        saturated_water_content: The relative water content at which the soil is fully
+            saturated [unitless].
 
     Returns:
         An estimate of the water potential of the soil [kPa]
     """
 
-    return air_entry_water_potential * (soil_moisture**water_retention_curvature)
+    return air_entry_water_potential * (
+        (soil_moisture / saturated_water_content) ** water_retention_curvature
+    )
