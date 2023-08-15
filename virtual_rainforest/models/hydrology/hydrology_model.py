@@ -22,7 +22,6 @@ from typing import Any, Union
 import numpy as np
 import xarray as xr
 from pint import Quantity
-from pysheds.grid import Grid as PyshedsGrid
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -61,6 +60,7 @@ class HydrologyModel(BaseModel):
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
         ("evapotranspiration", ("spatial",)),
+        ("elevation", ("spatial",)),
         # TODO this requires the plant model to run before the hydrology; this works as
         # long as the p-model does not require soil moisture as an input. If it does, we
         # have to discuss where we move the calculation of stream flow.
@@ -72,7 +72,9 @@ class HydrologyModel(BaseModel):
         "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
-        "stream_flow",
+        "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
+        "surface_runoff_cellid",  # equivalent to SPLASH runoff
+        "surface_runoff_accumulated",
     ]
     """Variables updated by the hydrology model."""
 
@@ -162,13 +164,22 @@ class HydrologyModel(BaseModel):
     def setup(self) -> None:
         """Function to set up the hydrology model.
 
-        At the moment, this function initializes soil moisture homogenously for all
-        soil layers, which are treated as one single bucket in this simple approach, and
-        initializes air temperature and relative humidity below the
-        canopy to calculate soil hydrology for the first update(). This might change
-        with the implementation of the SPLASH model in the plant module which will take
-        care of the above-ground hydrology; the hydrology model will calculate the
-        catchment scale hydrology.
+        At the moment, this function initializes variables that are required to run the
+        first update(). For the within grid cell hydrology, soil moisture is initialised
+        homogenously for all soil layers, which are treated as one single bucket in this
+        simple approach. Air temperature and relative humidity below the canopy are set
+        to the reference values. This design might change with the implementation
+        of the SPLASH model in the plant module which will take care of the above-ground
+        hydrology.
+
+        For the hydrology across the grid (above-/below-ground and total runoff), this
+        function identifies the upstream neighbours of each grid cell based on a digital
+        elevation model.
+
+        TODO Identification of upstream neighbours should move to core as an attribute
+        of the grid.
+        TODO implement below ground horizontal flow and update stream flow
+        TODO The hydrology needs spin up
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -225,24 +236,11 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # create water flow map, TODO parts of this will move to spin up
-        # get DEM on pysheds grid
-        grid_dem = PyshedsGrid.from_raster("./900m.tif")
-        dem = grid_dem.read_raster("./900m.tif")
+        # Turn elevation data into np array
+        elevation = np.array(self.data["elevation"]).flatten()
 
-        # Fill pits in DEM
-        pit_filled_dem = grid_dem.fill_pits(dem)
-
-        # Fill depressions in DEM
-        flooded_dem = grid_dem.fill_depressions(pit_filled_dem)
-
-        # Resolve flats in DEM
-        inflated_dem = grid_dem.resolve_flats(flooded_dem)
-        elevation = np.array(inflated_dem).flatten()
-
-        # map neighbors and identify downstream cell_ids
-        runoff = np.array(self.data["runoff"])
-        mapping = [neighbors(cell_id) for cell_id in range(len(runoff))]
+        # map neighbours and identify downstream cell_ids  # TODO move to core
+        mapping = [neighbors(cell_id) for cell_id in range(len(self.data.grid.cell_id))]
         downstream_ids = []
         for cell_id, neighbors_id in enumerate(mapping):
             # Find lowest neighbour
@@ -250,21 +248,33 @@ class HydrologyModel(BaseModel):
             downstream_ids.append(neighbors_id[downstream_id_loc])
 
         # Invert mapping of cell_id: downstream neighbour to cell_id: upstream_neighbors
-        upstream_ids: list = [[] for i in range(len(runoff))]
+        upstream_ids: list = [[] for i in range(len(self.data.grid.cell_id))]
         for down_s, up_s in enumerate(downstream_ids):
             upstream_ids[up_s].append(down_s)
 
-        # let the water run downstream until steady state is reached
-        # this is t=0 and in the update(), new runoff will be added
-        for itime in range(100):
-            # Get the run off created in this time step as the baseline:
-            out = np.array(self.data["runoff"])
-            for cell_id, upstream_id in enumerate(upstream_ids):
-                # add the sum of the upstream neighbours
-                # I think I'm doing something wrong here which is creating the minus
-                # numbers
-                out[cell_id] += np.sum(runoff[upstream_id])
-            runoff = out.copy()
+        self.upstream_ids = upstream_ids
+
+        # Get the runoff created by SPLASH or initial data set as the baseline:
+        single_cell_runoff = np.array(self.data["surface_runoff_cell_id"])
+
+        # set initial accumulated runoff to one cell value
+        accumulated_runoff = np.full_like(self.data["surface_runoff_cell_id"], 0)
+
+        # calculate accumulated runoff for each cell (sum of the upstream neighbours)
+        # TODO spin up!
+        # TODO check for negative numbers
+
+        for cell_id, upstream_id in enumerate(self.upstream_ids):
+            accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
+
+        self.data["surface_runoff_accumulated"] = (
+            DataArray(
+                accumulated_runoff,
+                dims="cell_id",
+            )
+            .expand_dims("time_index")
+            .assign_coords({"cell_id": self.data.grid.cell_id, "time_index": [-1]})
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
@@ -486,6 +496,34 @@ class HydrologyModel(BaseModel):
                 "layer_roles": ("layers", self.layer_roles),
                 "cell_id": self.data["layer_heights"].cell_id,
             }
+        )
+
+        # calculate surface total runoff, currently only surface
+        # Get the runoff created by SPLASH or initial data set as the baseline:
+        single_cell_runoff = np.array(self.data["surface_runoff_cell_id"])
+
+        # get accumulated runoff from previous time step
+        accumulated_runoff = np.array(
+            self.data["surface_runoff_accumulated"].isel(time_index=time_index - 1)
+        )
+        # calculate accumulated runoff for each cell (me + sum of upstream neighbours)
+        for cell_id, upstream_id in enumerate(self.upstream_ids):
+            accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
+
+        # TODO time index
+        soil_hydrology["surface_runoff_accumulated"] = xr.concat(
+            [
+                self.data["surface_runoff_accumulated"],
+                DataArray(
+                    accumulated_runoff,
+                    dims="cell_id",
+                )
+                .expand_dims("time_index")
+                .assign_coords(
+                    {"cell_id": self.data.grid.cell_id, "time_index": [time_index]}
+                ),
+            ],
+            dim="time_index",
         )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
