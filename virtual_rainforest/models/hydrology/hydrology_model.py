@@ -61,6 +61,7 @@ class HydrologyModel(BaseModel):
         ("atmospheric_pressure_ref", ("spatial",)),
         ("evapotranspiration", ("spatial",)),
         ("elevation", ("spatial",)),
+        ("surface_runoff", ("spatial",)),
         # TODO this requires the plant model to run before the hydrology; this works as
         # long as the p-model does not require soil moisture as an input. If it does, we
         # have to discuss where we move the calculation of stream flow.
@@ -69,11 +70,10 @@ class HydrologyModel(BaseModel):
     """The required variables and axes for the hydrology model"""
     vars_updated = [
         "soil_moisture",
-        "surface_runoff",
+        "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
         "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
-        "surface_runoff_cellid",  # equivalent to SPLASH runoff
         "surface_runoff_accumulated",
     ]
     """Variables updated by the hydrology model."""
@@ -255,17 +255,19 @@ class HydrologyModel(BaseModel):
         self.upstream_ids = upstream_ids
 
         # Get the runoff created by SPLASH or initial data set as the baseline:
-        single_cell_runoff = np.array(self.data["surface_runoff_cell_id"])
+        # TODO replace with initial runoff
+        baseline_runoff = np.array(self.data["surface_runoff"])
 
         # set initial accumulated runoff to one cell value
-        accumulated_runoff = np.full_like(self.data["surface_runoff_cell_id"], 0)
+        accumulated_runoff = np.full_like(self.data["elevation"], 0)
 
         # calculate accumulated runoff for each cell (sum of the upstream neighbours)
+        # for the time_index: -1
         # TODO spin up!
         # TODO check for negative numbers
 
         for cell_id, upstream_id in enumerate(self.upstream_ids):
-            accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
+            accumulated_runoff[cell_id] += np.sum(baseline_runoff[upstream_id])
 
         self.data["surface_runoff_accumulated"] = (
             DataArray(
@@ -283,17 +285,18 @@ class HydrologyModel(BaseModel):
         r"""Function to update the hydrology model.
 
         At the moment, this step calculates soil moisture, vertical flow, soil
-        evaporation, and surface runoff and estimates mean stream flow.
-        Soil moisture and surface runoff are calculated
+        evaporation, and surface runoff (per grid cell and accumulated), and estimates
+        mean stream flow. Soil moisture and surface runoff are calculated
         with a simple bucket model based on :cite:t:`davis_simple_2017`: if
         precipitation exceeds soil moisture capacity, the excess water is added to
         runoff and soil moisture is set to soil moisture capacity value; if the soil is
         not saturated, precipitation is added to the current soil moisture level and
         runoff is set to zero. All soil layers are combined into one bucket. Note that
-        this function will likely change with the
-        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
-        module which will take care of the above-ground hydrology; the hydrology model
-        will calculate the catchment scale hydrology.
+        this function will likely change with the implementation of the SPLASH model
+        :cite:p:`davis_simple_2017` in the plant module which will take care of the
+        grid cell based above-ground hydrology. The accumulated surface runoff is
+        calculated as the sum off current runoff and the runoff from upstream cells at
+        the previous time step.
 
         Soil evaporation is calculated with classical bulk aerodynamic formulation,
         following the so-called ':math:`\alpha` method', see
@@ -316,10 +319,8 @@ class HydrologyModel(BaseModel):
         after evapotranspiration is calculated by the plant model which works as long as
         the P-model does not require soil mositure as an input. In the future, this
         might move to a different model or the order of models might change.
-        Horizontal flow between grid cells (above and below the surface) is currently
-        not explicitly calculated.
 
-        TODO Implement horizontal sub-surface flow and stream flow
+        TODO Implement horizontal sub-surface flow
         TODO set model order to get plant inputs (LAI, layer heights, ET)
 
         The function requires the following input variables from the data object:
@@ -333,6 +334,7 @@ class HydrologyModel(BaseModel):
         * layer heights, [m]
         * soil moisture (previous time step), [relative water content]
         * evapotranspiration (current time step), [mm]
+        * accumulated surface runoff (previous time step), [mm]
 
         and the following soil parameters (defaults in
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`):
@@ -500,7 +502,7 @@ class HydrologyModel(BaseModel):
 
         # calculate surface total runoff, currently only surface
         # Get the runoff created by SPLASH or initial data set as the baseline:
-        single_cell_runoff = np.array(self.data["surface_runoff_cell_id"])
+        single_cell_runoff = np.array(soil_hydrology["surface_runoff"])
 
         # get accumulated runoff from previous time step
         accumulated_runoff = np.array(
@@ -514,10 +516,8 @@ class HydrologyModel(BaseModel):
         soil_hydrology["surface_runoff_accumulated"] = xr.concat(
             [
                 self.data["surface_runoff_accumulated"],
-                DataArray(
-                    accumulated_runoff,
-                    dims="cell_id",
-                )
+                DataArray(accumulated_runoff, dims="cell_id")
+                .rename("surface_runoff_accumulated")
                 .expand_dims("time_index")
                 .assign_coords(
                     {"cell_id": self.data.grid.cell_id, "time_index": [time_index]}
