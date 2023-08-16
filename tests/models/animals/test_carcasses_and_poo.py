@@ -9,7 +9,7 @@ class TestCarcassPool:
 
     def test_initialization(self):
         """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.carcasses import CarcassPool
+        from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
 
         c1 = CarcassPool(1000.7, 1)
         assert c1.stored_energy == 1000.7

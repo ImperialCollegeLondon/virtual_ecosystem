@@ -15,7 +15,10 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-from virtual_rainforest.models.animals.carcasses import CarcassPool, ExcrementPool
+from virtual_rainforest.models.animals.carcasses_and_poo import (
+    CarcassPool,
+    ExcrementPool,
+)
 from virtual_rainforest.models.animals.dummy_plants_and_soil import (
     PalatableSoil,
     PlantCommunity,
@@ -134,16 +137,15 @@ class AnimalCommunity:
 
         """
         plant_list = [self.plant_community]
-        carcass_pool = self.carcass_pool
-        soil_pool = self.soil_pool
 
         for consumer_cohort in chain.from_iterable(self.animal_cohorts.values()):
             prey = self.collect_prey(consumer_cohort)
             consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey,
-                carcass_pool=carcass_pool,
-                soil_pool=soil_pool,
+                carcass_pool=self.carcass_pool,
+                soil_pool=self.soil_pool,
+                excrement_pool=self.excrement_pool,
             )
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:

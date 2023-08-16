@@ -73,7 +73,7 @@ def herb_cohort_instance(herb_functional_group_instance):
 @pytest.fixture
 def carcass_instance():
     """Fixture for an carcass pool used in tests."""
-    from virtual_rainforest.models.animals.carcasses import CarcassPool
+    from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
 
     return CarcassPool(0.0, 4)
 
@@ -226,7 +226,7 @@ class TestAnimalCohort:
         # Setup
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
         from virtual_rainforest.models.animals.animal_traits import DietType
-        from virtual_rainforest.models.animals.carcasses import CarcassPool
+        from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
         from virtual_rainforest.models.animals.dummy_plants_and_soil import (
             PalatableSoil,
             PlantCommunity,
