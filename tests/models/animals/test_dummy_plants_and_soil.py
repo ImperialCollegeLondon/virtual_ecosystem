@@ -8,7 +8,7 @@ def plant_instance():
     """Fixture for a plant community used in tests."""
     from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
 
-    return PlantCommunity(10000.0, 1)
+    return PlantCommunity(10000.0)
 
 
 class TestPlantCommunity:
@@ -36,7 +36,7 @@ def soil_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
 
-    return PalatableSoil(100000.0, 4)
+    return PalatableSoil(100000.0)
 
 
 class TestPalatableSoil:
@@ -48,5 +48,5 @@ class TestPalatableSoil:
             PalatableSoil,
         )
 
-        s1 = PalatableSoil(1000.7, 1)
+        s1 = PalatableSoil(1000.7)
         assert s1.stored_energy == 1000.7

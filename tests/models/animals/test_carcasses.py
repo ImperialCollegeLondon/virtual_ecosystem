@@ -11,5 +11,5 @@ class TestCarcassPool:
         """Testing initialization of CarcassPool."""
         from virtual_rainforest.models.animals.carcasses import CarcassPool
 
-        c1 = CarcassPool(1000.7, 1)
+        c1 = CarcassPool(1000.7)
         assert c1.stored_energy == 1000.7

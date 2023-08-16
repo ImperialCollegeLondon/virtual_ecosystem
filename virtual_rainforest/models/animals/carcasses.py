@@ -12,5 +12,3 @@ class CarcassPool:
 
     stored_energy: float
     """The amount of energy in the carcass pool [J]."""
-    position: int
-    """The grid position of the carcass pool."""

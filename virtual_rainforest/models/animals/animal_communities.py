@@ -38,9 +38,9 @@ class AnimalCommunity:
             k.name: [] for k in self.functional_groups
         }
         """Generate a dictionary of functional groups within the community."""
-        self.plant_community: PlantCommunity = PlantCommunity(10000.0, 1)
-        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
-        self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
+        self.plant_community: PlantCommunity = PlantCommunity(10000.0)
+        self.carcass_pool: CarcassPool = CarcassPool(10000.0)
+        self.soil_pool: PalatableSoil = PalatableSoil(10000.0)
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
