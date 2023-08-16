@@ -23,3 +23,20 @@ class ExcrementPool:
 
     stored_energy: float
     """The amount of energy in the excrement pool [J]."""
+
+    def stored_carbon(self, grid_cell_area: float) -> float:
+        """Calculate carbon stored in excrement pool based on the amount of energy.
+
+        TODO - At the moment this literally just assumes that a kilogram of carbon
+        contains 10^6 J, in future this needs to be properly parametrised.
+
+        Args:
+            grid_cell_area: The size of the grid cell [m^2]
+
+        Returns:
+            The size of the excrement pool in carbon terms [kg C m^-2]
+        """
+
+        joules_per_kilo_carbon = 1e6
+
+        return self.stored_energy / (joules_per_kilo_carbon * grid_cell_area)
