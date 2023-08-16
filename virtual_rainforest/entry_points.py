@@ -125,7 +125,7 @@ def vr_run_cli() -> None:
         version="%(prog)s {version}".format(version=vr.__version__),
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(sys.argv[1:])
 
     cfg_paths: list[str] = []
     if args.example:
