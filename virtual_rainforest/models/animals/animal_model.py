@@ -36,21 +36,21 @@ class AnimalModel(BaseModel):
     """A class describing the animal model.
 
     Describes the specific functions and attributes that the animal module should
-    possess. Currently it is incomplete and mostly just a copy of the template set out
-    in AnimalModel.
+    possess.
 
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
-        start_time: Time at which the model is initialized.
+        functional_groups: The list of animal functional groups present in the
+            simulation
     """
 
     model_name = "animals"
     """The model name for use in registering the model and logging."""
     lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that soil model can sensibly capture."""
+    """Shortest time scale that animal model can sensibly capture."""
     upper_bound_on_time_scale = "1 month"
-    """Longest time scale that soil model can sensibly capture."""
+    """Longest time scale that animal model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
     vars_updated = []
@@ -65,13 +65,46 @@ class AnimalModel(BaseModel):
     ):
         super().__init__(data, update_interval, **kwargs)
 
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
-        """Run a new set_neighbours (temporary solution)."""
+        days_as_float = self.update_interval.to("days").magnitude
+        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+        """Convert pint update_interval to timedelta64 once during initialization."""
 
-        self.communities: dict[int, AnimalCommunity] = {
+        self._setup_grid_neighbors()
+        """Determine grid square adjacency."""
+
+        self.communities: dict[int, AnimalCommunity] = {}
+        """Set empty dict for populating with communities."""
+        self._initialize_communities(functional_groups)
+        """Create the dictionary of animal communities and populate each community with
+        animal cohorts."""
+
+    def _setup_grid_neighbors(self) -> None:
+        """Set up grid neighbors for the model.
+
+        Currently, this is redundant with the set_neighbours method of grid.
+        This will become a more complex animal specific implementation to manage
+        functional group specific adjacency.
+
+        """
+        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+
+    def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
+        """Initialize the animal communities.
+
+        Args:
+            functional_groups: The list of functional groups that will populate the
+            model.
+        """
+
+        # Generate a dictionary of AnimalCommunity objects, one per grid cell.
+        self.communities = {
             k: AnimalCommunity(functional_groups) for k in self.data.grid.cell_id
         }
-        """ Generate a dictionary of AnimalCommunity objects, one per grid cell."""
+
+        # Create animal cohorts in each grid square's animal community according to the
+        # populate_community method.
+        for community in self.communities.values():
+            community.populate_community()
 
     @classmethod
     def from_config(
@@ -123,9 +156,9 @@ class AnimalModel(BaseModel):
             community.forage_community()
             community.migrate_community()
             community.birth_community()
-            community.metabolize_community(timedelta64(1, "D"))
+            community.metabolize_community(self.update_interval_timedelta)
             community.mortality_community()
-            community.increase_age_community(timedelta64(1, "D"))
+            community.increase_age_community(self.update_interval_timedelta)
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""

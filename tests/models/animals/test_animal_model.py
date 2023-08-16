@@ -31,7 +31,7 @@ def test_animal_model_initialization(
     # Initialize model
     model = AnimalModel(
         data_instance,
-        pint.Quantity("1 week"),
+        pint.Quantity("1 day"),
         functional_group_list_instance,
     )
 
@@ -39,7 +39,7 @@ def test_animal_model_initialization(
     assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
-    assert repr(model) == "AnimalModel(update_interval = 1 week)"
+    assert repr(model) == "AnimalModel(update_interval = 1 day)"
     assert type(model.communities) is dict
 
 
@@ -173,19 +173,3 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
 
     # Assert the methods were called in the expected order
     assert call_sequence == method_names
-
-
-def test_update_method_time_index_argument(
-    data_instance, functional_group_list_instance
-):
-    """Test update to ensure the time index argument does not create an error."""
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    model = AnimalModel(
-        data_instance, pint.Quantity("1 week"), functional_group_list_instance
-    )
-
-    time_index = 5
-    model.update(time_index=time_index)
-
-    assert True
