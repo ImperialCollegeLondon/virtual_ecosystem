@@ -226,7 +226,10 @@ class TestAnimalCohort:
         # Setup
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
         from virtual_rainforest.models.animals.animal_traits import DietType
-        from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
+        from virtual_rainforest.models.animals.carcasses_and_poo import (
+            CarcassPool,
+            ExcrementPool,
+        )
         from virtual_rainforest.models.animals.dummy_plants_and_soil import (
             PalatableSoil,
             PlantCommunity,
@@ -243,6 +246,8 @@ class TestAnimalCohort:
         carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
         soil_pool_instance = mocker.MagicMock(spec=PalatableSoil)
         soil_pool_instance.stored_energy = 0  # setting the attribute on the mock
+        excrement_pool_instance = mocker.MagicMock(spec=ExcrementPool)
+        excrement_pool_instance.stored_energy = 0  # setting the attribute on the mock
 
         animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
 
@@ -253,6 +258,7 @@ class TestAnimalCohort:
                 animal_list=animal_list_instance,
                 carcass_pool=carcass_pool_instance,
                 soil_pool=soil_pool_instance,
+                excrement_pool=excrement_pool_instance,
             )
 
             # Assertions
