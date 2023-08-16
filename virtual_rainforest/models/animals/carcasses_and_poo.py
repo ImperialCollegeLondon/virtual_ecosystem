@@ -23,5 +23,3 @@ class ExcrementPool:
 
     stored_energy: float
     """The amount of energy in the excrement pool [J]."""
-    position: int
-    """The grid position of the excrement pool."""
