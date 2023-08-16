@@ -15,7 +15,7 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-from virtual_rainforest.models.animals.carcasses import CarcassPool
+from virtual_rainforest.models.animals.carcasses import CarcassPool, ExcrementPool
 from virtual_rainforest.models.animals.dummy_plants_and_soil import (
     PalatableSoil,
     PlantCommunity,
@@ -41,6 +41,7 @@ class AnimalCommunity:
         self.plant_community: PlantCommunity = PlantCommunity(10000.0, 1)
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
         self.soil_pool: PalatableSoil = PalatableSoil(10000.0, 1)
+        self.excrement_pool: ExcrementPool = ExcrementPool(0.0, 1)
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
