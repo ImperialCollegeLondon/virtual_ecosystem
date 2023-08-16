@@ -127,6 +127,15 @@ PREY_MASS_SCALING_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]
     },
 }
 
+LONGEVITY_SCALING_TERMS: dict[TaxaType, tuple[float, float]] = {
+    TaxaType.MAMMAL: (0.25, 0.02),
+    # Toy values
+    TaxaType.BIRD: (0.25, 0.05),
+    # Toy Values
+    TaxaType.INSECT: (0.25, 0.05),
+    # Toy Values
+}
+
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].

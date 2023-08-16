@@ -29,6 +29,7 @@ from virtual_rainforest.models.animals.scaling_functions import (
     energetic_reserve_scaling,
     intake_rate_scaling,
     metabolic_rate,
+    natural_mortality_scaling,
     prey_group_selection,
 )
 
@@ -107,6 +108,12 @@ class AnimalCohort:
             self.mass,
             self.functional_group.prey_scaling,
         )
+        """The identification of useable food resources."""
+
+        self.adult_natural_mortality_prob = natural_mortality_scaling(
+            self.functional_group.adult_mass, self.functional_group.longevity_scaling
+        )
+        """The per-time probability of an individual dying to natural causes."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.

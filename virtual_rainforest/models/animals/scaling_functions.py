@@ -7,7 +7,7 @@ To Do:
 
 """  # noqa: D205, D415
 
-from math import ceil, exp
+from math import ceil, exp, log
 
 from virtual_rainforest.models.animals.animal_traits import MetabolicType
 from virtual_rainforest.models.animals.constants import BOLTZMANN_CONSTANT
@@ -174,3 +174,31 @@ def prey_group_selection(
             "herbivorous_insect": (0.1, 1000.0),
             "carnivorous_insect": (0.1, 1000.0),
         }
+
+
+def natural_mortality_scaling(mass: float, terms: tuple) -> float:
+    """The function to determine the natural mortality rate of animal cohorts.
+
+    Relationship from: Dureuil & Froese 2021
+
+    M = - ln(P) / tmax   (annual, year^-1, instantaneous rate)
+    tmax = mean maximum age
+    P = 0.015 # proportion surviving to tmax
+
+    Transform yearly rate to daily rate
+    transform daily rate to daily probability
+    prob = 1 - e^-M
+
+    Args:
+        mass: The body-mass [kg] of an AnimalCohort.
+
+    Returns:
+        The allometric natural mortality rate as a daily probability of death.
+
+    """
+    tmax = terms[1] * mass ** terms[0]
+    annual_mortality_rate = -log(0.015) / tmax
+    daily_mortality_rate = annual_mortality_rate / 365.0
+    daily_mortality_prob = 1 - exp(-daily_mortality_rate)
+
+    return daily_mortality_prob
