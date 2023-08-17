@@ -101,7 +101,6 @@ def check_valid_constant_names(
     return
 
 
-# TODO - test this
 def load_constants(config: dict[str, Any], model_name: str, class_name: str) -> Any:
     """Load the specified constants class.
 
