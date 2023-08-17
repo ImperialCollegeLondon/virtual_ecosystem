@@ -12,7 +12,7 @@ authors = [
 ]
 
 [tool.poetry.scripts]
-vr_run = "virtual_rainforest.entry_points:_vr_run_cli"
+vr_run = "virtual_rainforest.entry_points:vr_run_cli"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
