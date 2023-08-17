@@ -155,4 +155,8 @@ class AnimalModel(BaseModel):
         for community in self.communities.values():
             community.excrement_pool.stored_energy = 0.0
 
-        return {"excess_excrement": DataArray(remaining_excrement, dims="cell_id")}
+        return {
+            "excess_excrement": DataArray(
+                remaining_excrement / self.update_interval.to("days"), dims="cell_id"
+            )
+        }

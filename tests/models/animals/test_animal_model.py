@@ -223,7 +223,7 @@ def test_calculate_litter_additions(functional_group_list_instance):
 
     # Check that litter addition pools are as expected
     assert np.allclose(
-        litter_additions["excess_excrement"], [3.5e-7, 5.6e-6, 5.9e-6, 0.00023]
+        litter_additions["excess_excrement"], [5e-08, 8e-07, 8.42857e-07, 3.28571e-05]
     )
 
     # Check that the function has reset the pools correctly
