@@ -6,10 +6,10 @@ generated for tasks that are repeated across modules.
 """  # noqa: D205, D415
 
 import dataclasses
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from virtual_rainforest.core.constants import CONSTANTS_REGISTRY
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
@@ -140,16 +140,14 @@ def check_valid_constant_names(
         ConfigurationError: If unexpected constant names are used
     """
 
-    # Import dataclass of interest
-    import_path = f"virtual_rainforest.models.{model_name}.constants"
-    consts_module = import_module(import_path)
-    ConstantsClass = getattr(consts_module, class_name)
+    # Extract dataclass of interest from registry
+    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
 
     # Extract a set of provided constant names
     provided_names = set(config[model_name]["constants"][class_name].keys())
 
     # Get a set of valid names
-    valid_names = {fld.name for fld in dataclasses.fields(ConstantsClass)}
+    valid_names = {fld.name for fld in dataclasses.fields(constants_class)}
 
     # Check for unexpected names
     unexpected_names = provided_names.difference(valid_names)
