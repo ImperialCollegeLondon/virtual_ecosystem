@@ -468,10 +468,13 @@ def merge_continuous_data_files(
 
     # Path to folder containing the continuous output (that merged file should be saved
     # to)
-    out_folder = Path(data_options["out_folder_continuous"])
+    out_path = (
+        Path(data_options["out_folder_continuous"])
+        / data_options["out_continuous_file_name"]
+    )
 
     # Check that output file doesn't already exist
-    check_outfile(out_folder / f"{data_options['continuous_file_name']}.nc")
+    check_outfile(out_path)
 
     # Open all files as a single dataset
     with open_mfdataset(continuous_data_files) as all_data:
@@ -479,7 +482,7 @@ def merge_continuous_data_files(
         all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
 
         # Save and close complete dataset
-        all_data.to_netcdf(out_folder / f"{data_options['continuous_file_name']}.nc")
+        all_data.to_netcdf(out_path)
 
     # Iterate over all continuous files and delete them
     for file_path in continuous_data_files:
