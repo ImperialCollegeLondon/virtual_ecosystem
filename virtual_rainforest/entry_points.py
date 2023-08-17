@@ -68,7 +68,7 @@ def _parse_command_line_params(
         raise to_raise
 
 
-def vr_run_cli() -> None:
+def _vr_run_cli() -> None:
     """Configure and run a Virtual Rainforest simulation.
 
     This program sets up and runs a simulation of the Virtual Rainforest model. At
@@ -88,7 +88,7 @@ def vr_run_cli() -> None:
     """
 
     # Check function docstring exists, as -OO flag strips docstrings I believe
-    desc = textwrap.dedent(vr_run_cli.__doc__ or "Python in -OO mode: no docs")
+    desc = textwrap.dedent(_vr_run_cli.__doc__ or "Python in -OO mode: no docs")
     fmt = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc, formatter_class=fmt)
 
@@ -125,7 +125,7 @@ def vr_run_cli() -> None:
         version="%(prog)s {version}".format(version=vr.__version__),
     )
 
-    args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args()
 
     cfg_paths: list[str] = []
     if args.example:
