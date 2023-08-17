@@ -340,13 +340,12 @@ The method then uses those parsed arguments to actually call the `__init__` meth
 return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
-The `from_config` method should also check if any constants have been provided as part
-of the configuration. If they haven't a default set of constants is generated. If they
-have been supplied they are used to generate a custom set of constants. The
-{func}`~virtual_rainforest.core.utils.check_valid_constant_names` utility function is
-used to check that no constant has been supplied with an incorrect name. At least one
-constants class should be created, but it's fine to split constants across more classes
-if that makes for clearer code.
+The `from_config` method should also generate the required constants classes from the
+config. At least one constants class should be created, but it's fine to split constants
+across more classes if that makes for clearer code. For each constants class the
+{func}`~virtual_rainforest.core.constants.load_constants` utility function can be used
+to construct the class with the default values replaced if they are overwritten in the
+config.
 
 As an example:
 
@@ -370,17 +369,8 @@ def from_config(
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
-    # Check if any constants have been supplied
-    if "freshwater" in config and "constants" in config["freshwater"]:
-        # Checks that constants is config are as expected
-        check_valid_constant_names(config, "freshwater", "FreshwaterConsts")
-        # If an error isn't raised then generate the dataclass
-        constants = FreshwaterConsts(
-            **config["freshwater"]["constants"]["FreshwaterConsts"]
-        )
-    else:
-        # If no constants are supplied then the defaults should be used
-        constants = FreshwaterConsts()
+    # Load in the relevant constants
+    constants = load_constants(config, "freshwater", "FreshwaterConsts")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
