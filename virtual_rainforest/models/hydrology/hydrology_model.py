@@ -25,10 +25,11 @@ from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import load_constants, set_layer_roles
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 

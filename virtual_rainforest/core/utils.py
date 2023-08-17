@@ -5,11 +5,8 @@ future. Adding functions here can be a good way to reduce the amount boiler plat
 generated for tasks that are repeated across modules.
 """  # noqa: D205, D415
 
-import dataclasses
 from pathlib import Path
-from typing import Any
 
-from virtual_rainforest.core.constants import CONSTANTS_REGISTRY
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
@@ -121,76 +118,3 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
         + ["soil"] * soil_layers
     )
     return layer_roles
-
-
-def check_valid_constant_names(
-    config: dict[str, Any], model_name: str, class_name: str
-) -> None:
-    """Check that the constant names given in the config are valid.
-
-    This checks that the constants are expected for the specific dataclass that they are
-    assigned to, if not an error is raised.
-
-    Args:
-        config: The full virtual rainforest config
-        model_name: Name of the model the constants belong to
-        class_name: Name of the specific dataclass the constants belong to
-
-    Raises:
-        ConfigurationError: If unexpected constant names are used
-    """
-
-    # Extract dataclass of interest from registry
-    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
-
-    # Extract a set of provided constant names
-    provided_names = set(config[model_name]["constants"][class_name].keys())
-
-    # Get a set of valid names
-    valid_names = {fld.name for fld in dataclasses.fields(constants_class)}
-
-    # Check for unexpected names
-    unexpected_names = provided_names.difference(valid_names)
-    if unexpected_names:
-        LOGGER.error(
-            "Unknown names supplied for %s: %s"
-            % (class_name, ", ".join(unexpected_names))
-        )
-        LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
-        raise ConfigurationError()
-
-    return
-
-
-# TODO - Move these functions
-# TODO - test this
-def load_constants(config: dict[str, Any], model_name: str, class_name: str) -> Any:
-    """Load the specified constants class.
-
-    Any constants that are supplied for this class in the config are used to populate
-    the class, for all other constants default values are used.
-
-    Args:
-        config: The full virtual rainforest config
-        model_name: Name of the model the constants belong to
-        class_name: Name of the specific dataclass the constants belong to
-
-    Returns:
-        A constants class populated using the information provided in the config
-    """
-
-    # Extract dataclass of interest from registry
-    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
-
-    # Check if any constants have been supplied
-    if model_name in config and "constants" in config[model_name]:
-        # Checks that constants in config are as expected
-        # TODO - change this to take a constants class
-        check_valid_constant_names(config, model_name, class_name)
-        # If an error isn't raised then generate the dataclass
-        constants = constants_class(**config[model_name]["constants"][class_name])
-    else:
-        # If no constants are supplied then the defaults should be used
-        constants = constants_class()
-
-    return constants
