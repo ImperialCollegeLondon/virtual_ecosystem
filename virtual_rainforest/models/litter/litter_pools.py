@@ -38,6 +38,7 @@ def calculate_litter_pool_updates(
     woody: NDArray[np.float32],
     below_metabolic: NDArray[np.float32],
     below_structural: NDArray[np.float32],
+    excess_excrement: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
@@ -54,6 +55,8 @@ def calculate_litter_pool_updates(
         woody: The woody litter pool [kg C m^-2]
         below_metabolic: Below ground metabolic litter pool [kg C m^-2]
         below_structural: Below ground structural litter pool [kg C m^-2]
+        excess_excrement: Input rate of excrement from the animal model [kg C m^-2
+            day^-1]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -134,8 +137,11 @@ def calculate_litter_pool_updates(
 
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
-        constants.litter_input_to_metabolic_above - metabolic_above_decay
+        constants.litter_input_to_metabolic_above
+        + excess_excrement
+        - metabolic_above_decay
     ) * update_interval
+
     change_in_structural_above = (
         constants.litter_input_to_structural_above - structural_above_decay
     ) * update_interval

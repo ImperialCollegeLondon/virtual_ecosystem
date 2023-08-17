@@ -194,6 +194,7 @@ class LitterModel(BaseModel):
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            excess_excrement=self.data["excess_excrement"].to_numpy(),
         )
 
         # Update the litter pools
