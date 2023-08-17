@@ -160,3 +160,37 @@ def check_valid_constant_names(
         raise ConfigurationError()
 
     return
+
+
+# TODO - Move these functions
+# TODO - test this
+def load_constants(config: dict[str, Any], model_name: str, class_name: str) -> Any:
+    """Load the specified constants class.
+
+    Any constants that are supplied for this class in the config are used to populate
+    the class, for all other constants default values are used.
+
+    Args:
+        config: The full virtual rainforest config
+        model_name: Name of the model the constants belong to
+        class_name: Name of the specific dataclass the constants belong to
+
+    Returns:
+        A constants class populated using the information provided in the config
+    """
+
+    # Extract dataclass of interest from registry
+    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
+
+    # Check if any constants have been supplied
+    if model_name in config and "constants" in config[model_name]:
+        # Checks that constants in config are as expected
+        # TODO - change this to take a constants class
+        check_valid_constant_names(config, model_name, class_name)
+        # If an error isn't raised then generate the dataclass
+        constants = constants_class(**config[model_name]["constants"][class_name])
+    else:
+        # If no constants are supplied then the defaults should be used
+        constants = constants_class()
+
+    return constants
