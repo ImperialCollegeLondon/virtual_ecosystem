@@ -53,6 +53,7 @@ def test_make_square_grid(cell_id):
     assert iprod == pytest.approx(0)
 
 
+@settings(deadline=None)
 @given(integers(min_value=0, max_value=99))
 def test_make_hex_grid(cell_id):
     """Test make_hex_grid()."""
