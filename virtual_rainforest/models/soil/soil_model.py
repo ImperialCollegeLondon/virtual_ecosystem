@@ -30,7 +30,7 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
+from virtual_rainforest.core.utils import load_constants, set_layer_roles
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 from virtual_rainforest.models.soil.constants import SoilConsts
 
@@ -139,15 +139,8 @@ class SoilModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
-        # Check if any constants have been supplied
-        if "soil" in config and "constants" in config["soil"]:
-            # Checks that constants is config are as expected
-            check_valid_constant_names(config, "soil", "SoilConsts")
-            # If an error isn't raised then generate the dataclass
-            constants = SoilConsts(**config["soil"]["constants"]["SoilConsts"])
-        else:
-            # If no constants are supplied then the defaults should be used
-            constants = SoilConsts()
+        # Load in the relevant constants
+        constants = load_constants(config, "soil", "SoilConsts")
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
