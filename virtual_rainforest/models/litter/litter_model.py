@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -157,6 +158,17 @@ class LitterModel(BaseModel):
         # TODO - At some point this could be used to calculate an initial litter input
         # rate so that the soil model can be run before the litter model. Think we need
         # to decide how we are handling model order first though.
+
+        # TODO - This should be created by the animal model, but it is not yet linked
+        # into the full vr_run flow yet. Once it is this step should be deleted.
+        self.data["excess_excrement"] = DataArray(
+            np.full((len(self.data.grid.cell_id)), 0.0),
+            dims=["cell_id"],
+            coords={
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="excess_excrement",
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
