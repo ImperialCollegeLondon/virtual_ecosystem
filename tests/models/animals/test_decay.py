@@ -1,6 +1,6 @@
-"""Test module for carcasses.py.
+"""Test module for decay.py.
 
-This module tests the functionality of carcasses.py
+This module tests the functionality of decay.py
 """
 
 import pytest
@@ -11,7 +11,7 @@ class TestCarcassPool:
 
     def test_initialization(self):
         """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
+        from virtual_rainforest.models.animals.decay import CarcassPool
 
         c1 = CarcassPool(1000.7, 1)
         assert pytest.approx(c1.stored_energy) == 1000.7
@@ -22,7 +22,7 @@ class TestExcrementPool:
 
     def test_initialization(self):
         """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.carcasses_and_poo import ExcrementPool
+        from virtual_rainforest.models.animals.decay import ExcrementPool
 
         poo = ExcrementPool(77.7, 25.0)
         # Test that function to calculate stored carbon works as expected

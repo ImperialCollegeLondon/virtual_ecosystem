@@ -15,13 +15,13 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
-from virtual_rainforest.models.animals.carcasses_and_poo import CarcassPool
 from virtual_rainforest.models.animals.constants import (
     ENERGY_DENSITY,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
     TEMPERATURE,
 )
+from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.protocols import (
     Consumer,

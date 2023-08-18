@@ -117,7 +117,7 @@ team.
   Animal Traits <api/animals/animal_traits.md>
   Animal Scaling Functions <api/animals/scaling_functions.md> 
   Animal Constants <api/animals/constants.md> 
-  Animal Carcasses and Excrement <api/animals/carcasses_and_poo.md> 
+  Animal Decay <api/animals/decay.md> 
   Animal Dummy Plants and Soils <api/animals/dummy_plants_and_soil.md> 
   Litter Overview <api/litter.md>
   Litter Model <api/litter/litter_model.md>

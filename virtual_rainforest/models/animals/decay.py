@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.models.animals.carcasses_and_poo` module contains
+"""The :mod:`~virtual_rainforest.models.animals.decay` module contains
 pools which are still potentially forageable by animals but are in the process of
 microbial decomposition. And the moment this consists of animal carcasses and excrement.
 """  # noqa: #D205, D415
