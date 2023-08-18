@@ -162,7 +162,7 @@ class LitterModel(BaseModel):
         # TODO - This should be created by the animal model, but it is not yet linked
         # into the full vr_run flow yet. Once it is this step should be deleted.
         self.data["decomposed_excrement"] = DataArray(
-            np.full((len(self.data.grid.cell_id)), 0.0),
+            np.zeros_like(self.data.grid.cell_id),
             dims=["cell_id"],
             coords={
                 "cell_id": self.data.grid.cell_id,
