@@ -326,12 +326,14 @@ class Config(dict):
     The :meth:`~virtual_rainforest.core.config.Config.export_config` method can be used
     to export the compiled and validated configuration as a single TOML file.
 
+    If the core.data_output_options.save_merged_config option is set to true a merged
+    config file will be automatically generated, unless ``auto`` is set to false.
+
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
         override_params: Extra parameters provided by the user.
-        auto: flag to turn off automatic validation.
-
+        auto: flag to turn off automatic validation and merged config file generation.
     """
 
     def __init__(
@@ -369,6 +371,13 @@ class Config(dict):
             self.override_config(override_params)
             self.build_schema()
             self.validate_config()
+
+            # If the user has indicated that they want a merged config file, generate it
+            # now
+            data_opt = self["core"]["data_output_options"]
+            if data_opt["save_merged_config"]:
+                outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
+                self.export_config(outfile)
 
     def resolve_config_paths(self) -> None:
         """Resolve config file paths into a set of TOML config files.
