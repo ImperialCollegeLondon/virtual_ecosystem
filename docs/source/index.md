@@ -161,6 +161,7 @@ team.
   Create dummy soil data <data_recipes/soil_dummy.md>
   Create dummy litter data <data_recipes/litter_dummy.md>
   Create dummy plant data <data_recipes/plant_dummy.md>
+  Create dummy elevation data <data_recipes/create_dummy_elevation.md>
 ```
 
 ```{eval-rst}
