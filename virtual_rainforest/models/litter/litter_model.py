@@ -161,13 +161,13 @@ class LitterModel(BaseModel):
 
         # TODO - This should be created by the animal model, but it is not yet linked
         # into the full vr_run flow yet. Once it is this step should be deleted.
-        self.data["excess_excrement"] = DataArray(
+        self.data["decomposed_excrement"] = DataArray(
             np.full((len(self.data.grid.cell_id)), 0.0),
             dims=["cell_id"],
             coords={
                 "cell_id": self.data.grid.cell_id,
             },
-            name="excess_excrement",
+            name="decomposed_excrement",
         )
 
     def spinup(self) -> None:
@@ -206,7 +206,7 @@ class LitterModel(BaseModel):
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
-            excess_excrement=self.data["excess_excrement"].to_numpy(),
+            decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
         )
 
         # Update the litter pools

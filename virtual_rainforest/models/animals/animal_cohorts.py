@@ -23,7 +23,12 @@ from virtual_rainforest.models.animals.constants import (
     TEMPERATURE,
 )
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.protocols import Consumer, Pool, Resource
+from virtual_rainforest.models.animals.protocols import (
+    Consumer,
+    DecayPool,
+    Pool,
+    Resource,
+)
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
     energetic_reserve_scaling,
@@ -126,7 +131,7 @@ class AnimalCohort:
         energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
-    def excrete(self, excrement_pool: Pool, consumed_energy: float) -> None:
+    def excrete(self, excrement_pool: DecayPool, consumed_energy: float) -> None:
         """Transfer waste energy from an animal cohort to the excrement pool.
 
         Args:
@@ -134,9 +139,13 @@ class AnimalCohort:
             consumed_energy: The amount of energy flowing through cohort digestion.
 
         """
+        # Find total waste energy, the total amount of waste is then found by the
+        # average cohort member * number individuals.
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
-        excrement_pool.stored_energy += waste_energy * self.individuals
-        # The amount of waste by the average cohort member * number individuals.
+        # This total waste is then split between decay and scavengeable excrement
+        # TODO - Work out how best to make this a constant that can be changed
+        excrement_pool.scavengeable_energy += (0.5) * waste_energy * self.individuals
+        excrement_pool.decomposed_energy += (0.5) * waste_energy * self.individuals
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes.
@@ -218,7 +227,7 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: Pool,
         soil_pool: Pool,
-        excrement_pool: Pool,
+        excrement_pool: DecayPool,
     ) -> None:
         """This function handles selection of resources from a list of options.
 

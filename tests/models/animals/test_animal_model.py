@@ -107,7 +107,7 @@ def test_animal_model_initialization(
                     "Information required to initialise the animal model successfully "
                     "extracted.",
                 ),
-                (INFO, "Adding data array for 'excess_excrement'"),
+                (INFO, "Adding data array for 'decomposed_excrement'"),
             ),
         ),
     ],
@@ -180,7 +180,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
     assert call_sequence == method_names
     # Check that excrement data is created, all elements are zero as no actual updates
     # have occurred
-    assert all(element == 0.0 for element in model.data["excess_excrement"])
+    assert all(element == 0.0 for element in model.data["decomposed_excrement"])
 
 
 def test_update_method_time_index_argument(
@@ -214,16 +214,17 @@ def test_calculate_litter_additions(functional_group_list_instance):
     model = AnimalModel(data, pint.Quantity("1 week"), functional_group_list_instance)
 
     # Update the waste pools
-    excess_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
+    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
     for ind, community in enumerate(model.communities.values()):
-        community.excrement_pool.stored_energy = excess_excrement[ind]
+        community.excrement_pool.stored_energy = decomposed_excrement[ind]
 
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
 
     # Check that litter addition pools are as expected
     assert np.allclose(
-        litter_additions["excess_excrement"], [5e-08, 8e-07, 8.42857e-07, 3.28571e-05]
+        litter_additions["decomposed_excrement"],
+        [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
     )
 
     # Check that the function has reset the pools correctly

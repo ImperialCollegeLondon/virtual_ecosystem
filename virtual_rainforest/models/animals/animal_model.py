@@ -54,7 +54,7 @@ class AnimalModel(BaseModel):
     """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
-    vars_updated = ["excess_excrement"]
+    vars_updated = ["decomposed_excrement"]
     """Variables updated by the animal model.
 
     At the moment these are only inputs to the litter model.
@@ -144,19 +144,19 @@ class AnimalModel(BaseModel):
     def calculate_litter_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the litter."""
 
-        # Find the size of all excrement pools
+        # Find the size of all decomposed excrement pools
         remaining_excrement = [
-            community.excrement_pool.stored_carbon(self.data.grid.cell_area)
+            community.excrement_pool.decomposed_carbon(self.data.grid.cell_area)
             for community in self.communities.values()
         ]
 
         # After an update all excrement that isn't consumed is assumed to enter the
         # litter, so stored energy of each pool is reset to zero
         for community in self.communities.values():
-            community.excrement_pool.stored_energy = 0.0
+            community.excrement_pool.decomposed_energy = 0.0
 
         return {
-            "excess_excrement": DataArray(
+            "decomposed_excrement": DataArray(
                 remaining_excrement / self.update_interval.to("days"), dims="cell_id"
             )
         }

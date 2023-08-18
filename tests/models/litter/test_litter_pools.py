@@ -139,7 +139,7 @@ def test_calculate_litter_pool_updates(
         woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
         below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
         below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
-        excess_excrement=dummy_litter_data["excess_excrement"].to_numpy(),
+        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         update_interval=1.0,
         constants=LitterConsts,
     )
