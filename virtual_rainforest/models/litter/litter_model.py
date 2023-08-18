@@ -66,13 +66,13 @@ class LitterModel(BaseModel):
 
     This is a set of variables that must be present in the data object used to create a
     LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = [
+    vars_updated = (
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
         "litter_pool_woody",
         "litter_pool_below_metabolic",
         "litter_pool_below_structural",
-    ]
+    )
     """Variables updated by the litter model."""
 
     def __init__(

@@ -54,7 +54,7 @@ class AnimalModel(BaseModel):
     """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
-    vars_updated = ["decomposed_excrement"]
+    vars_updated = ("decomposed_excrement",)
     """Variables updated by the animal model.
 
     At the moment these are only inputs to the litter model.
