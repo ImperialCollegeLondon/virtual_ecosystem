@@ -16,6 +16,7 @@ from numpy import timedelta64
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
+    DECAY_FRACTION_EXCREMENT,
     ENERGY_DENSITY,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
@@ -131,21 +132,31 @@ class AnimalCohort:
         energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
-    def excrete(self, excrement_pool: DecayPool, consumed_energy: float) -> None:
+    def excrete(
+        self,
+        excrement_pool: DecayPool,
+        consumed_energy: float,
+        decay_fraction: float = DECAY_FRACTION_EXCREMENT,
+    ) -> None:
         """Transfer waste energy from an animal cohort to the excrement pool.
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
             consumed_energy: The amount of energy flowing through cohort digestion.
-
+            decay_fraction: The fraction of excrement which decays before it gets
+                consumed
         """
         # Find total waste energy, the total amount of waste is then found by the
         # average cohort member * number individuals.
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
+
         # This total waste is then split between decay and scavengeable excrement
-        # TODO - Work out how best to make this a constant that can be changed
-        excrement_pool.scavengeable_energy += (0.5) * waste_energy * self.individuals
-        excrement_pool.decomposed_energy += (0.5) * waste_energy * self.individuals
+        excrement_pool.scavengeable_energy += (
+            (1 - decay_fraction) * waste_energy * self.individuals
+        )
+        excrement_pool.decomposed_energy += (
+            decay_fraction * waste_energy * self.individuals
+        )
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes.
