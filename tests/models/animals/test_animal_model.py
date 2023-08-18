@@ -180,7 +180,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
     assert call_sequence == method_names
     # Check that excrement data is created, all elements are zero as no actual updates
     # have occurred
-    assert all(element == 0.0 for element in model.data["decomposed_excrement"])
+    assert np.allclose(model.data["decomposed_excrement"], 0.0)
 
 
 def test_update_method_time_index_argument(
@@ -228,5 +228,10 @@ def test_calculate_litter_additions(functional_group_list_instance):
     )
 
     # Check that the function has reset the pools correctly
-    for community in model.communities.values():
-        community.excrement_pool.decomposed_energy = 0.0
+    assert np.allclose(
+        [
+            community.excrement_pool.decomposed_energy
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
