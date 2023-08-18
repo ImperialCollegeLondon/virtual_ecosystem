@@ -239,7 +239,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Turn elevation data into np array
-        elevation = np.array(self.data["elevation"]).flatten()
+        elevation = np.array(self.data["elevation"])
 
         # map neighbours and identify downstream cell_ids  # TODO move to core
         mapping = [neighbors(cell_id) for cell_id in range(len(self.data.grid.cell_id))]
@@ -702,6 +702,7 @@ def calculate_soil_evaporation(
 
 
 # function to get neighbors, will be replaced by core methods
+# TODO this needs to be replaced by neighbors from grid, for vr_run it has to be 9,9
 M = 3
 N = 1
 

@@ -216,6 +216,27 @@ files = [
 pycparser = "*"
 
 [[package]]
+name = "cfgrib"
+version = "0.9.10.4"
+description = "Python interface to map GRIB files to the NetCDF Common Data Model following the CF Convention using ecCodes."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "cfgrib-0.9.10.4-py3-none-any.whl", hash = "sha256:563416811cd53a861acf47998ef21769accba641b1715d2af4d7e165c4868beb"},
+    {file = "cfgrib-0.9.10.4.tar.gz", hash = "sha256:b490078192aa13ec89c77296110355521442325866b16a996f4b3cf421542909"},
+]
+
+[package.dependencies]
+attrs = ">=19.2"
+click = "*"
+eccodes = ">=0.9.8"
+numpy = "*"
+
+[package.extras]
+tests = ["dask[array]", "flake8", "pytest", "pytest-cov", "scipy", "xarray (>=0.15)"]
+xarray = ["xarray (>=0.15)"]
+
+[[package]]
 name = "cfgv"
 version = "3.4.0"
 description = "Validate configuration and produce human readable error messages."
@@ -602,6 +623,38 @@ files = [
 ]
 
 [[package]]
+name = "eccodes"
+version = "1.6.0"
+description = "Python interface to the ecCodes GRIB and BUFR decoder/encoder"
+optional = false
+python-versions = "*"
+files = [
+    {file = "eccodes-1.6.0.tar.gz", hash = "sha256:59393040bcf89d8048127410926582aaffc688e174bebd464719307bbc5d9e15"},
+]
+
+[package.dependencies]
+attrs = "*"
+cffi = "*"
+findlibs = "*"
+numpy = "*"
+
+[[package]]
+name = "ecmwflibs"
+version = "0.5.5"
+description = "Wraps ECMWF tools (experimental)"
+optional = false
+python-versions = "*"
+files = [
+    {file = "ecmwflibs-0.5.5-cp310-cp310-macosx_13_0_arm64.whl", hash = "sha256:437980172ed62f4b070716788a807735bf9a72b765c732d4f88e3eb263ba6f4c"},
+    {file = "ecmwflibs-0.5.5-cp311-cp311-macosx_13_0_arm64.whl", hash = "sha256:ff3b7c0cc6684dba40ea607335ca282ca83df7f8b8a37ca6413af5052bd9ad7d"},
+    {file = "ecmwflibs-0.5.5-cp38-cp38-macosx_13_0_arm64.whl", hash = "sha256:891c7226b7b467c2fde445b0cc94ab06f68fcc8651603b32ead1b4946948e722"},
+    {file = "ecmwflibs-0.5.5-cp39-cp39-macosx_13_0_arm64.whl", hash = "sha256:acfd042951a9cd2a72a2399b00c927d3d7cfea6255d1d58ccb952b4ae462751a"},
+]
+
+[package.dependencies]
+findlibs = "*"
+
+[[package]]
 name = "exceptiongroup"
 version = "1.1.3"
 description = "Backport of PEP 654 (exception groups)"
@@ -657,6 +710,16 @@ files = [
 [package.extras]
 docs = ["furo (>=2023.5.20)", "sphinx (>=7.0.1)", "sphinx-autodoc-typehints (>=1.23,!=1.23.4)"]
 testing = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "diff-cover (>=7.5)", "pytest (>=7.3.1)", "pytest-cov (>=4.1)", "pytest-mock (>=3.10)", "pytest-timeout (>=2.1)"]
+
+[[package]]
+name = "findlibs"
+version = "0.0.5"
+description = "A packages to search for shared libraries on various platforms"
+optional = false
+python-versions = "*"
+files = [
+    {file = "findlibs-0.0.5.tar.gz", hash = "sha256:7a801571e999d0ee83f9b92cbb598c21f861ee26ca9dba74cea8958ba4335e7e"},
+]
 
 [[package]]
 name = "flake8"
@@ -3418,4 +3481,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "7cf9f45db3002bc95bdc5c853a0921f92c9031bd8445e805b72e169d72438040"
+content-hash = "419c36faa60b6857c85d26b274ad2c8fea3c0285ef4ebfa268370e2acfc99b7a"

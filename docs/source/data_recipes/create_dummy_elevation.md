@@ -55,5 +55,5 @@ cell_displacements = [0, 90, 180, 270, 360, 450, 540, 630, 720]
 dem_placed = dem_cleaned.assign_coords({'x': cell_displacements, 'y': cell_displacements})
 
 # 7. Save to netcdf
-dem_placed.to_netcdf('./elevation_dummy.nc')
+dem_placed.to_netcdf('../../../example_data/elevation_dummy.nc')
 ```
