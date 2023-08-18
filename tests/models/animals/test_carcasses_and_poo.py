@@ -24,7 +24,7 @@ class TestExcrementPool:
 
         poo = ExcrementPool(77.7, 25.0)
         # Test that function to calculate stored carbon works as expected
-        assert poo.scavengable_energy == 77.7
+        assert poo.scavengeable_energy == 77.7
         assert poo.decomposed_energy == 25.0
         assert poo.decomposed_carbon(1.0) == 2.5e-5
         assert poo.decomposed_carbon(10.0) == 2.5e-6

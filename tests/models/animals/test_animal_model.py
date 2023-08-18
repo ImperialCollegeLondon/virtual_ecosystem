@@ -216,7 +216,7 @@ def test_calculate_litter_additions(functional_group_list_instance):
     # Update the waste pools
     decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
     for ind, community in enumerate(model.communities.values()):
-        community.excrement_pool.stored_energy = decomposed_excrement[ind]
+        community.excrement_pool.decomposed_energy = decomposed_excrement[ind]
 
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
@@ -229,4 +229,4 @@ def test_calculate_litter_additions(functional_group_list_instance):
 
     # Check that the function has reset the pools correctly
     for community in model.communities.values():
-        community.excrement_pool.stored_energy = 0.0
+        community.excrement_pool.decomposed_energy = 0.0

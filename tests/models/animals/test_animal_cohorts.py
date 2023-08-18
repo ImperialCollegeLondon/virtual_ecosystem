@@ -21,6 +21,14 @@ def soil_instance():
 
 
 @pytest.fixture
+def excrement_instance():
+    """Fixture for a soil pool used in tests."""
+    from virtual_rainforest.models.animals.carcasses_and_poo import ExcrementPool
+
+    return ExcrementPool(100000.0, 0.0)
+
+
+@pytest.fixture
 def herb_functional_group_instance(shared_datadir):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
@@ -138,26 +146,30 @@ class TestAnimalCohort:
             herb_cohort_instance.metabolize(dt)
 
     @pytest.mark.parametrize(
-        "soil_initial, soil_final, consumed_energy",
+        "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",
         [
-            (1000.0, 1100.0, 1000.0),
-            (0.0, 100.0, 1000.0),
-            (1000.0, 1000.0, 0.0),
-            (0.0, 0.0, 0.0),
+            (1000.0, 1050.0, 0.0, 50.0, 1000.0),
+            (0.0, 50.0, 1000.0, 1050.0, 1000.0),
+            (1000.0, 1000.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 1000.0, 1000.0, 0.0),
         ],
     )
     def test_excrete(
         self,
         herb_cohort_instance,
-        soil_instance,
-        soil_initial,
-        soil_final,
+        excrement_instance,
+        scav_initial,
+        scav_final,
+        decomp_initial,
+        decomp_final,
         consumed_energy,
     ):
         """Testing excrete() for varying soil energy levels."""
-        soil_instance.stored_energy = soil_initial
-        herb_cohort_instance.excrete(soil_instance, consumed_energy)
-        assert soil_instance.stored_energy == soil_final
+        excrement_instance.scavengeable_energy = scav_initial
+        excrement_instance.decomposed_energy = decomp_initial
+        herb_cohort_instance.excrete(excrement_instance, consumed_energy)
+        assert excrement_instance.scavengeable_energy == scav_final
+        assert excrement_instance.decomposed_energy == decomp_final
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -247,7 +259,8 @@ class TestAnimalCohort:
         soil_pool_instance = mocker.MagicMock(spec=PalatableSoil)
         soil_pool_instance.stored_energy = 0  # setting the attribute on the mock
         excrement_pool_instance = mocker.MagicMock(spec=ExcrementPool)
-        excrement_pool_instance.stored_energy = 0  # setting the attribute on the mock
+        excrement_pool_instance.scavengeable_energy = 0
+        excrement_pool_instance.decomposed_energy = 0
 
         animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
 
