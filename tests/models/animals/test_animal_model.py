@@ -22,6 +22,18 @@ def functional_group_list_instance(shared_datadir):
     return fg_list
 
 
+@pytest.fixture
+def animal_model_instance(data_instance, functional_group_list_instance):
+    """Fixture for an animal model object for testing."""
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    return AnimalModel(
+        data_instance,
+        pint.Quantity("1 day"),
+        functional_group_list_instance,
+    )
+
+
 def test_animal_model_initialization(
     caplog, data_instance, functional_group_list_instance
 ):
@@ -134,6 +146,30 @@ def test_generate_animal_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_get_community_by_key(animal_model_instance):
+    """Test the `get_community_by_key` method."""
+
+    from virtual_rainforest.models.animals.animal_model import AnimalCommunity
+
+    # If you know that your model_instance should have a community with key 0
+    community_0 = animal_model_instance.get_community_by_key(0)
+
+    # Ensure it returns the right type and the community key matches
+    assert isinstance(
+        community_0, AnimalCommunity
+    ), "Expected instance of AnimalCommunity"
+    assert community_0.community_key == 0, "Expected the community with key 0"
+
+    # Perhaps you have more keys you expect, you can add similar checks:
+    community_1 = animal_model_instance.get_community_by_key(1)
+    assert isinstance(community_1, AnimalCommunity)
+    assert community_1.community_key == 1, "Expected the community with key 1"
+
+    # Test for an invalid key, expecting an error
+    with pytest.raises(KeyError):
+        animal_model_instance.get_community_by_key(999)
 
 
 def test_update_method_sequence(data_instance, functional_group_list_instance):

@@ -142,3 +142,5 @@ TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 
 REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
 REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs
+
+ENERGY_PERCENTILE_THRESHOLD: float = 0.5  # Toy value for initiating migration

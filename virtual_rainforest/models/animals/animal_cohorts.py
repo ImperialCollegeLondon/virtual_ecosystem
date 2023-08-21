@@ -18,6 +18,7 @@ from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import (
     ENERGY_DENSITY,
+    ENERGY_PERCENTILE_THRESHOLD,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
     TEMPERATURE,
@@ -104,7 +105,7 @@ class AnimalCohort:
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups = prey_group_selection(
-            self.functional_group.diet.value,
+            self.functional_group.diet,
             self.mass,
             self.functional_group.prey_scaling,
         )
@@ -287,3 +288,14 @@ class AnimalCohort:
 
         """
         return self.stored_energy >= self.reproduction_energy_threshold
+
+    def is_below_energy_threshold(self) -> bool:
+        """Check if cohort's energy is below a certain threshold.
+
+        Return:
+            A bool of whether the current energy state is above the migration threshold.
+        """
+        return (
+            self.stored_energy
+            < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
+        )

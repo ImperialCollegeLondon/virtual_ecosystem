@@ -125,3 +125,57 @@ def test_intake_rate_scaling(mass, intake_rate, terms):
 
     test_rate = intake_rate_scaling(mass, terms)
     assert test_rate == pytest.approx(intake_rate, rel=1e-6)
+
+
+def test_herbivore_prey_group_selection():
+    """Test for herbivore diet type selection."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        DietType,
+        prey_group_selection,
+    )
+
+    result = prey_group_selection(DietType.HERBIVORE, 10.0, (0.1, 1000.0))
+    assert result == {"plants": (0.0, 0.0)}
+
+
+def test_carnivore_prey_group_selection():
+    """Test for carnivore diet type selection."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        DietType,
+        prey_group_selection,
+    )
+
+    result = prey_group_selection(DietType.CARNIVORE, 10.0, (0.1, 1000.0))
+    expected_output = {
+        "herbivorous_mammal": (0.1, 1000.0),
+        "carnivorous_mammal": (0.1, 1000.0),
+        "herbivorous_bird": (0.1, 1000.0),
+        "carnivorous_bird": (0.1, 1000.0),
+        "herbivorous_insect": (0.1, 1000.0),
+        "carnivorous_insect": (0.1, 1000.0),
+    }
+    assert result == expected_output
+
+
+def test_prey_group_selection_invalid_diet_type():
+    """Test for an invalid diet type."""
+    import pytest
+
+    from virtual_rainforest.models.animals.scaling_functions import prey_group_selection
+
+    with pytest.raises(ValueError, match="Invalid diet type:"):
+        prey_group_selection("omnivore", 10.0, (0.1, 1000.0))
+
+
+def test_prey_group_selection_mass_and_terms_impact():
+    """Test to ensure `mass` and `terms` don't affect output."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        DietType,
+        prey_group_selection,
+    )
+
+    result_default = prey_group_selection(DietType.CARNIVORE, 10.0, (0.1, 1000.0))
+    result_diff_mass = prey_group_selection(DietType.CARNIVORE, 50.0, (0.1, 1000.0))
+    result_diff_terms = prey_group_selection(DietType.CARNIVORE, 10.0, (0.5, 500.0))
+
+    assert result_default == result_diff_mass == result_diff_terms

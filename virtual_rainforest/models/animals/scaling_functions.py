@@ -9,7 +9,7 @@ To Do:
 
 from math import ceil, exp, log
 
-from virtual_rainforest.models.animals.animal_traits import MetabolicType
+from virtual_rainforest.models.animals.animal_traits import DietType, MetabolicType
 from virtual_rainforest.models.animals.constants import BOLTZMANN_CONSTANT
 
 
@@ -144,7 +144,7 @@ def intake_rate_scaling(mass: float, terms: tuple) -> float:
 
 
 def prey_group_selection(
-    diet: str, mass: float, terms: tuple
+    diet_type: DietType, mass: float, terms: tuple
 ) -> dict[str, tuple[float, float]]:
     """The function to set the type selection and mass scaling of predators.
 
@@ -163,9 +163,9 @@ def prey_group_selection(
 
     """
 
-    if diet == "herbivore":
+    if diet_type == DietType.HERBIVORE:
         return {"plants": (0.0, 0.0)}
-    else:
+    elif diet_type == DietType.CARNIVORE:
         return {
             "herbivorous_mammal": (0.1, 1000.0),
             "carnivorous_mammal": (0.1, 1000.0),
@@ -174,6 +174,8 @@ def prey_group_selection(
             "herbivorous_insect": (0.1, 1000.0),
             "carnivorous_insect": (0.1, 1000.0),
         }
+    else:
+        raise ValueError("Invalid diet type: {diet_type}")
 
 
 def natural_mortality_scaling(mass: float, terms: tuple) -> float:

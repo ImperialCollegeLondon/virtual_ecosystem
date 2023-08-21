@@ -88,6 +88,20 @@ class AnimalModel(BaseModel):
         """
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
+    def get_community_by_key(self, key: int) -> AnimalCommunity:
+        """Function to return the AnimalCommunity present in a given grid square.
+
+        This function exists principally to provide a callable for AnimalCommunity.
+
+        Args:
+            key: The specific grid square integer key associated with the community.
+
+        Returns:
+            The AnimalCommunity object in that grid square.
+
+        """
+        return self.communities[key]
+
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
         """Initialize the animal communities.
 
@@ -98,7 +112,13 @@ class AnimalModel(BaseModel):
 
         # Generate a dictionary of AnimalCommunity objects, one per grid cell.
         self.communities = {
-            k: AnimalCommunity(functional_groups) for k in self.data.grid.cell_id
+            k: AnimalCommunity(
+                functional_groups,
+                k,
+                list(self.data.grid.neighbours[k]),
+                self.get_community_by_key,
+            )
+            for k in self.data.grid.cell_id
         }
 
         # Create animal cohorts in each grid square's animal community according to the
