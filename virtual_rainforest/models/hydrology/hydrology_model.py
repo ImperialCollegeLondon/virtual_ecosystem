@@ -17,6 +17,7 @@ downstream functions so that all model configuration failures can be reported as
 
 from __future__ import annotations
 
+from math import sqrt
 from typing import Any, Union
 
 import numpy as np
@@ -74,7 +75,7 @@ class HydrologyModel(BaseModel):
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
-        "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
+        "stream_flow",  # P-ET; TODO later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
     ]
     """Variables updated by the hydrology model."""
@@ -118,6 +119,8 @@ class HydrologyModel(BaseModel):
         cells identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
+        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+        """Set neighbours."""
 
     @classmethod
     def from_config(
@@ -178,8 +181,6 @@ class HydrologyModel(BaseModel):
         function identifies the upstream neighbours of each grid cell based on a digital
         elevation model.
 
-        TODO Identification of upstream neighbours should move to core as an attribute
-        of the grid.
         TODO implement below-ground horizontal flow and update stream flow
         TODO The hydrology needs spin up
         """
@@ -241,9 +242,13 @@ class HydrologyModel(BaseModel):
         # Turn elevation data into np array
         elevation = np.array(self.data["elevation"])
 
-        # map neighbours and identify downstream cell_ids  # TODO move to core
-        mapping = [neighbors(cell_id) for cell_id in range(len(self.data.grid.cell_id))]
+        # map neighbours and identify downstream cell_ids
+        mapping = [
+            self.data.grid.neighbours[cell_id]
+            for cell_id in range(len(self.data.grid.cell_id))
+        ]
         downstream_ids = []
+
         for cell_id, neighbors_id in enumerate(mapping):
             # Find lowest neighbour
             downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
@@ -255,6 +260,7 @@ class HydrologyModel(BaseModel):
             upstream_ids[up_s].append(down_s)
 
         self.upstream_ids = upstream_ids
+        """Upstream ID's for the calculation of accumulated surface runoff."""
 
         # Get the runoff created by SPLASH or initial data set as the baseline:
         baseline_runoff = np.array(self.data["surface_runoff"])
@@ -317,9 +323,6 @@ class HydrologyModel(BaseModel):
         after evapotranspiration is calculated by the plant model which works as long as
         the P-model does not require moisture as an input. In the future, this
         might move to a different model or the order of models might change.
-
-        TODO Implement horizontal sub-surface flow
-        TODO set model order to get plant inputs (LAI, layer heights, ET)
 
         The function requires the following input variables from the data object:
 
@@ -441,7 +444,7 @@ class HydrologyModel(BaseModel):
             relative_humidity=subcanopy_humidity,
             atmospheric_pressure=subcanopy_pressure,
             soil_moisture=soil_moisture_infiltrated,
-            wind_speed=0.1,  # TODO wind_speed,
+            wind_speed=0.1,  # TODO wind_speed in data object,
             celsius_to_kelvin=self.constants.celsius_to_kelvin,
             density_air=self.constants.density_air,
             latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
@@ -473,7 +476,7 @@ class HydrologyModel(BaseModel):
             meters_to_millimeters=self.constants.meters_to_millimeters,
         )
 
-        # Expand to all soil layers and add atmospheric layers (nan)
+        # Expand soil moisture to all soil layers and add atmospheric layers (nan)
         soil_hydrology["soil_moisture"] = xr.concat(
             [
                 DataArray(
@@ -500,7 +503,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate accumulated surface runoff
-        # Get the runoff created by SPLASH or initial data set at time_index:
+        # Get the runoff created by SPLASH or initial data set
         single_cell_runoff = np.array(soil_hydrology["surface_runoff"])
 
         # Get accumulated runoff from previous time step
@@ -699,43 +702,3 @@ def calculate_soil_evaporation(
     return DataArray(  # TODO check this
         (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
     )
-
-
-# function to get neighbors, will be replaced by core methods
-# TODO this needs to be replaced by neighbors from grid, for vr_run it has to be 9,9
-M = 3
-N = 1
-
-
-def neighbors(index: int, shape: Any = (M, N)) -> list:
-    """Returns a callable.
-
-    (M,N) --> (number_of_rows, number_of_columns)
-    """
-
-    M, N = shape
-    # 2d index\n",
-    c, r = divmod(index, M)
-    # neighbors\n",
-    cplus, cminus = c + 1, c - 1
-    rplus, rminus = r + 1, r - 1
-    # dot product of (c,cplus,cminus) and (r,rplus,rminus)?
-    neighbors = [
-        (cminus, rminus),
-        (cminus, r),
-        (cminus, rplus),
-        (c, rplus),
-        (cplus, rplus),
-        (cplus, r),
-        (cplus, rminus),
-        (c, rminus),
-    ]
-
-    # validate filter
-    neighbors = [
-        (col, row) for col, row in neighbors if (0 <= col < N) and (0 <= row < M)
-    ]
-
-    # 1d indices
-    one_d = [(col * M) + row for col, row in neighbors]
-    return one_d
