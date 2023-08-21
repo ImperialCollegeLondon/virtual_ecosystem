@@ -113,6 +113,10 @@ class AnimalCohort:
             self.mass,
             self.functional_group.prey_scaling,
         )
+        # TODO - In future this should be parameterised using a constants dataclass, but
+        # this hasn't yet been implemented for the animal model
+        self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
+        """The fraction of excrement which decays before it gets consumed."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -136,15 +140,12 @@ class AnimalCohort:
         self,
         excrement_pool: DecayPool,
         consumed_energy: float,
-        decay_fraction: float = DECAY_FRACTION_EXCREMENT,
     ) -> None:
         """Transfer waste energy from an animal cohort to the excrement pool.
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
             consumed_energy: The amount of energy flowing through cohort digestion.
-            decay_fraction: The fraction of excrement which decays before it gets
-                consumed
         """
         # Find total waste energy, the total amount of waste is then found by the
         # average cohort member * number individuals.
@@ -152,10 +153,10 @@ class AnimalCohort:
 
         # This total waste is then split between decay and scavengeable excrement
         excrement_pool.scavengeable_energy += (
-            (1 - decay_fraction) * waste_energy * self.individuals
+            (1 - self.decay_fraction_excrement) * waste_energy * self.individuals
         )
         excrement_pool.decomposed_energy += (
-            decay_fraction * waste_energy * self.individuals
+            self.decay_fraction_excrement * waste_energy * self.individuals
         )
 
     def increase_age(self, dt: timedelta64) -> None:
