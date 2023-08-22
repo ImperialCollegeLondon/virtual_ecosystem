@@ -41,7 +41,7 @@ def test_animal_model_initialization(
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
     assert repr(model) == "AnimalModel(update_interval = 1 week)"
-    assert type(model.communities) is dict
+    assert isinstance(model.communities, dict)
 
 
 @pytest.mark.parametrize(
@@ -215,8 +215,8 @@ def test_calculate_litter_additions(functional_group_list_instance):
 
     # Update the waste pools
     decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
-    for ind, community in enumerate(model.communities.values()):
-        community.excrement_pool.decomposed_energy = decomposed_excrement[ind]
+    for energy, community in zip(decomposed_excrement, model.communities.values()):
+        community.excrement_pool.decomposed_energy = energy
 
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
