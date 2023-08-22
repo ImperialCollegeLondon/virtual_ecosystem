@@ -745,6 +745,8 @@ def accumulate_surface_runoff(
     This function takes the accumulated surface runoff from the previous timestep and
     adds all surface runoff of the current time step from upstream cell IDs.
 
+    The function currently raises a `ValueError` if accumulated runoff is negative.
+
     Args:
         upstream_ids: list of all upstream IDs for each grid cell
         surface_runoff: surface runoff of the current time step, [mm]
@@ -752,9 +754,6 @@ def accumulate_surface_runoff(
 
     Returns:
         accumulated surface runoff, [mm]
-
-    Raises:
-        function raises ValueError if accumulated runoff is negative
     """
 
     for cell_id, upstream_id in enumerate(upstream_ids):
