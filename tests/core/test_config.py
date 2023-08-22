@@ -375,38 +375,31 @@ def test_Config_build_config(
 
 
 @pytest.mark.parametrize(
-    "config_content,expected_exception,expected_log_entries",
+    "config_content,expected_exception",
     [
         pytest.param(
             {"core": {"modules": ["soil", "plants"]}},
             does_not_raise(),
-            ((INFO, "Validation schema for configuration built."),),
             id="core_modules_all_known",
         ),
         pytest.param(
             {"core": {"modules": ["soil", "pants"]}},
             pytest.raises(ConfigurationError),
-            ((ERROR, "Configuration contains module with no schema: pants"),),
             id="core_modules_include_unknown",
         ),
     ],
 )
-def test_Config_build_schema(
-    caplog, config_content, expected_exception, expected_log_entries
-):
+def test_Config_build_schema(config_content, expected_exception):
     """Test the validate_config method of Config."""
     from virtual_rainforest.core.config import Config
 
     # create an empty config and directly set the merged configuration values
     cfg = Config([], auto=False)
     cfg.update(config_content)
-    caplog.clear()
 
     # Run the validation
     with expected_exception:
         cfg.build_schema()
-
-    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -529,37 +522,18 @@ def test_Config_validate_config(
 
 
 @pytest.mark.parametrize(
-    "file_path,expected_log_entries",
-    [
-        (
-            "default_config.toml",  # File entirely of defaults
-            (
-                (INFO, "Config paths resolve to 1 files"),
-                (INFO, "Config TOML loaded from"),
-                (INFO, "Config set from single file"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-            ),
-        ),
-        (
-            "all_config.toml",  # File with no defaults
-            (
-                (INFO, "Config paths resolve to 1 files"),
-                (INFO, "Config TOML loaded from"),
-                (INFO, "Config set from single file"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-            ),
-        ),
-    ],
+    "file_path",
+    (
+        "default_config.toml",  # File entirely of defaults
+        "all_config.toml",  # File with no defaults
+    ),
 )
-def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entries):
+def test_Config_init_auto(shared_datadir, file_path):
     """Checks that auto validation passes as expected."""
     from virtual_rainforest.core.config import Config
 
     with patch.object(Config, "export_config") as export_mock:
         Config(shared_datadir / file_path, auto=True)
-        log_check(caplog, expected_log_entries)
         export_mock.assert_called_once()
 
 

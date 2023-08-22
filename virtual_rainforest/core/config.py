@@ -575,8 +575,11 @@ class Config(dict):
             try:
                 all_schemas[module] = _get_schema(module)
             except Exception as excep:
-                LOGGER.error(f"Error while loading '{module}' model: {str(excep)}")
-                raise
+                to_raise = ConfigurationError(
+                    f"Configuration contains module with no schema: {module}"
+                )
+                LOGGER.critical(to_raise)
+                raise to_raise from excep
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
