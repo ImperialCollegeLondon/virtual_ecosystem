@@ -182,7 +182,6 @@ class HydrologyModel(BaseModel):
         elevation model.
 
         TODO implement below-ground horizontal flow and update stream flow
-        TODO The hydrology needs spin up
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -239,35 +238,31 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # identify downstream cell_ids
-        downstream_ids = find_lowest_neighbour(
+        # Identify cell ID of the lowest neighbour for each grid cell
+        lowest_neighbour = find_lowest_neighbour(
             neighbours=self.data.grid.neighbours,
             elevation=np.array(self.data["elevation"]),
         )
 
-        # Invert mapping of cell_id: downstream neighbour to cell_id: upstream_neighbors
-        upstream_ids: list = [[] for i in range(len(self.data.grid.cell_id))]
-        for down_s, up_s in enumerate(downstream_ids):
-            upstream_ids[up_s].append(down_s)
+        # Identify all upstream cell IDs
+        self.upstream_ids = find_upstream_cells(lowest_neighbour)
+        """Upstream IDs for the calculation of accumulated runoff."""
 
-        self.upstream_ids = upstream_ids
-        """Upstream ID's for the calculation of accumulated surface runoff."""
+        # Get the runoff created by SPLASH or initial data set as the initial state:
+        initial_runoff = np.array(self.data["surface_runoff"])
 
-        # Get the runoff created by SPLASH or initial data set as the baseline:
-        baseline_runoff = np.array(self.data["surface_runoff"])
-
-        # set initial accumulated runoff to zero
+        # Set initial accumulated runoff to zero
         accumulated_runoff = np.zeros_like(self.data["elevation"])
 
-        # calculate accumulated runoff for each cell (sum of the upstream neighbours)
-        # TODO this requires a proper spin up!
-        # TODO check for negative numbers
-
-        for cell_id, upstream_id in enumerate(self.upstream_ids):
-            accumulated_runoff[cell_id] += np.sum(baseline_runoff[upstream_id])
+        # Calculate accumulated (surface) runoff for each cell
+        new_accumulated_runoff = accumulate_surface_runoff(
+            upstream_ids=self.upstream_ids,
+            surface_runoff=initial_runoff,
+            accumulated_runoff=accumulated_runoff,
+        )
 
         self.data["surface_runoff_accumulated"] = DataArray(
-            accumulated_runoff,
+            new_accumulated_runoff,
             dims="cell_id",
             name="surface_runoff_accumulated",
             coords={"cell_id": self.data.grid.cell_id},
@@ -275,6 +270,7 @@ class HydrologyModel(BaseModel):
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
+        # TODO soil moisture and accumulated runoff need a spin up
 
     def update(self, time_index: int) -> None:
         r"""Function to update the hydrology model.
@@ -435,7 +431,7 @@ class HydrologyModel(BaseModel):
             relative_humidity=subcanopy_humidity,
             atmospheric_pressure=subcanopy_pressure,
             soil_moisture=soil_moisture_infiltrated,
-            wind_speed=0.1,  # TODO wind_speed in data object,
+            wind_speed=0.1,  # TODO wind_speed in data object, m/s
             celsius_to_kelvin=self.constants.celsius_to_kelvin,
             density_air=self.constants.density_air,
             latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
@@ -501,11 +497,14 @@ class HydrologyModel(BaseModel):
         accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
 
         # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
-        for cell_id, upstream_id in enumerate(self.upstream_ids):
-            accumulated_runoff[cell_id] += np.sum(single_cell_runoff[upstream_id])
+        new_accumulated_runoff = accumulate_surface_runoff(
+            upstream_ids=self.upstream_ids,
+            surface_runoff=single_cell_runoff,
+            accumulated_runoff=accumulated_runoff,
+        )
 
         soil_hydrology["surface_runoff_accumulated"] = DataArray(
-            accumulated_runoff, dims="cell_id"
+            new_accumulated_runoff, dims="cell_id"
         )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
@@ -696,7 +695,7 @@ def calculate_soil_evaporation(
 
 
 def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
-    """Find lowest neighbour from elevation data.
+    """Find lowest neighbour for each grid cell from elevation data.
 
     This function finds the cell IDs of the lowest neighbour for each grid cell. This
     can be used to determine in which direction surface runoff flows.
@@ -708,9 +707,65 @@ def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
     Returns:
         list of lowest neighbour IDs
     """
-    downstream_ids = []
+    lowest_neighbour = []
     for cell_id, neighbors_id in enumerate(neighbours):
         downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
-        downstream_ids.append(neighbors_id[downstream_id_loc])
+        lowest_neighbour.append(neighbors_id[downstream_id_loc])
 
-    return downstream_ids
+    return lowest_neighbour
+
+
+def find_upstream_cells(lowest_neighbour: list) -> list:
+    """Find all upstream cell IDs for all grid cells.
+
+    This function identified all cell IDs that are upstream of each grid cell. This can
+    be used to calculate the water flow that goes though a grid cell.
+
+    Args:
+        lowest_neighbour: list of lowest neighbour cell_ids
+
+    Returns:
+        list of all upstream IDs for each grid cell
+    """
+    upstream_ids: list = [[] for i in range(len(lowest_neighbour))]
+
+    for down_s, up_s in enumerate(lowest_neighbour):
+        upstream_ids[up_s].append(down_s)
+
+    return upstream_ids
+
+
+def accumulate_surface_runoff(
+    upstream_ids: list,
+    surface_runoff: np.ndarray,
+    accumulated_runoff: np.ndarray,
+) -> np.ndarray:
+    """Calculate accumulated surface runoff for each grid cell.
+
+    This function takes the accumulated surface runoff from the previous timestep and
+    adds all surface runoff of the current time step from upstream cell IDs.
+
+    Args:
+        upstream_ids: list of all upstream IDs for each grid cell
+        surface_runoff: surface runoff of the current time step, [mm]
+        accumulated_runoff: accumulated surface runoff from previous time step, [mm]
+
+    Returns:
+        accumulated surface runoff, [mm]
+
+    Raises:
+        function raises ValueError if accumulated runoff is negative
+    """
+
+    for cell_id, upstream_id in enumerate(upstream_ids):
+        accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_id])
+
+    for num in accumulated_runoff:
+        if num < 0:
+            to_raise = ValueError(
+                "The accumulated surface runoff should not be negative!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+    return accumulated_runoff

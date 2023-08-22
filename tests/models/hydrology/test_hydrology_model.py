@@ -545,3 +545,53 @@ def test_find_lowest_neighbour(dummy_climate_data):
 
     exp_result = [1, 2, 2]
     assert result == exp_result
+
+
+def test_find_upstream_cells():
+    """Test that upstream cells are ientified correctly."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import find_upstream_cells
+
+    lowest = [1, 2, 2, 5, 7, 7, 7, 7]
+    exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
+    result = find_upstream_cells(lowest)
+    assert result == exp_result
+
+
+@pytest.mark.parametrize(
+    "acc_runoff,raises,expected_log_entries",
+    [
+        (
+            np.array([100, 100, 100, 100, 100, 100, 100, 100]),
+            does_not_raise(),
+            {},
+        ),
+        (
+            [-100, 100, 100, 100, 100, 100, 100, 100],
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "The accumulated surface runoff should not be negative!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entries):
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        accumulate_surface_runoff,
+    )
+
+    upstream_ids = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
+    surface_runoff = np.array([100, 100, 100, 100, 100, 100, 100, 100])
+    exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
+
+    with raises:
+        result = accumulate_surface_runoff(upstream_ids, surface_runoff, acc_runoff)
+        np.testing.assert_array_equal(result, exp_result)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
