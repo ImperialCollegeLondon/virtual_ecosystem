@@ -134,7 +134,8 @@ def vr_run_cli() -> None:
     override_params: dict[str, Any] = {}
     if args.outpath:
         # Set the output path
-        override_params |= {"core": {"data_output_options": {"out_path": args.outpath}}}
+        outpath_opt = {"core": {"data_output_options": {"out_path": args.outpath}}}
+        override_params, _ = config_merge(override_params, outpath_opt)
     if args.params:
         # Parse any extra parameters passed using the --param flag
         _parse_command_line_params(args.params, override_params)
