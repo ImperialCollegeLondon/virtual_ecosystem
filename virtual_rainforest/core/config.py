@@ -30,7 +30,7 @@ import json
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
-from importlib import resources
+from importlib import import_module, resources
 from pathlib import Path
 from typing import Any, Iterator, Union
 
@@ -104,6 +104,16 @@ def _get_core_schema() -> dict:
         "virtual_rainforest.core", "core_schema.json"
     ) as schema_file_path:
         return load_schema("core", schema_file_path)
+
+
+def _get_schema(module: str) -> dict:
+    try:
+        import_module(f"virtual_rainforest.models.{module}")
+    except Exception as excep:
+        LOGGER.error(f"Error while loading '{module}' model: {str(excep)}")
+        raise
+
+    return SCHEMA_REGISTRY[module]
 
 
 def register_schema(module_name: str, schema_file_path: Path) -> None:
@@ -562,15 +572,11 @@ class Config(dict):
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
-            # Trap unknown model schemas
-            if module not in SCHEMA_REGISTRY:
-                to_raise = ConfigurationError(
-                    f"Configuration contains module with no schema: {module}"
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            all_schemas[module] = SCHEMA_REGISTRY[module]
+            try:
+                all_schemas[module] = _get_schema(module)
+            except Exception as excep:
+                LOGGER.error(f"Error while loading '{module}' model: {str(excep)}")
+                raise
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
