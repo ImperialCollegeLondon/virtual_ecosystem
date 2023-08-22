@@ -82,17 +82,6 @@ def test_load_schema(
     "schema_name,schema,expected_exception,expected_log_entries",
     [
         (
-            "core",
-            "",
-            ValueError,
-            (
-                (
-                    CRITICAL,
-                    "The module schema for core is already registered",
-                ),
-            ),
-        ),
-        (
             "test",
             "najsnjasnda",
             json.JSONDecodeError,
@@ -150,11 +139,15 @@ def test_register_schema_errors(
 
 def test_merge_schemas():
     """Test that module schemas are properly merged."""
-    from virtual_rainforest.core.config import SCHEMA_REGISTRY, merge_schemas
+    from virtual_rainforest.core.config import (
+        SCHEMA_REGISTRY,
+        _get_core_schema,
+        merge_schemas,
+    )
 
     merged_schemas = merge_schemas(
         {
-            "core": SCHEMA_REGISTRY["core"],
+            "core": _get_core_schema(),
             "abiotic": SCHEMA_REGISTRY["abiotic"],
             "animals": SCHEMA_REGISTRY["animals"],
             "plants": SCHEMA_REGISTRY["plants"],

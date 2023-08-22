@@ -30,6 +30,7 @@ import json
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
+from importlib import resources
 from pathlib import Path
 from typing import Any, Iterator, Union
 
@@ -95,6 +96,14 @@ ValidatorWithDefaults = validators.extend(
 )
 
 # Schema handling functions
+
+
+def _get_core_schema() -> dict:
+    """Load and return the schema for core config options."""
+    with resources.path(
+        "virtual_rainforest.core", "core_schema.json"
+    ) as schema_file_path:
+        return load_schema("core", schema_file_path)
 
 
 def register_schema(module_name: str, schema_file_path: Path) -> None:
@@ -535,7 +544,12 @@ class Config(dict):
 
         # Extract the modules requested in the configuration, falling back to the schema
         # defaults
-        core_schema = SCHEMA_REGISTRY["core"]
+        try:
+            core_schema = _get_core_schema()
+        except Exception:
+            LOGGER.error("Could not load core schema")
+            raise
+
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
         try:

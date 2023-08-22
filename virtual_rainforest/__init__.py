@@ -6,9 +6,6 @@ import virtual_rainforest.models as vfm
 
 from . import example_data
 
-# Import the core module schema to register the schema
-import_module("virtual_rainforest.core")
-
 # Autodiscover models in the models module to add their schema and BaseModel subclass
 # All modules within virtual_rainforest.model are expected to:
 # - import their BaseModel subclass to the module root, for example:
