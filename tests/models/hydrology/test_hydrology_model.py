@@ -525,3 +525,23 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         result,
         DataArray([0.263425, 0.340108, 0.39365], dims=["cell_id"]),
     )
+
+
+def test_find_lowest_neighbour(dummy_climate_data):
+    """Test finding lowest neighbours."""
+
+    from math import sqrt
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        find_lowest_neighbour,
+    )
+
+    data = dummy_climate_data
+    data.grid.set_neighbours(distance=sqrt(data.grid.cell_area))
+
+    neighbours = data.grid.neighbours
+    elevation = np.array(data["elevation"])
+    result = find_lowest_neighbour(neighbours, elevation)
+
+    exp_result = [1, 2, 2]
+    assert result == exp_result

@@ -239,20 +239,11 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # Turn elevation data into np array
-        elevation = np.array(self.data["elevation"])
-
-        # map neighbours and identify downstream cell_ids
-        mapping = [
-            self.data.grid.neighbours[cell_id]
-            for cell_id in range(len(self.data.grid.cell_id))
-        ]
-        downstream_ids = []
-
-        for cell_id, neighbors_id in enumerate(mapping):
-            # Find lowest neighbour
-            downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
-            downstream_ids.append(neighbors_id[downstream_id_loc])
+        # identify downstream cell_ids
+        downstream_ids = find_lowest_neighbour(
+            neighbours=self.data.grid.neighbours,
+            elevation=np.array(self.data["elevation"]),
+        )
 
         # Invert mapping of cell_id: downstream neighbour to cell_id: upstream_neighbors
         upstream_ids: list = [[] for i in range(len(self.data.grid.cell_id))]
@@ -266,7 +257,7 @@ class HydrologyModel(BaseModel):
         baseline_runoff = np.array(self.data["surface_runoff"])
 
         # set initial accumulated runoff to zero
-        accumulated_runoff = np.full_like(self.data["elevation"], 0)
+        accumulated_runoff = np.zeros_like(self.data["elevation"])
 
         # calculate accumulated runoff for each cell (sum of the upstream neighbours)
         # TODO this requires a proper spin up!
@@ -702,3 +693,24 @@ def calculate_soil_evaporation(
     return DataArray(  # TODO check this
         (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
     )
+
+
+def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
+    """Find lowest neighbour from elevation data.
+
+    This function finds the cell IDs of the lowest neighbour for each grid cell. This
+    can be used to determine in which direction surface runoff flows.
+
+    Args:
+        neighbours: list of neighbours
+        elevation: elevation, [m]
+
+    Returns:
+        list of lowest neighbour IDs
+    """
+    downstream_ids = []
+    for cell_id, neighbors_id in enumerate(neighbours):
+        downstream_id_loc = np.argmax(elevation[cell_id] - elevation[neighbors_id])
+        downstream_ids.append(neighbors_id[downstream_id_loc])
+
+    return downstream_ids
