@@ -208,7 +208,7 @@ def dummy_litter_data(layer_roles_fixture):
     )
     """Rate of excrement input from the animal model [kg C m^-2 day^-1].
 
-    These values are completely made up, so you should read anything into them.
+    These values are completely made up, so you should not read anything into them.
     """
 
     data["soil_temperature"] = xr.concat(
