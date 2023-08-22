@@ -192,7 +192,6 @@ def extract_timing_details(
 def vr_run(
     cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
     override_params: dict[str, Any],
-    merge_file_path: Path,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -209,7 +208,6 @@ def vr_run(
     """
 
     config = Config(cfg_paths, override_params)
-    config.export_config(merge_file_path)
 
     grid = Grid.from_config(config)
     data = Data(grid)

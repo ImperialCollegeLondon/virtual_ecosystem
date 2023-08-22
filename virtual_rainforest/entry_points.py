@@ -7,7 +7,6 @@ import argparse
 import sys
 import textwrap
 from collections.abc import Sequence
-from pathlib import Path
 from typing import Any
 
 import virtual_rainforest as vr
@@ -81,10 +80,10 @@ def vr_run_cli() -> None:
     files (cfg_paths). The set of config files found in those locations are then
     combined and validated to make sure that they contain a complete and consistent
     configuration for a virtual_rainforest simulation. The resolved complete
-    configuration is then written to a single consolidated config file (--merge). If a
-    specific location isn't provided via the --merge option, the consolidated file is
-    saved in the folder `vr_run` was called in under the name
-    `vr_full_model_configuration.toml`.
+    configuration will then be written to a single consolidated config file in the
+    output path with a default name of `vr_full_model_configuration.toml`. This can be
+    disabled by setting the `core.data_output_options.save_merged_config` option to
+    false.
     """
 
     # Check function docstring exists, as -OO flag strips docstrings I believe
@@ -95,14 +94,6 @@ def vr_run_cli() -> None:
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
     parser.add_argument(
         "-o", "--outpath", type=str, help="Path for output files", dest="outpath"
-    )
-    parser.add_argument(
-        "-m",
-        "--merge",
-        type=str,
-        default="./vr_full_model_configuration.toml",
-        help="Path for merged config file.",
-        dest="merge_file_path",
     )
     parser.add_argument(
         "-p",
@@ -143,10 +134,11 @@ def vr_run_cli() -> None:
     override_params: dict[str, Any] = {}
     if args.outpath:
         # Set the output path
-        override_params |= {"core": {"data_output_options": {"out_path": args.outpath}}}
+        outpath_opt = {"core": {"data_output_options": {"out_path": args.outpath}}}
+        override_params, _ = config_merge(override_params, outpath_opt)
     if args.params:
         # Parse any extra parameters passed using the --param flag
         _parse_command_line_params(args.params, override_params)
 
     # Run the virtual rainforest run function
-    vr_run(cfg_paths, override_params, Path(args.merge_file_path))
+    vr_run(cfg_paths, override_params)
