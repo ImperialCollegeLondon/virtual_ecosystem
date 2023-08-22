@@ -16,9 +16,11 @@ kernelspec:
 
 # Elevation data for dummy module
 
-This section explains how to create a low resolution dummy elevation map from a
-digital elevation model ([SRTM](https://www2.jpl.nasa.gov/srtm/)) for use in
-`vr_run --example`. The initial data covers the region 4°N 116°E to 5°N 117°E, see
+This section explains how to create a dummy elevation map from a digital elevation model
+([SRTM](https://www2.jpl.nasa.gov/srtm/)) which is required to run a dummy hydrology
+model. To cover an area similar to the climate dummy data, we included a step that
+reduces that spatial resolution to match the 9 x 9 grid we set for the dummy model.
+The initial data covers the region 4°N 116°E to 5°N 117°E, see
 [SAFE wiki](https://safeproject.net/dokuwiki/safe_gis/srtm) for reference and download.
 
 ```python
