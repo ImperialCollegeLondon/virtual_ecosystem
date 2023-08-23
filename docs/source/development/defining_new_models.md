@@ -146,6 +146,12 @@ tuple that sets any required axes for the variable. For example:
 (('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
 ```
 
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.vars_updated` attribute : This
+is a tuple that provides information about which data object variables are updated by
+this model. Entries should simply be variable names. The information contained here is
+used to determine which variables to include in the continuous output. So, it is
+important to ensure that this information is up to date.
+
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
 attribute: This is the shortest time scale for which the model is a realistic
 simulation. This attribute is a string, which should include units that can be parsed
@@ -174,6 +180,8 @@ class FreshWaterModel(BaseModel):
     """Longest time scale that freshwater model can sensibly capture."""
     required_init_vars = (('temperature', ('spatial', )), )
     """The required variables and axes for the Freshwater Model"""
+    vars_updated = ("average_P_concentration",)
+    """Variables updated by the freshwater model."""
 ```
 
 ### Defining the model `__init__` method

@@ -110,7 +110,7 @@ def test_calculate_litter_pool_updates(
     )
 
     expected_pools = {
-        "litter_pool_above_metabolic": [0.29577179, 0.14802621, 0.06922856],
+        "litter_pool_above_metabolic": [0.295773, 0.148027, 0.069261],
         "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
         "litter_pool_woody": [4.702103, 11.801373, 7.301836],
         "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
@@ -139,6 +139,7 @@ def test_calculate_litter_pool_updates(
         woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
         below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
         below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         update_interval=1.0,
         constants=LitterConsts,
     )

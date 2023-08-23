@@ -158,10 +158,10 @@ class BaseModel(ABC):
 
     @property
     @abstractmethod
-    def vars_updated(cls) -> list[str]:
+    def vars_updated(cls) -> tuple[str, ...]:
         """Variables that are updated by the model.
 
-        At the moment, this list is used to decide which variables to output from the
+        At the moment, this tuple is used to decide which variables to output from the
         :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
         by a model used in the specific simulation. In future, this could also be used
         to prevent multiple models from updating the same variable and similar problems.
