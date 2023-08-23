@@ -30,3 +30,11 @@ class in question. Only constants for which non-default values are supplied will
 replaced. Anything that is not included within the configuration will just take the
 default value, which is set in the data class (see
 [here](../development/defining_new_models.md) for further details).
+
+## Default parameterisation
+
+TODO - Write an intro
+
+```{eval-rst}
+.. autodoc_constants_registry::
+```

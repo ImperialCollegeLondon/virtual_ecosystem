@@ -29,6 +29,7 @@ dask = "^2023.6.0"
 
 [tool.poetry.group.types.dependencies]
 types-jsonschema = "^4.16.1"
+types-docutils = "^0.20.0.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"
