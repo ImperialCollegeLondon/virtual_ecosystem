@@ -150,8 +150,8 @@ class AnimalModel(BaseModel):
             for community in self.communities.values()
         ]
 
-        # After an update all excrement that isn't consumed is assumed to enter the
-        # litter, so stored energy of each pool is reset to zero
+        # All excrement in the decomposed subpool is moved to the litter model, so
+        # stored energy of each pool is reset to zero
         for community in self.communities.values():
             community.excrement_pool.decomposed_energy = 0.0
 
