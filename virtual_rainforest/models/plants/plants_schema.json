@@ -5,6 +5,18 @@
          "description": "Configuration settings for the plants module",
          "type": "object",
          "properties": {
+            "constants": {
+               "description": "Constants for the plants module",
+               "type": "object",
+               "properties": {
+                  "PlantsConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "PlantsConsts"
+               ]
+            },
             "ftypes": {
                "description": "Details of the plant functional types",
                "type": "array",
