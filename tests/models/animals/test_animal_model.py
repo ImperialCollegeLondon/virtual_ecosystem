@@ -3,6 +3,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import INFO
 
+import numpy as np
 import pint
 import pytest
 
@@ -40,7 +41,7 @@ def test_animal_model_initialization(
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
     assert repr(model) == "AnimalModel(update_interval = 1 week)"
-    assert type(model.communities) is dict
+    assert isinstance(model.communities, dict)
 
 
 @pytest.mark.parametrize(
@@ -106,6 +107,7 @@ def test_animal_model_initialization(
                     "Information required to initialise the animal model successfully "
                     "extracted.",
                 ),
+                (INFO, "Adding data array for 'decomposed_excrement'"),
             ),
         ),
     ],
@@ -137,7 +139,10 @@ def test_generate_animal_model(
 
 
 def test_update_method_sequence(data_instance, functional_group_list_instance):
-    """Test update to ensure it runs the community methods in order."""
+    """Test update to ensure it runs the community methods in order.
+
+    As a bonus this test checks that the litter output pools have all been created.
+    """
     from unittest.mock import MagicMock
 
     from virtual_rainforest.models.animals.animal_model import AnimalModel
@@ -173,6 +178,9 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
 
     # Assert the methods were called in the expected order
     assert call_sequence == method_names
+    # Check that excrement data is created, all elements are zero as no actual updates
+    # have occurred
+    assert np.allclose(model.data["decomposed_excrement"], 0.0)
 
 
 def test_update_method_time_index_argument(
@@ -189,3 +197,41 @@ def test_update_method_time_index_argument(
     model.update(time_index=time_index)
 
     assert True
+
+
+def test_calculate_litter_additions(functional_group_list_instance):
+    """Test that litter additions from animal model are calculated correctly."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.animals import AnimalModel
+
+    # Create a small data object to work with
+    grid = Grid(cell_nx=2, cell_ny=2)
+    data = Data(grid)
+
+    # Use it to initialise the model
+    model = AnimalModel(data, pint.Quantity("1 week"), functional_group_list_instance)
+
+    # Update the waste pools
+    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
+    for energy, community in zip(decomposed_excrement, model.communities.values()):
+        community.excrement_pool.decomposed_energy = energy
+
+    # Calculate litter additions
+    litter_additions = model.calculate_litter_additions()
+
+    # Check that litter addition pools are as expected
+    assert np.allclose(
+        litter_additions["decomposed_excrement"],
+        [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
+    )
+
+    # Check that the function has reset the pools correctly
+    assert np.allclose(
+        [
+            community.excrement_pool.decomposed_energy
+            for community in model.communities.values()
+        ],
+        0.0,
+    )

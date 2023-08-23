@@ -15,15 +15,21 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
-from virtual_rainforest.models.animals.carcasses import CarcassPool
 from virtual_rainforest.models.animals.constants import (
+    DECAY_FRACTION_EXCREMENT,
     ENERGY_DENSITY,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
     TEMPERATURE,
 )
+from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.protocols import Consumer, Pool, Resource
+from virtual_rainforest.models.animals.protocols import (
+    Consumer,
+    DecayPool,
+    Pool,
+    Resource,
+)
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
     energetic_reserve_scaling,
@@ -107,6 +113,10 @@ class AnimalCohort:
             self.mass,
             self.functional_group.prey_scaling,
         )
+        # TODO - In future this should be parameterised using a constants dataclass, but
+        # this hasn't yet been implemented for the animal model
+        self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
+        """The fraction of excrement which decays before it gets consumed."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -126,17 +136,28 @@ class AnimalCohort:
         energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
-    def excrete(self, soil: Pool, consumed_energy: float) -> None:
-        """The function to transfer waste energy from an animal cohort to the soil.
+    def excrete(
+        self,
+        excrement_pool: DecayPool,
+        consumed_energy: float,
+    ) -> None:
+        """Transfer waste energy from an animal cohort to the excrement pool.
 
         Args:
-            soil: The local PalatableSoil pool in which waste is deposited.
+            excrement_pool: The local ExcrementSoil pool in which waste is deposited.
             consumed_energy: The amount of energy flowing through cohort digestion.
-
         """
+        # Find total waste energy, the total amount of waste is then found by the
+        # average cohort member * number individuals.
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
-        soil.stored_energy += waste_energy * self.individuals
-        # The amount of waste by the average cohort member * number individuals.
+
+        # This total waste is then split between decay and scavengeable excrement
+        excrement_pool.scavengeable_energy += (
+            (1 - self.decay_fraction_excrement) * waste_energy * self.individuals
+        )
+        excrement_pool.decomposed_energy += (
+            self.decay_fraction_excrement * waste_energy * self.individuals
+        )
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes.
@@ -218,12 +239,13 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: Pool,
         soil_pool: Pool,
+        excrement_pool: DecayPool,
     ) -> None:
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
         AnimalCommunity.forage_community and performs a simple random uniform selection.
-        After this, excrete is called to pass excess waste to a pool.
+        After this, excrete is called to pass excess waste to the excrement pool.
         Later this function will involve more complex weightings of prey options.
 
         Args:
@@ -231,6 +253,7 @@ class AnimalCohort:
             animal_list: A list of animal cohorts available for predation.
             carcass_pool: A CarcassPool object representing available carcasses.
             soil_pool: A PalatableSoil object representing soil nutrients.
+            excrement_pool: A pool representing the excrement in the grid cell
 
         """
 
@@ -241,7 +264,7 @@ class AnimalCohort:
         else:
             LOGGER.info("No food available.")
         # excrete excess digestive wastes
-        self.excrete(soil_pool, consumed_energy)
+        self.excrete(excrement_pool, consumed_energy)
 
     def eat(self, food: Resource, pool: Pool) -> float:
         """This function handles the energy transfer of a trophic interaction.

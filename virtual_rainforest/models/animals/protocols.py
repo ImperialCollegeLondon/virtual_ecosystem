@@ -22,6 +22,14 @@ class Pool(Protocol):
     stored_energy: float
 
 
+class DecayPool(Protocol):
+    """Defines biotic pools containing both accessible and inaccessible energy."""
+
+    scavengeable_energy: float
+
+    decomposed_energy: float
+
+
 class Resource(Protocol):
     """This is the protocol for defining what classes work as trophic resources."""
 
