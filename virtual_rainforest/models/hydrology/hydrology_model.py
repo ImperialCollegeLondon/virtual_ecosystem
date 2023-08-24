@@ -735,7 +735,7 @@ def find_upstream_cells(lowest_neighbour: list) -> list:
 
 
 def accumulate_surface_runoff(
-    drainage_map: dict,
+    drainage_map: dict[int, tuple[int]],
     surface_runoff: np.ndarray,
     accumulated_runoff: np.ndarray,
 ) -> np.ndarray:
@@ -775,16 +775,16 @@ def accumulate_surface_runoff(
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, tuple[int]]:
     """Calculate drainage map based on digital elevation model.
 
-    This function finds the lowest neighbour for eacj grid cell, identifies all upstream
-    IDs and creates a dictionnary that provides all upstream cell IDs for each grid cell
-    . This function currently supports only square grids.
+    This function finds the lowest neighbour for each grid cell, identifies all upstream
+    IDs and creates a dictionary that provides all upstream cell IDs for each grid
+    cell. This function currently supports only square grids.
 
     Args:
-        Grid: grid object
+        grid: grid object
         elevation: elevation, [m]
 
     Returns:
-        tuple of cell IDs and their upstream neighbours
+        dictionary of cell IDs and their upstream neighbours
     """
 
     if grid.grid_type != "square":
