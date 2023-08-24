@@ -124,9 +124,7 @@ def load_constants(config: dict[str, Any], model_name: str, class_name: str) -> 
         # Checks that constants in config are as expected
         check_valid_constant_names(config, model_name, class_name)
         # If an error isn't raised then generate the dataclass
-        constants = constants_class(**config[model_name]["constants"][class_name])
-    else:
-        # If no constants are supplied then the defaults should be used
-        constants = constants_class()
+        return constants_class(**config[model_name]["constants"][class_name])
 
-    return constants
+    # If no constants are supplied then the defaults should be used
+    return constants_class()
