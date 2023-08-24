@@ -184,8 +184,7 @@ class HydrologyModel(BaseModel):
         reference values.
 
         For the hydrology across the grid (above-/below-ground and total runoff), this
-        function uses the upstream neighbours of each grid cell based on a digital
-        elevation model.
+        function uses the upstream neighbours of each grid cell (see drainage map).
 
         TODO implement below-ground horizontal flow and update stream flow
         """
@@ -250,9 +249,9 @@ class HydrologyModel(BaseModel):
         # Set initial accumulated runoff to zero
         accumulated_runoff = np.zeros_like(self.data["elevation"])
 
-        # Calculate accumulated (surface) runoff for each cell
+        # Calculate accumulated surface runoff for each cell
         new_accumulated_runoff = accumulate_surface_runoff(
-            upstream_ids=self.drainage_map,
+            drainage_map=self.drainage_map,
             surface_runoff=initial_runoff,
             accumulated_runoff=accumulated_runoff,
         )
@@ -365,11 +364,13 @@ class HydrologyModel(BaseModel):
 
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
+
         # TODO the interception reservoir should be treated as a bucket that fills up
         # before water falls through, and from which water evaporates back into the
-        # atmosphere. However, this is strongly affected by the intensity of rainfall
-        # and therefore currently not implemented. Instead we assume that a fraction of
-        # rainfall is intercepted and evaporated over the course of one time step
+        # atmosphere. See for example (Aston, 1978, Merriam, 1960). However, this is
+        # strongly affected by the intensity of rainfall and therefore currently not yet
+        # implemented. Instead we assume that a fraction of rainfall is intercepted and
+        # evaporated over the course of one time step
         precipitation_surface = current_precipitation * (
             1 - self.constants.water_interception_factor * leaf_area_index_sum
         )
@@ -380,6 +381,7 @@ class HydrologyModel(BaseModel):
         # to mm with this equation:
         # water content in mm = relative water content / 100 * depth in mm
         # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
+
         # TODO We treat the soil as one bucket, in the future, there should be a
         # flow between layers and a gradient of soil moisture and soil water potential
         total_soil_moisture_mm = (
@@ -427,7 +429,7 @@ class HydrologyModel(BaseModel):
             relative_humidity=subcanopy_humidity,
             atmospheric_pressure=subcanopy_pressure,
             soil_moisture=soil_moisture_infiltrated,
-            wind_speed=0.1,  # TODO wind_speed in data object, m/s
+            wind_speed=0.1,  # m/s TODO wind_speed in data object (mechanistic model)
             celsius_to_kelvin=self.constants.celsius_to_kelvin,
             density_air=self.constants.density_air,
             latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
@@ -494,7 +496,7 @@ class HydrologyModel(BaseModel):
 
         # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
         new_accumulated_runoff = accumulate_surface_runoff(
-            upstream_ids=self.drainage_map,
+            drainage_map=self.drainage_map,
             surface_runoff=single_cell_runoff,
             accumulated_runoff=accumulated_runoff,
         )
@@ -504,6 +506,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
+        # TODO add vertical and below-ground horizontal flow
         # The maximum stream flow capacity is set to an arbitray value, could be used to
         # flag flood events
         stream_flow = DataArray(
@@ -691,13 +694,13 @@ def calculate_soil_evaporation(
 
 
 def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
-    """Find lowest neighbour for each grid cell from elevation data.
+    """Find lowest neighbour for each grid cell from digital elevation model.
 
     This function finds the cell IDs of the lowest neighbour for each grid cell. This
     can be used to determine in which direction surface runoff flows.
 
     Args:
-        neighbours: list of neighbours
+        neighbours: list of neighbour IDs
         elevation: elevation, [m]
 
     Returns:
@@ -714,7 +717,7 @@ def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
 def find_upstream_cells(lowest_neighbour: list) -> list:
     """Find all upstream cell IDs for all grid cells.
 
-    This function identified all cell IDs that are upstream of each grid cell. This can
+    This function identifies all cell IDs that are upstream of each grid cell. This can
     be used to calculate the water flow that goes though a grid cell.
 
     Args:
@@ -732,7 +735,7 @@ def find_upstream_cells(lowest_neighbour: list) -> list:
 
 
 def accumulate_surface_runoff(
-    upstream_ids: dict,
+    drainage_map: dict,
     surface_runoff: np.ndarray,
     accumulated_runoff: np.ndarray,
 ) -> np.ndarray:
@@ -744,7 +747,7 @@ def accumulate_surface_runoff(
     The function currently raises a `ValueError` if accumulated runoff is negative.
 
     Args:
-        upstream_ids: dict of all upstream IDs for each grid cell
+        drainage_map: dict of all upstream IDs for each grid cell
         surface_runoff: surface runoff of the current time step, [mm]
         accumulated_runoff: accumulated surface runoff from previous time step, [mm]
 
@@ -752,7 +755,7 @@ def accumulate_surface_runoff(
         accumulated surface runoff, [mm]
     """
 
-    upstream_id_list = [[i for i in upstream_ids[x]] for x in upstream_ids.keys()]
+    upstream_id_list = [[i for i in drainage_map[x]] for x in drainage_map.keys()]
 
     for cell_id, upstream_id in enumerate(upstream_id_list):
         accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_id])
