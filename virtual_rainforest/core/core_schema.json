@@ -132,6 +132,11 @@
                      "type": "boolean",
                      "default": true
                   },
+                  "save_merged_config": {
+                     "description": "Whether to save a merged TOML file containing all config options",
+                     "type": "boolean",
+                     "default": true
+                  },
                   "out_path": {
                      "description": "File path for output files",
                      "type": "string",
@@ -158,6 +163,12 @@
                      "type": "string",
                      "default": "final_state.nc",
                      "pattern": "^[^/\\\\]+$"
+                  },
+                  "out_merge_file_name": {
+                     "description": "Name for TOML file containing merged configs",
+                     "type": "string",
+                     "default": "vr_full_model_configuration.toml",
+                     "pattern": "^[^/\\\\]+$"
                   }
                },
                "default": {},
@@ -165,9 +176,11 @@
                   "save_initial_state",
                   "save_continuous_data",
                   "save_final_state",
+                  "save_merged_config",
                   "out_initial_file_name",
                   "out_continuous_file_name",
-                  "out_final_file_name"
+                  "out_final_file_name",
+                  "out_merge_file_name"
                ]
             },
             "layers": {

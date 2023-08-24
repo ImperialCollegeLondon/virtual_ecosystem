@@ -41,6 +41,30 @@ def generate_above_structural_values(x: float, y: float) -> float:
     return 0.05 + 0.45 * (x * y) / (64)
 
 
+def generate_woody_values(x: float, y: float) -> float:
+    """Generate a range of plausible values for the woody litter pool.
+    
+    A range of 4.75-12.0 kg C m^-2 seems plausible.
+    """
+    return 4.75 + 7.25 * (x * y) / (64)
+
+
+def generate_below_metabolic_values(x: float, y: float) -> float:
+    """Generate a range of plausible values for the belowground metabolic litter pool.
+    
+    A range of 0.03-0.08 kg C m^-2 seems plausible.
+    """
+    return 0.03 + 0.05 * (x * y) / (64)
+
+
+def generate_below_structural_values(x: float, y: float) -> float:
+    """Generate a range of plausible values for the belowground structural litter pool.
+    
+    A range of 0.05-0.125 kg C m^-2 seems plausible.
+    """
+    return 0.05 + 0.075 * (x * y) / (64)
+
+
 # Generate range of cell numbers in the a x and y directions. Here we have a 9x9 grid,
 # so cells are numbered from 0 to 8 in each direction.
 x_cell_ids = range(0, 9)
@@ -53,6 +77,15 @@ above_metabolic_values = [
 above_structural_values = [
     [generate_above_structural_values(x, y) for y in y_cell_ids] for x in x_cell_ids
 ]
+woody_values = [
+    [generate_woody_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
+below_metabolic_values = [
+    [generate_below_metabolic_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
+below_structural_values = [
+    [generate_below_structural_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
 
 # How far the center of each cell is from the origin. This applies to both the x and y
 # direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
@@ -64,6 +97,9 @@ dummy_litter_data = Dataset(
     data_vars=dict(
         litter_pool_above_metabolic=(["x", "y"], above_metabolic_values),
         litter_pool_above_structural=(["x", "y"], above_structural_values),
+        litter_pool_woody=(["x", "y"], woody_values),
+        litter_pool_below_metabolic=(["x", "y"], below_metabolic_values),
+        litter_pool_below_structural=(["x", "y"], below_structural_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),

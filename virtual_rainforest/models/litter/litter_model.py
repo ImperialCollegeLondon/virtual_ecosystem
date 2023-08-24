@@ -21,7 +21,9 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.constants import load_constants
@@ -57,12 +59,21 @@ class LitterModel(BaseModel):
     required_init_vars = (
         ("litter_pool_above_metabolic", ("spatial",)),
         ("litter_pool_above_structural", ("spatial",)),
+        ("litter_pool_woody", ("spatial",)),
+        ("litter_pool_below_metabolic", ("spatial",)),
+        ("litter_pool_below_structural", ("spatial",)),
     )
     """Required initialisation variables for the litter model.
 
     This is a set of variables that must be present in the data object used to create a
     LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = ["litter_pool_above_metabolic", "litter_pool_above_structural"]
+    vars_updated = (
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
+    )
     """Variables updated by the litter model."""
 
     def __init__(
@@ -77,8 +88,12 @@ class LitterModel(BaseModel):
         super().__init__(data, update_interval, **kwargs)
 
         # Check that litter pool data is appropriately bounded
-        if np.any(data["litter_pool_above_metabolic"] < 0.0) or np.any(
-            data["litter_pool_above_structural"] < 0.0
+        if (
+            np.any(data["litter_pool_above_metabolic"] < 0.0)
+            or np.any(data["litter_pool_above_structural"] < 0.0)
+            or np.any(data["litter_pool_woody"] < 0.0)
+            or np.any(data["litter_pool_below_metabolic"] < 0.0)
+            or np.any(data["litter_pool_below_structural"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial litter pools contain at least one negative value!"
@@ -138,6 +153,17 @@ class LitterModel(BaseModel):
         # rate so that the soil model can be run before the litter model. Think we need
         # to decide how we are handling model order first though.
 
+        # TODO - This should be created by the animal model, but it is not yet linked
+        # into the full vr_run flow yet. Once it is this step should be deleted.
+        self.data["decomposed_excrement"] = DataArray(
+            np.zeros_like(self.data.grid.cell_id),
+            dims=["cell_id"],
+            coords={
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="decomposed_excrement",
+        )
+
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
@@ -148,15 +174,33 @@ class LitterModel(BaseModel):
             time_index: The index representing the current time step in the data object.
         """
 
+        # Estimate water potentials based on soil moistures
+        water_potential = convert_soil_moisture_to_water_potential(
+            soil_moisture=self.data["soil_moisture"][
+                self.top_soil_layer_index
+            ].to_numpy(),
+            air_entry_water_potential=self.constants.air_entry_water_potential,
+            water_retention_curvature=self.constants.water_retention_curvature,
+            saturated_water_content=self.constants.saturated_water_content,
+        )
+
         # Find litter pool updates using the litter pool update function
         updated_litter_pools = calculate_litter_pool_updates(
             surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),
+            topsoil_temp=self.data["soil_temperature"][
+                self.top_soil_layer_index
+            ].to_numpy(),
+            water_potential=water_potential,
             constants=self.constants,
             update_interval=self.update_interval.to("day").magnitude,
             above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
             above_structural=self.data["litter_pool_above_structural"].to_numpy(),
+            woody=self.data["litter_pool_woody"].to_numpy(),
+            below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
+            below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
         )
 
         # Update the litter pools
@@ -164,3 +208,35 @@ class LitterModel(BaseModel):
 
     def cleanup(self) -> None:
         """Placeholder function for litter model cleanup."""
+
+
+def convert_soil_moisture_to_water_potential(
+    soil_moisture: NDArray[np.float32],
+    air_entry_water_potential: float,
+    water_retention_curvature: float,
+    saturated_water_content: float,
+) -> NDArray[np.float32]:
+    """Convert soil moisture into an estimate of water potential.
+
+    This function provides a coarse estimate of soil water potential. It is taken from
+    :cite:t:`campbell_simple_1974`.
+
+    TODO - This is a stopgap solution until we decide on a systematic way of handling
+    water potentials across the relevant models (`soil`, `litter`, `plants` and
+    `hydrology`).
+
+    Args:
+        soil_moisture: Volumetric relative water content [unitless]
+        air_entry_water_potential: Water potential at which soil pores begin to aerate
+            [kPa]
+        water_retention_curvature: Curvature of water retention curve [unitless]
+        saturated_water_content: The relative water content at which the soil is fully
+            saturated [unitless].
+
+    Returns:
+        An estimate of the water potential of the soil [kPa]
+    """
+
+    return air_entry_water_potential * (
+        (soil_moisture / saturated_water_content) ** water_retention_curvature
+    )

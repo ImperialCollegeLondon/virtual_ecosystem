@@ -57,3 +57,12 @@ var_name = "litter_pool_above_metabolic"
 [[core.data.variable]]
 file = "dummy_litter_data.nc"
 var_name = "litter_pool_above_structural"
+[[core.data.variable]]
+file = "dummy_litter_data.nc"
+var_name = "litter_pool_woody"
+[[core.data.variable]]
+file = "dummy_litter_data.nc"
+var_name = "litter_pool_below_metabolic"
+[[core.data.variable]]
+file = "dummy_litter_data.nc"
+var_name = "litter_pool_below_structural"

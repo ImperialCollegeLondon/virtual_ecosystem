@@ -958,7 +958,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
-        "continuous_file_name": "all_continuous_data",
+        "out_continuous_file_name": "all_continuous_data.nc",
     }
 
     # Save first data file
@@ -1045,7 +1045,7 @@ def test_merge_continuous_file_already_exists(
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
-        "continuous_file_name": "already_exists",
+        "out_continuous_file_name": "already_exists.nc",
     }
 
     # Save first data file
