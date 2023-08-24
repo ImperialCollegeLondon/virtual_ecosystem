@@ -67,13 +67,13 @@ class HydrologyModel(BaseModel):
     )
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
-    vars_updated = [
+    vars_updated = (
         "soil_moisture",
         "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
         "stream_flow",
-    ]
+    )
     """Variables updated by the hydrology model."""
 
     def __init__(

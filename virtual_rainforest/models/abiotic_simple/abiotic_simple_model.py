@@ -59,14 +59,14 @@ class AbioticSimpleModel(BaseModel):
         ("layer_heights", ("spatial",)),
     )
     """The required variables and axes for the abiotic simple model"""
-    vars_updated = [
+    vars_updated = (
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
-    ]
+    )
     """Variables updated by the abiotic_simple model"""
 
     def __init__(

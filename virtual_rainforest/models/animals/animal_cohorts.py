@@ -1,13 +1,6 @@
 """The ''animals'' module provides animal module functionality.
 
-Todo:
-
-
-Current simplifications:
-- only iteroparity (want: semelparity)
-- no development
-
-Notes to self:
+Notes:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
@@ -22,11 +15,21 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
-from virtual_rainforest.models.animals.carcasses import CarcassPool
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY, TEMPERATURE
-from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
+from virtual_rainforest.models.animals.constants import (
+    DECAY_FRACTION_EXCREMENT,
+    ENERGY_DENSITY,
+    REPRODUCTION_ENERGY_COST_MULTIPLIER,
+    REPRODUCTION_ENERGY_MULTIPLIER,
+    TEMPERATURE,
+)
+from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.protocols import Consumer, Pool, Resource
+from virtual_rainforest.models.animals.protocols import (
+    Consumer,
+    DecayPool,
+    Pool,
+    Resource,
+)
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
     energetic_reserve_scaling,
@@ -82,6 +85,24 @@ class AnimalCohort:
         )
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
+        self.reproduction_energy_threshold: float = (
+            energetic_reserve_scaling(
+                mass,
+                self.functional_group.muscle_mass_terms,
+                self.functional_group.fat_mass_terms,
+            )
+            * REPRODUCTION_ENERGY_MULTIPLIER
+        )
+        """The energetic reserve threshold at which the cohort can reproduce."""
+        self.reproduction_cost: float = (
+            energetic_reserve_scaling(
+                mass,
+                self.functional_group.muscle_mass_terms,
+                self.functional_group.fat_mass_terms,
+            )
+            * REPRODUCTION_ENERGY_COST_MULTIPLIER
+        )
+        """The energetic reserve of reproduction."""
         self.intake_rate: float = intake_rate_scaling(
             self.mass, self.functional_group.intake_rate_terms
         )
@@ -92,6 +113,10 @@ class AnimalCohort:
             self.mass,
             self.functional_group.prey_scaling,
         )
+        # TODO - In future this should be parameterised using a constants dataclass, but
+        # this hasn't yet been implemented for the animal model
+        self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
+        """The fraction of excrement which decays before it gets consumed."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -111,17 +136,28 @@ class AnimalCohort:
         energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
-    def excrete(self, soil: PalatableSoil, consumed_energy: float) -> None:
-        """The function to transfer waste energy from an animal cohort to the soil.
+    def excrete(
+        self,
+        excrement_pool: DecayPool,
+        consumed_energy: float,
+    ) -> None:
+        """Transfer waste energy from an animal cohort to the excrement pool.
 
         Args:
-            soil: The local PalatableSoil pool in which waste is deposited.
+            excrement_pool: The local ExcrementSoil pool in which waste is deposited.
             consumed_energy: The amount of energy flowing through cohort digestion.
-
         """
+        # Find total waste energy, the total amount of waste is then found by the
+        # average cohort member * number individuals.
         waste_energy = consumed_energy * self.functional_group.conversion_efficiency
-        soil.stored_energy += waste_energy * self.individuals
-        # The amount of waste by the average cohort member * number individuals.
+
+        # This total waste is then split between decay and scavengeable excrement
+        excrement_pool.scavengeable_energy += (
+            (1 - self.decay_fraction_excrement) * waste_energy * self.individuals
+        )
+        excrement_pool.decomposed_energy += (
+            self.decay_fraction_excrement * waste_energy * self.individuals
+        )
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes.
@@ -203,11 +239,13 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: Pool,
         soil_pool: Pool,
+        excrement_pool: DecayPool,
     ) -> None:
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
         AnimalCommunity.forage_community and performs a simple random uniform selection.
+        After this, excrete is called to pass excess waste to the excrement pool.
         Later this function will involve more complex weightings of prey options.
 
         Args:
@@ -215,17 +253,20 @@ class AnimalCohort:
             animal_list: A list of animal cohorts available for predation.
             carcass_pool: A CarcassPool object representing available carcasses.
             soil_pool: A PalatableSoil object representing soil nutrients.
+            excrement_pool: A pool representing the excrement in the grid cell
 
         """
 
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            self.eat(choice(plant_list), soil_pool)
+            consumed_energy = self.eat(choice(plant_list), soil_pool)
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-            self.eat(choice(animal_list), carcass_pool)
+            consumed_energy = self.eat(choice(animal_list), carcass_pool)
         else:
             LOGGER.info("No food available.")
+        # excrete excess digestive wastes
+        self.excrete(excrement_pool, consumed_energy)
 
-    def eat(self, food: Resource, pool: Pool) -> None:
+    def eat(self, food: Resource, pool: Pool) -> float:
         """This function handles the energy transfer of a trophic interaction.
 
         Currently, all this does is call the food's get_eaten method and pass the
@@ -237,6 +278,9 @@ class AnimalCohort:
             pool: An object of a Pool class, which could represent depositional pools
                   like soil or carcass pools.
 
+        Returns:
+            The amount of consumed energy so it can be used to determine waste output.
+
         """
         # Check if self.individuals is greater than zero
         if self.individuals == 0:
@@ -245,3 +289,17 @@ class AnimalCohort:
         # get the per-individual energetic gain from the bulk value
         energy = food.get_eaten(self, pool) / self.individuals
         self.stored_energy += energy
+        return energy  # for passing to excrete
+
+    def can_reproduce(self) -> bool:
+        """Checks if a cohort has sufficient energy to reproduce.
+
+        Currently this keys off an excess of stored_energy, later in development this
+        reproduction system will work around a specific pool of reproductive mass.
+
+        Return:
+            Boolean of whether or not the cohort exceeds the reproduction threshold and
+            can reproduce.
+
+        """
+        return self.stored_energy >= self.reproduction_energy_threshold

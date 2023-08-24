@@ -31,6 +31,24 @@ class LitterConsts:
     [unitless]. Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
 
+    litter_decay_water_potential_optimum: float = -10.0
+    """The water potential at which below ground litter decay is maximised [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    litter_decay_water_potential_halt: float = -28800.0
+    """The water potential at which below ground litter decay stops entirely [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    moisture_response_curvature: float = 1.0
+    """Curvature of the litter decay moisture response function [unitless].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
     litter_decay_constant_metabolic_above: float = 0.56 / 7.0
     """Decay constant for the above ground metabolic litter pool [day^-1].
 
@@ -39,6 +57,25 @@ class LitterConsts:
 
     litter_decay_constant_structural_above: float = 0.152 / 7.0
     """Decay constant for the above ground structural litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
+    litter_decay_constant_woody: float = 1.0 / 150.0
+    """Decay constant for the woody litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002` as the average of fine wood
+    and coarse wood decay.
+    """
+
+    litter_decay_constant_metabolic_below: float = 1.0 / 10.0
+    """Decay constant for the below ground metabolic litter pool [day^-1].
+
+    Value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
+    litter_decay_constant_structural_below: float = 1.0 / 37.0
+    """Decay constant for the below ground structural litter pool [day^-1].
 
     Value is taken from :cite:t:`kirschbaum_modelling_2002`.
     """
@@ -52,6 +89,30 @@ class LitterConsts:
 
     litter_input_to_structural_above: float = 0.00071869
     """Litter input rate to metabolic above ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
+
+    litter_input_to_woody: float = 0.002586
+    """Litter input rate to woody litter pool [kg C m^-2 day^-1].
+
+    This was calculated assuming that dead wood pools in old growth forest are at steady
+    state. So, that the input will equal the dead wood respiration divided by 1 minus
+    the carbon use efficiency. The value for dead wood respiration for old growth forest
+    was taken from :cite:t:`mills_tropical_2023`. This constant will eventually be
+    removed once the litter is linked to other models.
+    """
+
+    litter_input_to_metabolic_below: float = 0.00042
+    """Litter input rate to metabolic below ground litter pool [kg C m^-2 day^-1].
+
+    This value was estimated (very unsystematically) from SAFE project data. This
+    constant will eventually be removed once the litter is linked to other models.
+    """
+
+    litter_input_to_structural_below: float = 0.00048
+    """Litter input rate to structural below ground litter pool [kg C m^-2 day^-1].
 
     This value was estimated (very unsystematically) from SAFE project data. This
     constant will eventually be removed once the litter is linked to other models.
@@ -72,4 +133,63 @@ class LitterConsts:
 
     The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
     documentation for :attr:`cue_metabolic` for details.
+    """
+
+    cue_woody: float = 0.55
+    """Carbon use efficiency of woody litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
+    documentation for :attr:`cue_metabolic` for details.
+    """
+
+    cue_structural_below_ground: float = 0.45
+    """Carbon use efficiency of belowground structural litter decay [unitless].
+
+    The value given here is taken from :cite:t:`fatichi_mechanistic_2019`; see
+    documentation for :attr:`cue_metabolic` for details.
+    """
+
+    depth_of_active_layer: float = 0.25
+    """Depth of the biogeochemically active soil layer [m].
+
+    The soil model considered a homogenous layer in which all significant nutrient
+    processes take place. This is a major assumption of the model. The value is taken
+    from :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this
+    value.
+
+    This is really a core constant as it is shared across models. However, the core
+    constants are not yet setup, so this constant is being stored here for the time
+    being.
+    """
+
+    air_entry_water_potential: float = -3.815
+    """Water potential at which soil pores begin to aerate [kPa].
+
+    The constant is used to estimate soil water potential from soil moisture. As this
+    estimation is a stopgap this constant probably shouldn't become a core constant. The
+    value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`. In future, this could be calculated based on soil
+    texture.
+
+    TODO: This estimation of water potential will either be moved to or superseded by
+    the hydrology model. So these constants should **not** remain here in the long term.
+    """
+
+    water_retention_curvature: float = -7.22
+    """Curvature of the water retention curve.
+
+    The value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`; see documentation for
+    :attr:`air_entry_water_potential` for further details.
+    """
+
+    saturated_water_content: float = 0.457
+    """Relative water content at which the soil is completely saturated [unitless].
+
+    The value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`; see documentation for
+    :attr:`air_entry_water_potential` for further details.
+
+    TODO: This constant already exists within the hydrology model, once the hydrology
+    model handles soil water potential, this constant **must** be deleted.
     """
