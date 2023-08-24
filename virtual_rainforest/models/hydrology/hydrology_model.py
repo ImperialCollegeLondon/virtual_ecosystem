@@ -28,6 +28,7 @@ from xarray import DataArray
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
 from virtual_rainforest.models.hydrology.constants import HydroConsts
@@ -121,6 +122,11 @@ class HydrologyModel(BaseModel):
         """Set of constants for the hydrology model"""
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
         """Set neighbours."""
+        self.drainage_map = calculate_drainage_map(
+            grid=self.data.grid,
+            elevation=np.array(self.data["elevation"]),
+        )
+        """Upstream neighbours for the calculation of accumulated runoff."""
 
     @classmethod
     def from_config(
@@ -178,7 +184,7 @@ class HydrologyModel(BaseModel):
         reference values.
 
         For the hydrology across the grid (above-/below-ground and total runoff), this
-        function identifies the upstream neighbours of each grid cell based on a digital
+        function uses the upstream neighbours of each grid cell based on a digital
         elevation model.
 
         TODO implement below-ground horizontal flow and update stream flow
@@ -238,16 +244,6 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # Identify cell ID of the lowest neighbour for each grid cell
-        lowest_neighbour = find_lowest_neighbour(
-            neighbours=self.data.grid.neighbours,
-            elevation=np.array(self.data["elevation"]),
-        )
-
-        # Identify all upstream cell IDs
-        self.upstream_ids = find_upstream_cells(lowest_neighbour)
-        """Upstream IDs for the calculation of accumulated runoff."""
-
         # Get the runoff created by SPLASH or initial data set as the initial state:
         initial_runoff = np.array(self.data["surface_runoff"])
 
@@ -256,7 +252,7 @@ class HydrologyModel(BaseModel):
 
         # Calculate accumulated (surface) runoff for each cell
         new_accumulated_runoff = accumulate_surface_runoff(
-            upstream_ids=self.upstream_ids,
+            upstream_ids=self.drainage_map,
             surface_runoff=initial_runoff,
             accumulated_runoff=accumulated_runoff,
         )
@@ -498,7 +494,7 @@ class HydrologyModel(BaseModel):
 
         # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
         new_accumulated_runoff = accumulate_surface_runoff(
-            upstream_ids=self.upstream_ids,
+            upstream_ids=self.drainage_map,
             surface_runoff=single_cell_runoff,
             accumulated_runoff=accumulated_runoff,
         )
@@ -736,7 +732,7 @@ def find_upstream_cells(lowest_neighbour: list) -> list:
 
 
 def accumulate_surface_runoff(
-    upstream_ids: list,
+    upstream_ids: dict,
     surface_runoff: np.ndarray,
     accumulated_runoff: np.ndarray,
 ) -> np.ndarray:
@@ -748,7 +744,7 @@ def accumulate_surface_runoff(
     The function currently raises a `ValueError` if accumulated runoff is negative.
 
     Args:
-        upstream_ids: list of all upstream IDs for each grid cell
+        upstream_ids: dict of all upstream IDs for each grid cell
         surface_runoff: surface runoff of the current time step, [mm]
         accumulated_runoff: accumulated surface runoff from previous time step, [mm]
 
@@ -756,7 +752,9 @@ def accumulate_surface_runoff(
         accumulated surface runoff, [mm]
     """
 
-    for cell_id, upstream_id in enumerate(upstream_ids):
+    upstream_id_list = [[i for i in upstream_ids[x]] for x in upstream_ids.keys()]
+
+    for cell_id, upstream_id in enumerate(upstream_id_list):
         accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_id])
 
     for num in accumulated_runoff:
@@ -768,3 +766,35 @@ def accumulate_surface_runoff(
             raise to_raise
 
     return accumulated_runoff
+
+
+# TODO move this to core.grid once we decided on common use
+def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, tuple[int]]:
+    """Calculate drainage map based on digital elevation model.
+
+    This function finds the lowest neighbour for eacj grid cell, identifies all upstream
+    IDs and creates a dictionnary that provides all upstream cell IDs for each grid cell
+    . This function currently supports only square grids.
+
+    Args:
+        Grid: grid object
+        elevation: elevation, [m]
+
+    Returns:
+        tuple of cell IDs and their upstream neighbours
+    """
+
+    if grid.grid_type != "square":
+        to_raise = ValueError("This grid type is currently not supported!")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    grid.set_neighbours(distance=sqrt(grid.cell_area))
+    lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
+    upstream_ids = find_upstream_cells(lowest_neighbours)
+
+    output = {}
+    for cell_id in range(grid.n_cells):
+        output[cell_id] = upstream_ids[cell_id]
+
+    return output

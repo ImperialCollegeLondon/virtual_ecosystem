@@ -114,6 +114,7 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
         assert model.initial_soil_moisture == ini_soil_moisture
+        assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -585,13 +586,91 @@ def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entr
         accumulate_surface_runoff,
     )
 
-    upstream_ids = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
+    upstream_ids = {
+        0: [],
+        1: [0],
+        2: [1, 2],
+        3: [],
+        4: [],
+        5: [3],
+        6: [],
+        7: [4, 5, 6, 7],
+    }
     surface_runoff = np.array([100, 100, 100, 100, 100, 100, 100, 100])
     exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
 
     with raises:
         result = accumulate_surface_runoff(upstream_ids, surface_runoff, acc_runoff)
         np.testing.assert_array_equal(result, exp_result)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "grid_type,raises,expected_log_entries",
+    [
+        (
+            "square",
+            does_not_raise(),
+            {},
+        ),
+        (
+            "hexagon",
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "This grid type is currently not supported!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries):
+    """Test that function gets correct neighbours."""
+
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_drainage_map,
+    )
+
+    elevation = np.array(
+        [
+            1,
+            2,
+            3,
+            4,
+            5,
+            11,
+            22,
+            33,
+            44,
+            55,
+            111,
+            222,
+            333,
+            111,
+            80,
+            66,
+            88,
+            99,
+            88,
+            66,
+            11,
+            5,
+            4,
+            3,
+            2,
+        ]
+    )
+
+    with raises:
+        grid = Grid(grid_type, cell_nx=5, cell_ny=5)
+        result = calculate_drainage_map(grid, elevation)
+
+        assert len(result) == grid.n_cells
+        assert result[1] == [2, 6]
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
