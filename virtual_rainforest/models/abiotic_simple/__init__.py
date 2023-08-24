@@ -26,6 +26,7 @@ from virtual_rainforest.core.constants import register_constants_class
 from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
     AbioticSimpleModel,
 )
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 with resources.path(
     "virtual_rainforest.models.abiotic_simple", "abiotic_simple_schema.json"
@@ -34,4 +35,4 @@ with resources.path(
         module_name=AbioticSimpleModel.model_name, schema_file_path=schema_file_path
     )
 
-register_constants_class("abiotic_simple", "AbioticSimpleConsts")
+register_constants_class("abiotic_simple", AbioticSimpleConsts)

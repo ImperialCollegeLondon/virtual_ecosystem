@@ -7,14 +7,15 @@ import pytest
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_rainforest.models.litter.constants import LitterConsts
 
 
 @pytest.mark.parametrize(
-    "model_name,class_name,raises,expected_log_entries",
+    "model_name,constants_class,raises,expected_log_entries",
     [
         (
             "litter",
-            "LitterConsts",
+            LitterConsts,
             pytest.raises(ValueError),
             (
                 (
@@ -23,22 +24,10 @@ from virtual_rainforest.core.exceptions import ConfigurationError
                 ),
             ),
         ),
-        (
-            "litter",
-            "NonExistentConsts",
-            pytest.raises(AttributeError),
-            (
-                (
-                    CRITICAL,
-                    "Registration for litter.NonExistentConsts constants class failed: "
-                    "check log",
-                ),
-            ),
-        ),
     ],
 )
 def test_register_constants_class(
-    caplog, mocker, model_name, class_name, raises, expected_log_entries
+    caplog, mocker, model_name, constants_class, raises, expected_log_entries
 ):
     """Test that the function to register constant classes works as expected."""
 
@@ -46,7 +35,7 @@ def test_register_constants_class(
 
     # Check that construct_combined_schema fails as expected
     with raises:
-        register_constants_class(model_name, class_name)
+        register_constants_class(model_name, constants_class)
 
     # Then check that the correct (critical error) log messages are emitted
     log_check(caplog, expected_log_entries)

@@ -20,6 +20,7 @@ from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
 from virtual_rainforest.core.constants import register_constants_class
+from virtual_rainforest.models.hydrology.constants import HydroConsts
 from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
 with resources.path(
@@ -29,4 +30,4 @@ with resources.path(
         module_name=HydrologyModel.model_name, schema_file_path=schema_file_path
     )
 
-register_constants_class("hydrology", "HydroConsts")
+register_constants_class("hydrology", HydroConsts)

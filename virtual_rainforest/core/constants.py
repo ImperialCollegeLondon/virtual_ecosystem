@@ -9,7 +9,6 @@ registered in. This allows for all model constants to be documented neatly.
 """  # noqa: D205, D415
 
 import dataclasses
-from importlib import import_module
 from typing import Any, Callable
 
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -22,7 +21,7 @@ CONSTANTS_REGISTRY: dict[str, dict[str, Callable]] = {}
 """
 
 
-def register_constants_class(model_name: str, class_name: str) -> None:
+def register_constants_class(model_name: str, constants_class: Callable) -> None:
     """Simple function to add a constants class to the registry.
 
     Args:
@@ -33,6 +32,8 @@ def register_constants_class(model_name: str, class_name: str) -> None:
         ValueError: If the model and class name have already been used to register a
             constants class
     """
+
+    class_name = constants_class.__name__
 
     if model_name in CONSTANTS_REGISTRY:
         if class_name in CONSTANTS_REGISTRY[model_name]:
@@ -45,19 +46,8 @@ def register_constants_class(model_name: str, class_name: str) -> None:
         # If model name is yet registered add it in as an empty dictionary
         CONSTANTS_REGISTRY[model_name] = {}
 
-    try:
-        # Import dataclass of interest
-        import_path = f"virtual_rainforest.models.{model_name}.constants"
-        consts_module = import_module(import_path)
-        # Add data class to the constants registry
-        CONSTANTS_REGISTRY[model_name][class_name] = getattr(consts_module, class_name)
-    except Exception as excep:
-        LOGGER.critical(
-            "Registration for %s.%s constants class failed: check log",
-            model_name,
-            class_name,
-        )
-        raise excep
+    # Add data class to the constants registry
+    CONSTANTS_REGISTRY[model_name][class_name] = constants_class
 
     LOGGER.info("Constants class %s.%s registered", model_name, class_name)
 

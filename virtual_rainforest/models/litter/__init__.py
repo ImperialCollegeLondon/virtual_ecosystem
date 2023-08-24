@@ -17,6 +17,7 @@ from importlib import resources
 
 from virtual_rainforest.core.config import register_schema
 from virtual_rainforest.core.constants import register_constants_class
+from virtual_rainforest.models.litter.constants import LitterConsts
 from virtual_rainforest.models.litter.litter_model import LitterModel
 
 with resources.path(
@@ -26,4 +27,4 @@ with resources.path(
         module_name=LitterModel.model_name, schema_file_path=schema_file_path
     )
 
-register_constants_class("litter", "LitterConsts")
+register_constants_class("litter", LitterConsts)
