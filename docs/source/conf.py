@@ -40,9 +40,6 @@ else:
 version = vr.__version__
 release = version
 
-# Add path to folder containing custom extensions
-sys.path.append(os.path.abspath("./_ext"))
-
 # -- Project information -----------------------------------------------------
 
 project = "Virtual Rainforest"
@@ -73,7 +70,6 @@ extensions = [
     "sphinxcontrib.mermaid",
     "myst_nb",
     "sphinx_rtd_theme",
-    "autodoc_constants_registry",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
