@@ -42,11 +42,18 @@ class PlantsModel(BaseModel):
     """Shortest time scale that plants model can sensibly capture."""
     upper_bound_on_time_scale = "1 year"
     """Longest time scale that plants model can sensibly capture."""
-    required_init_vars = (("initial_plant_communities", ("spatial",)),)
+    required_init_vars = (
+        ("plant_cohorts_n", tuple()),
+        ("plant_cohorts_pft", tuple()),
+        ("plant_cohorts_cell_id", tuple()),
+        ("plant_cohorts_dbh", tuple()),
+    )
     """Required initialisation variables for the plants model.
 
     This is the set of variables and their core axes that are required in the data
     object to create a PlantsModel instance."""
+    # TODO - think about a shared "plant cohort" core axis that defines these, but the
+    #        issue here is that the length of this is variable.
 
     required_update_vars = (
         ("vapour_pressure_deficit", ("spatial",)),
@@ -58,8 +65,8 @@ class PlantsModel(BaseModel):
     )
     """Required initialisation variables to update PlantsModel.
 
-    NOTE - this is just a placeholder at the moment. This is not a valid BaseModel
-    attribute. """
+    NOTE - this is just a placeholder for a thought at the moment. This is not a current
+    valid BaseModel attribute. """
 
     vars_updated = (
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
