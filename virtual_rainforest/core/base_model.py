@@ -542,11 +542,18 @@ def register_model(module_name: str, model: type[BaseModel]) -> None:
             a child of BaseModel.
     """
 
-    # TODO - Once I've got this working, I need to add a check that the modelname
-    # matches the model supplied
-
     # Get a reference to the module
     module = sys.modules[module_name]
+
+    # Check that name of the supplied Model class matches the name of the module
+    module_model_stem = module.__name__.split(".")[-1]
+    if model.model_name != module_model_stem:
+        excep = ConfigurationError(
+            f"Wrong model provided for registration expected {module_model_stem} got "
+            f"{model.model_name}"
+        )
+        LOGGER.critical(excep)
+        raise excep
 
     # Register the schema
     with resources.path(module, "model_schema.json") as schema_file_path:
@@ -558,7 +565,6 @@ def register_model(module_name: str, model: type[BaseModel]) -> None:
     constants_class_names = [
         obj for nm, obj in getmembers(module.constants) if is_dataclass(obj)
     ]
-    module_model_stem = module.__name__.split(".")[-1]
     for const_class in constants_class_names:
         # Import dataclass of interest
         register_constants_class(module_model_stem, const_class)

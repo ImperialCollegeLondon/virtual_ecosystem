@@ -643,20 +643,16 @@ def test_register_model(caplog):
     log_check(caplog, expected_log)
 
 
-# TODO - Once I've added a test that the correct model name has been provided this test
-# should be altered to check that that error fires
-# def test_register_invalid_model(mocker, monkeypatch, caplog):
-#     """Test that registration of an invalid model fails as expected."""
-#     from virtual_rainforest.core.base_model import register_model
+def test_register_wrong_model(caplog):
+    """Test that helper function an error is raised if the wrong model is registered."""
+    from virtual_rainforest.core.base_model import register_model
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
 
-#     custom_mock_module = mocker.Mock()
-#     monkeypatch.setitem(
-#         sys.modules, "virtual_rainforest.models.fake", custom_mock_module
-#     )
+    with pytest.raises(ConfigurationError):
+        register_model("virtual_rainforest.models.soil", AnimalModel)
 
-#     with pytest.raises(ConfigurationError):
-#         register_model("virtual_rainforest.models.fake")
+    expected_log = (
+        (CRITICAL, "Wrong model provided for registration expected soil got animals"),
+    )
 
-#     expected_log = ((CRITICAL, "Model <Mock id='"),)
-
-#     log_check(caplog, expected_log)
+    log_check(caplog, expected_log)
