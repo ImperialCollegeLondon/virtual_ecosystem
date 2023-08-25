@@ -193,7 +193,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
         "migrate_community",
         "birth_community",
         "metabolize_community",
-        "mortality_community",
+        "inflict_natural_mortality_community",
         "increase_age_community",
     ]
 

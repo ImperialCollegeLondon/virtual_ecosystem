@@ -214,15 +214,16 @@ class AnimalCommunity:
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
             cohort.increase_age(dt)
 
-    def mortality_community(self) -> None:
+    def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
 
-        This is a placeholder for running natural mortality rates at a community level.
-        Currently there is no working natural mortality implemented and so this calls
-        an effective rate of 0 through die_individual.
+        TODO Replace the number_of_days format with a passthrough of the initialized
+        dt straight to the scaling function that sets the cohort rates.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
 
         """
+        number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # insert check for whether natural death occurs
-            # determine how many deaths occur
-            cohort.die_individual(0, self.carcass_pool)
+            cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)

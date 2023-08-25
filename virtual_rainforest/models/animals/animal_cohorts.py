@@ -11,7 +11,7 @@ from __future__ import annotations
 from random import choice
 from typing import Sequence
 
-from numpy import timedelta64
+from numpy import random, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
@@ -318,3 +318,31 @@ class AnimalCohort:
             self.stored_energy
             < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
         )
+
+    def inflict_natural_mortality(
+        self, carcass_pool: CarcassPool, number_days: float
+    ) -> None:
+        """The function to cause natural mortality in a cohort.
+
+        TODO Find a more efficient structure so we aren't recalculating the
+        time_step_mortality. Probably pass through the initialized timestep size to the
+        scaling function
+
+        Args:
+            carcass_pool: The grid-local carcass pool to which the dead matter is
+                transferred.
+            number_days: Number of days over which the metabolic costs should be
+                calculated.
+
+        """
+
+        # Calculate the mortality probability for the entire time step
+        time_step_mortality_prob = (
+            1 - (1 - self.adult_natural_mortality_prob) ** number_days
+        )
+        # Draw the number of deaths from a binomial distribution
+        number_of_deaths = random.binomial(
+            n=self.individuals, p=time_step_mortality_prob
+        )
+
+        self.die_individual(number_of_deaths, carcass_pool)

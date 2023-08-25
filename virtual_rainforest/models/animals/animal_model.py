@@ -181,7 +181,9 @@ class AnimalModel(BaseModel):
             community.migrate_community()
             community.birth_community()
             community.metabolize_community(self.update_interval_timedelta)
-            community.mortality_community()
+            community.inflict_natural_mortality_community(
+                self.update_interval_timedelta
+            )
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the

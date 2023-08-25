@@ -384,14 +384,31 @@ class TestAnimalCommunity:
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
 
-    def test_mortality_community(self, animal_community_instance, mocker):
-        """Testing mortality_community."""
-        from itertools import chain
+    def test_inflict_natural_mortality_community(
+        self, animal_community_instance, mocker
+    ):
+        """Testing natural mortality infliction for the entire community."""
+        from numpy import timedelta64
 
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        # Create a time delta (for example, 5 days)
+        dt = timedelta64(5, "D")
 
-        mock_die_individual = mocker.patch.object(AnimalCohort, "die_individual")
-        animal_community_instance.mortality_community()
-        assert mock_die_individual.call_count == len(
-            list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
-        )
+        animal_community_instance.populate_community()
+
+        # Iterate over the animal cohorts within the community
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                # Mock the cohort's inflict_natural_mortality method
+                cohort.inflict_natural_mortality = mocker.MagicMock()
+
+        # Call the community method to inflict natural mortality
+        animal_community_instance.inflict_natural_mortality_community(dt)
+
+        # Check that the inflict_natural_mortality method was called correctly for each
+        # #cohort
+        number_of_days = float(dt / timedelta64(1, "D"))
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                cohort.inflict_natural_mortality.assert_called_once_with(
+                    animal_community_instance.carcass_pool, number_of_days
+                )

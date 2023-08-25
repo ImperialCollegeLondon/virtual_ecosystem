@@ -179,3 +179,50 @@ def test_prey_group_selection_mass_and_terms_impact():
     result_diff_terms = prey_group_selection(DietType.CARNIVORE, 10.0, (0.5, 500.0))
 
     assert result_default == result_diff_mass == result_diff_terms
+
+
+@pytest.mark.parametrize(
+    "mass, terms, expected",
+    [
+        (1.0, (0.25, 0.05), 0.2055623),
+        (1000.0, (0.01, 0.1), 0.1018162),
+    ],
+)
+def test_natural_mortality_scaling(mass, terms, expected):
+    """Testing natural mortality scaling for various body-masses."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        natural_mortality_scaling,
+    )
+
+    result = natural_mortality_scaling(mass, terms)
+    assert result == pytest.approx(expected, rel=1e-6)
+
+
+def test_natural_mortality_scaling_zero_mass():
+    """Testing natural mortality scaling with a zero mass."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        natural_mortality_scaling,
+    )
+
+    with pytest.raises(ZeroDivisionError):
+        natural_mortality_scaling(0.0, (0.71, 0.63))
+
+
+def test_natural_mortality_scaling_negative_mass():
+    """Testing natural mortality scaling with a negative mass."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        natural_mortality_scaling,
+    )
+
+    with pytest.raises(TypeError):
+        natural_mortality_scaling(-1.0, (0.71, 0.63))
+
+
+def test_natural_mortality_scaling_invalid_terms():
+    """Testing natural mortality scaling with invalid terms."""
+    from virtual_rainforest.models.animals.scaling_functions import (
+        natural_mortality_scaling,
+    )
+
+    with pytest.raises(IndexError):
+        natural_mortality_scaling(1.0, (0.71,))
