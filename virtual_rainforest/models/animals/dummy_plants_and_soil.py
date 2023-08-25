@@ -65,6 +65,9 @@ class PlantCommunity:
 
         self.stored_energy -= consumed_energy
 
+        # TODO - All plant matter that animals fail to eat currently goes into the
+        # excrement pool. This isn't ideal, but will do for now. This herbivore
+        # contribution to litter fall should be handled by the plant model in future.
         excrement_pool.decomposed_energy += consumed_energy * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
