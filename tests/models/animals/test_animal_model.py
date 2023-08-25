@@ -44,7 +44,7 @@ def test_animal_model_initialization(
     # Initialize model
     model = AnimalModel(
         data_instance,
-        pint.Quantity("1 day"),
+        pint.Quantity("1 week"),
         functional_group_list_instance,
     )
 

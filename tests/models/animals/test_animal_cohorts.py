@@ -13,14 +13,6 @@ def plant_instance():
 
 
 @pytest.fixture
-def soil_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
-
-    return PalatableSoil(100000.0)
-
-
-@pytest.fixture
 def excrement_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_rainforest.models.animals.decay import ExcrementPool
@@ -83,7 +75,7 @@ def carcass_instance():
     """Fixture for an carcass pool used in tests."""
     from virtual_rainforest.models.animals.decay import CarcassPool
 
-    return CarcassPool(0.0)
+    return CarcassPool(0.0, 0.0)
 
 
 class TestAnimalCohort:
@@ -207,10 +199,10 @@ class TestAnimalCohort:
     ):
         """Testing death."""
         herb_cohort_instance.individuals = initial_pop
-        carcass_instance.stored_energy = initial_carcass
+        carcass_instance.scavengeable_energy = initial_carcass
         herb_cohort_instance.die_individual(number_dead, carcass_instance)
         assert herb_cohort_instance.individuals == final_pop
-        assert carcass_instance.stored_energy == final_carcass
+        assert carcass_instance.scavengeable_energy == final_carcass
 
     def test_get_eaten(
         self, prey_cohort_instance, predator_cohort_instance, carcass_instance
@@ -222,14 +214,14 @@ class TestAnimalCohort:
         """
 
         initial_individuals = prey_cohort_instance.individuals
-        initial_stored_energy = carcass_instance.stored_energy
+        initial_scavengeable_energy = carcass_instance.scavengeable_energy
 
         # Execution
         prey_cohort_instance.get_eaten(predator_cohort_instance, carcass_instance)
 
         # Assertions
         assert prey_cohort_instance.individuals < initial_individuals
-        assert carcass_instance.stored_energy > initial_stored_energy
+        assert carcass_instance.scavengeable_energy > initial_scavengeable_energy
 
     def test_forage_cohort(
         self, predator_cohort_instance, prey_cohort_instance, mocker
@@ -240,7 +232,6 @@ class TestAnimalCohort:
         from virtual_rainforest.models.animals.animal_traits import DietType
         from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
         from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-            PalatableSoil,
             PlantCommunity,
         )
 
@@ -253,8 +244,6 @@ class TestAnimalCohort:
             mocker.MagicMock(spec=AnimalCohort) for _ in range(3)
         ]  # Assuming 3 animal cohorts
         carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
-        soil_pool_instance = mocker.MagicMock(spec=PalatableSoil)
-        soil_pool_instance.stored_energy = 0  # setting the attribute on the mock
         excrement_pool_instance = mocker.MagicMock(spec=ExcrementPool)
         excrement_pool_instance.scavengeable_energy = 0
         excrement_pool_instance.decomposed_energy = 0
@@ -267,14 +256,13 @@ class TestAnimalCohort:
                 plant_list=plant_list_instance,
                 animal_list=animal_list_instance,
                 carcass_pool=carcass_pool_instance,
-                soil_pool=soil_pool_instance,
                 excrement_pool=excrement_pool_instance,
             )
 
             # Assertions
             if animal_cohort_instance.functional_group.diet == DietType.HERBIVORE:
                 mock_eat.assert_called_with(
-                    plant_list_instance[0], soil_pool_instance
+                    plant_list_instance[0], excrement_pool_instance
                 )  # Assuming just one plant instance for simplicity
             elif animal_cohort_instance.functional_group.diet == DietType.CARNIVORE:
                 # Ensure eat was called for each animal in the list

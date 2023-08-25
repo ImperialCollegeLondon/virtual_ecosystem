@@ -18,10 +18,7 @@ from numpy import timedelta64
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-    PalatableSoil,
-    PlantCommunity,
-)
+from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
@@ -50,8 +47,7 @@ class AnimalCommunity:
         }
         """Generate a dictionary of functional groups within the community."""
         self.plant_community: PlantCommunity = PlantCommunity(10000.0)
-        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 1)
-        self.soil_pool: PalatableSoil = PalatableSoil(10000.0)
+        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
 
     def populate_community(self) -> None:
@@ -161,7 +157,6 @@ class AnimalCommunity:
                 plant_list=plant_list,
                 animal_list=prey,
                 carcass_pool=self.carcass_pool,
-                soil_pool=self.soil_pool,
                 excrement_pool=self.excrement_pool,
             )
 

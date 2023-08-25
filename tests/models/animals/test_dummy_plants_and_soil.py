@@ -4,6 +4,14 @@ import pytest
 
 
 @pytest.fixture
+def excrement_instance():
+    """Fixture for a soil pool used in tests."""
+    from virtual_rainforest.models.animals.decay import ExcrementPool
+
+    return ExcrementPool(100000.0, 0.0)
+
+
+@pytest.fixture
 def plant_instance():
     """Fixture for a plant community used in tests."""
     from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
@@ -29,24 +37,3 @@ class TestPlantCommunity:
         assert plant_instance.is_alive
         plant_instance.die()
         assert not plant_instance.is_alive
-
-
-@pytest.fixture
-def soil_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
-
-    return PalatableSoil(100000.0)
-
-
-class TestPalatableSoil:
-    """Test the Palatable Soil class."""
-
-    def test_initialization(self):
-        """Testing initialization of soil pool."""
-        from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-            PalatableSoil,
-        )
-
-        s1 = PalatableSoil(1000.7)
-        assert s1.stored_energy == 1000.7
