@@ -49,7 +49,7 @@ class PlantCommunities:
     """
 
     def __init__(self, data: Data, pfts: PlantFunctionalTypes):
-        self.data: dict = dict()
+        self.communities: dict = dict()
         """A dictionary holding the lists of plant cohorts keyed by cell id."""
 
         # Validate the data being used to generate the Plants object
@@ -102,7 +102,7 @@ class PlantCommunities:
 
         # Now compile the plant cohorts adding each cohort to a list keyed by cell id
         for cid in data.grid.cell_id:
-            self.data[cid] = []
+            self.communities[cid] = []
 
         for cid, chrt_pft, chrt_dbh, chrt_n in zip(
             data["plant_cohort_cell_id"].data,
@@ -110,7 +110,7 @@ class PlantCommunities:
             data["plant_cohort_dbh"].data,
             data["plant_cohort_n"].data,
         ):
-            self.data[cid].append(
+            self.communities[cid].append(
                 PlantCohort(pft=pfts[chrt_pft], dbh=chrt_dbh, n=chrt_n)
             )
 
@@ -118,4 +118,4 @@ class PlantCommunities:
 
     def __getitem__(self, key: int) -> list[PlantCohort]:
         """Extracts the cohort list for a given cell id."""
-        return self.data[key]
+        return self.communities[key]
