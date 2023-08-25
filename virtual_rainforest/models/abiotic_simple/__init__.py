@@ -19,20 +19,9 @@ Each of the abiotic sub-modules has its own API reference page:
 
 """  # noqa: D205, D415
 
-from importlib import resources
-
-from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.core.constants import register_constants_class
-from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (  # noqa F401
     AbioticSimpleModel,
 )
-from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
-with resources.path(
-    "virtual_rainforest.models.abiotic_simple", "abiotic_simple_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=AbioticSimpleModel.model_name, schema_file_path=schema_file_path
-    )
-
-register_constants_class("abiotic_simple", AbioticSimpleConsts)
+register_model(__name__, "abiotic_simple_schema.json")

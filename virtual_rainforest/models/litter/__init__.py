@@ -13,18 +13,7 @@ Each of the litter sub-modules has its own API reference page:
   containing the constants required by the broader litter model.
 """  # noqa: D205, D415
 
-from importlib import resources
+from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.models.litter.litter_model import LitterModel  # noqa F401
 
-from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.core.constants import register_constants_class
-from virtual_rainforest.models.litter.constants import LitterConsts
-from virtual_rainforest.models.litter.litter_model import LitterModel
-
-with resources.path(
-    "virtual_rainforest.models.litter", "litter_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=LitterModel.model_name, schema_file_path=schema_file_path
-    )
-
-register_constants_class("litter", LitterConsts)
+register_model(__name__, "litter_schema.json")

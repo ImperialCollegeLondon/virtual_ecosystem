@@ -27,14 +27,7 @@ Each of the animal sub-modules has its own API reference page:
   the animal module.
 """  # noqa: D205, D415
 
-from importlib import resources
+from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.models.animals.animal_model import AnimalModel  # noqa F401
 
-from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-with resources.path(
-    "virtual_rainforest.models.animals", "animals_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=AnimalModel.model_name, schema_file_path=schema_file_path
-    )
+register_model(__name__, "animals_schema.json")

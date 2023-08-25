@@ -75,12 +75,18 @@ initialise and return a new instance of the class.
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
+from dataclasses import is_dataclass
+from importlib import resources
+from inspect import getmembers, isclass
 from typing import Any, Type
 
 import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
+from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.constants import register_constants_class
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -517,3 +523,57 @@ class BaseModel(ABC):
             )
             LOGGER.error(error)
             raise error
+
+
+def register_model(module_name: str, schema_filename: str) -> None:
+    """Helper function to register the things required to setup a given model.
+
+    This registers the model configuration schema to the
+    :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. It also finds all constants
+    classes that have been defined and registers them to the
+    :data:`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
+
+    Args:
+        module_name: The name of the module containing the model to be registered
+        schema_filename: The filename of the model configuration schema
+
+    Raises:
+        ConfigurationError: If the module does not define a single Model class which is
+            a child of BaseModel.
+    """
+
+    # Get a reference to the module
+    module = sys.modules[module_name]
+
+    # Locate the BaseModel subclass for the model, which should be imported into the
+    # module root for the model
+    model_obj_found = [
+        obj
+        for nm, obj in getmembers(module)
+        if isclass(obj) and issubclass(obj, BaseModel)
+    ]
+
+    # Check only one BaseModel subclass is found
+    if len(model_obj_found) != 1:
+        excep = ConfigurationError(
+            f"Model {module} does not define a single model class"
+        )
+        LOGGER.critical(excep)
+        raise excep
+
+    model = model_obj_found[0]
+
+    # Register the schema
+    with resources.path(module, schema_filename) as schema_file_path:
+        register_schema(
+            module_name=getattr(model, "model_name"), schema_file_path=schema_file_path
+        )
+
+    # Find and register the constant dataclasses
+    constants_class_names = [
+        obj for nm, obj in getmembers(module.constants) if is_dataclass(obj)
+    ]
+    module_model_stem = module.__name__.split(".")[-1]
+    for const_class in constants_class_names:
+        # Import dataclass of interest
+        register_constants_class(module_model_stem, const_class)

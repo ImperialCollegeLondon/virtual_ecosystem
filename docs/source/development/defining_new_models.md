@@ -436,17 +436,12 @@ but then the file needs to contain code to do three things:
     {data}`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, under the
     {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute for the class.
 
-1. The `__init__.py` file also needs to register the JSONSchema file for the module. The
-    {meth}`~virtual_rainforest.core.config.register_schema` function checks the schema
-    file can be loaded and is valid JSONSchema, and then adds the schema to the
-    {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. The schema must also be
-    registered under the
-    {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute: it is
-    simplest to do this by using the imported class attribute directly!
-
-1. Any constants classes also need to be added to the registry. The
-   {meth}`~virtual_rainforest.core.constants.register_constants_class` function imports
-   the relevant constants class and adds it to the
+1. The `__init__.py` file also needs to register the JSONSchema file for the module, and
+   also add any constants classes to the registry. Both of these things are handled by
+   the {func}`~virtual_rainforest.core.base_model.register_model` helper function. This
+   function checks that the schema file can be loaded and is valid JSONSchema, and then
+   adds the schema to the {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. It
+   also automatically discovers constants classes and adds them to the
    {data}`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
 
 The resulting `__init__.py` file should then look something like this:
@@ -456,18 +451,10 @@ The resulting `__init__.py` file should then look something like this:
 short description of the overall model design and purpose.
 """  # noqa: D204, D415
 
-from importlib import resources
+from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.models.freshwater.freshwater_model import (  # noqa F401
+    FreshwaterModel,
+)
 
-from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.core.constants import register_constants_class
-from virtual_rainforest.models.freshwater.freshwater_model import FreshWaterModel
-
-with resources.path(
-    "virtual_rainforest.models.freshwater", "freshwater_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=FreshWaterModel.model_name, schema_file_path=schema_file_path
-    )
-
-register_constants_class("freshwater", "FreshWaterConsts")
+register_model(__name__, "freshwater_schema.json")
 ```

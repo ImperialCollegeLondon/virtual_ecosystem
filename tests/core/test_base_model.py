@@ -3,6 +3,7 @@
 This module tests the functionality of base_model.py
 """
 
+import sys
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 from typing import Any
@@ -626,5 +627,34 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
             start_time=datetime64(config["core"]["timing"]["start_date"]),
         )
         assert inst.update_interval == timestep
+
+    log_check(caplog, expected_log)
+
+
+def test_register_model(caplog, expected_log):
+    """Test that helper function for model registration works correctly."""
+    from virtual_rainforest.core.base_model import register_model
+
+    with pytest.raises(ValueError):
+        register_model("virtual_rainforest.models.animals", "animals_schema.json")
+
+    expected_log = ((CRITICAL, "The module schema for animals is already registered"),)
+
+    log_check(caplog, expected_log)
+
+
+def test_register_invalid_model(mocker, monkeypatch, caplog):
+    """Test that registration of an invalid model fails as expected."""
+    from virtual_rainforest.core.base_model import register_model
+
+    custom_mock_module = mocker.Mock()
+    monkeypatch.setitem(
+        sys.modules, "virtual_rainforest.models.fake", custom_mock_module
+    )
+
+    with pytest.raises(ConfigurationError):
+        register_model("virtual_rainforest.models.fake", "fake_schema.json")
+
+    expected_log = ((CRITICAL, "Model <Mock id='"),)
 
     log_check(caplog, expected_log)
