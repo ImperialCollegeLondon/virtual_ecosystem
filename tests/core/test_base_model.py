@@ -631,7 +631,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
     log_check(caplog, expected_log)
 
 
-def test_register_model(caplog, expected_log):
+def test_register_model(caplog):
     """Test that helper function for model registration works correctly."""
     from virtual_rainforest.core.base_model import register_model
 
