@@ -3,17 +3,6 @@
 This module tests the functionality of the plant functional types submodule.
 """
 
-import pytest
-
-
-@pytest.fixture()
-def plant_config(shared_datadir):
-    """Simple configuration fixture for use in tests."""
-
-    from virtual_rainforest.core.config import Config
-
-    return Config(shared_datadir / "all_config.toml")
-
 
 def test_plant_functional_type():
     """Simple test of PlantFunctionalType dataclass."""
