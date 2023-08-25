@@ -525,7 +525,7 @@ class BaseModel(ABC):
             raise error
 
 
-def register_model(module_name: str, schema_filename: str) -> None:
+def register_model(module_name: str) -> None:
     """Helper function to register the things required to setup a given model.
 
     This registers the model configuration schema to the
@@ -535,7 +535,6 @@ def register_model(module_name: str, schema_filename: str) -> None:
 
     Args:
         module_name: The name of the module containing the model to be registered
-        schema_filename: The filename of the model configuration schema
 
     Raises:
         ConfigurationError: If the module does not define a single Model class which is
@@ -564,7 +563,7 @@ def register_model(module_name: str, schema_filename: str) -> None:
     model = model_obj_found[0]
 
     # Register the schema
-    with resources.path(module, schema_filename) as schema_file_path:
+    with resources.path(module, "model_schema.json") as schema_file_path:
         register_schema(
             module_name=getattr(model, "model_name"), schema_file_path=schema_file_path
         )

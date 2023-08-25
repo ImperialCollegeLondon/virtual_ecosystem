@@ -636,7 +636,7 @@ def test_register_model(caplog):
     from virtual_rainforest.core.base_model import register_model
 
     with pytest.raises(ValueError):
-        register_model("virtual_rainforest.models.animals", "animals_schema.json")
+        register_model("virtual_rainforest.models.animals")
 
     expected_log = ((CRITICAL, "The module schema for animals is already registered"),)
 
@@ -653,7 +653,7 @@ def test_register_invalid_model(mocker, monkeypatch, caplog):
     )
 
     with pytest.raises(ConfigurationError):
-        register_model("virtual_rainforest.models.fake", "fake_schema.json")
+        register_model("virtual_rainforest.models.fake")
 
     expected_log = ((CRITICAL, "Model <Mock id='"),)
 

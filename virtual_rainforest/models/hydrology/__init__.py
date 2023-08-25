@@ -21,4 +21,4 @@ from virtual_rainforest.models.hydrology.hydrology_model import (  # noqa F401
     HydrologyModel,
 )
 
-register_model(__name__, "hydrology_schema.json")
+register_model(__name__)

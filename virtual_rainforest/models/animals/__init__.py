@@ -30,4 +30,4 @@ Each of the animal sub-modules has its own API reference page:
 from virtual_rainforest.core.base_model import register_model
 from virtual_rainforest.models.animals.animal_model import AnimalModel  # noqa F401
 
-register_model(__name__, "animals_schema.json")
+register_model(__name__)

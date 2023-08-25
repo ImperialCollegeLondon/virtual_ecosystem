@@ -41,8 +41,7 @@ to add other python modules containing different parts of the module functionali
   `virtual_rainforest` package.
 * A python module  `{model_name}_model.py` that will contain the main model
   object.
-* A JSON Schema file defining the model configuration, called
-  `{model_name}_schema.json`.
+* A JSON Schema file defining the model configuration, called `model_schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model.
 
 For example:
@@ -50,7 +49,7 @@ For example:
 ```bash
 touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
-touch virtual_rainforest/models/freshwater/freshwater_schema.json
+touch virtual_rainforest/models/freshwater/model_schema.json
 touch virtual_rainforest/models/freshwater/constants.py
 ```
 
@@ -456,5 +455,5 @@ from virtual_rainforest.models.freshwater.freshwater_model import (  # noqa F401
     FreshwaterModel,
 )
 
-register_model(__name__, "freshwater_schema.json")
+register_model(__name__)
 ```

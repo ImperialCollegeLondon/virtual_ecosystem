@@ -24,4 +24,4 @@ from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (  # n
     AbioticSimpleModel,
 )
 
-register_model(__name__, "abiotic_simple_schema.json")
+register_model(__name__)

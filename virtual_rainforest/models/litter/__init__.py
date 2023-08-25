@@ -16,4 +16,4 @@ Each of the litter sub-modules has its own API reference page:
 from virtual_rainforest.core.base_model import register_model
 from virtual_rainforest.models.litter.litter_model import LitterModel  # noqa F401
 
-register_model(__name__, "litter_schema.json")
+register_model(__name__)
