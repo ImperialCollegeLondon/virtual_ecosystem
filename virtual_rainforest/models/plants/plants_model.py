@@ -18,6 +18,7 @@ from virtual_rainforest.core.data import Data
 # from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names
+from virtual_rainforest.models.plants.community import Plants
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import PlantFunctionalTypes
 
@@ -33,7 +34,8 @@ class PlantsModel(BaseModel):
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
-        constants: Set of constants for the soil model.
+        plant_functional_types: A set of plant functional types to be used in the model.
+        constants: Set of constants for the plants model.
     """
 
     model_name = "plants"
@@ -52,21 +54,9 @@ class PlantsModel(BaseModel):
 
     This is the set of variables and their core axes that are required in the data
     object to create a PlantsModel instance."""
+
     # TODO - think about a shared "plant cohort" core axis that defines these, but the
     #        issue here is that the length of this is variable.
-
-    required_update_vars = (
-        ("vapour_pressure_deficit", ("spatial",)),
-        ("air_temperature", ("spatial",)),
-        ("atmospheric_co2", ("spatial",)),
-        ("atmospheric_pressure", ("spatial",)),
-        ("ppfd", ("spatial",)),
-        ("fapar", ("spatial",)),
-    )
-    """Required initialisation variables to update PlantsModel.
-
-    NOTE - this is just a placeholder for a thought at the moment. This is not a current
-    valid BaseModel attribute. """
 
     vars_updated = (
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -85,10 +75,16 @@ class PlantsModel(BaseModel):
     ):
         super().__init__(data, update_interval, **kwargs)
 
-        # TODO - Check data bounding
-
+        # Save the class attributes
+        self.pfts = plant_functional_types
+        """The plant functional types used in the plants model."""
         self.constants = constants
         """Set of constants for the plants model"""
+
+        self.plants = Plants(data, self.pfts)
+        """Initialise the plant communities from the data object."""
+
+        # TODO - initialise the canopy model
 
     @classmethod
     def from_config(
@@ -131,13 +127,7 @@ class PlantsModel(BaseModel):
         return inst
 
     def setup(self) -> None:
-        """Set up a PlantsModel instance.
-
-        This function takes the input data for a plants model instance and calculates
-        the initial canopy structure from the plant functional type and community data.
-        """
-
-        pass
+        """Placeholder function to set up the plants model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -149,8 +139,9 @@ class PlantsModel(BaseModel):
             time_index: The index representing the current time step in the data object.
         """
 
-        # Update the layers
-        pass
+        # TODO - estimate gpp
+        # TODO - estimate growth
+        # TODO - recalculate canopy model
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
