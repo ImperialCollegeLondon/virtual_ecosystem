@@ -28,6 +28,6 @@ Each of the animal sub-modules has its own API reference page:
 """  # noqa: D205, D415
 
 from virtual_rainforest.core.base_model import register_model
-from virtual_rainforest.models.animals.animal_model import AnimalModel  # noqa F401
+from virtual_rainforest.models.animals.animal_model import AnimalModel
 
-register_model(__name__)
+register_model(__name__, AnimalModel)

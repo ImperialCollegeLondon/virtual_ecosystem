@@ -79,7 +79,7 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import is_dataclass
 from importlib import resources
-from inspect import getmembers, isclass
+from inspect import getmembers
 from typing import Any, Type
 
 import pint
@@ -525,7 +525,7 @@ class BaseModel(ABC):
             raise error
 
 
-def register_model(module_name: str) -> None:
+def register_model(module_name: str, model: type[BaseModel]) -> None:
     """Helper function to register the things required to setup a given model.
 
     This registers the model configuration schema to the
@@ -535,32 +535,18 @@ def register_model(module_name: str) -> None:
 
     Args:
         module_name: The name of the module containing the model to be registered
+        model: The model to be registered.
 
     Raises:
         ConfigurationError: If the module does not define a single Model class which is
             a child of BaseModel.
     """
 
+    # TODO - Once I've got this working, I need to add a check that the modelname
+    # matches the model supplied
+
     # Get a reference to the module
     module = sys.modules[module_name]
-
-    # Locate the BaseModel subclass for the model, which should be imported into the
-    # module root for the model
-    model_obj_found = [
-        obj
-        for nm, obj in getmembers(module)
-        if isclass(obj) and issubclass(obj, BaseModel)
-    ]
-
-    # Check only one BaseModel subclass is found
-    if len(model_obj_found) != 1:
-        excep = ConfigurationError(
-            f"Model {module} does not define a single model class"
-        )
-        LOGGER.critical(excep)
-        raise excep
-
-    model = model_obj_found[0]
 
     # Register the schema
     with resources.path(module, "model_schema.json") as schema_file_path:

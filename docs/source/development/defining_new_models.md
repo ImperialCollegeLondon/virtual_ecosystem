@@ -451,9 +451,8 @@ short description of the overall model design and purpose.
 """  # noqa: D204, D415
 
 from virtual_rainforest.core.base_model import register_model
-from virtual_rainforest.models.freshwater.freshwater_model import (  # noqa F401
-    FreshwaterModel,
-)
+from virtual_rainforest.models.freshwater.freshwater_model import FreshwaterModel
 
-register_model(__name__)
+
+register_model(__name__, FreshwaterModel)
 ```
