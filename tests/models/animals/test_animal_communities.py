@@ -158,9 +158,6 @@ class TestAnimalCommunity:
                 kwargs.get("carcass_pool", None),
                 type(animal_community_instance.carcass_pool),
             )
-            assert isinstance(
-                kwargs.get("soil_pool", None), type(animal_community_instance.soil_pool)
-            )
 
     def test_collect_prey(
         self,

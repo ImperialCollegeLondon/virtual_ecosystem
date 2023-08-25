@@ -13,8 +13,8 @@ class TestCarcassPool:
         """Testing initialization of CarcassPool."""
         from virtual_rainforest.models.animals.decay import CarcassPool
 
-        c1 = CarcassPool(1000.7, 1)
-        assert pytest.approx(c1.stored_energy) == 1000.7
+        c1 = CarcassPool(1000.7, 0.0)
+        assert pytest.approx(c1.scavengeable_energy) == 1000.7
 
 
 class TestExcrementPool:
