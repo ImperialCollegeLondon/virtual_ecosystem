@@ -12,6 +12,7 @@ def plant_instance():
     return PlantCommunity(10000.0, 1)
 
 
+@pytest.fixture
 def excrement_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_rainforest.models.animals.decay import ExcrementPool
