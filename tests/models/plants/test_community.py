@@ -76,12 +76,12 @@ from tests.conftest import log_check
         ),
     ],
 )
-def test_plants__init__(caplog, vars, pfts, raises, exp_log):
+def test_PlantCommunities__init__(caplog, vars, pfts, raises, exp_log):
     """Test the data handling of the plants __init__."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.plants.community import Plants
+    from virtual_rainforest.models.plants.community import PlantCommunities
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 
@@ -92,7 +92,7 @@ def test_plants__init__(caplog, vars, pfts, raises, exp_log):
     caplog.clear()
 
     with raises:
-        plants_obj = Plants(data, pfts=pfts)
+        plants_obj = PlantCommunities(data, pfts=pfts)
 
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj

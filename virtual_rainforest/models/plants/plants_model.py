@@ -18,7 +18,7 @@ from virtual_rainforest.core.data import Data
 # from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names
-from virtual_rainforest.models.plants.community import Plants
+from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import PlantFunctionalTypes
 
@@ -81,7 +81,7 @@ class PlantsModel(BaseModel):
         self.constants = constants
         """Set of constants for the plants model"""
 
-        self.plants = Plants(data, self.pfts)
+        self.communities = PlantCommunities(data, self.pfts)
         """Initialise the plant communities from the data object."""
 
         # TODO - initialise the canopy model

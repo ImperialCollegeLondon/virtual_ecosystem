@@ -1,7 +1,7 @@
 """The :mod:`~virtual_rainforest.models.plants.community` submodule provides a simple
-dataclass to hold plant cohort information and then the ``Plants`` class that is used to
-hold list of plant cohorts by grid cell and generate those lists from variables provided
-in the data object.
+dataclass to hold plant cohort information and then the ``PlantCommunities`` class that
+is used to hold list of plant cohorts by grid cell and generate those lists from
+variables provided in the data object.
 
 NOTE - much of this will be outsourced to pyrealm.
 
@@ -31,7 +31,7 @@ class PlantCohort:
     n: int
 
 
-class Plants:
+class PlantCommunities:
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
