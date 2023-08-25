@@ -1,20 +1,12 @@
-"""Test module for dummy_plants_and_soil.py."""
+"""Test module for dummy_plants.py."""
 
 import pytest
 
 
 @pytest.fixture
-def excrement_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.decay import ExcrementPool
-
-    return ExcrementPool(100000.0, 0.0)
-
-
-@pytest.fixture
 def plant_instance():
     """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
+    from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 
     return PlantCommunity(10000.0, 1)
 

@@ -7,7 +7,7 @@ from numpy import timedelta64
 @pytest.fixture
 def plant_instance():
     """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
+    from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 
     return PlantCommunity(10000.0, 1)
 
@@ -231,9 +231,7 @@ class TestAnimalCohort:
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
         from virtual_rainforest.models.animals.animal_traits import DietType
         from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-        from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-            PlantCommunity,
-        )
+        from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 
         # Mocking the eat method of AnimalCohort
         mock_eat = mocker.patch.object(AnimalCohort, "eat")
