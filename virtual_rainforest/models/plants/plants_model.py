@@ -9,20 +9,20 @@ from typing import Any
 
 # import numpy as np
 # from numpy.typing import NDArray
+# from xarray import DataArray
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
-
-# from virtual_rainforest.core.config import Config
-# from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
+from virtual_rainforest.models.plants.functions import build_canopy_arrays
 
-# from xarray import DataArray
+# from virtual_rainforest.core.config import Config
+# from virtual_rainforest.core.exceptions import InitialisationError
 
 
 class PlantsModel(BaseModel):
@@ -80,6 +80,8 @@ class PlantsModel(BaseModel):
         update_interval: Quantity,
         flora: Flora,
         constants: PlantsConsts,
+        canopy_layers: int,
+        soil_layers: int,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -91,8 +93,17 @@ class PlantsModel(BaseModel):
         """Set of constants for the plants model"""
         self.communities = PlantCommunities(data, self.flora)
         """Initialise the plant communities from the data object."""
+        self.canopy_layers = canopy_layers
+        """The maximum number of canopy layers."""
+        self.soil_layers = soil_layers
+        """The number of soil layers."""
 
-        # TODO - initialise the canopy model
+        # Retrive the canopy model arrays and insert into the data object.
+        canopy_heights, canopy_lai = build_canopy_arrays(
+            self.communities,
+            n_canopy_layers=self.canopy_layers,
+            n_soil_layers=self.soil_layers,
+        )
 
     @classmethod
     def from_config(
@@ -108,9 +119,13 @@ class PlantsModel(BaseModel):
             config: A validated :class:`~virtual_rainforest.core.config.Config`
                 instance.
             update_interval: Frequency with which all models are updated
+
         """
 
-        # Check if any constants have been supplied
+        soil_layers = config["core"]["layers"]["soil_layers"]
+        canopy_layers = config["core"]["layers"]["canopy_layers"]
+
+        # Check if any plant constant values have been supplied
         if "plants" in config and "constants" in config["plants"]:
             # Checks that constants is config are as expected
             check_valid_constant_names(config, "plants", "PlantsConsts")
@@ -123,9 +138,16 @@ class PlantsModel(BaseModel):
         # Generate the flora
         flora = Flora.from_config(config=config)
 
-        # Try and create the instance - safeguard against exceptions
+        # Try and create the instance - safeguard against exceptions from __init__
         try:
-            inst = cls(data, update_interval, flora, constants)
+            inst = cls(
+                data=data,
+                update_interval=update_interval,
+                flora=flora,
+                constants=constants,
+                canopy_layers=canopy_layers,
+                soil_layers=soil_layers,
+            )
         except Exception as excep:
             LOGGER.critical(
                 f"Error creating plants model from configuration: {str(excep)}"

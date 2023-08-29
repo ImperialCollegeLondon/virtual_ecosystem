@@ -97,6 +97,10 @@ class PlantCommunities:
             LOGGER.critical(msg)
             raise ValueError(msg)
 
+        # TODO - think about mechanisms to keep cohort data as arrays either within
+        #        cells or across the whole simulation, to make it more efficient with
+        #        using pyrealm.
+
         # Now compile the plant cohorts adding each cohort to a list keyed by cell id
         for cid in data.grid.cell_id:
             self.communities[cid] = []
