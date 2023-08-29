@@ -179,12 +179,19 @@ class TestAnimalCohort:
         assert herb_cohort_instance.age == final_age
 
     @pytest.mark.parametrize(
-        "number_dead, initial_pop, final_pop, initial_carcass, final_carcass",
-        [
-            (0, 0, 0, 0.0, 0.0),
-            (0, 1000, 1000, 0.0, 0.0),
-            (1, 1, 0, 1.0, 70000001.0),
-            (100, 200, 100, 0.0, 7000000000.0),
+        argnames=[
+            "number_dead",
+            "initial_pop",
+            "final_pop",
+            "initial_carcass",
+            "final_carcass",
+            "decomp_carcass",
+        ],
+        argvalues=[
+            (0, 0, 0, 0.0, 0.0, 0.0),
+            (0, 1000, 1000, 0.0, 0.0, 0.0),
+            (1, 1, 0, 1.0, 56000001.0, 1.4e7),
+            (100, 200, 100, 0.0, 5.6e9, 1.4e9),
         ],
     )
     def test_die_individual(
@@ -196,6 +203,7 @@ class TestAnimalCohort:
         carcass_instance,
         initial_carcass,
         final_carcass,
+        decomp_carcass,
     ):
         """Testing death."""
         herb_cohort_instance.individuals = initial_pop
@@ -203,6 +211,7 @@ class TestAnimalCohort:
         herb_cohort_instance.die_individual(number_dead, carcass_instance)
         assert herb_cohort_instance.individuals == final_pop
         assert carcass_instance.scavengeable_energy == final_carcass
+        assert carcass_instance.decomposed_energy == decomp_carcass
 
     def test_get_eaten(
         self, prey_cohort_instance, predator_cohort_instance, carcass_instance
@@ -222,6 +231,7 @@ class TestAnimalCohort:
         # Assertions
         assert prey_cohort_instance.individuals < initial_individuals
         assert carcass_instance.scavengeable_energy > initial_scavengeable_energy
+        assert carcass_instance.decomposed_energy > 0.0
 
     def test_forage_cohort(
         self, predator_cohort_instance, prey_cohort_instance, mocker

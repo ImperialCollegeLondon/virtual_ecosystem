@@ -16,6 +16,7 @@ from numpy import timedelta64
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
+    DECAY_FRACTION_CARCASSES,
     DECAY_FRACTION_EXCREMENT,
     ENERGY_DENSITY,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
@@ -112,6 +113,8 @@ class AnimalCohort:
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
         """The fraction of excrement which decays before it gets consumed."""
+        self.decay_fraction_carcasses: float = DECAY_FRACTION_CARCASSES
+        """The fraction of carcass biomass which decays before it gets consumed."""
 
     def metabolize(self, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
@@ -180,9 +183,14 @@ class AnimalCohort:
         """
         self.individuals -= number_dead
 
+        # Find total energy contained in the carcasses
+        carcass_energy = number_dead * self.mass * ENERGY_DENSITY["meat"]
+
+        # Split this energy between carcass decay, and scavengeable carcasses
         carcass_pool.scavengeable_energy += (
-            number_dead * self.mass * ENERGY_DENSITY["meat"]
-        )
+            1 - self.decay_fraction_carcasses
+        ) * carcass_energy
+        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_energy
 
     def get_eaten(self, predator: Consumer, carcass_pool: DecayPool) -> float:
         """This function handles AnimalCohorts being subject to predation.
@@ -222,10 +230,14 @@ class AnimalCohort:
 
         # Reduce the number of individuals in the prey cohort
         self.individuals -= number_eaten
-        # Excess from deficits of efficiency flow to the carcass pool
-        carcass_pool.scavengeable_energy += prey_energy * (
-            1 - self.functional_group.mechanical_efficiency
-        )
+        # Calculate excess from deficits of efficiency, which flows to the carcass pool
+        carcass_energy = prey_energy * (1 - self.functional_group.mechanical_efficiency)
+
+        # Split this energy between carcass decay, and scavengeable carcasses
+        carcass_pool.scavengeable_energy += (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_energy
+        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_energy
 
         # return the net energetic gain of predation
         return prey_energy * predator.functional_group.conversion_efficiency

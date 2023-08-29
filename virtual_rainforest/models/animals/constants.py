@@ -141,3 +141,10 @@ TODO - The number given here is very much made up. In future, we either need to 
 way of estimating this from data, or come up with a smarter way of handling this
 process.
 """
+
+DECAY_FRACTION_CARCASSES: float = 0.2
+"""Fraction of carcass biomass that is assumed to decay rather than be consumed.
+
+[unitless]. TODO - The number given here is very much made up, see
+:attr:`DECAY_FRACTION_EXCREMENT` for details of how this should be changed in future.
+"""
