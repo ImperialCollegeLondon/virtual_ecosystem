@@ -62,11 +62,12 @@ class Flora(dict):
         if "plants" in config and "ftypes" in config["plants"]:
             for ftype in config["plants"]["ftypes"]:
                 try:
-                    if ftype in pft_dict:
-                        msg = f"Plant functional type {ftype} duplicated in config."
+                    pft = PlantFunctionalType(**ftype)
+                    if pft.pft_name in pft_dict:
+                        msg = f"Config duplicates plant functional type {pft.pft_name}."
                         LOGGER.critical(msg)
                         raise ConfigurationError(msg)
-                    pft_dict[ftype["pft_name"]] = PlantFunctionalType(**ftype)
+                    pft_dict[pft.pft_name] = pft
                 except Exception as excep:
                     LOGGER.critical(
                         f"Error generating plant functional type: {str(excep)}"
