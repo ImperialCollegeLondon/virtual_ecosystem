@@ -79,7 +79,7 @@ class PlantsModel(BaseModel):
         data: Data,
         update_interval: Quantity,
         flora: Flora,
-        constants: PlantsConsts,
+        constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
