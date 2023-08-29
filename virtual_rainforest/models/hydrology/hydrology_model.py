@@ -72,6 +72,7 @@ class HydrologyModel(BaseModel):
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
     vars_updated = [
+        "precipitation_surface",  # precipitation-interception loss, input to `plants`
         "soil_moisture",
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
@@ -331,6 +332,15 @@ class HydrologyModel(BaseModel):
         and a number of additional parameters that as described in detail in
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`.
 
+        The function updates the following variables in the `data` object:
+
+        * precipitation_surface, [mm]
+        * soil_moisture, [-]
+        * surface_runoff, [mm], equivalent to SPLASH runoff
+        * vertical_flow, [mm/timestep]
+        * soil_evaporation, [mm]
+        * stream_flow, [mm/timestep], currently simply P-ET
+        * surface_runoff_accumulated, [mm]
         """
         # select time conversion factor # TODO implement flexible time steps
         if self.update_interval != Quantity("1 month"):
@@ -362,6 +372,9 @@ class HydrologyModel(BaseModel):
             ["layers"]
         ) * (-self.constants.meters_to_millimeters)
 
+        # create output dict as intermediate step to not overwrite data directly
+        soil_hydrology = {}
+
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
 
@@ -374,6 +387,7 @@ class HydrologyModel(BaseModel):
         precipitation_surface = current_precipitation * (
             1 - self.constants.water_interception_factor * leaf_area_index_sum
         )
+        soil_hydrology["precipitation_surface"] = precipitation_surface
 
         # Calculate total soil moisture (before rainfall) in mm
         # To find out how much rain can be taken up by the soil before rain goes to
@@ -399,9 +413,6 @@ class HydrologyModel(BaseModel):
         surface_runoff_cells = precipitation_surface.where(
             precipitation_surface > available_capacity_mm
         )
-
-        # create output dict as intermediate step to not overwrite data directly
-        soil_hydrology = {}
 
         # Calculate runoff of each grid cell in mm; might get replaced by SPLASH model
         soil_hydrology["surface_runoff"] = (
@@ -693,7 +704,10 @@ def calculate_soil_evaporation(
     )
 
 
-def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
+def find_lowest_neighbour(
+    neighbours: list[np.ndarray],
+    elevation: np.ndarray,
+) -> list[int]:
     """Find lowest neighbour for each grid cell from digital elevation model.
 
     This function finds the cell IDs of the lowest neighbour for each grid cell. This
@@ -714,7 +728,7 @@ def find_lowest_neighbour(neighbours: list, elevation: np.ndarray) -> list:
     return lowest_neighbour
 
 
-def find_upstream_cells(lowest_neighbour: list) -> list:
+def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     """Find all upstream cell IDs for all grid cells.
 
     This function identifies all cell IDs that are upstream of each grid cell. This can
@@ -724,7 +738,7 @@ def find_upstream_cells(lowest_neighbour: list) -> list:
         lowest_neighbour: list of lowest neighbour cell_ids
 
     Returns:
-        list of all upstream IDs for each grid cell
+        lists of all upstream IDs for each grid cell
     """
     upstream_ids: list = [[] for i in range(len(lowest_neighbour))]
 
@@ -735,7 +749,7 @@ def find_upstream_cells(lowest_neighbour: list) -> list:
 
 
 def accumulate_surface_runoff(
-    drainage_map: dict[int, tuple[int]],
+    drainage_map: dict[int, list[int]],
     surface_runoff: np.ndarray,
     accumulated_runoff: np.ndarray,
 ) -> np.ndarray:
@@ -755,10 +769,8 @@ def accumulate_surface_runoff(
         accumulated surface runoff, [mm]
     """
 
-    upstream_id_list = [[i for i in drainage_map[x]] for x in drainage_map.keys()]
-
-    for cell_id, upstream_id in enumerate(upstream_id_list):
-        accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_id])
+    for cell_id, upstream_ids in enumerate(drainage_map.values()):
+        accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_ids])
 
     for num in accumulated_runoff:
         if num < 0:
@@ -772,7 +784,7 @@ def accumulate_surface_runoff(
 
 
 # TODO move this to core.grid once we decided on common use
-def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, tuple[int]]:
+def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:
     """Calculate drainage map based on digital elevation model.
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
@@ -796,8 +808,4 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, tuple
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
     upstream_ids = find_upstream_cells(lowest_neighbours)
 
-    output = {}
-    for cell_id in range(grid.n_cells):
-        output[cell_id] = upstream_ids[cell_id]
-
-    return output
+    return dict(enumerate(upstream_ids))
