@@ -45,15 +45,22 @@ class PlantsModel(BaseModel):
     upper_bound_on_time_scale = "1 year"
     """Longest time scale that plants model can sensibly capture."""
     required_init_vars = (
-        ("plant_cohorts_n", tuple()),
-        ("plant_cohorts_pft", tuple()),
         ("plant_cohorts_cell_id", tuple()),
+        ("plant_cohorts_pft", tuple()),
+        ("plant_cohorts_n", tuple()),
         ("plant_cohorts_dbh", tuple()),
     )
     """Required initialisation variables for the plants model.
 
     This is the set of variables and their core axes that are required in the data
-    object to create a PlantsModel instance."""
+    object to create a PlantsModel instance. Four variables are used to set the initial
+    plant cohorts used in the model:
+
+    * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
+    * ``plant_cohorts_pft``: The plant functional type of the cohort
+    * ``plant_cohorts_n``: The number of individuals in the cohort
+    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals.
+    """
 
     # TODO - think about a shared "plant cohort" core axis that defines these, but the
     #        issue here is that the length of this is variable.
