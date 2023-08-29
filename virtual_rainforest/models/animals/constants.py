@@ -133,3 +133,11 @@ TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 
 REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
 REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs
+
+DECAY_FRACTION_EXCREMENT: float = 0.5
+"""Fraction of excrement that is assumed to decay rather than be consumed [unitless].
+
+TODO - The number given here is very much made up. In future, we either need to find a
+way of estimating this from data, or come up with a smarter way of handling this
+process.
+"""

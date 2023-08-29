@@ -24,6 +24,7 @@ from typing import Any
 
 from numpy import timedelta64
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -53,8 +54,11 @@ class AnimalModel(BaseModel):
     """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
-    vars_updated = []
-    """The animal model doesn't currently use the data object so nothing to update."""
+    vars_updated = ("decomposed_excrement",)
+    """Variables updated by the animal model.
+
+    At the moment these are only inputs to the litter model.
+    """
 
     def __init__(
         self,
@@ -127,5 +131,32 @@ class AnimalModel(BaseModel):
             community.mortality_community()
             community.increase_age_community(timedelta64(1, "D"))
 
+        # Now that communities have been updated information required to update the
+        # litter model can be extracted
+        additions_to_litter = self.calculate_litter_additions()
+
+        # Update the litter pools
+        self.data.add_from_dict(additions_to_litter)
+
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
+
+    def calculate_litter_additions(self) -> dict[str, DataArray]:
+        """Calculate the how much animal matter should be transferred to the litter."""
+
+        # Find the size of all decomposed excrement pools
+        remaining_excrement = [
+            community.excrement_pool.decomposed_carbon(self.data.grid.cell_area)
+            for community in self.communities.values()
+        ]
+
+        # All excrement in the decomposed subpool is moved to the litter model, so
+        # stored energy of each pool is reset to zero
+        for community in self.communities.values():
+            community.excrement_pool.decomposed_energy = 0.0
+
+        return {
+            "decomposed_excrement": DataArray(
+                remaining_excrement / self.update_interval.to("days"), dims="cell_id"
+            )
+        }

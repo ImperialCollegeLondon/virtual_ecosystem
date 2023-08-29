@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.data import Data
@@ -65,13 +66,13 @@ class LitterModel(BaseModel):
 
     This is a set of variables that must be present in the data object used to create a
     LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = [
+    vars_updated = (
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
         "litter_pool_woody",
         "litter_pool_below_metabolic",
         "litter_pool_below_structural",
-    ]
+    )
     """Variables updated by the litter model."""
 
     def __init__(
@@ -158,6 +159,17 @@ class LitterModel(BaseModel):
         # rate so that the soil model can be run before the litter model. Think we need
         # to decide how we are handling model order first though.
 
+        # TODO - This should be created by the animal model, but it is not yet linked
+        # into the full vr_run flow yet. Once it is this step should be deleted.
+        self.data["decomposed_excrement"] = DataArray(
+            np.zeros_like(self.data.grid.cell_id),
+            dims=["cell_id"],
+            coords={
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="decomposed_excrement",
+        )
+
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
@@ -194,6 +206,7 @@ class LitterModel(BaseModel):
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
         )
 
         # Update the litter pools
