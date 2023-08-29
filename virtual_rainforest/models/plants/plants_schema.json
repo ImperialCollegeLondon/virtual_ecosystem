@@ -26,14 +26,14 @@
                      "pft_name": {
                         "type": "string"
                      },
-                     "maxh": {
+                     "max_height": {
                         "type": "number",
                         "exclusiveMinimum": 0.0
                      }
                   },
                   "required": [
                      "pft_name",
-                     "maxh"
+                     "max_height"
                   ]
                }
             },

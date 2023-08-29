@@ -8,10 +8,10 @@ def test_plant_functional_type():
     """Simple test of PlantFunctionalType dataclass."""
     from virtual_rainforest.models.plants.functional_types import PlantFunctionalType
 
-    pft = PlantFunctionalType(pft_name="tree", maxh=12.0)
+    pft = PlantFunctionalType(pft_name="tree", max_height=12.0)
 
     assert pft.pft_name == "tree"
-    assert pft.maxh == 12.0
+    assert pft.max_height == 12.0
 
 
 def test_plant_functional_types__init__():
@@ -23,8 +23,8 @@ def test_plant_functional_types__init__():
 
     pfts = PlantFunctionalTypes(
         {
-            "shrub": PlantFunctionalType(pft_name="shrub", maxh=1.0),
-            "broadleaf": PlantFunctionalType(pft_name="broadleaf", maxh=50.0),
+            "shrub": PlantFunctionalType(pft_name="shrub", max_height=1.0),
+            "broadleaf": PlantFunctionalType(pft_name="broadleaf", max_height=50.0),
         }
     )
 

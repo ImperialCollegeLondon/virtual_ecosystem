@@ -17,7 +17,7 @@ class PlantFunctionalType:
     """Data class containing plant functional type definitions."""
 
     pft_name: str
-    maxh: float
+    max_height: float
 
 
 class PlantFunctionalTypes(dict):
