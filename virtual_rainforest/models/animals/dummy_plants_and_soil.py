@@ -63,6 +63,7 @@ class PlantCommunity:
 
         self.stored_energy -= consumed_energy
 
+        # temporary flow of plant material. This will later change to something else
         excrement_pool.decomposed_energy += consumed_energy * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
