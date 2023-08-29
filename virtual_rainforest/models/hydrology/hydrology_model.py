@@ -71,7 +71,7 @@ class HydrologyModel(BaseModel):
     )
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
-    vars_updated = [
+    vars_updated = (
         "precipitation_surface",  # precipitation-interception loss, input to `plants`
         "soil_moisture",
         "surface_runoff",  # equivalent to SPLASH runoff
@@ -79,7 +79,7 @@ class HydrologyModel(BaseModel):
         "soil_evaporation",
         "stream_flow",  # P-ET; TODO later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
-    ]
+    )
     """Variables updated by the hydrology model."""
 
     def __init__(
