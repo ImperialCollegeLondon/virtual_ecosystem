@@ -772,13 +772,10 @@ def accumulate_surface_runoff(
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
         accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_ids])
 
-    for num in accumulated_runoff:
-        if num < 0:
-            to_raise = ValueError(
-                "The accumulated surface runoff should not be negative!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+    if (accumulated_runoff < 0.0).any():
+        to_raise = ValueError("The accumulated surface runoff should not be negative!")
+        LOGGER.error(to_raise)
+        raise to_raise
 
     return accumulated_runoff
 

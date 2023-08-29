@@ -568,7 +568,7 @@ def test_find_upstream_cells():
             {},
         ),
         (
-            [-100, 100, 100, 100, 100, 100, 100, 100],
+            np.array([-100, 100, 100, 100, 100, 100, 100, 100]),
             pytest.raises(ValueError),
             (
                 (
