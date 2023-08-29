@@ -20,7 +20,7 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import check_valid_constant_names
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
-from virtual_rainforest.models.plants.functional_types import PlantFunctionalTypes
+from virtual_rainforest.models.plants.functional_types import Flora
 
 # from xarray import DataArray
 
@@ -78,19 +78,18 @@ class PlantsModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
-        plant_functional_types: PlantFunctionalTypes,
+        flora: Flora,
         constants: PlantsConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
 
         # Save the class attributes
-        self.pfts = plant_functional_types
-        """The plant functional types used in the plants model."""
+        self.flora = flora
+        """A flora containg the plant functional types used in the plants model."""
         self.constants = constants
         """Set of constants for the plants model"""
-
-        self.communities = PlantCommunities(data, self.pfts)
+        self.communities = PlantCommunities(data, self.flora)
         """Initialise the plant communities from the data object."""
 
         # TODO - initialise the canopy model
@@ -121,16 +120,17 @@ class PlantsModel(BaseModel):
             # If no constants are supplied then the defaults should be used
             constants = PlantsConsts()
 
-        # Generate the plant functional types
-        pfts = PlantFunctionalTypes.from_config(config=config)
+        # Generate the flora
+        flora = Flora.from_config(config=config)
 
         # Try and create the instance - safeguard against exceptions
         try:
-            inst = cls(data, update_interval, pfts, constants)
+            inst = cls(data, update_interval, flora, constants)
         except Exception as excep:
             LOGGER.critical(
                 f"Error creating plants model from configuration: {str(excep)}"
             )
+            raise excep
 
         LOGGER.info("Plants model instance generated from configuration.")
         return inst

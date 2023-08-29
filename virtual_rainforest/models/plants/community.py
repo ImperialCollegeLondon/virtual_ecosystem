@@ -12,10 +12,7 @@ from dataclasses import dataclass
 
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.plants.functional_types import (
-    PlantFunctionalType,
-    PlantFunctionalTypes,
-)
+from virtual_rainforest.models.plants.functional_types import Flora, PlantFunctionalType
 
 
 @dataclass
@@ -45,10 +42,10 @@ class PlantCommunities:
 
     Args:
         data: A data instance containing the required plant cohort data.
-        pfts: The plant functional types to be used.
+        flora: A flora containing the plant functional types used in the cohorts.
     """
 
-    def __init__(self, data: Data, pfts: PlantFunctionalTypes):
+    def __init__(self, data: Data, flora: Flora):
         self.communities: dict = dict()
         """A dictionary holding the lists of plant cohorts keyed by cell id."""
 
@@ -94,7 +91,7 @@ class PlantCommunities:
             LOGGER.critical(msg)
             raise ValueError(msg)
 
-        bad_pft = set(data["plant_cohort_pft"].data).difference(pfts.keys())
+        bad_pft = set(data["plant_cohort_pft"].data).difference(flora.keys())
         if bad_pft:
             msg = f"Plant cohort PFTs ids not in configured PFTs: {','.join(bad_pft)}"
             LOGGER.critical(msg)
@@ -111,7 +108,7 @@ class PlantCommunities:
             data["plant_cohort_n"].data,
         ):
             self.communities[cid].append(
-                PlantCohort(pft=pfts[chrt_pft], dbh=chrt_dbh, n=chrt_n)
+                PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n)
             )
 
         LOGGER.info("Plant cohort data loaded")

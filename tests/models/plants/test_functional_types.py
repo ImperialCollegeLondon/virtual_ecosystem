@@ -14,18 +14,18 @@ def test_plant_functional_type():
     assert pft.max_height == 12.0
 
 
-def test_plant_functional_types__init__():
-    """Simple test of PlantFunctionalTypes __init__."""
+def test_flora__init__():
+    """Simple test of Flora __init__."""
     from virtual_rainforest.models.plants.functional_types import (
+        Flora,
         PlantFunctionalType,
-        PlantFunctionalTypes,
     )
 
-    pfts = PlantFunctionalTypes(
-        {
-            "shrub": PlantFunctionalType(pft_name="shrub", max_height=1.0),
-            "broadleaf": PlantFunctionalType(pft_name="broadleaf", max_height=50.0),
-        }
+    pfts = Flora(
+        [
+            PlantFunctionalType(pft_name="shrub", max_height=1.0),
+            PlantFunctionalType(pft_name="broadleaf", max_height=50.0),
+        ]
     )
 
     assert len(pfts) == 2
@@ -33,11 +33,11 @@ def test_plant_functional_types__init__():
 
 
 def test_plant_functional_types_from_config(plant_config):
-    """Simple test of PlantFunctionalTypes from_config factory method."""
+    """Simple test of Flora from_config factory method."""
 
-    from virtual_rainforest.models.plants.functional_types import PlantFunctionalTypes
+    from virtual_rainforest.models.plants.functional_types import Flora
 
-    pfts = PlantFunctionalTypes.from_config(plant_config)
+    pfts = Flora.from_config(plant_config)
 
     assert len(pfts) == 2
     assert tuple(pfts.keys()) == ("shrub", "broadleaf")

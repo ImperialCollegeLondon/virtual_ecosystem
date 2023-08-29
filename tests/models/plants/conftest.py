@@ -17,9 +17,9 @@ def plant_config(shared_datadir):
 @pytest.fixture()
 def pfts(plant_config):
     """Construct a minimal PlantFunctionalType object."""
-    from virtual_rainforest.models.plants.functional_types import PlantFunctionalTypes
+    from virtual_rainforest.models.plants.functional_types import Flora
 
-    pfts = PlantFunctionalTypes.from_config(plant_config)
+    pfts = Flora.from_config(plant_config)
 
     return pfts
 
