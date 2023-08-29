@@ -69,6 +69,8 @@ class PlantsModel(BaseModel):
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "herbivory",
+        "transpiration",
+        "canopy_evaporation",
     )
     """Variables updated by the plants model."""
 
@@ -114,7 +116,7 @@ class PlantsModel(BaseModel):
             # Checks that constants is config are as expected
             check_valid_constant_names(config, "plants", "PlantsConsts")
             # If an error isn't raised then generate the dataclass
-            constants = PlantsConsts(**config["soil"]["constants"]["SoilConsts"])
+            constants = PlantsConsts(**config["plants"]["constants"]["PlantsConsts"])
         else:
             # If no constants are supplied then the defaults should be used
             constants = PlantsConsts()
