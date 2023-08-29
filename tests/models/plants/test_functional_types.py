@@ -32,12 +32,12 @@ def test_flora__init__():
     assert tuple(pfts.keys()) == ("shrub", "broadleaf")
 
 
-def test_plant_functional_types_from_config(plant_config):
+def test_plant_functional_types_from_config(plants_config):
     """Simple test of Flora from_config factory method."""
 
     from virtual_rainforest.models.plants.functional_types import Flora
 
-    pfts = Flora.from_config(plant_config)
+    pfts = Flora.from_config(plants_config)
 
     assert len(pfts) == 2
     assert tuple(pfts.keys()) == ("shrub", "broadleaf")

@@ -14,17 +14,17 @@ from tests.conftest import log_check
     argnames="vars,raises,exp_log",
     argvalues=[
         pytest.param(
-            (("plant_cohort_n", DataArray(np.array([5] * 4))),),
+            (("plant_cohorts_n", DataArray(np.array([5] * 4))),),
             pytest.raises(ValueError),
             ((CRITICAL, "Missing plant cohort variables"),),
             id="missing var",
         ),
         pytest.param(
             (
-                ("plant_cohort_n", DataArray(np.array([5] * 9), dims="toolong")),
-                ("plant_cohort_pft", DataArray(np.array(["shrub"] * 4))),
-                ("plant_cohort_cell_id", DataArray(np.arange(4))),
-                ("plant_cohort_dbh", DataArray(np.array([0.1] * 4))),
+                ("plant_cohorts_n", DataArray(np.array([5] * 9), dims="toolong")),
+                ("plant_cohorts_pft", DataArray(np.array(["shrub"] * 4))),
+                ("plant_cohorts_cell_id", DataArray(np.arange(4))),
+                ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4))),
             ),
             pytest.raises(ValueError),
             ((CRITICAL, "Unequal plant cohort variable dimensions"),),
@@ -32,10 +32,10 @@ from tests.conftest import log_check
         ),
         pytest.param(
             (
-                ("plant_cohort_n", DataArray(np.array([5] * 4).reshape(2, 2))),
-                ("plant_cohort_pft", DataArray(np.array(["shrub"] * 4).reshape(2, 2))),
-                ("plant_cohort_cell_id", DataArray(np.arange(4).reshape(2, 2))),
-                ("plant_cohort_dbh", DataArray(np.array([0.1] * 4).reshape(2, 2))),
+                ("plant_cohorts_n", DataArray(np.array([5] * 4).reshape(2, 2))),
+                ("plant_cohorts_pft", DataArray(np.array(["shrub"] * 4).reshape(2, 2))),
+                ("plant_cohorts_cell_id", DataArray(np.arange(4).reshape(2, 2))),
+                ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4).reshape(2, 2))),
             ),
             pytest.raises(ValueError),
             ((CRITICAL, "Plant cohort variable data is not one dimensional"),),
@@ -43,10 +43,10 @@ from tests.conftest import log_check
         ),
         pytest.param(
             (
-                ("plant_cohort_n", DataArray(np.array([5] * 4))),
-                ("plant_cohort_pft", DataArray(np.array(["shrub"] * 4))),
-                ("plant_cohort_cell_id", DataArray(DataArray(np.arange(2, 6)))),
-                ("plant_cohort_dbh", DataArray(np.array([0.1] * 4))),
+                ("plant_cohorts_n", DataArray(np.array([5] * 4))),
+                ("plant_cohorts_pft", DataArray(np.array(["shrub"] * 4))),
+                ("plant_cohorts_cell_id", DataArray(DataArray(np.arange(2, 6)))),
+                ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4))),
             ),
             pytest.raises(ValueError),
             ((CRITICAL, "Plant cohort cell ids not in grid cell ids"),),
@@ -54,10 +54,10 @@ from tests.conftest import log_check
         ),
         pytest.param(
             (
-                ("plant_cohort_n", DataArray(np.array([5] * 4))),
-                ("plant_cohort_pft", DataArray(np.array(["tree"] * 4))),
-                ("plant_cohort_cell_id", DataArray(DataArray(np.arange(4)))),
-                ("plant_cohort_dbh", DataArray(np.array([0.1] * 4))),
+                ("plant_cohorts_n", DataArray(np.array([5] * 4))),
+                ("plant_cohorts_pft", DataArray(np.array(["tree"] * 4))),
+                ("plant_cohorts_cell_id", DataArray(DataArray(np.arange(4)))),
+                ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4))),
             ),
             pytest.raises(ValueError),
             ((CRITICAL, "Plant cohort PFTs ids not in configured PFTs"),),
@@ -65,10 +65,10 @@ from tests.conftest import log_check
         ),
         pytest.param(
             (
-                ("plant_cohort_n", DataArray(np.array([5] * 4))),
-                ("plant_cohort_pft", DataArray(np.array(["shrub"] * 4))),
-                ("plant_cohort_cell_id", DataArray(DataArray(np.arange(4)))),
-                ("plant_cohort_dbh", DataArray(np.array([0.1] * 4))),
+                ("plant_cohorts_n", DataArray(np.array([5] * 4))),
+                ("plant_cohorts_pft", DataArray(np.array(["shrub"] * 4))),
+                ("plant_cohorts_cell_id", DataArray(DataArray(np.arange(4)))),
+                ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4))),
             ),
             does_not_raise(),
             ((INFO, "Plant cohort data loaded"),),
