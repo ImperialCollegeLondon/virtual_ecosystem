@@ -76,7 +76,7 @@ from tests.conftest import log_check
         ),
     ],
 )
-def test_PlantCommunities__init__(caplog, vars, pfts, raises, exp_log):
+def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log):
     """Test the data handling of the plants __init__."""
 
     from virtual_rainforest.core.data import Data
@@ -92,7 +92,7 @@ def test_PlantCommunities__init__(caplog, vars, pfts, raises, exp_log):
     caplog.clear()
 
     with raises:
-        plants_obj = PlantCommunities(data, pfts=pfts)
+        plants_obj = PlantCommunities(data, flora=flora)
 
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
