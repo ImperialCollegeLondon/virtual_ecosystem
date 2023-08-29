@@ -54,7 +54,10 @@ class AnimalModel(BaseModel):
     """Longest time scale that soil model can sensibly capture."""
     required_init_vars = ()
     """Required initialisation variables for the animal model."""
-    vars_updated = ("decomposed_excrement",)
+    vars_updated = (
+        "decomposed_excrement",
+        "decomposed_carcasses",
+    )
     """Variables updated by the animal model.
 
     At the moment these are only inputs to the litter model.
@@ -144,19 +147,27 @@ class AnimalModel(BaseModel):
     def calculate_litter_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the litter."""
 
-        # Find the size of all decomposed excrement pools
-        remaining_excrement = [
+        # Find the size of all decomposed excrement and carcass pools
+        decomposed_excrement = [
             community.excrement_pool.decomposed_carbon(self.data.grid.cell_area)
             for community in self.communities.values()
         ]
+        decomposed_carcasses = [
+            community.carcass_pool.decomposed_carbon(self.data.grid.cell_area)
+            for community in self.communities.values()
+        ]
 
-        # All excrement in the decomposed subpool is moved to the litter model, so
-        # stored energy of each pool is reset to zero
+        # All excrement and carcasses in their respective decomposed subpools are moved
+        # to the litter model, so stored energy of each subpool is reset to zero
         for community in self.communities.values():
             community.excrement_pool.decomposed_energy = 0.0
+            community.carcass_pool.decomposed_energy = 0.0
 
         return {
             "decomposed_excrement": DataArray(
-                remaining_excrement / self.update_interval.to("days"), dims="cell_id"
-            )
+                decomposed_excrement / self.update_interval.to("days"), dims="cell_id"
+            ),
+            "decomposed_carcasses": DataArray(
+                decomposed_carcasses / self.update_interval.to("days"), dims="cell_id"
+            ),
         }
