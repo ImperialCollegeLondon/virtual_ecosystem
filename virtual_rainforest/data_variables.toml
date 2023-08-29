@@ -337,7 +337,7 @@ used_by = [ "abiotic", "soil"]
 name = "soil_temperature"
 description = "Soil temperature profile"
 unit = "C"
-initialised_by = "abiotic"
+initialised_by = ["abiotic", "abiotic_simple]
 updated_by = ["abiotic", "abiotic_simple"]
 used_by = ["abiotic", "abiotic_simple", "soil"]
 
