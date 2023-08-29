@@ -210,6 +210,13 @@ def dummy_litter_data(layer_roles_fixture):
 
     These values are completely made up, so you should not read anything into them.
     """
+    data["decomposed_carcasses"] = DataArray(
+        [1.0714e-4, 4.8571e-4, 1.15714e-3], dims=["cell_id"]
+    )
+    """Rate of carcass biomass input from the animal model [kg C m^-2 day^-1].
+
+    These values are completely made up, so you should not read anything into them.
+    """
 
     data["soil_temperature"] = xr.concat(
         [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
