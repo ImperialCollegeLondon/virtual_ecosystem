@@ -11,7 +11,7 @@ from __future__ import annotations
 from random import choice
 from typing import Sequence
 
-from numpy import timedelta64
+from numpy import random, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
@@ -19,6 +19,7 @@ from virtual_rainforest.models.animals.constants import (
     DECAY_FRACTION_CARCASSES,
     DECAY_FRACTION_EXCREMENT,
     ENERGY_DENSITY,
+    ENERGY_PERCENTILE_THRESHOLD,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
     TEMPERATURE,
@@ -31,6 +32,7 @@ from virtual_rainforest.models.animals.scaling_functions import (
     energetic_reserve_scaling,
     intake_rate_scaling,
     metabolic_rate,
+    natural_mortality_scaling,
     prey_group_selection,
 )
 
@@ -105,10 +107,17 @@ class AnimalCohort:
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups = prey_group_selection(
-            self.functional_group.diet.value,
+            self.functional_group.diet,
             self.mass,
             self.functional_group.prey_scaling,
         )
+        """The identification of useable food resources."""
+
+        self.adult_natural_mortality_prob = natural_mortality_scaling(
+            self.functional_group.adult_mass, self.functional_group.longevity_scaling
+        )
+        """The per-day probability of an individual dying to natural causes."""
+
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
@@ -310,3 +319,45 @@ class AnimalCohort:
 
         """
         return self.stored_energy >= self.reproduction_energy_threshold
+
+    def is_below_energy_threshold(self) -> bool:
+        """Check if cohort's energy is below a certain threshold.
+
+        Currently, this is only used to threshold the migrate method. Using the
+        reproduction threshold is a toy implementation.
+
+        Return:
+            A bool of whether the current energy state is above the migration threshold.
+        """
+        return (
+            self.stored_energy
+            < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
+        )
+
+    def inflict_natural_mortality(
+        self, carcass_pool: CarcassPool, number_days: float
+    ) -> None:
+        """The function to cause natural mortality in a cohort.
+
+        TODO Find a more efficient structure so we aren't recalculating the
+        time_step_mortality. Probably pass through the initialized timestep size to the
+        scaling function
+
+        Args:
+            carcass_pool: The grid-local carcass pool to which the dead matter is
+                transferred.
+            number_days: Number of days over which the metabolic costs should be
+                calculated.
+
+        """
+
+        # Calculate the mortality probability for the entire time step
+        time_step_mortality_prob = (
+            1 - (1 - self.adult_natural_mortality_prob) ** number_days
+        )
+        # Draw the number of deaths from a binomial distribution
+        number_of_deaths = random.binomial(
+            n=self.individuals, p=time_step_mortality_prob
+        )
+
+        self.die_individual(number_of_deaths, carcass_pool)

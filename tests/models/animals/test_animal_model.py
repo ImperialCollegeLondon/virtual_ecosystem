@@ -10,19 +10,6 @@ import pytest
 from tests.conftest import log_check
 
 
-@pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
 def test_animal_model_initialization(
     caplog, data_instance, functional_group_list_instance
 ):
@@ -139,6 +126,30 @@ def test_generate_animal_model(
     log_check(caplog, expected_log_entries)
 
 
+def test_get_community_by_key(animal_model_instance):
+    """Test the `get_community_by_key` method."""
+
+    from virtual_rainforest.models.animals.animal_model import AnimalCommunity
+
+    # If you know that your model_instance should have a community with key 0
+    community_0 = animal_model_instance.get_community_by_key(0)
+
+    # Ensure it returns the right type and the community key matches
+    assert isinstance(
+        community_0, AnimalCommunity
+    ), "Expected instance of AnimalCommunity"
+    assert community_0.community_key == 0, "Expected the community with key 0"
+
+    # Perhaps you have more keys you expect, you can add similar checks:
+    community_1 = animal_model_instance.get_community_by_key(1)
+    assert isinstance(community_1, AnimalCommunity)
+    assert community_1.community_key == 1, "Expected the community with key 1"
+
+    # Test for an invalid key, expecting an error
+    with pytest.raises(KeyError):
+        animal_model_instance.get_community_by_key(999)
+
+
 def test_update_method_sequence(data_instance, functional_group_list_instance):
     """Test update to ensure it runs the community methods in order.
 
@@ -158,7 +169,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
         "migrate_community",
         "birth_community",
         "metabolize_community",
-        "mortality_community",
+        "inflict_natural_mortality_community",
         "increase_age_community",
     ]
 

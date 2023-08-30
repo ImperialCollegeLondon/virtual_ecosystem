@@ -3,14 +3,6 @@
 import pytest
 
 
-@pytest.fixture
-def plant_instance():
-    """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
-
-    return PlantCommunity(10000.0, 1)
-
-
 class TestPlantCommunity:
     """Test Plant class."""
 
@@ -29,3 +21,22 @@ class TestPlantCommunity:
         assert plant_instance.is_alive
         plant_instance.die()
         assert not plant_instance.is_alive
+
+    def test_get_eaten(
+        self, plant_instance, herbivore_cohort_instance, excrement_instance
+    ):
+        """Testing get_eaten.
+
+        Currently, this just tests rough execution. As the model gets paramterized,
+        these tests will be expanded to specific values.
+        """
+
+        initial_plant_energy = plant_instance.stored_energy
+        initial_decay_pool_energy = excrement_instance.decomposed_energy
+
+        # Execution
+        plant_instance.get_eaten(herbivore_cohort_instance, excrement_instance)
+
+        # Assertions
+        assert plant_instance.stored_energy < initial_plant_energy
+        assert excrement_instance.decomposed_energy > initial_decay_pool_energy

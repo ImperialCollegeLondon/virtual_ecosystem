@@ -12,7 +12,7 @@ from virtual_rainforest.models.animals.protocols import Consumer, DecayPool
 class PlantCommunity:
     """This is a dummy class of plant cohorts for testing the animal module."""
 
-    def __init__(self, mass: float, position: int) -> None:
+    def __init__(self, mass: float) -> None:
         """The constructor for Plant class."""
         self.mass = mass
         """The mass of the plant cohort [kg]."""
@@ -24,8 +24,6 @@ class PlantCommunity:
         """The amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.position = position
-        """The grid location of the cohort."""
 
     def grow(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value."""

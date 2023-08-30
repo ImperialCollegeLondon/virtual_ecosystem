@@ -10,6 +10,8 @@ Notes:
 from __future__ import annotations
 
 from itertools import chain
+from random import choice
+from typing import Callable
 
 from numpy import timedelta64
 
@@ -26,16 +28,25 @@ class AnimalCommunity:
     def __init__(
         self,
         functional_groups: list[FunctionalGroup],
+        community_key: int,
+        neighbouring_keys: list[int],
+        get_destination: Callable[[int], "AnimalCommunity"],
     ) -> None:
         """The constructor of the AnimalCommunity class."""
         self.functional_groups = tuple(functional_groups)
         """A list of all FunctionalGroup types in the model."""
+        self.community_key = community_key
+        """Integer designation of the community in the model grid."""
+        self.neighbouring_keys = neighbouring_keys
+        """List of integer keys of neighbouring communities."""
+        self.get_destination = get_destination
+        """Callable get_destination from AnimalModel."""
 
         self.animal_cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
         }
         """Generate a dictionary of functional groups within the community."""
-        self.plant_community: PlantCommunity = PlantCommunity(10000.0, 1)
+        self.plant_community: PlantCommunity = PlantCommunity(10000.0)
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
 
@@ -66,6 +77,15 @@ class AnimalCommunity:
 
         self.animal_cohorts[migrant.name].remove(migrant)
         destination.animal_cohorts[migrant.name].append(migrant)
+
+    def migrate_community(self) -> None:
+        """This handles migrating all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            if cohort.is_below_energy_threshold():
+                # Random walk destination from the neighbouring keys
+                destination_key = choice(self.neighbouring_keys)
+                destination = self.get_destination(destination_key)
+                self.migrate(cohort, destination)
 
     def die_cohort(self, cohort: AnimalCohort) -> None:
         """The function to change the cohort status from alive to dead.
@@ -174,14 +194,6 @@ class AnimalCommunity:
 
         return prey
 
-    def migrate_community(self) -> None:
-        """This handles migrating all cohorts in a community."""
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # need: insert check for migration
-            # need: insert random walk destination
-            destination = self
-            self.migrate(cohort, destination)
-
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
@@ -202,15 +214,16 @@ class AnimalCommunity:
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
             cohort.increase_age(dt)
 
-    def mortality_community(self) -> None:
+    def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
 
-        This is a placeholder for running natural mortality rates at a community level.
-        Currently there is no working natural mortality implemented and so this calls
-        an effective rate of 0 through die_individual.
+        TODO Replace the number_of_days format with a passthrough of the initialized
+        dt straight to the scaling function that sets the cohort rates.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
 
         """
+        number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            # insert check for whether natural death occurs
-            # determine how many deaths occur
-            cohort.die_individual(0, self.carcass_pool)
+            cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
