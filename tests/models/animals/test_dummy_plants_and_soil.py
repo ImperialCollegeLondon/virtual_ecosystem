@@ -3,14 +3,6 @@
 import pytest
 
 
-@pytest.fixture
-def plant_instance():
-    """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
-
-    return PlantCommunity(10000.0, 1)
-
-
 class TestPlantCommunity:
     """Test Plant class."""
 
@@ -30,23 +22,21 @@ class TestPlantCommunity:
         plant_instance.die()
         assert not plant_instance.is_alive
 
+    def test_get_eaten(
+        self, plant_instance, herbivore_cohort_instance, excrement_instance
+    ):
+        """Testing get_eaten.
 
-@pytest.fixture
-def soil_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PalatableSoil
+        Currently, this just tests rough execution. As the model gets paramterized,
+        these tests will be expanded to specific values.
+        """
 
-    return PalatableSoil(100000.0, 4)
+        initial_plant_energy = plant_instance.stored_energy
+        initial_decay_pool_energy = excrement_instance.decomposed_energy
 
+        # Execution
+        plant_instance.get_eaten(herbivore_cohort_instance, excrement_instance)
 
-class TestPalatableSoil:
-    """Test the Palatable Soil class."""
-
-    def test_initialization(self):
-        """Testing initialization of soil pool."""
-        from virtual_rainforest.models.animals.dummy_plants_and_soil import (
-            PalatableSoil,
-        )
-
-        s1 = PalatableSoil(1000.7, 1)
-        assert s1.stored_energy == 1000.7
+        # Assertions
+        assert plant_instance.stored_energy < initial_plant_energy
+        assert excrement_instance.decomposed_energy > initial_decay_pool_energy

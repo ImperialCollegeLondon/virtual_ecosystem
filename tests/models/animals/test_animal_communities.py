@@ -4,32 +4,18 @@ import pytest
 
 
 @pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
+def animal_community_destination_instance(
+    functional_group_list_instance, animal_model_instance
+):
+    """Fixture for an animal community used in tests."""
+    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
+
+    return AnimalCommunity(
+        functional_group_list_instance,
+        1,
+        [0, 1, 2, 4],
+        animal_model_instance.get_community_by_key,
     )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
-@pytest.fixture
-def animal_community_instance(functional_group_list_instance):
-    """Fixture for an animal community used in tests."""
-    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-
-    return AnimalCommunity(functional_group_list_instance)
-
-
-@pytest.fixture
-def animal_community_destination_instance(functional_group_list_instance):
-    """Fixture for an animal community used in tests."""
-    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-
-    return AnimalCommunity(functional_group_list_instance)
 
 
 @pytest.fixture
@@ -69,6 +55,12 @@ class TestAnimalCommunity:
             "herbivorous_insect",
         ]
 
+    def test_populate_community(self, animal_community_instance):
+        """Testing populate_community."""
+        animal_community_instance.populate_community()
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            assert len(cohorts) == 1  # since it should have populated one of each
+
     def test_migrate(
         self,
         animal_cohort_instance,
@@ -98,6 +90,43 @@ class TestAnimalCommunity:
             ]
         )
 
+    def test_migrate_community(
+        self,
+        animal_community_instance,
+        animal_community_destination_instance,
+        animal_cohort_instance,
+        mocker,
+    ):
+        """Test migration of cohorts below the energy threshold."""
+
+        # Mock the get_destination callable in this specific test context.
+        mocker.patch.object(
+            animal_community_instance,
+            "get_destination",
+            return_value=animal_community_destination_instance,
+        )
+
+        low_energy_cohort = animal_cohort_instance
+        low_energy_cohort.stored_energy = 5.0
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
+            low_energy_cohort
+        )
+
+        # Now let's simulate migration
+        animal_community_instance.migrate_community()
+
+        # Ensure cohort was migrated
+        assert (
+            low_energy_cohort
+            not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
+        )
+        assert (
+            low_energy_cohort
+            in animal_community_destination_instance.animal_cohorts[
+                "herbivorous_mammal"
+            ]
+        )
+
     def test_die_cohort(self, animal_cohort_instance, animal_community_instance):
         """Testing die_cohort."""
         animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
@@ -114,107 +143,6 @@ class TestAnimalCommunity:
             animal_cohort_instance
             not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
-
-    def test_forage_community(
-        self, animal_cohort_instance, animal_community_instance, mocker
-    ):
-        """Testing forage_community."""
-        import unittest
-        from copy import deepcopy
-
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-        from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-
-        # Prepare data
-        animal_cohort_instance_2 = deepcopy(animal_cohort_instance)
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance
-        )
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance_2
-        )
-
-        # Mock methods
-        mock_forage_cohort = mocker.patch.object(AnimalCohort, "forage_cohort")
-
-        mock_collect_prey = mocker.patch.object(
-            AnimalCommunity, "collect_prey", return_value=mocker.MagicMock()
-        )
-
-        # Execute method
-        animal_community_instance.forage_community()
-
-        # Check if the forage_cohort and collect_prey methods have been called for each
-        # cohort
-        assert mock_forage_cohort.call_count == 2
-        assert mock_collect_prey.call_count == 2
-
-        # Check if the forage_cohort and collect_prey methods were called correctly
-        for call in mock_forage_cohort.call_args_list:
-            _, kwargs = call
-            assert isinstance(kwargs.get("plant_list", None), list)
-            assert isinstance(kwargs.get("animal_list", None), unittest.mock.MagicMock)
-            assert isinstance(
-                kwargs.get("carcass_pool", None),
-                type(animal_community_instance.carcass_pool),
-            )
-            assert isinstance(
-                kwargs.get("soil_pool", None), type(animal_community_instance.soil_pool)
-            )
-
-    def test_collect_prey(
-        self,
-        animal_cohort_instance,
-        animal_community_instance,
-        functional_group_instance,
-    ):
-        """Testing collect_prey."""
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-
-        # Prepare data
-        prey_cohort = AnimalCohort(functional_group_instance, 5000.0, 1)
-        animal_community_instance.animal_cohorts[functional_group_instance.name].append(
-            prey_cohort
-        )
-
-        # Set prey groups for the test cohort
-        animal_cohort_instance.prey_groups = {
-            functional_group_instance.name: (0, 10000)
-        }
-
-        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
-
-        assert prey_cohort in collected_prey
-
-        # Test with prey outside of size range
-        prey_cohort.mass = 20000.0
-
-        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
-
-        assert prey_cohort not in collected_prey
-
-        # Test when cohort has no prey groups
-        animal_cohort_instance.prey_groups = {}
-
-        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
-
-        assert collected_prey == []
-
-        # Test when there are no cohorts that match the size criteria
-        animal_cohort_instance.prey_groups = {
-            functional_group_instance.name: (0, 10000)
-        }
-        prey_cohort.mass = 50000.0
-
-        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
-
-        assert collected_prey == []
-
-    def test_populate_community(self, animal_community_instance):
-        """Testing populate_community."""
-        animal_community_instance.populate_community()
-        for cohorts in animal_community_instance.animal_cohorts.values():
-            assert len(cohorts) == 1  # since it should have populated one of each
 
     def test_birth(self, animal_community_instance, animal_cohort_instance):
         """Test the birth method in AnimalCommunity."""
@@ -297,6 +225,98 @@ class TestAnimalCommunity:
         )
         assert new_count_above_threshold == initial_count_above_threshold + 1
 
+    def test_forage_community(
+        self, animal_cohort_instance, animal_community_instance, mocker
+    ):
+        """Testing forage_community."""
+        import unittest
+        from copy import deepcopy
+
+        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
+
+        # Prepare data
+        animal_cohort_instance_2 = deepcopy(animal_cohort_instance)
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
+            animal_cohort_instance
+        )
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
+            animal_cohort_instance_2
+        )
+
+        # Mock methods
+        mock_forage_cohort = mocker.patch.object(AnimalCohort, "forage_cohort")
+
+        mock_collect_prey = mocker.patch.object(
+            AnimalCommunity, "collect_prey", return_value=mocker.MagicMock()
+        )
+
+        # Execute method
+        animal_community_instance.forage_community()
+
+        # Check if the forage_cohort and collect_prey methods have been called for each
+        # cohort
+        assert mock_forage_cohort.call_count == 2
+        assert mock_collect_prey.call_count == 2
+
+        # Check if the forage_cohort and collect_prey methods were called correctly
+        for call in mock_forage_cohort.call_args_list:
+            _, kwargs = call
+            assert isinstance(kwargs.get("plant_list", None), list)
+            assert isinstance(kwargs.get("animal_list", None), unittest.mock.MagicMock)
+            assert isinstance(
+                kwargs.get("carcass_pool", None),
+                type(animal_community_instance.carcass_pool),
+            )
+
+    def test_collect_prey(
+        self,
+        animal_cohort_instance,
+        animal_community_instance,
+        functional_group_instance,
+    ):
+        """Testing collect_prey."""
+        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+        # Prepare data
+        prey_cohort = AnimalCohort(functional_group_instance, 5000.0, 1)
+        animal_community_instance.animal_cohorts[functional_group_instance.name].append(
+            prey_cohort
+        )
+
+        # Set prey groups for the test cohort
+        animal_cohort_instance.prey_groups = {
+            functional_group_instance.name: (0, 10000)
+        }
+
+        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
+
+        assert prey_cohort in collected_prey
+
+        # Test with prey outside of size range
+        prey_cohort.mass = 20000.0
+
+        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
+
+        assert prey_cohort not in collected_prey
+
+        # Test when cohort has no prey groups
+        animal_cohort_instance.prey_groups = {}
+
+        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
+
+        assert collected_prey == []
+
+        # Test when there are no cohorts that match the size criteria
+        animal_cohort_instance.prey_groups = {
+            functional_group_instance.name: (0, 10000)
+        }
+        prey_cohort.mass = 50000.0
+
+        collected_prey = animal_community_instance.collect_prey(animal_cohort_instance)
+
+        assert collected_prey == []
+
     def test_increase_age_community(self, animal_community_instance):
         """Testing increase_age_community."""
         from itertools import chain
@@ -328,14 +348,31 @@ class TestAnimalCommunity:
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
 
-    def test_mortality_community(self, animal_community_instance, mocker):
-        """Testing mortality_community."""
-        from itertools import chain
+    def test_inflict_natural_mortality_community(
+        self, animal_community_instance, mocker
+    ):
+        """Testing natural mortality infliction for the entire community."""
+        from numpy import timedelta64
 
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        # Create a time delta (for example, 5 days)
+        dt = timedelta64(5, "D")
 
-        mock_die_individual = mocker.patch.object(AnimalCohort, "die_individual")
-        animal_community_instance.mortality_community()
-        assert mock_die_individual.call_count == len(
-            list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
-        )
+        animal_community_instance.populate_community()
+
+        # Iterate over the animal cohorts within the community
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                # Mock the cohort's inflict_natural_mortality method
+                cohort.inflict_natural_mortality = mocker.MagicMock()
+
+        # Call the community method to inflict natural mortality
+        animal_community_instance.inflict_natural_mortality_community(dt)
+
+        # Check that the inflict_natural_mortality method was called correctly for each
+        # #cohort
+        number_of_days = float(dt / timedelta64(1, "D"))
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                cohort.inflict_natural_mortality.assert_called_once_with(
+                    animal_community_instance.carcass_pool, number_of_days
+                )
