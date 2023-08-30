@@ -107,7 +107,7 @@ def initialise_canopy_layers(
 ) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
-    This function initialises ``layer_height`` and ``leaf_area_index`` data arrays
+    This function initialises ``layer_heights`` and ``leaf_area_index`` data arrays
     describing the plant canopy structure and soil layer structure within a Data object.
 
     Args:
@@ -133,7 +133,7 @@ def initialise_canopy_layers(
 
     # TODO - These layer roles desperately need to be set up in _one_ place!
     layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
-    layer_shape = (len(layer_roles), len(data.grid.cell_id))
+    layer_shape = (len(layer_roles), data.grid.n_cells)
 
     # Set the layers
     data["leaf_area_index"] = DataArray(
