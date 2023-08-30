@@ -7,9 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-# import numpy as np
-# from numpy.typing import NDArray
-# from xarray import DataArray
+import numpy as np
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -19,10 +17,12 @@ from virtual_rainforest.core.utils import check_valid_constant_names
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
-from virtual_rainforest.models.plants.functions import build_canopy_arrays
+from virtual_rainforest.models.plants.functions import (
+    build_canopy_arrays,
+    initialise_canopy_layers,
+)
 
 # from virtual_rainforest.core.config import Config
-# from virtual_rainforest.core.exceptions import InitialisationError
 
 
 class PlantsModel(BaseModel):
@@ -98,11 +98,15 @@ class PlantsModel(BaseModel):
         self.soil_layers = soil_layers
         """The number of soil layers."""
 
-        # Retrive the canopy model arrays and insert into the data object.
-        canopy_heights, canopy_lai = build_canopy_arrays(
-            self.communities,
+        # Initialise and then update the canopy layers.
+        # TODO - this initialisation step may move somewhere else at some point.
+        self.data = initialise_canopy_layers(
+            data=data,
             n_canopy_layers=self.canopy_layers,
+            n_soil_layers=self.soil_layers,
         )
+        """A reference to the global data object."""
+        self.update_canopy_layers()
 
     @classmethod
     def from_config(
@@ -171,7 +175,25 @@ class PlantsModel(BaseModel):
 
         # TODO - estimate gpp
         # TODO - estimate growth
-        # TODO - recalculate canopy model
+        self.update_canopy_layers()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
+
+    def update_canopy_layers(self) -> None:
+        """Update the canopy structure for the plant communities.
+
+        This method calculates the canopy structure from the current state of the plant
+        communities and then updates
+
+        """
+        # Retrive the canopy model arrays and insert into the data object.
+        canopy_heights, canopy_lai = build_canopy_arrays(
+            self.communities,
+            n_canopy_layers=self.canopy_layers,
+        )
+
+        # Insert the canopy layers into the data objects
+        canopy_idx = np.arange(1, self.canopy_layers + 1)
+        self.data["layer_heights"][canopy_idx, :] = canopy_heights
+        self.data["leaf_area_index"][canopy_idx, :] = canopy_lai
