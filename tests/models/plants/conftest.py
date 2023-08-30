@@ -6,7 +6,7 @@ from xarray import DataArray
 
 
 @pytest.fixture()
-def plant_config(shared_datadir):
+def plants_config(shared_datadir):
     """Simple configuration fixture for use in tests."""
 
     from virtual_rainforest.core.config import Config
@@ -15,13 +15,13 @@ def plant_config(shared_datadir):
 
 
 @pytest.fixture()
-def pfts(plant_config):
-    """Construct a minimal PlantFunctionalType object."""
+def flora(plants_config):
+    """Construct a minimal Flora object."""
     from virtual_rainforest.models.plants.functional_types import Flora
 
-    pfts = Flora.from_config(plant_config)
+    flora = Flora.from_config(plants_config)
 
-    return pfts
+    return flora
 
 
 @pytest.fixture()
@@ -31,9 +31,9 @@ def plants_data():
     from virtual_rainforest.core.grid import Grid
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
-    data["plant_cohort_n"] = DataArray(np.array([5] * 4))
-    data["plant_cohort_pft"] = DataArray(np.array(["tree"] * 4))
-    data["plant_cohort_cell_id"] = DataArray(np.arange(4))
-    data["plant_cohort_dbh"] = DataArray(np.array([0.1] * 4))
+    data["plant_cohorts_n"] = DataArray(np.array([5] * 4))
+    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * 4))
+    data["plant_cohorts_cell_id"] = DataArray(np.arange(4))
+    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
 
     return data

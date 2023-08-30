@@ -33,8 +33,8 @@ class PlantCommunities:
 
     An instance of this class is initialised from a
     :class:`~virtual_rainforest.core.data.Data` object that must contain the variables
-    ``plant_cohort_cell_id``, ``plant_cohort_pft``, ``plant_cohort_n`` and
-    ``plant_cohort_dbh``. These are required to be equal length, one-dimensional arrays
+    ``plant_cohorts_cell_id``, ``plant_cohorts_pft``, ``plant_cohorts_n`` and
+    ``plant_cohorts_dbh``. These are required to be equal length, one-dimensional arrays
     that provide the data to initialise each plant cohort. The data are validated and
     then compiled into lists of cohorts keyed by grid cell id. The class provides a
     __getitem__ method to allow the list of cohorts for a grid cell to be accessed using
@@ -51,10 +51,10 @@ class PlantCommunities:
 
         # Validate the data being used to generate the Plants object
         cohort_data_vars = [
-            "plant_cohort_n",
-            "plant_cohort_pft",
-            "plant_cohort_cell_id",
-            "plant_cohort_dbh",
+            "plant_cohorts_n",
+            "plant_cohorts_pft",
+            "plant_cohorts_cell_id",
+            "plant_cohorts_dbh",
         ]
 
         # All vars present
@@ -82,7 +82,7 @@ class PlantCommunities:
             raise ValueError(msg)
 
         # Check the grid cell id and pft values are all known
-        bad_cid = set(data["plant_cohort_cell_id"].data).difference(data.grid.cell_id)
+        bad_cid = set(data["plant_cohorts_cell_id"].data).difference(data.grid.cell_id)
         if bad_cid:
             msg = (
                 f"Plant cohort cell ids not in grid cell "
@@ -91,7 +91,7 @@ class PlantCommunities:
             LOGGER.critical(msg)
             raise ValueError(msg)
 
-        bad_pft = set(data["plant_cohort_pft"].data).difference(flora.keys())
+        bad_pft = set(data["plant_cohorts_pft"].data).difference(flora.keys())
         if bad_pft:
             msg = f"Plant cohort PFTs ids not in configured PFTs: {','.join(bad_pft)}"
             LOGGER.critical(msg)
@@ -106,10 +106,10 @@ class PlantCommunities:
             self.communities[cid] = []
 
         for cid, chrt_pft, chrt_dbh, chrt_n in zip(
-            data["plant_cohort_cell_id"].data,
-            data["plant_cohort_pft"].data,
-            data["plant_cohort_dbh"].data,
-            data["plant_cohort_n"].data,
+            data["plant_cohorts_cell_id"].data,
+            data["plant_cohorts_pft"].data,
+            data["plant_cohorts_dbh"].data,
+            data["plant_cohorts_n"].data,
         ):
             self.communities[cid].append(
                 PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n)
