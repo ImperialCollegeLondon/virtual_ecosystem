@@ -59,7 +59,7 @@ class PlantsModel(BaseModel):
     * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
     * ``plant_cohorts_pft``: The plant functional type of the cohort
     * ``plant_cohorts_n``: The number of individuals in the cohort
-    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals.
+    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
     """
 
     # TODO - think about a shared "plant cohort" core axis that defines these, but the
@@ -86,7 +86,7 @@ class PlantsModel(BaseModel):
 
         # Save the class attributes
         self.flora = flora
-        """A flora containg the plant functional types used in the plants model."""
+        """A flora containing the plant functional types used in the plants model."""
         self.constants = constants
         """Set of constants for the plants model"""
         self.communities = PlantCommunities(data, self.flora)

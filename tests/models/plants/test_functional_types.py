@@ -21,15 +21,15 @@ def test_flora__init__():
         PlantFunctionalType,
     )
 
-    pfts = Flora(
+    flora = Flora(
         [
             PlantFunctionalType(pft_name="shrub", max_height=1.0),
             PlantFunctionalType(pft_name="broadleaf", max_height=50.0),
         ]
     )
 
-    assert len(pfts) == 2
-    assert tuple(pfts.keys()) == ("shrub", "broadleaf")
+    assert len(flora) == 2
+    assert tuple(flora.keys()) == ("shrub", "broadleaf")
 
 
 def test_plant_functional_types_from_config(plants_config):
@@ -37,7 +37,7 @@ def test_plant_functional_types_from_config(plants_config):
 
     from virtual_rainforest.models.plants.functional_types import Flora
 
-    pfts = Flora.from_config(plants_config)
+    flora = Flora.from_config(plants_config)
 
-    assert len(pfts) == 2
-    assert tuple(pfts.keys()) == ("shrub", "broadleaf")
+    assert len(flora) == 2
+    assert tuple(flora.keys()) == ("shrub", "broadleaf")
