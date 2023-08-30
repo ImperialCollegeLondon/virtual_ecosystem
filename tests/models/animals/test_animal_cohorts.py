@@ -5,36 +5,7 @@ from numpy import timedelta64
 
 
 @pytest.fixture
-def plant_instance():
-    """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants_and_soil import PlantCommunity
-
-    return PlantCommunity(10000.0)
-
-
-@pytest.fixture
-def excrement_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.decay import ExcrementPool
-
-    return ExcrementPool(100000.0, 0.0)
-
-
-@pytest.fixture
-def herb_functional_group_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list[3]
-
-
-@pytest.fixture
-def pred_functional_group_instance(shared_datadir):
+def predator_functional_group_instance(shared_datadir):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
@@ -47,27 +18,19 @@ def pred_functional_group_instance(shared_datadir):
 
 
 @pytest.fixture
-def predator_cohort_instance(pred_functional_group_instance):
+def predator_cohort_instance(predator_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(pred_functional_group_instance, 10000.0, 1)
+    return AnimalCohort(predator_functional_group_instance, 10000.0, 1)
 
 
 @pytest.fixture
-def prey_cohort_instance(herb_functional_group_instance):
+def prey_cohort_instance(herbivore_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herb_functional_group_instance, 100.0, 1)
-
-
-@pytest.fixture
-def herb_cohort_instance(herb_functional_group_instance):
-    """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-
-    return AnimalCohort(herb_functional_group_instance, 10000.0, 1)
+    return AnimalCohort(herbivore_functional_group_instance, 100.0, 1)
 
 
 @pytest.fixture
@@ -81,13 +44,13 @@ def carcass_instance():
 class TestAnimalCohort:
     """Test AnimalCohort class."""
 
-    def test_initialization(self, herb_cohort_instance):
+    def test_initialization(self, herbivore_cohort_instance):
         """Testing initialization of derived parameters for animal cohorts."""
-        assert herb_cohort_instance.individuals == 1
-        assert herb_cohort_instance.metabolic_rate == pytest.approx(
+        assert herbivore_cohort_instance.individuals == 1
+        assert herbivore_cohort_instance.metabolic_rate == pytest.approx(
             3200.9029380, rel=1e-6
         )
-        assert herb_cohort_instance.stored_energy == pytest.approx(
+        assert herbivore_cohort_instance.stored_energy == pytest.approx(
             56531469253.03123, rel=1e-6
         )
 
@@ -99,13 +62,20 @@ class TestAnimalCohort:
         ],
     )
     def test_invalid_animal_cohort_initialization(
-        self, herb_functional_group_instance, functional_group, mass, age, error_type
+        self,
+        herbivore_functional_group_instance,
+        functional_group,
+        mass,
+        age,
+        error_type,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
         with pytest.raises(error_type):
-            AnimalCohort(functional_group(herb_functional_group_instance), mass, age)
+            AnimalCohort(
+                functional_group(herbivore_functional_group_instance), mass, age
+            )
 
     @pytest.mark.parametrize(
         "dt, initial_energy, final_energy",
@@ -116,11 +86,13 @@ class TestAnimalCohort:
             (timedelta64(3, "D"), 28266000000.0, 27436325958.45224),
         ],
     )
-    def test_metabolize(self, herb_cohort_instance, dt, initial_energy, final_energy):
+    def test_metabolize(
+        self, herbivore_cohort_instance, dt, initial_energy, final_energy
+    ):
         """Testing metabolize at varying energy levels."""
-        herb_cohort_instance.stored_energy = initial_energy
-        herb_cohort_instance.metabolize(dt)
-        assert herb_cohort_instance.stored_energy == final_energy
+        herbivore_cohort_instance.stored_energy = initial_energy
+        herbivore_cohort_instance.metabolize(dt)
+        assert herbivore_cohort_instance.stored_energy == final_energy
 
     @pytest.mark.parametrize(
         "dt, initial_energy, error_type",
@@ -130,12 +102,12 @@ class TestAnimalCohort:
         ],
     )
     def test_metabolize_invalid_input(
-        self, herb_cohort_instance, dt, initial_energy, error_type
+        self, herbivore_cohort_instance, dt, initial_energy, error_type
     ):
         """Testing metabolize with invalid inputs."""
-        herb_cohort_instance.stored_energy = initial_energy
+        herbivore_cohort_instance.stored_energy = initial_energy
         with pytest.raises(error_type):
-            herb_cohort_instance.metabolize(dt)
+            herbivore_cohort_instance.metabolize(dt)
 
     @pytest.mark.parametrize(
         "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",
@@ -148,7 +120,7 @@ class TestAnimalCohort:
     )
     def test_excrete(
         self,
-        herb_cohort_instance,
+        herbivore_cohort_instance,
         excrement_instance,
         scav_initial,
         scav_final,
@@ -159,7 +131,7 @@ class TestAnimalCohort:
         """Testing excrete() for varying soil energy levels."""
         excrement_instance.scavengeable_energy = scav_initial
         excrement_instance.decomposed_energy = decomp_initial
-        herb_cohort_instance.excrete(excrement_instance, consumed_energy)
+        herbivore_cohort_instance.excrete(excrement_instance, consumed_energy)
         assert excrement_instance.scavengeable_energy == scav_final
         assert excrement_instance.decomposed_energy == decomp_final
 
@@ -172,11 +144,11 @@ class TestAnimalCohort:
             (timedelta64(90, "D"), 10.0, 100.0),
         ],
     )
-    def test_increase_age(self, herb_cohort_instance, dt, initial_age, final_age):
+    def test_increase_age(self, herbivore_cohort_instance, dt, initial_age, final_age):
         """Testing aging at varying ages."""
-        herb_cohort_instance.age = initial_age
-        herb_cohort_instance.increase_age(dt)
-        assert herb_cohort_instance.age == final_age
+        herbivore_cohort_instance.age = initial_age
+        herbivore_cohort_instance.increase_age(dt)
+        assert herbivore_cohort_instance.age == final_age
 
     @pytest.mark.parametrize(
         "number_dead, initial_pop, final_pop, initial_carcass, final_carcass",
@@ -189,7 +161,7 @@ class TestAnimalCohort:
     )
     def test_die_individual(
         self,
-        herb_cohort_instance,
+        herbivore_cohort_instance,
         number_dead,
         initial_pop,
         final_pop,
@@ -198,10 +170,10 @@ class TestAnimalCohort:
         final_carcass,
     ):
         """Testing death."""
-        herb_cohort_instance.individuals = initial_pop
+        herbivore_cohort_instance.individuals = initial_pop
         carcass_instance.scavengeable_energy = initial_carcass
-        herb_cohort_instance.die_individual(number_dead, carcass_instance)
-        assert herb_cohort_instance.individuals == final_pop
+        herbivore_cohort_instance.die_individual(number_dead, carcass_instance)
+        assert herbivore_cohort_instance.individuals == final_pop
         assert carcass_instance.scavengeable_energy == final_carcass
 
     def test_get_eaten(
@@ -276,17 +248,17 @@ class TestAnimalCohort:
             # Reset mock_eat for next iteration
             mock_eat.reset_mock()
 
-    def test_eat(self, herb_cohort_instance, mocker):
+    def test_eat(self, herbivore_cohort_instance, mocker):
         """Testing eat."""
         from virtual_rainforest.models.animals.protocols import Pool, Resource
 
         mock_food = mocker.MagicMock(spec=Resource)
         mock_pool = mocker.MagicMock(spec=Pool)
 
-        herb_cohort_instance.individuals = (
+        herbivore_cohort_instance.individuals = (
             10  # Setting a non-zero value for individuals
         )
-        herb_cohort_instance.stored_energy = (
+        herbivore_cohort_instance.stored_energy = (
             0  # Setting initial energy to 0 for simplicity
         )
 
@@ -295,44 +267,46 @@ class TestAnimalCohort:
         mock_food.get_eaten.return_value = mock_energy_return
 
         # Execution
-        herb_cohort_instance.eat(mock_food, mock_pool)
+        herbivore_cohort_instance.eat(mock_food, mock_pool)
 
         # Assertions
-        mock_food.get_eaten.assert_called_once_with(herb_cohort_instance, mock_pool)
+        mock_food.get_eaten.assert_called_once_with(
+            herbivore_cohort_instance, mock_pool
+        )
         assert (
-            herb_cohort_instance.stored_energy
-            == mock_energy_return / herb_cohort_instance.individuals
+            herbivore_cohort_instance.stored_energy
+            == mock_energy_return / herbivore_cohort_instance.individuals
         )
 
         # Test ValueError for zero individuals
-        herb_cohort_instance.individuals = 0
+        herbivore_cohort_instance.individuals = 0
         with pytest.raises(ValueError, match="Individuals cannot be 0."):
-            herb_cohort_instance.eat(mock_food, mock_pool)
+            herbivore_cohort_instance.eat(mock_food, mock_pool)
 
-    def test_can_reproduce_method(self, herb_cohort_instance):
+    def test_can_reproduce_method(self, herbivore_cohort_instance):
         """Test the can_reproduce method of AnimalCohort."""
 
         # 1. Test when stored_energy is exactly equal to the threshold
-        herb_cohort_instance.stored_energy = (
-            herb_cohort_instance.reproduction_energy_threshold
+        herbivore_cohort_instance.stored_energy = (
+            herbivore_cohort_instance.reproduction_energy_threshold
         )
-        assert herb_cohort_instance.can_reproduce()
+        assert herbivore_cohort_instance.can_reproduce()
 
         # 2. Test when stored_energy is just below the threshold
-        herb_cohort_instance.stored_energy = (
-            herb_cohort_instance.reproduction_energy_threshold - 0.01
+        herbivore_cohort_instance.stored_energy = (
+            herbivore_cohort_instance.reproduction_energy_threshold - 0.01
         )
-        assert not herb_cohort_instance.can_reproduce()
+        assert not herbivore_cohort_instance.can_reproduce()
 
         # 3. Test when stored_energy is above the threshold
-        herb_cohort_instance.stored_energy = (
-            herb_cohort_instance.reproduction_energy_threshold + 0.01
+        herbivore_cohort_instance.stored_energy = (
+            herbivore_cohort_instance.reproduction_energy_threshold + 0.01
         )
-        assert herb_cohort_instance.can_reproduce()
+        assert herbivore_cohort_instance.can_reproduce()
 
         # 4. Test with stored_energy set to 0
-        herb_cohort_instance.stored_energy = 0.0
-        assert not herb_cohort_instance.can_reproduce()
+        herbivore_cohort_instance.stored_energy = 0.0
+        assert not herbivore_cohort_instance.can_reproduce()
 
     @pytest.mark.parametrize(
         "initial_individuals, number_days, mortality_prob",
@@ -340,7 +314,7 @@ class TestAnimalCohort:
     )
     def test_inflict_natural_mortality(
         self,
-        herb_cohort_instance,
+        herbivore_cohort_instance,
         carcass_instance,
         mocker,
         initial_individuals,
@@ -360,8 +334,8 @@ class TestAnimalCohort:
         expected_deaths = int(floor(expected_deaths))
 
         # Set individuals and adult natural mortality probability
-        herb_cohort_instance.individuals = initial_individuals
-        herb_cohort_instance.adult_natural_mortality_prob = mortality_prob
+        herbivore_cohort_instance.individuals = initial_individuals
+        herbivore_cohort_instance.adult_natural_mortality_prob = mortality_prob
 
         # Mock the random.binomial call
         mocker.patch(
@@ -369,13 +343,15 @@ class TestAnimalCohort:
             return_value=expected_deaths,
         )
         # Keep a copy of initial individuals to validate number_of_deaths
-        initial_individuals_copy = herb_cohort_instance.individuals
+        initial_individuals_copy = herbivore_cohort_instance.individuals
 
         # Call the inflict_natural_mortality method
-        herb_cohort_instance.inflict_natural_mortality(carcass_instance, number_days)
+        herbivore_cohort_instance.inflict_natural_mortality(
+            carcass_instance, number_days
+        )
 
         # Verify the number_of_deaths and remaining individuals
         assert (
-            herb_cohort_instance.individuals
+            herbivore_cohort_instance.individuals
             == initial_individuals_copy - expected_deaths
         )

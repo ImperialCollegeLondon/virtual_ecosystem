@@ -10,31 +10,6 @@ import pytest
 from tests.conftest import log_check
 
 
-@pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
-@pytest.fixture
-def animal_model_instance(data_instance, functional_group_list_instance):
-    """Fixture for an animal model object for testing."""
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    return AnimalModel(
-        data_instance,
-        pint.Quantity("1 day"),
-        functional_group_list_instance,
-    )
-
-
 def test_animal_model_initialization(
     caplog, data_instance, functional_group_list_instance
 ):

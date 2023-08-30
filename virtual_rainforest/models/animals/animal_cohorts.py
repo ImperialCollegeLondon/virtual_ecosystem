@@ -311,6 +311,9 @@ class AnimalCohort:
     def is_below_energy_threshold(self) -> bool:
         """Check if cohort's energy is below a certain threshold.
 
+        Currently, this is only used to threshold the migrate method. Using the
+        reproduction threshold is a toy implementation.
+
         Return:
             A bool of whether the current energy state is above the migration threshold.
         """
