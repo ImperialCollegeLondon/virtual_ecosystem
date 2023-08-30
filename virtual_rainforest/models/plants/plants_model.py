@@ -102,7 +102,6 @@ class PlantsModel(BaseModel):
         canopy_heights, canopy_lai = build_canopy_arrays(
             self.communities,
             n_canopy_layers=self.canopy_layers,
-            n_soil_layers=self.soil_layers,
         )
 
     @classmethod

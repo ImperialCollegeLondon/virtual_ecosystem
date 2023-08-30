@@ -16,60 +16,88 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.plants.community import PlantCohort, PlantCommunities
 
 
-def generate_canopy_model(
-    community: list[PlantCohort], max_layers: int
-) -> tuple[NDArray, NDArray]:
+def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArray]:
     """Generate the canopy structure for a plant community.
 
     This function takes a list of plant cohorts present in a community and uses the T
     Model to estimate the heights and crown areas of the individuals. It then uses the
     perfect plasticity approximation to calculate the closure heights of the canopy
-    layers and the leaf area indices of each layer. These are returned as one
-    dimensional arrays, right padded with ``np.nan`` to the provided maximum number of
-    layers.
+    layers and the leaf area indices of each layer.
 
     Args:
         community: A list of plant cohorts.
-        max_layers: The maximum number of permitted canopy layers.
 
     Returns:
-        One dimensional numpy arrays giving the canopy layer heights and leaf area
-        indices.
-
-    Raises:
-        ConfigurationError: where the actual canopy layers exceed the provided maximum
+        A tuple of one dimensional numpy arrays giving the canopy layer heights and leaf
+        area indices.
     """
 
     # TODO - actually calculate these
     layer_hght = np.array([30.0, 20.0, 10.0])
     layer_lai = np.array([1.0, 1.0, 1.0])
 
-    # Check the number of layers and right pad to the maximum number of layers if needed
-    n_pad = len(layer_hght) - max_layers
-
-    if n_pad < 0:
-        msg = "Generated canopy has more layers than the configured maximum."
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
-    if n_pad > 0:
-        layer_hght = np.pad(layer_hght, (0, n_pad), "constant", constant_values=np.nan)
-        layer_lai = np.pad(layer_lai, (0, n_pad), "constant", constant_values=np.nan)
-
     return layer_hght, layer_lai
 
 
 def build_canopy_arrays(
-    communities: PlantCommunities, n_canopy_layers: int, n_soil_layers: int
+    communities: PlantCommunities, n_canopy_layers: int
 ) -> tuple[DataArray, DataArray]:
-    """Converts the PlantCommunities data into canopy layer data arrays."""
+    """Converts the PlantCommunities data into canopy layer data arrays.
 
-    # TODO - this could be a method of PlantCommunities. Needs to avoid circular import
-    # of PlantCohorts
+    This function takes a list of plant cohorts present in a community and uses the T
+    Model to estimate the heights and crown areas of the individuals. It then uses the
+    perfect plasticity approximation to calculate the closure heights of the canopy
+    layers and the leaf area indices of each layer.
 
-    # TODO make this do something
+    Args:
+        communities: The PlantCommunities object to convert
+        n_canopy_layers: The maximum number of permitted canopy layers.
 
-    return DataArray(np.arange(1)), DataArray(np.arange(1))
+    Returns:
+        A tuple of two dimensional numpy arrays giving the canopy layer heights and leaf
+        area indices by cell id.
+    """
+
+    # TODO - this could be a method of PlantCommunities but creates circular import of
+    #        PlantCohorts
+
+    # Initialise list of arrays
+    layer_heights: list = []
+    layer_lai: list = []
+    cell_has_too_many_layers: list = []
+
+    # Loop over the communities in each cell
+    for cell_id, community in communities.items():
+        # Calculate the canopy model for the cell and pad as needed
+        this_lyr_hght, this_lyr_lai = generate_canopy_model(community)
+        n_pad = n_canopy_layers - len(this_lyr_hght)
+
+        if n_pad < 0:
+            cell_has_too_many_layers.append(cell_id)
+            continue
+
+        if n_pad > 0:
+            this_lyr_hght = np.pad(
+                this_lyr_hght, (0, n_pad), "constant", constant_values=np.nan
+            )
+            this_lyr_lai = np.pad(
+                this_lyr_lai, (0, n_pad), "constant", constant_values=np.nan
+            )
+
+        layer_heights.append(this_lyr_hght)
+        layer_lai.append(this_lyr_lai)
+
+    # Bail if any cells had too many canopy layers
+    if cell_has_too_many_layers:
+        msg = (
+            f"Generated canopy has more layers than the configured maximum in "
+            f"cells: {','.join([str(v) for v in cell_has_too_many_layers])}."
+        )
+        LOGGER.critical(msg)
+        raise ConfigurationError(msg)
+
+    # Combine into arrays
+    return np.stack(layer_heights, axis=1), np.stack(layer_lai, axis=1)
 
 
 # # Estimate
