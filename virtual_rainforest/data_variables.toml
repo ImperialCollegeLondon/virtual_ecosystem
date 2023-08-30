@@ -347,7 +347,7 @@ description = "Specific heat of air"
 unit = "kJ kg-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
-used_by = [ "abiotic"]
+used_by = ["abiotic"]
 
 [[variable]]
 name = "specific_humidity"
