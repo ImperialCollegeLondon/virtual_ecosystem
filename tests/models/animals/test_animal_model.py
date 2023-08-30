@@ -95,6 +95,7 @@ def test_animal_model_initialization(
                     "extracted.",
                 ),
                 (INFO, "Adding data array for 'decomposed_excrement'"),
+                (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
         ),
     ],
@@ -189,9 +190,10 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
 
     # Assert the methods were called in the expected order
     assert call_sequence == method_names
-    # Check that excrement data is created, all elements are zero as no actual updates
-    # have occurred
+    # Check that excrement and carcass data is created, all elements are zero as no
+    # actual updates have occurred
     assert np.allclose(model.data["decomposed_excrement"], 0.0)
+    assert np.allclose(model.data["decomposed_carcasses"], 0.0)
 
 
 def test_update_method_time_index_argument(
@@ -229,6 +231,10 @@ def test_calculate_litter_additions(functional_group_list_instance):
     for energy, community in zip(decomposed_excrement, model.communities.values()):
         community.excrement_pool.decomposed_energy = energy
 
+    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8]
+    for energy, community in zip(decomposed_carcasses, model.communities.values()):
+        community.carcass_pool.decomposed_energy = energy
+
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
 
@@ -237,11 +243,22 @@ def test_calculate_litter_additions(functional_group_list_instance):
         litter_additions["decomposed_excrement"],
         [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
     )
+    assert np.allclose(
+        litter_additions["decomposed_carcasses"],
+        [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3],
+    )
 
     # Check that the function has reset the pools correctly
     assert np.allclose(
         [
             community.excrement_pool.decomposed_energy
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.carcass_pool.decomposed_energy
             for community in model.communities.values()
         ],
         0.0,

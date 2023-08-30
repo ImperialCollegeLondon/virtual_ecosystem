@@ -493,3 +493,19 @@ unit = "kg C m^-3 day^-1"
 initialised_by = "litter"
 updated_by = "litter"
 used_by = [ "soil"]
+
+[[variable]]
+name = "decomposed_excrement"
+description = "Rate of excrement flow from animals into litter"
+unit = "kg C m^-3 day^-1"
+initialised_by = "animals"
+updated_by = "animals"
+used_by = [ "litter"]
+
+[[variable]]
+name = "decomposed_carcasses"
+description = "Rate of decomposed carcass biomass flow from animals into litter"
+unit = "kg C m^-3 day^-1"
+initialised_by = "animals"
+updated_by = "animals"
+used_by = [ "litter"]

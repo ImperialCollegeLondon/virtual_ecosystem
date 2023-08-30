@@ -143,6 +143,8 @@ TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
 REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs
 
+ENERGY_PERCENTILE_THRESHOLD: float = 0.5  # Toy value for initiating migration
+
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
 
@@ -151,4 +153,9 @@ way of estimating this from data, or come up with a smarter way of handling this
 process.
 """
 
-ENERGY_PERCENTILE_THRESHOLD: float = 0.5  # Toy value for initiating migration
+DECAY_FRACTION_CARCASSES: float = 0.2
+"""Fraction of carcass biomass that is assumed to decay rather than be consumed.
+
+[unitless]. TODO - The number given here is very much made up, see
+:attr:`DECAY_FRACTION_EXCREMENT` for details of how this should be changed in future.
+"""
