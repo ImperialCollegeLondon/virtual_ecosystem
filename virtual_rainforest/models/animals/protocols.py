@@ -35,6 +35,6 @@ class Resource(Protocol):
 
     stored_energy: float
 
-    def get_eaten(self, consumer: Consumer, pool: Pool) -> float:
+    def get_eaten(self, consumer: Consumer, pool: DecayPool) -> float:
         """The get_eaten method defines a resource."""
         ...
