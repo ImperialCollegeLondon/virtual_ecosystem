@@ -11,30 +11,27 @@ from __future__ import annotations
 from random import choice
 from typing import Sequence
 
-from numpy import timedelta64
+from numpy import random, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
     DECAY_FRACTION_EXCREMENT,
     ENERGY_DENSITY,
+    ENERGY_PERCENTILE_THRESHOLD,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
     TEMPERATURE,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.protocols import (
-    Consumer,
-    DecayPool,
-    Pool,
-    Resource,
-)
+from virtual_rainforest.models.animals.protocols import Consumer, DecayPool, Resource
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
     energetic_reserve_scaling,
     intake_rate_scaling,
     metabolic_rate,
+    natural_mortality_scaling,
     prey_group_selection,
 )
 
@@ -109,10 +106,17 @@ class AnimalCohort:
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups = prey_group_selection(
-            self.functional_group.diet.value,
+            self.functional_group.diet,
             self.mass,
             self.functional_group.prey_scaling,
         )
+        """The identification of useable food resources."""
+
+        self.adult_natural_mortality_prob = natural_mortality_scaling(
+            self.functional_group.adult_mass, self.functional_group.longevity_scaling
+        )
+        """The per-day probability of an individual dying to natural causes."""
+
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
@@ -185,9 +189,11 @@ class AnimalCohort:
         """
         self.individuals -= number_dead
 
-        carcass_pool.stored_energy += number_dead * self.mass * ENERGY_DENSITY["meat"]
+        carcass_pool.scavengeable_energy += (
+            number_dead * self.mass * ENERGY_DENSITY["meat"]
+        )
 
-    def get_eaten(self, predator: Consumer, carcass_pool: Pool) -> float:
+    def get_eaten(self, predator: Consumer, carcass_pool: DecayPool) -> float:
         """This function handles AnimalCohorts being subject to predation.
 
         Note: AnimalCohort stored_energy is mean per individual energy within the
@@ -226,7 +232,7 @@ class AnimalCohort:
         # Reduce the number of individuals in the prey cohort
         self.individuals -= number_eaten
         # Excess from deficits of efficiency flow to the carcass pool
-        carcass_pool.stored_energy += prey_energy * (
+        carcass_pool.scavengeable_energy += prey_energy * (
             1 - self.functional_group.mechanical_efficiency
         )
 
@@ -237,8 +243,7 @@ class AnimalCohort:
         self,
         plant_list: Sequence[Resource],
         animal_list: Sequence[Resource],
-        carcass_pool: Pool,
-        soil_pool: Pool,
+        carcass_pool: DecayPool,
         excrement_pool: DecayPool,
     ) -> None:
         """This function handles selection of resources from a list of options.
@@ -252,13 +257,12 @@ class AnimalCohort:
             plant_list: A list of plant cohorts available for herbivory.
             animal_list: A list of animal cohorts available for predation.
             carcass_pool: A CarcassPool object representing available carcasses.
-            soil_pool: A PalatableSoil object representing soil nutrients.
             excrement_pool: A pool representing the excrement in the grid cell
 
         """
 
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            consumed_energy = self.eat(choice(plant_list), soil_pool)
+            consumed_energy = self.eat(choice(plant_list), excrement_pool)
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
             consumed_energy = self.eat(choice(animal_list), carcass_pool)
         else:
@@ -266,7 +270,7 @@ class AnimalCohort:
         # excrete excess digestive wastes
         self.excrete(excrement_pool, consumed_energy)
 
-    def eat(self, food: Resource, pool: Pool) -> float:
+    def eat(self, food: Resource, pool: DecayPool) -> float:
         """This function handles the energy transfer of a trophic interaction.
 
         Currently, all this does is call the food's get_eaten method and pass the
@@ -275,8 +279,8 @@ class AnimalCohort:
         Args:
             food: An object of a Resource class (currently: AnimalCohort, Plant
                   Community)
-            pool: An object of a Pool class, which could represent depositional pools
-                  like soil or carcass pools.
+            pool: An object of a DecayPool class, which could represent depositional
+                  pools like soil or carcass pools.
 
         Returns:
             The amount of consumed energy so it can be used to determine waste output.
@@ -303,3 +307,45 @@ class AnimalCohort:
 
         """
         return self.stored_energy >= self.reproduction_energy_threshold
+
+    def is_below_energy_threshold(self) -> bool:
+        """Check if cohort's energy is below a certain threshold.
+
+        Currently, this is only used to threshold the migrate method. Using the
+        reproduction threshold is a toy implementation.
+
+        Return:
+            A bool of whether the current energy state is above the migration threshold.
+        """
+        return (
+            self.stored_energy
+            < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
+        )
+
+    def inflict_natural_mortality(
+        self, carcass_pool: CarcassPool, number_days: float
+    ) -> None:
+        """The function to cause natural mortality in a cohort.
+
+        TODO Find a more efficient structure so we aren't recalculating the
+        time_step_mortality. Probably pass through the initialized timestep size to the
+        scaling function
+
+        Args:
+            carcass_pool: The grid-local carcass pool to which the dead matter is
+                transferred.
+            number_days: Number of days over which the metabolic costs should be
+                calculated.
+
+        """
+
+        # Calculate the mortality probability for the entire time step
+        time_step_mortality_prob = (
+            1 - (1 - self.adult_natural_mortality_prob) ** number_days
+        )
+        # Draw the number of deaths from a binomial distribution
+        number_of_deaths = random.binomial(
+            n=self.individuals, p=time_step_mortality_prob
+        )
+
+        self.die_individual(number_of_deaths, carcass_pool)
