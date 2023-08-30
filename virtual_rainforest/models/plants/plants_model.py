@@ -184,8 +184,8 @@ class PlantsModel(BaseModel):
         """Update the canopy structure for the plant communities.
 
         This method calculates the canopy structure from the current state of the plant
-        communities and then updates
-
+        communities and then updates the ``layer_heights`` and ``leaf_area_index``
+        arrays in the data object.
         """
         # Retrive the canopy model arrays and insert into the data object.
         canopy_heights, canopy_lai = build_canopy_arrays(
