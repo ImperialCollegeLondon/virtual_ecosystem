@@ -820,7 +820,7 @@ def estimate_interception(
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
-    equation (Aston, 1978; Merriam, 1960):
+    equation after :cite:t:`aston_rainfall_1979` and :cite:t:`merriam_note_1960`:
 
     :math:`Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]`
 
@@ -828,10 +828,10 @@ def estimate_interception(
     the maximum interception, :math:`R` is the rainfall intensity per time step [mm] and
     the factor :math:`k` accounts for the density of the vegetation.
 
-    :math:`S_{max}` is calculated using an empirical equation (Von Hoyningen-Huene,
-    1981):
+    :math:`S_{max}` is calculated using an empirical equation
+    :cite:p:`von_hoyningen-huene_interzeption_1981`:
 
-    :math:`S_{max} = 0.935 + 0.498 * LAI - 0.00575 * LAI^{2}` for [LAI > 0.1]
+    :math:`S_{max} = 0.935 + 0.498 * LAI - 0.00575 * LAI^{2}` for [LAI > 0.1], and
 
     :math:`S_{max} = 0` for [LAI ≤ 0.1]
 
