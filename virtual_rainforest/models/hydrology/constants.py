@@ -31,11 +31,6 @@ class HydroConsts:
     between 0 and 1).
     """
 
-    water_interception_factor: float = 0.1
-    """Water interception factor describes the proportion of rainfall that is
-    intercepted by a canopy her unit leaf area.
-    """
-
     hydraulic_conductivity: float = 0.001
     """Hydraulic conductivity (m/s) is the measure of a soil's ability to transmit water
     through its pores. More specifically, is defined as the volumetric flow rate of
@@ -81,3 +76,19 @@ class HydroConsts:
     stream_flow_capacity: float = 5000.0
     """Stream flow capacity, mm per timestep. This is curretly an arbitrary value, but
     could be used in the future to flag flood events."""
+
+    intercept_param_1: float = 0.935
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    intercept_param_2: float = 0.498
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    intercept_param_3: float = 0.00575
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    veg_density_param: float = 0.046
+    """Parameter used to estimate vegetation density for maximum canopy interception
+    capacity estimate after Von Hoyningen-Huene, (1981)."""

@@ -399,21 +399,25 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.639606, 0.639606, 0.639606], [0.639606, 0.639606, 0.639606]],
+                    [[0.697229, 0.697229, 0.697229], [0.697229, 0.697229, 0.697229]],
                     dims=["layers", "cell_id"],
                 ),
             ],
             dim="layers",
         ).assign_coords(model.data["layer_heights"].coords)
 
+        exp_surf_prec = DataArray(
+            [197.622772, 197.622772, 197.622772],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
         exp_runoff = DataArray(
             [0, 0, 0],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-
         exp_vertical_flow = DataArray(
-            [1.214304, 1.214304, 1.214304],
+            [2.197213, 2.197213, 2.197213],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -423,7 +427,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [80.139606, 80.139606, 80.139606],
+            [137.820001, 137.820001, 137.820001],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -432,6 +436,8 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
+
+        xr.testing.assert_allclose(model.data["precipitation_surface"], exp_surf_prec)
         xr.testing.assert_allclose(model.data["soil_moisture"], exp_soil_moisture)
         xr.testing.assert_allclose(model.data["vertical_flow"], exp_vertical_flow)
         xr.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
@@ -674,3 +680,31 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+def test_estimate_interception():
+    """Test."""
+    from virtual_rainforest.models.hydrology.constants import HydroConsts
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        estimate_interception,
+    )
+
+    precip = DataArray([0, 20, 100], dims="cell_id", coords={"cell_id": [0, 1, 2]})
+    lai = DataArray([0, 2, 10], dims="cell_id", coords={"cell_id": [0, 1, 2]})
+
+    result = estimate_interception(
+        leaf_area_index=lai,
+        precipitation=precip,
+        intercept_param_1=HydroConsts.intercept_param_1,
+        intercept_param_2=HydroConsts.intercept_param_2,
+        intercept_param_3=HydroConsts.intercept_param_3,
+        veg_density_param=HydroConsts.veg_density_param,
+    )
+
+    exp_result = DataArray(
+        [0.0, 1.180619, 5.339031],
+        dims="cell_id",
+        coords={"cell_id": [0, 1, 2]},
+    )
+
+    xr.testing.assert_allclose(result, exp_result)

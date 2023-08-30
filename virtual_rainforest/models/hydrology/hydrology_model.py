@@ -378,15 +378,16 @@ class HydrologyModel(BaseModel):
         # Interception: precipitation at the surface is reduced as a function of leaf
         # area index
 
-        # TODO the interception reservoir should be treated as a bucket that fills up
-        # before water falls through, and from which water evaporates back into the
-        # atmosphere. See for example (Aston, 1978, Merriam, 1960). However, this is
-        # strongly affected by the intensity of rainfall and therefore currently not yet
-        # implemented. Instead we assume that a fraction of rainfall is intercepted and
-        # evaporated over the course of one time step
-        precipitation_surface = current_precipitation * (
-            1 - self.constants.water_interception_factor * leaf_area_index_sum
+        interception = estimate_interception(
+            leaf_area_index=leaf_area_index_sum,
+            precipitation=current_precipitation,
+            intercept_param_1=self.constants.intercept_param_1,
+            intercept_param_2=self.constants.intercept_param_2,
+            intercept_param_3=self.constants.intercept_param_3,
+            veg_density_param=self.constants.veg_density_param,
         )
+
+        precipitation_surface = current_precipitation - interception
         soil_hydrology["precipitation_surface"] = precipitation_surface
 
         # Calculate total soil moisture (before rainfall) in mm
@@ -806,3 +807,64 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     upstream_ids = find_upstream_cells(lowest_neighbours)
 
     return dict(enumerate(upstream_ids))
+
+
+def estimate_interception(
+    leaf_area_index: DataArray,
+    precipitation: DataArray,
+    intercept_param_1: float,
+    intercept_param_2: float,
+    intercept_param_3: float,
+    veg_density_param: float,
+) -> DataArray:
+    r"""Estimate canopy interception.
+
+    This function estimates canopy interception using the following storage-based
+    equation (Aston, 1978; Merriam, 1960):
+
+    :math:`Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]`
+
+    where :math:`Int` [mm] is the interception per time step, :math:`S_{max}` [mm] is
+    the maximum interception, :math:`R` is the rainfall intensity per time step [mm] and
+    the factor :math:`k` accounts for the density of the vegetation.
+
+    :math:`S_{max}` is calculated using an empirical equation (Von Hoyningen-Huene,
+    1981):
+
+    :math:`S_{max} = 0.935 + 0.498 * LAI - 0.00575 * LAI^{2}` for [LAI > 0.1]
+
+    :math:`S_{max} = 0` for [LAI ≤ 0.1]
+
+    where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
+
+    :math:`k=0.046 * LAI`
+
+    Args:
+        leaf_area_index: leaf area index summed over all canopy layers, [m2 m-2]
+        precipitation: precipitation, [mm]
+        intercept_parameter_1: Parameter in equation that estimates maximum canopy
+            interception capacity
+        intercept_parameter_2: Parameter in equation that estimates maximum canopy
+            interception capacity
+        intercept_parameter_3: Parameter in equation that estimates maximum canopy
+            interception capacity
+        veg_density_param: Parameter used to estimate vegetation density for maximum
+            canopy interception capacity estimate
+
+    Returns:
+        interception, [mm]
+    """
+
+    capacity = (
+        intercept_param_1
+        + intercept_param_2 * leaf_area_index
+        - intercept_param_3 * leaf_area_index**2
+    )
+    max_capacity = capacity.where(leaf_area_index > 0.1, 0)
+
+    canopy_density_factor = veg_density_param * leaf_area_index
+
+    return DataArray(
+        max_capacity
+        * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity))
+    ).fillna(0)
