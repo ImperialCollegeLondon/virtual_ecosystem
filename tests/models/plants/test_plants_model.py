@@ -8,7 +8,11 @@ def test_PlantsModel__init__(plants_data, flora):
     from virtual_rainforest.models.plants.plants_model import PlantsModel
 
     plants_model = PlantsModel(
-        data=plants_data, update_interval=Quantity("1 month"), flora=flora
+        data=plants_data,
+        update_interval=Quantity("1 month"),
+        flora=flora,
+        canopy_layers=10,
+        soil_layers=3,
     )
 
     # Currently trivial test.
