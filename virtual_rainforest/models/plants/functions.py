@@ -11,8 +11,10 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_rainforest.core.data import Data
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.plants.community import PlantCohort, PlantCommunities
 
 
@@ -98,6 +100,58 @@ def build_canopy_arrays(
 
     # Combine into arrays
     return np.stack(layer_heights, axis=1), np.stack(layer_lai, axis=1)
+
+
+def initialise_canopy_layers(
+    data: Data, n_canopy_layers: int, n_soil_layers: int
+) -> Data:
+    """Initialise the canopy layer height and leaf area index data.
+
+    This function initialises ``layer_height`` and ``leaf_area_index`` data arrays
+    describing the plant canopy structure and soil layer structure within a Data object.
+
+    Args:
+        data: A Data object to update.
+        n_canopy_layers: The maximum number of permitted canopy layers.
+        n_soil_layers: The number of soil layers to be used.
+
+    Returns:
+        A data object with the layers added.
+
+    Raises:
+        InitialisationError: if the layers already exist in the data object
+    """
+
+    # TODO - maybe this should happen somewhere before models start to be defined?
+    #        The other models rely on it
+
+    # Check that layers do not already exist
+    if ("leaf_area_index" in data) or ("layer_heights" in data):
+        msg = "Cannot initialise canopy layers, already present"
+        LOGGER.critical(msg)
+        raise InitialisationError(msg)
+
+    # TODO - These layer roles desperately need to be set up in _one_ place!
+    layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
+    layer_shape = (len(layer_roles), len(data.grid.cell_id))
+
+    # Set the layers
+    data["leaf_area_index"] = DataArray(
+        data=np.full(layer_shape, fill_value=np.nan),
+        coords={
+            "layer": np.arange(len(layer_roles)),
+            "cell_id": data.grid.cell_id,
+        },
+    )
+    data["layer_heights"] = DataArray(
+        data=np.full(layer_shape, fill_value=np.nan),
+        coords={
+            "layer": np.arange(len(layer_roles)),
+            "cell_id": data.grid.cell_id,
+        },
+    )
+
+    return data
 
 
 # # Estimate
