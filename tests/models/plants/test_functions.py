@@ -4,49 +4,65 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL
 
 import pytest
+from numpy import ndarray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
 
 
+def test_generate_canopy_model(plants_data, flora):
+    """Test the function to turn a community list into a canopy model."""
+
+    # TODO - the functionality in this function does nothing at the moment, so this
+    #        method just tests data handling
+
+    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_rainforest.models.plants.functions import generate_canopy_model
+
+    communities = PlantCommunities(plants_data, flora)
+
+    for _, community in communities.items():
+        layer_hght, layer_lai = generate_canopy_model(community=community)
+
+        assert isinstance(layer_hght, ndarray)
+        assert isinstance(layer_lai, ndarray)
+
+
 @pytest.mark.parametrize(
-    argnames="max_layers, raises, msg",
+    argnames="max_layers, raises, exp_log",
     argvalues=[
         (10, does_not_raise(), None),
         (5, does_not_raise(), None),
         (
-            3,
+            1,
             pytest.raises(ConfigurationError),
             (
                 (
                     CRITICAL,
-                    "Generated canopy has more layers than the configured maximum.",
+                    "Generated canopy has more layers than the configured maximum",
                 ),
             ),
         ),
     ],
 )
-def test_generate_canopy_model(plant_data, pfts, max_layers, raises, exp_log):
-    """Test the function to turn a community list into a canopy model."""
-
-    # TODO - the functionality in this function does very little at the moment, so this
-    #        method just tests data handling and exceptions
+def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp_log):
+    """Test the function to turn PlantsCommunities into canopy arrays."""
 
     from virtual_rainforest.models.plants.community import PlantCommunities
-    from virtual_rainforest.models.plants.functions import generate_canopy_model
+    from virtual_rainforest.models.plants.functions import build_canopy_arrays
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
-    communities = PlantCommunities(plant_data, pfts)
+    communities = PlantCommunities(plants_data, flora)
 
-    for _, community in communities:
-        with raises:
-            layer_hght, layer_lai = generate_canopy_model(
-                community=community, max_layers=max_layers
-            )
+    with raises:
+        layer_hght, layer_lai = build_canopy_arrays(
+            communities=communities, n_canopy_layers=max_layers
+        )
 
-            if isinstance(raises, does_not_raise):
-                assert len(layer_hght) == max_layers
-                assert len(layer_lai) == max_layers
+        if isinstance(raises, does_not_raise):
+            assert layer_hght.shape == (max_layers, len(communities))
+            assert layer_lai.shape == (max_layers, len(communities))
 
-        log_check(exp_log)
+        if exp_log is not None:
+            log_check(caplog, exp_log)
