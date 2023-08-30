@@ -264,7 +264,7 @@ used_by = [ "hydrology"]
 [[variable]]
 name = "stream_flow"
 description = "Estimated stream flow"
-unit = "mm"
+unit = "mm per time step"
 initialised_by = "hydrology"
 updated_by = "hydrology"
 used_by = [ "hydrology"]
@@ -408,7 +408,7 @@ used_by = [ "abiotic"]
 [[variable]]
 name = "vertical_flow"
 description = "Vertical flow of water through soil column"
-unit = "mm"
+unit = "mm per time step"
 initialised_by = "hydrology"
 updated_by = "hydrology"
 used_by = [ "hydrology", "soil"]
