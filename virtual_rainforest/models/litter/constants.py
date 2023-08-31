@@ -193,3 +193,14 @@ class LitterConsts:
     TODO: This constant already exists within the hydrology model, once the hydrology
     model handles soil water potential, this constant **must** be deleted.
     """
+
+    carcass_decay_metabolic_fraction: float = 0.5
+    """Fraction of carcass breakdown that goes to the metabolic pool [unitless].
+
+    The remainder goes to the structural pool. This is a fraction so must be between 0
+    and 1 (inclusive).
+
+    TODO - The number given here is very much made up. In future, we either need to find
+    a way of estimating this from data, or come up with a smarter way of handling this
+    process.
+    """

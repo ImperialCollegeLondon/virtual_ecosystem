@@ -1,6 +1,5 @@
-"""The ''dummy_plands_and_soil'' classes provides toy plant and soil module functionality 
-that  are required for setting up and testing the early stages of the animal module.
-
+"""The ''dummy_plants'' classes provides toy plant module functionality that are
+required for setting up and testing the early stages of the animal module.
 """  # noqa: #D205, D415
 
 from __future__ import annotations
@@ -63,7 +62,9 @@ class PlantCommunity:
 
         self.stored_energy -= consumed_energy
 
-        # temporary flow of plant material. This will later change to something else
+        # TODO - All plant matter that animals fail to eat currently goes into the
+        # excrement pool. This isn't ideal, but will do for now. This herbivore
+        # contribution to litter fall should be handled by the plant model in future.
         excrement_pool.decomposed_energy += consumed_energy * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
