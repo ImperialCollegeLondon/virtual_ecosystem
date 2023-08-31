@@ -52,7 +52,7 @@ class HydroConsts:
     """Nonlinearity parameter n (dimensionless) in van Genuchten model for hydraulic
     conductivity :cite:p:`van_genuchten_describing_1985`."""
 
-    meters_to_millimeters: float = 1000
+    meters_to_mm: float = 1000
     """Factor to convert variable unit from meters to millimeters."""
 
     celsius_to_kelvin: float = 273.15
@@ -92,3 +92,6 @@ class HydroConsts:
     veg_density_param: float = 0.046
     """Parameter used to estimate vegetation density for maximum canopy interception
     capacity estimate after Von Hoyningen-Huene, (1981)."""
+
+    groundwater_capacity: float = 0.9
+    """Ground water storage capacity."""

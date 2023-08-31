@@ -412,12 +412,12 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff = DataArray(
-            [0, 0, 0],
+            [157.622772, 157.622772, 157.622772],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [2.197213, 2.197213, 2.197213],
+            [3.081028e-07, 3.081028e-07, 3.081028e-07],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -427,12 +427,12 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [137.820001, 137.820001, 137.820001],
+            [227.118835, 227.118835, 227.118835],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff_acc = DataArray(
-            [0, 10, 150],
+            [0, 167, 465],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -449,46 +449,51 @@ def test_setup(
 
 
 @pytest.mark.parametrize(
-    "soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par",
+    "soilm_cap, soilm_res, hydr_con, nonlin_par, gw_cap",
     [
         (
             HydroConsts.soil_moisture_capacity,
             HydroConsts.soil_moisture_residual,
             HydroConsts.hydraulic_conductivity,
-            HydroConsts.hydraulic_gradient,
             HydroConsts.nonlinearily_parameter,
+            HydroConsts.groundwater_capacity,
         ),
         (
             DataArray([0.9, 0.9, 0.9], dims=["cell_id"]),
             DataArray([0.1, 0.1, 0.1], dims=["cell_id"]),
             DataArray([0.001, 0.001, 0.001], dims=["cell_id"]),
-            DataArray([0.01, 0.01, 0.01], dims=["cell_id"]),
             DataArray([2, 2, 2], dims=["cell_id"]),
+            DataArray([0.9, 0.9, 0.9], dims=["cell_id"]),
         ),
     ],
 )
-def test_calculate_vertical_flow(soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par):
+def test_calculate_vertical_flow(soilm_cap, soilm_res, hydr_con, nonlin_par, gw_cap):
     """Test vertical flow with float or DataArray input."""
 
     from virtual_rainforest.models.hydrology.hydrology_model import (
         calculate_vertical_flow,
     )
 
-    soil_moisture = DataArray([0.3, 0.6, 0.9], dims=["cell_id"])
-    soil_depth = DataArray([1100, 1100, 1100], dims=["cell_id"])
+    soil_moisture = DataArray([[30, 60, 90], [30, 60, 90]], dims=["layers", "cell_id"])
+    layer_thickness = DataArray(
+        [[100, 100, 100], [900, 900, 900]], dims=["layers", "cell_id"]
+    )
 
     result = calculate_vertical_flow(
         soil_moisture,
-        soil_depth,
+        layer_thickness,
         soilm_cap,
         soilm_res,
         hydr_con,
-        hydr_grad,
-        HydroConsts.seconds_to_month,
         nonlin_par,
-        HydroConsts.meters_to_millimeters,
+        gw_cap,
+        2.628e6,
+        1000,
     )
-    exp_flow = DataArray([6.022462e-03, 7.186012e-01, 2.389091e01], dims=["cell_id"])
+    exp_flow = DataArray(
+        [[29.9, 59.9, 89.9], [900, 900, 900]],
+        dims=["layers", "cell_id"],
+    )
     xr.testing.assert_allclose(result, exp_flow)
 
 
