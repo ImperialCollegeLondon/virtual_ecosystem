@@ -16,6 +16,14 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205, D415
 
+# FUTURE - Potentially convert this model to use differential equations at some point.
+# In reality, litter chemistry should change continuously with time not just at the
+# final time step as in the current implementation. This is turn means that the decay
+# rates should change continuously. I think the current implementation is fine, because
+# this will be a small inaccuracy in a weakly coupled part of the model. However, if we
+# ever become interested in precisely quantifying litter stocks then this should be
+# refactored into a set of differential equations.
+
 from __future__ import annotations
 
 from typing import Any
