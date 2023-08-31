@@ -98,6 +98,23 @@ def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
     assert np.allclose(actual_factor, expected_factor)
 
 
+def test_calculate_litter_chemistry_factor():
+    """Test that litter chemistry effects on decomposition are calculated correctly."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_litter_chemistry_factor,
+    )
+
+    lignin_proportions = np.array([0.01, 0.1, 0.5, 0.8])
+
+    expected_factor = [0.95122942, 0.60653065, 0.08208499, 0.01831563]
+
+    actual_factor = calculate_litter_chemistry_factor(
+        lignin_proportions, LitterConsts.lignin_inhibition_factor
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
+
+
 def test_calculate_litter_pool_updates(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):

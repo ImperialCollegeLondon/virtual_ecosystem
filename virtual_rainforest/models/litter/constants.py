@@ -204,3 +204,10 @@ class LitterConsts:
     a way of estimating this from data, or come up with a smarter way of handling this
     process.
     """
+
+    lignin_inhibition_factor: float = -5.0
+    """Exponential factor expressing the extent that lignin inhibits litter breakdown.
+
+    [unitless]. The more negative this value the greater the strength of the inhibition.
+    This value is taken from :cite:t:`kirschbaum_modelling_2002`.
+    """

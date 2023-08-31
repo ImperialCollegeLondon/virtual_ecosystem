@@ -23,8 +23,8 @@ from xarray import DataArray
 from virtual_rainforest.models.litter.constants import LitterConsts
 
 
-# TODO - It's probably worth splitting the below into more functions as it's now very
-# long
+# TODO - It's probably worth splitting the below into more functions, need to add litter
+# chemistry before I make a decision on how to split this up
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
     topsoil_temp: NDArray[np.float32],
@@ -293,6 +293,26 @@ def calculate_moisture_effect_on_litter_decomp(
     ) ** moisture_response_curvature
 
     return 1 - supression
+
+
+def calculate_litter_chemistry_factor(
+    lignin_proportion: NDArray[np.float32], lignin_inhibition_factor: float
+) -> NDArray[np.float32]:
+    """Calculate the effect that litter chemistry has on litter decomposition rates.
+
+    This expression is taken from :cite:t:`kirschbaum_modelling_2002`.
+
+    Args:
+        lignin_proportion: The proportion of the polymers in the litter pool that are
+            lignin (or similar) [unitless]
+        lignin_inhibition_factor: An exponential factor expressing the extent to which
+            lignin inhibits the breakdown of litter [unitless]
+
+    Returns:
+        A factor that captures the impact of litter chemistry on litter decay rates
+    """
+
+    return np.exp(lignin_inhibition_factor * lignin_proportion)
 
 
 def calculate_litter_decay_metabolic_above(
