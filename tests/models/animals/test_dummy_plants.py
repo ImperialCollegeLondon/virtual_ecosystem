@@ -1,4 +1,4 @@
-"""Test module for dummy_plants_and_soil.py."""
+"""Test module for dummy_plants.py."""
 
 import pytest
 

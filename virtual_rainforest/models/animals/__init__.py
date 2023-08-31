@@ -22,7 +22,7 @@ Each of the animal sub-modules has its own API reference page:
   containing the constants required by the broader animal model.
 * The :mod:`~virtual_rainforest.models.animals.decay` provides a model for
   both surface carcasses created by mortality and animal excrement.
-* The :mod:`~virtual_rainforest.models.animals.dummy_plants_and_soil` provides a set of
+* The :mod:`~virtual_rainforest.models.animals.dummy_plants` provides a set of
   classes defining toy implementations of soil and plant models that aid development of
   the animal module.
 """  # noqa: D205, D415
