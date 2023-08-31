@@ -151,6 +151,32 @@ def test_calculate_litter_pool_updates(
         )
 
 
+def test_calculate_total_C_mineralised():
+    """Test that calculation of total C mineralised is as expected."""
+    from virtual_rainforest.models.litter.litter_pools import (
+        calculate_total_C_mineralised,
+    )
+
+    expected_mineralisation = [0.0212182, 0.0274272, 0.00617274]
+
+    metabolic_above_decay = np.array([0.00450883464, 0.00225441732, 0.00105206141])
+    structural_above_decay = np.array([0.000167429, 8.371483356e-5, 3.013734008e-5])
+    woody_decay = np.array([0.0004831961, 0.0012131307, 0.0007504961])
+    metabolic_below_decay = np.array([0.00627503, 0.01118989, 0.00141417])
+    structural_below_decay = np.array([2.08818455e-04, 2.07992589e-04, 8.96385948e-06])
+
+    actual_mineralisation = calculate_total_C_mineralised(
+        metabolic_above_decay=metabolic_above_decay,
+        structural_above_decay=structural_above_decay,
+        woody_decay=woody_decay,
+        metabolic_below_decay=metabolic_below_decay,
+        structural_below_decay=structural_below_decay,
+        constants=LitterConsts,
+    )
+
+    assert np.allclose(actual_mineralisation, expected_mineralisation)
+
+
 def test_calculate_litter_decay_metabolic_above(
     dummy_litter_data, temp_and_water_factors
 ):

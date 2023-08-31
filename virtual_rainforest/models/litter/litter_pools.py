@@ -22,11 +22,9 @@ from xarray import DataArray
 
 from virtual_rainforest.models.litter.constants import LitterConsts
 
-# TODO - At the moment this module does not use litter chemistry (relative lignin
-# content) at all. We need to decide how we handle this and adjust the below functions
-# to use this at some point.
 
-
+# TODO - It's probably worth splitting the below into more functions as it's now very
+# long
 def calculate_litter_pool_updates(
     surface_temp: NDArray[np.float32],
     topsoil_temp: NDArray[np.float32],
@@ -116,26 +114,6 @@ def calculate_litter_pool_updates(
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
     )
 
-    # Calculate mineralisation from each pool
-    metabolic_above_mineral = calculate_carbon_mineralised(
-        metabolic_above_decay, carbon_use_efficiency=constants.cue_metabolic
-    )
-    structural_above_mineral = calculate_carbon_mineralised(
-        structural_above_decay,
-        carbon_use_efficiency=constants.cue_structural_above_ground,
-    )
-    woody_mineral = calculate_carbon_mineralised(
-        woody_decay,
-        carbon_use_efficiency=constants.cue_woody,
-    )
-    metabolic_below_mineral = calculate_carbon_mineralised(
-        metabolic_below_decay, carbon_use_efficiency=constants.cue_metabolic
-    )
-    structural_below_mineral = calculate_carbon_mineralised(
-        structural_below_decay,
-        carbon_use_efficiency=constants.cue_structural_below_ground,
-    )
-
     # Calculate how the decomposed carcasses biomass is split between the metabolic and
     # structural litter pools
     carcass_to_metabolic, carcass_to_structural = calculate_carcass_split(
@@ -164,16 +142,15 @@ def calculate_litter_pool_updates(
         constants.litter_input_to_structural_below - structural_below_decay
     ) * update_interval
 
-    # Calculate mineralisation rate
-    total_C_mineralisation_rate = (
-        metabolic_above_mineral
-        + structural_above_mineral
-        + woody_mineral
-        + metabolic_below_mineral
-        + structural_below_mineral
+    # Calculate the total mineralisation of carbon from the litter
+    total_C_mineralisation_rate = calculate_total_C_mineralised(
+        metabolic_above_decay=metabolic_above_decay,
+        structural_above_decay=structural_above_decay,
+        woody_decay=woody_decay,
+        metabolic_below_decay=metabolic_below_decay,
+        structural_below_decay=structural_below_decay,
+        constants=constants,
     )
-    # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
-    total_C_mineralisation_rate /= constants.depth_of_active_layer
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
@@ -196,6 +173,65 @@ def calculate_litter_pool_updates(
     }
 
     return new_litter_pools
+
+
+def calculate_total_C_mineralised(
+    metabolic_above_decay: NDArray[np.float32],
+    structural_above_decay: NDArray[np.float32],
+    woody_decay: NDArray[np.float32],
+    metabolic_below_decay: NDArray[np.float32],
+    structural_below_decay: NDArray[np.float32],
+    constants: LitterConsts,
+) -> NDArray[np.float32]:
+    """Calculate the total carbon mineralisation rate from all five litter pools.
+
+    Args:
+        metabolic_above_decay: Rate of decay of the above ground metabolic litter pool
+            [kg C m^-2 day^-1]
+        structural_above_decay: Rate of decay of the above ground structural litter pool
+            [kg C m^-2 day^-1]
+        woody_decay: Rate of decay of the dead wood pool [kg C m^-2 day^-1]
+        metabolic_below_decay: Rate of decay of the below ground metabolic litter pool
+            [kg C m^-2 day^-1]
+        structural_below_decay: Rate of decay of the below ground structural litter pool
+            [kg C m^-2 day^-1]
+        constants: Set of constants for the litter model
+
+    Returns:
+        Rate of carbon mineralisation from litter into soil [kg C m^-3 day^-1].
+    """
+
+    # Calculate mineralisation from each pool
+    metabolic_above_mineral = calculate_carbon_mineralised(
+        metabolic_above_decay, carbon_use_efficiency=constants.cue_metabolic
+    )
+    structural_above_mineral = calculate_carbon_mineralised(
+        structural_above_decay,
+        carbon_use_efficiency=constants.cue_structural_above_ground,
+    )
+    woody_mineral = calculate_carbon_mineralised(
+        woody_decay,
+        carbon_use_efficiency=constants.cue_woody,
+    )
+    metabolic_below_mineral = calculate_carbon_mineralised(
+        metabolic_below_decay, carbon_use_efficiency=constants.cue_metabolic
+    )
+    structural_below_mineral = calculate_carbon_mineralised(
+        structural_below_decay,
+        carbon_use_efficiency=constants.cue_structural_below_ground,
+    )
+
+    # Calculate mineralisation rate
+    total_C_mineralisation_rate = (
+        metabolic_above_mineral
+        + structural_above_mineral
+        + woody_mineral
+        + metabolic_below_mineral
+        + structural_below_mineral
+    )
+
+    # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
+    return total_C_mineralisation_rate / constants.depth_of_active_layer
 
 
 def calculate_temperature_effect_on_litter_decomp(
