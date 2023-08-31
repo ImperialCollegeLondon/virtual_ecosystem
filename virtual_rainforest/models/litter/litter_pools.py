@@ -12,10 +12,8 @@ We consider 5 pools rather than 6, as it's not really possible to parametrise th
 ground dead wood pool. So, all dead wood gets included in the above ground woody litter
 pool.
 
-At present, litter chemistry is not explicitly considered so the three recalcitrant
-pools (woody, above_ground_structural, and below_ground_structural) are all assumed to
-be 50% lignin. In the near future the model will be explicitly consider litter
-chemistry.
+The amount of lignin in both the structural pools and the dead wood pool is tracked.
+This is tracked because litter chemistry is a major determinant of litter decay rates.
 """  # noqa: D205, D415
 
 import numpy as np
