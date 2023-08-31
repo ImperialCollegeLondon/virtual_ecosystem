@@ -9,12 +9,30 @@ from dataclasses import dataclass
 
 @dataclass
 class CarcassPool:
-    """This is a class of carcass pools."""
+    """This class store information about the carcass biomass in each grid cell."""
 
-    stored_energy: float
-    """The amount of energy in the carcass pool [J]."""
-    position: int
-    """The grid position of the carcass pool."""
+    scavengeable_energy: float
+    """The amount of animal accessible energy in the carcass pool [J]."""
+
+    decomposed_energy: float
+    """The amount of decomposed energy in the carcass pool [J]."""
+
+    def decomposed_carbon(self, grid_cell_area: float) -> float:
+        """Calculate carbon stored in decomposed carcasses based on the energy.
+
+        TODO - At the moment this literally just assumes that a kilogram of carbon
+        contains 10^6 J, in future this needs to be properly parametrised.
+
+        Args:
+            grid_cell_area: The size of the grid cell [m^2]
+
+        Returns:
+            The amount of decomposed carcass biomass in carbon terms [kg C m^-2]
+        """
+
+        joules_per_kilo_carbon = 1e6
+
+        return self.decomposed_energy / (joules_per_kilo_carbon * grid_cell_area)
 
 
 @dataclass
@@ -28,7 +46,7 @@ class ExcrementPool:
     """The amount of decomposed energy in the excrement pool [J]."""
 
     def decomposed_carbon(self, grid_cell_area: float) -> float:
-        """Calculate carbon stored in full decomposed excrement based on the energy.
+        """Calculate carbon stored in decomposed excrement based on the energy.
 
         TODO - At the moment this literally just assumes that a kilogram of carbon
         contains 10^6 J, in future this needs to be properly parametrised.

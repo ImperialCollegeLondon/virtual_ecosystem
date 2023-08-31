@@ -1,21 +1,18 @@
-"""The ''dummy_plands_and_soil'' classes provides toy plant and soil module functionality 
-that  are required for setting up and testing the early stages of the animal module.
-
+"""The ''dummy_plants'' classes provides toy plant module functionality that are
+required for setting up and testing the early stages of the animal module.
 """  # noqa: #D205, D415
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
-from virtual_rainforest.models.animals.protocols import Consumer, Pool
+from virtual_rainforest.models.animals.protocols import Consumer, DecayPool
 
 
 class PlantCommunity:
     """This is a dummy class of plant cohorts for testing the animal module."""
 
-    def __init__(self, mass: float, position: int) -> None:
+    def __init__(self, mass: float) -> None:
         """The constructor for Plant class."""
         self.mass = mass
         """The mass of the plant cohort [kg]."""
@@ -27,8 +24,6 @@ class PlantCommunity:
         """The amount of energy in the plant cohort [J] [toy]."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.position = position
-        """The grid location of the cohort."""
 
     def grow(self) -> None:
         """The function to logistically modify cohort energy to the energy_max value."""
@@ -44,12 +39,12 @@ class PlantCommunity:
         elif not self.is_alive:
             LOGGER.warning("A Plant Community which is dead cannot die.")
 
-    def get_eaten(self, herbivore: Consumer, soil_pool: Pool) -> float:
+    def get_eaten(self, herbivore: Consumer, excrement_pool: DecayPool) -> float:
         """This function removes energy from a PlantCommunity and through herbivory.
 
         Args:
             herbivore: The AnimalCohort preying on the PlantCommunity
-            soil_pool: The resident pool of detritus to which the remains of excess
+            excrement_pool: The resident pool of detritus to which the remains of excess
                 plant material is lost.
 
         Returns:
@@ -67,7 +62,10 @@ class PlantCommunity:
 
         self.stored_energy -= consumed_energy
 
-        soil_pool.stored_energy += consumed_energy * (
+        # TODO - All plant matter that animals fail to eat currently goes into the
+        # excrement pool. This isn't ideal, but will do for now. This herbivore
+        # contribution to litter fall should be handled by the plant model in future.
+        excrement_pool.decomposed_energy += consumed_energy * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
 
@@ -77,13 +75,3 @@ class PlantCommunity:
             * herbivore.functional_group.conversion_efficiency
             * herbivore.functional_group.mechanical_efficiency
         )
-
-
-@dataclass
-class PalatableSoil:
-    """This is a dummy class of soil pools for testing the animal module."""
-
-    stored_energy: float
-    """The amount of energy in the soil pool [J]."""
-    position: int
-    """The grid position of the soil pool."""

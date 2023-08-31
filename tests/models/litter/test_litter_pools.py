@@ -110,8 +110,8 @@ def test_calculate_litter_pool_updates(
     )
 
     expected_pools = {
-        "litter_pool_above_metabolic": [0.295773, 0.148027, 0.069261],
-        "litter_pool_above_structural": [0.50055126, 0.25063497, 0.09068855],
+        "litter_pool_above_metabolic": [0.295826, 0.14827, 0.06984],
+        "litter_pool_above_structural": [0.500605, 0.250878, 0.091267],
         "litter_pool_woody": [4.702103, 11.801373, 7.301836],
         "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
         "litter_pool_below_structural": [0.600271, 0.310272, 0.020471],
@@ -140,6 +140,7 @@ def test_calculate_litter_pool_updates(
         below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
         below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
+        decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         update_interval=1.0,
         constants=LitterConsts,
     )
@@ -260,3 +261,39 @@ def test_calculate_carbon_mineralised():
     )
 
     assert np.allclose(actual_mineral, expected_mineral)
+
+
+@pytest.mark.parametrize(
+    "metabolic_fraction,expected_metabolic,expected_structural",
+    [
+        (
+            0.2,
+            [2.1428e-5, 9.7142e-5, 2.31428e-04, 4.85714e-04],
+            [8.5712e-5, 0.000388568, 0.000925712, 0.001942856],
+        ),
+        (
+            0.5,
+            [5.357e-5, 0.000242855, 0.00057857, 0.001214285],
+            [5.357e-5, 0.000242855, 0.00057857, 0.001214285],
+        ),
+        (
+            0.9,
+            [9.6426e-5, 0.000437139, 0.001041426, 0.002185713],
+            [1.0714e-5, 4.8571e-5, 1.15714e-4, 2.42857e-4],
+        ),
+    ],
+)
+def test_calculate_carcass_split(
+    metabolic_fraction, expected_metabolic, expected_structural
+):
+    """Test that the carcass split function works as intended."""
+    from virtual_rainforest.models.litter.litter_pools import calculate_carcass_split
+
+    decomposed_carcass_C = np.array([1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3])
+
+    actual_metabolic, actual_structural = calculate_carcass_split(
+        decomposed_carcass_C, metabolic_fraction
+    )
+
+    assert np.allclose(actual_metabolic, expected_metabolic)
+    assert np.allclose(actual_structural, expected_structural)
