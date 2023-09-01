@@ -39,10 +39,10 @@ def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArra
     """
 
     # TODO - actually calculate these
-    layer_hght = np.array([30.0, 20.0, 10.0])
-    layer_lai = np.array([1.0, 1.0, 1.0])
+    layer_heights = np.array([30.0, 20.0, 10.0])
+    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
 
-    return layer_hght, layer_lai
+    return layer_heights, layer_leaf_area_indices
 
 
 def build_canopy_arrays(
