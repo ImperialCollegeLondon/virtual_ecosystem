@@ -16,14 +16,7 @@ Each of the hydrology sub-modules has its own API reference page:
   parameters and constants for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415
 
-from importlib import resources
-
-from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.base_model import register_model
 from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
-with resources.path(
-    "virtual_rainforest.models.hydrology", "hydrology_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=HydrologyModel.model_name, schema_file_path=schema_file_path
-    )
+register_model(__name__, HydrologyModel)

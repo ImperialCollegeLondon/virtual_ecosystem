@@ -32,7 +32,7 @@ from virtual_rainforest.core.config import register_schema
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
 
 with resources.path(
-    "virtual_rainforest.models.abiotic", "abiotic_schema.json"
+    "virtual_rainforest.models.abiotic", "model_schema.json"
 ) as schema_file_path:
     register_schema(
         module_name=AbioticModel.model_name, schema_file_path=schema_file_path

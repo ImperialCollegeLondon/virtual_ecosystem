@@ -80,15 +80,16 @@ team.
   :caption: API reference
 
   Main <api/main.md>
+  Example data <api/example_data.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
-  Example data <api/example_data.md>
   Logger <api/core/logger.md>
   Grid <api/core/grid.md>
   Data <api/core/data.md>
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
+  Core Constants <api/core/constants.md>
   Utility functions <api/core/utils.md>
   Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
