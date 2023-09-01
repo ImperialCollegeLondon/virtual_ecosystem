@@ -39,6 +39,7 @@ def calculate_litter_pool_updates(
     below_metabolic: NDArray[np.float32],
     below_structural: NDArray[np.float32],
     decomposed_excrement: NDArray[np.float32],
+    decomposed_carcasses: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
@@ -57,6 +58,8 @@ def calculate_litter_pool_updates(
         below_structural: Below ground structural litter pool [kg C m^-2]
         decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
             day^-1]
+        decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
+            the animal model [kg C m^-2 day^-1]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -135,15 +138,25 @@ def calculate_litter_pool_updates(
         carbon_use_efficiency=constants.cue_structural_below_ground,
     )
 
+    # Calculate how the decomposed carcasses biomass is split between the metabolic and
+    # structural litter pools
+    carcass_to_metabolic, carcass_to_structural = calculate_carcass_split(
+        decomposed_carcasses,
+        fraction_to_metabolic=constants.carcass_decay_metabolic_fraction,
+    )
+
     # Combine with input rates and multiple by update time to find overall changes
     change_in_metabolic_above = (
         constants.litter_input_to_metabolic_above
         + decomposed_excrement
+        + carcass_to_metabolic
         - metabolic_above_decay
     ) * update_interval
 
     change_in_structural_above = (
-        constants.litter_input_to_structural_above - structural_above_decay
+        constants.litter_input_to_structural_above
+        + carcass_to_structural
+        - structural_above_decay
     ) * update_interval
     change_in_woody = (constants.litter_input_to_woody - woody_decay) * update_interval
     change_in_metabolic_below = (
@@ -429,3 +442,29 @@ def calculate_carbon_mineralised(
     """
 
     return carbon_use_efficiency * litter_decay_rate
+
+
+def calculate_carcass_split(
+    decomposed_carcasses: NDArray[np.float32], fraction_to_metabolic: float
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Calculate the amount of carcass biomass for metabolic and structural litter.
+
+    TODO - In future this function probably should depend on factors like animal tissue
+    chemistry, but for now the split is assumed to be constant.
+
+    Args:
+        decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
+            the animal model [kg C m^-2 day^-1]
+        fraction_to_metabolic: Fraction of decomposed carcass biomass that belongs in
+            the metabolic litter pool [unitless]
+
+    Returns:
+        A tuple containing the rate carcass biomass flow into to the metabolic litter
+        pool [kg C m^-2 day^-1], and the rate of flow into the structural pool [kg C
+        m^-2 day^-1].
+    """
+
+    carcass_to_metabolic = fraction_to_metabolic * decomposed_carcasses
+    carcass_to_structural = (1 - fraction_to_metabolic) * decomposed_carcasses
+
+    return (carcass_to_metabolic, carcass_to_structural)
