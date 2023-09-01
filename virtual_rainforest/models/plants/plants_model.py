@@ -12,12 +12,12 @@ from typing import Any
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 
 # from virtual_rainforest.core.config import Config
 # from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_valid_constant_names
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
@@ -111,14 +111,8 @@ class PlantsModel(BaseModel):
         """
 
         # Check if any constants have been supplied
-        if "plants" in config and "constants" in config["plants"]:
-            # Checks that constants is config are as expected
-            check_valid_constant_names(config, "plants", "PlantsConsts")
-            # If an error isn't raised then generate the dataclass
-            constants = PlantsConsts(**config["plants"]["constants"]["PlantsConsts"])
-        else:
-            # If no constants are supplied then the defaults should be used
-            constants = PlantsConsts()
+        # Load in the relevant constants
+        constants = load_constants(config, "plants", "PlantConsts")
 
         # Generate the flora
         flora = Flora.from_config(config=config)

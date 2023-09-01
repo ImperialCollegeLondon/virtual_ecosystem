@@ -10,14 +10,7 @@ in the Virtual Rainforest. The submodules provide:
   PlantCommunities class that records list of plant cohorts by grid cell.
 """  # noqa: D205, D415
 
-from importlib import resources
-
-from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.base_model import register_model
 from virtual_rainforest.models.plants.plants_model import PlantsModel
 
-with resources.path(
-    "virtual_rainforest.models.plants", "model_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=PlantsModel.model_name, schema_file_path=schema_file_path
-    )
+register_model(__name__, PlantsModel)
