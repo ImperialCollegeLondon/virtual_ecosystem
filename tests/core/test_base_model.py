@@ -628,3 +628,31 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
         assert inst.update_interval == timestep
 
     log_check(caplog, expected_log)
+
+
+def test_register_model(caplog):
+    """Test that helper function for model registration works correctly."""
+    from virtual_rainforest.core.base_model import register_model
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    with pytest.raises(ValueError):
+        register_model("virtual_rainforest.models.animals", AnimalModel)
+
+    expected_log = ((CRITICAL, "The module schema for animals is already registered"),)
+
+    log_check(caplog, expected_log)
+
+
+def test_register_wrong_model(caplog):
+    """Test that helper function an error is raised if the wrong model is registered."""
+    from virtual_rainforest.core.base_model import register_model
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    with pytest.raises(ConfigurationError):
+        register_model("virtual_rainforest.models.soil", AnimalModel)
+
+    expected_log = (
+        (CRITICAL, "Wrong model provided for registration expected soil got animals"),
+    )
+
+    log_check(caplog, expected_log)

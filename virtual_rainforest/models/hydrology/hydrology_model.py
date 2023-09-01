@@ -26,11 +26,12 @@ from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
@@ -150,15 +151,8 @@ class HydrologyModel(BaseModel):
         canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
 
-        # Check if any constants have been supplied
-        if "hydrology" in config and "constants" in config["hydrology"]:
-            # Checks that constants is config are as expected
-            check_valid_constant_names(config, "hydrology", "HydroConsts")
-            # If an error isn't raised then generate the dataclass
-            constants = HydroConsts(**config["hydrology"]["constants"]["HydroConsts"])
-        else:
-            # If no constants are supplied then the defaults should be used
-            constants = HydroConsts()
+        # Load in the relevant constants
+        constants = load_constants(config, "hydrology", "HydroConsts")
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
