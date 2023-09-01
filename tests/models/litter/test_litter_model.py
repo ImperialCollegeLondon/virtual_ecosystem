@@ -57,6 +57,18 @@ def litter_model_fixture(dummy_litter_data):
                     DEBUG,
                     "litter model: required var 'litter_pool_below_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_below_structural' checked",
+                ),
             ),
         ),
         (
@@ -87,6 +99,20 @@ def litter_model_fixture(dummy_litter_data):
                     ERROR,
                     "litter model: init data missing required var "
                     "'litter_pool_below_structural'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'lignin_above_structural'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var " "'lignin_woody'",
+                ),
+                (
+                    ERROR,
+                    "litter model: init data missing required var "
+                    "'lignin_below_structural'",
                 ),
                 (
                     ERROR,
@@ -123,8 +149,66 @@ def litter_model_fixture(dummy_litter_data):
                     "litter model: required var 'litter_pool_below_structural' checked",
                 ),
                 (
+                    DEBUG,
+                    "litter model: required var 'lignin_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_below_structural' checked",
+                ),
+                (
                     ERROR,
                     "Initial litter pools contain at least one negative value!",
+                ),
+            ),
+        ),
+        (
+            3,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    INFO,
+                    "Replacing data array for 'lignin_woody'",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'litter_pool_below_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_below_structural' checked",
+                ),
+                (
+                    ERROR,
+                    "Lignin proportions must be between 0 and 1!",
                 ),
             ),
         ),
@@ -144,12 +228,18 @@ def test_litter_model_initialization(
             # Make four cell grid
             grid = Grid(cell_nx=4, cell_ny=1)
             litter_data = Data(grid)
-            # On second test actually populate this data to test bounds
+            # On second and third tests actually populate this data to test bounds
             if bad_data == 2:
                 litter_data = deepcopy(dummy_litter_data)
                 # Put incorrect data in for lmwc
                 litter_data["litter_pool_above_metabolic"] = DataArray(
                     [0.05, 0.02, -0.1], dims=["cell_id"]
+                )
+            elif bad_data == 3:
+                litter_data = deepcopy(dummy_litter_data)
+                # Put incorrect data in for lmwc
+                litter_data["lignin_woody"] = DataArray(
+                    [0.5, 0.4, 1.1], dims=["cell_id"]
                 )
             # Initialise model with bad data object
             model = LitterModel(
@@ -223,6 +313,18 @@ def test_litter_model_initialization(
                     DEBUG,
                     "litter model: required var 'litter_pool_below_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_below_structural' checked",
+                ),
             ),
         ),
         (
@@ -266,6 +368,18 @@ def test_litter_model_initialization(
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_below_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_above_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_woody' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'lignin_below_structural' checked",
                 ),
             ),
         ),

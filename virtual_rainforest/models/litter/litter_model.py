@@ -111,6 +111,21 @@ class LitterModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
+        # Check that lignin proportions are between 0 and 1
+        if (
+            np.any(data["lignin_above_structural"] < 0.0)
+            or np.any(data["lignin_woody"] < 0.0)
+            or np.any(data["lignin_below_structural"] < 0.0)
+            or np.any(data["lignin_above_structural"] > 1.0)
+            or np.any(data["lignin_woody"] > 1.0)
+            or np.any(data["lignin_below_structural"] > 1.0)
+        ):
+            to_raise = InitialisationError(
+                "Lignin proportions must be between 0 and 1!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
         self.constants = constants
         """Set of constants for the litter model"""
 
