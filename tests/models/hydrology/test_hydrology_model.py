@@ -459,9 +459,12 @@ def test_setup(
             HydroConsts.groundwater_capacity,
         ),
         (
-            DataArray([0.9, 0.9, 0.9], dims=["cell_id"]),
-            DataArray([0.1, 0.1, 0.1], dims=["cell_id"]),
-            DataArray([0.001, 0.001, 0.001], dims=["cell_id"]),
+            DataArray([[0.9, 0.9, 0.9], [0.9, 0.9, 0.9]], dims=["layers", "cell_id"]),
+            DataArray([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]], dims=["layers", "cell_id"]),
+            DataArray(
+                [[0.001, 0.001, 0.001], [0.001, 0.001, 0.001]],
+                dims=["layers", "cell_id"],
+            ),
             DataArray([2, 2, 2], dims=["cell_id"]),
             DataArray([0.9, 0.9, 0.9], dims=["cell_id"]),
         ),
@@ -474,9 +477,23 @@ def test_calculate_vertical_flow(soilm_cap, soilm_res, hydr_con, nonlin_par, gw_
         calculate_vertical_flow,
     )
 
-    soil_moisture = DataArray([[30, 60, 90], [30, 60, 90]], dims=["layers", "cell_id"])
+    soil_moisture = DataArray(
+        [[30, 60, 90], [30, 60, 90]],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
+    )
     layer_thickness = DataArray(
-        [[100, 100, 100], [900, 900, 900]], dims=["layers", "cell_id"]
+        [[100, 100, 100], [900, 900, 900]],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
     )
 
     result = calculate_vertical_flow(
@@ -488,7 +505,7 @@ def test_calculate_vertical_flow(soilm_cap, soilm_res, hydr_con, nonlin_par, gw_
         nonlin_par,
         gw_cap,
         2.628e6,
-        1000,
+        1000.0,
     )
     exp_flow = DataArray(
         [[29.9, 59.9, 89.9], [900, 900, 900]],
@@ -710,6 +727,62 @@ def test_estimate_interception():
         [0.0, 1.180619, 5.339031],
         dims="cell_id",
         coords={"cell_id": [0, 1, 2]},
+    )
+
+    xr.testing.assert_allclose(result, exp_result)
+
+
+def test_update_soil_moisture():
+    """Test soil moisture update."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import update_soil_moisture
+
+    soil_moisture = DataArray(
+        [[30, 60, 90], [30, 60, 90]],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
+    )
+
+    vertical_flow = DataArray(
+        [[1, 20, 300], [1, 20, 300]],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
+    )
+
+    layer_thickness = DataArray(
+        [[100, 100, 100], [900, 900, 900]],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
+    )
+
+    exp_result = DataArray(
+        [
+            [-7.000000e-03, -1.940000e-01, -2.991000e00],
+            [3.703704e-05, 7.407407e-05, 1.111111e-04],
+        ],
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": [13, 14],
+            "layer_roles": ("layers", ["soil", "soil"]),
+            "cell_id": [0, 1, 2],
+        },
+    )
+    result = update_soil_moisture(
+        soil_moisture / layer_thickness,
+        vertical_flow,
+        layer_thickness,
     )
 
     xr.testing.assert_allclose(result, exp_result)

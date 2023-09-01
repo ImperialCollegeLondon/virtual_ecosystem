@@ -183,10 +183,13 @@ class HydrologyModel(BaseModel):
         the above-ground hydrology. Air temperature and relative humidity below the
         canopy are set to the 2 m reference values.
 
-        For the hydrology across the grid (above-/below-ground and total runoff), this
-        function uses the upstream neighbours of each grid cell (see drainage map).
+        For the hydrology across the grid (above-/below-ground and accumulated runoff),
+        this function uses the upstream neighbours of each grid cell (see
+        :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_drainage_map`
+        ).
 
         TODO implement below-ground horizontal flow and update stream flow
+        TODO potentially move `calculate_drainage_map` to core
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -272,29 +275,38 @@ class HydrologyModel(BaseModel):
 
         At the moment, this step calculates soil moisture, vertical flow, soil
         evaporation, and surface runoff (per grid cell and accumulated), and estimates
-        mean stream flow. Soil moisture and surface runoff are calculated
-        with a simple bucket model based on :cite:t:`davis_simple_2017`: if
-        precipitation exceeds top soil moisture capacity, the excess water is added to
-        runoff and top soil moisture is set to soil moisture capacity value; if the top
-        soil is not saturated, precipitation is added to the current soil moisture level
-        and runoff is set to zero. Note that this function will likely change with the
-        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
-        module which will take care of the grid cell based above-ground hydrology. The
-        accumulated surface runoff is calculated as the sum off current runoff and the
-        runoff from upstream cells at the previous time step.
+        mean stream flow.
+
+        Surface runoff is calculated with a simple bucket model based on
+        :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+        , the excess water is added to runoff and top soil moisture is set to soil
+        moisture capacity value; if the top soil is not saturated, precipitation is
+        added to the current soil moisture level and runoff is set to zero. Note that
+        this function will likely change with the implementation of the SPLASH model
+        :cite:p:`davis_simple_2017` in the plant module which will take care of the grid
+        cell based above-ground hydrology. The accumulated surface runoff is calculated
+        as the sum of current runoff and the runoff from upstream cells at the previous
+        time step.
 
         Soil evaporation is calculated with classical bulk aerodynamic formulation,
         following the so-called ':math:`\alpha` method', see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_soil_evaporation`
         .
 
-        Vertical flow is calculated using the Richards equation, see
+        Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
-        . Note that there are severe limitations to this approach on the temporal and
-        spatial scale of this model and this can only be treated as a very rough
-        approximation!
+        . That function returns vertical flow in mm, however, the vertical flow variable
+        in the data object represents the mean vertical flow in m/s. Note that there are
+        severe limitations to this approach on the temporal and spatial scale of this
+        model and this can only be treated as a very rough approximation!
 
-        Mean stream flow :math:`Q` is estimated as
+        Soil moisture is updated by iteratively updating the soil moisture of individual
+        layers under consideration of the vertical flow in and out of each layer, see
+        :func:`~virtual_rainforest.models.hydrology.hydrology_model.update_soil_moisture`
+        .
+
+        Mean stream flow :math:`Q` is currently estimated with a simple catchment water
+        balance as
 
         :math:`Q = P - ET - \Delta S`
 
@@ -487,8 +499,7 @@ class HydrologyModel(BaseModel):
         # approximation to discuss nutrient leaching.
 
         vertical_flow = calculate_vertical_flow(
-            soil_moisture=soil_moisture_nettop
-            / soil_layer_thickness,  # vol. water cont
+            soil_moisture=soil_moisture_nettop / soil_layer_thickness,  # vol. water
             soil_layer_thickness=soil_layer_thickness,  # mm
             soil_moisture_capacity=self.constants.soil_moisture_capacity,  # vol
             soil_moisture_residual=self.constants.soil_moisture_residual,  # vol
@@ -504,26 +515,16 @@ class HydrologyModel(BaseModel):
             vertical_flow.mean(dim="layers")
             / time_conversion_factor
             * self.data.grid.cell_area
-            / 1000.0
+            / self.constants.meters_to_mm
         )
 
-        top_soil_moisture = soil_moisture_nettop.isel(layers=0) - vertical_flow.isel(
-            layers=0
+        soil_moisture_updated = update_soil_moisture(
+            soil_moisture=soil_moisture_nettop,
+            vertical_flow=vertical_flow,
+            layer_thickness=soil_layer_thickness,
         )
-        lower_soil_moisture = [
-            (
-                soil_moisture_nettop.isel(layers=i + 1)
-                + vertical_flow.isel(layers=i)
-                - vertical_flow.isel(layers=i + 1)
-            )
-            for sm, vf in zip(
-                soil_moisture_nettop.drop_isel(layers=0),
-                vertical_flow.drop_isel(layers=0),
-            )
-            for i in range(self.layer_roles.count("soil") - 1)
-        ]
 
-        # Expand soil moisture [mm] to all soil layers and add atmospheric layers (nan)
+        # Add atmospheric layers (nan)
         soil_hydrology["soil_moisture"] = xr.concat(
             [
                 DataArray(
@@ -549,19 +550,7 @@ class HydrologyModel(BaseModel):
                         "cell_id": self.data["layer_heights"].cell_id,
                     },
                 ),
-                top_soil_moisture,
-                DataArray(
-                    lower_soil_moisture,
-                    dims=["layers", "cell_id"],
-                    coords={
-                        "layers": [len(self.layer_roles)],
-                        "layer_roles": (
-                            "layers",
-                            [self.layer_roles[len(self.layer_roles) - 1]],
-                        ),
-                        "cell_id": self.data["layer_heights"].cell_id,
-                    },
-                ).squeeze(),
+                soil_moisture_updated,
             ],
             dim="layers",
         )
@@ -637,7 +626,7 @@ def calculate_vertical_flow(
 
     and
 
-    :math:`K(S) = K_{s}*(S*(1-S^{1/m})^{m})^{2}`
+    :math:`K(S) = K_{s}* \sqrt{S} *(1-(1-S^{1/m})^{m})^{2}`
 
     where :math:`\Theta_{r}` is the residual moisture content, :math:`\Theta_{s}` is the
     saturated moisture content, :math:`K_{s}` is the saturated hydraulic conductivity,
@@ -679,13 +668,13 @@ def calculate_vertical_flow(
     )
 
     # Calculate the effective hydraulic conductivity after Mualem (1976)
-    effective_conductivity = (
+    effective_conductivity = DataArray(
         hydraulic_conductivity
         * timestep_conversion_factor
         * meters_to_millimeters
-        * effective_saturation
-        * soil_layer_thickness
-        * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2
+        * np.sqrt(effective_saturation)
+        * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2,
+        dims=["layers", "cell_id"],
     )
 
     # Calculate flow from top soil to lower soil
@@ -700,17 +689,27 @@ def calculate_vertical_flow(
         )
         flow.append(flow_layer)
 
-    groundwater_storage = (  # TODO fix dimensions here
-        groundwater_capacity
-        * soil_layer_thickness.sum(dim="layers").expand_dims("layers")
+    groundwater_storage = (
+        (groundwater_capacity * soil_layer_thickness.sum(dim="layers"))
+        .expand_dims(dim="layers")
+        .assign_coords(
+            {
+                "layers": [soil_moisture.isel(layers=-1).layers + 1],
+                "layer_roles": ("layers", ["groundwater"]),
+                "cell_id": soil_moisture.cell_id,
+            }
+        )
+        .squeeze()
     )
+
     outflow = effective_conductivity.isel(layers=-1).where(
         effective_conductivity.isel(layers=-1) < groundwater_storage,
         groundwater_storage,
     )
-    flow.append(outflow)
+    flow.append(outflow.transpose())
 
     return DataArray(flow, dims=["layers", "cell_id"])
+    # TODO this currently returns negative values
 
 
 def calculate_soil_evaporation(
@@ -949,3 +948,46 @@ def estimate_interception(
         max_capacity
         * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity))
     ).fillna(0)
+
+
+def update_soil_moisture(
+    soil_moisture: DataArray,
+    vertical_flow: DataArray,
+    layer_thickness: DataArray,
+) -> DataArray:
+    """Update soil moisture profile.
+
+    Args:
+        soil_moisture: soil moisture after infiltration and surface evaporation, mm
+        vertical_flow: vertical flow between all layers, mm
+        layer_thickness: thickness of soil layers, mm
+
+    Returns:
+        updated soil moisture profile, relative volumetric water content, dimensionless
+    """
+
+    top_soil_moisture = soil_moisture.isel(layers=0) - vertical_flow.isel(layers=0)
+    lower_soil_moisture = [
+        (
+            soil_moisture.isel(layers=i + 1)
+            + vertical_flow.isel(layers=i)
+            - vertical_flow.isel(layers=i + 1)
+        )
+        for sm, vf in zip(
+            soil_moisture.drop_isel(layers=0),
+            vertical_flow.drop_isel(layers=0),
+        )
+        for i in range(len(soil_moisture) - 1)
+    ]
+
+    # Combine all levels and convert to relative volumetric water content
+    return xr.concat(  # TODO needs fix
+        [
+            top_soil_moisture / layer_thickness.isel(layers=0),
+            DataArray(
+                lower_soil_moisture / layer_thickness.drop_isel(layers=0),
+                dims=["layers", "cell_id"],
+            ).squeeze(),
+        ],
+        dim="layers",
+    ).assign_coords(coords=vertical_flow.coords)
