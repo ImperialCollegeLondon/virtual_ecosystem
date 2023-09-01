@@ -156,6 +156,9 @@ def test_calculate_litter_pool_updates(
         woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
         below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
         below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
+        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
+        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         update_interval=1.0,
@@ -226,7 +229,9 @@ def test_calculate_litter_decay_structural_above(
     actual_decay = calculate_litter_decay_structural_above(
         temperature_factor=temp_and_water_factors["temp_above"],
         litter_pool_above_structural=dummy_litter_data["litter_pool_above_structural"],
+        lignin_proportion=dummy_litter_data["lignin_above_structural"],
         litter_decay_coefficient=LitterConsts.litter_decay_constant_structural_above,
+        lignin_inhibition_factor=LitterConsts.lignin_inhibition_factor,
     )
 
     assert np.allclose(actual_decay, expected_decay)
@@ -243,7 +248,9 @@ def test_calculate_litter_decay_woody(dummy_litter_data, temp_and_water_factors)
     actual_decay = calculate_litter_decay_woody(
         temperature_factor=temp_and_water_factors["temp_above"],
         litter_pool_woody=dummy_litter_data["litter_pool_woody"],
+        lignin_proportion=dummy_litter_data["lignin_woody"],
         litter_decay_coefficient=LitterConsts.litter_decay_constant_woody,
+        lignin_inhibition_factor=LitterConsts.lignin_inhibition_factor,
     )
 
     assert np.allclose(actual_decay, expected_decay)
@@ -283,7 +290,9 @@ def test_calculate_litter_decay_structural_below(
         temperature_factor=temp_and_water_factors["temp_below"],
         moisture_factor=temp_and_water_factors["water_below"],
         litter_pool_below_structural=dummy_litter_data["litter_pool_below_structural"],
+        lignin_proportion=dummy_litter_data["lignin_below_structural"],
         litter_decay_coefficient=LitterConsts.litter_decay_constant_structural_below,
+        lignin_inhibition_factor=LitterConsts.lignin_inhibition_factor,
     )
 
     assert np.allclose(actual_decay, expected_decay)

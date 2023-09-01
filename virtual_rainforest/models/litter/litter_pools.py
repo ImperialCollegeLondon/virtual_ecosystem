@@ -34,6 +34,9 @@ def calculate_litter_pool_updates(
     woody: NDArray[np.float32],
     below_metabolic: NDArray[np.float32],
     below_structural: NDArray[np.float32],
+    lignin_above_structural: NDArray[np.float32],
+    lignin_woody: NDArray[np.float32],
+    lignin_below_structural: NDArray[np.float32],
     decomposed_excrement: NDArray[np.float32],
     decomposed_carcasses: NDArray[np.float32],
     update_interval: float,
@@ -52,6 +55,11 @@ def calculate_litter_pool_updates(
         woody: The woody litter pool [kg C m^-2]
         below_metabolic: Below ground metabolic litter pool [kg C m^-2]
         below_structural: Below ground structural litter pool [kg C m^-2]
+        lignin_above_structural: Proportion of above ground structural pool which is
+            lignin [unitless]
+        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
+        lignin_below_structural: Proportion of below ground structural pool which is
+            lignin [unitless]
         decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
             day^-1]
         decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
@@ -94,12 +102,16 @@ def calculate_litter_pool_updates(
     structural_above_decay = calculate_litter_decay_structural_above(
         temperature_factor_above,
         above_structural,
+        lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
+        lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
         temperature_factor_above,
         woody,
+        lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
+        lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
         temperature_factor_below,
@@ -111,7 +123,9 @@ def calculate_litter_pool_updates(
         temperature_factor_below,
         water_factor,
         below_structural,
+        lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
+        lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
 
     # Calculate how the decomposed carcasses biomass is split between the metabolic and
@@ -342,7 +356,9 @@ def calculate_litter_decay_metabolic_above(
 def calculate_litter_decay_structural_above(
     temperature_factor: NDArray[np.float32],
     litter_pool_above_structural: NDArray[np.float32],
+    lignin_proportion: NDArray[np.float32],
     litter_decay_coefficient: float,
+    lignin_inhibition_factor: float,
 ) -> NDArray[np.float32]:
     """Calculate decay of above ground structural litter pool.
 
@@ -353,18 +369,20 @@ def calculate_litter_decay_structural_above(
             on litter decomposition [unitless]
         litter_pool_above_structural: The size of the above ground structural litter
             pool [kg C m^-2]
+        lignin_proportion: The proportion of the above ground structural pool which is
+            lignin [unitless]
         litter_decay_coefficient: The decay coefficient for the above ground structural
             litter pool [day^-1]
+        lignin_inhibition_factor: An exponential factor expressing the extent to which
+            lignin inhibits the breakdown of litter [unitless]
 
     Returns:
         Rate of decay of the above ground structural litter pool [kg C m^-2 day^-1]
     """
 
-    # Factor capturing the impact of litter chemistry on decomposition, calculated based
-    # on formula in Kirschbaum and Paul (2002) with the assumption that structural
-    # litter is 50% lignin. Keeping as a hard coded constant for now, as how litter
-    # chemistry is dealt with is going to be revised in the near future.
-    litter_chemistry_factor = 0.082085
+    litter_chemistry_factor = calculate_litter_chemistry_factor(
+        lignin_proportion, lignin_inhibition_factor=lignin_inhibition_factor
+    )
 
     return (
         litter_decay_coefficient
@@ -377,7 +395,9 @@ def calculate_litter_decay_structural_above(
 def calculate_litter_decay_woody(
     temperature_factor: NDArray[np.float32],
     litter_pool_woody: NDArray[np.float32],
+    lignin_proportion: NDArray[np.float32],
     litter_decay_coefficient: float,
+    lignin_inhibition_factor: float,
 ) -> NDArray[np.float32]:
     """Calculate decay of the woody litter pool.
 
@@ -387,18 +407,20 @@ def calculate_litter_decay_woody(
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
         litter_pool_woody: The size of the woody litter pool [kg C m^-2]
+        lignin_proportion: The proportion of the woody litter pool which is lignin
+            [unitless]
         litter_decay_coefficient: The decay coefficient for the woody litter pool
             [day^-1]
+        lignin_inhibition_factor: An exponential factor expressing the extent to which
+            lignin inhibits the breakdown of litter [unitless]
 
     Returns:
         Rate of decay of the woody litter pool [kg C m^-2 day^-1]
     """
 
-    # Factor capturing the impact of litter chemistry on decomposition, calculated based
-    # on formula in Kirschbaum and Paul (2002) with the assumption that dead wood is 50%
-    # lignin. Keeping as a hard coded constant for now, as how litter chemistry is dealt
-    # with is going to be revised in the near future.
-    litter_chemistry_factor = 0.082085
+    litter_chemistry_factor = calculate_litter_chemistry_factor(
+        lignin_proportion, lignin_inhibition_factor=lignin_inhibition_factor
+    )
 
     return (
         litter_decay_coefficient
@@ -444,7 +466,9 @@ def calculate_litter_decay_structural_below(
     temperature_factor: NDArray[np.float32],
     moisture_factor: NDArray[np.float32],
     litter_pool_below_structural: NDArray[np.float32],
+    lignin_proportion: NDArray[np.float32],
     litter_decay_coefficient: float,
+    lignin_inhibition_factor: float,
 ) -> NDArray[np.float32]:
     """Calculate decay of below ground structural litter pool.
 
@@ -457,18 +481,20 @@ def calculate_litter_decay_structural_below(
             on litter decomposition [unitless]
         litter_pool_below_structural: The size of the below ground structural litter
             pool [kg C m^-2]
+        lignin_proportion: The proportion of the below ground structural pool which is
+            lignin [unitless]
         litter_decay_coefficient: The decay coefficient for the below ground structural
             litter pool [day^-1]
+        lignin_inhibition_factor: An exponential factor expressing the extent to which
+            lignin inhibits the breakdown of litter [unitless]
 
     Returns:
         Rate of decay of the below ground structural litter pool [kg C m^-2 day^-1]
     """
 
-    # Factor capturing the impact of litter chemistry on decomposition, calculated based
-    # on formula in Kirschbaum and Paul (2002) with the assumption that structural
-    # litter is 50% lignin. Keeping as a hard coded constant for now, as how litter
-    # chemistry is dealt with is going to be revised in the near future.
-    litter_chemistry_factor = 0.082085
+    litter_chemistry_factor = calculate_litter_chemistry_factor(
+        lignin_proportion, lignin_inhibition_factor=lignin_inhibition_factor
+    )
 
     return (
         litter_decay_coefficient

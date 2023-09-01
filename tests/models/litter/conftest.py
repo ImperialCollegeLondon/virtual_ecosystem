@@ -32,6 +32,14 @@ def dummy_litter_data(layer_roles_fixture):
         [0.6, 0.31, 0.02], dims=["cell_id"]
     )
     """Below ground structural litter pool (kg C m^-2)"""
+    # TODO - The three below are all set to 0.5 to begin with as this means that nothing
+    # should change. I will have to change this down the line
+    data["lignin_above_structural"] = DataArray([0.5, 0.5, 0.5], dims=["cell_id"])
+    """Proportion of above ground structural pool which is lignin [unitless]"""
+    data["lignin_woody"] = DataArray([0.5, 0.5, 0.5], dims=["cell_id"])
+    """Proportion of dead wood pool which is lignin [unitless]"""
+    data["lignin_below_structural"] = DataArray([0.5, 0.5, 0.5], dims=["cell_id"])
+    """Proportion of below ground structural pool which is lignin [unitless]"""
     data["decomposed_excrement"] = DataArray(
         [8e-07, 8.42857e-07, 3.28571e-05], dims=["cell_id"]
     )

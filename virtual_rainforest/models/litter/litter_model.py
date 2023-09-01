@@ -69,6 +69,9 @@ class LitterModel(BaseModel):
         ("litter_pool_woody", ("spatial",)),
         ("litter_pool_below_metabolic", ("spatial",)),
         ("litter_pool_below_structural", ("spatial",)),
+        ("lignin_above_structural", ("spatial",)),
+        ("lignin_woody", ("spatial",)),
+        ("lignin_below_structural", ("spatial",)),
     )
     """Required initialisation variables for the litter model.
 
@@ -223,6 +226,9 @@ class LitterModel(BaseModel):
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
+            lignin_woody=self.data["lignin_woody"].to_numpy(),
+            lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
             decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
             decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
         )
