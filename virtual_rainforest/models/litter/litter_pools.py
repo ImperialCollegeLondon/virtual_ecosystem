@@ -71,57 +71,44 @@ def calculate_litter_pool_updates(
         The new value for each of the litter pools, and the total mineralisation rate.
     """
 
-    # Calculate temperature factor for the above ground litter layers
-    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
-        temperature=surface_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
-    # Calculate temperature factor for the below ground litter layers
-    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
-        temperature=topsoil_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
-    # Calculate the water factor (relevant for below ground layers)
-    water_factor = calculate_moisture_effect_on_litter_decomp(
+    # Calculate the factors which capture the impact that temperature and soil water
+    # content have on litter decay rates
+    environmental_factors = calculate_environmental_factors(
+        surface_temp=surface_temp,
+        topsoil_temp=topsoil_temp,
         water_potential=water_potential,
-        water_potential_halt=constants.litter_decay_water_potential_halt,
-        water_potential_opt=constants.litter_decay_water_potential_optimum,
-        moisture_response_curvature=constants.moisture_response_curvature,
+        constants=constants,
     )
 
     # Calculate the pool decay rates
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
-        temperature_factor_above,
+        environmental_factors["temp_above"],
         above_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
-        temperature_factor_above,
+        environmental_factors["temp_above"],
         above_structural,
         lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
-        temperature_factor_above,
+        environmental_factors["temp_above"],
         woody,
         lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
-        temperature_factor_below,
-        water_factor,
+        environmental_factors["temp_below"],
+        environmental_factors["water"],
         below_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
     )
     structural_below_decay = calculate_litter_decay_structural_below(
-        temperature_factor_below,
-        water_factor,
+        environmental_factors["temp_below"],
+        environmental_factors["water"],
         below_structural,
         lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
@@ -246,6 +233,62 @@ def calculate_total_C_mineralised(
 
     # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
     return total_C_mineralisation_rate / constants.depth_of_active_layer
+
+
+def calculate_environmental_factors(
+    surface_temp: NDArray[np.float32],
+    topsoil_temp: NDArray[np.float32],
+    water_potential: NDArray[np.float32],
+    constants: LitterConsts,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the impact of the environment has on litter decay across litter layers.
+
+    For the above ground layer the impact of temperature is calculated, and for the
+    below ground layer the effect of temperature and soil water potential are
+    considered.
+
+    Args:
+        surface_temp: Temperature of soil surface, which is assumed to be the same
+            temperature as the above ground litter [C]
+        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
+            temperature as the below ground litter [C]
+        water_potential: Water potential of the topsoil layer [kPa] constants: Set of
+        constants for the litter model
+
+    Returns:
+        A dictionary containing three environmental factors, one for the effect of
+        temperature on above ground litter decay, one for the effect of temperature on
+        below ground litter decay, and one for the effect of soil water potential on
+        below ground litter decay.
+    """
+    # Calculate temperature factor for the above ground litter layers
+    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
+        temperature=surface_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate temperature factor for the below ground litter layers
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
+        temperature=topsoil_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate the water factor (relevant for below ground layers)
+    water_factor = calculate_moisture_effect_on_litter_decomp(
+        water_potential=water_potential,
+        water_potential_halt=constants.litter_decay_water_potential_halt,
+        water_potential_opt=constants.litter_decay_water_potential_optimum,
+        moisture_response_curvature=constants.moisture_response_curvature,
+    )
+
+    # Return all three factors in a single dictionary
+    return {
+        "temp_above": temperature_factor_above,
+        "temp_below": temperature_factor_below,
+        "water": water_factor,
+    }
 
 
 def calculate_temperature_effect_on_litter_decomp(
