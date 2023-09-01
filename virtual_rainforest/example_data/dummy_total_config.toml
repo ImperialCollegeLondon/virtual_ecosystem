@@ -30,6 +30,13 @@ file = "plants_dummy.nc"
 var_name = "evapotranspiration"
 
 [[core.data.variable]]
+file = "elevation_dummy.nc"
+var_name = "elevation"
+[[core.data.variable]]
+file = "surface_runoff_dummy.nc"
+var_name = "surface_runoff"
+
+[[core.data.variable]]
 file = "dummy_soil_data.nc"
 var_name = "pH"
 [[core.data.variable]]

@@ -19,14 +19,16 @@ class HydroConsts:
     """Soil moisture capacity, also known as field capacity or water holding capacity,
     refers to the maximum amount of water that a soil can retain against the force of
     gravity after it has been saturated and excess water has drained away. The value is
-    soil type specific, the unit here is relative water content (between 0 and 1).
+    soil type specific, the format here is volumentic relative water content (unitless,
+    between 0 and 1).
     """
 
     soil_moisture_residual: float = 0.1
     """Residual soil moisture refers to the water that remains in the soil after
     prolonged drainage due to the force of gravity. It is the water that is tightly held
     by soil particles and is not easily available for plant roots to extract. The value
-    is soil specific, the unit here is relative water content (between 0 and 1).
+    is soil specific, the format here is volumentic relative water content (unitless,
+    between 0 and 1).
     """
 
     water_interception_factor: float = 0.1

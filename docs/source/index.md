@@ -80,15 +80,16 @@ team.
   :caption: API reference
 
   Main <api/main.md>
+  Example data <api/example_data.md>
   Core Overview <api/core.md>
   Configuration <api/core/config.md>
-  Example data <api/example_data.md>
   Logger <api/core/logger.md>
   Grid <api/core/grid.md>
   Data <api/core/data.md>
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
+  Core Constants <api/core/constants.md>
   Utility functions <api/core/utils.md>
   Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
@@ -161,6 +162,8 @@ team.
   Create dummy soil data <data_recipes/soil_dummy.md>
   Create dummy litter data <data_recipes/litter_dummy.md>
   Create dummy plant data <data_recipes/plant_dummy.md>
+  Create dummy elevation data <data_recipes/create_dummy_elevation.md>
+  Create dummy surface runoff data <data_recipes/runoff_dummy.md>
 ```
 
 ```{eval-rst}

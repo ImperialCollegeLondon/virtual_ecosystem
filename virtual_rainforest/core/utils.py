@@ -5,10 +5,7 @@ future. Adding functions here can be a good way to reduce the amount boiler plat
 generated for tasks that are repeated across modules.
 """  # noqa: D205, D415
 
-import dataclasses
-from importlib import import_module
 from pathlib import Path
-from typing import Any
 
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -121,44 +118,3 @@ def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
         + ["soil"] * soil_layers
     )
     return layer_roles
-
-
-def check_valid_constant_names(
-    config: dict[str, Any], model_name: str, class_name: str
-) -> None:
-    """Check that the constant names given in the config are valid.
-
-    This checks that the constants are expected for the specific dataclass that they are
-    assigned to, if not an error is raised.
-
-    Args:
-        config: The full virtual rainforest config
-        model_name: Name of the model the constants belong to
-        class_name: Name of the specific dataclass the constants belong to
-
-    Raises:
-        ConfigurationError: If unexpected constant names are used
-    """
-
-    # Import dataclass of interest
-    import_path = f"virtual_rainforest.models.{model_name}.constants"
-    consts_module = import_module(import_path)
-    ConstantsClass = getattr(consts_module, class_name)
-
-    # Extract a set of provided constant names
-    provided_names = set(config[model_name]["constants"][class_name].keys())
-
-    # Get a set of valid names
-    valid_names = {fld.name for fld in dataclasses.fields(ConstantsClass)}
-
-    # Check for unexpected names
-    unexpected_names = provided_names.difference(valid_names)
-    if unexpected_names:
-        LOGGER.error(
-            "Unknown names supplied for %s: %s"
-            % (class_name, ", ".join(unexpected_names))
-        )
-        LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
-        raise ConfigurationError()
-
-    return

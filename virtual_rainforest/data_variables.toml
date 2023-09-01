@@ -1,23 +1,22 @@
 [[variable]]
 name = "air_temperature"
-description = "air temperature profile"
+description = "Air temperature profile"
 unit = "C"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "plants", "animals"]
+initialised_by = ["abiotic", "abiotic_simple"]
+updated_by = ["abiotic", "abiotic_simple"]
+used_by = [ "abiotic", "abiotic_simple", "plants", "animals"]
 
 [[variable]]
 name = "air_temperature_ref"
-description = "air temperature at reference height (2m)"
+description = "Air temperature at reference height (2m)"
 unit = "C"
-source = "external"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = ["abiotic", "abiotic_simple"]
 
 [[variable]]
 name = "albedo_shortwave"
-description = "shortwave light albedo"
+description = "Shortwave light albedo"
 unit = "-"
 initialised_by = "external"
 updated_by = ""
@@ -25,7 +24,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "albedo_vis"
-description = "visible light albedo"
+description = "Visible light albedo"
 unit = "-"
 initialised_by = "external"
 updated_by = ""
@@ -33,39 +32,47 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "animal_respiration"
-description = "animal respiration aggregated over all functional types"
+description = "Animal respiration aggregated over all functional types"
 unit = "ppm"
 initialised_by = "animals"
 updated_by = "animals"
 used_by = [ "abiotic", "animals"]
 
 [[variable]]
+name = "atmospheric_co2"
+description = "Atmospheric CO2 concentration profile"
+unit = "ppm"
+initialised_by = ["abiotic", "abiotic_simple"]
+updated_by = ["abiotic", "abiotic_simple"]
+used_by = ["abiotic", "abiotic_simple", "plants"]
+
+[[variable]]
 name = "atmospheric_co2_ref"
-description = "CO2 concentration at reference height (above canopy)"
+description = "Atmospheric CO2 concentration at reference height (above canopy)"
 unit = "ppm"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = ["abiotic", "abiotic_simple"]
 
 [[variable]]
 name = "atmospheric_pressure"
-description = "atmospheric pressure profile"
+description = "Atmospheric pressure profile"
 unit = "kPa"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "plants"]
+initialised_by = ["abiotic", "abiotic_simple"]
+updated_by = ["abiotic", "abiotic_simple"]
+used_by = ["abiotic", "abiotic_simple", "hydrology", "plants"]
 
 [[variable]]
 name = "atmospheric_pressure_ref"
-description = "atmospheric pressure at reference height (2m)"
+description = "Atmospheric pressure at reference height (2m)"
 unit = "kPa"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = ["abiotic", "abiotic_simple", "hydrology"]
 
 [[variable]]
 name = "bulk_aerodynamic_resistance"
-description = "bulk aerodynamic resistance"
+description = "Bulk aerodynamic resistance"
 unit = "s m-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -73,7 +80,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "canopy_absorption"
-description = "shortwave radiation absorbed by individual canopy layers"
+description = "Shortwave radiation absorbed by individual canopy layers"
 unit = "J m-2"
 initialised_by = "plants"
 updated_by = "plants"
@@ -81,54 +88,46 @@ used_by = [ "abiotic", "plants"]
 
 [[variable]]
 name = "canopy_height"
-description = "canopy height"
+description = "Canopy height"
 unit = "m"
 initialised_by = "plants"
 updated_by = "plants"
-used_by = [ "abiotic", "plants"]
+used_by = ["abiotic", "abiotic_simple", "plants"]
 
 [[variable]]
-name = "canopy_node_heights"
-description = "heights of canopy nodes (layers)"
+name = "layer_heights"
+description = "Heights of canopy layers"
 unit = "m"
 initialised_by = "plants"
 updated_by = "plants"
-used_by = [ "abiotic", "plants"]
+used_by = ["abiotic", "abiotic_simple", "plants"]
 
 [[variable]]
 name = "canopy_temperature"
-description = "canopy temperature of individual layers"
+description = "Canopy temperature of individual layers"
 unit = "C"
 initialised_by = "abiotic"
 updated_by = "abiotic"
 used_by = [ "abiotic"]
 
 [[variable]]
-name = "co2_profile"
-description = "CO2 profile"
-unit = "ppm"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "plants"]
-
-[[variable]]
 name = "elevation"
-description = "elevation above sea level"
+description = "Elevation above sea level"
 unit = "m"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = [ "hydrology"]
 
 [[variable]]
 name = "evapotranspiration"
 description = "Evapotranspiration"
 initialised_by = "plants"
 updated_by = "plants"
-used_by = [ "abiotic", "plants"]
+used_by = ["abiotic", "abiotic_simple", "hydrology", "plants"]
 
 [[variable]]
 name = "friction_velocity"
-description = "friction velocity"
+description = "Friction velocity"
 unit = "m s-1"
 initialised_by = "external"
 updated_by = ""
@@ -136,7 +135,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "ground_heat_flux"
-description = "ground heat flux"
+description = "Ground heat flux"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -144,7 +143,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "latent_heat_flux_canopy"
-description = "latent heat flux from canopy layers"
+description = "Latent heat flux from canopy layers"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -152,7 +151,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "latent_heat_flux_soil"
-description = "latent heat flux from soil"
+description = "Latent heat flux from surface layer"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -160,15 +159,15 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "leaf_area_index"
-description = "leaf area index"
+description = "Leaf area index"
 unit = "m m"
 initialised_by = "plants"
 updated_by = "plants"
-used_by = [ "abiotic", "plants"]
+used_by = ["abiotic", "abiotic_simple", "hydrology", "plants"]
 
 [[variable]]
 name = "longwave_canopy"
-description = "longwave radiation from individual canopy layers"
+description = "Longwave radiation from individual canopy layers"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -176,7 +175,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "longwave_soil"
-description = "Longwave radiation from top soil layer"
+description = "Longwave radiation from surface layer"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -184,15 +183,15 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "mean_annual_temperature"
-description = "mean annual temperature = temperature of deepest soil layer"
+description = "Mean annual temperature = temperature of deepest soil layer"
 unit = "C"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = ["abiotic", "abiotic_simple"]
 
 [[variable]]
 name = "molar_density_air"
-description = "temperature-dependent molar density of air"
+description = "Temperature-dependent molar density of air"
 unit = "kg m-3"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -208,7 +207,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "plant_net_co2_assimilation"
-description = "plant net CO2 assimilation"
+description = "Plant net CO2 assimilation"
 unit = "ppm"
 initialised_by = "plants"
 updated_by = "plants"
@@ -223,32 +222,56 @@ updated_by = "abiotic"
 used_by = [ "abiotic", "plants"]
 
 [[variable]]
+name = "precipitation"
+description = "Precipitation"
+unit = "mm"
+initialised_by = "external"
+updated_by = ""
+used_by = [ "hydrology"]
+
+[[variable]]
+name = "precipitation_surface"
+description = "Precipitation that reaches surface"
+unit = "mm"
+initialised_by = "hydrology"
+updated_by = ""
+used_by = [ "hydrology", "plants]
+
+[[variable]]
 name = "relative_humidity"
-description = "relative humidity profile"
+description = "Relative humidity profile"
 unit = "%"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "plants"]
+initialised_by = ["abiotic", "abiotic_simple"]
+updated_by = ["abiotic", "abiotic_simple"]
+used_by = ["abiotic", "abiotic_simple", "hydrology", "plants"]
 
 [[variable]]
 name = "relative_humidity_ref"
-description = "relative humidity at reference height (2m)"
+description = "Relative humidity at reference height (2m)"
 unit = "%"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = ["abiotic", "abiotic_simple", "hydrology"]
 
 [[variable]]
 name = "river_discharge"
 description = "River discharge"
 unit = "m3 s-1"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic"]
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology"]
+
+[[variable]]
+name = "stream_flow"
+description = "Estimated stream flow"
+unit = "mm per time step"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology"]
 
 [[variable]]
 name = "roughness_length_momentum"
-description = "roughness length for momentum"
+description = "Roughness length for momentum"
 unit = "m"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -256,7 +279,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "sensible_heat_flux"
-description = "sensible heat flux from canopy and surface"
+description = "Sensible heat flux from canopy and surface"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -264,7 +287,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "sensible_heat_flux_canopy"
-description = "sensible heat flux from canopy"
+description = "Sensible heat flux from canopy"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -272,7 +295,7 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "sensible_heat_flux_soil"
-description = "sensible heat flux from surface"
+description = "Sensible heat flux from surface layer"
 unit = "J m-2"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -280,19 +303,27 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "shortwave_in"
-description = "downward shortwave radiation"
+description = "Downward shortwave radiation"
 unit = "J m-2"
 initialised_by = "external"
 updated_by = ""
 used_by = [ "abiotic"]
 
 [[variable]]
+name = "soil_evaporation"
+description = "Soil evaporation"
+unit = "mm"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = ["abiotic", "hydrology"]
+
+[[variable]]
 name = "soil_moisture"
-description = "Soil moisture profile"
+description = "Soil moisture as volumetric relative water content"
 unit = "-"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "soil"]
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = ["abiotic", "abiotic_simple", "hydrology", "soil"]
 
 [[variable]]
 name = "soil_respiration"
@@ -304,23 +335,23 @@ used_by = [ "abiotic", "soil"]
 
 [[variable]]
 name = "soil_temperature"
-description = "soil temperature profile"
+description = "Soil temperature profile"
 unit = "C"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "soil"]
+initialised_by = ["abiotic", "abiotic_simple]
+updated_by = ["abiotic", "abiotic_simple"]
+used_by = ["abiotic", "abiotic_simple", "soil"]
 
 [[variable]]
 name = "specific_heat_air"
-description = "specific heat of air"
+description = "Specific heat of air"
 unit = "kJ kg-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
-used_by = [ "abiotic"]
+used_by = ["abiotic"]
 
 [[variable]]
 name = "specific_humidity"
-description = "specific humidity of air"
+description = "Specific humidity of air"
 unit = "g kg-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -329,14 +360,14 @@ used_by = [ "abiotic", "plants"]
 [[variable]]
 name = "subsurface_runoff"
 description = "Subsurface runoff"
-unit = "m3 s-1"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "soil"]
+unit = "mm"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology", "soil"]
 
 [[variable]]
 name = "sunshine_fraction"
-description = "fraction of sunshine hours, between 0 and 1"
+description = "Fraction of sunshine hours, between 0 and 1"
 unit = "-"
 initialised_by = "external"
 updated_by = ""
@@ -344,19 +375,27 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "surface_runoff"
-description = "surface runoff"
-unit = "m3 s-1"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "soil"]
+description = "Surface runoff generated in each grid cell"
+unit = "mm"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology", "soil"]
+
+[[variable]]
+name = "surface_runoff_accumulated"
+description = "Accumlated surface runoff"
+unit = "mm"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology"]
 
 [[variable]]
 name = "surface_water"
 description = "Searchable surface water"
 unit = "%"
-initialised_by = "abiotic"
-updated_by = "abiotic"
-used_by = [ "abiotic", "soil"]
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology", "soil", "animal"]
 
 [[variable]]
 name = "topofcanopy_radiation"
@@ -367,8 +406,16 @@ updated_by = "abiotic"
 used_by = [ "abiotic"]
 
 [[variable]]
+name = "vertical_flow"
+description = "Vertical flow of water through soil column"
+unit = "mm per time step"
+initialised_by = "hydrology"
+updated_by = "hydrology"
+used_by = [ "hydrology", "soil"]
+
+[[variable]]
 name = "wind_above_canopy"
-description = "wind above canopy"
+description = "Wind above canopy"
 unit = "m s-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
@@ -376,19 +423,19 @@ used_by = [ "abiotic"]
 
 [[variable]]
 name = "wind_below_canopy"
-description = "wind profile within and below canopy"
+description = "Wind profile within and below canopy"
 unit = "m s-1"
 initialised_by = "abiotic"
 updated_by = "abiotic"
-used_by = [ "abiotic"]
+used_by = [ "abiotic", "hydrology"]
 
 [[variable]]
 name = "wind_speed_ref"
-description = "wind speed at reference height (10m)"
+description = "Wind speed at reference height (10m)"
 unit = "m s-1"
 initialised_by = "external"
 updated_by = ""
-used_by = [ "abiotic"]
+used_by = [ "abiotic", "hydrology"]
 
 [[variable]]
 name = "soil_c_pool_lmwc"
