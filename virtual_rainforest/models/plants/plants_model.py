@@ -112,7 +112,7 @@ class PlantsModel(BaseModel):
 
         # Check if any constants have been supplied
         # Load in the relevant constants
-        constants = load_constants(config, "plants", "PlantConsts")
+        constants = load_constants(config, "plants", "PlantsConsts")
 
         # Generate the flora
         flora = Flora.from_config(config=config)
