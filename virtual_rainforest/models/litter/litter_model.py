@@ -26,10 +26,11 @@ from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import check_valid_constant_names, set_layer_roles
+from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.litter.constants import LitterConsts
 from virtual_rainforest.models.litter.litter_pools import calculate_litter_pool_updates
 
@@ -136,15 +137,8 @@ class LitterModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
-        # Check if any constants have been supplied
-        if "litter" in config and "constants" in config["litter"]:
-            # Checks that constants in config are as expected
-            check_valid_constant_names(config, "litter", "LitterConsts")
-            # If an error isn't raised then generate the dataclass
-            constants = LitterConsts(**config["litter"]["constants"]["LitterConsts"])
-        else:
-            # If no constants are supplied then the defaults should be used
-            constants = LitterConsts()
+        # Load in the relevant constants
+        constants = load_constants(config, "litter", "LitterConsts")
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "
@@ -159,8 +153,9 @@ class LitterModel(BaseModel):
         # rate so that the soil model can be run before the litter model. Think we need
         # to decide how we are handling model order first though.
 
-        # TODO - This should be created by the animal model, but it is not yet linked
-        # into the full vr_run flow yet. Once it is this step should be deleted.
+        # TODO - These variables should be created by the animal model, but it is not
+        # yet linked into the full vr_run flow yet. Once it is this step should be
+        # deleted.
         self.data["decomposed_excrement"] = DataArray(
             np.zeros_like(self.data.grid.cell_id),
             dims=["cell_id"],
@@ -168,6 +163,14 @@ class LitterModel(BaseModel):
                 "cell_id": self.data.grid.cell_id,
             },
             name="decomposed_excrement",
+        )
+        self.data["decomposed_carcasses"] = DataArray(
+            np.zeros_like(self.data.grid.cell_id),
+            dims=["cell_id"],
+            coords={
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="decomposed_carcasses",
         )
 
     def spinup(self) -> None:
@@ -207,6 +210,7 @@ class LitterModel(BaseModel):
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
             decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
+            decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
         )
 
         # Update the litter pools

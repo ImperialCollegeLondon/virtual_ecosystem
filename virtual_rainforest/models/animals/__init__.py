@@ -22,19 +22,12 @@ Each of the animal sub-modules has its own API reference page:
   containing the constants required by the broader animal model.
 * The :mod:`~virtual_rainforest.models.animals.decay` provides a model for
   both surface carcasses created by mortality and animal excrement.
-* The :mod:`~virtual_rainforest.models.animals.dummy_plants_and_soil` provides a set of
+* The :mod:`~virtual_rainforest.models.animals.dummy_plants` provides a set of
   classes defining toy implementations of soil and plant models that aid development of
   the animal module.
 """  # noqa: D205, D415
 
-from importlib import resources
-
-from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.base_model import register_model
 from virtual_rainforest.models.animals.animal_model import AnimalModel
 
-with resources.path(
-    "virtual_rainforest.models.animals", "animals_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=AnimalModel.model_name, schema_file_path=schema_file_path
-    )
+register_model(__name__, AnimalModel)

@@ -10,19 +10,6 @@ import pytest
 from tests.conftest import log_check
 
 
-@pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
 def test_animal_model_initialization(
     caplog, data_instance, functional_group_list_instance
 ):
@@ -108,6 +95,7 @@ def test_animal_model_initialization(
                     "extracted.",
                 ),
                 (INFO, "Adding data array for 'decomposed_excrement'"),
+                (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
         ),
     ],
@@ -138,6 +126,30 @@ def test_generate_animal_model(
     log_check(caplog, expected_log_entries)
 
 
+def test_get_community_by_key(animal_model_instance):
+    """Test the `get_community_by_key` method."""
+
+    from virtual_rainforest.models.animals.animal_model import AnimalCommunity
+
+    # If you know that your model_instance should have a community with key 0
+    community_0 = animal_model_instance.get_community_by_key(0)
+
+    # Ensure it returns the right type and the community key matches
+    assert isinstance(
+        community_0, AnimalCommunity
+    ), "Expected instance of AnimalCommunity"
+    assert community_0.community_key == 0, "Expected the community with key 0"
+
+    # Perhaps you have more keys you expect, you can add similar checks:
+    community_1 = animal_model_instance.get_community_by_key(1)
+    assert isinstance(community_1, AnimalCommunity)
+    assert community_1.community_key == 1, "Expected the community with key 1"
+
+    # Test for an invalid key, expecting an error
+    with pytest.raises(KeyError):
+        animal_model_instance.get_community_by_key(999)
+
+
 def test_update_method_sequence(data_instance, functional_group_list_instance):
     """Test update to ensure it runs the community methods in order.
 
@@ -157,7 +169,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
         "migrate_community",
         "birth_community",
         "metabolize_community",
-        "mortality_community",
+        "inflict_natural_mortality_community",
         "increase_age_community",
     ]
 
@@ -178,9 +190,10 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
 
     # Assert the methods were called in the expected order
     assert call_sequence == method_names
-    # Check that excrement data is created, all elements are zero as no actual updates
-    # have occurred
+    # Check that excrement and carcass data is created, all elements are zero as no
+    # actual updates have occurred
     assert np.allclose(model.data["decomposed_excrement"], 0.0)
+    assert np.allclose(model.data["decomposed_carcasses"], 0.0)
 
 
 def test_update_method_time_index_argument(
@@ -218,6 +231,10 @@ def test_calculate_litter_additions(functional_group_list_instance):
     for energy, community in zip(decomposed_excrement, model.communities.values()):
         community.excrement_pool.decomposed_energy = energy
 
+    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8]
+    for energy, community in zip(decomposed_carcasses, model.communities.values()):
+        community.carcass_pool.decomposed_energy = energy
+
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
 
@@ -226,11 +243,22 @@ def test_calculate_litter_additions(functional_group_list_instance):
         litter_additions["decomposed_excrement"],
         [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
     )
+    assert np.allclose(
+        litter_additions["decomposed_carcasses"],
+        [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3],
+    )
 
     # Check that the function has reset the pools correctly
     assert np.allclose(
         [
             community.excrement_pool.decomposed_energy
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.carcass_pool.decomposed_energy
             for community in model.communities.values()
         ],
         0.0,
