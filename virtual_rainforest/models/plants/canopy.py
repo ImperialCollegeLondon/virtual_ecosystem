@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.models.plants.functions` submodule provides the core
+"""The :mod:`~virtual_rainforest.models.plants.canopy` submodule provides the core
 functions used to estimate the canopy model, productivity and growth.
 
 NOTE - much of this will be outsourced to pyrealm.

@@ -14,13 +14,13 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.plants.community import PlantCommunities
-from virtual_rainforest.models.plants.constants import PlantsConsts
-from virtual_rainforest.models.plants.functional_types import Flora
-from virtual_rainforest.models.plants.functions import (
+from virtual_rainforest.models.plants.canopy import (
     build_canopy_arrays,
     initialise_canopy_layers,
 )
+from virtual_rainforest.models.plants.community import PlantCommunities
+from virtual_rainforest.models.plants.constants import PlantsConsts
+from virtual_rainforest.models.plants.functional_types import Flora
 
 # from virtual_rainforest.core.config import Config
 
