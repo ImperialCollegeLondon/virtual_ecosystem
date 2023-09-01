@@ -65,6 +65,14 @@ def generate_below_structural_values(x: float, y: float) -> float:
     return 0.05 + 0.075 * (x * y) / (64)
 
 
+def generate_lignin_values(x: float, y: float) -> float:
+    """Generate a range of plausible values for lignin proportions of the pools.
+    
+    A range of 0.01-0.9 seems plausible.
+    """
+    return 0.01 + 0.89 * (x * y) / (64)
+
+
 # Generate range of cell numbers in the a x and y directions. Here we have a 9x9 grid,
 # so cells are numbered from 0 to 8 in each direction.
 x_cell_ids = range(0, 9)
@@ -86,6 +94,9 @@ below_metabolic_values = [
 below_structural_values = [
     [generate_below_structural_values(x, y) for y in y_cell_ids] for x in x_cell_ids
 ]
+lignin_values = [
+    [generate_lignin_values(x, y) for y in y_cell_ids] for x in x_cell_ids
+]
 
 # How far the center of each cell is from the origin. This applies to both the x and y
 # direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
@@ -100,6 +111,9 @@ dummy_litter_data = Dataset(
         litter_pool_woody=(["x", "y"], woody_values),
         litter_pool_below_metabolic=(["x", "y"], below_metabolic_values),
         litter_pool_below_structural=(["x", "y"], below_structural_values),
+        lignin_above_structural=(["x", "y"], lignin_values),
+        lignin_woody=(["x", "y"], lignin_values),
+        lignin_below_structural=(["x", "y"], lignin_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),
