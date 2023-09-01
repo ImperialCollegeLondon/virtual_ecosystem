@@ -252,8 +252,8 @@ def calculate_environmental_factors(
             temperature as the above ground litter [C]
         topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
             temperature as the below ground litter [C]
-        water_potential: Water potential of the topsoil layer [kPa] constants: Set of
-        constants for the litter model
+        water_potential: Water potential of the topsoil layer [kPa]
+        constants: Set of constants for the litter model
 
     Returns:
         A dictionary containing three environmental factors, one for the effect of
