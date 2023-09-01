@@ -26,6 +26,10 @@ def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArra
     perfect plasticity approximation to calculate the closure heights of the canopy
     layers and the leaf area indices of each layer.
 
+    Warning:
+        This function defines the API for generating canopy models but currently returns
+        constant values for all inputs.
+
     Args:
         community: A list of plant cohorts.
 
