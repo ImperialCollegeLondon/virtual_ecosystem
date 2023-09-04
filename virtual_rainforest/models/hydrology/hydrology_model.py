@@ -21,7 +21,7 @@ from math import sqrt
 from typing import Any, Union
 
 import numpy as np
-import xarray as xr
+from numpy.typing import NDArray
 from pint import Quantity
 from xarray import DataArray
 
@@ -354,48 +354,46 @@ class HydrologyModel(BaseModel):
         time_conversion_factor = self.constants.seconds_to_month
 
         # Select variables at relevant heights for current time step
-        current_precipitation = self.data["precipitation"].isel(time_index=time_index)
-        leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers")
-        subcanopy_temperature = (
-            self.data["air_temperature"]
-            .isel(layers=self.layer_roles.index("subcanopy"))
-            .drop_vars(["layer_roles", "layers"])
+        current_precipitation = np.array(
+            self.data["precipitation"].isel(time_index=time_index)
         )
-        subcanopy_humidity = (
-            self.data["relative_humidity"]
-            .isel(layers=self.layer_roles.index("subcanopy"))
-            .drop_vars(["layer_roles", "layers"])
+        leaf_area_index_sum = np.array(self.data["leaf_area_index"].sum(dim="layers"))
+        subcanopy_temperature = np.array(
+            self.data["air_temperature"].isel(
+                layers=self.layer_roles.index("subcanopy")
+            )
         )
-        subcanopy_pressure = (self.data["atmospheric_pressure_ref"]).isel(
-            time_index=time_index
+        subcanopy_humidity = np.array(
+            self.data["relative_humidity"].isel(
+                layers=self.layer_roles.index("subcanopy")
+            )
+        )
+        subcanopy_pressure = np.array(
+            self.data["atmospheric_pressure_ref"].isel(time_index=time_index)
         )
 
-        # Select soil layer heights,]
-        soil_layer_heights = (
+        # Select soil layer heights, [mm]
+        soil_layer_heights = np.array(
             self.data["layer_heights"]
             .where(self.data["layer_heights"].layer_roles == "soil")
             .dropna(dim="layers")
         )
 
         # Calculate thickness of each layer, [mm]
-        soil_layer_thickness = xr.DataArray(
+        soil_layer_thickness = np.array(
             [
-                (
-                    soil_layer_heights.isel(layers=i)
-                    - soil_layer_heights.isel(layers=i - 1)
-                )
+                (soil_layer_heights[i] - soil_layer_heights[i - 1])
                 * (-self.constants.meters_to_mm)
                 if i > 0
-                else soil_layer_heights.isel(layers=0) * (-self.constants.meters_to_mm)
+                else soil_layer_heights[0] * (-self.constants.meters_to_mm)
                 for i in range(len(soil_layer_heights))
             ],
-            dims=["layers", "cell_id"],
         )
 
         # Convert soil moisture (volumetric relative water content) to mm as follows:
         # water content in mm = relative water content / 100 * depth in mm
         # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
-        soil_moisture_mm = (
+        soil_moisture_mm = np.array(
             self.data["soil_moisture"]
             .where(self.data["soil_moisture"].layer_roles == "soil")
             .dropna(dim="layers")
@@ -417,48 +415,40 @@ class HydrologyModel(BaseModel):
         )
 
         precipitation_surface = current_precipitation - interception  # mm
-        soil_hydrology["precipitation_surface"] = precipitation_surface
+        soil_hydrology["precipitation_surface"] = DataArray(
+            precipitation_surface,
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
 
         # Calculate how much water can be added to soil before capacity is reached, [mm]
-        available_capacity_mm = (
+        free_capacity_mm = (
             self.constants.soil_moisture_capacity * soil_layer_thickness
             - soil_moisture_mm
         )
 
-        # Find grid cells where precipitation exceeds top soil available capacity
-        surface_runoff_cells = precipitation_surface.where(
-            precipitation_surface > available_capacity_mm.isel(layers=0)
-        )
-
         # Calculate surface runoff of each grid cell, [mm]; might get replaced by SPLASH
-        soil_hydrology["surface_runoff"] = (
-            DataArray(
-                surface_runoff_cells.data - available_capacity_mm.isel(layers=0).data
-            )
-            .fillna(0)
-            .rename("surface_runoff")
-            .rename({"dim_0": "cell_id"})
-            .assign_coords({"cell_id": self.data["soil_moisture"].cell_id})
+        surface_runoff = np.where(
+            precipitation_surface > free_capacity_mm[0],
+            precipitation_surface - free_capacity_mm[0],
+            0,
         )
 
-        # Calculate total water in each grid cell top layer, [mm]
-        total_water_mm = soil_moisture_mm.isel(layers=0) + precipitation_surface
-
-        # Calculate soil moisture [mm] after infiltration and clip to soil moisture
-        # capacity
-        soil_moisture_infiltrated = DataArray(
-            np.clip(
-                total_water_mm,
-                0,
-                (
-                    self.constants.soil_moisture_capacity
-                    * soil_layer_thickness.isel(layers=0)
-                ),
-            )
+        soil_hydrology["surface_runoff"] = DataArray(
+            surface_runoff,
+            dims="cell_id",
+            coords={"cell_id": self.data["soil_moisture"].cell_id},
         )
 
-        # Calculate soil evaporation [mm/time step]
-        soil_hydrology["soil_evaporation"] = calculate_soil_evaporation(
+        # Calculate top soil moisture after infiltration, [mm]
+        soil_moisture_infiltrated = np.clip(
+            soil_moisture_mm[0] + precipitation_surface,
+            0,
+            (self.constants.soil_moisture_capacity * soil_layer_thickness[0]),
+        )
+
+        # Calculate soil evaporation [mm]
+        soil_evaporation = calculate_soil_evaporation(
             temperature=subcanopy_temperature,
             relative_humidity=subcanopy_humidity,
             atmospheric_pressure=subcanopy_pressure,
@@ -473,19 +463,17 @@ class HydrologyModel(BaseModel):
             timestep_conversion_factor=time_conversion_factor,
         )
 
-        # Calculate soil moisture after evaporation, [mm]
-        soil_moisture_evap = soil_moisture_infiltrated - soil_hydrology[
-            "soil_evaporation"
-        ] / soil_layer_thickness.isel(layers=0)
+        soil_hydrology["soil_evaporation"] = DataArray(
+            soil_evaporation, dims="cell_id", coords={"cell_id": self.data.grid.cell_id}
+        )
 
-        # combine soil_moisture_evap with other soil layers, [mm]
-        soil_moisture_nettop = xr.concat(
-            [
-                soil_moisture_evap,
-                soil_moisture_mm.drop_isel(layers=0),
-            ],
-            dim="layers",
-        ).transpose()
+        # Calculate soil moisture after evaporation and combine with other layers, [mm]
+        soil_moisture_evap: NDArray = np.concatenate(
+            (
+                np.expand_dims((soil_moisture_infiltrated - soil_evaporation), axis=0),
+                soil_moisture_mm[1:],
+            )
+        )
 
         # Calculate vertical flow between soil layers in mm per time step
         # Note that there are severe limitations to this approach on the temporal and
@@ -493,60 +481,55 @@ class HydrologyModel(BaseModel):
         # approximation to discuss nutrient leaching.
 
         vertical_flow = calculate_vertical_flow(
-            soil_moisture=soil_moisture_nettop / soil_layer_thickness,  # vol. water
+            soil_moisture=soil_moisture_evap / soil_layer_thickness,  # vol. water
             soil_layer_thickness=soil_layer_thickness,  # mm
             soil_moisture_capacity=self.constants.soil_moisture_capacity,  # vol
             soil_moisture_residual=self.constants.soil_moisture_residual,  # vol
             hydraulic_conductivity=self.constants.hydraulic_conductivity,  # m/s
+            hydraulic_gradient=self.constants.hydraulic_gradient,  # m/m
             nonlinearily_parameter=self.constants.nonlinearily_parameter,
             groundwater_capacity=self.constants.groundwater_capacity,
             timestep_conversion_factor=time_conversion_factor,
             meters_to_millimeters=self.constants.meters_to_mm,
         )
 
-        # Convert mean vertical flow from mm per time step to m3 s-1
-        soil_hydrology["vertical_flow"] = (
-            vertical_flow.mean(dim="layers")
+        # Convert vertical flow from mm per time step to mean flow in m3 s-1
+        mean_vertical_flow = (
+            np.mean(vertical_flow, axis=0)
             / time_conversion_factor
             * self.data.grid.cell_area
             / self.constants.meters_to_mm
         )
+        soil_hydrology["vertical_flow"] = DataArray(
+            mean_vertical_flow,
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
 
         soil_moisture_updated = update_soil_moisture(
-            soil_moisture=soil_moisture_nettop,
-            vertical_flow=vertical_flow,
-            layer_thickness=soil_layer_thickness,
+            soil_moisture=soil_moisture_evap,
+            vertical_flow=np.mean(vertical_flow, axis=0)
+            / time_conversion_factor
+            * self.data.grid.cell_area
+            / self.constants.meters_to_mm,
         )
 
         # Add atmospheric layers (nan)
-        soil_hydrology["soil_moisture"] = xr.concat(
-            [
-                DataArray(
+        soil_hydrology["soil_moisture"] = DataArray(
+            np.concatenate(
+                (
                     np.full(
                         (
                             len(self.layer_roles) - self.layer_roles.count("soil"),
-                            len(self.data["layer_heights"].cell_id),
+                            len(self.data.grid.cell_id),
                         ),
                         np.nan,
                     ),
-                    dims=["layers", "cell_id"],
-                    coords={
-                        "layers": np.arange(
-                            len(self.layer_roles) - self.layer_roles.count("soil")
-                        ),
-                        "layer_roles": (
-                            "layers",
-                            self.layer_roles[
-                                0 : len(self.layer_roles)
-                                - self.layer_roles.count("soil")
-                            ],
-                        ),
-                        "cell_id": self.data["layer_heights"].cell_id,
-                    },
+                    soil_moisture_updated / soil_layer_thickness,
                 ),
-                soil_moisture_updated,
-            ],
-            dim="layers",
+            ),
+            dims=self.data["soil_moisture"].dims,
+            coords=self.data["soil_moisture"].coords,
         )
 
         # TODO Convert to matric potential
@@ -573,23 +556,21 @@ class HydrologyModel(BaseModel):
         # TODO add vertical and below-ground horizontal flow
         # The maximum stream flow capacity is set to an arbitray value, could be used to
         # flag flood events
-        stream_flow = DataArray(
+        soil_hydrology["stream_flow"] = DataArray(
             np.clip(
                 (
                     precipitation_surface
-                    - self.data["evapotranspiration"].sum(dim="layers")
+                    - np.array(self.data["evapotranspiration"].sum(dim="layers"))
                     - (
-                        self.data["soil_moisture"].mean(dim="layers")
-                        - soil_moisture_evap
+                        np.array(self.data["soil_moisture"].isel(layers=-2))
+                        - soil_moisture_evap[0]
                     ),
                 ),
                 0,
                 HydroConsts.stream_flow_capacity,
-            ),
+            ).squeeze(),
+            dims="cell_id",
         )
-        soil_hydrology["stream_flow"] = stream_flow.rename(
-            {"dim_1": "cell_id"}
-        ).squeeze("dim_0")
 
         # Update data object
         self.data.add_from_dict(output_dict=soil_hydrology)
@@ -599,16 +580,17 @@ class HydrologyModel(BaseModel):
 
 
 def calculate_vertical_flow(
-    soil_moisture: DataArray,
-    soil_layer_thickness: DataArray,
-    soil_moisture_capacity: Union[float, DataArray],
-    soil_moisture_residual: Union[float, DataArray],
-    hydraulic_conductivity: Union[float, DataArray],
-    nonlinearily_parameter: Union[float, DataArray],
-    groundwater_capacity: Union[float, DataArray],
+    soil_moisture: NDArray,
+    soil_layer_thickness: NDArray,
+    soil_moisture_capacity: Union[float, NDArray],
+    soil_moisture_residual: Union[float, NDArray],
+    hydraulic_conductivity: Union[float, NDArray],
+    hydraulic_gradient: Union[float, NDArray],
+    nonlinearily_parameter: Union[float, NDArray],
+    groundwater_capacity: Union[float, NDArray],
     timestep_conversion_factor: float,
     meters_to_millimeters: float,
-) -> DataArray:
+) -> NDArray:
     r"""Calculate vertical water flow through soil column.
 
     To calculate the flow of water through unsaturated soil, this function uses the
@@ -644,6 +626,8 @@ def calculate_vertical_flow(
         soil_moisture_capacity: soil moisture capacity, [unitless]
         soil_moisture_residual: residual soil moisture, [unitless]
         hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
+        hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
+            path, positive values indicate downward flow, [m/m]
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
@@ -656,70 +640,64 @@ def calculate_vertical_flow(
     """
     m = 1 - 1 / nonlinearily_parameter
 
-    # Calculate soil effective saturation after van Genuchten (1980) for each layer:
+    # Calculate soil effective saturation in rel. vol. water content for each layer:
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
         soil_moisture_capacity - soil_moisture_residual
     )
 
-    # Calculate the effective hydraulic conductivity after Mualem (1976)
-    effective_conductivity = DataArray(
+    # Calculate the effective hydraulic conductivity in m/s
+    effective_conductivity = np.array(
         hydraulic_conductivity
-        * timestep_conversion_factor
-        * meters_to_millimeters
         * np.sqrt(effective_saturation)
         * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2,
-        dims=["layers", "cell_id"],
     )
 
-    # Calculate flow from top soil to lower soil
-    available_storage = soil_moisture - soil_moisture_residual
+    # Calculate flow from top soil to lower soil in mm
+    flow = (
+        -effective_conductivity
+        * (hydraulic_gradient - 1)
+        * meters_to_millimeters
+        * timestep_conversion_factor
+    )
 
-    flow = []
+    # Make sure that flow does not exceed storage capacity in mm
+    available_storage = (soil_moisture - soil_moisture_residual) * soil_layer_thickness
+
+    flow_min = []
     for i in np.arange(len(soil_moisture) - 1):
-        flow_layer = effective_conductivity.isel(layers=i).where(
-            effective_conductivity.isel(layers=i)
-            < available_storage.isel(layers=i + 1),
-            available_storage.isel(layers=i + 1),
+        flow_layer = np.where(
+            effective_conductivity[i] < available_storage[i + 1],
+            flow[i],
+            available_storage[i + 1],
         )
-        flow.append(flow_layer)
+        flow_min.append(flow_layer)
 
-    groundwater_storage = (
-        (groundwater_capacity * soil_layer_thickness.sum(dim="layers"))
-        .expand_dims(dim="layers")
-        .assign_coords(
-            {
-                "layers": [soil_moisture.isel(layers=-1).layers + 1],
-                "layer_roles": ("layers", ["groundwater"]),
-                "cell_id": soil_moisture.cell_id,
-            }
-        )
-        .squeeze()
-    )
+    groundwater_storage = groundwater_capacity * np.sum(soil_layer_thickness, axis=0)
 
-    outflow = effective_conductivity.isel(layers=-1).where(
-        effective_conductivity.isel(layers=-1) < groundwater_storage,
+    outflow = np.where(
+        effective_conductivity[-1] < groundwater_storage,
+        flow[-1],
         groundwater_storage,
     )
-    flow.append(outflow.transpose())
+    flow_min.append(outflow)
 
-    return DataArray(flow, dims=["layers", "cell_id"])
-    # TODO this currently returns negative values
+    return np.array(flow_min)
 
 
 def calculate_soil_evaporation(
-    temperature: DataArray,
-    relative_humidity: DataArray,
-    atmospheric_pressure: DataArray,
-    soil_moisture: DataArray,
-    wind_speed: Union[float, DataArray],
+    temperature: NDArray,
+    relative_humidity: NDArray,
+    atmospheric_pressure: NDArray,
+    soil_moisture: NDArray,
+    wind_speed: Union[float, NDArray],
     celsius_to_kelvin: float,
-    density_air: Union[float, DataArray],
-    latent_heat_vapourisation: Union[float, DataArray],
+    density_air: Union[float, NDArray],
+    latent_heat_vapourisation: Union[float, NDArray],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
     flux_to_mm_conversion: float,
     timestep_conversion_factor: float,
-) -> DataArray:
+) -> NDArray:
     """Calculate soil evaporation based classical bulk aerodynamic formulation.
 
     TODO write description and add references
@@ -749,24 +727,17 @@ def calculate_soil_evaporation(
     barton_ratio = (1.8 * soil_moisture) / (soil_moisture + 0.3)
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
-    saturation_vapour_pressure = DataArray(
-        0.6112 * np.exp((17.67 * (temperature_k)) / (temperature_k + 243.5))
+    saturation_vapour_pressure = 0.6112 * np.exp(
+        (17.67 * (temperature_k)) / (temperature_k + 243.5)
     )
 
-    saturated_specific_humidity = DataArray(
-        (gas_constant_water_vapour / latent_heat_vapourisation)
-        * (
-            saturation_vapour_pressure
-            / (atmospheric_pressure - saturation_vapour_pressure)
-        ),
-        dims=temperature.dims,
+    saturated_specific_humidity = (
+        gas_constant_water_vapour / latent_heat_vapourisation
+    ) * (
+        saturation_vapour_pressure / (atmospheric_pressure - saturation_vapour_pressure)
     )
 
-    specific_humidity_air = DataArray(
-        (relative_humidity * saturated_specific_humidity) / 100,
-        dims=relative_humidity.dims,
-        name="specific_humidity",
-    )
+    specific_humidity_air = ((relative_humidity * saturated_specific_humidity) / 100,)
 
     aerodynamic_resistance = heat_transfer_coefficient / np.sqrt(wind_speed)
 
@@ -774,9 +745,10 @@ def calculate_soil_evaporation(
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    return DataArray(  # TODO check this
+    # TODO check this equation again
+    return (
         (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
-    )
+    ).squeeze()
 
 
 def find_lowest_neighbour(
@@ -884,13 +856,13 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
 
 def estimate_interception(
-    leaf_area_index: DataArray,
-    precipitation: DataArray,
+    leaf_area_index: NDArray,
+    precipitation: NDArray,
     intercept_param_1: float,
     intercept_param_2: float,
     intercept_param_3: float,
     veg_density_param: float,
-) -> DataArray:
+) -> NDArray:
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
@@ -934,54 +906,41 @@ def estimate_interception(
         + intercept_param_2 * leaf_area_index
         - intercept_param_3 * leaf_area_index**2
     )
-    max_capacity = capacity.where(leaf_area_index > 0.1, 0)
+    max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
-    return DataArray(
+    return np.nan_to_num(
         max_capacity
-        * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity))
-    ).fillna(0)
+        * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
+        nan=0.0,
+    )
 
 
 def update_soil_moisture(
-    soil_moisture: DataArray,
-    vertical_flow: DataArray,
-    layer_thickness: DataArray,
-) -> DataArray:
+    soil_moisture: NDArray,
+    vertical_flow: NDArray,
+) -> NDArray:
     """Update soil moisture profile.
 
     Args:
         soil_moisture: soil moisture after infiltration and surface evaporation, mm
         vertical_flow: vertical flow between all layers, mm
-        layer_thickness: thickness of soil layers, mm
 
     Returns:
         updated soil moisture profile, relative volumetric water content, dimensionless
     """
 
-    top_soil_moisture = soil_moisture.isel(layers=0) - vertical_flow.isel(layers=0)
+    top_soil_moisture = soil_moisture[0] - vertical_flow[0]
+
     lower_soil_moisture = [
-        (
-            soil_moisture.isel(layers=i + 1)
-            + vertical_flow.isel(layers=i)
-            - vertical_flow.isel(layers=i + 1)
-        )
+        (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1])
         for sm, vf in zip(
-            soil_moisture.drop_isel(layers=0),
-            vertical_flow.drop_isel(layers=0),
+            soil_moisture[1:],
+            vertical_flow[1:],
         )
         for i in range(len(soil_moisture) - 1)
     ]
 
     # Combine all levels and convert to relative volumetric water content
-    return xr.concat(  # TODO needs fix
-        [
-            top_soil_moisture / layer_thickness.isel(layers=0),
-            DataArray(
-                lower_soil_moisture / layer_thickness.drop_isel(layers=0),
-                dims=["layers", "cell_id"],
-            ).squeeze(),
-        ],
-        dim="layers",
-    ).assign_coords(coords=vertical_flow.coords)
+    return np.concatenate(([top_soil_moisture], lower_soil_moisture))
