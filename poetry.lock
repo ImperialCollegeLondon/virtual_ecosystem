@@ -3136,6 +3136,17 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=2.0)", "pre-commit", "pytest", "pytest-mock"]
 
 [[package]]
+name = "types-dataclasses"
+version = "0.6.6"
+description = "Typing stubs for dataclasses"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-dataclasses-0.6.6.tar.gz", hash = "sha256:4b5a2fcf8e568d5a1974cd69010e320e1af8251177ec968de7b9bb49aa49f7b9"},
+    {file = "types_dataclasses-0.6.6-py3-none-any.whl", hash = "sha256:a0a1ab5324ba30363a15c9daa0f053ae4fff914812a1ebd8ad84a08e5349574d"},
+]
+
+[[package]]
 name = "types-jsonschema"
 version = "4.17.0.4"
 description = "Typing stubs for jsonschema"
@@ -3260,4 +3271,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "a91453bc664097291bf22225b1da3822d4944e2e8060c9eb4f2491ae5c607afe"
+content-hash = "5ef30f5dd7e791fd5d8efd787d1f553d3d5b4e2789d394743ececea03bff72cb"
