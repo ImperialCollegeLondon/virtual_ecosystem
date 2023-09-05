@@ -92,6 +92,9 @@ def calculate_litter_pool_updates(
         constants=constants,
     )
 
+    # Calculate the total mineralisation of carbon from the litter
+    total_C_mineralisation_rate = calculate_total_C_mineralised(decay_rates, constants)
+
     # Calculate how the decomposed carcasses biomass is split between the metabolic and
     # structural litter pools
     carcass_to_metabolic, carcass_to_structural = calculate_carcass_split(
@@ -123,8 +126,22 @@ def calculate_litter_pool_updates(
         constants.litter_input_to_structural_below - decay_rates["structural_below"]
     ) * update_interval
 
-    # Calculate the total mineralisation of carbon from the litter
-    total_C_mineralisation_rate = calculate_total_C_mineralised(decay_rates, constants)
+    # Find the changes in the lignin concentrations of the 3 relevant pools
+    # TODO - add a calculation for the change in structural above ground lignin
+    change_in_lignin_above_structural = 0.0
+    # input_carbon_woody = constants.litter_input_to_woody * update_interval
+    # updated_carbon_woody = woody + change_in_woody
+    # # TODO - Need to work out float to NDArray conversion
+    # change_in_lignin_woody = calculate_change_in_lignin(
+    #     input_carbon=input_carbon_woody,
+    #     updated_pool_carbon=updated_carbon_woody,
+    #     # TODO - track down a sensible value for this
+    #     input_lignin=constants.lignin_proportion_wood_input,
+    #     old_pool_lignin=lignin_woody,
+    # )
+    change_in_lignin_woody = 0.0
+    # TODO - add a calculation for the change in structural below ground lignin
+    change_in_lignin_below_structural = 0.0
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
@@ -140,6 +157,15 @@ def calculate_litter_pool_updates(
         ),
         "litter_pool_below_structural": DataArray(
             below_structural + change_in_structural_below, dims="cell_id"
+        ),
+        "lignin_above_structural": DataArray(
+            lignin_above_structural + change_in_lignin_above_structural, dims="cell_id"
+        ),
+        "lignin_woody": DataArray(
+            lignin_woody + change_in_lignin_woody, dims="cell_id"
+        ),
+        "lignin_below_structural": DataArray(
+            lignin_below_structural + change_in_lignin_below_structural, dims="cell_id"
         ),
         "litter_C_mineralisation_rate": DataArray(
             total_C_mineralisation_rate, dims="cell_id"
@@ -605,6 +631,35 @@ def calculate_carbon_mineralised(
     """
 
     return carbon_use_efficiency * litter_decay_rate
+
+
+def calculate_change_in_lignin(
+    input_carbon: NDArray[np.float32],
+    updated_pool_carbon: NDArray[np.float32],
+    input_lignin: NDArray[np.float32],
+    old_pool_lignin: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate the change in the lignin concentration of a particular litter pool.
+
+    This change is found by calculating the difference between the previous lignin
+    concentration of the pool and the lignin concentration of the inputs. This
+    difference is then multiplied by the ratio of the mass of carbon added to pool and
+    the final (carbon) mass of the pool.
+
+    Args:
+        input_carbon: The total carbon mass of inputs to the litter pool [kg C m^-2]
+        updated_pool_carbon: The total carbon mass of the litter pool after inputs and
+            decay [kg C m^-2]
+        input_lignin: The proportion of the input carbon that is lignin [unitless]
+        old_pool_lignin: The proportion of the carbon mass of the original litter pool
+            that was lignin [unitless]
+
+    Returns:
+        The total change in the lignin concentration of the pool over the full time step
+        [unitless]
+    """
+
+    return (input_carbon / (updated_pool_carbon)) * (input_lignin - old_pool_lignin)
 
 
 def calculate_carcass_split(

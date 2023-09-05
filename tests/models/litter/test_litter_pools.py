@@ -347,6 +347,25 @@ def test_calculate_carbon_mineralised():
     assert np.allclose(actual_mineral, expected_mineral)
 
 
+def test_calculate_change_in_lignin(dummy_litter_data):
+    """Test that function to calculate lignin changes works properly."""
+    from virtual_rainforest.models.litter.litter_pools import calculate_change_in_lignin
+
+    expected_lignin = [-0.008079787, -0.001949152, 0.0012328767]
+
+    input_carbon = np.array([0.0775, 0.05, 0.0225])
+    input_lignin = np.array([0.01, 0.34, 0.75])
+
+    actual_lignin = calculate_change_in_lignin(
+        input_carbon=input_carbon,
+        updated_pool_carbon=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        input_lignin=input_lignin,
+        old_pool_lignin=dummy_litter_data["lignin_woody"].to_numpy(),
+    )
+
+    assert np.allclose(actual_lignin, expected_lignin)
+
+
 @pytest.mark.parametrize(
     "metabolic_fraction,expected_metabolic,expected_structural",
     [

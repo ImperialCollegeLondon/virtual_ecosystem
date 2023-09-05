@@ -84,6 +84,9 @@ class LitterModel(BaseModel):
         "litter_pool_woody",
         "litter_pool_below_metabolic",
         "litter_pool_below_structural",
+        "lignin_above_structural",
+        "lignin_woody",
+        "lignin_below_structural",
     )
     """Variables updated by the litter model."""
 
