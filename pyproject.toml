@@ -51,7 +51,7 @@ flake8-docstrings = "^1.6.0"
 ipython = "^8.4.0"
 ipykernel = "^6.15.0"
 matplotlib = "^3.5.2"
-mypy = "^1.5.1"
+mypy = "1.0.1"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^5.0.0"
