@@ -142,15 +142,19 @@ def initialise_canopy_layers(
     # Set the layers
     data["leaf_area_index"] = DataArray(
         data=np.full(layer_shape, fill_value=np.nan),
+        dims=("layers", "cell_id"),
         coords={
-            "layer": np.arange(len(layer_roles)),
+            "layers": np.arange(len(layer_roles)),
+            "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
         },
     )
     data["layer_heights"] = DataArray(
         data=np.full(layer_shape, fill_value=np.nan),
+        dims=("layers", "cell_id"),
         coords={
-            "layer": np.arange(len(layer_roles)),
+            "layers": np.arange(len(layer_roles)),
+            "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
         },
     )

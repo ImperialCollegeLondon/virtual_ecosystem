@@ -80,6 +80,25 @@ def test_initialise_canopy_layers(caplog, plants_data):
     assert "layer_heights" in data
     assert "leaf_area_index" in data
 
-    exp_shape = (1 + 10 + 2 + 3, len(data.grid.cell_id))
+    n_layer = 1 + 10 + 2 + 3
+    exp_shape = (n_layer, data.grid.n_cells)
     assert data["layer_heights"].shape == exp_shape
     assert data["leaf_area_index"].shape == exp_shape
+
+    exp_dims = {
+        "layers": (True, n_layer),
+        "layer_roles": (False, n_layer),
+        "cell_id": (True, data.grid.n_cells),
+    }
+
+    for key, (is_dim, exp_n) in exp_dims.items():
+        # Check the names, dimensions and coords
+        if is_dim:
+            assert key in data["layer_heights"].dims
+            assert key in data["leaf_area_index"].dims
+
+        assert key in data["layer_heights"].coords
+        assert key in data["leaf_area_index"].coords
+
+        assert len(data["leaf_area_index"].coords[key]) == exp_n
+        assert len(data["layer_heights"].coords[key]) == exp_n
