@@ -289,8 +289,7 @@ class HydrologyModel(BaseModel):
 
         Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
-        . That function returns vertical flow in mm, however, the vertical flow variable
-        in the data object represents the mean vertical flow in m/s. Note that there are
+        . That function returns vertical flow in mm per time step. Note that there are
         severe limitations to this approach on the temporal and spatial scale of this
         model and this can only be treated as a very rough approximation!
 
@@ -372,7 +371,6 @@ class HydrologyModel(BaseModel):
             self.data["atmospheric_pressure_ref"].isel(time_index=time_index)
         )
 
-        # Select soil layer heights, [mm]
         soil_layer_heights = np.array(
             self.data["layer_heights"]
             .where(self.data["layer_heights"].layer_roles == "soil")
@@ -403,8 +401,7 @@ class HydrologyModel(BaseModel):
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Interception: precipitation at the surface is reduced as a function of leaf
-        # area index, [mm]
+        # Interception of water in canopy, [mm]
         interception = estimate_interception(
             leaf_area_index=leaf_area_index_sum,
             precipitation=current_precipitation,
@@ -414,7 +411,9 @@ class HydrologyModel(BaseModel):
             veg_density_param=self.constants.veg_density_param,
         )
 
-        precipitation_surface = current_precipitation - interception  # mm
+        # Precipitation that reaches the surface, [mm]
+        precipitation_surface = current_precipitation - interception
+
         soil_hydrology["precipitation_surface"] = DataArray(
             precipitation_surface,
             dims="cell_id",
@@ -452,7 +451,7 @@ class HydrologyModel(BaseModel):
             temperature=subcanopy_temperature,
             relative_humidity=subcanopy_humidity,
             atmospheric_pressure=subcanopy_pressure,
-            soil_moisture=soil_moisture_infiltrated,  # mm
+            soil_moisture=soil_moisture_infiltrated / soil_layer_thickness[0],  # vol
             wind_speed=0.1,  # m/s TODO wind_speed in data object (mechanistic model)
             celsius_to_kelvin=self.constants.celsius_to_kelvin,
             density_air=self.constants.density_air,
@@ -470,7 +469,9 @@ class HydrologyModel(BaseModel):
         # Calculate soil moisture after evaporation and combine with other layers, [mm]
         soil_moisture_evap: NDArray = np.concatenate(
             (
-                np.expand_dims((soil_moisture_infiltrated - soil_evaporation), axis=0),
+                # np.expand_dims((soil_moisture_infiltrated - soil_evaporation), axis=0)
+                # TODO accounting for soil evap needs to be restricted or on daily step
+                np.expand_dims((soil_moisture_infiltrated), axis=0),
                 soil_moisture_mm[1:],
             )
         )
@@ -490,30 +491,19 @@ class HydrologyModel(BaseModel):
             nonlinearily_parameter=self.constants.nonlinearily_parameter,
             groundwater_capacity=self.constants.groundwater_capacity,
             timestep_conversion_factor=time_conversion_factor,
-            meters_to_millimeters=self.constants.meters_to_mm,
         )
 
-        # Convert vertical flow from mm per time step to mean flow in m3 s-1
-        mean_vertical_flow = (
-            np.mean(vertical_flow, axis=0)
-            / time_conversion_factor
-            * self.data.grid.cell_area
-            / self.constants.meters_to_mm
-        )
         soil_hydrology["vertical_flow"] = DataArray(
-            mean_vertical_flow,
+            np.mean(vertical_flow, axis=0),
             dims="cell_id",
             coords={"cell_id": self.data.grid.cell_id},
         )
 
         soil_moisture_updated = update_soil_moisture(
             soil_moisture=soil_moisture_evap,
-            vertical_flow=np.mean(vertical_flow, axis=0)
-            / time_conversion_factor
-            * self.data.grid.cell_area
-            / self.constants.meters_to_mm,
+            vertical_flow=vertical_flow,
         )
-
+        print(soil_moisture_updated)
         # Add atmospheric layers (nan)
         soil_hydrology["soil_moisture"] = DataArray(
             np.concatenate(
@@ -589,7 +579,6 @@ def calculate_vertical_flow(
     nonlinearily_parameter: Union[float, NDArray],
     groundwater_capacity: Union[float, NDArray],
     timestep_conversion_factor: float,
-    meters_to_millimeters: float,
 ) -> NDArray:
     r"""Calculate vertical water flow through soil column.
 
@@ -652,12 +641,9 @@ def calculate_vertical_flow(
         * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2,
     )
 
-    # Calculate flow from top soil to lower soil in mm
+    # Calculate flow from top soil to lower soil in mm per month
     flow = (
-        -effective_conductivity
-        * (hydraulic_gradient - 1)
-        * meters_to_millimeters
-        * timestep_conversion_factor
+        -effective_conductivity * (hydraulic_gradient - 1) * timestep_conversion_factor
     )
 
     # Make sure that flow does not exceed storage capacity in mm
@@ -700,6 +686,7 @@ def calculate_soil_evaporation(
 ) -> NDArray:
     """Calculate soil evaporation based classical bulk aerodynamic formulation.
 
+    Equations from Mahfouf, (1991)
     TODO write description and add references
     TODO move constants to HydroConsts or CoreConstants and check values
 
@@ -707,7 +694,7 @@ def calculate_soil_evaporation(
         temperature: air temperature at reference height, [C]
         relative_humidity: relative humidity at reference height, []
         atmospheric_pressure: atmospheric pressure at reference height, [kPa]
-        soil_moisture: Volumetric relative water content [unitless]
+        soil_moisture: Volumetric relative water content, [unitless]
         wind_speed: wind speed at reference height, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
@@ -737,17 +724,17 @@ def calculate_soil_evaporation(
         saturation_vapour_pressure / (atmospheric_pressure - saturation_vapour_pressure)
     )
 
-    specific_humidity_air = ((relative_humidity * saturated_specific_humidity) / 100,)
+    specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
     aerodynamic_resistance = heat_transfer_coefficient / np.sqrt(wind_speed)
 
-    evaporative_flux = (density_air / aerodynamic_resistance) * (
+    evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # TODO check this equation again
+    # Return surface evaporation in mm per timestep
     return (
-        (evaporative_flux / flux_to_mm_conversion) / timestep_conversion_factor
+        (evaporative_flux * flux_to_mm_conversion * timestep_conversion_factor)
     ).squeeze()
 
 
@@ -930,7 +917,7 @@ def update_soil_moisture(
     Returns:
         updated soil moisture profile, relative volumetric water content, dimensionless
     """
-
+    # TODO flow must not exceed water in store
     top_soil_moisture = soil_moisture[0] - vertical_flow[0]
 
     lower_soil_moisture = [
