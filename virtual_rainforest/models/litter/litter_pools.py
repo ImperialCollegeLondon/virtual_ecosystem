@@ -128,18 +128,20 @@ def calculate_litter_pool_updates(
 
     # Find the changes in the lignin concentrations of the 3 relevant pools
     # TODO - add a calculation for the change in structural above ground lignin
+    # TODO - test that this updates correctly
     change_in_lignin_above_structural = 0.0
-    # input_carbon_woody = constants.litter_input_to_woody * update_interval
-    # updated_carbon_woody = woody + change_in_woody
-    # # TODO - Need to work out float to NDArray conversion
-    # change_in_lignin_woody = calculate_change_in_lignin(
-    #     input_carbon=input_carbon_woody,
-    #     updated_pool_carbon=updated_carbon_woody,
-    #     # TODO - track down a sensible value for this
-    #     input_lignin=constants.lignin_proportion_wood_input,
-    #     old_pool_lignin=lignin_woody,
-    # )
-    change_in_lignin_woody = 0.0
+    input_carbon_woody = np.full(
+        (len(lignin_woody),), constants.litter_input_to_woody * update_interval
+    )
+    updated_woody = woody + change_in_woody
+    change_in_lignin_woody = calculate_change_in_lignin(
+        input_carbon=input_carbon_woody,
+        updated_pool_carbon=updated_woody,
+        input_lignin=np.full(
+            (len(lignin_woody),), constants.lignin_proportion_wood_input
+        ),
+        old_pool_lignin=lignin_woody,
+    )
     # TODO - add a calculation for the change in structural below ground lignin
     change_in_lignin_below_structural = 0.0
 
@@ -151,7 +153,7 @@ def calculate_litter_pool_updates(
         "litter_pool_above_structural": DataArray(
             above_structural + change_in_structural_above, dims="cell_id"
         ),
-        "litter_pool_woody": DataArray(woody + change_in_woody, dims="cell_id"),
+        "litter_pool_woody": DataArray(updated_woody, dims="cell_id"),
         "litter_pool_below_metabolic": DataArray(
             below_metabolic + change_in_metabolic_below, dims="cell_id"
         ),
