@@ -524,7 +524,8 @@ class HydrologyModel(BaseModel):
         )
 
         soil_hydrology["sm_updated"] = DataArray(soil_moisture_updated)
-        # TODO Remove plant evapotranspiration from second soil layer
+
+        # Remove plant evapotranspiration from second soil layer (50-100cm)
         soil_moisture_et = np.where(
             soil_moisture_updated[1] - evapotranspiration / days < 0,
             self.constants.soil_moisture_residual * soil_layer_thickness[1],
