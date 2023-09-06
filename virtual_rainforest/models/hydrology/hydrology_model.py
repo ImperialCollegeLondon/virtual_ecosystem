@@ -72,6 +72,7 @@ class HydrologyModel(BaseModel):
     )
     # TODO add time dimension
     """The required variables and axes for the hydrology model"""
+
     vars_updated = (
         "precipitation_surface",  # precipitation-interception loss, input to `plants`
         "soil_moisture",
@@ -267,9 +268,12 @@ class HydrologyModel(BaseModel):
     def update(self, time_index: int) -> None:
         r"""Function to update the hydrology model.
 
-        At the moment, this step calculates soil moisture, vertical flow, soil
-        evaporation, and surface runoff (per grid cell and accumulated), and estimates
-        mean stream flow.
+        At the moment, this step calculates surface precipitation, soil moisture,
+        vertical flow, soil evaporation, and surface runoff (per grid cell and
+        accumulated), and estimates mean stream flow. These processes are problematic
+        at a monthly timestep, which is why - as an intermediate step - the input
+        precipitation is divided by 30 days and return variables are means or
+        accumulated.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
@@ -289,7 +293,7 @@ class HydrologyModel(BaseModel):
 
         Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_vertical_flow`
-        . That function returns vertical flow in mm per time step. Note that there are
+        . That function returns total vertical flow in mm. Note that there are
         severe limitations to this approach on the temporal and spatial scale of this
         model and this can only be treated as a very rough approximation!
 
@@ -344,13 +348,16 @@ class HydrologyModel(BaseModel):
         * stream_flow, [mm/timestep], currently simply P-ET
         * surface_runoff_accumulated, [mm]
         """
-        # select time conversion factor # TODO implement flexible time steps
+        # select time conversion factor
+        # TODO allow for other time steps and make it an option to loop over days to
+        # calculate monthly statistics
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
             LOGGER.error(to_raise)
             raise to_raise
 
         time_conversion_factor = self.constants.seconds_to_month
+        days = 30  # TODO this is not permanent
 
         # Select variables at relevant heights for current time step
         current_precipitation = np.array(
@@ -370,7 +377,6 @@ class HydrologyModel(BaseModel):
         subcanopy_pressure = np.array(
             self.data["atmospheric_pressure_ref"].isel(time_index=time_index)
         )
-
         soil_layer_heights = np.array(
             self.data["layer_heights"]
             .where(self.data["layer_heights"].layer_roles == "soil")
@@ -426,7 +432,11 @@ class HydrologyModel(BaseModel):
             - soil_moisture_mm
         )
 
+        # TODO The following section calculates an average day, will later need to loop
+        # outputs in soil_hydrology represent means or accumulated values
         # Calculate surface runoff of each grid cell, [mm]; might get replaced by SPLASH
+        precipitation_surface = precipitation_surface / days
+
         surface_runoff = np.where(
             precipitation_surface > free_capacity_mm[0],
             precipitation_surface - free_capacity_mm[0],
@@ -434,7 +444,7 @@ class HydrologyModel(BaseModel):
         )
 
         soil_hydrology["surface_runoff"] = DataArray(
-            surface_runoff,
+            surface_runoff * days,
             dims="cell_id",
             coords={"cell_id": self.data["soil_moisture"].cell_id},
         )
@@ -446,7 +456,7 @@ class HydrologyModel(BaseModel):
             (self.constants.soil_moisture_capacity * soil_layer_thickness[0]),
         )
 
-        # Calculate soil evaporation [mm]
+        # Calculate soil evaporation [mm] TODO this is still too high
         soil_evaporation = calculate_soil_evaporation(
             temperature=subcanopy_temperature,
             relative_humidity=subcanopy_humidity,
@@ -458,19 +468,20 @@ class HydrologyModel(BaseModel):
             latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
             gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
             heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
-            flux_to_mm_conversion=self.constants.flux_to_mm_conversion,
-            timestep_conversion_factor=time_conversion_factor,
         )
 
         soil_hydrology["soil_evaporation"] = DataArray(
-            soil_evaporation, dims="cell_id", coords={"cell_id": self.data.grid.cell_id}
+            soil_evaporation * days,
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
         )
 
         # Calculate soil moisture after evaporation and combine with other layers, [mm]
+        # TODO accounting for soil evaporation needs to be restricted or on daily step,
+        # at the moment it produces negative soil moisture which causes errors later
         soil_moisture_evap: NDArray = np.concatenate(
             (
                 # np.expand_dims((soil_moisture_infiltrated - soil_evaporation), axis=0)
-                # TODO accounting for soil evap needs to be restricted or on daily step
                 np.expand_dims((soil_moisture_infiltrated), axis=0),
                 soil_moisture_mm[1:],
             )
@@ -482,7 +493,7 @@ class HydrologyModel(BaseModel):
         # approximation to discuss nutrient leaching.
 
         vertical_flow = calculate_vertical_flow(
-            soil_moisture=soil_moisture_evap / soil_layer_thickness,  # vol. water
+            soil_moisture=soil_moisture_evap / soil_layer_thickness,  # vol
             soil_layer_thickness=soil_layer_thickness,  # mm
             soil_moisture_capacity=self.constants.soil_moisture_capacity,  # vol
             soil_moisture_residual=self.constants.soil_moisture_residual,  # vol
@@ -490,11 +501,11 @@ class HydrologyModel(BaseModel):
             hydraulic_gradient=self.constants.hydraulic_gradient,  # m/m
             nonlinearily_parameter=self.constants.nonlinearily_parameter,
             groundwater_capacity=self.constants.groundwater_capacity,
-            timestep_conversion_factor=time_conversion_factor,
+            timestep_conversion_factor=time_conversion_factor / days,
         )
 
         soil_hydrology["vertical_flow"] = DataArray(
-            np.mean(vertical_flow, axis=0),
+            np.sum(vertical_flow * days, axis=0),  # TODO discuss return value with soil
             dims="cell_id",
             coords={"cell_id": self.data.grid.cell_id},
         )
@@ -502,8 +513,14 @@ class HydrologyModel(BaseModel):
         soil_moisture_updated = update_soil_moisture(
             soil_moisture=soil_moisture_evap,
             vertical_flow=vertical_flow,
+            soil_moisture_capacity=(
+                self.constants.soil_moisture_capacity / soil_layer_thickness
+            ),
+            soil_moisture_residual=(
+                self.constants.soil_moisture_residual / soil_layer_thickness
+            ),
         )
-        print(soil_moisture_updated)
+
         # Add atmospheric layers (nan)
         soil_hydrology["soil_moisture"] = DataArray(
             np.concatenate(
@@ -549,7 +566,7 @@ class HydrologyModel(BaseModel):
         soil_hydrology["stream_flow"] = DataArray(
             np.clip(
                 (
-                    precipitation_surface
+                    precipitation_surface * days
                     - np.array(self.data["evapotranspiration"].sum(dim="layers"))
                     - (
                         np.array(self.data["soil_moisture"].isel(layers=-2))
@@ -681,13 +698,22 @@ def calculate_soil_evaporation(
     latent_heat_vapourisation: Union[float, NDArray],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
-    flux_to_mm_conversion: float,
-    timestep_conversion_factor: float,
 ) -> NDArray:
-    """Calculate soil evaporation based classical bulk aerodynamic formulation.
+    r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
 
-    Equations from Mahfouf, (1991)
-    TODO write description and add references
+    This function uses the so-called 'alpha' method to estimate the evaporative flux.
+    We here use the implementation by Barton (1979):
+
+    :math:`\alpha = \frac{1.8 * soil moisture}{soil moisture + 0.3}`
+
+    :math:`E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})`
+
+    where :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
+    density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
+    :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
+    :math:`q_{g}` is the surface specific humidity (unitless); see Mahfouf (1991).
+
+    TODO add references
     TODO move constants to HydroConsts or CoreConstants and check values
 
     Args:
@@ -701,7 +727,6 @@ def calculate_soil_evaporation(
         latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         heat_transfer_coefficient: heat transfer coefficient of air
-        flux_to_mm_conversion: flux to mm conversion factor
 
     Returns:
         soil evaporation, [mm]
@@ -726,16 +751,14 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = heat_transfer_coefficient / np.sqrt(wind_speed)
+    aerodynamic_resistance = heat_transfer_coefficient / (wind_speed) ** 2
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # Return surface evaporation in mm per timestep
-    return (
-        (evaporative_flux * flux_to_mm_conversion * timestep_conversion_factor)
-    ).squeeze()
+    # Return surface evaporation in mm; TODO note that this is just for step
+    return (evaporative_flux / latent_heat_vapourisation).squeeze()
 
 
 def find_lowest_neighbour(
@@ -907,21 +930,36 @@ def estimate_interception(
 def update_soil_moisture(
     soil_moisture: NDArray,
     vertical_flow: NDArray,
+    soil_moisture_capacity: NDArray,
+    soil_moisture_residual: NDArray,
 ) -> NDArray:
     """Update soil moisture profile.
 
+    This function calculates soil moisture for each layer by removing the vertical flow
+    of the current layer and adding it to the layer below.
+
     Args:
-        soil_moisture: soil moisture after infiltration and surface evaporation, mm
-        vertical_flow: vertical flow between all layers, mm
+        soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
+        vertical_flow: vertical flow between all layers, [mm]
+        soil_moisture_capacity: soil moisture capacity for each layer, [mm]
+        soil_moisture_residual: residual soil moisture for each layer, [mm]
 
     Returns:
         updated soil moisture profile, relative volumetric water content, dimensionless
     """
-    # TODO flow must not exceed water in store
-    top_soil_moisture = soil_moisture[0] - vertical_flow[0]
+    # TODO this is currently not conserving water
+    top_soil_moisture = np.clip(
+        soil_moisture[0] - vertical_flow[0],
+        soil_moisture_residual[0],
+        soil_moisture_capacity[0],
+    )
 
     lower_soil_moisture = [
-        (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1])
+        np.clip(
+            (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1]),
+            soil_moisture_residual[i + 1],
+            soil_moisture_capacity[i + 1],
+        )
         for sm, vf in zip(
             soil_moisture[1:],
             vertical_flow[1:],

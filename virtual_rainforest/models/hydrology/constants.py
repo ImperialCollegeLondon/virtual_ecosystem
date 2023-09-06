@@ -70,9 +70,6 @@ class HydroConsts:
     heat_transfer_coefficient: float = 12.5
     """Heat transfer coefficient, :cite:p:`van_de_griend_bare_1994` """
 
-    flux_to_mm_conversion: float = 4.075e-7
-    """Factor to convert evaporative flux to mm."""
-
     stream_flow_capacity: float = 5000.0
     """Stream flow capacity, mm per timestep. This is curretly an arbitrary value, but
     could be used in the future to flag flood events."""

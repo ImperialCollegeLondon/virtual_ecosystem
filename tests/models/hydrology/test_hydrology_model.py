@@ -6,6 +6,7 @@ from logging import DEBUG, ERROR, INFO
 import numpy as np
 import pint
 import pytest
+import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -393,19 +394,19 @@ def test_setup(
         # Run the update step
         model.update(time_index=1)
 
-        # exp_soil_moisture = xr.concat(
-        #     [
-        #         DataArray(
-        #             np.full((13, 3), np.nan),
-        #             dims=["layers", "cell_id"],
-        #         ),
-        #         DataArray(
-        #             [[0.899, 0.899, 0.899], [0.5, 0.5, 0.5]],
-        #             dims=["layers", "cell_id"],
-        #         ),
-        #     ],
-        #     dim="layers",
-        # ).assign_coords(model.data["layer_heights"].coords)
+        exp_soil_moisture = xr.concat(
+            [
+                DataArray(
+                    np.full((13, 3), np.nan),
+                    dims=["layers", "cell_id"],
+                ),
+                DataArray(
+                    [[0.001, 0.001, 0.001], [0.001, 0.001, 0.001]],
+                    dims=["layers", "cell_id"],
+                ),
+            ],
+            dim="layers",
+        ).assign_coords(model.data["layer_heights"].coords)
 
         exp_surf_prec = DataArray(
             [197.622772, 197.622772, 197.622772],
@@ -413,38 +414,38 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff = DataArray(
-            [157.622772, 157.622772, 157.622772],
+            [0.0, 0.0, 0.0],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [1317.37051, 1317.37051, 1317.37051],
+            [102.490871, 102.490871, 102.490871],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_soil_evap = DataArray(
-            [371.139063, 371.139063, 371.139063],
+            [134.195781, 134.195781, 134.195781],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [227.122772, 227.122772, 227.122772],
+            [193.710197, 193.710197, 193.710197],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff_acc = DataArray(
-            [0, 167, 465],
+            [0, 10, 150],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
 
         np.testing.assert_allclose(model.data["precipitation_surface"], exp_surf_prec)
-        # np.testing.assert_allclose(
-        #     model.data["soil_moisture"],
-        #     exp_soil_moisture,
-        #     rtol=1e-3,
-        #     atol=1e-3,
-        # )
+        np.testing.assert_allclose(
+            model.data["soil_moisture"],
+            exp_soil_moisture,
+            rtol=1e-3,
+            atol=1e-3,
+        )
         np.testing.assert_allclose(
             model.data["vertical_flow"],
             exp_vertical_flow,
@@ -544,17 +545,15 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         wind_speed=wind,
         relative_humidity=np.array([70, 80, 90]),
         atmospheric_pressure=np.array([90, 90, 90]),
-        soil_moisture=np.array([0.3, 0.6, 0.9]),
+        soil_moisture=np.array([0.1, 0.5, 0.9]),
         celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
-        flux_to_mm_conversion=HydroConsts.flux_to_mm_conversion,
-        timestep_conversion_factor=HydroConsts.seconds_to_month,
     )
 
-    exp_result = np.array([248.310998, 320.608683, 371.090041])
+    exp_result = np.array([1.523354, 3.86474, 4.473155])
     np.testing.assert_allclose(result, exp_result, rtol=0.01)
 
 
@@ -735,13 +734,16 @@ def test_update_soil_moisture():
 
     from virtual_rainforest.models.hydrology.hydrology_model import update_soil_moisture
 
-    soil_moisture = np.array([[30, 60, 500], [30, 60, 500]])
-    vertical_flow = np.array([[1000, 1002, 1003], [1001, 1002, 1003]])
+    soil_moisture = np.array([[30, 60, 50], [300, 600, 500]])
+    vertical_flow = np.array([[10, 2, 3], [10, 2, 3]])
+    layer_thickness = np.array([[100, 100, 100], [900, 900, 900]])
+    exp_result = np.array([[20, 58, 47], [300, 600, 500]])
 
-    exp_result = np.array([[-970, -942, -503], [29, 60, 500]])
     result = update_soil_moisture(
         soil_moisture,
         vertical_flow,
+        HydroConsts.soil_moisture_capacity * layer_thickness,
+        HydroConsts.soil_moisture_residual * layer_thickness,
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
