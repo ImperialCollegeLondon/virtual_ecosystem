@@ -118,8 +118,20 @@ def calculate_litter_pool_updates(
     ) * update_interval
 
     # Find the changes in the lignin concentrations of the 3 relevant pools
-    # TODO - add a calculation for the change in structural above ground lignin
-    change_in_lignin_above_structural = 0.0
+    input_carbon_above_structural = np.full(
+        (len(lignin_above_structural),),
+        constants.litter_input_to_structural_above * update_interval,
+    )
+    updated_above_structural = above_structural + change_in_structural_above
+    change_in_lignin_above_structural = calculate_change_in_lignin(
+        input_carbon=input_carbon_above_structural,
+        updated_pool_carbon=updated_above_structural,
+        input_lignin=np.full(
+            (len(lignin_above_structural),),
+            constants.lignin_proportion_above_structural_input,
+        ),
+        old_pool_lignin=lignin_above_structural,
+    )
     input_carbon_woody = np.full(
         (len(lignin_woody),), constants.litter_input_to_woody * update_interval
     )
@@ -153,7 +165,7 @@ def calculate_litter_pool_updates(
             above_metabolic + change_in_metabolic_above, dims="cell_id"
         ),
         "litter_pool_above_structural": DataArray(
-            above_structural + change_in_structural_above, dims="cell_id"
+            updated_above_structural, dims="cell_id"
         ),
         "litter_pool_woody": DataArray(updated_woody, dims="cell_id"),
         "litter_pool_below_metabolic": DataArray(
