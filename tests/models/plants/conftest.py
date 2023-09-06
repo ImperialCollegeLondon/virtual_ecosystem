@@ -35,6 +35,10 @@ def plants_data():
     data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * 4))
     data["plant_cohorts_cell_id"] = DataArray(np.arange(4))
     data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
+    data["photosynthetic_photon_flux_density"] = DataArray(
+        data=np.full((4, 12), fill_value=1000),
+        coords={"cell_id": np.arange(4), "time": np.arange(12)},
+    )
 
     return data
 
