@@ -45,9 +45,9 @@ def generate_canopy_model(
     # TODO - actually calculate these
     layer_heights = np.array([30.0, 20.0, 10.0])
     layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
-    fapar = np.array([0.4, 0.2, 0.1])
+    layer_fapar = np.array([0.4, 0.2, 0.1])
 
-    return layer_heights, layer_leaf_area_indices, fapar
+    return layer_heights, layer_leaf_area_indices, layer_fapar
 
 
 def build_canopy_arrays(
@@ -120,9 +120,9 @@ def initialise_canopy_layers(
 ) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
-    This function initialises ``layer_heights``, ``leaf_area_index`` and ``layer_fapar``
-    data arrays describing the plant canopy structure and soil layer structure within a
-    Data object.
+    This function initialises four data arrays describing the plant canopy structure and
+    soil layer structure within a Data object: ``layer_heights``, ``leaf_area_index``,
+    ``layer_fapar`` and ``layer_absorbed_irradiation``.
 
     Args:
         data: A Data object to update.
@@ -140,12 +140,19 @@ def initialise_canopy_layers(
     #        The other models rely on it
 
     # Check that layers do not already exist
-    if (
-        ("leaf_area_index" in data)
-        or ("layer_heights" in data)
-        or ("layer_fapar" in data)
-    ):
-        msg = "Cannot initialise canopy layers, already present"
+    layers_to_create = [
+        "layer_heights",
+        "leaf_area_index",
+        "layer_fapar",
+        "layer_absorbed_irradiation",
+    ]
+
+    layers_found = set(layers_to_create).union(data.data.variables)
+    if layers_found:
+        msg = (
+            f"Cannot initialise canopy layers, already "
+            f"present: {','.join([str(x) for x in layers_found])}"
+        )
         LOGGER.critical(msg)
         raise InitialisationError(msg)
 
@@ -153,33 +160,16 @@ def initialise_canopy_layers(
     layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
-    # Set the layers
-    data["leaf_area_index"] = DataArray(
-        data=np.full(layer_shape, fill_value=np.nan),
-        dims=("layers", "cell_id"),
-        coords={
-            "layers": np.arange(len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
-    data["layer_heights"] = DataArray(
-        data=np.full(layer_shape, fill_value=np.nan),
-        dims=("layers", "cell_id"),
-        coords={
-            "layers": np.arange(len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
-    data["layer_fapar"] = DataArray(
-        data=np.full(layer_shape, fill_value=np.nan),
-        dims=("layers", "cell_id"),
-        coords={
-            "layers": np.arange(len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
+    for each_layer in layers_to_create:
+        # Set the layers
+        data[each_layer] = DataArray(
+            data=np.full(layer_shape, fill_value=np.nan),
+            dims=("layers", "cell_id"),
+            coords={
+                "layers": np.arange(len(layer_roles)),
+                "layer_roles": ("layers", layer_roles),
+                "cell_id": data.grid.cell_id,
+            },
+        )
 
     return data
