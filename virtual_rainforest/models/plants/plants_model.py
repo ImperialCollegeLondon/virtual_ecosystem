@@ -248,14 +248,13 @@ class PlantsModel(BaseModel):
 
         # Calculate the fate of PPFD through the layers
         absorbed_irradiance = canopy_top_ppfd * self.data["layer_fapar"].data
-        ground_irradiance = canopy_top_ppfd - absorbed_irradiance.sum(axis=0)
+        ground_irradiance = canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
 
-        # Store the results in the data object
-        canopy_idx = np.arange(1, self.canopy_layers + 1)
-        self.data["layer_absorbed_irradiance"][canopy_idx, :] = absorbed_irradiance
-        self.data["layer_absorbed_irradiance"][
-            self.canopy_layers + 2
-        ] = ground_irradiance
+        # Store the absorbed irradiance in the data object and add the remaining
+        # irradiance at the surface layer level
+        self.data["layer_absorbed_irradiation"][:] = absorbed_irradiance
+        ground = np.where(self.data["layer_roles"].data == "surface")[0]
+        self.data["layer_absorbed_irradiation"][ground] = ground_irradiance
 
 
 # def estimate_gpp(self) -> None:
