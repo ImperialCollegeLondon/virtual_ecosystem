@@ -128,7 +128,12 @@ class PlantsModel(BaseModel):
             n_soil_layers=self.soil_layers,
         )
         """A reference to the global data object."""
+
+        # Run the canopy initialisation - update the canopy structure from the initial
+        # cohort data and then initialise the irradiance using the first observation for
+        # PPFD.
         self.update_canopy_layers()
+        self.set_absorbed_irradiance(time_index=0)
 
     @classmethod
     def from_config(
@@ -193,6 +198,7 @@ class PlantsModel(BaseModel):
         # self.estimate_gpp()
 
         self.update_canopy_layers()
+        self.set_absorbed_irradiance(time_index=time_index)
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -219,6 +225,63 @@ class PlantsModel(BaseModel):
 
         # Insert the canopy layers into the data objects
         canopy_idx = np.arange(1, self.canopy_layers + 1)
-        self.data["leaf_fapar"][canopy_idx, :] = canopy_fapar
         self.data["layer_heights"][canopy_idx, :] = canopy_heights
         self.data["leaf_area_index"][canopy_idx, :] = canopy_lai
+        self.data["layer_fapar"][canopy_idx, :] = canopy_fapar
+
+    def set_absorbed_irradiance(self, time_index: int) -> None:
+        """Set the absorbed irradiance across the canopy.
+
+        This method takes the photosynthetic photon flux density at the top of the
+        canopy for a particular time index and uses the ``layer_fapar`` data calculated
+        by the canopy model to estimate the irradiance absorbed by each layer and the
+        remaining irradiance at ground level.
+        """
+
+        # TODO: With the full canopy model, this could be partitioned into sunspots and
+        #       shade.
+
+        # Extract a PPFD time slice
+        canopy_top_ppfd = (
+            self.data["photosynthetic_photon_flux_density"].isel(time=time_index).data
+        )
+
+        # Calculate the fate of PPFD through the layers
+        absorbed_irradiance = canopy_top_ppfd * self.data["layer_fapar"].data
+        ground_irradiance = canopy_top_ppfd - absorbed_irradiance.sum(axis=0)
+
+        # Store the results in the data object
+        canopy_idx = np.arange(1, self.canopy_layers + 1)
+        self.data["layer_absorbed_irradiance"][canopy_idx, :] = absorbed_irradiance
+        self.data["layer_absorbed_irradiance"][
+            self.canopy_layers + 2
+        ] = ground_irradiance
+
+
+# def estimate_gpp(self) -> None:
+#     """Estimate the gross primary productivity within plant cohorts.
+
+#     This method uses the P Model to estimate the light use efficiency within the
+#     canopy model and then calculates the resulting total productivity given the
+#     light extinction through the canopy layer."""
+
+#     # Calculate the P Model photosynthetic environment at each canopy layer
+#     pmodel_env = PModelEnvironment(
+#         tc=self.data["air_temperature"].data,
+#         vpd=self.data["vapour_pressure_deficit"].data,
+#         patm=self.data["atmospheric_pressure"].data,
+#         co2=self.data["atmospheric_pressure"].data,
+#         consts=self.pmodel_constants,
+#     )
+
+#     # Fit the P Model to estimate light use intensity at each canopy layer
+#     pmodel = PModel(pmodel_env)
+#     pmodel.estimate_productivity(fapar=1, ppfd=self.data["absorbed_radiation"])
+
+
+# def allocate_gpp(self) -> None:
+#     """Calculate the allocation of GPP to growth and respiration.
+
+#     This method uses the T Model to estimate the allocation of plant gross primary
+#     productivity to respiration, growth, maintenance and turnover costs.
+#     """
