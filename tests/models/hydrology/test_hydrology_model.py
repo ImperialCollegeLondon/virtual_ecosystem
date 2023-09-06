@@ -419,7 +419,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [97.587874, 97.587874, 97.587874],
+            [72.141239, 72.141239, 72.141239],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -429,7 +429,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [117.113505, 117.113505, 117.113505],
+            [117.113492, 117.113492, 117.113492],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
