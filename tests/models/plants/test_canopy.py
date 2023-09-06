@@ -22,10 +22,11 @@ def test_generate_canopy_model(plants_data, flora):
     communities = PlantCommunities(plants_data, flora)
 
     for _, community in communities.items():
-        layer_hght, layer_lai = generate_canopy_model(community=community)
+        layer_hght, layer_lai, layer_fapar = generate_canopy_model(community=community)
 
         assert isinstance(layer_hght, ndarray)
         assert isinstance(layer_lai, ndarray)
+        assert isinstance(layer_fapar, ndarray)
 
 
 @pytest.mark.parametrize(
@@ -56,13 +57,14 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
     communities = PlantCommunities(plants_data, flora)
 
     with raises:
-        layer_hght, layer_lai = build_canopy_arrays(
+        layer_hght, layer_lai, layer_fapar = build_canopy_arrays(
             communities=communities, n_canopy_layers=max_layers
         )
 
         if isinstance(raises, does_not_raise):
             assert layer_hght.shape == (max_layers, len(communities))
             assert layer_lai.shape == (max_layers, len(communities))
+            assert layer_fapar.shape == (max_layers, len(communities))
 
         if exp_log is not None:
             log_check(caplog, exp_log)
@@ -77,13 +79,16 @@ def test_initialise_canopy_layers(caplog, plants_data):
     # future to try and trigger various warning - or might not.
     data = initialise_canopy_layers(plants_data, n_canopy_layers=10, n_soil_layers=3)
 
-    assert "layer_heights" in data
-    assert "leaf_area_index" in data
+    # Set up expectations
+    expected_layers = [
+        "layer_heights",
+        "leaf_area_index",
+        "layer_fapar",
+        "layer_absorbed_irradiation",
+    ]
 
     n_layer = 1 + 10 + 2 + 3
     exp_shape = (n_layer, data.grid.n_cells)
-    assert data["layer_heights"].shape == exp_shape
-    assert data["leaf_area_index"].shape == exp_shape
 
     exp_dims = {
         "layers": (True, n_layer),
@@ -91,14 +96,16 @@ def test_initialise_canopy_layers(caplog, plants_data):
         "cell_id": (True, data.grid.n_cells),
     }
 
-    for key, (is_dim, exp_n) in exp_dims.items():
-        # Check the names, dimensions and coords
-        if is_dim:
-            assert key in data["layer_heights"].dims
-            assert key in data["leaf_area_index"].dims
+    # Check each layer is i) in the data object, ii) has the right shape, iii) has the
+    # expected dimensions and iv) has coordinates with the right lengths.
+    for lyr in expected_layers:
+        assert lyr in data
+        assert data[lyr].shape == exp_shape
 
-        assert key in data["layer_heights"].coords
-        assert key in data["leaf_area_index"].coords
+        for key, (is_dim, exp_n) in exp_dims.items():
+            # Check the names, dimensions and coords
+            if is_dim:
+                assert key in data[lyr].dims
 
-        assert len(data["leaf_area_index"].coords[key]) == exp_n
-        assert len(data["layer_heights"].coords[key]) == exp_n
+            assert key in data[lyr].coords
+            assert len(data[lyr].coords[key]) == exp_n

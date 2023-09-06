@@ -147,7 +147,7 @@ def initialise_canopy_layers(
         "layer_absorbed_irradiation",
     ]
 
-    layers_found = set(layers_to_create).union(data.data.variables)
+    layers_found = set(layers_to_create).intersection(data.data.variables)
     if layers_found:
         msg = (
             f"Cannot initialise canopy layers, already "
