@@ -1,5 +1,5 @@
 """The :mod:`~virtual_rainforest.models.plants.canopy` submodule provides the core
-functions used to estimate the canopy model, productivity and growth.
+functions used to estimate the canopy model.
 
 NOTE - much of this will be outsourced to pyrealm.
 
@@ -18,13 +18,17 @@ from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.plants.community import PlantCohort, PlantCommunities
 
 
-def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArray]:
+def generate_canopy_model(
+    community: list[PlantCohort],
+) -> tuple[NDArray, NDArray, NDArray]:
     """Generate the canopy structure for a plant community.
 
     This function takes a list of plant cohorts present in a community and uses the T
     Model to estimate the heights and crown areas of the individuals. It then uses the
     perfect plasticity approximation to calculate the closure heights of the canopy
-    layers and the leaf area indices of each layer.
+    layers and the leaf area indices of each layer. The last step is then to use the
+    Beer-Lambert law to estimate the fraction of absorbed photosynthetically active
+    radiation (``fapar``, :math:`f_{APAR}`) for the canopy.
 
     Warning:
         This function defines the API for generating canopy models but currently returns
@@ -34,20 +38,21 @@ def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArra
         community: A list of plant cohorts.
 
     Returns:
-        A tuple of one dimensional numpy arrays giving the canopy layer heights and leaf
-        area indices.
+        A tuple of one dimensional numpy arrays giving the layer heights, leaf area
+        indices and :math:`f_{APAR}` from the canopy model.
     """
 
     # TODO - actually calculate these
     layer_heights = np.array([30.0, 20.0, 10.0])
     layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
+    fapar = np.array([0.4, 0.2, 0.1])
 
-    return layer_heights, layer_leaf_area_indices
+    return layer_heights, layer_leaf_area_indices, fapar
 
 
 def build_canopy_arrays(
     communities: PlantCommunities, n_canopy_layers: int
-) -> tuple[DataArray, DataArray]:
+) -> tuple[DataArray, DataArray, DataArray]:
     """Converts the PlantCommunities data into canopy layer data arrays.
 
     This function takes a list of plant cohorts present in a community and uses the T
@@ -70,28 +75,28 @@ def build_canopy_arrays(
     # Initialise list of arrays
     layer_heights: list = []
     layer_lai: list = []
+    layer_fapar: list = []
     cell_has_too_many_layers: list = []
 
     # Loop over the communities in each cell
     for cell_id, community in communities.items():
         # Calculate the canopy model for the cell and pad as needed
-        this_lyr_hght, this_lyr_lai = generate_canopy_model(community)
-        n_pad = n_canopy_layers - len(this_lyr_hght)
+        canopy_layers = list(generate_canopy_model(community))
+        n_pad = n_canopy_layers - len(canopy_layers[0])
 
         if n_pad < 0:
             cell_has_too_many_layers.append(cell_id)
             continue
 
         if n_pad > 0:
-            this_lyr_hght = np.pad(
-                this_lyr_hght, (0, n_pad), "constant", constant_values=np.nan
-            )
-            this_lyr_lai = np.pad(
-                this_lyr_lai, (0, n_pad), "constant", constant_values=np.nan
-            )
+            for idx, var in enumerate(canopy_layers):
+                canopy_layers[idx] = np.pad(
+                    var, (0, n_pad), "constant", constant_values=np.nan
+                )
 
-        layer_heights.append(this_lyr_hght)
-        layer_lai.append(this_lyr_lai)
+        layer_heights.append(canopy_layers[0])
+        layer_lai.append(canopy_layers[1])
+        layer_fapar.append(canopy_layers[2])
 
     # Bail if any cells had too many canopy layers
     if cell_has_too_many_layers:
@@ -102,8 +107,12 @@ def build_canopy_arrays(
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
-    # Combine into arrays
-    return np.stack(layer_heights, axis=1), np.stack(layer_lai, axis=1)
+    # Combine lists of layers by cell_id into canopy layers x cell_id arrays
+    return (
+        np.stack(layer_heights, axis=1),
+        np.stack(layer_lai, axis=1),
+        np.stack(layer_fapar, axis=1),
+    )
 
 
 def initialise_canopy_layers(
@@ -111,8 +120,9 @@ def initialise_canopy_layers(
 ) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
-    This function initialises ``layer_heights`` and ``leaf_area_index`` data arrays
-    describing the plant canopy structure and soil layer structure within a Data object.
+    This function initialises ``layer_heights``, ``leaf_area_index`` and ``layer_fapar``
+    data arrays describing the plant canopy structure and soil layer structure within a
+    Data object.
 
     Args:
         data: A Data object to update.
@@ -130,7 +140,11 @@ def initialise_canopy_layers(
     #        The other models rely on it
 
     # Check that layers do not already exist
-    if ("leaf_area_index" in data) or ("layer_heights" in data):
+    if (
+        ("leaf_area_index" in data)
+        or ("layer_heights" in data)
+        or ("layer_fapar" in data)
+    ):
         msg = "Cannot initialise canopy layers, already present"
         LOGGER.critical(msg)
         raise InitialisationError(msg)
@@ -158,21 +172,14 @@ def initialise_canopy_layers(
             "cell_id": data.grid.cell_id,
         },
     )
+    data["layer_fapar"] = DataArray(
+        data=np.full(layer_shape, fill_value=np.nan),
+        dims=("layers", "cell_id"),
+        coords={
+            "layers": np.arange(len(layer_roles)),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": data.grid.cell_id,
+        },
+    )
 
     return data
-
-
-# # Estimate
-# self.gpp = estimate_gpp(
-#     temperature=self.data["temperature"],
-#     atmospheric_co2=self.data["atmospheric_co2"],
-#     vapour_pressure_deficit=self.data["vapour_pressure_deficit"],
-#     atmospheric_pressure=self.data["atmospheric_pressure"],
-#     ppfd=self.data["ppfd"],
-#     canopy_model=self.canopy_model,
-#     pfts=self.pfts,
-# )
-
-# self.delta_dbh = estimate_growth(
-#     gpp=self.gpp, cohort_dbh=self.dbh, pfts=self.pfts
-# )

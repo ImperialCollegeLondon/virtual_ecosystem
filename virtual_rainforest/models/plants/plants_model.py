@@ -68,6 +68,7 @@ class PlantsModel(BaseModel):
     vars_updated = (
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
         "herbivory",
         "transpiration",
         "canopy_evaporation",
@@ -182,12 +183,13 @@ class PlantsModel(BaseModel):
         arrays in the data object.
         """
         # Retrive the canopy model arrays and insert into the data object.
-        canopy_heights, canopy_lai = build_canopy_arrays(
+        canopy_heights, canopy_lai, canopy_fapar = build_canopy_arrays(
             self.communities,
             n_canopy_layers=self.canopy_layers,
         )
 
         # Insert the canopy layers into the data objects
         canopy_idx = np.arange(1, self.canopy_layers + 1)
+        self.data["leaf_fapar"][canopy_idx, :] = canopy_fapar
         self.data["layer_heights"][canopy_idx, :] = canopy_heights
         self.data["leaf_area_index"][canopy_idx, :] = canopy_lai
