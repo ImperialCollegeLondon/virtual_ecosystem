@@ -47,7 +47,9 @@ from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.litter.constants import LitterConsts
-from virtual_rainforest.models.litter.litter_pools import calculate_litter_pool_updates
+from virtual_rainforest.models.litter.litter_pools import (
+    calculate_change_in_litter_variables,
+)
 
 
 class LitterModel(BaseModel):
@@ -229,8 +231,8 @@ class LitterModel(BaseModel):
             saturated_water_content=self.constants.saturated_water_content,
         )
 
-        # Find litter pool updates using the litter pool update function
-        updated_litter_pools = calculate_litter_pool_updates(
+        # Find change in litter variables using the function
+        updated_litter_pools = calculate_change_in_litter_variables(
             surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),

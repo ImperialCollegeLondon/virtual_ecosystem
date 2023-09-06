@@ -38,6 +38,19 @@ def temp_and_water_factors(
     return environmental_factors
 
 
+@pytest.fixture
+def decay_rates(dummy_litter_data, temp_and_water_factors):
+    """Decay rates for the various litter pools."""
+
+    return {
+        "metabolic_above": np.array([0.00450883464, 0.00225441732, 0.00105206141]),
+        "structural_above": np.array([0.000167429, 8.371483356e-5, 3.013734008e-5]),
+        "woody": np.array([0.0004831961, 0.0012131307, 0.0007504961]),
+        "metabolic_below": np.array([0.00627503, 0.01118989, 0.00141417]),
+        "structural_below": np.array([2.08818455e-04, 2.07992589e-04, 8.96385948e-06]),
+    }
+
+
 def test_calculate_environmental_factors(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
@@ -122,7 +135,7 @@ def test_calculate_litter_chemistry_factor():
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_litter_pool_updates(
+def test_calculate_change_in_litter_variables(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Test that litter pool update calculation is correct."""
@@ -130,7 +143,7 @@ def test_calculate_litter_pool_updates(
         convert_soil_moisture_to_water_potential,
     )
     from virtual_rainforest.models.litter.litter_pools import (
-        calculate_litter_pool_updates,
+        calculate_change_in_litter_variables,
     )
 
     expected_pools = {
@@ -153,7 +166,7 @@ def test_calculate_litter_pool_updates(
         saturated_water_content=LitterConsts.saturated_water_content,
     )
 
-    result = calculate_litter_pool_updates(
+    result = calculate_change_in_litter_variables(
         surface_temp=dummy_litter_data["air_temperature"][
             surface_layer_index
         ].to_numpy(),
@@ -208,7 +221,7 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
         assert np.allclose(actual_decay[name], expected_decay[name])
 
 
-def test_calculate_total_C_mineralised():
+def test_calculate_total_C_mineralised(decay_rates):
     """Test that calculation of total C mineralised is as expected."""
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_total_C_mineralised,
@@ -216,20 +229,41 @@ def test_calculate_total_C_mineralised():
 
     expected_mineralisation = [0.0212182, 0.0274272, 0.00617274]
 
-    decay_rates = {
-        "metabolic_above": np.array([0.00450883464, 0.00225441732, 0.00105206141]),
-        "structural_above": np.array([0.000167429, 8.371483356e-5, 3.013734008e-5]),
-        "woody": np.array([0.0004831961, 0.0012131307, 0.0007504961]),
-        "metabolic_below": np.array([0.00627503, 0.01118989, 0.00141417]),
-        "structural_below": np.array([2.08818455e-04, 2.07992589e-04, 8.96385948e-06]),
-    }
-
     actual_mineralisation = calculate_total_C_mineralised(
         decay_rates=decay_rates,
         constants=LitterConsts,
     )
 
     assert np.allclose(actual_mineralisation, expected_mineralisation)
+
+
+def test_calculate_updated_pools(dummy_litter_data, decay_rates):
+    """Test that the function to calculate the pool values after the update works."""
+    from virtual_rainforest.models.litter.litter_pools import calculate_updated_pools
+
+    expected_pools = {
+        "above_metabolic": [0.291759466, 0.147025527, 0.070837127],
+        "above_structural": [0.501102522, 0.251269950, 0.091377105],
+        "woody": [4.7042056, 11.802745, 7.3036710],
+        "below_metabolic": [0.38828994, 0.34846022, 0.06801166],
+        "below_structural": [0.60054236, 0.31054401, 0.02094207],
+    }
+
+    actual_pools = calculate_updated_pools(
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
+        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
+        decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
+        decay_rates=decay_rates,
+        update_interval=2.0,
+        constants=LitterConsts,
+    )
+
+    for name in actual_pools.keys():
+        assert np.allclose(actual_pools[name], expected_pools[name])
 
 
 def test_calculate_litter_decay_metabolic_above(

@@ -23,7 +23,7 @@ from xarray import DataArray
 from virtual_rainforest.models.litter.constants import LitterConsts
 
 
-def calculate_litter_pool_updates(
+def calculate_change_in_litter_variables(
     surface_temp: NDArray[np.float32],
     topsoil_temp: NDArray[np.float32],
     water_potential: NDArray[np.float32],
@@ -40,7 +40,7 @@ def calculate_litter_pool_updates(
     update_interval: float,
     constants: LitterConsts,
 ) -> dict[str, DataArray]:
-    """Calculate updates for all litter pools.
+    """Calculate changes for all the litter variables (pool sizes and chemistries).
 
     Args:
         surface_temp: Temperature of soil surface, which is assumed to be the same
@@ -95,63 +95,53 @@ def calculate_litter_pool_updates(
     # Calculate the total mineralisation of carbon from the litter
     total_C_mineralisation_rate = calculate_total_C_mineralised(decay_rates, constants)
 
-    # TODO - Once I've worked out the lignin calculation the below should be wrapped up
-    # in a function (or maybe two functions).
-    # Combine with input rates and multiple by update time to find overall changes
-    change_in_metabolic_above = (
-        constants.litter_input_to_metabolic_above
-        + decomposed_excrement
-        + decomposed_carcasses
-        - decay_rates["metabolic_above"]
-    ) * update_interval
-    change_in_structural_above = (
-        constants.litter_input_to_structural_above - decay_rates["structural_above"]
-    ) * update_interval
-    change_in_woody = (
-        constants.litter_input_to_woody - decay_rates["woody"]
-    ) * update_interval
-    change_in_metabolic_below = (
-        constants.litter_input_to_metabolic_below - decay_rates["metabolic_below"]
-    ) * update_interval
-    change_in_structural_below = (
-        constants.litter_input_to_structural_below - decay_rates["structural_below"]
-    ) * update_interval
+    # Calculate the updated pool masses
+    updated_pools = calculate_updated_pools(
+        above_metabolic=above_metabolic,
+        above_structural=above_structural,
+        woody=woody,
+        below_metabolic=below_metabolic,
+        below_structural=below_structural,
+        decomposed_excrement=decomposed_excrement,
+        decomposed_carcasses=decomposed_carcasses,
+        decay_rates=decay_rates,
+        update_interval=update_interval,
+        constants=constants,
+    )
 
+    # TODO - Work out a sensible function structure for the below
     # Find the changes in the lignin concentrations of the 3 relevant pools
     input_carbon_above_structural = np.full(
         (len(lignin_above_structural),),
         constants.litter_input_to_structural_above * update_interval,
     )
-    updated_above_structural = above_structural + change_in_structural_above
+    input_carbon_woody = np.full(
+        (len(lignin_woody),), constants.litter_input_to_woody * update_interval
+    )
+    input_carbon_below_structural = np.full(
+        (len(lignin_below_structural),),
+        constants.litter_input_to_structural_below * update_interval,
+    )
     change_in_lignin_above_structural = calculate_change_in_lignin(
         input_carbon=input_carbon_above_structural,
-        updated_pool_carbon=updated_above_structural,
+        updated_pool_carbon=updated_pools["above_structural"],
         input_lignin=np.full(
             (len(lignin_above_structural),),
             constants.lignin_proportion_above_structural_input,
         ),
         old_pool_lignin=lignin_above_structural,
     )
-    input_carbon_woody = np.full(
-        (len(lignin_woody),), constants.litter_input_to_woody * update_interval
-    )
-    updated_woody = woody + change_in_woody
     change_in_lignin_woody = calculate_change_in_lignin(
         input_carbon=input_carbon_woody,
-        updated_pool_carbon=updated_woody,
+        updated_pool_carbon=updated_pools["woody"],
         input_lignin=np.full(
             (len(lignin_woody),), constants.lignin_proportion_wood_input
         ),
         old_pool_lignin=lignin_woody,
     )
-    input_carbon_below_structural = np.full(
-        (len(lignin_below_structural),),
-        constants.litter_input_to_structural_below * update_interval,
-    )
-    updated_below_structural = below_structural + change_in_structural_below
     change_in_lignin_below_structural = calculate_change_in_lignin(
         input_carbon=input_carbon_below_structural,
-        updated_pool_carbon=updated_below_structural,
+        updated_pool_carbon=updated_pools["below_structural"],
         input_lignin=np.full(
             (len(lignin_below_structural),),
             constants.lignin_proportion_below_structural_input,
@@ -162,17 +152,17 @@ def calculate_litter_pool_updates(
     # Construct dictionary of data arrays to return
     new_litter_pools = {
         "litter_pool_above_metabolic": DataArray(
-            above_metabolic + change_in_metabolic_above, dims="cell_id"
+            updated_pools["above_metabolic"], dims="cell_id"
         ),
         "litter_pool_above_structural": DataArray(
-            updated_above_structural, dims="cell_id"
+            updated_pools["above_structural"], dims="cell_id"
         ),
-        "litter_pool_woody": DataArray(updated_woody, dims="cell_id"),
+        "litter_pool_woody": DataArray(updated_pools["woody"], dims="cell_id"),
         "litter_pool_below_metabolic": DataArray(
-            below_metabolic + change_in_metabolic_below, dims="cell_id"
+            updated_pools["below_metabolic"], dims="cell_id"
         ),
         "litter_pool_below_structural": DataArray(
-            updated_below_structural, dims="cell_id"
+            updated_pools["below_structural"], dims="cell_id"
         ),
         "lignin_above_structural": DataArray(
             lignin_above_structural + change_in_lignin_above_structural, dims="cell_id"
@@ -315,6 +305,76 @@ def calculate_total_C_mineralised(
 
     # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
     return total_C_mineralisation_rate / constants.depth_of_active_layer
+
+
+def calculate_updated_pools(
+    above_metabolic: NDArray[np.float32],
+    above_structural: NDArray[np.float32],
+    woody: NDArray[np.float32],
+    below_metabolic: NDArray[np.float32],
+    below_structural: NDArray[np.float32],
+    decomposed_excrement: NDArray[np.float32],
+    decomposed_carcasses: NDArray[np.float32],
+    decay_rates: dict[str, NDArray[np.float32]],
+    update_interval: float,
+    constants: LitterConsts,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the updated mass of each litter pool.
+
+    This function is not intended to be used continuously, and returns the new value for
+    each pool after the update interval, rather than a rate of change to be integrated.
+
+    Args:
+        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
+        above_structural: Above ground structural litter pool [kg C m^-2] woody: The
+        woody litter pool [kg C m^-2] below_metabolic: Below ground metabolic litter
+        pool [kg C m^-2] below_structural: Below ground structural litter pool [kg C
+        m^-2] decomposed_excrement: Input rate of excrement from the animal model [kg C
+        m^-2
+            day^-1]
+        decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
+            the animal model [kg C m^-2 day^-1]
+        decay_rates: Dictionary containing the rates of decay for all 5 litter pools:
+            above ground metabolic, above ground structural, dead wood, below ground
+            metabolic, and below ground structural [kg C m^-2 day^-1]
+        update_interval: Interval that the litter pools are being updated for [days]
+        constants: Set of constants for the litter model
+
+    Returns:
+        Dictionary containing the updated pool densities for all 5 litter pools: above
+        ground metabolic, above ground structural, dead wood, below ground metabolic,
+        and below ground structural [kg C m^-2]
+    """
+
+    # Net pool changes are found by combining input and decay rates, and then
+    # multiplying by the update time step.
+    change_in_metabolic_above = (
+        constants.litter_input_to_metabolic_above
+        + decomposed_excrement
+        + decomposed_carcasses
+        - decay_rates["metabolic_above"]
+    ) * update_interval
+    change_in_structural_above = (
+        constants.litter_input_to_structural_above - decay_rates["structural_above"]
+    ) * update_interval
+    change_in_woody = (
+        constants.litter_input_to_woody - decay_rates["woody"]
+    ) * update_interval
+    change_in_metabolic_below = (
+        constants.litter_input_to_metabolic_below - decay_rates["metabolic_below"]
+    ) * update_interval
+    change_in_structural_below = (
+        constants.litter_input_to_structural_below - decay_rates["structural_below"]
+    ) * update_interval
+
+    # New value for each pool is found and returned in a dictionary
+    return {
+        "above_metabolic": above_metabolic + change_in_metabolic_above,
+        "above_structural": above_structural + change_in_structural_above,
+        "woody": woody + change_in_woody,
+        "below_metabolic": below_metabolic + change_in_metabolic_below,
+        "below_structural": below_structural + change_in_structural_below,
+    }
 
 
 def calculate_environmental_factors(
