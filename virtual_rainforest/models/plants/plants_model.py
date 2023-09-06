@@ -31,6 +31,25 @@ class PlantsModel(BaseModel):
     This is currently a basic placeholder to define the main interfaces between the
     plants model and other models.
 
+    When a model instance is created, the model attributes are validated and set.
+    The initial canopy structure for each grid cell is then generated from provided
+    plant cohort data using the
+    :meth:`~virtual_rainforest.models.plants.plants_model.PlantsModel.update_canopy_layers`
+    method. This includes the irradiance absorbed within each canopy layer and reaching
+    ground level, which at present is estimated using the first time step of the
+    provided photosynthetic photon flux density (PPFD).
+
+    When the model is updated, the P Model **will be** used to calculate the light use
+    efficiency given the conditions within canopy layers, and the PPFD at the top of the
+    canopy and the canopy layer extinction profile is used to estimate gross primary
+    productivity across plant cohorts. An allocation model is then used to estimate
+    growth and then update the canopy model.
+
+    Warning:
+        The current implementation defines the main interfaces between the plants model
+        and other models and accesses and updates the expected data to be used in the
+        full model. The actual predictions of the model are placeholder values.
+
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
@@ -49,6 +68,7 @@ class PlantsModel(BaseModel):
         ("plant_cohorts_pft", tuple()),
         ("plant_cohorts_n", tuple()),
         ("plant_cohorts_dbh", tuple()),
+        ("photosynthetic_photon_flux_density", ("spatial",)),
     )
     """Required initialisation variables for the plants model.
 
@@ -69,6 +89,7 @@ class PlantsModel(BaseModel):
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
+        "layer_absorbed_irradiation",
         "herbivory",
         "transpiration",
         "canopy_evaporation",
@@ -168,8 +189,9 @@ class PlantsModel(BaseModel):
             time_index: The index representing the current time step in the data object.
         """
 
-        # TODO - estimate gpp
-        # TODO - estimate growth
+        # self.allocate_gpp()
+        # self.estimate_gpp()
+
         self.update_canopy_layers()
 
     def cleanup(self) -> None:
@@ -179,8 +201,15 @@ class PlantsModel(BaseModel):
         """Update the canopy structure for the plant communities.
 
         This method calculates the canopy structure from the current state of the plant
-        communities and then updates the ``layer_heights`` and ``leaf_area_index``
-        arrays in the data object.
+        cohorts across grid cells and then updates four canopy layer variables in the
+        the data object:
+
+        * the layer closure heights (``layer_heights``),
+        * the layer leaf area indices (``leaf_area_index``),
+        * the fraction of absorbed photosynthetically active radation in each layer
+          (``layer_fapar``), and
+        * the absorbed irradiance in each layer, including the remaining incident
+          radation at ground level (``layer_absorbed_irradiation``).
         """
         # Retrive the canopy model arrays and insert into the data object.
         canopy_heights, canopy_lai, canopy_fapar = build_canopy_arrays(
