@@ -16,6 +16,13 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205, D415
 
+# TODO - At the moment this model only receives two things from the animal model,
+# excrement and decayed carcass biomass. Both of these are simply added to the above
+# ground metabolic litter. In future, bones and feathers should also be added, these
+# will be handled using the more recalcitrant litter pools. However, we are leaving off
+# adding these for now as they have minimal effects on the carbon cycle, though they
+# probably matter for other nutrient cycles.
+
 # FUTURE - Potentially convert this model to use differential equations at some point.
 # In reality, litter chemistry should change continuously with time not just at the
 # final time step as in the current implementation. This is turn means that the decay

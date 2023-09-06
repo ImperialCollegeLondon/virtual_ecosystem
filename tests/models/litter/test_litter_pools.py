@@ -134,8 +134,8 @@ def test_calculate_litter_pool_updates(
     )
 
     expected_pools = {
-        "litter_pool_above_metabolic": [0.295826, 0.14827, 0.06984],
-        "litter_pool_above_structural": [0.500605, 0.250343, 0.091286],
+        "litter_pool_above_metabolic": [0.29587973, 0.14851276, 0.07041856],
+        "litter_pool_above_structural": [0.50055126, 0.25010012, 0.0907076],
         "litter_pool_woody": [4.702103, 11.802315, 7.300997],
         "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
         "litter_pool_below_structural": [0.60027118, 0.30975403, 0.02047743],
@@ -367,39 +367,3 @@ def test_calculate_change_in_lignin(dummy_litter_data):
     )
 
     assert np.allclose(actual_lignin, expected_lignin)
-
-
-@pytest.mark.parametrize(
-    "metabolic_fraction,expected_metabolic,expected_structural",
-    [
-        (
-            0.2,
-            [2.1428e-5, 9.7142e-5, 2.31428e-04, 4.85714e-04],
-            [8.5712e-5, 0.000388568, 0.000925712, 0.001942856],
-        ),
-        (
-            0.5,
-            [5.357e-5, 0.000242855, 0.00057857, 0.001214285],
-            [5.357e-5, 0.000242855, 0.00057857, 0.001214285],
-        ),
-        (
-            0.9,
-            [9.6426e-5, 0.000437139, 0.001041426, 0.002185713],
-            [1.0714e-5, 4.8571e-5, 1.15714e-4, 2.42857e-4],
-        ),
-    ],
-)
-def test_calculate_carcass_split(
-    metabolic_fraction, expected_metabolic, expected_structural
-):
-    """Test that the carcass split function works as intended."""
-    from virtual_rainforest.models.litter.litter_pools import calculate_carcass_split
-
-    decomposed_carcass_C = np.array([1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3])
-
-    actual_metabolic, actual_structural = calculate_carcass_split(
-        decomposed_carcass_C, metabolic_fraction
-    )
-
-    assert np.allclose(actual_metabolic, expected_metabolic)
-    assert np.allclose(actual_structural, expected_structural)
