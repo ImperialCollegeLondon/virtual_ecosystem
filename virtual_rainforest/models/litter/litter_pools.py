@@ -128,7 +128,6 @@ def calculate_litter_pool_updates(
 
     # Find the changes in the lignin concentrations of the 3 relevant pools
     # TODO - add a calculation for the change in structural above ground lignin
-    # TODO - test that this updates correctly
     change_in_lignin_above_structural = 0.0
     input_carbon_woody = np.full(
         (len(lignin_woody),), constants.litter_input_to_woody * update_interval

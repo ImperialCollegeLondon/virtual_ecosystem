@@ -139,6 +139,9 @@ def test_calculate_litter_pool_updates(
         "litter_pool_woody": [4.702103, 11.802315, 7.300997],
         "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
         "litter_pool_below_structural": [0.60027118, 0.30975403, 0.02047743],
+        "lignin_above_structural": [0.5, 0.1, 0.7],
+        "lignin_woody": [0.49989001, 0.79989045, 0.34998229],
+        "lignin_below_structural": [0.5, 0.25, 0.75],
         "litter_C_mineralisation_rate": [0.0212182, 0.02746286, 0.00796359],
     }
 
@@ -173,7 +176,7 @@ def test_calculate_litter_pool_updates(
     )
 
     for name in expected_pools.keys():
-        np.allclose(result[name], expected_pools[name])
+        assert np.allclose(result[name], expected_pools[name])
 
 
 def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
@@ -202,7 +205,7 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
     )
 
     for name in actual_decay.keys():
-        np.allclose(actual_decay[name], expected_decay[name])
+        assert np.allclose(actual_decay[name], expected_decay[name])
 
 
 def test_calculate_total_C_mineralised():

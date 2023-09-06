@@ -443,6 +443,9 @@ def test_update(litter_model_fixture, dummy_litter_data):
     end_woody = [4.702103, 11.802315, 7.300997]
     end_below_meta = [0.394145, 0.35923, 0.069006]
     end_below_struct = [0.60027118, 0.30975403, 0.02047743]
+    end_lignin_above_struct = [0.5, 0.1, 0.7]
+    end_lignin_woody = [0.49989001, 0.79989045, 0.34998229]
+    end_lignin_below_struct = [0.5, 0.25, 0.75]
     c_mineral = [0.0212182, 0.02746286, 0.00796359]
 
     litter_model_fixture.update(time_index=0)
@@ -456,6 +459,13 @@ def test_update(litter_model_fixture, dummy_litter_data):
     assert np.allclose(dummy_litter_data["litter_pool_below_metabolic"], end_below_meta)
     assert np.allclose(
         dummy_litter_data["litter_pool_below_structural"], end_below_struct
+    )
+    assert np.allclose(
+        dummy_litter_data["lignin_above_structural"], end_lignin_above_struct
+    )
+    assert np.allclose(dummy_litter_data["lignin_woody"], end_lignin_woody)
+    assert np.allclose(
+        dummy_litter_data["lignin_below_structural"], end_lignin_below_struct
     )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
 
