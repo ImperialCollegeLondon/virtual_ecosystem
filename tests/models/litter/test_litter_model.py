@@ -445,7 +445,7 @@ def test_update(litter_model_fixture, dummy_litter_data):
     end_below_struct = [0.60027118, 0.30975403, 0.02047743]
     end_lignin_above_struct = [0.5, 0.1, 0.7]
     end_lignin_woody = [0.49989001, 0.79989045, 0.34998229]
-    end_lignin_below_struct = [0.5, 0.25, 0.75]
+    end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757]
     c_mineral = [0.0212182, 0.02746286, 0.00796359]
 
     litter_model_fixture.update(time_index=0)

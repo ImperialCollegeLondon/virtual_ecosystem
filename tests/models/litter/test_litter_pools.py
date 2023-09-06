@@ -141,7 +141,7 @@ def test_calculate_litter_pool_updates(
         "litter_pool_below_structural": [0.60027118, 0.30975403, 0.02047743],
         "lignin_above_structural": [0.5, 0.1, 0.7],
         "lignin_woody": [0.49989001, 0.79989045, 0.34998229],
-        "lignin_below_structural": [0.5, 0.25, 0.75],
+        "lignin_below_structural": [0.499760108, 0.249922519, 0.737107757],
         "litter_C_mineralisation_rate": [0.0212182, 0.02746286, 0.00796359],
     }
 
