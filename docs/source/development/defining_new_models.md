@@ -41,8 +41,7 @@ to add other python modules containing different parts of the module functionali
   `virtual_rainforest` package.
 * A python module  `{model_name}_model.py` that will contain the main model
   object.
-* A JSON Schema file defining the model configuration, called
-  `{model_name}_schema.json`.
+* A JSON Schema file defining the model configuration, called `model_schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model.
 
 For example:
@@ -50,7 +49,7 @@ For example:
 ```bash
 touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
-touch virtual_rainforest/models/freshwater/freshwater_schema.json
+touch virtual_rainforest/models/freshwater/model_schema.json
 touch virtual_rainforest/models/freshwater/constants.py
 ```
 
@@ -348,13 +347,12 @@ The method then uses those parsed arguments to actually call the `__init__` meth
 return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
-The `from_config` method should also check if any constants have been provided as part
-of the configuration. If they haven't a default set of constants is generated. If they
-have been supplied they are used to generate a custom set of constants. The
-{func}`~virtual_rainforest.core.utils.check_valid_constant_names` utility function is
-used to check that no constant has been supplied with an incorrect name. At least one
-constants class should be created, but it's fine to split constants across more classes
-if that makes for clearer code.
+The `from_config` method should also generate the required constants classes from the
+config. At least one constants class should be created, but it's fine to split constants
+across more classes if that makes for clearer code. For each constants class the
+{func}`~virtual_rainforest.core.constants.load_constants` utility function can be used
+to construct the class with the default values replaced if they are overwritten in the
+config.
 
 As an example:
 
@@ -378,17 +376,8 @@ def from_config(
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
-    # Check if any constants have been supplied
-    if "freshwater" in config and "constants" in config["freshwater"]:
-        # Checks that constants is config are as expected
-        check_valid_constant_names(config, "freshwater", "FreshwaterConsts")
-        # If an error isn't raised then generate the dataclass
-        constants = FreshwaterConsts(
-            **config["freshwater"]["constants"]["FreshwaterConsts"]
-        )
-    else:
-        # If no constants are supplied then the defaults should be used
-        constants = FreshwaterConsts()
+    # Load in the relevant constants
+    constants = load_constants(config, "freshwater", "FreshwaterConsts")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
@@ -432,7 +421,7 @@ def cleanup(self) -> None:
 
 Lastly, you will need to set up the `__init__.py` file. The simple presence of the
 `__init__.py` file tells Python that the directory content should be treated as module,
-but then the file needs to contain code to do two things:
+but then the file needs to contain code to do three things:
 
 1. It also needs to import the main BaseModel subclass. So for example, it should import
     `FreshwaterModel` from the `virtual_rainforest.models.freshwater.freshwater_model`
@@ -446,13 +435,13 @@ but then the file needs to contain code to do two things:
     {data}`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, under the
     {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute for the class.
 
-1. The `__init__.py` file also needs to register the JSONSchema file for the module. The
-    {meth}`~virtual_rainforest.core.config.register_schema` function checks the schema
-    file can be loaded and is valid JSONSchema, and then adds the schema to the
-    {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. The schema must also be
-    registered under the
-    {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute: it is
-    simplest to do this by using the imported class attribute directly!
+1. The `__init__.py` file also needs to register the JSONSchema file for the module, and
+   also add any constants classes to the registry. Both of these things are handled by
+   the {func}`~virtual_rainforest.core.base_model.register_model` helper function. This
+   function checks that the schema file can be loaded and is valid JSONSchema, and then
+   adds the schema to the {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. It
+   also automatically discovers constants classes and adds them to the
+   {data}`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
 
 The resulting `__init__.py` file should then look something like this:
 
@@ -461,15 +450,9 @@ The resulting `__init__.py` file should then look something like this:
 short description of the overall model design and purpose.
 """  # noqa: D204, D415
 
-from importlib import resources
+from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.models.freshwater.freshwater_model import FreshwaterModel
 
-from virtual_rainforest.core.config import register_schema
-from virtual_rainforest.models.freshwater.freshwater_model import FreshWaterModel
 
-with resources.path(
-    "virtual_rainforest.models.freshwater", "freshwater_schema.json"
-) as schema_file_path:
-    register_schema(
-        module_name=FreshWaterModel.model_name, schema_file_path=schema_file_path
-    )
+register_model(__name__, FreshwaterModel)
 ```

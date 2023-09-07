@@ -46,6 +46,14 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                     DEBUG,
                     "hydrology model: required var 'evapotranspiration' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'elevation' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'surface_runoff' checked",
+                ),
             ),
         ),
         (
@@ -106,6 +114,7 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
         assert model.initial_soil_moisture == ini_soil_moisture
+        assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -170,6 +179,14 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'evapotranspiration' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'elevation' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'surface_runoff' checked",
+                ),
             ),
         ),
         (
@@ -221,6 +238,14 @@ def test_hydrology_model_initialization(
                 (
                     DEBUG,
                     "hydrology model: required var 'evapotranspiration' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'elevation' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'surface_runoff' checked",
                 ),
             ),
         ),
@@ -374,7 +399,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.689606, 0.689606, 0.689606], [0.689606, 0.689606, 0.689606]],
+                    [[0.639606, 0.639606, 0.639606], [0.639606, 0.639606, 0.639606]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -388,7 +413,7 @@ def test_setup(
         )
 
         exp_vertical_flow = DataArray(
-            [2.03469, 2.03469, 2.03469],
+            [1.214304, 1.214304, 1.214304],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -398,7 +423,12 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [80.189606, 80.189606, 80.189606],
+            [80.139606, 80.139606, 80.139606],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
+        exp_runoff_acc = DataArray(
+            [0, 10, 150],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -407,6 +437,9 @@ def test_setup(
         xr.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
         xr.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
         xr.testing.assert_allclose(model.data["stream_flow"], exp_stream_flow)
+        xr.testing.assert_allclose(
+            model.data["surface_runoff_accumulated"], exp_runoff_acc
+        )
 
 
 @pytest.mark.parametrize(
@@ -493,3 +526,151 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         result,
         DataArray([0.263425, 0.340108, 0.39365], dims=["cell_id"]),
     )
+
+
+def test_find_lowest_neighbour(dummy_climate_data):
+    """Test finding lowest neighbours."""
+
+    from math import sqrt
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        find_lowest_neighbour,
+    )
+
+    data = dummy_climate_data
+    data.grid.set_neighbours(distance=sqrt(data.grid.cell_area))
+
+    neighbours = data.grid.neighbours
+    elevation = np.array(data["elevation"])
+    result = find_lowest_neighbour(neighbours, elevation)
+
+    exp_result = [1, 2, 2]
+    assert result == exp_result
+
+
+def test_find_upstream_cells():
+    """Test that upstream cells are ientified correctly."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import find_upstream_cells
+
+    lowest = [1, 2, 2, 5, 7, 7, 7, 7]
+    exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
+    result = find_upstream_cells(lowest)
+    assert result == exp_result
+
+
+@pytest.mark.parametrize(
+    "acc_runoff,raises,expected_log_entries",
+    [
+        (
+            np.array([100, 100, 100, 100, 100, 100, 100, 100]),
+            does_not_raise(),
+            {},
+        ),
+        (
+            np.array([-100, 100, 100, 100, 100, 100, 100, 100]),
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "The accumulated surface runoff should not be negative!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entries):
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        accumulate_surface_runoff,
+    )
+
+    upstream_ids = {
+        0: [],
+        1: [0],
+        2: [1, 2],
+        3: [],
+        4: [],
+        5: [3],
+        6: [],
+        7: [4, 5, 6, 7],
+    }
+    surface_runoff = np.array([100, 100, 100, 100, 100, 100, 100, 100])
+    exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
+
+    with raises:
+        result = accumulate_surface_runoff(upstream_ids, surface_runoff, acc_runoff)
+        np.testing.assert_array_equal(result, exp_result)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "grid_type,raises,expected_log_entries",
+    [
+        (
+            "square",
+            does_not_raise(),
+            {},
+        ),
+        (
+            "hexagon",
+            pytest.raises(ValueError),
+            (
+                (
+                    ERROR,
+                    "This grid type is currently not supported!",
+                ),
+            ),
+        ),
+    ],
+)
+def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries):
+    """Test that function gets correct neighbours."""
+
+    from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_drainage_map,
+    )
+
+    elevation = np.array(
+        [
+            1,
+            2,
+            3,
+            4,
+            5,
+            11,
+            22,
+            33,
+            44,
+            55,
+            111,
+            222,
+            333,
+            111,
+            80,
+            66,
+            88,
+            99,
+            88,
+            66,
+            11,
+            5,
+            4,
+            3,
+            2,
+        ]
+    )
+
+    with raises:
+        grid = Grid(grid_type, cell_nx=5, cell_ny=5)
+        result = calculate_drainage_map(grid, elevation)
+
+        assert len(result) == grid.n_cells
+        assert result[1] == [2, 6]
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
