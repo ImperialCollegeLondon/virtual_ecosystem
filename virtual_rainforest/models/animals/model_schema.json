@@ -22,12 +22,27 @@
                             "diet": {
                                 "type": "string",
                                 "default": ""
+                            },
+                            "metabolic_type": {
+                                "type": "string",
+                                "default": ""
+                            },
+                            "birth_mass": {
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "adult_mass": {
+                                "type": "number",
+                                "default": 0.0
                             }
                         },
                         "required": [
                             "name",
                             "taxa",
-                            "diet"
+                            "diet",
+                            "metabolic_type",
+                            "birth_mass",
+                            "adult_mass"
                         ]
                     }
                 }
