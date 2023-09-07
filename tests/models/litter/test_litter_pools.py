@@ -217,7 +217,7 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
         constants=LitterConsts,
     )
 
-    for name in actual_decay.keys():
+    for name in expected_decay.keys():
         assert np.allclose(actual_decay[name], expected_decay[name])
 
 
@@ -262,8 +262,37 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
         constants=LitterConsts,
     )
 
-    for name in actual_pools.keys():
+    for name in expected_pools.keys():
         assert np.allclose(actual_pools[name], expected_pools[name])
+
+
+def test_calculate_lignin_updates(dummy_litter_data):
+    """Test that the function to calculate the lignin updates works as expected."""
+    from virtual_rainforest.models.litter.litter_pools import calculate_lignin_updates
+
+    updated_pools = {
+        "above_structural": np.array([0.501102522, 0.251269950, 0.091377105]),
+        "woody": np.array([4.7042056, 11.802745, 7.3036710]),
+        "below_structural": np.array([0.60054236, 0.31054401, 0.02094207]),
+    }
+
+    expected_lignin = {
+        "above_structural": [-0.000717108, 0.0008580691, -0.007078589],
+        "woody": [-0.0002198883, -0.0002191015, -3.5406852e-5],
+        "below_structural": [-0.000479566, -0.000154567, -0.025212407],
+    }
+
+    actual_lignin = calculate_lignin_updates(
+        lignin_above_structural=dummy_litter_data["lignin_above_structural"],
+        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
+        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+        updated_pools=updated_pools,
+        update_interval=2.0,
+        constants=LitterConsts,
+    )
+
+    for name in actual_lignin.keys():
+        assert np.allclose(actual_lignin[name], expected_lignin[name])
 
 
 def test_calculate_litter_decay_metabolic_above(

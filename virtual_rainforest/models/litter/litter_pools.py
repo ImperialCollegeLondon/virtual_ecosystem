@@ -16,6 +16,8 @@ The amount of lignin in both the structural pools and the dead wood pool is trac
 This is tracked because litter chemistry is a major determinant of litter decay rates.
 """  # noqa: D205, D415
 
+from typing import Union
+
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
@@ -109,44 +111,14 @@ def calculate_change_in_litter_variables(
         constants=constants,
     )
 
-    # TODO - Work out a sensible function structure for the below
     # Find the changes in the lignin concentrations of the 3 relevant pools
-    input_carbon_above_structural = np.full(
-        (len(lignin_above_structural),),
-        constants.litter_input_to_structural_above * update_interval,
-    )
-    input_carbon_woody = np.full(
-        (len(lignin_woody),), constants.litter_input_to_woody * update_interval
-    )
-    input_carbon_below_structural = np.full(
-        (len(lignin_below_structural),),
-        constants.litter_input_to_structural_below * update_interval,
-    )
-    change_in_lignin_above_structural = calculate_change_in_lignin(
-        input_carbon=input_carbon_above_structural,
-        updated_pool_carbon=updated_pools["above_structural"],
-        input_lignin=np.full(
-            (len(lignin_above_structural),),
-            constants.lignin_proportion_above_structural_input,
-        ),
-        old_pool_lignin=lignin_above_structural,
-    )
-    change_in_lignin_woody = calculate_change_in_lignin(
-        input_carbon=input_carbon_woody,
-        updated_pool_carbon=updated_pools["woody"],
-        input_lignin=np.full(
-            (len(lignin_woody),), constants.lignin_proportion_wood_input
-        ),
-        old_pool_lignin=lignin_woody,
-    )
-    change_in_lignin_below_structural = calculate_change_in_lignin(
-        input_carbon=input_carbon_below_structural,
-        updated_pool_carbon=updated_pools["below_structural"],
-        input_lignin=np.full(
-            (len(lignin_below_structural),),
-            constants.lignin_proportion_below_structural_input,
-        ),
-        old_pool_lignin=lignin_below_structural,
+    change_in_lignin = calculate_lignin_updates(
+        lignin_above_structural=lignin_above_structural,
+        lignin_woody=lignin_woody,
+        lignin_below_structural=lignin_below_structural,
+        updated_pools=updated_pools,
+        update_interval=update_interval,
+        constants=constants,
     )
 
     # Construct dictionary of data arrays to return
@@ -165,13 +137,15 @@ def calculate_change_in_litter_variables(
             updated_pools["below_structural"], dims="cell_id"
         ),
         "lignin_above_structural": DataArray(
-            lignin_above_structural + change_in_lignin_above_structural, dims="cell_id"
+            lignin_above_structural + change_in_lignin["above_structural"],
+            dims="cell_id",
         ),
         "lignin_woody": DataArray(
-            lignin_woody + change_in_lignin_woody, dims="cell_id"
+            lignin_woody + change_in_lignin["woody"], dims="cell_id"
         ),
         "lignin_below_structural": DataArray(
-            lignin_below_structural + change_in_lignin_below_structural, dims="cell_id"
+            lignin_below_structural + change_in_lignin["below_structural"],
+            dims="cell_id",
         ),
         "litter_C_mineralisation_rate": DataArray(
             total_C_mineralisation_rate, dims="cell_id"
@@ -265,9 +239,8 @@ def calculate_total_C_mineralised(
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
-        decay_rates: Dictionary containing the rates of decay for all 5 litter pools:
-            above ground metabolic, above ground structural, dead wood, below ground
-            metabolic, and below ground structural [kg C m^-2 day^-1]
+        decay_rates: Dictionary containing the rates of decay for all 5 litter pools
+            [kg C m^-2 day^-1]
         constants: Set of constants for the litter model
 
     Returns:
@@ -335,8 +308,7 @@ def calculate_updated_pools(
         decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
             the animal model [kg C m^-2 day^-1]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
-            (above ground metabolic, above ground structural, dead wood, below ground
-            metabolic, and below ground structural) [kg C m^-2 day^-1]
+            [kg C m^-2 day^-1]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -374,6 +346,63 @@ def calculate_updated_pools(
         "woody": woody + change_in_woody,
         "below_metabolic": below_metabolic + change_in_metabolic_below,
         "below_structural": below_structural + change_in_structural_below,
+    }
+
+
+def calculate_lignin_updates(
+    lignin_above_structural: NDArray[np.float32],
+    lignin_woody: NDArray[np.float32],
+    lignin_below_structural: NDArray[np.float32],
+    updated_pools: dict[str, NDArray[np.float32]],
+    update_interval: float,
+    constants: LitterConsts,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the changes in lignin proportion for the relevant litter pools.
+
+    The relevant pools are the two structural pools, and the dead wood pool. This
+    function calculates the total change over the entire time step, so cannot be used in
+    an integration process.
+
+    Args:
+        lignin_above_structural: Proportion of above ground structural pool which is
+            lignin [unitless]
+        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
+        lignin_below_structural: Proportion of below ground structural pool which is
+            lignin [unitless]
+        updated_pools: Dictionary containing the updated pool densities for all 5 litter
+            pools [kg C m^-2]
+        update_interval: Interval that the litter pools are being updated for [days]
+        constants: Set of constants for the litter model
+
+    Returns:
+        Dictionary containing the updated lignin proportions for the 3 relevant litter
+        pools (above ground structural, dead wood, and below ground structural) [kg C
+        m^-2]
+    """
+
+    change_in_lignin_above_structural = calculate_change_in_lignin(
+        input_carbon=constants.litter_input_to_structural_above * update_interval,
+        updated_pool_carbon=updated_pools["above_structural"],
+        input_lignin=constants.lignin_proportion_above_structural_input,
+        old_pool_lignin=lignin_above_structural,
+    )
+    change_in_lignin_woody = calculate_change_in_lignin(
+        input_carbon=constants.litter_input_to_woody * update_interval,
+        updated_pool_carbon=updated_pools["woody"],
+        input_lignin=constants.lignin_proportion_wood_input,
+        old_pool_lignin=lignin_woody,
+    )
+    change_in_lignin_below_structural = calculate_change_in_lignin(
+        input_carbon=constants.litter_input_to_structural_below * update_interval,
+        updated_pool_carbon=updated_pools["below_structural"],
+        input_lignin=constants.lignin_proportion_below_structural_input,
+        old_pool_lignin=lignin_below_structural,
+    )
+
+    return {
+        "above_structural": change_in_lignin_above_structural,
+        "woody": change_in_lignin_woody,
+        "below_structural": change_in_lignin_below_structural,
     }
 
 
@@ -710,9 +739,9 @@ def calculate_carbon_mineralised(
 
 
 def calculate_change_in_lignin(
-    input_carbon: NDArray[np.float32],
+    input_carbon: Union[float, NDArray[np.float32]],
     updated_pool_carbon: NDArray[np.float32],
-    input_lignin: NDArray[np.float32],
+    input_lignin: Union[float, NDArray[np.float32]],
     old_pool_lignin: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate the change in the lignin concentration of a particular litter pool.
