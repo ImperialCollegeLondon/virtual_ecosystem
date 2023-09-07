@@ -69,21 +69,22 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     following layers and roles.
 
     .. csv-table::
-        :header: "Index, "Role", "Description",
+        :header: "Index", "Role", "Description",
         :widths: 5, 10, 30
 
         0, "above", "Canopy top height + 2 metres"
         1, "canopy", "Height of first canopy layer"
-        "...", "canopy", "Height of canopy layer ``n``"
+        "...", "canopy", "Height of n'th canopy layer "
         10, "canopy", "Height of last canopy layer"
         11, "subcanopy", "1.5 metres above ground level"
         12, "surface", "0.1 metres above ground level"
         13, "soil", "Depth of first soil layer"
-        .., "soil", "Depth of soil layer ``m``"
+        "...", "soil", "Depth of m'th soil layer"
         15, "soil", "Depth of last soil layer"
 
-    The number of canopy layers and the depth and number of soil layers are typically
-    set in the model configuration.
+    The number of canopy layers is taken from the canopy layer argument and the number
+    of soil layers is taken from the length of the soil_layers argument, which also
+    provides depths. Both are typically set in the model configuration.
 
     Args:
         canopy_layers: the number of canopy layers
