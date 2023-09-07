@@ -7,8 +7,8 @@ NOTE - much of this will be outsourced to pyrealm.
 
 """  # noqa: D205, D415
 
-
 from dataclasses import dataclass, field
+from typing import Mapping
 
 import numpy as np
 from numpy.typing import NDArray
@@ -24,15 +24,20 @@ class PlantCohort:
 
     The cohort is defined by the plant functional type, the number of individuals in the
     cohort and the diameter at breast height for the cohort.
+
+    Instances also have a ``canopy_area`` and ``gpp`` attributes that are used to track
+    the canopy structure of a cohort within the wider community and record gross primary
+    productivity. These should not be updated by users.
     """
 
     pft: PlantFunctionalType
     dbh: float
     n: int
     canopy_area: NDArray = field(init=False, default=np.array([]))
+    gpp: float = field(init=False, default=0)
 
 
-class PlantCommunities(dict):
+class PlantCommunities(dict, Mapping[int, PlantCohort]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
