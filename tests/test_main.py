@@ -99,7 +99,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     "config,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            {"core": {"layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10}}},
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
@@ -166,7 +166,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="update interval too short",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            {"core": {"layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10}}},
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
