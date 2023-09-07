@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import xarray
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
@@ -21,8 +22,6 @@ from virtual_rainforest.models.plants.canopy import (
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
-
-# from virtual_rainforest.core.config import Config
 
 
 class PlantsModel(BaseModel):
@@ -80,6 +79,8 @@ class PlantsModel(BaseModel):
     * ``plant_cohorts_pft``: The plant functional type of the cohort
     * ``plant_cohorts_n``: The number of individuals in the cohort
     * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
+    * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
+            flux density in µmol m-2 s-1.
     """
 
     # TODO - think about a shared "plant cohort" core axis that defines these, but the
@@ -128,6 +129,9 @@ class PlantsModel(BaseModel):
             n_soil_layers=self.soil_layers,
         )
         """A reference to the global data object."""
+
+        self._canopy_layer_indices = np.arange(1, self.canopy_layers + 1)
+        """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
         # cohort data and then initialise the irradiance using the first observation for
@@ -224,10 +228,9 @@ class PlantsModel(BaseModel):
         )
 
         # Insert the canopy layers into the data objects
-        canopy_idx = np.arange(1, self.canopy_layers + 1)
-        self.data["layer_heights"][canopy_idx, :] = canopy_heights
-        self.data["leaf_area_index"][canopy_idx, :] = canopy_lai
-        self.data["layer_fapar"][canopy_idx, :] = canopy_fapar
+        self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_heights
+        self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_lai
+        self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_fapar
 
     def set_absorbed_irradiance(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
@@ -256,26 +259,95 @@ class PlantsModel(BaseModel):
         ground = np.where(self.data["layer_roles"].data == "surface")[0]
         self.data["layer_absorbed_irradiation"][ground] = ground_irradiance
 
+    def estimate_gpp(self, time_index: int) -> None:
+        """Estimate the gross primary productivity within plant cohorts.
 
-# def estimate_gpp(self) -> None:
-#     """Estimate the gross primary productivity within plant cohorts.
+        This method uses the P Model to estimate the light use efficiency of leaves in
+        gC mol-1, given the environment (temperate, atmospheric pressure, vapour
+        pressure deficit and atmospheric CO2 concentration) within each canopy layer.
+        This is multiplied by the absorbed irradiance within each canopy layer to
+        predict the gross primary productivity (GPP, gC m-2 s-1) for each canopy layer.
 
-#     This method uses the P Model to estimate the light use efficiency within the
-#     canopy model and then calculates the resulting total productivity given the
-#     light extinction through the canopy layer."""
+        The GPP for each cohort is then estimated by mutiplying the cohort canopy area
+        within each layer by GPP and the time elapsed in seconds since the last update.
 
-#     # Calculate the P Model photosynthetic environment at each canopy layer
-#     pmodel_env = PModelEnvironment(
-#         tc=self.data["air_temperature"].data,
-#         vpd=self.data["vapour_pressure_deficit"].data,
-#         patm=self.data["atmospheric_pressure"].data,
-#         co2=self.data["atmospheric_pressure"].data,
-#         consts=self.pmodel_constants,
-#     )
+        Args:
+            time_index: The index along the time axis of the forcing data giving the
+                time step to be used to estimate GPP.
 
-#     # Fit the P Model to estimate light use intensity at each canopy layer
-#     pmodel = PModel(pmodel_env)
-#     pmodel.estimate_productivity(fapar=1, ppfd=self.data["absorbed_radiation"])
+        Raises:
+            ValueError: if any of the P Model forcing variables are not defined.
+        """
+
+        # For the moment check the data presence and dimensionality
+        # 1 ) PModelEnvironment vars
+        forcing_vars = [
+            "air_temperature",
+            "vapour_pressure_deficit",
+            "atmospheric_pressure",
+            "atmospheric_co2",
+        ]
+
+        # Loop over the P Model environment forcing variables, checking they are found
+        for var in forcing_vars:
+            if var not in self.data:
+                msg = f"Variable missing from estimate_gpp: {var}"
+                LOGGER.critical(msg)
+                raise ValueError(msg)
+
+        # # Next step will to calculate the PModelEnvironment and fit the PModel
+        # pmodel_env = PModelEnvironment(
+        #     tc = self.data["air_temperature"].isel(time=time_index).data
+        #     vpd = self.data["vapour_pressure_deficit"].isel(time=time_index).data
+        #     patm = self.data["atmospheric_pressure"].isel(time=time_index).data
+        #     co2 = self.data["atmospheric_co2"].isel(time=time_index).data
+        #     const = self.pmodel_consts
+        # )
+        # pmodel = PModel(pmodel_env)
+        #
+        # This will give an array of the light use efficiency per layer per cell,
+
+        # Set a representative place holder LUE in gC mol-1 for now
+        self.data["layer_light_use_efficiency"] = xarray.full_like(
+            self.data["air_temperature"],
+            fill_value=0.3,
+            dtype=float,
+        )
+
+        # The LUE can then be scaled by the calculated absorbed irradiance, which is
+        # the product of the layer specific fapar and the downwelling PPFD. In practice,
+        # this will use something like:
+        #
+        # pmodel.estimate_productivity(
+        #     fapar=1, ppfd=self.data["layer_absorbed_irradiation"]
+        # )
+        # but for now:
+
+        self.data["layer_gpp_per_m2"] = (
+            self.data["layer_light_use_efficiency"]
+            * self.data["layer_absorbed_irradiation"]
+        )
+
+        # We then have the gross primary productivity per metre squared within each
+        # canopy layer for each cell. This needs to be converted into the per stem GPP
+        # for each cohort across the layers and scaled up from per second to the time
+        # step.
+
+        # TODO - this implementation isn't great. Need to think about whether Cohorts
+        # are objects or whether Communities are a dataclass of arrays. Also need to
+        # think about where the split between the virtual_rainforest layer definition
+        # (with above canopy/subcanopy/surface/soil) and the pyrealm canopy layer
+        # definition occurs.
+
+        for cell_id, community in self.communities.items():
+            # Extract the vertical slice for this cell and reduce to the canopy layers
+            cell_gpp_per_m2 = (
+                self.data["layer_gpp_per_m2"]
+                .isel(cell_id=cell_id)
+                .data[self._canopy_layer_indices]
+            )
+            for cohort in community:
+                cohort.gpp = np.nansum(cohort.canopy_area * cell_gpp_per_m2)
 
 
 # def allocate_gpp(self) -> None:
