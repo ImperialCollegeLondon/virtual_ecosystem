@@ -479,7 +479,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate top soil moisture after evap and combine with lower layers, [mm]
-        soil_moisture_evap: NDArray = np.concatenate(
+        soil_moisture_evap: NDArray[np.float32] = np.concatenate(
             (
                 np.expand_dims((soil_moisture_infiltrated - soil_evaporation), axis=0),
                 soil_moisture_mm[1:],
@@ -608,16 +608,16 @@ class HydrologyModel(BaseModel):
 
 
 def calculate_vertical_flow(
-    soil_moisture: NDArray,
-    soil_layer_thickness: NDArray,
-    soil_moisture_capacity: Union[float, NDArray],
-    soil_moisture_residual: Union[float, NDArray],
-    hydraulic_conductivity: Union[float, NDArray],
-    hydraulic_gradient: Union[float, NDArray],
-    nonlinearily_parameter: Union[float, NDArray],
-    groundwater_capacity: Union[float, NDArray],
+    soil_moisture: NDArray[np.float32],
+    soil_layer_thickness: NDArray[np.float32],
+    soil_moisture_capacity: Union[float, NDArray[np.float32]],
+    soil_moisture_residual: Union[float, NDArray[np.float32]],
+    hydraulic_conductivity: Union[float, NDArray[np.float32]],
+    hydraulic_gradient: Union[float, NDArray[np.float32]],
+    nonlinearily_parameter: Union[float, NDArray[np.float32]],
+    groundwater_capacity: Union[float, NDArray[np.float32]],
     seconds_to_day: float,
-) -> NDArray:
+) -> NDArray[np.float32]:
     r"""Calculate vertical water flow through soil column.
 
     To calculate the flow of water through unsaturated soil, this function uses the
@@ -706,17 +706,17 @@ def calculate_vertical_flow(
 
 
 def calculate_soil_evaporation(
-    temperature: NDArray,
-    relative_humidity: NDArray,
-    atmospheric_pressure: NDArray,
-    soil_moisture: NDArray,
-    wind_speed: Union[float, NDArray],
+    temperature: NDArray[np.float32],
+    relative_humidity: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    wind_speed: Union[float, NDArray[np.float32]],
     celsius_to_kelvin: float,
-    density_air: Union[float, NDArray],
-    latent_heat_vapourisation: Union[float, NDArray],
+    density_air: Union[float, NDArray[np.float32]],
+    latent_heat_vapourisation: Union[float, NDArray[np.float32]],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
-) -> NDArray:
+) -> NDArray[np.float32]:
     r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux.
@@ -885,13 +885,13 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
 
 def estimate_interception(
-    leaf_area_index: NDArray,
-    precipitation: NDArray,
+    leaf_area_index: NDArray[np.float32],
+    precipitation: NDArray[np.float32],
     intercept_param_1: float,
     intercept_param_2: float,
     intercept_param_3: float,
     veg_density_param: float,
-) -> NDArray:
+) -> NDArray[np.float32]:
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
@@ -947,11 +947,11 @@ def estimate_interception(
 
 
 def update_soil_moisture(
-    soil_moisture: NDArray,
-    vertical_flow: NDArray,
-    soil_moisture_capacity: NDArray,
-    soil_moisture_residual: NDArray,
-) -> NDArray:
+    soil_moisture: NDArray[np.float32],
+    vertical_flow: NDArray[np.float32],
+    soil_moisture_capacity: NDArray[np.float32],
+    soil_moisture_residual: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
