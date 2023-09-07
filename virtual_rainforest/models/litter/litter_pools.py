@@ -326,24 +326,24 @@ def calculate_updated_pools(
 
     Args:
         above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        above_structural: Above ground structural litter pool [kg C m^-2] woody: The
-        woody litter pool [kg C m^-2] below_metabolic: Below ground metabolic litter
-        pool [kg C m^-2] below_structural: Below ground structural litter pool [kg C
-        m^-2] decomposed_excrement: Input rate of excrement from the animal model [kg C
-        m^-2
+        above_structural: Above ground structural litter pool [kg C m^-2]
+        woody: The woody litter pool [kg C m^-2]
+        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
+        below_structural: Below ground structural litter pool [kg C m^-2]
+        decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
             day^-1]
         decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
             the animal model [kg C m^-2 day^-1]
-        decay_rates: Dictionary containing the rates of decay for all 5 litter pools:
-            above ground metabolic, above ground structural, dead wood, below ground
-            metabolic, and below ground structural [kg C m^-2 day^-1]
+        decay_rates: Dictionary containing the rates of decay for all 5 litter pools
+            (above ground metabolic, above ground structural, dead wood, below ground
+            metabolic, and below ground structural) [kg C m^-2 day^-1]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
     Returns:
-        Dictionary containing the updated pool densities for all 5 litter pools: above
+        Dictionary containing the updated pool densities for all 5 litter pools (above
         ground metabolic, above ground structural, dead wood, below ground metabolic,
-        and below ground structural [kg C m^-2]
+        and below ground structural) [kg C m^-2]
     """
 
     # Net pool changes are found by combining input and decay rates, and then
