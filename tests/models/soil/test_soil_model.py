@@ -25,7 +25,7 @@ def soil_model_fixture(dummy_carbon_data):
     config = {
         "core": {
             "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
-            "layers": {"soil_layers": 2, "canopy_layers": 10},
+            "layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10},
         },
     }
     return SoilModel.from_config(dummy_carbon_data, config, pint.Quantity("12 hours"))
@@ -174,13 +174,17 @@ def test_soil_model_initialization(
                 )
             # Initialise model with bad data object
             model = SoilModel(
-                carbon_data, pint.Quantity("1 week"), 2, 10, constants=SoilConsts
+                carbon_data,
+                pint.Quantity("1 week"),
+                [0.5, 1.0],
+                10,
+                constants=SoilConsts,
             )
         else:
             model = SoilModel(
                 dummy_carbon_data,
                 pint.Quantity("1 week"),
-                2,
+                [0.5, 1.0],
                 10,
                 constants=SoilConsts,
             )
@@ -214,7 +218,7 @@ def test_soil_model_initialization(
                         "start_date": "2020-01-01",
                         "update_interval": "12 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10},
                 },
             },
             pint.Quantity("12 hours"),
@@ -263,7 +267,7 @@ def test_soil_model_initialization(
                         "start_date": "2020-01-01",
                         "update_interval": "12 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10},
                 },
                 "soil": {"constants": {"SoilConsts": {"max_decomp_rate_pom": 0.05}}},
             },
@@ -313,7 +317,7 @@ def test_soil_model_initialization(
                         "start_date": "2020-01-01",
                         "update_interval": "12 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10},
                 },
                 "soil": {"constants": {"SoilConsts": {"max_decomp_rate": 0.05}}},
             },
@@ -493,7 +497,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
     config = {
         "core": {
             "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
-            "layers": {"soil_layers": 2, "canopy_layers": 10},
+            "layers": {"soil_layers": [0.5, 1.0], "canopy_layers": 10},
         },
     }
     new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
