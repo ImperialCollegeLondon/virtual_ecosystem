@@ -47,7 +47,7 @@ def generate_canopy_model(community: list[PlantCohort]) -> tuple[NDArray, NDArra
 
 def build_canopy_arrays(
     communities: PlantCommunities, n_canopy_layers: int
-) -> tuple[DataArray, DataArray]:
+) -> tuple[NDArray, NDArray]:
     """Converts the PlantCommunities data into canopy layer data arrays.
 
     This function takes a list of plant cohorts present in a community and uses the T
@@ -68,9 +68,9 @@ def build_canopy_arrays(
     #        PlantCohorts
 
     # Initialise list of arrays
-    layer_heights: list = []
-    layer_lai: list = []
-    cell_has_too_many_layers: list = []
+    layer_heights: list[NDArray[np.float32]] = []
+    layer_lai: list = [NDArray[np.float32]]
+    cell_has_too_many_layers: list[int] = []
 
     # Loop over the communities in each cell
     for cell_id, community in communities.items():
