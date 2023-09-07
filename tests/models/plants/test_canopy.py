@@ -3,6 +3,7 @@
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL
 
+import numpy as np
 import pytest
 from numpy import ndarray
 
@@ -27,6 +28,12 @@ def test_generate_canopy_model(plants_data, flora):
         assert isinstance(layer_hght, ndarray)
         assert isinstance(layer_lai, ndarray)
         assert isinstance(layer_fapar, ndarray)
+
+        for cohort in community:
+            assert np.allclose(
+                cohort.canopy_area,
+                np.array([5, 5, 5]),
+            )
 
 
 @pytest.mark.parametrize(

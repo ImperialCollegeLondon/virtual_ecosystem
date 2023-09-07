@@ -30,6 +30,13 @@ def generate_canopy_model(
     Beer-Lambert law to estimate the fraction of absorbed photosynthetically active
     radiation (``fapar``, :math:`f_{APAR}`) for the canopy.
 
+    This function also updates the input community data, by setting the
+    :attr:`~virtual_rainforest.models.plants.community.PlantCohort.canopy_area`
+    attribute of each :attr:`~virtual_rainforest.models.plants.community.PlantCohort`
+    object to the area of canopy for that cohort within each of the canopy layers. These
+    are then used to calculate the gross primary productivity of each cohort within the
+    community.
+
     Warning:
         This function defines the API for generating canopy models but currently returns
         constant values for all inputs.
@@ -43,6 +50,12 @@ def generate_canopy_model(
     """
 
     # TODO - actually calculate these
+
+    # Calculate the canopy area within each layer for each cohort
+    for cohort in community:
+        cohort.canopy_area = np.array([5, 5, 5])
+
+    # Calculate the canopy wide summaries
     layer_heights = np.array([30.0, 20.0, 10.0])
     layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
     layer_fapar = np.array([0.4, 0.2, 0.1])
