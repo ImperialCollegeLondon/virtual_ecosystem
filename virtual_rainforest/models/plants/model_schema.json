@@ -5,6 +5,18 @@
          "description": "Configuration settings for the plants module",
          "type": "object",
          "properties": {
+            "constants": {
+               "description": "Constants for the plants module",
+               "type": "object",
+               "properties": {
+                  "PlantsConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "PlantsConsts"
+               ]
+            },
             "ftypes": {
                "description": "Details of the plant functional types",
                "type": "array",
@@ -14,14 +26,14 @@
                      "pft_name": {
                         "type": "string"
                      },
-                     "maxh": {
+                     "max_height": {
                         "type": "number",
                         "exclusiveMinimum": 0.0
                      }
                   },
                   "required": [
                      "pft_name",
-                     "maxh"
+                     "max_height"
                   ]
                }
             },
