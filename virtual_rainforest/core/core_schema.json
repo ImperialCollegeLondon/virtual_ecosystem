@@ -197,7 +197,7 @@
                      "uniqueItems": true,
                      "default": [
                         0.5,
-                        1
+                        1.0
                      ]
                   },
                   "canopy_layers": {

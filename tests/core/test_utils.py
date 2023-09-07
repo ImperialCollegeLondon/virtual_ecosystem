@@ -64,13 +64,8 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
 @pytest.mark.parametrize(
     "soil_layers, canopy_layers, raises, exp_log",
     [
-        (
-            [0.5, 1.0],
-            10,
-            does_not_raise(),
-            (),
-        ),
-        (
+        pytest.param([0.5, 1.0], 10, does_not_raise(), (), id="valid"),
+        pytest.param(
             "not a list",
             10,
             pytest.raises(InitialisationError),
@@ -80,30 +75,45 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
                     "The soil layers must be a list of layer depths.",
                 ),
             ),
+            id="soil_not_list",
         ),
-        (
-            [0.5, 1.0],
-            -3,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    ERROR,
-                    "The number of canopy layer must be greater than zero.",
-                ),
-            ),
-        ),
-        (
+        pytest.param(
             ["0.5", 1.0],
             10,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "The soil layer depths are not all floats.",
+                    "The soil layer depths are not all numeric.",
                 ),
             ),
+            id="soil_layer_contains_str",
         ),
-        (
+        pytest.param(
+            [-0.5, 1.0],
+            10,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "Soil layer depths must be strictly increasing and positive.",
+                ),
+            ),
+            id="soil_layer_contains_negatives",
+        ),
+        pytest.param(
+            [10.5, 1.0],
+            10,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "Soil layer depths must be strictly increasing and positive.",
+                ),
+            ),
+            id="soil_layer_not_strictly_increasing",
+        ),
+        pytest.param(
             [0.5, 1.0],
             3.4,
             pytest.raises(InitialisationError),
@@ -113,6 +123,19 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
                     "The number of canopy layers is not an integer.",
                 ),
             ),
+            id="canopy_layer_not_integer",
+        ),
+        pytest.param(
+            [0.5, 1.0],
+            -3,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The number of canopy layer must be greater than zero.",
+                ),
+            ),
+            id="canopy_layers_negative",
         ),
     ],
 )

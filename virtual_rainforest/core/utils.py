@@ -7,6 +7,8 @@ generated for tasks that are repeated across modules.
 
 from pathlib import Path
 
+import numpy as np
+
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 
@@ -110,8 +112,16 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
         LOGGER.error(to_raise)
         raise to_raise
 
-    if not all([isinstance(v, float) for v in soil_layers]):
-        to_raise = InitialisationError("The soil layer depths are not all floats.")
+    if not all([isinstance(v, (float, int)) for v in soil_layers]):
+        to_raise = InitialisationError("The soil layer depths are not all numeric.")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    np_soil_layer = np.array(soil_layers)
+    if not (np.all(np_soil_layer > 0) and np.all(np.diff(np_soil_layer) > 0)):
+        to_raise = InitialisationError(
+            "Soil layer depths must be strictly increasing and positive."
+        )
         LOGGER.error(to_raise)
         raise to_raise
 
