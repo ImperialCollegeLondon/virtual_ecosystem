@@ -71,13 +71,13 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (),
         ),
         (
-            [],
+            "not a list",
             10,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "The number of soil layers must be greater than zero.",
+                    "The soil layers must be a list of layer depths.",
                 ),
             ),
         ),

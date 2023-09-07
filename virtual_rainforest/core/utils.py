@@ -96,6 +96,13 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     """
 
     # sanity checks for soil and canopy layers
+    if not isinstance(soil_layers, list):
+        to_raise = InitialisationError(
+            "The soil layers must be a list of layer depths."
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
     if len(soil_layers) < 1:
         to_raise = InitialisationError(
             "The number of soil layers must be greater than zero."
