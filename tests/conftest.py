@@ -407,7 +407,7 @@ def dummy_climate_data(layer_roles_fixture):
     )
 
     layer_heights = np.repeat(
-        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
+        a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.5, -1.0],
         repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
     )
     data["layer_heights"] = DataArray(

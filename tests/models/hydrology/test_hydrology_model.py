@@ -419,7 +419,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [71.153003, 71.153003, 71.153003],
+            [66.273792, 66.273792, 66.273792],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
