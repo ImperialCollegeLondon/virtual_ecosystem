@@ -153,16 +153,16 @@ class AnimalModel(BaseModel):
 
         functional_groups_raw = config["animals"]["functional_groups"]
 
-        functional_groups = []
+        animal_functional_groups = []
         for k in functional_groups_raw:
-            functional_groups.append(FunctionalGroup(*k))
+            animal_functional_groups.append(FunctionalGroup(*k))
         """create list of functional group objects to initialize  communities with."""
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, functional_groups)
+        return cls(data, update_interval, animal_functional_groups)
 
     def setup(self) -> None:
         """Function to set up the animal model."""
