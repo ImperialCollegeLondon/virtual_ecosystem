@@ -30,235 +30,235 @@ def litter_model_fixture(dummy_litter_data):
     return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("24 hours"))
 
 
-@pytest.mark.parametrize(
-    "bad_data,raises,expected_log_entries",
-    [
-        (
-            [],
-            does_not_raise(),
-            (
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_below_structural' checked",
-                ),
-            ),
-        ),
-        (
-            1,
-            pytest.raises(ValueError),
-            (
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'litter_pool_above_metabolic'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'litter_pool_above_structural'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'litter_pool_woody'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'litter_pool_below_metabolic'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'litter_pool_below_structural'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'lignin_above_structural'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var " "'lignin_woody'",
-                ),
-                (
-                    ERROR,
-                    "litter model: init data missing required var "
-                    "'lignin_below_structural'",
-                ),
-                (
-                    ERROR,
-                    "litter model: error checking required_init_vars, see log.",
-                ),
-            ),
-        ),
-        (
-            2,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    INFO,
-                    "Replacing data array for 'litter_pool_above_metabolic'",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_below_structural' checked",
-                ),
-                (
-                    ERROR,
-                    "Initial litter pools contain at least one negative value!",
-                ),
-            ),
-        ),
-        (
-            3,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    INFO,
-                    "Replacing data array for 'lignin_woody'",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_metabolic' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_below_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_below_structural' checked",
-                ),
-                (
-                    ERROR,
-                    "Lignin proportions must be between 0 and 1!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_litter_model_initialization(
-    caplog, dummy_litter_data, bad_data, raises, expected_log_entries
-):
+def test_litter_model_initialization(caplog, dummy_litter_data):
     """Test `LitterModel` initialization."""
+
+    expected_log_entries = (
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_below_structural' checked",
+        ),
+    )
+
+    model = LitterModel(
+        dummy_litter_data,
+        pint.Quantity("1 week"),
+        2,
+        10,
+        constants=LitterConsts,
+    )
+
+    # In cases where it passes then checks that the object has the right properties
+    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+    assert model.model_name == "litter"
+    assert str(model) == "A litter model instance"
+    assert repr(model) == "LitterModel(update_interval = 1 week)"
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
+
+
+def test_litter_model_initialization_no_data(caplog):
+    """Test `LitterModel` initialization fails when all data is missing."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
 
-    with raises:
-        # Initialize model
-        if bad_data:
-            # Make four cell grid
-            grid = Grid(cell_nx=4, cell_ny=1)
-            litter_data = Data(grid)
-            # On second and third tests actually populate this data to test bounds
-            if bad_data == 2:
-                litter_data = deepcopy(dummy_litter_data)
-                # Put incorrect data in for lmwc
-                litter_data["litter_pool_above_metabolic"] = DataArray(
-                    [0.05, 0.02, -0.1], dims=["cell_id"]
-                )
-            elif bad_data == 3:
-                litter_data = deepcopy(dummy_litter_data)
-                # Put incorrect data in for lmwc
-                litter_data["lignin_woody"] = DataArray(
-                    [0.5, 0.4, 1.1], dims=["cell_id"]
-                )
-            # Initialise model with bad data object
-            model = LitterModel(
-                litter_data, pint.Quantity("1 week"), 2, 10, constants=LitterConsts
-            )
-        else:
-            model = LitterModel(
-                dummy_litter_data,
-                pint.Quantity("1 week"),
-                2,
-                10,
-                constants=LitterConsts,
-            )
+    expected_log_entries = (
+        (
+            ERROR,
+            "litter model: init data missing required var "
+            "'litter_pool_above_metabolic'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var "
+            "'litter_pool_above_structural'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var " "'litter_pool_woody'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var "
+            "'litter_pool_below_metabolic'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var "
+            "'litter_pool_below_structural'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var " "'lignin_above_structural'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var " "'lignin_woody'",
+        ),
+        (
+            ERROR,
+            "litter model: init data missing required var " "'lignin_below_structural'",
+        ),
+        (
+            ERROR,
+            "litter model: error checking required_init_vars, see log.",
+        ),
+    )
 
-        # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
-        assert model.model_name == "litter"
-        assert str(model) == "A litter model instance"
-        assert repr(model) == "LitterModel(update_interval = 1 week)"
+    with pytest.raises(ValueError):
+        # Make four cell grid
+        grid = Grid(cell_nx=4, cell_ny=1)
+        litter_data = Data(grid)
+
+        LitterModel(litter_data, pint.Quantity("1 week"), 2, 10, constants=LitterConsts)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
+
+
+def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
+    """Test `LitterModel` initialization fails when litter pools are out of bounds."""
+
+    expected_log_entries = (
+        (
+            INFO,
+            "Replacing data array for 'litter_pool_above_metabolic'",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_below_structural' checked",
+        ),
+        (
+            ERROR,
+            "Initial litter pools contain at least one negative value!",
+        ),
+    )
+
+    with pytest.raises(InitialisationError):
+        # Make four cell grid
+        litter_data = deepcopy(dummy_litter_data)
+        # Put incorrect data in for lmwc
+        litter_data["litter_pool_above_metabolic"] = DataArray(
+            [0.05, 0.02, -0.1], dims=["cell_id"]
+        )
+
+        LitterModel(litter_data, pint.Quantity("1 week"), 2, 10, constants=LitterConsts)
+
+    # Final check that expected logging entries are produced
+    log_check(caplog, expected_log_entries)
+
+
+def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data):
+    """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
+
+    expected_log_entries = (
+        (
+            INFO,
+            "Replacing data array for 'lignin_woody'",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_metabolic' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'litter_pool_below_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_above_structural' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_woody' checked",
+        ),
+        (
+            DEBUG,
+            "litter model: required var 'lignin_below_structural' checked",
+        ),
+        (
+            ERROR,
+            "Lignin proportions must be between 0 and 1!",
+        ),
+    )
+
+    with pytest.raises(InitialisationError):
+        # Make four cell grid
+        litter_data = deepcopy(dummy_litter_data)
+        # Put incorrect data in for woody lignin
+        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1], dims=["cell_id"])
+
+        LitterModel(litter_data, pint.Quantity("1 week"), 2, 10, constants=LitterConsts)
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
