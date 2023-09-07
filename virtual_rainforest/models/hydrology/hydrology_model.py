@@ -58,7 +58,7 @@ class HydrologyModel(BaseModel):
     upper_bound_on_time_scale = "1 month"
     """Longest time scale that hydrology model can sensibly capture."""
     required_init_vars = (
-        ("precipitation", ("spatial",)),
+        ("precipitation", ("spatial",)),  # TODO find a way to load daily data
         ("leaf_area_index", ("spatial",)),
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
@@ -273,7 +273,7 @@ class HydrologyModel(BaseModel):
         accumulated), and estimates mean stream flow. These processes are problematic
         at a monthly timestep, which is why - as an intermediate step - the input
         precipitation is divided by 30 days and return variables are means or
-        accumulated values.
+        accumulated values as appropriate.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
@@ -349,22 +349,24 @@ class HydrologyModel(BaseModel):
         * surface_runoff_accumulated, [mm]
         """
         # select time conversion factor
-        # TODO allow for other time steps and make it an option to loop over days to
-        # calculate monthly statistics
+        # TODO allow for other time steps
+        # TODO loop over days to calculate statistics -> intermediate data needs to be
+        # stored in a different formate or a time dimension needs to be added
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
             LOGGER.error(to_raise)
             raise to_raise
 
-        time_conversion_factor = self.constants.seconds_to_month
-        days = 30  # TODO this is not permanent
+        days: int = 30
 
         # Select variables at relevant heights for current time step
         current_precipitation = np.array(
-            self.data["precipitation"].isel(time_index=time_index)
+            self.data["precipitation"].isel(time_index=time_index) / days
         )
         leaf_area_index_sum = np.array(self.data["leaf_area_index"].sum(dim="layers"))
-        evapotranspiration = np.array(self.data["evapotranspiration"].sum(dim="layers"))
+        evapotranspiration = np.array(
+            self.data["evapotranspiration"].sum(dim="layers") / days
+        )
         subcanopy_temperature = np.array(
             self.data["air_temperature"].isel(
                 layers=self.layer_roles.index("subcanopy")
@@ -407,9 +409,6 @@ class HydrologyModel(BaseModel):
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
-
-        # TODO The following section calculates an average day, will later need to loop
-        current_precipitation = current_precipitation / days
 
         # Interception of water in canopy, [mm]
         interception = estimate_interception(
@@ -501,7 +500,7 @@ class HydrologyModel(BaseModel):
             hydraulic_gradient=self.constants.hydraulic_gradient,  # m/m
             nonlinearily_parameter=self.constants.nonlinearily_parameter,
             groundwater_capacity=self.constants.groundwater_capacity,
-            timestep_conversion_factor=time_conversion_factor / days,
+            seconds_to_day=self.constants.seconds_to_day,
         )
 
         # Return accumulated vertical flow, [mm]
@@ -592,9 +591,8 @@ class HydrologyModel(BaseModel):
         soil_hydrology["stream_flow"] = DataArray(
             np.clip(
                 (
-                    precipitation_surface * days
-                    - evapotranspiration
-                    - soil_moisture_change
+                    (precipitation_surface - evapotranspiration - soil_moisture_change)
+                    * days
                 ),
                 0,
                 HydroConsts.stream_flow_capacity,
@@ -618,7 +616,7 @@ def calculate_vertical_flow(
     hydraulic_gradient: Union[float, NDArray],
     nonlinearily_parameter: Union[float, NDArray],
     groundwater_capacity: Union[float, NDArray],
-    timestep_conversion_factor: float,
+    seconds_to_day: float,
 ) -> NDArray:
     r"""Calculate vertical water flow through soil column.
 
@@ -661,8 +659,7 @@ def calculate_vertical_flow(
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
         groundwater_capacity: storage capacity of groupwater
-        timestep_conversion_factor: factor to convert between m^3 per second and mm per
-            model time step
+        seconds_to_day: factor to convert between second and day
 
     Returns:
         volumetric flow rate of water, [mm/timestep]
@@ -682,9 +679,7 @@ def calculate_vertical_flow(
     )
 
     # Calculate flow from top soil to lower soil in mm per month
-    flow = (
-        -effective_conductivity * (hydraulic_gradient - 1) * timestep_conversion_factor
-    )
+    flow = -effective_conductivity * (hydraulic_gradient - 1) * seconds_to_day
 
     # Make sure that flow does not exceed storage capacity in mm
     available_storage = (soil_moisture - soil_moisture_residual) * soil_layer_thickness
@@ -727,11 +722,12 @@ def calculate_soil_evaporation(
     This function uses the so-called 'alpha' method to estimate the evaporative flux.
     We here use the implementation by Barton (1979):
 
-    :math:`\alpha = \frac{1.8 * soil moisture}{soil moisture + 0.3}`
+    :math:`\alpha = \frac{1.8 * \Theta}{\Theta + 0.3}`
 
     :math:`E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})`
 
-    where :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
+    where :math:`\Theta` is the top soil moisture (relative volumetric water content),
+    :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
     density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless); see Mahfouf (1991).
@@ -780,7 +776,7 @@ def calculate_soil_evaporation(
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # Return surface evaporation in mm; TODO note that this is just for step
+    # Return surface evaporation, [mm]
     return (evaporative_flux / latent_heat_vapourisation).squeeze()
 
 
@@ -912,7 +908,7 @@ def estimate_interception(
 
     :math:`S_{max} = 0.935 + 0.498 * LAI - 0.00575 * LAI^{2}` for [LAI > 0.1], and
 
-    :math:`S_{max} = 0` for [LAI ≤ 0.1]
+    :math:`S_{max} = 0` for [LAI ≤ 0.1]`
 
     where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
 

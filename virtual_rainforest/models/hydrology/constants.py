@@ -45,8 +45,8 @@ class HydroConsts:
     movement of water and indicates the direction in which water will flow.
     """
 
-    seconds_to_month: float = 2.628e6
-    """Factor to convert variable unit from seconds to month."""
+    seconds_to_day: float = 86400
+    """Factor to convert variable unit from seconds to day."""
 
     nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in van Genuchten model for hydraulic
