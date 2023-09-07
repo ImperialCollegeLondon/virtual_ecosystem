@@ -85,7 +85,7 @@ def test_hydrology_model_initialization(
     raises,
     expected_log_entries,
     layer_roles_fixture,
-    soil_layers=2,
+    soil_layers=[0.5, 1.0],
     canopy_layers=10,
 ):
     """Test `HydrologyModel` initialization."""
@@ -138,7 +138,7 @@ def test_hydrology_model_initialization(
                         "update_interval": "1 month",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [0.5, 1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -197,7 +197,7 @@ def test_hydrology_model_initialization(
                         "update_interval": "1 month",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [0.5, 1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -257,7 +257,7 @@ def test_hydrology_model_initialization(
                         "update_interval": "1 month",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [0.5, 1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -320,7 +320,7 @@ def test_generate_hydrology_model(
                         "update_interval": "1 month",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [0.5, 1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -339,7 +339,7 @@ def test_generate_hydrology_model(
                         "update_interval": "1 week",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [0.5, 1.0],
                         "canopy_layers": 10,
                     },
                 },
