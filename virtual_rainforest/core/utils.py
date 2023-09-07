@@ -59,62 +59,74 @@ def check_outfile(merge_file_path: Path) -> None:
     return None
 
 
-def set_layer_roles(canopy_layers: int, soil_layers: int) -> list[str]:
+def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     """Create a list of layer roles.
 
-    This function creates a list of layer roles for the vertical dimension of the
-    Virtual Rainforest. The layer above the canopy is defined as 0 (canopy height + 2m)
-    and the index increases towards the bottom of the soil column. The canopy includes a
-    maximum number of canopy layers (defined in config) which are filled from the top
-    with canopy node heights from the plant module (the rest is set to NaN). Below the
-    canopy, we currently set one subcanopy layer (around 1.5m above ground) and one
-    surface layer (0.1 m above ground). Below ground, we include a maximum number of
-    soil layers (defined in config); the deepest layer is currently set to 1 m as the
-    temperature there is fairly constant and equals the mean annual temperature.
+    This function creates a list of strings describing the layer roles for the vertical
+    dimension of the Virtual Rainforest. The vertical dimension consists of the
+    following layers and roles.
+
+    .. csv-table::
+        :header: "Index, "Role", "Description",
+        :widths: 5, 10, 30
+
+        0, "above", "Canopy top height + 2 metres"
+        1, "canopy", "Height of first canopy layer"
+        "...", "canopy", "Height of canopy layer ``n``"
+        10, "canopy", "Height of last canopy layer"
+        11, "subcanopy", "1.5 metres above ground level"
+        12, "surface", "0.1 metres above ground level"
+        13, "soil", "Depth of first soil layer"
+        .., "soil", "Depth of soil layer ``m``"
+        15, "soil", "Depth of last soil layer"
+
+    The number of canopy layers and the depth and number of soil layers are typically
+    set in the model configuration.
 
     Args:
-        canopy_layers: number of canopy layers soil_layers: number of soil layers
+        canopy_layers: the number of canopy layers
+        soil_layers: a list giving the depth of each soil layer
 
     Raises:
-        InitialisationError: If the number soil or canopy layers are not both positive
-            integers
+        InitialisationError: If the number of canopy layers is not a positive
+            integer or the soil depths are not a list of float values.
 
     Returns:
         List of canopy layer roles
     """
 
     # sanity checks for soil and canopy layers
-    if soil_layers < 1:
+    if len(soil_layers) < 1:
         to_raise = InitialisationError(
-            "There has to be at least one soil layer in the Virtual Rainforest!"
+            "The number of soil layers must be greater than zero."
         )
         LOGGER.error(to_raise)
         raise to_raise
 
-    if not isinstance(soil_layers, int):
-        to_raise = InitialisationError("The number of soil layers must be an integer!")
+    if not all([isinstance(v, float) for v in soil_layers]):
+        to_raise = InitialisationError("The soil layer depths are not all floats.")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if not isinstance(canopy_layers, int) and not (
+        isinstance(canopy_layers, float) and canopy_layers.is_integer()
+    ):
+        to_raise = InitialisationError("The number of canopy layers is not an integer.")
         LOGGER.error(to_raise)
         raise to_raise
 
     if canopy_layers < 1:
         to_raise = InitialisationError(
-            "There has to be at least one canopy layer in the Virtual Rainforest!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if canopy_layers != int(canopy_layers):
-        to_raise = InitialisationError(
-            "The number of canopy layers must be an integer!"
+            "The number of canopy layer must be greater than zero."
         )
         LOGGER.error(to_raise)
         raise to_raise
 
     layer_roles = (
         ["above"]
-        + ["canopy"] * canopy_layers
+        + ["canopy"] * int(canopy_layers)
         + ["subcanopy"]
         + ["surface"]
-        + ["soil"] * soil_layers
+        + ["soil"] * len(soil_layers)
     )
     return layer_roles

@@ -65,54 +65,52 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     "soil_layers, canopy_layers, raises, exp_log",
     [
         (
-            2,
+            [0.5, 1.0],
             10,
             does_not_raise(),
             (),
         ),
         (
-            -2,
+            [],
             10,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "There has to be at least one soil layer in the Virtual "
-                    "Rainforest!",
+                    "The number of soil layers must be greater than zero.",
                 ),
             ),
         ),
         (
-            2,
+            [0.5, 1.0],
             -3,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "There has to be at least one canopy layer in the Virtual "
-                    "Rainforest!",
+                    "The number of canopy layer must be greater than zero.",
                 ),
             ),
         ),
         (
-            2.5,
+            ["0.5", 1.0],
             10,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "The number of soil layers must be an integer!",
+                    "The soil layer depths are not all floats.",
                 ),
             ),
         ),
         (
-            2,
+            [0.5, 1.0],
             3.4,
             pytest.raises(InitialisationError),
             (
                 (
                     ERROR,
-                    "The number of canopy layers must be an integer!",
+                    "The number of canopy layers is not an integer.",
                 ),
             ),
         ),
