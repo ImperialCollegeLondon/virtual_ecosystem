@@ -69,7 +69,7 @@ def build_canopy_arrays(
 
     # Initialise list of arrays
     layer_heights: list[NDArray[np.float32]] = []
-    layer_leaf_area_index: list = [NDArray[np.float32]]
+    layer_leaf_area_index: list[NDArray[np.float32]] = []
     cell_has_too_many_layers: list[int] = []
 
     # Loop over the communities in each cell
