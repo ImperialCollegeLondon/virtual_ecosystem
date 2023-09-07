@@ -52,13 +52,11 @@ def dummy_litter_data(layer_roles_fixture):
 
     These values are completely made up, so you should not read anything into them.
     """
-
-    data["soil_temperature"] = concat(
-        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
-        dim="dim_0",
-    )
     data["soil_temperature"] = (
-        data["soil_temperature"]
+        concat(
+            [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+            dim="dim_0",
+        )
         .rename({"dim_0": "layers", "dim_1": "cell_id"})
         .assign_coords(
             {
@@ -79,8 +77,7 @@ def dummy_litter_data(layer_roles_fixture):
             DataArray(np.full((1, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
-    )
-    data["soil_moisture"] = data["soil_moisture"].assign_coords(
+    ).assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": ("layers", layer_roles_fixture),
