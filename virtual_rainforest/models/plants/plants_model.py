@@ -194,15 +194,24 @@ class PlantsModel(BaseModel):
     def update(self, time_index: int) -> None:
         """Update the plants model.
 
+        Thus method first updates the canopy layers, so that growth in any previous
+        update is reflected in the canopy structure. It then estimates the absorbed
+        irradiance through the canopy and calculates the per cohort gross primary
+        productivity, given the position in the canopy and canopy area of each
+        individual in the cohort. This then increments the diameter of breast height
+        within the cohort.
+
         Args:
             time_index: The index representing the current time step in the data object.
         """
 
-        # self.allocate_gpp()
-        # self.estimate_gpp()
-
+        # Update the canopy layers
         self.update_canopy_layers()
         self.set_absorbed_irradiance(time_index=time_index)
+
+        # Estimate the GPP and growth with the updated this update
+        self.estimate_gpp(time_index=time_index)
+        self.allocate_gpp()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -266,10 +275,15 @@ class PlantsModel(BaseModel):
         gC mol-1, given the environment (temperate, atmospheric pressure, vapour
         pressure deficit and atmospheric CO2 concentration) within each canopy layer.
         This is multiplied by the absorbed irradiance within each canopy layer to
-        predict the gross primary productivity (GPP, gC m-2 s-1) for each canopy layer.
+        predict the gross primary productivity (GPP, µg C m-2 s-1) for each canopy
+        layer.
 
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
+
+        Warning:
+            At present this method checks that the required forcing variables exist, but
+            asserts a constant fixed light use efficiency rather than using the P Model.
 
         Args:
             time_index: The index along the time axis of the forcing data giving the
@@ -328,7 +342,7 @@ class PlantsModel(BaseModel):
             * self.data["layer_absorbed_irradiation"]
         )
 
-        # We then have the gross primary productivity per metre squared within each
+        # We then have the gross primary productivity in µg C m-2 s-1 within each
         # canopy layer for each cell. This needs to be converted into the per stem GPP
         # for each cohort across the layers and scaled up from per second to the time
         # step.
@@ -339,6 +353,9 @@ class PlantsModel(BaseModel):
         # (with above canopy/subcanopy/surface/soil) and the pyrealm canopy layer
         # definition occurs.
 
+        # TODO - calculate time covered in update properly
+        seconds_since_last_update = 30 * 24 * 60 * 60
+
         for cell_id, community in self.communities.items():
             # Extract the vertical slice for this cell and reduce to the canopy layers
             cell_gpp_per_m2 = (
@@ -347,12 +364,23 @@ class PlantsModel(BaseModel):
                 .data[self._canopy_layer_indices]
             )
             for cohort in community:
-                cohort.gpp = np.nansum(cohort.canopy_area * cell_gpp_per_m2)
+                cohort.gpp = np.nansum(
+                    cohort.canopy_area * cell_gpp_per_m2 * seconds_since_last_update
+                )
 
+    def allocate_gpp(self) -> None:
+        """Calculate the allocation of GPP to growth and respiration.
 
-# def allocate_gpp(self) -> None:
-#     """Calculate the allocation of GPP to growth and respiration.
+        This method will use the T Model to estimate the allocation of plant gross
+        primary productivity to respiration, growth, maintenance and turnover costs.
 
-#     This method uses the T Model to estimate the allocation of plant gross primary
-#     productivity to respiration, growth, maintenance and turnover costs.
-#     """
+        Warning:
+            At present, this asserts a constant fixed increment in diameter at breast
+            height, rather than calculating the actual predictions of the T Model.
+        """
+
+        for community in self.communities.values():
+            for cohort in community:
+                # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
+                # dbh to provide an annual increment that relates to GPP.
+                cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2

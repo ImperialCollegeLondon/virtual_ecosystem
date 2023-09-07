@@ -109,32 +109,6 @@ def test_PlantsModel_set_absorbed_irradiance(fxt_plants_model):
         assert fxt_plants_model.data[layer].sum() == value
 
 
-def test_PlantsModel_update(fxt_plants_model):
-    """Test the update method."""
-
-    # The update method runs both update_canopy_layers and set_absorbed_irradiance so
-    # should restore all of the layers below.
-    expected_layers = [
-        ("layer_heights", (30 + 20 + 10) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
-    ]
-
-    # Overwrite the existing data in each layer
-    for layer, _ in expected_layers:
-        fxt_plants_model.data[layer][:] = np.full_like(
-            fxt_plants_model.data[layer].data, fill_value=np.nan
-        )
-
-    # Check reset
-    fxt_plants_model.update(time_index=0)
-
-    # Check the canopy has been initialised and updated with some simple test sums
-    for layer, value in expected_layers:
-        assert fxt_plants_model.data[layer].sum() == value
-
-
 def test_PlantsModel_estimate_gpp(fxt_plants_model):
     """Test the estimate_gpp method."""
 
@@ -167,4 +141,38 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     for cell_id, community in fxt_plants_model.communities.items():
         cell_gpp_per_m2 = exp_gpp_per_m2[np.arange(1, 11), cell_id]
         for cohort in community:
-            assert cohort.gpp == np.nansum(cell_gpp_per_m2 * cohort.canopy_area)
+            assert cohort.gpp == np.nansum(
+                cell_gpp_per_m2 * cohort.canopy_area * 30 * 24 * 60 * 60
+            )
+
+
+def test_PlantsModel_update(fxt_plants_model):
+    """Test the update method."""
+
+    # The update method runs both update_canopy_layers and set_absorbed_irradiance so
+    # should restore all of the layers below.
+    expected_layers = [
+        ("layer_heights", (30 + 20 + 10) * 4),
+        ("leaf_area_index", 3 * 4),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
+        ("layer_absorbed_irradiation", 1000 * 4),
+    ]
+
+    # Overwrite the existing data in each layer
+    for layer, _ in expected_layers:
+        fxt_plants_model.data[layer][:] = np.full_like(
+            fxt_plants_model.data[layer].data, fill_value=np.nan
+        )
+
+    # Check reset
+    fxt_plants_model.update(time_index=0)
+
+    # Check the canopy has been initialised and updated with some simple test sums
+    for layer, value in expected_layers:
+        assert fxt_plants_model.data[layer].sum() == value
+
+    # Check the growth of the cohorts
+    for community in fxt_plants_model.communities.values():
+        for cohort in community:
+            # Original 0.1 + 0.03 cm from current arbitrary increment
+            assert cohort.dbh == 0.13
