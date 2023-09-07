@@ -69,7 +69,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     following layers and roles.
 
     .. csv-table::
-        :header: "Index", "Role", "Description",
+        :header: "Index", "Role", "Description"
         :widths: 5, 10, 30
 
         0, "above", "Canopy top height + 2 metres"
