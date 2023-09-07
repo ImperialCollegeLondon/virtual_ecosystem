@@ -60,7 +60,7 @@ def test_PlantsModel_from_config(plants_data, plants_config):
 
     for layer_name, layer_sum in expected_layers:
         assert layer_name in plants_data
-        assert plants_data[layer_name].sum() == layer_sum
+        assert np.allclose(plants_data[layer_name].sum(), layer_sum)
 
 
 def test_PlantsModel_update_canopy_layers(fxt_plants_model):
@@ -133,3 +133,38 @@ def test_PlantsModel_update(fxt_plants_model):
     # Check the canopy has been initialised and updated with some simple test sums
     for layer, value in expected_layers:
         assert fxt_plants_model.data[layer].sum() == value
+
+
+def test_PlantsModel_estimate_gpp(fxt_plants_model):
+    """Test the estimate_gpp method."""
+
+    # Set the canopy and absorbed irradiance
+    fxt_plants_model.update_canopy_layers()
+    fxt_plants_model.set_absorbed_irradiance(time_index=0)
+
+    # Calculate GPP
+    fxt_plants_model.estimate_gpp(time_index=0)
+
+    # Check calculate quantities - this is currently very basic.
+
+    # - Light use efficiency: currently asserted fixed value
+    exp_lue = np.full((16, 4), fill_value=0.3)
+    assert np.allclose(
+        fxt_plants_model.data["layer_light_use_efficiency"].data,
+        exp_lue,
+    )
+
+    # - Canopy fapar to expected gpp per m2
+    exp_fapar = np.full((16, 1), fill_value=np.nan)
+    exp_fapar[[1, 2, 3, 12]] = [[0.4], [0.2], [0.1], [0.3]]
+    exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
+
+    assert np.allclose(
+        fxt_plants_model.data["layer_gpp_per_m2"].data, exp_gpp_per_m2, equal_nan=True
+    )
+
+    # - GPP calculated correctly
+    for cell_id, community in fxt_plants_model.communities.items():
+        cell_gpp_per_m2 = exp_gpp_per_m2[np.arange(1, 11), cell_id]
+        for cohort in community:
+            assert cohort.gpp == np.nansum(cell_gpp_per_m2 * cohort.canopy_area)
