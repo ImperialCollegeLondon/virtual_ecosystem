@@ -188,10 +188,17 @@
                "type": "object",
                "properties": {
                   "soil_layers": {
-                     "description": "Number of soil layers to simulate",
-                     "type": "integer",
-                     "exclusiveMinimum": 0,
-                     "default": 2
+                     "description": "Depth and number of soil layers to simulate",
+                     "type": "array",
+                     "items": {
+                        "type": "number"
+                     },
+                     "minItems": 1,
+                     "uniqueItems": true,
+                     "default": [
+                        0.5,
+                        1
+                     ]
                   },
                   "canopy_layers": {
                      "description": "Number of canopy layers to simulate",
