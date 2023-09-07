@@ -110,31 +110,40 @@ class LitterModel(BaseModel):
     ):
         super().__init__(data, update_interval, **kwargs)
 
-        # Check that litter pool data is appropriately bounded
-        if (
-            np.any(data["litter_pool_above_metabolic"] < 0.0)
-            or np.any(data["litter_pool_above_structural"] < 0.0)
-            or np.any(data["litter_pool_woody"] < 0.0)
-            or np.any(data["litter_pool_below_metabolic"] < 0.0)
-            or np.any(data["litter_pool_below_structural"] < 0.0)
-        ):
+        # Check that no litter pool is negative
+        all_pools = [
+            "litter_pool_above_metabolic",
+            "litter_pool_above_structural",
+            "litter_pool_woody",
+            "litter_pool_below_metabolic",
+            "litter_pool_below_structural",
+        ]
+        negative_pools = []
+        for pool in all_pools:
+            if np.any(data[pool] < 0):
+                negative_pools.append(pool)
+
+        if negative_pools:
             to_raise = InitialisationError(
-                "Initial litter pools contain at least one negative value!"
+                f"Pool sizes in {negative_pools} must be greater than 0!"
             )
             LOGGER.error(to_raise)
             raise to_raise
 
         # Check that lignin proportions are between 0 and 1
-        if (
-            np.any(data["lignin_above_structural"] < 0.0)
-            or np.any(data["lignin_woody"] < 0.0)
-            or np.any(data["lignin_below_structural"] < 0.0)
-            or np.any(data["lignin_above_structural"] > 1.0)
-            or np.any(data["lignin_woody"] > 1.0)
-            or np.any(data["lignin_below_structural"] > 1.0)
-        ):
+        lignin_proportions = [
+            "lignin_above_structural",
+            "lignin_woody",
+            "lignin_below_structural",
+        ]
+        bad_proportions = []
+        for lignin_prop in lignin_proportions:
+            if np.any(data[lignin_prop] < 0) or np.any(data[lignin_prop] > 1):
+                bad_proportions.append(lignin_prop)
+
+        if bad_proportions:
             to_raise = InitialisationError(
-                "Lignin proportions must be between 0 and 1!"
+                f"Proportions in {bad_proportions} must be between 0 and 1!"
             )
             LOGGER.error(to_raise)
             raise to_raise

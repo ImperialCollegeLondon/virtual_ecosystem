@@ -188,7 +188,7 @@ def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
         ),
         (
             ERROR,
-            "Initial litter pools contain at least one negative value!",
+            "Pool sizes in ['litter_pool_above_metabolic'] must be greater than 0!",
         ),
     )
 
@@ -248,7 +248,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
         ),
         (
             ERROR,
-            "Lignin proportions must be between 0 and 1!",
+            "Proportions in ['lignin_woody'] must be between 0 and 1!",
         ),
     )
 
