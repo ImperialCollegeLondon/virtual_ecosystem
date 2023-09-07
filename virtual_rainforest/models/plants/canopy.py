@@ -49,7 +49,8 @@ def generate_canopy_model(
         indices and :math:`f_{APAR}` from the canopy model.
     """
 
-    # TODO - actually calculate these
+    # TODO - actually calculate these and think about whether pyrealm pads to a maximum
+    # canopy layer number.
 
     # Calculate the canopy area within each layer for each cohort
     for cohort in community:
@@ -93,18 +94,24 @@ def build_canopy_arrays(
 
     # Loop over the communities in each cell
     for cell_id, community in communities.items():
-        # Calculate the canopy model for the cell and pad as needed
+        # Calculate the canopy model for the cell
         canopy_layers = list(generate_canopy_model(community))
         n_pad = n_canopy_layers - len(canopy_layers[0])
 
+        # Record cells where the canopy breaks the config
         if n_pad < 0:
             cell_has_too_many_layers.append(cell_id)
             continue
 
+        # If padding is needed, then pad canopy layers and the cohort canopy areas.
         if n_pad > 0:
             for idx, var in enumerate(canopy_layers):
                 canopy_layers[idx] = np.pad(
                     var, (0, n_pad), "constant", constant_values=np.nan
+                )
+            for cohort in community:
+                cohort.canopy_area = np.pad(
+                    cohort.canopy_area, (0, n_pad), "constant", constant_values=np.nan
                 )
 
         layer_heights.append(canopy_layers[0])
