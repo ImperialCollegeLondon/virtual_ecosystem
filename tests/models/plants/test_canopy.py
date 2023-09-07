@@ -64,14 +64,22 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
     communities = PlantCommunities(plants_data, flora)
 
     with raises:
+        # Build the canopy layers, which takes the generated canopy model, pads to the
+        # configured maximum and stacks into arrays by cell id
         layer_hght, layer_lai, layer_fapar = build_canopy_arrays(
             communities=communities, n_canopy_layers=max_layers
         )
 
+        # Check the layers are the right size and that the cohort.canopy_areas have been
+        # padded successfully
         if isinstance(raises, does_not_raise):
             assert layer_hght.shape == (max_layers, len(communities))
             assert layer_lai.shape == (max_layers, len(communities))
             assert layer_fapar.shape == (max_layers, len(communities))
+
+            for community in communities.values():
+                for cohort in community:
+                    assert cohort.canopy_area.shape == (max_layers,)
 
         if exp_log is not None:
             log_check(caplog, exp_log)

@@ -33,7 +33,7 @@ class PlantCohort:
     pft: PlantFunctionalType
     dbh: float
     n: int
-    canopy_area: NDArray = field(init=False, default=np.array([]))
+    canopy_area: NDArray[np.float32] = field(init=False, default=np.array([]))
     gpp: float = field(init=False, default=0)
 
 

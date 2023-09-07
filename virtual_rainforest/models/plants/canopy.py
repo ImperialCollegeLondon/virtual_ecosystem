@@ -54,7 +54,7 @@ def generate_canopy_model(
 
     # Calculate the canopy area within each layer for each cohort
     for cohort in community:
-        cohort.canopy_area = np.array([5, 5, 5])
+        cohort.canopy_area = np.array([5.0, 5.0, 5.0])
 
     # Calculate the canopy wide summaries
     layer_heights = np.array([30.0, 20.0, 10.0])
@@ -95,6 +95,9 @@ def build_canopy_arrays(
     # Loop over the communities in each cell
     for cell_id, community in communities.items():
         # Calculate the canopy model for the cell
+        # TODO - note that this allows generate_canopy_model to return different sized
+        #        canopy layers, which may not be true, so n_pad may be constant across
+        #        communities.
         canopy_layers = list(generate_canopy_model(community))
         n_pad = n_canopy_layers - len(canopy_layers[0])
 
