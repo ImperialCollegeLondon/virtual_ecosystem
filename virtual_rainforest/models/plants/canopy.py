@@ -69,41 +69,44 @@ def build_canopy_arrays(
 
     # Initialise list of arrays
     layer_heights: list[NDArray[np.float32]] = []
-    layer_lai: list = [NDArray[np.float32]]
+    layer_leaf_area_index: list = [NDArray[np.float32]]
     cell_has_too_many_layers: list[int] = []
 
     # Loop over the communities in each cell
     for cell_id, community in communities.items():
-        # Calculate the canopy model for the cell and pad as needed
-        this_lyr_hght, this_lyr_lai = generate_canopy_model(community)
-        n_pad = n_canopy_layers - len(this_lyr_hght)
+        # Calculate the canopy model for the community in the cell and pad as needed
+        this_layer_height, this_layer_leaf_area_index = generate_canopy_model(community)
+        n_pad = n_canopy_layers - len(this_layer_height)
 
         if n_pad < 0:
             cell_has_too_many_layers.append(cell_id)
             continue
 
         if n_pad > 0:
-            this_lyr_hght = np.pad(
-                this_lyr_hght, (0, n_pad), "constant", constant_values=np.nan
+            this_layer_height = np.pad(
+                this_layer_height, (0, n_pad), "constant", constant_values=np.nan
             )
-            this_lyr_lai = np.pad(
-                this_lyr_lai, (0, n_pad), "constant", constant_values=np.nan
+            this_layer_leaf_area_index = np.pad(
+                this_layer_leaf_area_index,
+                (0, n_pad),
+                "constant",
+                constant_values=np.nan,
             )
 
-        layer_heights.append(this_lyr_hght)
-        layer_lai.append(this_lyr_lai)
+        layer_heights.append(this_layer_height)
+        layer_leaf_area_index.append(this_layer_leaf_area_index)
 
     # Bail if any cells had too many canopy layers
     if cell_has_too_many_layers:
         msg = (
-            f"Generated canopy has more layers than the configured maximum in "
-            f"cells: {','.join([str(v) for v in cell_has_too_many_layers])}."
+            "Generated canopy has more layers than the configured maximum in "
+            f"cells: {','.join(str(v) for v in cell_has_too_many_layers)}."
         )
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
     # Combine into arrays
-    return np.stack(layer_heights, axis=1), np.stack(layer_lai, axis=1)
+    return np.stack(layer_heights, axis=1), np.stack(layer_leaf_area_index, axis=1)
 
 
 def initialise_canopy_layers(
