@@ -332,16 +332,19 @@ properties.
 
 ### The `from_config` factory method
 
-When a configuration file is read in, it is converted into a Python dictionary. So, the
-example above might result in:
+Configuration files are used to create a configuration object (see
+{class}`~virtual_rainforest.core.config.Config`), which contains details of the
+configuration process but also provides a dictionary interface to the configuration
+data. So, the example above might result in a `Config` object with the following data.
 
 ```python
 {'freshwater': {'update_interval': "1 month",  "no_of_ponds": 3}}
 ```
 
-The job of the `from_config` method is to take that dictionary, along with the shared
-`data` and `start_time` inputs, and then do any processing and validating to convert the
-configuration into the arguments required by the `__init__` method.
+The job of the `from_config` method for a model is to take that configuration, along
+with the shared `data` and `start_time` inputs, and then do any processing and
+validating to convert the configuration into the arguments required by the `__init__`
+method.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
@@ -359,7 +362,7 @@ As an example:
 ```python
 @classmethod
 def from_config(
-    cls, data: Data, config: dict[str, Any], update_interval: Quantity
+    cls, data: Data, config: Config, update_interval: Quantity
 ) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
@@ -369,7 +372,7 @@ def from_config(
 
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance.
-        config: The complete (and validated) Virtual Rainforest configuration.
+        config: A validated Virtual Rainforest model configuration object.
         update_interval: Frequency with which all models are updated
     """
     
