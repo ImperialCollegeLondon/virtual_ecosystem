@@ -12,17 +12,13 @@ from typing import Any
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
-
-# from virtual_rainforest.core.config import Config
-# from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
-
-# from xarray import DataArray
 
 
 class PlantsModel(BaseModel):
@@ -96,7 +92,7 @@ class PlantsModel(BaseModel):
 
     @classmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+        cls, data: Data, config: Config, update_interval: Quantity
     ) -> PlantsModel:
         """Factory function to initialise a plants model from configuration.
 
@@ -105,8 +101,7 @@ class PlantsModel(BaseModel):
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
-            config: A validated :class:`~virtual_rainforest.core.config.Config`
-                instance.
+            config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
         """
 

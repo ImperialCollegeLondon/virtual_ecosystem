@@ -10,6 +10,7 @@ from typing import Any
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -99,7 +100,7 @@ class AbioticModel(BaseModel):
 
     @classmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+        cls, data: Data, config: Config, update_interval: Quantity
     ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
@@ -109,7 +110,7 @@ class AbioticModel(BaseModel):
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
-            config: The complete (and validated) virtual rainforest configuration.
+            config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
         """
 
