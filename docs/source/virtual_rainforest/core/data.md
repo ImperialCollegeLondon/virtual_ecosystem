@@ -224,7 +224,7 @@ The `Config` object can then be passed to the `load_data_config` method:
 ```{code-cell}
 ---
 mystnb:
-  number_source_lines: true
+  nb_merge_streams: true
 ---
 data.load_data_config(config)
 ```
