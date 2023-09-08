@@ -1,7 +1,7 @@
 """Testing the Data class."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO
+from logging import CRITICAL, ERROR, INFO
 from pathlib import Path
 
 import numpy as np
@@ -545,12 +545,22 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            "test_dupes.toml",
+            "test_no_data.toml",
             pytest.raises(ConfigurationError),
-            "Data configuration did not load cleanly",
+            "No data sources defined in the data configuration.",
             (
                 (INFO, "Loading data from configuration"),
-                (CRITICAL, "Duplicate variable names in data configuration"),
+                (CRITICAL, "No data sources defined in the data configuration."),
+            ),
+            id="no data",
+        ),
+        pytest.param(
+            "test_dupes.toml",
+            pytest.raises(ConfigurationError),
+            "Data configuration did not load cleanly - check log",
+            (
+                (INFO, "Loading data from configuration"),
+                (ERROR, "Duplicate variable names in data configuration"),
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
                 (INFO, "Loading variable 'prec' from file:"),
@@ -559,6 +569,7 @@ def test_Data_load_to_dataarray_data_handling(
                 (INFO, "Adding data array for 'elev'"),
                 (INFO, "Loading variable 'elev' from file:"),
                 (INFO, "Replacing data array for 'elev'"),
+                (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
         ),
@@ -595,11 +606,13 @@ def test_Data_load_from_config(
     caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
-    for each_var in cfg["core"]["data"]["variable"]:
-        each_var["file"] = shared_datadir / each_var["file"]
+    # Note that the no data test gets the default empty dict for cfg["core"]["data"]
+    if "variable" in cfg["core"]["data"]:
+        for each_var in cfg["core"]["data"]["variable"]:
+            each_var["file"] = shared_datadir / each_var["file"]
 
     with exp_error as err:
-        data.load_data_config(data_config=cfg["core"]["data"])
+        data.load_data_config(config=cfg)
 
     if err:
         assert str(err.value) == exp_msg

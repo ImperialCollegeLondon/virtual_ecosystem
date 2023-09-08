@@ -211,7 +211,7 @@ def vr_run(
 
     grid = Grid.from_config(config)
     data = Data(grid)
-    data.load_data_config(config["core"]["data"])
+    data.load_data_config(config)
 
     model_list = select_models(config["core"]["modules"])
 
