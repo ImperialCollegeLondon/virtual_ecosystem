@@ -360,31 +360,31 @@ class HydrologyModel(BaseModel):
         days: int = 30
 
         # Select variables at relevant heights for current time step
-        current_precipitation = np.array(
+        current_precipitation = (
             self.data["precipitation"].isel(time_index=time_index) / days
-        )
-        leaf_area_index_sum = np.array(self.data["leaf_area_index"].sum(dim="layers"))
-        evapotranspiration = np.array(
+        ).to_numpy()
+        leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
+        evapotranspiration = (
             self.data["evapotranspiration"].sum(dim="layers") / days
+        ).to_numpy()
+        subcanopy_temperature = (
+            self.data["air_temperature"]
+            .isel(layers=self.layer_roles.index("subcanopy"))
+            .to_numpy()
         )
-        subcanopy_temperature = np.array(
-            self.data["air_temperature"].isel(
-                layers=self.layer_roles.index("subcanopy")
-            )
+        subcanopy_humidity = (
+            self.data["relative_humidity"]
+            .isel(layers=self.layer_roles.index("subcanopy"))
+            .to_numpy()
         )
-        subcanopy_humidity = np.array(
-            self.data["relative_humidity"].isel(
-                layers=self.layer_roles.index("subcanopy")
-            )
-        )
-        subcanopy_pressure = np.array(
+        subcanopy_pressure = (
             self.data["atmospheric_pressure_ref"].isel(time_index=time_index)
-        )
-        soil_layer_heights = np.array(
+        ).to_numpy()
+        soil_layer_heights = (
             self.data["layer_heights"]
             .where(self.data["layer_heights"].layer_roles == "soil")
             .dropna(dim="layers")
-        )
+        ).to_numpy()
 
         # Calculate thickness of each layer, [mm]
         soil_layer_thickness = np.array(
@@ -400,12 +400,12 @@ class HydrologyModel(BaseModel):
         # Convert soil moisture (volumetric relative water content) to mm as follows:
         # water content in mm = relative water content / 100 * depth in mm
         # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
-        soil_moisture_mm = np.array(
+        soil_moisture_mm = (
             self.data["soil_moisture"]
             .where(self.data["soil_moisture"].layer_roles == "soil")
             .dropna(dim="layers")
             * soil_layer_thickness
-        )
+        ).to_numpy()
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
