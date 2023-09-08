@@ -154,9 +154,12 @@ class AnimalModel(BaseModel):
         functional_groups_raw = config["animals"]["functional_groups"]
 
         animal_functional_groups = []
-        for k in functional_groups_raw:
-            animal_functional_groups.append(FunctionalGroup(*k))
+        """for k in functional_groups_raw:
+            animal_functional_groups.append(FunctionalGroup(*k))"""
         """create list of functional group objects to initialize  communities with."""
+
+        for k in functional_groups_raw:
+            animal_functional_groups.append(FunctionalGroup(**k))
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
@@ -187,6 +190,7 @@ class AnimalModel(BaseModel):
             community.inflict_natural_mortality_community(
                 self.update_interval_timedelta
             )
+            community.die_cohort_community()
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the

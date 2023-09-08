@@ -102,6 +102,11 @@ class AnimalCommunity:
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
+    def die_cohort_community(self) -> None:
+        """This handles die_cohort for all cohorts in a community."""
+        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+            self.die_cohort(cohort)
+
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
 
@@ -187,11 +192,14 @@ class AnimalCommunity:
             min_size, max_size = consumer_cohort.prey_groups[prey_functional_group]
 
             # Filter the potential prey cohorts based on their size
-            right_sized_prey = (
-                c for c in potential_prey_cohorts if min_size <= c.mass <= max_size
-            )
-            prey.extend(right_sized_prey)
-
+            for cohort in potential_prey_cohorts:
+                if min_size <= cohort.mass <= max_size:
+                    # Check if the cohort has zero individuals
+                    if cohort.individuals <= 0:
+                        # Call the die_cohort method here
+                        self.die_cohort(cohort)
+                        continue  # Skip this cohort and move on to the next one
+                    prey.append(cohort)
         return prey
 
     def metabolize_community(self, dt: timedelta64) -> None:
@@ -227,3 +235,5 @@ class AnimalCommunity:
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
             cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
+            if cohort.individuals <= 0:
+                self.die_cohort(cohort)
