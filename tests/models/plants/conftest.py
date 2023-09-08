@@ -5,7 +5,7 @@ import pytest
 from xarray import DataArray
 
 
-@pytest.fixture()
+@pytest.fixture
 def plants_config(shared_datadir):
     """Simple configuration fixture for use in tests."""
 
@@ -14,7 +14,7 @@ def plants_config(shared_datadir):
     return Config(shared_datadir / "all_config.toml")
 
 
-@pytest.fixture()
+@pytest.fixture
 def flora(plants_config):
     """Construct a minimal Flora object."""
     from virtual_rainforest.models.plants.functional_types import Flora
@@ -24,7 +24,7 @@ def flora(plants_config):
     return flora
 
 
-@pytest.fixture()
+@pytest.fixture
 def plants_data():
     """Construct a minimal data object with plant cohort data."""
     from virtual_rainforest.core.data import Data
@@ -37,3 +37,19 @@ def plants_data():
     data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
 
     return data
+
+
+@pytest.fixture
+def fxt_plants_model(plants_data, flora):
+    """Return a simple PlantsModel instance."""
+    from pint import Quantity
+
+    from virtual_rainforest.models.plants.plants_model import PlantsModel
+
+    return PlantsModel(
+        data=plants_data,
+        update_interval=Quantity("1 month"),
+        flora=flora,
+        canopy_layers=10,
+        soil_layers=3,
+    )
