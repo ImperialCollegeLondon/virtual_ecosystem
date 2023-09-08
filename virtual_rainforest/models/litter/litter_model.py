@@ -241,7 +241,7 @@ class LitterModel(BaseModel):
         )
 
         # Find change in litter variables using the function
-        updated_litter_pools = calculate_change_in_litter_variables(
+        updated_variables = calculate_change_in_litter_variables(
             surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),
@@ -263,8 +263,14 @@ class LitterModel(BaseModel):
             decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
         )
 
-        # Update the litter pools
-        self.data.add_from_dict(updated_litter_pools)
+        # Construct dictionary of data arrays
+        updated_litter_variables = {
+            variable: DataArray(updated_variables[variable], dims="cell_id")
+            for variable in updated_variables.keys()
+        }
+
+        # And then use then to update the litter variables
+        self.data.add_from_dict(updated_litter_variables)
 
     def cleanup(self) -> None:
         """Placeholder function for litter model cleanup."""

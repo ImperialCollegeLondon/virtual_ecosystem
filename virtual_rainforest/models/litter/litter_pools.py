@@ -20,7 +20,6 @@ from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
-from xarray import DataArray
 
 from virtual_rainforest.models.litter.constants import LitterConsts
 
@@ -41,7 +40,7 @@ def calculate_change_in_litter_variables(
     decomposed_carcasses: NDArray[np.float32],
     update_interval: float,
     constants: LitterConsts,
-) -> dict[str, DataArray]:
+) -> dict[str, NDArray[np.float32]]:
     """Calculate changes for all the litter variables (pool sizes and chemistries).
 
     Args:
@@ -123,33 +122,17 @@ def calculate_change_in_litter_variables(
 
     # Construct dictionary of data arrays to return
     new_litter_pools = {
-        "litter_pool_above_metabolic": DataArray(
-            updated_pools["above_metabolic"], dims="cell_id"
-        ),
-        "litter_pool_above_structural": DataArray(
-            updated_pools["above_structural"], dims="cell_id"
-        ),
-        "litter_pool_woody": DataArray(updated_pools["woody"], dims="cell_id"),
-        "litter_pool_below_metabolic": DataArray(
-            updated_pools["below_metabolic"], dims="cell_id"
-        ),
-        "litter_pool_below_structural": DataArray(
-            updated_pools["below_structural"], dims="cell_id"
-        ),
-        "lignin_above_structural": DataArray(
-            lignin_above_structural + change_in_lignin["above_structural"],
-            dims="cell_id",
-        ),
-        "lignin_woody": DataArray(
-            lignin_woody + change_in_lignin["woody"], dims="cell_id"
-        ),
-        "lignin_below_structural": DataArray(
-            lignin_below_structural + change_in_lignin["below_structural"],
-            dims="cell_id",
-        ),
-        "litter_C_mineralisation_rate": DataArray(
-            total_C_mineralisation_rate, dims="cell_id"
-        ),
+        "litter_pool_above_metabolic": updated_pools["above_metabolic"],
+        "litter_pool_above_structural": updated_pools["above_structural"],
+        "litter_pool_woody": updated_pools["woody"],
+        "litter_pool_below_metabolic": updated_pools["below_metabolic"],
+        "litter_pool_below_structural": updated_pools["below_structural"],
+        "lignin_above_structural": lignin_above_structural
+        + change_in_lignin["above_structural"],
+        "lignin_woody": lignin_woody + change_in_lignin["woody"],
+        "lignin_below_structural": lignin_below_structural
+        + change_in_lignin["below_structural"],
+        "litter_C_mineralisation_rate": total_C_mineralisation_rate,
     }
 
     return new_litter_pools
