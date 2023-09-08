@@ -74,7 +74,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any],
+    config: Config,
     data: Data,
     model_list: list[Type[BaseModel]],
     update_interval: pint.Quantity,
@@ -82,7 +82,7 @@ def configure_models(
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
         data: A Data instance.
         modules: A set of models to be configured
         update_interval: The interval with which each model is updated
@@ -114,7 +114,7 @@ def configure_models(
 
 
 def extract_timing_details(
-    config: dict[str, Any]
+    config: Config,
 ) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
@@ -126,7 +126,7 @@ def extract_timing_details(
     length.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
 
     Raises:
         InitialisationError: If the run length is too short for the model to update, or
