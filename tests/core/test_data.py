@@ -1,7 +1,7 @@
 """Testing the Data class."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR, INFO
+from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
 import numpy as np
@@ -546,11 +546,11 @@ def test_Data_load_to_dataarray_data_handling(
         ),
         pytest.param(
             "test_no_data.toml",
-            pytest.raises(ConfigurationError),
-            "No data sources defined in the data configuration.",
+            does_not_raise(),
+            None,
             (
                 (INFO, "Loading data from configuration"),
-                (CRITICAL, "No data sources defined in the data configuration."),
+                (WARNING, "No data sources defined in the data configuration."),
             ),
             id="no data",
         ),

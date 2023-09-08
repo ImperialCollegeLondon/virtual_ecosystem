@@ -242,6 +242,7 @@ def test_configure_models(
             (
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
+                (WARNING, "No data sources defined in the data configuration."),
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     INFO,
@@ -272,6 +273,7 @@ def test_configure_models(
             (
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
+                (WARNING, "No data sources defined in the data configuration."),
                 (INFO, "Attempting to configure the following models: ['topsoil']"),
                 (
                     CRITICAL,

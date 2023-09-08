@@ -306,11 +306,11 @@ class Data:
         data_source_types = ["variable", "constant", "generator"]
         clean_load = True
 
-        # Check for an empty data configuration
+        # Check for an empty data configuration - do not make this an error or critical
+        # but do log it, so that users can trace back when variables are missing
         if not set(data_source_types).intersection(data_config):
             msg = "No data sources defined in the data configuration."
-            LOGGER.critical(msg)
-            raise ConfigurationError(msg)
+            LOGGER.warning(msg)
 
         # Handle variables
         if "variable" in data_config:
