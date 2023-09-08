@@ -429,7 +429,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [117.113509, 117.113509, 117.113509],
+            [118.7833, 118.7833, 118.7833],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -441,10 +441,16 @@ def test_setup(
 
         np.testing.assert_allclose(model.data["precipitation_surface"], exp_surf_prec)
         np.testing.assert_allclose(
-            model.data["soil_moisture"], exp_soil_moisture, rtol=1e-4, atol=1e-4,
+            model.data["soil_moisture"],
+            exp_soil_moisture,
+            rtol=1e-4,
+            atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["vertical_flow"], exp_vertical_flow, rtol=1e-4, atol=1e-4,
+            model.data["vertical_flow"],
+            exp_vertical_flow,
+            rtol=1e-4,
+            atol=1e-4,
         )
         np.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
         np.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
@@ -747,7 +753,7 @@ def test_calculate_layer_thickness():
     """Test."""
 
     from virtual_rainforest.models.hydrology.hydrology_model import (
-        calculate_layer_thickness
+        calculate_layer_thickness,
     )
 
     soil_layer_heights = np.array([[-0.5, -0.5, -0.5], [-1.2, -1.2, -1.2]])

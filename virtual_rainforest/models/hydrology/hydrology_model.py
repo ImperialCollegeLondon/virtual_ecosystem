@@ -350,8 +350,6 @@ class HydrologyModel(BaseModel):
         """
         # select time conversion factor
         # TODO allow for other time steps
-        # TODO loop over days to calculate statistics -> intermediate data needs to be
-        # stored in a different formate or a time dimension needs to be added
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
             LOGGER.error(to_raise)
@@ -558,7 +556,7 @@ class HydrologyModel(BaseModel):
 
         # TODO Convert to matric potential
 
-        # TODO Calculate accumulated surface runoff in daily loop
+        # Calculate accumulated surface runoff for model time step
         # Get the runoff created by SPLASH or initial data set
         single_cell_runoff = np.array(soil_hydrology["surface_runoff"])
 
@@ -584,19 +582,20 @@ class HydrologyModel(BaseModel):
         soil_moisture_change = np.array(
             (
                 (self.data["soil_moisture"]).sum(dim="layers")
-                / np.sum(soil_layer_thickness)
+                * np.sum(soil_layer_thickness)
             )
             - (
                 soil_hydrology["soil_moisture"].sum(dim="layers")
-                / np.sum(soil_layer_thickness)
+                * np.sum(soil_layer_thickness)
             )
         )
 
         soil_hydrology["stream_flow"] = DataArray(
             np.clip(
                 (
-                    (precipitation_surface - evapotranspiration - soil_moisture_change)
-                    * days
+                    soil_hydrology["precipitation_surface"]
+                    - evapotranspiration * days
+                    - soil_moisture_change
                 ),
                 0,
                 HydroConsts.stream_flow_capacity,
