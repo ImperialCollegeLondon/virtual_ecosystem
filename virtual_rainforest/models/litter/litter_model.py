@@ -125,7 +125,7 @@ class LitterModel(BaseModel):
 
         if negative_pools:
             to_raise = InitialisationError(
-                f"Pool sizes in {negative_pools} must be greater than 0!"
+                f"Negative pool sizes found in: {', '.join(negative_pools)}"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -143,7 +143,8 @@ class LitterModel(BaseModel):
 
         if bad_proportions:
             to_raise = InitialisationError(
-                f"Proportions in {bad_proportions} must be between 0 and 1!"
+                "Lignin proportions not between 0 and 1 found in: "
+                f"{', '.join(bad_proportions)}",
             )
             LOGGER.error(to_raise)
             raise to_raise
