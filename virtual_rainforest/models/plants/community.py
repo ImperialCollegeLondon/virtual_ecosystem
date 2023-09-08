@@ -36,7 +36,9 @@ class PlantCohort:
     """The diameter at breast height (m) of cohort members."""
     n: int
     """The number of individuals in the cohort."""
-    canopy_area: NDArray[np.float32] = field(init=False, default=np.array([]))
+    canopy_area: NDArray[np.float32] = field(
+        init=False, default_factory=lambda: np.array([])
+    )
     """The canopy area within canopy layers of each individual."""
     gpp: float = field(init=False, default=0)
     """The gross primary productivity for each individual."""
