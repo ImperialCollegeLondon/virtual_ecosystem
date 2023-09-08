@@ -92,7 +92,8 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
 
     Raises:
         InitialisationError: If the number of canopy layers is not a positive
-            integer or the soil depths are not a list of float values.
+            integer or the soil depths are not a list of strictly increasing, positive
+            float values.
 
     Returns:
         List of canopy layer roles
