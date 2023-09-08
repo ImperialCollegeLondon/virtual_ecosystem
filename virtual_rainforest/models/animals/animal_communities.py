@@ -97,7 +97,7 @@ class AnimalCommunity:
 
         if cohort.is_alive:
             cohort.is_alive = False
-            LOGGER.debug("An animal cohort has died")
+            # LOGGER.debug("An animal cohort has died")
             self.animal_cohorts[cohort.name].remove(cohort)
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
