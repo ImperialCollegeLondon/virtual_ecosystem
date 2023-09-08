@@ -222,24 +222,26 @@ def test_configure_models(
     "config_content, expected_log_entries",
     [
         pytest.param(
-            {
-                "core": {
-                    "modules": ["soil"],
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "run_length": "50 years",
-                        "update_interval": "0.5 martian days",
-                    },
-                    "data": [],
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 10000,
-                        "cell_nx": 3,
-                        "cell_ny": 3,
-                    },
-                },
-            },
+            """[core]
+            modules = ["soil",]
+            data = {}
+            [core.data_output_options]
+            save_merged_config = false
+            [core.timing]
+            start_date = "2020-01-01"
+            run_length = "50 years"
+            update_interval = "0.5 martian days"
+            [core.grid]
+            grid_type = "square"
+            cell_area = 10000
+            cell_nx = 3
+            cell_ny = 3
+            """,
             (
+                (INFO, "Config TOML loaded from config string"),
+                (INFO, "Config built from config string"),
+                (INFO, "Validation schema for configuration built."),
+                (INFO, "Configuration validated"),
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
                 (WARNING, "No data sources defined in the data configuration."),
@@ -258,19 +260,22 @@ def test_configure_models(
             id="bad_config_data",
         ),
         pytest.param(
-            {
-                "core": {
-                    "modules": ["topsoil"],
-                    "data": [],
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 10000,
-                        "cell_nx": 3,
-                        "cell_ny": 3,
-                    },
-                },
-            },
+            """[core]
+            modules = ["topsoil",]
+            data = {}
+            [core.data_output_options]
+            save_merged_config = false
+            [core.grid]
+            grid_type = "square"
+            cell_area = 10000
+            cell_nx = 3
+            cell_ny = 3
+            """,
             (
+                (INFO, "Config TOML loaded from config string"),
+                (INFO, "Config built from config string"),
+                (INFO, "Validation schema for configuration built."),
+                (INFO, "Configuration validated"),
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
                 (WARNING, "No data sources defined in the data configuration."),
@@ -285,7 +290,7 @@ def test_configure_models(
         ),
     ],
 )
-def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entries):
+def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     """Test the main `vr_run` function handles bad model configurations correctly.
 
     Note that some of this is also safeguarded by the config validation. Unknown model
@@ -293,19 +298,8 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
     schema validation.
     """
 
-    # Simple drop in replacement for the Config class that sidesteps TOML loading and
-    # validation and simply asserts the resulting config dictionary contents.
-    class MockConfig(dict):
-        def __init__(self, cfg_paths, extra_params):
-            self.update(config_content)
-
-        def export_config(self, outfile: Path):
-            pass
-
-    mocker.patch("virtual_rainforest.main.Config", MockConfig)
-
     with pytest.raises(InitialisationError):
-        vr_run([], [])
+        vr_run(cfg_string=config_content)
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
 
