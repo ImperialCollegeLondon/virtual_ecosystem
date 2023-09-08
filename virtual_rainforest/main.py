@@ -207,7 +207,7 @@ def vr_run(
             name)
     """
 
-    config = Config(cfg_paths, override_params)
+    config = Config(cfg_paths=cfg_paths, override_params=override_params)
 
     grid = Grid.from_config(config)
     data = Data(grid)
