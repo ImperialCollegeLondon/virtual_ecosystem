@@ -747,3 +747,7 @@ def test_update_soil_moisture():
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
+
+
+# def test_calculate_layer_thickness():
+#     """Test."""
