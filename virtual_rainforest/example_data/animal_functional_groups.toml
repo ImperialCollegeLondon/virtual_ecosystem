@@ -1,12 +1,12 @@
 # animal_functional_groups.toml
 
-#[[animals.functional_groups]]
-#name = "carnivorous_bird"
-#taxa = "bird"
-#diet = "carnivore"
-#metabolic_type = "endothermic"
-#birth_mass = 0.1
-#adult_mass = 1.0
+[[animals.functional_groups]]
+name = "carnivorous_bird"
+taxa = "bird"
+diet = "carnivore"
+metabolic_type = "endothermic"
+birth_mass = 0.1
+adult_mass = 1.0
 
 [[animals.functional_groups]]
 name = "herbivorous_bird"
@@ -16,13 +16,13 @@ metabolic_type = "endothermic"
 birth_mass = 0.05
 adult_mass = 0.5
 
-#[[animals.functional_groups]]
-#name = "carnivorous_mammal"
-#taxa = "mammal"
-#diet = "carnivore"
-#metabolic_type = "endothermic"
-#birth_mass = 4.0
-#adult_mass = 40.0
+[[animals.functional_groups]]
+name = "carnivorous_mammal"
+taxa = "mammal"
+diet = "carnivore"
+metabolic_type = "endothermic"
+birth_mass = 4.0
+adult_mass = 40.0
 
 [[animals.functional_groups]]
 name = "herbivorous_mammal"
@@ -32,13 +32,13 @@ metabolic_type = "endothermic"
 birth_mass = 1.0
 adult_mass = 10.0
 
-#[[animals.functional_groups]]
-#name = "carnivorous_insect"
-#taxa = "insect"
-#diet = "carnivore"
-#metabolic_type = "ectothermic"
-#birth_mass = 0.001
-#adult_mass = 0.01
+[[animals.functional_groups]]
+name = "carnivorous_insect"
+taxa = "insect"
+diet = "carnivore"
+metabolic_type = "ectothermic"
+birth_mass = 0.001
+adult_mass = 0.01
 
 [[animals.functional_groups]]
 name = "herbivorous_insect"
