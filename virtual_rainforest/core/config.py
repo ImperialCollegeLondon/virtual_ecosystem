@@ -597,15 +597,15 @@ class Config(dict):
         LOGGER.info("Configuration validated")
 
     def _validate_and_set_defaults(
-        self, config: dict[str, Any], schema: dict[str, Any]
+        self, config_data: dict[str, Any], schema: dict[str, Any]
     ) -> None:
-        """Validate a config dictionary against a schema and set default values.
+        """Validates config data against a schema and sets default values.
 
-        This private method takes a config dictionary (or subset of one) and validates
-        it against the provided schema. Missing values are filled using defaults from
-        the schema where available.
+        This private method takes a dictionary containing configuration data and
+        validates it against the provided schema. Missing values are filled using
+        defaults from the schema where available.
 
-        Note that the config input is updated in place and different schema can be
+        Note that the configuration data is updated in place and different schema can be
         applied sequentially to incrementally validate subsections of the merged config
         inputs. This is used to validate the core config to confirm the module list
         before then validating individual module configurations. When validation errors
@@ -613,19 +613,20 @@ class Config(dict):
         :attr:`~virtual_rainforest.core.config.Config.config_errors` attribute.
 
         Args:
-            config: A dictionary containing config information
-            schema: The schema that the config dictionary should conform to.
+            config_data: A dictionary containing model configuration data.
+            schema: The schema that the configuration data should conform to.
         """
 
         val = ValidatorWithDefaults(schema, format_checker=FormatChecker())
         errors = [
-            (str(list(error.path)), error.message) for error in val.iter_errors(config)
+            (str(list(error.path)), error.message)
+            for error in val.iter_errors(config_data)
         ]
 
         if errors:
             self.config_errors.extend(errors)
         else:
-            val.validate(config)
+            val.validate(config_data)
 
     def export_config(self, outfile: Path) -> None:
         """Exports a validated and merged configuration as a single file.
