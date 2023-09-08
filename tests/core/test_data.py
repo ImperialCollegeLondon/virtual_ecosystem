@@ -525,10 +525,24 @@ def test_Data_load_to_dataarray_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=["file", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_string", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            "test.toml",
+            """[core]
+               modules = []
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "temp"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "prec"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "vapd"
+               """,
             does_not_raise(),
             None,
             (
@@ -545,7 +559,9 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            "test_no_data.toml",
+            """[core]
+               modules = []
+               """,
             does_not_raise(),
             None,
             (
@@ -555,7 +571,21 @@ def test_Data_load_to_dataarray_data_handling(
             id="no data",
         ),
         pytest.param(
-            "test_dupes.toml",
+            """[core]
+               modules = []
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "temp"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "prec"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               """,
             pytest.raises(ConfigurationError),
             "Data configuration did not load cleanly - check log",
             (
@@ -582,12 +612,16 @@ def test_Data_load_to_dataarray_data_handling(
     indirect=True,
 )
 def test_Data_load_from_config(
-    caplog, shared_datadir, fixture_load_data_grids, file, exp_error, exp_msg, exp_log
+    caplog,
+    shared_datadir,
+    fixture_load_data_grids,
+    cfg_string,
+    exp_error,
+    exp_msg,
+    exp_log,
 ):
     """Test the loading of data configuration strings.
 
-    TODO - Could mock load_to_dataarray to avoid needing real files and just test the
-           config loader part of the mechanism
     TODO - The test TOML files here are _very_ minimal and are going to be fragile to
            required fields being updated. They explicitly load no modules to moderate
            this risk.
@@ -598,11 +632,8 @@ def test_Data_load_from_config(
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
-    # Skip combinations where loader does not supported this grid
     data = Data(fixture_load_data_grids)
-    file = [shared_datadir / file]
-
-    cfg = Config(file)
+    cfg = Config(cfg_string=cfg_string)
     caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
