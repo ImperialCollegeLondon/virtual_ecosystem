@@ -401,7 +401,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.5375, 0.5375, 0.5375], [0.4989, 0.4989, 0.4989]],
+                    [[0.5006, 0.5006, 0.5006], [0.4999, 0.4999, 0.4999]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -419,7 +419,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [66.273792, 66.273792, 66.273792],
+            [66.2737, 66.2737, 66.2737],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -441,16 +441,10 @@ def test_setup(
 
         np.testing.assert_allclose(model.data["precipitation_surface"], exp_surf_prec)
         np.testing.assert_allclose(
-            model.data["soil_moisture"],
-            exp_soil_moisture,
-            rtol=1e-1,
-            atol=1e-1,
+            model.data["soil_moisture"], exp_soil_moisture, rtol=1e-4, atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["vertical_flow"],
-            exp_vertical_flow,
-            rtol=1e-3,
-            atol=1e-3,
+            model.data["vertical_flow"], exp_vertical_flow, rtol=1e-4, atol=1e-4,
         )
         np.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
         np.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
@@ -749,5 +743,16 @@ def test_update_soil_moisture():
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
 
 
-# def test_calculate_layer_thickness():
-#     """Test."""
+def test_calculate_layer_thickness():
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.hydrology_model import (
+        calculate_layer_thickness
+    )
+
+    soil_layer_heights = np.array([[-0.5, -0.5, -0.5], [-1.2, -1.2, -1.2]])
+    exp_result = np.array([[500, 500, 500], [700, 700, 700]])
+
+    result = calculate_layer_thickness(soil_layer_heights, 1000)
+
+    np.testing.assert_allclose(result, exp_result)
