@@ -92,10 +92,6 @@ def set_layer_roles(
         :header: "Index", "Role", "Description"
         :widths: 5, 10, 30
 
-    .. csv-table::
-        :header: "Index", "Role", "Description"
-        :widths: 5, 10, 30
-
         0, "above", "Canopy top height + 2 metres"
         1, "canopy", "Height of top of the canopy (1)"
         "...", "canopy", "Height of canopy layer ``i``"
