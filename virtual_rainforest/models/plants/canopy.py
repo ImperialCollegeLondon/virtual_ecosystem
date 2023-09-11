@@ -163,19 +163,3 @@ def initialise_canopy_layers(
     )
 
     return data
-
-
-# # Estimate
-# self.gpp = estimate_gpp(
-#     temperature=self.data["temperature"],
-#     atmospheric_co2=self.data["atmospheric_co2"],
-#     vapour_pressure_deficit=self.data["vapour_pressure_deficit"],
-#     atmospheric_pressure=self.data["atmospheric_pressure"],
-#     ppfd=self.data["ppfd"],
-#     canopy_model=self.canopy_model,
-#     pfts=self.pfts,
-# )
-
-# self.delta_dbh = estimate_growth(
-#     gpp=self.gpp, cohort_dbh=self.dbh, pfts=self.pfts
-# )
