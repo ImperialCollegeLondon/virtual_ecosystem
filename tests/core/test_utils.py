@@ -108,7 +108,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     ERROR,
-                    "Soil layer depths must be strictly increasing and positive.",
+                    "Soil layer depths must be strictly decreasing and negative.",
                 ),
             ),
             id="soil_layer_not_strictly_decreasing",

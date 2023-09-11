@@ -23,7 +23,7 @@ def dummy_data():
     # Add the required data.
     data["elevation"] = DataArray([100, 1000], dims=["cell_id"])
     data["shortwave_in"] = DataArray([100000, 100000], dims=["cell_id"])
-    data["sunshine_fraction"] = DataArray([-0.5, -1.0], dims=["cell_id"])
+    data["sunshine_fraction"] = DataArray([0.5, 1.0], dims=["cell_id"])
     data["canopy_temperature"] = DataArray(
         [
             [25, 22, 20],
@@ -60,7 +60,7 @@ def test_simple_atmospheric_transmissivity():
     from virtual_rainforest.models.abiotic import radiation
 
     result = radiation.calculate_atmospheric_transmissivity(
-        DataArray([100, 1000], dims="cell_id"), DataArray([-0.5, -1.0], dims="cell_id")
+        DataArray([100, 1000], dims="cell_id"), DataArray([0.5, 1.0], dims="cell_id")
     )
     xr.testing.assert_allclose(result, DataArray([0.501335, 0.770025], dims="cell_id"))
 
@@ -70,13 +70,13 @@ def test_simple_atmospheric_transmissivity():
     argvalues=[
         pytest.param(
             DataArray([100, 1000], dims="cell_id"),
-            DataArray([-0.5, -1.0], dims="cell_id"),
+            DataArray([0.5, 1.0], dims="cell_id"),
             does_not_raise(),
             id="standard_array_should_get",
         ),
         pytest.param(
             DataArray([100, 1000], dims="cell_id"),
-            DataArray([-0.5, 1.5], dims="cell_id"),
+            DataArray([0.5, 1.5], dims="cell_id"),
             pytest.raises(InitialisationError),
             id="InitialisationError_error",
         ),
