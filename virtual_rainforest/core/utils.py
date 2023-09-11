@@ -60,7 +60,9 @@ def check_outfile(merge_file_path: Path) -> None:
     return None
 
 
-def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
+def set_layer_roles(
+    canopy_layers: int = 10, soil_layers: list[float] = [-0.5, -1.0]
+) -> list[str]:
     """Create a list of layer roles.
 
     This function creates a list of strings describing the layer roles for the vertical
@@ -68,7 +70,10 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     that vertical dimension: the roles then show what information is being captured at
     different heights through that vertical dimension. Within the model, ground level is
     at height 0 metres: above ground heights are positive and below ground heights are
-    negative.
+    negative. At present, models are expecting two soil layers: the top layer being
+    where microbial activity happens (usually around 0.5 metres below ground) and the
+    second layer where soil temperature equals annual mean air temperature (usually
+    around 1 metre below ground).
 
     There are five layer roles capture data:
 
@@ -81,8 +86,11 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     * ``soil``: at fixed depths within the soil. These depths are set in the
       ``soil_layers`` argument and are a configurable part of the model.
 
-    With ``canopy_layers = 10`` and ``soil_layers == [-0.5, -1.0]``, this function would
-    result in the following layer roles.
+    With the default values, this function gives the following layer roles.
+
+    .. csv-table::
+        :header: "Index", "Role", "Description"
+        :widths: 5, 10, 30
 
     .. csv-table::
         :header: "Index", "Role", "Description"
