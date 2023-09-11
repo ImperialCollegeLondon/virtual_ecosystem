@@ -1,8 +1,7 @@
 """The ``core.utils`` module contains functions that are used across the
-Virtual Rainforest, but which don't have a natural home in a specific module. At the
-moment, this module only contains a single function, but it will probably expand in
-future. Adding functions here can be a good way to reduce the amount boiler plate code
-generated for tasks that are repeated across modules.
+Virtual Rainforest, but which don't have a natural home in a specific module. Adding
+functions here can be a good way to reduce the amount boiler plate code generated for
+tasks that are repeated across modules.
 """  # noqa: D205, D415
 
 from pathlib import Path
@@ -21,8 +20,8 @@ def check_outfile(merge_file_path: Path) -> None:
             name)
 
     Raises:
-        ConfigurationError: If the final output directory doesn't exist, isn't a
-            directory, or the final output file already exists.
+        ConfigurationError: If the path is invalid or the final output file already
+            exists.
     """
 
     # Extract parent folder name and output file name. If this is a relative path, it is
@@ -82,7 +81,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     * ``soil``: at fixed depths within the soil. These depths are set in the
       ``soil_layers`` argument and are a configurable part of the model.
 
-    With ``canopy_layers = 10`` and ``soil_layers == [-0.5, -1.0]`, this function would
+    With ``canopy_layers = 10`` and ``soil_layers == [-0.5, -1.0]``, this function would
     result in the following layer roles.
 
     .. csv-table::
@@ -91,12 +90,12 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
 
         0, "above", "Canopy top height + 2 metres"
         1, "canopy", "Height of top of the canopy (1)"
-        "...", "canopy", "Height of canopy layer ``i`` "
+        "...", "canopy", "Height of canopy layer ``i``"
         10, "canopy", "Height of the bottom canopy layer (10)"
         11, "subcanopy", "1.5 metres above ground level"
         12, "surface", "0.1 metres above ground level"
-        13, "soil", "First soil layer at -0.5 metres "
-        14, "soil", "First soil layer at -1.0 metres "
+        13, "soil", "First soil layer at -0.5 metres"
+        14, "soil", "First soil layer at -1.0 metres"
 
     Args:
         canopy_layers: the number of canopy layers
@@ -109,7 +108,7 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
             float values.
 
     Returns:
-        List of canopy layer roles
+        A list of vertical layer role names
     """
 
     # sanity checks for soil and canopy layers
