@@ -66,8 +66,12 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
 
     This function creates a list of strings describing the layer roles for the vertical
     dimension of the Virtual Rainforest. These roles are used with data arrays that have
-    that vertical dimension: the roles then show what information is being captured
-    through that vertical dimension. There are five layer roles capture data:
+    that vertical dimension: the roles then show what information is being captured at
+    different heights through that vertical dimension. Within the model, ground level is
+    at height 0 metres: above ground heights are positive and below ground heights are
+    negative.
+
+    There are five layer roles capture data:
 
     * ``above``:  at ~2 metres above the top of the canopy.
     * ``canopy``: within each canopy layer. The maximum number of canopy layers is set
@@ -77,7 +81,6 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     * ``surface``: at ~0.1 metres above ground level.
     * ``soil``: at fixed depths within the soil. These depths are set in the
       ``soil_layers`` argument and are a configurable part of the model.
-
 
     With ``canopy_layers = 10`` and ``soil_layers == [-0.5, -1.0]`, this function would
     result in the following layer roles.

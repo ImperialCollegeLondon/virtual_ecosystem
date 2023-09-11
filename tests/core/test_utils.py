@@ -96,13 +96,13 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             (
                 (
                     ERROR,
-                    "Soil layer depths must be strictly increasing and positive.",
+                    "Soil layer depths must be strictly decreasing and negative.",
                 ),
             ),
-            id="soil_layer_contains_negatives",
+            id="soil_layer_contains_positive_value",
         ),
         pytest.param(
-            [10.5, 1.0],
+            [-10.5, -1.0],
             10,
             pytest.raises(InitialisationError),
             (
@@ -111,10 +111,10 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
                     "Soil layer depths must be strictly increasing and positive.",
                 ),
             ),
-            id="soil_layer_not_strictly_increasing",
+            id="soil_layer_not_strictly_decreasing",
         ),
         pytest.param(
-            [0.5, 1.0],
+            [-0.5, -1.0],
             3.4,
             pytest.raises(InitialisationError),
             (
@@ -126,7 +126,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             id="canopy_layer_not_integer",
         ),
         pytest.param(
-            [0.5, 1.0],
+            [-0.5, -1.0],
             -3,
             pytest.raises(InitialisationError),
             (
