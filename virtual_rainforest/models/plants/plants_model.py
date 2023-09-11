@@ -80,7 +80,7 @@ class PlantsModel(BaseModel):
         update_interval: Quantity,
         flora: Flora,
         canopy_layers: int,
-        soil_layers: int,
+        soil_layers: list[float],
         constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ):
@@ -96,14 +96,14 @@ class PlantsModel(BaseModel):
         self.canopy_layers = canopy_layers
         """The maximum number of canopy layers."""
         self.soil_layers = soil_layers
-        """The number of soil layers."""
+        """A list giving the depths of soil layers."""
 
         # Initialise and then update the canopy layers.
         # TODO - this initialisation step may move somewhere else at some point.
         self.data = initialise_canopy_layers(
             data=data,
             n_canopy_layers=self.canopy_layers,
-            n_soil_layers=self.soil_layers,
+            soil_layers=self.soil_layers,
         )
         """A reference to the global data object."""
         self.update_canopy_layers()
