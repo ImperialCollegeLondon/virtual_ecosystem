@@ -65,34 +65,44 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
     """Create a list of layer roles.
 
     This function creates a list of strings describing the layer roles for the vertical
-    dimension of the Virtual Rainforest. The vertical dimension consists of the
-    following layers and roles.
+    dimension of the Virtual Rainforest. These roles are used with data arrays that have
+    that vertical dimension: the roles then show what information is being captured
+    through that vertical dimension. There are five layer roles capture data:
+
+    * ``above``:  at ~2 metres above the top of the canopy.
+    * ``canopy``: within each canopy layer. The maximum number of canopy layers is set
+      by the ``canopy_layers`` argument and is a configurable part of the model. The
+      heights of these layers are modelled from the plant community data.
+    * ``subcanopy``: at ~1.5 metres above ground level.
+    * ``surface``: at ~0.1 metres above ground level.
+    * ``soil``: at fixed depths within the soil. These depths are set in the
+      ``soil_layers`` argument and are a configurable part of the model.
+
+
+    With ``canopy_layers = 10`` and ``soil_layers == [-0.5, -1.0]`, this function would
+    result in the following layer roles.
 
     .. csv-table::
         :header: "Index", "Role", "Description"
         :widths: 5, 10, 30
 
         0, "above", "Canopy top height + 2 metres"
-        1, "canopy", "Height of first canopy layer"
+        1, "canopy", "Height of top of the canopy (1)"
         "...", "canopy", "Height of canopy layer ``i`` "
-        10, "canopy", "Height of last canopy layer"
+        10, "canopy", "Height of the bottom canopy layer (10)"
         11, "subcanopy", "1.5 metres above ground level"
         12, "surface", "0.1 metres above ground level"
-        13, "soil", "Depth of first soil layer"
-        "...", "soil", "Depth of soil layer ``j``"
-        15, "soil", "Depth of last soil layer"
-
-    The number of canopy layers is taken from the canopy layer argument and the number
-    of soil layers is taken from the length of the soil_layers argument, which also
-    provides soil layer depths. Both are typically set in the model configuration.
+        13, "soil", "First soil layer at -0.5 metres "
+        14, "soil", "First soil layer at -1.0 metres "
 
     Args:
         canopy_layers: the number of canopy layers
-        soil_layers: a list giving the depth of each soil layer
+        soil_layers: a list giving the depth of each soil layer as a sequence of
+            negative and strictly decreasing values.
 
     Raises:
         InitialisationError: If the number of canopy layers is not a positive
-            integer or the soil depths are not a list of strictly increasing, positive
+            integer or the soil depths are not a list of strictly decreasing, negative
             float values.
 
     Returns:
