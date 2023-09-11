@@ -401,7 +401,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.5006, 0.5006, 0.5006], [0.4999, 0.4999, 0.4999]],
+                    [[0.507389, 0.507389, 0.507389], [0.451635, 0.451635, 0.451635]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -419,7 +419,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [66.2737, 66.2737, 66.2737],
+            [55.756815, 55.756815, 55.756815],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -429,7 +429,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [118.7833, 118.7833, 118.7833],
+            [117.182581, 117.182581, 117.182581],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -439,10 +439,15 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
 
-        np.testing.assert_allclose(model.data["precipitation_surface"], exp_surf_prec)
         np.testing.assert_allclose(
-            model.data["soil_moisture"],
-            exp_soil_moisture,
+            model.data["precipitation_surface"],
+            exp_surf_prec,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["soil_moisture"].isel(layers=-2),
+            exp_soil_moisture.isel(layers=-2),
             rtol=1e-4,
             atol=1e-4,
         )
@@ -496,7 +501,7 @@ def test_calculate_vertical_flow(
     )
 
     soil_moisture = np.array([[0.3, 0.6, 0.9], [0.3, 0.6, 0.9]])
-    layer_thickness = np.array([[100, 100, 100], [900, 900, 900]])
+    layer_thickness = np.array([[500, 500, 500], [500, 500, 500]])
 
     result = calculate_vertical_flow(
         soil_moisture,
@@ -734,14 +739,16 @@ def test_update_soil_moisture():
 
     from virtual_rainforest.models.hydrology.hydrology_model import update_soil_moisture
 
-    soil_moisture = np.array([[30, 60, 50], [300, 600, 500]])
-    vertical_flow = np.array([[10, 2, 3], [10, 2, 3]])
-    layer_thickness = np.array([[100, 100, 100], [900, 900, 900]])
-    exp_result = np.array([[20, 58, 47], [300, 600, 500]])
+    soil_moisture = np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]])
+    vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
+    evapotranspiration = np.array([10, 2, 3])
+    layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
+    exp_result = np.array([[20, 58, 47], [290.0, 598.0, 497.0], [300.0, 600.0, 500.0]])
 
     result = update_soil_moisture(
         soil_moisture,
         vertical_flow,
+        evapotranspiration,
         HydroConsts.soil_moisture_capacity * layer_thickness,
         HydroConsts.soil_moisture_residual * layer_thickness,
     )

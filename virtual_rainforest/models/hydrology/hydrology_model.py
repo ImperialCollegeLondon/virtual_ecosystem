@@ -116,6 +116,8 @@ class HydrologyModel(BaseModel):
         """A Data instance providing access to the shared simulation data."""
         self.layer_roles = layer_roles
         """A list of vertical layer roles."""
+        self.soil_layers = soil_layers
+        """The number of soil layers."""
         self.update_interval
         """The time interval between model updates."""
         self.initial_soil_moisture = initial_soil_moisture
@@ -191,16 +193,13 @@ class HydrologyModel(BaseModel):
         # all soil layers and np.nan for atmosphere layers
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
-            repeats=[
-                len(self.layer_roles) - self.layer_roles.count("soil"),
-                self.layer_roles.count("soil"),
-            ],
+            repeats=[len(self.layer_roles) - self.soil_layers, self.soil_layers],
         )
         # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
         self.data["soil_moisture"] = DataArray(
             np.broadcast_to(
                 soil_moisture_values,
-                (len(self.data.grid.cell_id), len(self.layer_roles)),
+                (self.data.grid.n_cells, len(self.layer_roles)),
             ).T,
             dims=["layers", "cell_id"],
             coords={
@@ -272,8 +271,8 @@ class HydrologyModel(BaseModel):
         vertical flow, soil evaporation, and surface runoff (per grid cell and
         accumulated), and estimates mean stream flow. These processes are problematic
         at a monthly timestep, which is why - as an intermediate step - the input
-        precipitation is divided by 30 days and return variables are means or
-        accumulated values as appropriate.
+        precipitation is divided by 30 days, the same day is run 30 times, and the
+        return variables are means or accumulated values.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
@@ -487,6 +486,7 @@ class HydrologyModel(BaseModel):
             soil_moisture_updated = update_soil_moisture(
                 soil_moisture=soil_moisture_evap,
                 vertical_flow=vertical_flow,
+                evapotranspiration=evapotranspiration,
                 soil_moisture_capacity=(
                     self.constants.soil_moisture_capacity * soil_layer_thickness
                 ),
@@ -495,26 +495,12 @@ class HydrologyModel(BaseModel):
                 ),
             )
 
-            # Remove plant evapotranspiration from second soil layer (50-100cm)
-            soil_moisture_et = np.where(
-                soil_moisture_updated[1] - evapotranspiration / days < 0,
-                self.constants.soil_moisture_residual * soil_layer_thickness[1],
-                soil_moisture_updated[1] - evapotranspiration / days,
+            daily_lists["soil_moisture"].append(
+                soil_moisture_updated / soil_layer_thickness
             )
 
-            soil_moisture = np.concatenate(
-                (
-                    np.expand_dims(
-                        soil_moisture_updated[0] / soil_layer_thickness[0],
-                        axis=0,
-                    ),
-                    np.expand_dims(
-                        soil_moisture_et / soil_layer_thickness[1],
-                        axis=0,
-                    ),
-                ),
-            )
-            daily_lists["soil_moisture"].append(soil_moisture)
+            # update soil_moisture_mm for next day
+            soil_moisture_mm = soil_moisture_updated
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
@@ -579,15 +565,11 @@ class HydrologyModel(BaseModel):
         # The maximum stream flow capacity is set to an arbitray value, could be used to
         # flag flood events
 
-        soil_moisture_change = np.array(
-            (
-                (self.data["soil_moisture"]).sum(dim="layers")
-                * np.sum(soil_layer_thickness)
-            )
-            - (
-                soil_hydrology["soil_moisture"].sum(dim="layers")
-                * np.sum(soil_layer_thickness)
-            )
+        soil_moisture_change = np.sum(
+            np.array(
+                daily_lists["soil_moisture"][-1] - daily_lists["soil_moisture"][0]
+            ),
+            axis=0,
         )
 
         soil_hydrology["stream_flow"] = DataArray(
@@ -952,17 +934,20 @@ def estimate_interception(
 def update_soil_moisture(
     soil_moisture: NDArray[np.float32],
     vertical_flow: NDArray[np.float32],
+    evapotranspiration: NDArray[np.float32],
     soil_moisture_capacity: NDArray[np.float32],
     soil_moisture_residual: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
-    of the current layer and adding it to the layer below.
+    of the current layer and adding it to the layer below. Additionally, the
+    evapotranspiration is removed from the second soil layer.
 
     Args:
         soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
         vertical_flow: vertical flow between all layers, [mm]
+        evapotranspiration: canopy evaporation, [mm]
         soil_moisture_capacity: soil moisture capacity for each layer, [mm]
         soil_moisture_residual: residual soil moisture for each layer, [mm]
 
@@ -976,21 +961,33 @@ def update_soil_moisture(
         soil_moisture_capacity[0],
     )
 
-    lower_soil_moisture = [
-        np.clip(
-            (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1]),
-            soil_moisture_residual[i + 1],
-            soil_moisture_capacity[i + 1],
-        )
-        for sm, vf in zip(
-            soil_moisture[1:],
-            vertical_flow[1:],
-        )
-        for i in range(len(soil_moisture) - 1)
-    ]
+    root_soil_moisture = np.clip(
+        soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - evapotranspiration,
+        soil_moisture_residual[1],
+        soil_moisture_capacity[1],
+    )
 
-    # Combine all levels and convert to relative volumetric water content
-    return np.concatenate(([top_soil_moisture], lower_soil_moisture))
+    if len(vertical_flow) == 2:
+        soil_moisture_updated = np.stack((top_soil_moisture, root_soil_moisture))
+
+    elif len(vertical_flow) > 2:
+        lower_soil_moisture = [
+            np.clip(
+                (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1]),
+                soil_moisture_residual[i + 1],
+                soil_moisture_capacity[i + 1],
+            )
+            for sm, vf in zip(
+                soil_moisture[2:],
+                vertical_flow[2:],
+            )
+            for i in range(len(soil_moisture) - 2)
+        ]
+        soil_moisture_updated = np.concatenate(
+            ([top_soil_moisture], [root_soil_moisture], lower_soil_moisture)
+        )
+
+    return soil_moisture_updated
 
 
 def calculate_layer_thickness(
