@@ -96,9 +96,9 @@ def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log):
 
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
-            assert len(plants_obj.communities) == 4
+            assert len(plants_obj) == 4
             cids = set([0, 1, 2, 3])
-            assert set(plants_obj.communities.keys()) == cids
+            assert set(plants_obj.keys()) == cids
             for cid in cids:
                 assert len(plants_obj[cid]) == 1
 

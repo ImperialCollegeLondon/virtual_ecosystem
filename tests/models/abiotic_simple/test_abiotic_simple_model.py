@@ -72,7 +72,7 @@ def test_abiotic_simple_model_initialization(
         model = AbioticSimpleModel(
             dummy_climate_data,
             pint.Quantity("1 week"),
-            soil_layers=2,
+            soil_layers=[-0.5, -1.0],
             canopy_layers=10,
             constants=AbioticSimpleConsts(),
         )
@@ -112,7 +112,7 @@ def test_abiotic_simple_model_initialization(
                         "update_interval": "1 week",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [-0.5, -1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -167,7 +167,7 @@ def test_abiotic_simple_model_initialization(
                         "update_interval": "1 week",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [-0.5, -1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -227,7 +227,7 @@ def test_abiotic_simple_model_initialization(
                         "update_interval": "1 week",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [-0.5, -1.0],
                         "canopy_layers": 10,
                     },
                 },
@@ -292,7 +292,7 @@ def test_generate_abiotic_simple_model(
                         "update_interval": "1 week",
                     },
                     "layers": {
-                        "soil_layers": 2,
+                        "soil_layers": [-0.5, -1.0],
                         "canopy_layers": 10,
                     },
                 },
