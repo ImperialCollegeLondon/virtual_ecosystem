@@ -196,8 +196,8 @@
                      "minItems": 1,
                      "uniqueItems": true,
                      "default": [
-                        0.5,
-                        1.0
+                        -0.5,
+                        -1.0
                      ]
                   },
                   "canopy_layers": {

@@ -130,9 +130,9 @@ def set_layer_roles(canopy_layers: int, soil_layers: list[float]) -> list[str]:
         raise to_raise
 
     np_soil_layer = np.array(soil_layers)
-    if not (np.all(np_soil_layer > 0) and np.all(np.diff(np_soil_layer) > 0)):
+    if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
         to_raise = InitialisationError(
-            "Soil layer depths must be strictly increasing and positive."
+            "Soil layer depths must be strictly decreasing and negative."
         )
         LOGGER.error(to_raise)
         raise to_raise
