@@ -110,7 +110,7 @@ def build_canopy_arrays(
 
 
 def initialise_canopy_layers(
-    data: Data, n_canopy_layers: int, n_soil_layers: int
+    data: Data, n_canopy_layers: int, soil_layers: list[float]
 ) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
@@ -120,7 +120,7 @@ def initialise_canopy_layers(
     Args:
         data: A Data object to update.
         n_canopy_layers: The maximum number of permitted canopy layers.
-        n_soil_layers: The number of soil layers to be used.
+        soil_layers: A list of soil layer depths to be used.
 
     Returns:
         A data object with the layers added.
@@ -139,7 +139,7 @@ def initialise_canopy_layers(
         raise InitialisationError(msg)
 
     # TODO - These layer roles desperately need to be set up in _one_ place!
-    layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
+    layer_roles = set_layer_roles(n_canopy_layers, soil_layers)
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
     # Set the layers
@@ -163,19 +163,3 @@ def initialise_canopy_layers(
     )
 
     return data
-
-
-# # Estimate
-# self.gpp = estimate_gpp(
-#     temperature=self.data["temperature"],
-#     atmospheric_co2=self.data["atmospheric_co2"],
-#     vapour_pressure_deficit=self.data["vapour_pressure_deficit"],
-#     atmospheric_pressure=self.data["atmospheric_pressure"],
-#     ppfd=self.data["ppfd"],
-#     canopy_model=self.canopy_model,
-#     pfts=self.pfts,
-# )
-
-# self.delta_dbh = estimate_growth(
-#     gpp=self.gpp, cohort_dbh=self.dbh, pfts=self.pfts
-# )
