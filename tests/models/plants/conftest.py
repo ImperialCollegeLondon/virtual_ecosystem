@@ -53,12 +53,12 @@ def plants_data():
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
     # Setup the layers
-    forcing_vars = [
+    forcing_vars = (
         ("air_temperature", 20),
         ("vapour_pressure_deficit", 1000),
         ("atmospheric_pressure", 101325),
         ("atmospheric_co2", 400),
-    ]
+    )
 
     for var, value in forcing_vars:
         data[var] = DataArray(

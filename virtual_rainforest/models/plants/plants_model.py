@@ -194,7 +194,7 @@ class PlantsModel(BaseModel):
     def update(self, time_index: int) -> None:
         """Update the plants model.
 
-        Thus method first updates the canopy layers, so that growth in any previous
+        This method first updates the canopy layers, so that growth in any previous
         update is reflected in the canopy structure. It then estimates the absorbed
         irradiance through the canopy and calculates the per cohort gross primary
         productivity, given the position in the canopy and canopy area of each
@@ -295,12 +295,12 @@ class PlantsModel(BaseModel):
 
         # For the moment check the data presence and dimensionality
         # 1 ) PModelEnvironment vars
-        forcing_vars = [
+        forcing_vars = (
             "air_temperature",
             "vapour_pressure_deficit",
             "atmospheric_pressure",
             "atmospheric_co2",
-        ]
+        )
 
         # Loop over the P Model environment forcing variables, checking they are found
         for var in forcing_vars:

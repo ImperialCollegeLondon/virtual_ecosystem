@@ -163,18 +163,18 @@ def initialise_canopy_layers(
     #        The other models rely on it
 
     # Check that layers do not already exist
-    layers_to_create = [
+    layers_to_create = (
         "layer_heights",
         "leaf_area_index",
         "layer_fapar",
         "layer_absorbed_irradiation",
-    ]
+    )
 
     layers_found = set(layers_to_create).intersection(data.data.variables)
     if layers_found:
         msg = (
-            f"Cannot initialise canopy layers, already "
-            f"present: {','.join([str(x) for x in layers_found])}"
+            "Cannot initialise canopy layers, already "
+            f"present: {','.join(str(x) for x in layers_found)}"
         )
         LOGGER.critical(msg)
         raise InitialisationError(msg)
@@ -183,9 +183,9 @@ def initialise_canopy_layers(
     layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
-    for each_layer in layers_to_create:
+    for each_layer_name in layers_to_create:
         # Set the layers
-        data[each_layer] = DataArray(
+        data[each_layer_name] = DataArray(
             data=np.full(layer_shape, fill_value=np.nan),
             dims=("layers", "cell_id"),
             coords={

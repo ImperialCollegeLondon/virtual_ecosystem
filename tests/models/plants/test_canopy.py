@@ -95,12 +95,12 @@ def test_initialise_canopy_layers(caplog, plants_data):
     data = initialise_canopy_layers(plants_data, n_canopy_layers=10, n_soil_layers=3)
 
     # Set up expectations
-    expected_layers = [
+    expected_layers = (
         "layer_heights",
         "leaf_area_index",
         "layer_fapar",
         "layer_absorbed_irradiation",
-    ]
+    )
 
     n_layer = 1 + 10 + 2 + 3
     exp_shape = (n_layer, data.grid.n_cells)
@@ -113,14 +113,14 @@ def test_initialise_canopy_layers(caplog, plants_data):
 
     # Check each layer is i) in the data object, ii) has the right shape, iii) has the
     # expected dimensions and iv) has coordinates with the right lengths.
-    for lyr in expected_layers:
-        assert lyr in data
-        assert data[lyr].shape == exp_shape
+    for layer in expected_layers:
+        assert layer in data
+        assert data[layer].shape == exp_shape
 
         for key, (is_dim, exp_n) in exp_dims.items():
             # Check the names, dimensions and coords
             if is_dim:
-                assert key in data[lyr].dims
+                assert key in data[layer].dims
 
-            assert key in data[lyr].coords
-            assert len(data[lyr].coords[key]) == exp_n
+            assert key in data[layer].coords
+            assert len(data[layer].coords[key]) == exp_n
