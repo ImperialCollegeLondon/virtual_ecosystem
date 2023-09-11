@@ -18,90 +18,41 @@ kernelspec:
 
 This section explains how to generate the data required to run the litter component of
 the dummy model. **It is important to note that none of this data is real data**.
-Instead, this data is a set of plausible values for which the litter model absolutely
-has to function sensibly for. Descriptions of the relevant litter pools can be found
-[here](../virtual_rainforest/soil/soil_details).
+Instead, the code below creates some typical values for the required input data and
+generates a simple spatial pattern. Descriptions of the relevant litter pools can be
+found [here](../virtual_rainforest/soil/soil_details).
 
 ```{code-cell} ipython3
+import numpy as np
 from xarray import Dataset
-
-def generate_above_metabolic_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for the aboveground metabolic litter pool.
-    
-    A range of 0.05-0.5 kg C m^-2 seems plausible.
-    """
-    return 0.05 + 0.45 * (x * y) / (64)
-
-
-def generate_above_structural_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for the aboveground structural litter pool.
-    
-    A range of 0.05-0.5 kg C m^-2 seems plausible.
-    """
-    return 0.05 + 0.45 * (x * y) / (64)
-
-
-def generate_woody_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for the woody litter pool.
-    
-    A range of 4.75-12.0 kg C m^-2 seems plausible.
-    """
-    return 4.75 + 7.25 * (x * y) / (64)
-
-
-def generate_below_metabolic_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for the belowground metabolic litter pool.
-    
-    A range of 0.03-0.08 kg C m^-2 seems plausible.
-    """
-    return 0.03 + 0.05 * (x * y) / (64)
-
-
-def generate_below_structural_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for the belowground structural litter pool.
-    
-    A range of 0.05-0.125 kg C m^-2 seems plausible.
-    """
-    return 0.05 + 0.075 * (x * y) / (64)
-
-
-def generate_lignin_values(x: float, y: float) -> float:
-    """Generate a range of plausible values for lignin proportions of the pools.
-    
-    A range of 0.01-0.9 seems plausible.
-    """
-    return 0.01 + 0.89 * (x * y) / (64)
-
-
-# Generate range of cell numbers in the a x and y directions. Here we have a 9x9 grid,
-# so cells are numbered from 0 to 8 in each direction.
-x_cell_ids = range(0, 9)
-y_cell_ids = range(0, 9)
-
-# Make matrices containing all the relevant values
-above_metabolic_values = [
-    [generate_above_metabolic_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
-above_structural_values = [
-    [generate_above_structural_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
-woody_values = [
-    [generate_woody_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
-below_metabolic_values = [
-    [generate_below_metabolic_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
-below_structural_values = [
-    [generate_below_structural_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
-lignin_values = [
-    [generate_lignin_values(x, y) for y in y_cell_ids] for x in x_cell_ids
-]
 
 # How far the center of each cell is from the origin. This applies to both the x and y
 # direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
 # from the origin in the x direction and 270m in the y direction.
-cell_displacements = [0, 90, 180, 270, 360, 450, 540, 630, 720]
+cell_spacing = np.arange(0, 721, 90)
+gradient = np.multiply.outer(cell_spacing/90, cell_spacing/90)
+
+# Generate a range of plausible values (0.05-0.5) for the above ground metabolic litter
+# pools [kg C m^-2].
+above_metabolic_values = 0.05 + 0.45 * (gradient) / (64)
+
+# Generate a range of plausible values (0.05-0.5) for the above ground structural litter
+# pools [kg C m^-2].
+above_structural_values = 0.05 + 0.45 * (gradient) / (64)
+
+# Generate a range of plausible values (4.75-12.0) for the woody litter pools [kg C m^-2].
+woody_values = 4.75 + 7.25 * (gradient) / (64)
+
+# Generate a range of plausible values (0.03-0.08) for the below ground metabolic litter
+# pools [kg C m^-2].
+below_metabolic_values = 0.03 + 0.05 * (gradient) / (64)
+
+# Generate a range of plausible values (0.05-0.125) for the below ground structural litter
+# pools [kg C m^-2].
+below_structural_values = 0.05 + 0.075 * (gradient) / (64)
+
+# Generate a range of plausible values (0.01-0.9) for lignin proportions of the pools.
+lignin_values = 0.01 + 0.89 * (gradient) / (64)
 
 # Make dummy litter dataset
 dummy_litter_data = Dataset(
@@ -116,8 +67,8 @@ dummy_litter_data = Dataset(
         lignin_below_structural=(["x", "y"], lignin_values),
     ),
     coords=dict(
-        x=(["x"], cell_displacements),
-        y=(["y"], cell_displacements),
+        x=(["x"], cell_spacing),
+        y=(["y"], cell_spacing),
     ),
     attrs=dict(description="Litter data for dummy Virtual Rainforest model."),
 )
