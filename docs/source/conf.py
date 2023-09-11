@@ -104,7 +104,6 @@ bibtex_reference_style = "author_year_round"
 # Reference checking
 nitpicky = True
 nitpick_ignore = [
-    ("py:class", "jsonschema.validators.Draft202012Validator"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
     # TODO - Delete this once Vivienne has merged this feature into develop
