@@ -28,7 +28,7 @@ class PlantCohort:
     n: int
 
 
-class PlantCommunities:
+class PlantCommunities(dict):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
@@ -46,9 +46,6 @@ class PlantCommunities:
     """
 
     def __init__(self, data: Data, flora: Flora):
-        self.communities: dict = dict()
-        """A dictionary holding the lists of plant cohorts keyed by cell id."""
-
         # Validate the data being used to generate the Plants object
         cohort_data_vars = [
             "plant_cohorts_n",
@@ -97,9 +94,13 @@ class PlantCommunities:
             LOGGER.critical(msg)
             raise ValueError(msg)
 
+        # TODO - think about mechanisms to keep cohort data as arrays either within
+        #        cells or across the whole simulation, to make it more efficient with
+        #        using pyrealm.
+
         # Now compile the plant cohorts adding each cohort to a list keyed by cell id
         for cid in data.grid.cell_id:
-            self.communities[cid] = []
+            self[cid] = []
 
         for cid, chrt_pft, chrt_dbh, chrt_n in zip(
             data["plant_cohorts_cell_id"].data,
@@ -107,12 +108,6 @@ class PlantCommunities:
             data["plant_cohorts_dbh"].data,
             data["plant_cohorts_n"].data,
         ):
-            self.communities[cid].append(
-                PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n)
-            )
+            self[cid].append(PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n))
 
         LOGGER.info("Plant cohort data loaded")
-
-    def __getitem__(self, key: int) -> list[PlantCohort]:
-        """Extracts the cohort list for a given cell id."""
-        return self.communities[key]
