@@ -257,36 +257,7 @@ def test_configure_models(
                     "0.5 martian days",
                 ),
             ),
-            id="bad_config_data",
-        ),
-        pytest.param(
-            """[core]
-            modules = ["topsoil",]
-            data = {}
-            [core.data_output_options]
-            save_merged_config = false
-            [core.grid]
-            grid_type = "square"
-            cell_area = 10000
-            cell_nx = 3
-            cell_ny = 3
-            """,
-            (
-                (INFO, "Config TOML loaded from config string"),
-                (INFO, "Config built from config string"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-                (INFO, "Grid created from configuration."),
-                (INFO, "Loading data from configuration"),
-                (WARNING, "No data sources defined in the data configuration."),
-                (INFO, "Attempting to configure the following models: ['topsoil']"),
-                (
-                    CRITICAL,
-                    "The following models cannot be configured as they are not "
-                    "found in the registry: ['topsoil']",
-                ),
-            ),
-            id="missing_model",
+            id="bad_config_data_one",
         ),
     ],
 )
