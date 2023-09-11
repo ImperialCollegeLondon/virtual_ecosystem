@@ -64,7 +64,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
 @pytest.mark.parametrize(
     "soil_layers, canopy_layers, raises, exp_log",
     [
-        pytest.param([0.5, 1.0], 10, does_not_raise(), (), id="valid"),
+        pytest.param([-0.5, -1.0], 10, does_not_raise(), (), id="valid"),
         pytest.param(
             "not a list",
             10,

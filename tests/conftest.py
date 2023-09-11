@@ -338,7 +338,7 @@ def layer_roles_fixture():
         set_layer_roles,
     )
 
-    return set_layer_roles(10, [0.5, 1.0])
+    return set_layer_roles(10, [-0.5, -1.0])
 
 
 @pytest.fixture
