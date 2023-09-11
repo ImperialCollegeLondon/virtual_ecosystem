@@ -76,7 +76,7 @@ def test_simple_atmospheric_transmissivity():
         ),
         pytest.param(
             DataArray([100, 1000], dims="cell_id"),
-            DataArray([0.5, 1.5], dims="cell_id"),
+            DataArray([-0.5, 1.5], dims="cell_id"),
             pytest.raises(InitialisationError),
             id="InitialisationError_error",
         ),
