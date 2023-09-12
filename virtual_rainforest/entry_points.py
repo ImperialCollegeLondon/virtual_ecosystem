@@ -142,6 +142,15 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         help="Value for additional parameter (in the form parameter.name=something)",
         dest="params",
     )
+
+    parser.add_argument(
+        "--logfile",
+        type=str,
+        help="Install the Virtual Rainforest example data to the given location",
+        dest="install_example",
+        default=None,
+    )
+
     args = parser.parse_args(args=args_list)
 
     # Cannot use both install example and paths
@@ -177,4 +186,6 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         _parse_command_line_params(args.params, override_params)
 
     # Run the virtual rainforest run function
-    vr_run(cfg_paths=args.cfg_paths, override_params=override_params)
+    vr_run(
+        cfg_paths=args.cfg_paths, override_params=override_params, logfile=args.logfile
+    )

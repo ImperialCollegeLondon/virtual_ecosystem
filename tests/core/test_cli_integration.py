@@ -26,8 +26,16 @@ def test_vr_run(capsys):
         vr_run_cli(args_list=["--install_example", tempdir])
 
         with does_not_raise():
-            example_dir = str(Path(tempdir) / "vr_example")
-            vr_run_cli(args_list=[example_dir, "--outpath", example_dir])
+            example_dir = Path(tempdir) / "vr_example"
+            vr_run_cli(
+                args_list=[
+                    example_dir,
+                    "--outpath",
+                    str(example_dir),
+                    "--logfile",
+                    str(example_dir / "vr_example.log"),
+                ]
+            )
 
             captured = capsys.readouterr()
             expected = "Example directory created at:"

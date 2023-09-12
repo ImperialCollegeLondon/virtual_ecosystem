@@ -76,6 +76,7 @@ handling should always include a LOGGER call, using one of the following pattern
 """  # noqa: D205, D415
 
 import logging
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -83,3 +84,15 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger("virtual_rainforest")
+
+
+def set_file_logging(logger: logging.Logger, logfile: Path) -> None:
+    """Redirect logging to a provided file path.
+
+    Args:
+      logger: A Logger instance.
+      logfile: The path to a file to use for logging.
+    """
+
+    handler = logging.FileHandler(logfile)
+    LOGGER.addHandler(handler)
