@@ -21,7 +21,7 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.config import Config, ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 GRID_REGISTRY: dict[str, Callable] = {}
@@ -290,11 +290,11 @@ class Grid:
         )
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> Grid:
+    def from_config(cls, config: Config) -> Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
-            config: A complete, validated Virtual Rainforest configuration.
+            config: A validated Virtual Rainforest model configuration object.
         """
 
         try:

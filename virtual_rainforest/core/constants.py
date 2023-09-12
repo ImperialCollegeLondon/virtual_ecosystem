@@ -11,6 +11,7 @@ registered in. This allows for all model constants to be documented neatly.
 import dataclasses
 from typing import Any, Callable
 
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
@@ -53,7 +54,7 @@ def register_constants_class(model_name: str, constants_class: Callable) -> None
 
 
 def check_valid_constant_names(
-    config: dict[str, Any], model_name: str, class_name: str
+    config: Config, model_name: str, class_name: str
 ) -> None:
     """Check that the constant names given in the config are valid.
 
@@ -61,7 +62,7 @@ def check_valid_constant_names(
     assigned to, if not an error is raised.
 
     Args:
-        config: The full virtual rainforest config
+        config: A validated Virtual Rainforest model configuration object.
         model_name: Name of the model the constants belong to
         class_name: Name of the specific dataclass the constants belong to
 
@@ -91,14 +92,14 @@ def check_valid_constant_names(
     return
 
 
-def load_constants(config: dict[str, Any], model_name: str, class_name: str) -> Any:
+def load_constants(config: Config, model_name: str, class_name: str) -> Any:
     """Load the specified constants class.
 
     Any constants that are supplied for this class in the config are used to populate
     the class, for all other constants default values are used.
 
     Args:
-        config: The full virtual rainforest config
+        config: A validated Virtual Rainforest model configuration object.
         model_name: Name of the model the constants belong to
         class_name: Name of the specific dataclass the constants belong to
 

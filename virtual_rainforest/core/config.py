@@ -31,7 +31,7 @@ import sys
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterator, Union
+from typing import Any, Iterator, Optional, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -332,26 +332,25 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
+        cfg_string: A string of TOML formatted configuration data.
         override_params: Extra parameters provided by the user.
-        auto: flag to turn off automatic validation and merged config file generation.
+        auto: A boolean flag setting whether the configuration data is automatically
+            loaded and validated
     """
 
     def __init__(
         self,
-        cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
+        cfg_paths: Optional[Union[str, Path, Sequence[Union[str, Path]]]] = None,
+        cfg_string: Optional[str] = None,
         override_params: dict[str, Any] = {},
         auto: bool = True,
     ) -> None:
-        # Standardise cfg_paths to list of Paths
-        if isinstance(cfg_paths, (str, Path)):
-            self.cfg_paths = [Path(cfg_paths)]
-        else:
-            self.cfg_paths = [Path(p) for p in cfg_paths]
-
         # Define custom attributes
-        self.toml_files: list[Path] = []
+        self.cfg_paths: list[Path] = []
+        """The configuration file paths, normalised from the cfg_paths argument."""
+        self.toml_files: list[Union[str, Path]] = []
         """A list of TOML file paths resolved from the initial config paths."""
-        self.toml_contents: dict[Path, dict] = {}
+        self.toml_contents: dict[Union[str, Path], dict] = {}
         """A dictionary of the contents of config files, keyed by file path."""
         self.merge_conflicts: list = []
         """A list of configuration keys duplicated across configuration files."""
@@ -361,19 +360,43 @@ class Config(dict):
         """The merged schema for the core and modules present in the configuration."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
+        self.cfg_string: Optional[str] = None
+        """A boolean flag showing if the configuration was loaded using cfg_string."""
 
-        # Run the validation steps
+        # Prohibit using both paths and string
+        if not ((cfg_paths is None) ^ (cfg_string is None)):
+            to_raise = ValueError("Provide only one of either cfg_paths or cfg_string.")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        if cfg_string:
+            self.cfg_string = cfg_string
+
+        if cfg_paths:
+            # Standardise cfg_paths to list of Paths
+            if isinstance(cfg_paths, (str, Path)):
+                self.cfg_paths = [Path(cfg_paths)]
+            else:
+                self.cfg_paths = [Path(p) for p in cfg_paths]
+
         if auto:
-            self.resolve_config_paths()
-            self.load_config_toml()
-            self.fix_up_file_paths()
+            if self.cfg_string:
+                # Load the provided string and note that the content is from a string.
+                self.load_config_toml_string()
+            if self.cfg_paths:
+                # Load the config data from the provided paths
+                self.resolve_config_paths()
+                self.load_config_toml()
+                self.fix_up_file_paths()
+
+        if auto:
+            # Now build the merged configuration and validate it.
             self.build_config()
             self.override_config(override_params)
             self.build_schema()
             self.validate_config()
 
-            # If the user has indicated that they want a merged config file, generate it
-            # now
+            # If the user wants a merged config file, generate it now
             data_opt = self["core"]["data_output_options"]
             if data_opt["save_merged_config"]:
                 outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
@@ -466,10 +489,49 @@ class Config(dict):
             LOGGER.critical(to_raise)
             raise to_raise
 
+    def load_config_toml_string(self) -> None:
+        """Load the contents of a config provided as a string.
+
+        This method populates the
+        :attr:`~virtual_rainforest.core.config.Config.toml_contents` dictionary with the
+        contents of a provided TOML formatted string.
+
+        Raises:
+            ConfigurationError: Invalid TOML string.
+        """
+
+        # Check for a string to parse
+        if self.cfg_string is None:
+            to_raise: Exception = RuntimeError(
+                "Cannot run load_config_toml_string: no cfg_string loaded."
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        # Load the contents into the instance
+        try:
+            self.toml_contents["cfg_string"] = tomllib.loads(self.cfg_string)
+        except tomllib.TOMLDecodeError as err:
+            to_raise = ConfigurationError(
+                f"TOML parsing error in cfg_string: {str(err)}"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+        else:
+            LOGGER.info("Config TOML loaded from config string")
+
     def fix_up_file_paths(self) -> None:
         """Make any file paths in the configs relative to location of config files."""
+
+        # Safeguard against running this when the toml_contents is from a cfg_string
+        if self.cfg_string is not None:
+            # TODO - how to resolve relative paths in cfg_string - niche use case
+            LOGGER.warning("Config file paths not resolved with cfg_string")
+            return
+
         for config_file, contents in self.toml_contents.items():
-            _fix_up_variable_entry_paths(config_file.parent, contents)
+            if isinstance(config_file, Path):
+                _fix_up_variable_entry_paths(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
@@ -493,7 +555,10 @@ class Config(dict):
         if len(input_dicts) == 1:
             # One input dict, which becomes the content of the Config dict
             self.update(**input_dicts[0])
-            LOGGER.info("Config set from single file")
+            if self.cfg_string is not None:
+                LOGGER.info("Config built from config string")
+            else:
+                LOGGER.info("Config built from single file")
             return
 
         # Otherwise, merge other dicts into first
@@ -515,7 +580,7 @@ class Config(dict):
 
         # Update the object
         self.update(master)
-        LOGGER.info("Config set from merged files")
+        LOGGER.info("Config built from merged files")
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
@@ -597,15 +662,15 @@ class Config(dict):
         LOGGER.info("Configuration validated")
 
     def _validate_and_set_defaults(
-        self, config: dict[str, Any], schema: dict[str, Any]
+        self, config_data: dict[str, Any], schema: dict[str, Any]
     ) -> None:
-        """Validate a config dictionary against a schema and set default values.
+        """Validates config data against a schema and sets default values.
 
-        This private method takes a config dictionary (or subset of one) and validates
-        it against the provided schema. Missing values are filled using defaults from
-        the schema where available.
+        This private method takes a dictionary containing configuration data and
+        validates it against the provided schema. Missing values are filled using
+        defaults from the schema where available.
 
-        Note that the config input is updated in place and different schema can be
+        Note that the configuration data is updated in place and different schema can be
         applied sequentially to incrementally validate subsections of the merged config
         inputs. This is used to validate the core config to confirm the module list
         before then validating individual module configurations. When validation errors
@@ -613,19 +678,20 @@ class Config(dict):
         :attr:`~virtual_rainforest.core.config.Config.config_errors` attribute.
 
         Args:
-            config: A dictionary containing config information
-            schema: The schema that the config dictionary should conform to.
+            config_data: A dictionary containing model configuration data.
+            schema: The schema that the configuration data should conform to.
         """
 
         val = ValidatorWithDefaults(schema, format_checker=FormatChecker())
         errors = [
-            (str(list(error.path)), error.message) for error in val.iter_errors(config)
+            (str(list(error.path)), error.message)
+            for error in val.iter_errors(config_data)
         ]
 
         if errors:
             self.config_errors.extend(errors)
         else:
-            val.validate(config)
+            val.validate(config_data)
 
     def export_config(self, outfile: Path) -> None:
         """Exports a validated and merged configuration as a single file.
