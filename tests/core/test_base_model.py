@@ -466,6 +466,7 @@ def test_check_required_init_vars(
     # defining it at the top, which isn't encapsulated in a test.
 
     from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
     class TestCaseModel(BaseModel):
@@ -489,7 +490,7 @@ def test_check_required_init_vars(
 
         @classmethod
         def from_config(
-            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+            cls, data: Data, config: Config, update_interval: pint.Quantity
         ) -> Any:
             return super().from_config(data, config, update_interval)
 
@@ -589,6 +590,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
     """Tests check on update speed."""
 
     from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
     class TimingTestModel(BaseModel):
@@ -612,7 +614,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
 
         @classmethod
         def from_config(
-            cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+            cls, data: Data, config: Config, update_interval: pint.Quantity
         ) -> Any:
             return super().from_config(data, config, update_interval)
 

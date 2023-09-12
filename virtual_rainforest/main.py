@@ -18,7 +18,7 @@ from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, set_file_logging
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -74,7 +74,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any],
+    config: Config,
     data: Data,
     model_list: list[Type[BaseModel]],
     update_interval: pint.Quantity,
@@ -82,7 +82,7 @@ def configure_models(
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
         data: A Data instance.
         modules: A set of models to be configured
         update_interval: The interval with which each model is updated
@@ -114,7 +114,7 @@ def configure_models(
 
 
 def extract_timing_details(
-    config: dict[str, Any]
+    config: Config,
 ) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
@@ -126,7 +126,7 @@ def extract_timing_details(
     length.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
 
     Raises:
         InitialisationError: If the run length is too short for the model to update, or
@@ -191,7 +191,8 @@ def extract_timing_details(
 
 def vr_run(
     cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
-    override_params: dict[str, Any],
+    cfg_string: Optional[str] = None,
+    override_params: dict[str, Any] = {},
     logfile: Optional[Path] = None,
 ) -> None:
     """Perform a virtual rainforest simulation.
@@ -203,18 +204,22 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
+        cfg_string: An alternate string providing TOML formatted configuration data
         override_params: Extra parameters provided by the user
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
     """
 
-    LOGGER
+    if logfile is not None:
+        set_file_logging(LOGGER, logfile)
 
-    config = Config(cfg_paths, override_params)
+    config = Config(
+        cfg_paths=cfg_paths, cfg_string=cfg_string, override_params=override_params
+    )
 
     grid = Grid.from_config(config)
     data = Data(grid)
-    data.load_data_config(config["core"]["data"])
+    data.load_data_config(config)
 
     model_list = select_models(config["core"]["modules"])
 

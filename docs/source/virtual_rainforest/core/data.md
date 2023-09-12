@@ -70,11 +70,11 @@ is just the spatial grid being used.
 ```{code-cell}
 from pathlib import Path
 
-import tomli
 import numpy as np
 from xarray import DataArray
 
 from virtual_rainforest.core.grid import Grid
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.axes import *
 from virtual_rainforest.core.readers import load_to_dataarray
@@ -194,18 +194,21 @@ configuration section. This can be used to automatically load multiple datasets 
 a Data object. The configuration file is TOML formatted and should contain an entry
 like the example below for each variable to be loaded.
 
-**NOTE**: At the moment,
-`core.data.variable` tags cannot be used across multiple toml config files without
-causing `ConfigurationError: Duplicated entries in config files: core.data.variable` to
-be raised. This means that all variables need to be combined in one `config` file.
-
 ```toml
 [[core.data.variable]]
 file="'../../data/xy_dim.nc'"
 var_name="temp"
 ```
 
-To load data from a configuration file, the file is first read from the TOML source:
+**NOTE**: At the moment,
+`core.data.variable` tags cannot be used across multiple toml config files without
+causing `ConfigurationError: Duplicated entries in config files: core.data.variable` to
+be raised. This means that all variables need to be combined in one `config` file.
+
+To load configuration data , you will typically use the `cfg_paths` argument
+to pass one or more TOML formatted configuration files to create a
+{class}`~virtual_rainforest.core.config.Config` object. You can also use a string
+containing TOML formatted text to create a configuration object:
 
 ```{code-cell}
 data_toml = '''[[core.data.variable]]
@@ -213,15 +216,13 @@ file="../../data/xy_dim.nc"
 var_name="temp"
 '''
 
-data_config = tomli.loads(data_toml)
-
-print(data_config)
+config = Config(cfg_string=data_toml)
 ```
 
-The `data` section can then be passed to the `load_data_config` method:
+The `Config` object can then be passed to the `load_data_config` method:
 
 ```{code-cell}
-data.load_data_config(data_config["core"]["data"])
+data.load_data_config(config)
 ```
 
 ```{code-cell}

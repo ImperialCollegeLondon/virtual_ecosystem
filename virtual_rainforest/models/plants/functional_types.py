@@ -6,9 +6,8 @@ These are likely to become part of pyrealm.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
-from virtual_rainforest.core.config import ConfigurationError
+from virtual_rainforest.core.config import Config, ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -50,8 +49,15 @@ class Flora(dict):
             self[name] = pft
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> Flora:
-        """Factory method to generate a Flora instance from a configuration."""
+    def from_config(cls, config: Config) -> Flora:
+        """Factory method to generate a Flora instance from a configuration.
+
+        Args:
+            config: A validated Virtual Rainforest model configuration object.
+
+        Returns:
+            A populated Flora instance
+        """
 
         # TODO alternative config option to load from CSV
 

@@ -92,9 +92,9 @@ Using a data configuration
 
 A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
 :meth:`~virtual_rainforest.core.data.Data.load_data_config` method. This is expecting to
-take a properly validated configuration dictionary, typically loaded from a TOML file
-during configuration (see :class:`~virtual_rainforest.core.config`). The expected
-structure is as follows:
+take a properly validated configuration object, typically created from TOML files
+(see :class:`~virtual_rainforest.core.config.Config`). The expected
+structure of the data configuration section within those TOML files is as follows:
 
 .. code-block:: toml
 
@@ -113,12 +113,10 @@ causing ```ConfigurationError: Duplicated entries in config files: core.data.var
 to be raised. This means that all variables need to be combined in one ```config```
 file.
 
-
-
 .. code-block:: python
 
     # Load configured datasets
-    data.load_data_config(loaded_data_config_dict)
+    data.load_data_config(config)
 
 """  # noqa: D205, D415
 
@@ -129,7 +127,7 @@ import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_rainforest.core.config import Config, ConfigurationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.readers import load_to_dataarray
@@ -280,7 +278,7 @@ class Data:
 
         return True
 
-    def load_data_config(self, data_config: dict[str, Any]) -> None:
+    def load_data_config(self, config: Config) -> None:
         """Setup the simulation data from a user configuration.
 
         This is a method is used to validate a provided user data configuration and
@@ -290,13 +288,29 @@ class Data:
         name of the variable within the file (``var_name``).
 
         Args:
-            data_config: A data configuration dictionary
+            config: A validated Virtual Rainforest model configuration object.
         """
 
         LOGGER.info("Loading data from configuration")
 
+        # Check the data configuration is provided - note that the default configuration
+        # is to include cfg['core']['data'] = {} - so check first for something totally
+        # broken/
+        if ("core" not in config) or ("data" not in config["core"]):
+            msg = "Data configuration not found in config object."
+            LOGGER.critical(msg)
+            raise ConfigurationError(msg)
+
         # Track errors in loading multiple files from a configuration
+        data_config = config["core"]["data"]
+        data_source_types = ["variable", "constant", "generator"]
         clean_load = True
+
+        # Check for an empty data configuration - do not make this an error or critical
+        # but do log it, so that users can trace back when variables are missing
+        if not set(data_source_types).intersection(data_config):
+            msg = "No data sources defined in the data configuration."
+            LOGGER.warning(msg)
 
         # Handle variables
         if "variable" in data_config:
@@ -308,7 +322,7 @@ class Data:
                 [str(md) for md in data_var_names if data_var_names.count(md) > 1]
             )
             if dupl_names:
-                LOGGER.critical("Duplicate variable names in data configuration.")
+                LOGGER.error("Duplicate variable names in data configuration.")
                 clean_load = False
 
             # Load data from each data source
@@ -326,13 +340,19 @@ class Data:
                     clean_load = False
 
         if "constant" in data_config:
-            raise NotImplementedError("Data config for constants not yet implemented.")
+            msg = "Data config for constants not yet implemented."
+            LOGGER.critical(msg)
+            raise NotImplementedError(msg)
 
         if "generator" in data_config:
-            raise NotImplementedError("Data config for generators not yet implemented.")
+            msg = "Data config for generators not yet implemented."
+            LOGGER.critical(msg)
+            raise NotImplementedError(msg)
 
         if not clean_load:
-            raise ConfigurationError("Data configuration did not load cleanly")
+            msg = "Data configuration did not load cleanly - check log"
+            LOGGER.critical(msg)
+            raise ConfigurationError(msg)
 
     def save_to_netcdf(
         self, output_file_path: Path, variables_to_save: Optional[list[str]] = None
