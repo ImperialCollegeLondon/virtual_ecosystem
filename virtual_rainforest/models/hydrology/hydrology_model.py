@@ -199,7 +199,10 @@ class HydrologyModel(BaseModel):
         # all soil layers and np.nan for atmosphere layers
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
-            repeats=[len(self.layer_roles) - self.soil_layers, self.soil_layers],
+            repeats=[
+                len(self.layer_roles) - len(self.soil_layers),
+                len(self.soil_layers),
+            ],
         )
         # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
         self.data["soil_moisture"] = DataArray(
