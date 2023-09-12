@@ -122,14 +122,14 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     # Check calculate quantities - this is currently very basic.
 
     # - Light use efficiency: currently asserted fixed value
-    exp_lue = np.full((16, 4), fill_value=0.3)
+    exp_lue = np.full((15, 4), fill_value=0.3)
     assert np.allclose(
         fxt_plants_model.data["layer_light_use_efficiency"].data,
         exp_lue,
     )
 
     # - Canopy fapar to expected gpp per m2
-    exp_fapar = np.full((16, 1), fill_value=np.nan)
+    exp_fapar = np.full((15, 1), fill_value=np.nan)
     exp_fapar[[1, 2, 3, 12]] = [[0.4], [0.2], [0.1], [0.3]]
     exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
 

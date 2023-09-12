@@ -49,7 +49,7 @@ def plants_data():
     )
 
     # Canopy layer specific forcing variables from abiotic model
-    layer_roles = set_layer_roles(10, 3)
+    layer_roles = set_layer_roles(10, [-0.5, -1.0])
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
     # Setup the layers
