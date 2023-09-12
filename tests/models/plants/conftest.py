@@ -29,12 +29,47 @@ def plants_data():
     """Construct a minimal data object with plant cohort data."""
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.utils import set_layer_roles
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
+
+    # Add cohort configuration
     data["plant_cohorts_n"] = DataArray(np.array([5] * 4))
     data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * 4))
     data["plant_cohorts_cell_id"] = DataArray(np.arange(4))
     data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
+
+    # Spatio-temporal data
+    data["photosynthetic_photon_flux_density"] = DataArray(
+        data=np.full((4, 12), fill_value=1000),
+        coords={
+            "cell_id": np.arange(4),
+            "time": np.arange("2000-01", "2001-01", dtype="datetime64[M]"),
+        },
+    )
+
+    # Canopy layer specific forcing variables from abiotic model
+    layer_roles = set_layer_roles(10, [-0.5, -1.0])
+    layer_shape = (len(layer_roles), data.grid.n_cells)
+
+    # Setup the layers
+    forcing_vars = (
+        ("air_temperature", 20),
+        ("vapour_pressure_deficit", 1000),
+        ("atmospheric_pressure", 101325),
+        ("atmospheric_co2", 400),
+    )
+
+    for var, value in forcing_vars:
+        data[var] = DataArray(
+            data=np.full(layer_shape, fill_value=value),
+            dims=("layers", "cell_id"),
+            coords={
+                "layers": np.arange(len(layer_roles)),
+                "layer_roles": ("layers", layer_roles),
+                "cell_id": data.grid.cell_id,
+            },
+        )
 
     return data
 
