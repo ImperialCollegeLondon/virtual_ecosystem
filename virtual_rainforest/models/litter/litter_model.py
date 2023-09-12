@@ -16,6 +16,21 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205, D415
 
+# TODO - At the moment this model only receives two things from the animal model,
+# excrement and decayed carcass biomass. Both of these are simply added to the above
+# ground metabolic litter. In future, bones and feathers should also be added, these
+# will be handled using the more recalcitrant litter pools. However, we are leaving off
+# adding these for now as they have minimal effects on the carbon cycle, though they
+# probably matter for other nutrient cycles.
+
+# FUTURE - Potentially make a more numerically accurate version of this model by using
+# differential equations at some point. In reality, litter chemistry should change
+# continuously with time not just at the final time step as in the current
+# implementation. This is turn means that the decay rates should change continuously. I
+# think the current implementation is fine, because this will be a small inaccuracy in a
+# weakly coupled part of the model. However, if we ever become interested in precisely
+# quantifying litter stocks then a differential version of this model should be created.
+
 from __future__ import annotations
 
 from typing import Any
@@ -32,7 +47,9 @@ from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.litter.constants import LitterConsts
-from virtual_rainforest.models.litter.litter_pools import calculate_litter_pool_updates
+from virtual_rainforest.models.litter.litter_pools import (
+    calculate_change_in_litter_variables,
+)
 
 
 class LitterModel(BaseModel):
@@ -45,7 +62,7 @@ class LitterModel(BaseModel):
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
-        soil_layers: The number of soil layers to be modelled.
+        soil_layers: A list giving the number and depth of soil layers to be modelled.
         canopy_layers: The number of canopy layers to be modelled.
         constants: Set of constants for the litter model.
     """
@@ -62,6 +79,9 @@ class LitterModel(BaseModel):
         ("litter_pool_woody", ("spatial",)),
         ("litter_pool_below_metabolic", ("spatial",)),
         ("litter_pool_below_structural", ("spatial",)),
+        ("lignin_above_structural", ("spatial",)),
+        ("lignin_woody", ("spatial",)),
+        ("lignin_below_structural", ("spatial",)),
     )
     """Required initialisation variables for the litter model.
 
@@ -73,6 +93,9 @@ class LitterModel(BaseModel):
         "litter_pool_woody",
         "litter_pool_below_metabolic",
         "litter_pool_below_structural",
+        "lignin_above_structural",
+        "lignin_woody",
+        "lignin_below_structural",
     )
     """Variables updated by the litter model."""
 
@@ -80,23 +103,48 @@ class LitterModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
-        soil_layers: int,
+        soil_layers: list[float],
         canopy_layers: int,
         constants: LitterConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
 
-        # Check that litter pool data is appropriately bounded
-        if (
-            np.any(data["litter_pool_above_metabolic"] < 0.0)
-            or np.any(data["litter_pool_above_structural"] < 0.0)
-            or np.any(data["litter_pool_woody"] < 0.0)
-            or np.any(data["litter_pool_below_metabolic"] < 0.0)
-            or np.any(data["litter_pool_below_structural"] < 0.0)
-        ):
+        # Check that no litter pool is negative
+        all_pools = [
+            "litter_pool_above_metabolic",
+            "litter_pool_above_structural",
+            "litter_pool_woody",
+            "litter_pool_below_metabolic",
+            "litter_pool_below_structural",
+        ]
+        negative_pools = []
+        for pool in all_pools:
+            if np.any(data[pool] < 0):
+                negative_pools.append(pool)
+
+        if negative_pools:
             to_raise = InitialisationError(
-                "Initial litter pools contain at least one negative value!"
+                f"Negative pool sizes found in: {', '.join(negative_pools)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check that lignin proportions are between 0 and 1
+        lignin_proportions = [
+            "lignin_above_structural",
+            "lignin_woody",
+            "lignin_below_structural",
+        ]
+        bad_proportions = []
+        for lignin_prop in lignin_proportions:
+            if np.any(data[lignin_prop] < 0) or np.any(data[lignin_prop] > 1):
+                bad_proportions.append(lignin_prop)
+
+        if bad_proportions:
+            to_raise = InitialisationError(
+                "Lignin proportions not between 0 and 1 found in: "
+                f"{', '.join(bad_proportions)}",
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -193,8 +241,8 @@ class LitterModel(BaseModel):
             saturated_water_content=self.constants.saturated_water_content,
         )
 
-        # Find litter pool updates using the litter pool update function
-        updated_litter_pools = calculate_litter_pool_updates(
+        # Find change in litter variables using the function
+        updated_variables = calculate_change_in_litter_variables(
             surface_temp=self.data["air_temperature"][
                 self.surface_layer_index
             ].to_numpy(),
@@ -209,12 +257,21 @@ class LitterModel(BaseModel):
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
+            lignin_woody=self.data["lignin_woody"].to_numpy(),
+            lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
             decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
             decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
         )
 
-        # Update the litter pools
-        self.data.add_from_dict(updated_litter_pools)
+        # Construct dictionary of data arrays
+        updated_litter_variables = {
+            variable: DataArray(updated_variables[variable], dims="cell_id")
+            for variable in updated_variables.keys()
+        }
+
+        # And then use then to update the litter variables
+        self.data.add_from_dict(updated_litter_variables)
 
     def cleanup(self) -> None:
         """Placeholder function for litter model cleanup."""

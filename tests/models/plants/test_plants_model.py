@@ -16,7 +16,7 @@ def test_PlantsModel__init__(plants_data, flora):
         update_interval=Quantity("1 month"),
         flora=flora,
         canopy_layers=10,
-        soil_layers=3,
+        soil_layers=[-0.5, -1.0],
     )
 
     # Test the flora and community are as expected

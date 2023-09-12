@@ -139,7 +139,7 @@ def build_canopy_arrays(
 
 
 def initialise_canopy_layers(
-    data: Data, n_canopy_layers: int, n_soil_layers: int
+    data: Data, n_canopy_layers: int, soil_layers: list[float]
 ) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
@@ -150,7 +150,7 @@ def initialise_canopy_layers(
     Args:
         data: A Data object to update.
         n_canopy_layers: The maximum number of permitted canopy layers.
-        n_soil_layers: The number of soil layers to be used.
+        soil_layers: A list of soil layer depths to be used.
 
     Returns:
         A data object with the layers added.
@@ -180,7 +180,7 @@ def initialise_canopy_layers(
         raise InitialisationError(msg)
 
     # TODO - These layer roles desperately need to be set up in _one_ place!
-    layer_roles = set_layer_roles(n_canopy_layers, n_soil_layers)
+    layer_roles = set_layer_roles(n_canopy_layers, soil_layers)
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
     for each_layer_name in layers_to_create:

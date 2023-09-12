@@ -38,7 +38,7 @@ class AbioticSimpleModel(BaseModel):
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
-        soil_layers: The number of soil layers to be modelled.
+        soil_layers: A list setting the number and depths of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
         constants: Set of constants for the abiotic simple model.
     """
@@ -73,7 +73,7 @@ class AbioticSimpleModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
-        soil_layers: int,
+        soil_layers: list[float],
         canopy_layers: int,
         constants: AbioticSimpleConsts,
         **kwargs: Any,
