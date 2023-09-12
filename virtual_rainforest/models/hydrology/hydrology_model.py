@@ -49,6 +49,15 @@ class HydrologyModel(BaseModel):
 
     Raises:
         InitialisationError: when initial soil moisture is out of bounds.
+
+    TODOs:
+
+    * find a way to load daily (precipitation) data and loop over daily time_index
+    * add time dimension to required_init_vars
+    * allow for different time steps (currently only 30 days)
+    * implement below-ground horizontal flow and update stream flow
+    * potentially move `calculate_drainage_map` to core
+    * Convert soil moisture to matric potential
     """
 
     model_name = "hydrology"
@@ -58,7 +67,7 @@ class HydrologyModel(BaseModel):
     upper_bound_on_time_scale = "1 month"
     """Longest time scale that hydrology model can sensibly capture."""
     required_init_vars = (
-        ("precipitation", ("spatial",)),  # TODO find a way to load daily data
+        ("precipitation", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
@@ -70,7 +79,6 @@ class HydrologyModel(BaseModel):
         # long as the p-model does not require soil moisture as an input. If it does, we
         # have to discuss where we move the calculation of stream flow.
     )
-    # TODO add time dimension
     """The required variables and axes for the hydrology model"""
 
     vars_updated = (
@@ -79,7 +87,7 @@ class HydrologyModel(BaseModel):
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
-        "stream_flow",  # P-ET; TODO later surface_runoff_acc + below_ground_acc
+        "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
     )
     """Variables updated by the hydrology model."""
@@ -184,9 +192,6 @@ class HydrologyModel(BaseModel):
         this function uses the upstream neighbours of each grid cell (see
         :func:`~virtual_rainforest.models.hydrology.hydrology_model.calculate_drainage_map`
         ).
-
-        TODO implement below-ground horizontal flow and update stream flow
-        TODO potentially move `calculate_drainage_map` to core
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -262,7 +267,6 @@ class HydrologyModel(BaseModel):
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
-        # TODO soil moisture and accumulated runoff need a spin up
 
     def update(self, time_index: int) -> None:
         r"""Function to update the hydrology model.
@@ -347,8 +351,7 @@ class HydrologyModel(BaseModel):
         * stream_flow, [mm/timestep], currently simply P-ET
         * surface_runoff_accumulated, [mm]
         """
-        # select time conversion factor
-        # TODO allow for other time steps
+        # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
             LOGGER.error(to_raise)
@@ -482,7 +485,8 @@ class HydrologyModel(BaseModel):
             )
             daily_lists["vertical_flow"].append(vertical_flow)
 
-            # Update soil moisture by +/- vertical flow to each layer, [mm]
+            # Update soil moisture by +/- vertical flow to each layer and remove root
+            # water uptake by plants (transpiration), [mm]
             soil_moisture_updated = update_soil_moisture(
                 soil_moisture=soil_moisture_evap,
                 vertical_flow=vertical_flow,
@@ -841,7 +845,6 @@ def accumulate_surface_runoff(
     return accumulated_runoff
 
 
-# TODO move this to core.grid once we decided on common use
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:
     """Calculate drainage map based on digital elevation model.
 
@@ -855,6 +858,8 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
     Returns:
         dictionary of cell IDs and their upstream neighbours
+
+    TODO move this to core.grid once we decided on common use
     """
 
     if grid.grid_type != "square":
