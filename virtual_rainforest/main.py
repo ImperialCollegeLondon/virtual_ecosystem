@@ -190,7 +190,7 @@ def extract_timing_details(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
+    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
     cfg_string: Optional[str] = None,
     override_params: dict[str, Any] = {},
     logfile: Optional[Path] = None,

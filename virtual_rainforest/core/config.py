@@ -340,7 +340,7 @@ class Config(dict):
 
     def __init__(
         self,
-        cfg_paths: Optional[Union[str, Path, Sequence[Union[str, Path]]]] = None,
+        cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
         cfg_string: Optional[str] = None,
         override_params: dict[str, Any] = {},
         auto: bool = True,
@@ -364,7 +364,7 @@ class Config(dict):
         """A boolean flag showing if the configuration was loaded using cfg_string."""
 
         # Prohibit using both paths and string
-        if not ((cfg_paths is None) ^ (cfg_string is None)):
+        if not ((not cfg_paths) ^ (cfg_string is None)):
             to_raise = ValueError("Provide only one of either cfg_paths or cfg_string.")
             LOGGER.critical(to_raise)
             raise to_raise
