@@ -7,8 +7,11 @@ NOTE - much of this will be outsourced to pyrealm.
 
 """  # noqa: D205, D415
 
+from dataclasses import dataclass, field
+from typing import Mapping
 
-from dataclasses import dataclass
+import numpy as np
+from numpy.typing import NDArray
 
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -21,14 +24,27 @@ class PlantCohort:
 
     The cohort is defined by the plant functional type, the number of individuals in the
     cohort and the diameter at breast height for the cohort.
+
+    Instances also have a ``canopy_area`` and ``gpp`` attributes that are used to track
+    the canopy structure of a cohort within the wider community and record gross primary
+    productivity. These should not be updated by users.
     """
 
     pft: PlantFunctionalType
+    """The plant functional type of the cohort."""
     dbh: float
+    """The diameter at breast height (m) of cohort members."""
     n: int
+    """The number of individuals in the cohort."""
+    canopy_area: NDArray[np.float32] = field(
+        init=False, default_factory=lambda: np.array([])
+    )
+    """The canopy area within canopy layers of each individual."""
+    gpp: float = field(init=False, default=0)
+    """The gross primary productivity for each individual."""
 
 
-class PlantCommunities(dict):
+class PlantCommunities(dict, Mapping[int, PlantCohort]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
