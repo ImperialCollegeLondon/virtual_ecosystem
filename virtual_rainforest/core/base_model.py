@@ -85,7 +85,7 @@ from typing import Any, Type
 import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
-from virtual_rainforest.core.config import register_schema
+from virtual_rainforest.core.config import Config, register_schema
 from virtual_rainforest.core.constants import register_constants_class
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -225,7 +225,7 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: pint.Quantity
+        cls, data: Data, config: Config, update_interval: pint.Quantity
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
