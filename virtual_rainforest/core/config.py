@@ -523,11 +523,15 @@ class Config(dict):
     def fix_up_file_paths(self) -> None:
         """Make any file paths in the configs relative to location of config files."""
 
-        # Safeguard against running this when the toml_contents is from a cfg_string and
+        # Safeguard against running this when the toml_contents is from a cfg_string
         if self.cfg_string is not None:
-            for config_file, contents in self.toml_contents.items():
-                if isinstance(config_file, Path):
-                    _fix_up_variable_entry_paths(config_file.parent, contents)
+            # TODO - how to resolve relative paths in cfg_string - niche use case
+            LOGGER.warning("Config file paths not resolved with cfg_string")
+            return
+
+        for config_file, contents in self.toml_contents.items():
+            if isinstance(config_file, Path):
+                _fix_up_variable_entry_paths(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
