@@ -99,7 +99,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
     "config,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
@@ -166,7 +166,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="update interval too short",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
@@ -222,26 +222,29 @@ def test_configure_models(
     "config_content, expected_log_entries",
     [
         pytest.param(
-            {
-                "core": {
-                    "modules": ["soil"],
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "run_length": "50 years",
-                        "update_interval": "0.5 martian days",
-                    },
-                    "data": [],
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 10000,
-                        "cell_nx": 3,
-                        "cell_ny": 3,
-                    },
-                },
-            },
+            """[core]
+            modules = ["soil",]
+            data = {}
+            [core.data_output_options]
+            save_merged_config = false
+            [core.timing]
+            start_date = "2020-01-01"
+            run_length = "50 years"
+            update_interval = "0.5 martian days"
+            [core.grid]
+            grid_type = "square"
+            cell_area = 10000
+            cell_nx = 3
+            cell_ny = 3
+            """,
             (
+                (INFO, "Config TOML loaded from config string"),
+                (INFO, "Config built from config string"),
+                (INFO, "Validation schema for configuration built."),
+                (INFO, "Configuration validated"),
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
+                (WARNING, "No data sources defined in the data configuration."),
                 (INFO, "Attempting to configure the following models: ['soil']"),
                 (
                     INFO,
@@ -254,36 +257,11 @@ def test_configure_models(
                     "0.5 martian days",
                 ),
             ),
-            id="bad_config_data",
-        ),
-        pytest.param(
-            {
-                "core": {
-                    "modules": ["topsoil"],
-                    "data": [],
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 10000,
-                        "cell_nx": 3,
-                        "cell_ny": 3,
-                    },
-                },
-            },
-            (
-                (INFO, "Grid created from configuration."),
-                (INFO, "Loading data from configuration"),
-                (INFO, "Attempting to configure the following models: ['topsoil']"),
-                (
-                    CRITICAL,
-                    "The following models cannot be configured as they are not "
-                    "found in the registry: ['topsoil']",
-                ),
-            ),
-            id="missing_model",
+            id="bad_config_data_one",
         ),
     ],
 )
-def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entries):
+def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     """Test the main `vr_run` function handles bad model configurations correctly.
 
     Note that some of this is also safeguarded by the config validation. Unknown model
@@ -291,19 +269,8 @@ def test_vr_run_model_issues(mocker, caplog, config_content, expected_log_entrie
     schema validation.
     """
 
-    # Simple drop in replacement for the Config class that sidesteps TOML loading and
-    # validation and simply asserts the resulting config dictionary contents.
-    class MockConfig(dict):
-        def __init__(self, cfg_paths, extra_params):
-            self.update(config_content)
-
-        def export_config(self, outfile: Path):
-            pass
-
-    mocker.patch("virtual_rainforest.main.Config", MockConfig)
-
     with pytest.raises(InitialisationError):
-        vr_run([], [])
+        vr_run(cfg_string=config_content)
         # If vr_run is successful (which it shouldn't be) clean up the file
         Path("./delete_me.toml").unlink()
 

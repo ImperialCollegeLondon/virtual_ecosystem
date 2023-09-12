@@ -26,6 +26,7 @@ from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -41,7 +42,7 @@ class HydrologyModel(BaseModel):
     Args:
         data: The data object to be used in the model.
         update_interval: Time to wait between updates of the model state.
-        soil_layers: The number of soil layers to be modelled.
+        soil_layers: A list giving the number and depth of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial volumetric relative water content [unitless]
             for all layers.
@@ -96,7 +97,7 @@ class HydrologyModel(BaseModel):
         self,
         data: Data,
         update_interval: Quantity,
-        soil_layers: int,
+        soil_layers: list[float],
         canopy_layers: int,
         initial_soil_moisture: float,
         constants: HydroConsts,
@@ -143,7 +144,7 @@ class HydrologyModel(BaseModel):
 
     @classmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+        cls, data: Data, config: Config, update_interval: Quantity
     ) -> HydrologyModel:
         """Factory function to initialise the hydrology model from configuration.
 
@@ -153,7 +154,7 @@ class HydrologyModel(BaseModel):
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
-            config: The complete (and validated) Virtual Rainforest configuration.
+            config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated.
         """
 

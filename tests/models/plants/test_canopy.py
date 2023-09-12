@@ -75,12 +75,14 @@ def test_initialise_canopy_layers(caplog, plants_data):
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
-    data = initialise_canopy_layers(plants_data, n_canopy_layers=10, n_soil_layers=3)
+    data = initialise_canopy_layers(
+        plants_data, n_canopy_layers=10, soil_layers=[-0.5, -1.0]
+    )
 
     assert "layer_heights" in data
     assert "leaf_area_index" in data
 
-    n_layer = 1 + 10 + 2 + 3
+    n_layer = 1 + 10 + 2 + 2
     exp_shape = (n_layer, data.grid.n_cells)
     assert data["layer_heights"].shape == exp_shape
     assert data["leaf_area_index"].shape == exp_shape

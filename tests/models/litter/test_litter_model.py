@@ -24,7 +24,7 @@ def litter_model_fixture(dummy_litter_data):
     config = {
         "core": {
             "timing": {"start_date": "2020-01-01", "update_interval": "24 hours"},
-            "layers": {"soil_layers": 2, "canopy_layers": 10},
+            "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
         },
     }
     return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("24 hours"))
@@ -69,10 +69,10 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
     )
 
     model = LitterModel(
-        dummy_litter_data,
-        pint.Quantity("1 week"),
-        2,
-        10,
+        data=dummy_litter_data,
+        update_interval=pint.Quantity("1 week"),
+        soil_layers=[-0.5, -1.0],
+        canopy_layers=10,
         constants=LitterConsts,
     )
 
@@ -281,7 +281,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                         "start_date": "2020-01-01",
                         "update_interval": "24 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
                 },
             },
             pint.Quantity("24 hours"),
@@ -334,7 +334,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                         "start_date": "2020-01-01",
                         "update_interval": "24 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
                 },
                 "litter": {
                     "constants": {"LitterConsts": {"litter_decomp_temp_response": 4.44}}
@@ -390,7 +390,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                         "start_date": "2020-01-01",
                         "update_interval": "24 hours",
                     },
-                    "layers": {"soil_layers": 2, "canopy_layers": 10},
+                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
                 },
                 "litter": {"constants": {"LitterConsts": {"decomp_rate": 4.44}}},
             },

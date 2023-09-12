@@ -11,6 +11,7 @@ import numpy as np
 from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -21,8 +22,6 @@ from virtual_rainforest.models.plants.canopy import (
 from virtual_rainforest.models.plants.community import PlantCommunities
 from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
-
-# from virtual_rainforest.core.config import Config
 
 
 class PlantsModel(BaseModel):
@@ -80,7 +79,7 @@ class PlantsModel(BaseModel):
         update_interval: Quantity,
         flora: Flora,
         canopy_layers: int,
-        soil_layers: int,
+        soil_layers: list[float],
         constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ):
@@ -96,21 +95,21 @@ class PlantsModel(BaseModel):
         self.canopy_layers = canopy_layers
         """The maximum number of canopy layers."""
         self.soil_layers = soil_layers
-        """The number of soil layers."""
+        """A list giving the depths of soil layers."""
 
         # Initialise and then update the canopy layers.
         # TODO - this initialisation step may move somewhere else at some point.
         self.data = initialise_canopy_layers(
             data=data,
             n_canopy_layers=self.canopy_layers,
-            n_soil_layers=self.soil_layers,
+            soil_layers=self.soil_layers,
         )
         """A reference to the global data object."""
         self.update_canopy_layers()
 
     @classmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+        cls, data: Data, config: Config, update_interval: Quantity
     ) -> PlantsModel:
         """Factory function to initialise a plants model from configuration.
 
@@ -119,8 +118,7 @@ class PlantsModel(BaseModel):
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
-            config: A validated :class:`~virtual_rainforest.core.config.Config`
-                instance.
+            config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
 
         """

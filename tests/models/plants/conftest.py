@@ -51,5 +51,5 @@ def fxt_plants_model(plants_data, flora):
         update_interval=Quantity("1 month"),
         flora=flora,
         canopy_layers=10,
-        soil_layers=3,
+        soil_layers=[-0.5, -1.0],
     )
