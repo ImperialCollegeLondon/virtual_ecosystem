@@ -210,8 +210,9 @@ def vr_run(
             console.
     """
 
+    # Switch from console logging to file logging
     if logfile is not None:
-        set_file_logging(LOGGER, logfile)
+        set_file_logging(logfile)
 
     config = Config(
         cfg_paths=cfg_paths, cfg_string=cfg_string, override_params=override_params

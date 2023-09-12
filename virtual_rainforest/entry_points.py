@@ -4,11 +4,11 @@ points to the virtual_rainforest package. At the moment a single entry point is 
 set of configuration files.
 """  # noqa D210, D415
 import argparse
-import shutil
 import sys
 import textwrap
 from collections.abc import Sequence
 from pathlib import Path
+from shutil import copytree, ignore_patterns
 from typing import Any, Optional
 
 import virtual_rainforest as vr
@@ -88,7 +88,9 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     `vr_run /provided/install/path/vr_example`
 
     The output directory for simulation results is typically set in the configuration
-    files, but can be overwritten using the `--outpath` option.
+    files, but can be overwritten using the `--outpath` option. A log file path can be
+    provided for logging output - if this is not provided the log will be written to the
+    console.
 
     The resolved complete configuration will then be written to a single consolidated
     config file in the output path with a default name of
@@ -146,8 +148,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     parser.add_argument(
         "--logfile",
         type=str,
-        help="Install the Virtual Rainforest example data to the given location",
-        dest="install_example",
+        help="A file path to use for logging a Virtual Rainforest simulation",
         default=None,
     )
 
@@ -171,7 +172,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
                 "VR example directory already present in --install_example path."
             )
 
-        shutil.copytree(example_data_path, example_dir)
+        copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
         sys.stdout.write(f"Example directory created at:\n{example_dir}\n")
         return
 
@@ -187,5 +188,9 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
 
     # Run the virtual rainforest run function
     vr_run(
-        cfg_paths=args.cfg_paths, override_params=override_params, logfile=args.logfile
+        cfg_paths=args.cfg_paths,
+        override_params=override_params,
+        logfile=Path(args.logfile),
     )
+
+    sys.stdout.write("VR run complete.")
