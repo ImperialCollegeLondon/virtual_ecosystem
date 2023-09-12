@@ -86,13 +86,21 @@ logging.basicConfig(
 LOGGER = logging.getLogger("virtual_rainforest")
 
 
-def set_file_logging(logger: logging.Logger, logfile: Path) -> None:
+def set_file_logging(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
     Args:
-      logger: A Logger instance.
       logfile: The path to a file to use for logging.
     """
 
+    # Do not propogate errors up to parent handler - this avoids the Stream Handler
+    # associated with the base logger
+    LOGGER.propagate = False
+
+    # Add a specific file handler for this log.
+    format = "[%(levelname)s] - %(module)s - %(funcName)s(%(lineno)d) - %(message)s"
+    formatter = logging.Formatter(fmt=format)
     handler = logging.FileHandler(logfile)
+    handler.setFormatter(formatter)
     LOGGER.addHandler(handler)
+    LOGGER.setLevel(logging.DEBUG)
