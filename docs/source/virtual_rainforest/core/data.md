@@ -208,7 +208,8 @@ be raised. This means that all variables need to be combined in one `config` fil
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
 {class}`~virtual_rainforest.core.config.Config` object. You can also use a string
-containing TOML formatted text to create a configuration object:
+containing TOML formatted text or a list of TOML strings to create a configuration
+object:
 
 ```{code-cell}
 data_toml = '''[[core.data.variable]]
@@ -216,7 +217,7 @@ file="../../data/xy_dim.nc"
 var_name="temp"
 '''
 
-config = Config(cfg_string=data_toml)
+config = Config(cfg_strings=data_toml)
 ```
 
 The `Config` object can then be passed to the `load_data_config` method:

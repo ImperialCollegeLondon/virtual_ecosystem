@@ -191,7 +191,7 @@ def extract_timing_details(
 
 def vr_run(
     cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
-    cfg_string: Optional[str] = None,
+    cfg_strings: Union[str, list[str]] = [],
     override_params: dict[str, Any] = {},
     logfile: Optional[Path] = None,
 ) -> None:
@@ -204,7 +204,7 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
-        cfg_string: An alternate string providing TOML formatted configuration data
+        cfg_strings: An alternate string providing TOML formatted configuration data
         override_params: Extra parameters provided by the user
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
@@ -215,7 +215,7 @@ def vr_run(
         set_file_logging(logfile)
 
     config = Config(
-        cfg_paths=cfg_paths, cfg_string=cfg_string, override_params=override_params
+        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
 
     grid = Grid.from_config(config)
