@@ -147,7 +147,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
 
     parser.add_argument(
         "--logfile",
-        type=str,
+        type=Path,
         help="A file path to use for logging a Virtual Rainforest simulation",
         default=None,
     )
@@ -169,7 +169,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         example_dir = example_path / "vr_example"
         if example_dir.exists():
             sys.stderr.write(
-                "VR example directory already present in --install_example path."
+                "VR example directory already present in --install_example path.\n"
             )
 
         copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
@@ -190,7 +190,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     vr_run(
         cfg_paths=args.cfg_paths,
         override_params=override_params,
-        logfile=Path(args.logfile),
+        logfile=args.logfile,
     )
 
-    sys.stdout.write("VR run complete.")
+    sys.stdout.write("VR run complete.\n")
