@@ -218,6 +218,13 @@ def vr_run(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
 
+    # Save the merged config if requested
+    data_opt = config["core"]["data_output_options"]
+    if data_opt["save_merged_config"]:
+        outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
+        config.export_config(outfile)
+
+    # Build core elements
     grid = Grid.from_config(config)
     data = Data(grid)
     data.load_data_config(config)

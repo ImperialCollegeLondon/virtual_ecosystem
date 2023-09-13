@@ -423,12 +423,6 @@ class Config(dict):
             self.build_schema()
             self.validate_config()
 
-            # If the user wants a merged config file, generate it now
-            data_opt = self["core"]["data_output_options"]
-            if data_opt["save_merged_config"]:
-                outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
-                self.export_config(outfile)
-
     def resolve_config_paths(self) -> None:
         """Resolve config file paths into a set of TOML config files.
 
