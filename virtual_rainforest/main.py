@@ -18,7 +18,7 @@ from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER, set_file_logging
+from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -212,7 +212,7 @@ def vr_run(
 
     # Switch from console logging to file logging
     if logfile is not None:
-        set_file_logging(logfile)
+        add_file_logger(logfile)
 
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
@@ -309,3 +309,7 @@ def vr_run(
         )
 
     LOGGER.info("Virtual rainforest model run completed!")
+
+    # Restore default logging settings
+    if logfile is not None:
+        remove_file_logger()

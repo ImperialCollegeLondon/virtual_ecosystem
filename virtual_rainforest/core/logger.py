@@ -86,15 +86,15 @@ logging.basicConfig(
 LOGGER = logging.getLogger("virtual_rainforest")
 
 
-def set_file_logging(logfile: Path) -> None:
+def add_file_logger(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
     Args:
       logfile: The path to a file to use for logging.
     """
 
-    # Do not propogate errors up to parent handler - this avoids the Stream Handler
-    # associated with the base logger
+    # Do not propogate errors up to parent handler - this avoids mirroring the log
+    # output through the StreamHandler associated with the root logger
     LOGGER.propagate = False
 
     # Add a specific file handler for this log.
@@ -102,5 +102,19 @@ def set_file_logging(logfile: Path) -> None:
     formatter = logging.Formatter(fmt=format)
     handler = logging.FileHandler(logfile)
     handler.setFormatter(formatter)
+    handler.name = "vr_logfile"
     LOGGER.addHandler(handler)
     LOGGER.setLevel(logging.DEBUG)
+
+
+def remove_file_logger() -> None:
+    """Remove an existing file logger and return to stream logging."""
+
+    # Find the file logger by name and remove it
+    vr_logfile = [
+        handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
+    ]
+    LOGGER.removeHandler(vr_logfile[0])
+
+    # Allow logger messages to propogate back down to the root StreamHandler
+    LOGGER.propagate = True
