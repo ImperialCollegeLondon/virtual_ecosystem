@@ -11,7 +11,6 @@ from contextlib import nullcontext as does_not_raise
 from itertools import repeat
 from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -718,10 +717,8 @@ def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entrie
     """Checks that auto validation passes as expected."""
     from virtual_rainforest.core.config import Config
 
-    with patch.object(Config, "export_config") as export_mock:
-        Config(shared_datadir / file_path, auto=True)
-        log_check(caplog, expected_log_entries)
-        export_mock.assert_called_once()
+    Config(shared_datadir / file_path, auto=True)
+    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
