@@ -31,7 +31,7 @@ import sys
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, Union
 
 import dpath.util  # type: ignore
 import tomli_w
@@ -299,15 +299,25 @@ class Config(dict):
 
     The ``Config`` class is used to generate a validated configuration for a Virtual
     Rainforest simulation. The ``cfg_paths`` attribute is used to provide paths to TOML
-    configuration files or directories containing sets of files to be used. The class
-    methods are then used to perform four steps:
+    configuration files or directories containing sets of files to be used. The provided
+    paths are then run through the follow steps to resolve and load the configuration
+    data.
 
     * The :meth:`~virtual_rainforest.core.config.Config.resolve_config_paths` method is
       used to resolve the provided paths into the set of actual TOML files to be used to
       build the configuration.
 
     * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is then
-      used to load the contents of each resolved file.
+      used to load the parsed contents of each resolved file into the
+      :attr:`~virtual_rainforest.core.config.Config.toml_contents` attribute.
+
+    Alternatively, configuration data may be passed as a string or list of strings using
+    the ``cfg_strings`` argument. These strings must contain TOML formatted data, which
+    is parsed and added to the
+    :attr:`~virtual_rainforest.core.config.Config.toml_contents` attribute.
+
+    Whichever approach is used, the next two steps are then applied to the provided TOML
+    data:
 
     * The :meth:`~virtual_rainforest.core.config.Config.build_config` method is used to
       merge the loaded configuration across files and check that configuration settings
@@ -332,7 +342,8 @@ class Config(dict):
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
             file or directory paths.
-        cfg_string: A string of TOML formatted configuration data.
+        cfg_strings: A string or list of strings containing TOML formatted configuration
+            data.
         override_params: Extra parameters provided by the user.
         auto: A boolean flag setting whether the configuration data is automatically
             loaded and validated
@@ -341,7 +352,7 @@ class Config(dict):
     def __init__(
         self,
         cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
-        cfg_string: Optional[str] = None,
+        cfg_strings: Union[str, list[str]] = [],
         override_params: dict[str, Any] = {},
         auto: bool = True,
     ) -> None:
@@ -350,8 +361,12 @@ class Config(dict):
         """The configuration file paths, normalised from the cfg_paths argument."""
         self.toml_files: list[Union[str, Path]] = []
         """A list of TOML file paths resolved from the initial config paths."""
+        self.cfg_strings: list[str] = []
+        """A list of strings containing TOML content, provided by the ``cfg_strings``
+        argument."""
         self.toml_contents: dict[Union[str, Path], dict] = {}
-        """A dictionary of the contents of config files, keyed by file path."""
+        """A dictionary of the parsed TOML contents of config files or strings, keyed by
+        file path or string index."""
         self.merge_conflicts: list = []
         """A list of configuration keys duplicated across configuration files."""
         self.config_errors: list[tuple[str, Any]] = []
@@ -360,18 +375,30 @@ class Config(dict):
         """The merged schema for the core and modules present in the configuration."""
         self.validated: bool = False
         """A boolean flag indicating successful validation."""
-        self.cfg_string: Optional[str] = None
-        """A boolean flag showing if the configuration was loaded using cfg_string."""
+        self.from_cfg_strings: bool = False
+        """A boolean flag indicating whether paths or strings were used to create the
+        instance."""
 
         # Prohibit using both paths and string
-        if not ((not cfg_paths) ^ (cfg_string is None)):
-            to_raise = ValueError("Provide only one of either cfg_paths or cfg_string.")
+        if not (cfg_paths or cfg_strings):
+            to_raise = ValueError("Provide cfg_paths or cfg_strings.")
             LOGGER.critical(to_raise)
             raise to_raise
 
-        if cfg_string:
-            self.cfg_string = cfg_string
+        if cfg_paths and cfg_strings:
+            to_raise = ValueError("Do not use both cfg_paths and cfg_strings.")
+            LOGGER.critical(to_raise)
+            raise to_raise
 
+        # Standardise inputs and set from_cfg_strings
+        if cfg_strings:
+            # Standardise to a list of strings
+            if isinstance(cfg_strings, str):
+                cfg_strings = [cfg_strings]
+
+            self.cfg_strings = cfg_strings
+
+            self.from_cfg_strings = True
         if cfg_paths:
             # Standardise cfg_paths to list of Paths
             if isinstance(cfg_paths, (str, Path)):
@@ -380,11 +407,11 @@ class Config(dict):
                 self.cfg_paths = [Path(p) for p in cfg_paths]
 
         if auto:
-            if self.cfg_string:
-                # Load the provided string and note that the content is from a string.
+            if cfg_strings:
+                # Load the TOML content
                 self.load_config_toml_string()
-            if self.cfg_paths:
-                # Load the config data from the provided paths
+            if cfg_paths:
+                # Load the TOML content from resolved paths and fix relative file paths
                 self.resolve_config_paths()
                 self.load_config_toml()
                 self.fix_up_file_paths()
@@ -500,31 +527,24 @@ class Config(dict):
             ConfigurationError: Invalid TOML string.
         """
 
-        # Check for a string to parse
-        if self.cfg_string is None:
-            to_raise: Exception = RuntimeError(
-                "Cannot run load_config_toml_string: no cfg_string loaded."
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
+        for index, cfg_string in enumerate(self.cfg_strings):
+            # Load the contents into the instance
+            try:
+                self.toml_contents[f"cfg_string_{index}"] = tomllib.loads(cfg_string)
+            except tomllib.TOMLDecodeError as err:
+                to_raise = ConfigurationError(
+                    f"TOML parsing error in cfg_strings: {str(err)}"
+                )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
-        # Load the contents into the instance
-        try:
-            self.toml_contents["cfg_string"] = tomllib.loads(self.cfg_string)
-        except tomllib.TOMLDecodeError as err:
-            to_raise = ConfigurationError(
-                f"TOML parsing error in cfg_string: {str(err)}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
-        else:
-            LOGGER.info("Config TOML loaded from config string")
+        LOGGER.info("Config TOML loaded from config strings")
 
     def fix_up_file_paths(self) -> None:
         """Make any file paths in the configs relative to location of config files."""
 
         # Safeguard against running this when the toml_contents is from a cfg_string
-        if self.cfg_string is not None:
+        if self.from_cfg_strings:
             # TODO - how to resolve relative paths in cfg_string - niche use case
             LOGGER.warning("Config file paths not resolved with cfg_string")
             return
@@ -555,32 +575,33 @@ class Config(dict):
         if len(input_dicts) == 1:
             # One input dict, which becomes the content of the Config dict
             self.update(**input_dicts[0])
-            if self.cfg_string is not None:
-                LOGGER.info("Config built from config string")
-            else:
-                LOGGER.info("Config built from single file")
-            return
 
-        # Otherwise, merge other dicts into first
-        master = input_dicts[0]
-        others = input_dicts[1:]
-        conflicts: tuple = ()
+        else:
+            # Otherwise, merge other dicts into first
+            master = input_dicts[0]
+            others = input_dicts[1:]
+            conflicts: tuple = ()
 
-        for each_dict in others:
-            master, conflicts = config_merge(master, each_dict, conflicts=conflicts)
+            for each_dict in others:
+                master, conflicts = config_merge(master, each_dict, conflicts=conflicts)
 
-        # Check if any tags are repeated across files
-        if conflicts:
-            self.merge_conflicts = sorted(set(conflicts))
-            to_raise = ConfigurationError(
-                f"Duplicated entries in config files: {', '.join(self.merge_conflicts)}"
-            )
-            LOGGER.critical(to_raise)
-            raise to_raise
+            # Check if any tags are repeated across files
+            if conflicts:
+                self.merge_conflicts = sorted(set(conflicts))
+                to_raise = ConfigurationError(
+                    "Duplicated entries in config "
+                    f"files: {', '.join(self.merge_conflicts)}",
+                )
+                LOGGER.critical(to_raise)
+                raise to_raise
 
-        # Update the object
-        self.update(master)
-        LOGGER.info("Config built from merged files")
+            # Update the object
+            self.update(master)
+
+        if self.from_cfg_strings:
+            LOGGER.info("Config built from config string")
+        else:
+            LOGGER.info(f"Config built from {len(input_dicts)} file(s)")
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
