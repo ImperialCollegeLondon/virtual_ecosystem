@@ -1,5 +1,4 @@
 """An integration test for the VR command-line interface."""
-from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -9,12 +8,11 @@ def test_vr_run_install_example(capsys):
     from virtual_rainforest.entry_points import vr_run_cli
 
     with TemporaryDirectory() as tempdir:
-        with does_not_raise():
-            vr_run_cli(args_list=["--install_example", tempdir])
+        vr_run_cli(args_list=["--install_example", tempdir])
 
-            captured = capsys.readouterr()
-            expected = "Example directory created at:"
-            assert captured.out.startswith(expected)
+        captured = capsys.readouterr()
+        expected = "Example directory created at:"
+        assert captured.out.startswith(expected)
 
 
 def test_vr_run(capsys):
@@ -27,18 +25,17 @@ def test_vr_run(capsys):
         vr_run_cli(args_list=["--install_example", tempdir])
         _ = capsys.readouterr()
 
-        with does_not_raise():
-            example_dir = Path(tempdir) / "vr_example"
-            vr_run_cli(
-                args_list=[
-                    str(example_dir),
-                    "--outpath",
-                    str(example_dir),
-                    "--logfile",
-                    str(example_dir / "vr_example.log"),
-                ]
-            )
+        example_dir = Path(tempdir) / "vr_example"
+        vr_run_cli(
+            args_list=[
+                str(example_dir),
+                "--outpath",
+                str(example_dir),
+                "--logfile",
+                str(example_dir / "vr_example.log"),
+            ]
+        )
 
-            captured = capsys.readouterr()
-            expected = "VR run complete."
-            assert captured.out.startswith(expected)
+        captured = capsys.readouterr()
+        expected = "VR run complete."
+        assert captured.out.startswith(expected)
