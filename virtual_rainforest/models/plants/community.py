@@ -7,8 +7,11 @@ NOTE - much of this will be outsourced to pyrealm.
 
 """  # noqa: D205, D415
 
+from dataclasses import dataclass, field
+from typing import Mapping
 
-from dataclasses import dataclass
+import numpy as np
+from numpy.typing import NDArray
 
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -21,14 +24,27 @@ class PlantCohort:
 
     The cohort is defined by the plant functional type, the number of individuals in the
     cohort and the diameter at breast height for the cohort.
+
+    Instances also have a ``canopy_area`` and ``gpp`` attributes that are used to track
+    the canopy structure of a cohort within the wider community and record gross primary
+    productivity. These should not be updated by users.
     """
 
     pft: PlantFunctionalType
+    """The plant functional type of the cohort."""
     dbh: float
+    """The diameter at breast height (m) of cohort members."""
     n: int
+    """The number of individuals in the cohort."""
+    canopy_area: NDArray[np.float32] = field(
+        init=False, default_factory=lambda: np.array([])
+    )
+    """The canopy area within canopy layers of each individual."""
+    gpp: float = field(init=False, default=0)
+    """The gross primary productivity for each individual."""
 
 
-class PlantCommunities:
+class PlantCommunities(dict, Mapping[int, PlantCohort]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
@@ -46,9 +62,6 @@ class PlantCommunities:
     """
 
     def __init__(self, data: Data, flora: Flora):
-        self.communities: dict = dict()
-        """A dictionary holding the lists of plant cohorts keyed by cell id."""
-
         # Validate the data being used to generate the Plants object
         cohort_data_vars = [
             "plant_cohorts_n",
@@ -97,9 +110,13 @@ class PlantCommunities:
             LOGGER.critical(msg)
             raise ValueError(msg)
 
+        # TODO - think about mechanisms to keep cohort data as arrays either within
+        #        cells or across the whole simulation, to make it more efficient with
+        #        using pyrealm.
+
         # Now compile the plant cohorts adding each cohort to a list keyed by cell id
         for cid in data.grid.cell_id:
-            self.communities[cid] = []
+            self[cid] = []
 
         for cid, chrt_pft, chrt_dbh, chrt_n in zip(
             data["plant_cohorts_cell_id"].data,
@@ -107,12 +124,6 @@ class PlantCommunities:
             data["plant_cohorts_dbh"].data,
             data["plant_cohorts_n"].data,
         ):
-            self.communities[cid].append(
-                PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n)
-            )
+            self[cid].append(PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n))
 
         LOGGER.info("Plant cohort data loaded")
-
-    def __getitem__(self, key: int) -> list[PlantCohort]:
-        """Extracts the cohort list for a given cell id."""
-        return self.communities[key]

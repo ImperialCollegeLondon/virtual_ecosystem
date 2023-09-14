@@ -141,4 +141,4 @@ def vr_run_cli() -> None:
         _parse_command_line_params(args.params, override_params)
 
     # Run the virtual rainforest run function
-    vr_run(cfg_paths, override_params)
+    vr_run(cfg_paths=cfg_paths, override_params=override_params)

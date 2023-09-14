@@ -1,7 +1,7 @@
 """Testing the Data class."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, INFO
+from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
 import numpy as np
@@ -525,10 +525,24 @@ def test_Data_load_to_dataarray_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=["file", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_string", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            "test.toml",
+            """[core]
+               modules = []
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "temp"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "prec"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "vapd"
+               """,
             does_not_raise(),
             None,
             (
@@ -545,12 +559,38 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            "test_dupes.toml",
-            pytest.raises(ConfigurationError),
-            "Data configuration did not load cleanly",
+            """[core]
+               modules = []
+               """,
+            does_not_raise(),
+            None,
             (
                 (INFO, "Loading data from configuration"),
-                (CRITICAL, "Duplicate variable names in data configuration"),
+                (WARNING, "No data sources defined in the data configuration."),
+            ),
+            id="no data",
+        ),
+        pytest.param(
+            """[core]
+               modules = []
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "temp"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "prec"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               [[core.data.variable]]
+               file = "cellid_coords.nc"
+               var_name = "elev"
+               """,
+            pytest.raises(ConfigurationError),
+            "Data configuration did not load cleanly - check log",
+            (
+                (INFO, "Loading data from configuration"),
+                (ERROR, "Duplicate variable names in data configuration"),
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
                 (INFO, "Loading variable 'prec' from file:"),
@@ -559,6 +599,7 @@ def test_Data_load_to_dataarray_data_handling(
                 (INFO, "Adding data array for 'elev'"),
                 (INFO, "Loading variable 'elev' from file:"),
                 (INFO, "Replacing data array for 'elev'"),
+                (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
         ),
@@ -571,12 +612,16 @@ def test_Data_load_to_dataarray_data_handling(
     indirect=True,
 )
 def test_Data_load_from_config(
-    caplog, shared_datadir, fixture_load_data_grids, file, exp_error, exp_msg, exp_log
+    caplog,
+    shared_datadir,
+    fixture_load_data_grids,
+    cfg_string,
+    exp_error,
+    exp_msg,
+    exp_log,
 ):
     """Test the loading of data configuration strings.
 
-    TODO - Could mock load_to_dataarray to avoid needing real files and just test the
-           config loader part of the mechanism
     TODO - The test TOML files here are _very_ minimal and are going to be fragile to
            required fields being updated. They explicitly load no modules to moderate
            this risk.
@@ -587,19 +632,18 @@ def test_Data_load_from_config(
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
-    # Skip combinations where loader does not supported this grid
     data = Data(fixture_load_data_grids)
-    file = [shared_datadir / file]
-
-    cfg = Config(file)
+    cfg = Config(cfg_string=cfg_string)
     caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
-    for each_var in cfg["core"]["data"]["variable"]:
-        each_var["file"] = shared_datadir / each_var["file"]
+    # Note that the no data test gets the default empty dict for cfg["core"]["data"]
+    if "variable" in cfg["core"]["data"]:
+        for each_var in cfg["core"]["data"]["variable"]:
+            each_var["file"] = shared_datadir / each_var["file"]
 
     with exp_error as err:
-        data.load_data_config(data_config=cfg["core"]["data"])
+        data.load_data_config(config=cfg)
 
     if err:
         assert str(err.value) == exp_msg

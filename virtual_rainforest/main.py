@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from itertools import chain
 from math import ceil
 from pathlib import Path
-from typing import Any, Type, Union
+from typing import Any, Optional, Type, Union
 
 import pint
 from numpy import datetime64, timedelta64
@@ -74,7 +74,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
 
 def configure_models(
-    config: dict[str, Any],
+    config: Config,
     data: Data,
     model_list: list[Type[BaseModel]],
     update_interval: pint.Quantity,
@@ -82,7 +82,7 @@ def configure_models(
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
         data: A Data instance.
         modules: A set of models to be configured
         update_interval: The interval with which each model is updated
@@ -114,7 +114,7 @@ def configure_models(
 
 
 def extract_timing_details(
-    config: dict[str, Any]
+    config: Config,
 ) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
     """Extract timing details for main loop from the model configuration.
 
@@ -126,7 +126,7 @@ def extract_timing_details(
     length.
 
     Args:
-        config: The full virtual rainforest configuration
+        config: A validated Virtual Rainforest model configuration object.
 
     Raises:
         InitialisationError: If the run length is too short for the model to update, or
@@ -190,8 +190,9 @@ def extract_timing_details(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]],
-    override_params: dict[str, Any],
+    cfg_paths: Optional[Union[str, Path, Sequence[Union[str, Path]]]] = None,
+    cfg_string: Optional[str] = None,
+    override_params: dict[str, Any] = {},
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -202,16 +203,19 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
+        cfg_string: An alternate string providing TOML formatted configuration data
         override_params: Extra parameters provided by the user
         merge_file_path: Path to save merged config file to (i.e. folder location + file
             name)
     """
 
-    config = Config(cfg_paths, override_params)
+    config = Config(
+        cfg_paths=cfg_paths, cfg_string=cfg_string, override_params=override_params
+    )
 
     grid = Grid.from_config(config)
     data = Data(grid)
-    data.load_data_config(config["core"]["data"])
+    data.load_data_config(config)
 
     model_list = select_models(config["core"]["modules"])
 

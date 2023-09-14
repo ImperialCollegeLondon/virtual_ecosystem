@@ -27,6 +27,7 @@ from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
@@ -135,7 +136,7 @@ class AnimalModel(BaseModel):
 
     @classmethod
     def from_config(
-        cls, data: Data, config: dict[str, Any], update_interval: Quantity
+        cls, data: Data, config: Config, update_interval: Quantity
     ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
@@ -145,7 +146,7 @@ class AnimalModel(BaseModel):
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
-            config: The complete (and validated) virtual rainforest configuration.
+            config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
         """
 
