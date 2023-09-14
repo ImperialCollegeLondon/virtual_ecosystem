@@ -12,6 +12,11 @@ Each of the hydrology sub-modules has its own API reference page:
   simple bucket-model will be replaced by a process-based model that calculates a within
   grid cell water balance as well as the catchment water balance on a daily time step.
 
+* The :mod:`~virtual_rainforest.models.hydrology.above_ground` submodule contains
+  functions to simulate the above-ground hydrological processes for the Virtual
+  Rainforest. At the moment, this includes rainwater interception by the canopy, soil
+  evaporation, and all functions related to surface runoff.
+
 * The :mod:`~virtual_rainforest.models.hydrology.constants` submodule contains
   parameters and constants for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415
