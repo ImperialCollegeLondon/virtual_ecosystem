@@ -31,11 +31,6 @@ class HydroConsts:
     between 0 and 1).
     """
 
-    water_interception_factor: float = 0.1
-    """Water interception factor describes the proportion of rainfall that is
-    intercepted by a canopy her unit leaf area.
-    """
-
     hydraulic_conductivity: float = 0.001
     """Hydraulic conductivity (m/s) is the measure of a soil's ability to transmit water
     through its pores. More specifically, is defined as the volumetric flow rate of
@@ -50,14 +45,14 @@ class HydroConsts:
     movement of water and indicates the direction in which water will flow.
     """
 
-    seconds_to_month: float = 2.628e6
-    """Factor to convert variable unit from seconds to month."""
+    seconds_to_day: float = 86400
+    """Factor to convert variable unit from seconds to day."""
 
     nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in van Genuchten model for hydraulic
     conductivity :cite:p:`van_genuchten_describing_1985`."""
 
-    meters_to_millimeters: float = 1000
+    meters_to_mm: float = 1000
     """Factor to convert variable unit from meters to millimeters."""
 
     celsius_to_kelvin: float = 273.15
@@ -75,9 +70,26 @@ class HydroConsts:
     heat_transfer_coefficient: float = 12.5
     """Heat transfer coefficient, :cite:p:`van_de_griend_bare_1994` """
 
-    flux_to_mm_conversion: float = 3.35e-4
-    """Factor to convert evaporative flux to mm."""
-
     stream_flow_capacity: float = 5000.0
     """Stream flow capacity, mm per timestep. This is curretly an arbitrary value, but
     could be used in the future to flag flood events."""
+
+    intercept_param_1: float = 0.935
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    intercept_param_2: float = 0.498
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    intercept_param_3: float = 0.00575
+    """Parameter in equation that estimates maximum canopy interception capacity after
+    Von Hoyningen-Huene, (1981)."""
+
+    veg_density_param: float = 0.046
+    """Parameter used to estimate vegetation density for maximum canopy interception
+    capacity estimate after Von Hoyningen-Huene, (1981)."""
+
+    groundwater_capacity: float = 0.9
+    """Ground water storage capacity in relative volumetric water content. This might be
+    replaced with the implementation of below ground horizontal flow."""

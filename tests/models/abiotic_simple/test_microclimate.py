@@ -292,7 +292,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
 
     exp_output = DataArray(
         [
-            [21.42187035, 21.42187035, 21.42187035],
+            [20.505557, 20.505557, 20.505557],
             [20.0, 20.0, 20.0],
         ],
         dims=["layers", "cell_id"],
