@@ -211,4 +211,4 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         logfile=args.logfile,
     )
 
-    sys.stdout.write("VR run complete.\n")
+    print("VR run complete.\n")
