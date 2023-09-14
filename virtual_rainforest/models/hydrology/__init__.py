@@ -17,6 +17,11 @@ Each of the hydrology sub-modules has its own API reference page:
   Rainforest. At the moment, this includes rainwater interception by the canopy, soil
   evaporation, and all functions related to surface runoff.
 
+* The :mod:`~virtual_rainforest.models.hydrology.below_ground` submodule contains
+  functions to simulate the below-ground hydrological processes for the Virtual
+  Rainforest. At the moment, this includes vertical flow and soil moisture. In the
+  future, this will also include sub-surface horizontal flow.
+
 * The :mod:`~virtual_rainforest.models.hydrology.constants` submodule contains
   parameters and constants for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415

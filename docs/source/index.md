@@ -103,6 +103,7 @@ team.
   Hydrology Overview <api/hydrology.md>
   Hydrology Model <api/hydrology/hydrology_model.md>
   Hydrology Above-ground <api/hydrology/above_ground.md>
+  Hydrology Below-ground <api/hydrology/below_ground.md>
   Hydrology Constants <api/hydrology/constants.md>
   Abiotic Overview <api/abiotic.md>
   Abiotic Model <api/abiotic/abiotic_model.md>
