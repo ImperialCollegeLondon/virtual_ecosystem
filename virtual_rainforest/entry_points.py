@@ -84,17 +84,19 @@ def install_example_directory(install_dir: Path) -> None:
         install_dir: the installation path.
     """
     if not install_dir.is_dir():
-        sys.stderr.write("--install-example path is not a valid directory.")
+        sys.stderr.write("--install-example path is not a valid directory.\n")
+        return
 
     example_dir = install_dir / "vr_example"
     if example_dir.exists():
         sys.stderr.write(
-            "VR example directory already present in --install-example path.\n"
+            f"VR example directory (vr_example already present in: {install_dir} \n"
         )
+        return
 
     copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
 
-    print(f"Example directory created at:\n{example_dir}\n")
+    print(f"Example directory created at:\n{example_dir}")
 
 
 def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
@@ -186,8 +188,9 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     # Cannot use both install example and paths
     if args.cfg_paths and args.install_example:
         sys.stderr.write(
-            "--install-example cannot be used in combination with configuration paths."
+            "--install-example cannot be used in combination with cfg_paths.\n"
         )
+        return
 
     # Install the example directory to the provided empty location if requested
     if args.install_example:
@@ -211,4 +214,4 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         logfile=args.logfile,
     )
 
-    print("VR run complete.\n")
+    print("VR run complete.")
