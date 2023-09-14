@@ -69,6 +69,34 @@ def _parse_command_line_params(
         raise to_raise
 
 
+def install_example_directory(install_dir: Path) -> None:
+    """Install the example directory to a location.
+
+    This function installs the example directory data files and configuration files
+    provided within the package to a selected location. This allows users to look at the
+    simulation directory structure and files more easily and avoids working with the
+    original files inside the package tree.
+
+    The files are installed to a ``vr_example`` directory within the provided install
+    location.
+
+    Args:
+        install_dir: the installation path.
+    """
+    if not install_dir.is_dir():
+        sys.stderr.write("--install_example path is not a valid directory.")
+
+    example_dir = install_dir / "vr_example"
+    if example_dir.exists():
+        sys.stderr.write(
+            "VR example directory already present in --install_example path.\n"
+        )
+
+    copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
+
+    sys.stdout.write(f"Example directory created at:\n{example_dir}\n")
+
+
 def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     """Configure and run a Virtual Rainforest simulation.
 
@@ -100,7 +128,8 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     Args:
         args_list: This is a developer and testing facing argument that is used to
             simulate command line arguments, allowing this function to be called
-            directly.
+            directly. For example, ``vr_run --install_example /usr/abc`` can be
+            replicated by calling ``vr_run_cli(['--install_example', '/usr/abc/'])``.
     """
 
     # If no arguments list is provided
@@ -111,7 +140,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     # description of the function args_list, which should not be included in the command
     # line docs
     if vr_run_cli.__doc__ is not None:
-        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-6]))
+        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-7]))
     else:
         desc = "Python in -OO mode: no docs"
 
@@ -128,7 +157,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
 
     parser.add_argument(
         "--install_example",
-        type=str,
+        type=Path,
         help="Install the Virtual Rainforest example data to the given location",
         dest="install_example",
     )
@@ -162,18 +191,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
 
     # Install the example directory to the provided empty location if requested
     if args.install_example:
-        example_path = Path(args.install_example)
-        if not example_path.is_dir():
-            sys.stderr.write("--install_example path is not a valid directory.")
-
-        example_dir = example_path / "vr_example"
-        if example_dir.exists():
-            sys.stderr.write(
-                "VR example directory already present in --install_example path.\n"
-            )
-
-        copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
-        sys.stdout.write(f"Example directory created at:\n{example_dir}\n")
+        install_example_directory(args.install_example)
         return
 
     # Otherwise run with the provided  config paths
