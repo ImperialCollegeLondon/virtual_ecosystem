@@ -257,7 +257,7 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> None:
+    ) -> Resource:
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
@@ -274,13 +274,17 @@ class AnimalCohort:
         """
 
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            consumed_energy = self.eat(choice(plant_list), excrement_pool)
+            food_choice = choice(plant_list)
+            consumed_energy = self.eat(food_choice, excrement_pool)
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-            consumed_energy = self.eat(choice(animal_list), carcass_pool)
+            food_choice = choice(animal_list)
+            consumed_energy = self.eat(food_choice, carcass_pool)
         else:
             LOGGER.info("No food available.")
         # excrete excess digestive wastes
         self.excrete(excrement_pool, consumed_energy)
+
+        return food_choice
 
     def eat(self, food: Resource, pool: DecayPool) -> float:
         """This function handles the energy transfer of a trophic interaction.

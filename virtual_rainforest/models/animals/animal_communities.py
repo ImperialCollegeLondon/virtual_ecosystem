@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from itertools import chain
 from random import choice
-from typing import Callable
+from typing import Callable, Iterable
 
 from numpy import timedelta64
 
@@ -50,6 +50,18 @@ class AnimalCommunity:
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
 
+    @property
+    def all_animal_cohorts(self) -> Iterable[AnimalCohort]:
+        """Get an iterable of all animal cohorts in the community.
+
+        This property provides access to all the animal cohorts contained
+        within this community class.
+
+        Returns:
+            Iterable[AnimalCohort]: An iterable of AnimalCohort objects.
+        """
+        return chain.from_iterable(self.animal_cohorts.values())
+
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
 
@@ -80,7 +92,7 @@ class AnimalCommunity:
 
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+        for cohort in self.all_animal_cohorts:
             if cohort.is_below_energy_threshold():
                 # Random walk destination from the neighbouring keys
                 destination_key = choice(self.neighbouring_keys)
@@ -135,7 +147,7 @@ class AnimalCommunity:
         """This handles birth for all cohorts in a community."""
 
         # Create a snapshot list of the current cohorts
-        current_cohorts = list(chain.from_iterable(self.animal_cohorts.values()))
+        current_cohorts = list(self.all_animal_cohorts)
 
         # reproduction occurs for cohorts with sufficient energy
         for cohort in current_cohorts:
@@ -156,14 +168,16 @@ class AnimalCommunity:
         """
         plant_list = [self.plant_community]
 
-        for consumer_cohort in chain.from_iterable(self.animal_cohorts.values()):
-            prey = self.collect_prey(consumer_cohort)
-            consumer_cohort.forage_cohort(
+        for consumer_cohort in self.all_animal_cohorts:
+            prey_list = self.collect_prey(consumer_cohort)
+            food_choice = consumer_cohort.forage_cohort(
                 plant_list=plant_list,
-                animal_list=prey,
+                animal_list=prey_list,
                 carcass_pool=self.carcass_pool,
                 excrement_pool=self.excrement_pool,
             )
+            if isinstance(food_choice, AnimalCohort) and food_choice.individuals == 0:
+                self.die_cohort(food_choice)
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
@@ -195,10 +209,10 @@ class AnimalCommunity:
             for cohort in potential_prey_cohorts:
                 if min_size <= cohort.mass <= max_size:
                     # Check if the cohort has zero individuals
-                    if cohort.individuals <= 0:
-                        # Call the die_cohort method here
-                        self.die_cohort(cohort)
-                        continue  # Skip this cohort and move on to the next one
+                    # if cohort.individuals <= 0:
+                    # Call the die_cohort method here
+                    #    self.die_cohort(cohort)
+                    #    continue  # Skip this cohort and move on to the next one
                     prey.append(cohort)
         return prey
 
@@ -209,7 +223,7 @@ class AnimalCommunity:
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+        for cohort in self.all_animal_cohorts:
             cohort.metabolize(dt)
 
     def increase_age_community(self, dt: timedelta64) -> None:
@@ -219,7 +233,7 @@ class AnimalCommunity:
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+        for cohort in self.all_animal_cohorts:
             cohort.increase_age(dt)
 
     def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
@@ -233,7 +247,7 @@ class AnimalCommunity:
 
         """
         number_of_days = float(dt / timedelta64(1, "D"))
-        for cohort in chain.from_iterable(self.animal_cohorts.values()):
+        for cohort in self.all_animal_cohorts:
             cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
             if cohort.individuals <= 0:
                 self.die_cohort(cohort)

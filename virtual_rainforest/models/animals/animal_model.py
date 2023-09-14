@@ -153,10 +153,7 @@ class AnimalModel(BaseModel):
 
         functional_groups_raw = config["animals"]["functional_groups"]
 
-        animal_functional_groups = []
-
-        for k in functional_groups_raw:
-            animal_functional_groups.append(FunctionalGroup(**k))
+        animal_functional_groups = [FunctionalGroup(**k) for k in functional_groups_raw]
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
