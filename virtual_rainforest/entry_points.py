@@ -94,7 +94,7 @@ def install_example_directory(install_dir: Path) -> None:
 
     copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
 
-    sys.stdout.write(f"Example directory created at:\n{example_dir}\n")
+    print(f"Example directory created at:\n{example_dir}\n")
 
 
 def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
