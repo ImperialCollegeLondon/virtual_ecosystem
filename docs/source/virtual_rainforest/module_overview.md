@@ -100,7 +100,7 @@ Further theoretical background for the Soil Model can be found
 
 ## Abiotic Model
 
-The Abiotic Model provides the microclimate and hydrology for the Virtual Rainforest.
+The Abiotic Model provides the microclimate for the Virtual Rainforest.
 Using a small set of input variables from external sources such as reanalysis or
 regional climate models, the model calculates atmospheric and soil parameters that
 drive the dynamics of plants, animals, and microbes at different vertical levels:
@@ -115,6 +115,13 @@ At the moment, the default option is a simple regression model that estimates
 microclimate for a monthly time step. We are also working on a process-based abiotic
 model that runs on a shorter time step, typically sub-daily, and could be used to run
 the Virtual Rainforest in high temporal resolution or for representative days per month.
+Both versions of the abiotic model provide the following variables at different vertical
+levels:
+
+- Air temperature, relative humidity, and vapour pressure deficit
+- Soil temperature
+- Atmospheric $\ce{CO_{2}}$ concentration
+- Atmospheric Pressure
 
 ### Simple Abiotic Model
 
@@ -131,40 +138,20 @@ temperature at around 1 m depth which equals the mean annual temperature.
 The model also provides a constant vertical profile of atmospheric pressure and
 atmospheric $\ce{CO_{2}}$.
 
-### Hydrology Model
-
-The current version of the Hydrology Model is a one-column model that operates on a grid
-cell basis and does not consider horizontal flow of water (above and below ground)
-between grid cells. We placed hydrology in a separate model in order to allow
-easy replacement with a different hydrology model, for example a process-based model
-that runs on a daily time step and returns monthly statistics to the data object for
-other modules to use. Also, this provides more flexibility in defining the order of
-models an/or processes in the overall Virtual Rainforest workflow.
-
-Soil moisture and surface runoff are calculated for each grid cell with a simple bucket
-model based on {cite}`davis_simple_2017`; simple versions of vertical flow and surface
-evaporation are considered.
-
 ### Process-based Abiotic Model
 
-The Process-based Abiotic Model contains four subroutines - the radiation balance, the
-energy balance, the water balance, and the atmospheric $\ce{CO_{2}}$ balance - provide
-the following variables at different vertical levels:
+The Process-based Abiotic Model will contain five subroutines: radiation, energy balance
+, water balance, wind, and atmospheric $\ce{CO_{2}}$. The model will be based on the
+'microclimc' model by {cite}`maclean_microclimc_2021`.
 
-- Net radiation and Photosynthetic photon flux density
-- Air temperature, relative humidity, and vapour pressure deficit
-- Soil temperature and soil moisture
-- Atmospheric $\ce{CO_{2}}$ concentration
-- above- and belowground runoff, mean vertical flow, and streamflow (at catchment scale)
+#### Radiation
 
-#### The Radiation balance
-
-The Radiation balance submodule calculates location-specific solar irradiance
+The Radiation submodule calculates location-specific solar irradiance
 (shortwave), reflection and scattering of shortwave radiation from canopy and surface,
 vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
-and surface.
+and surface. This will likely be replaced by the SPLASH model in the future.
 
-#### The Energy balance
+#### Energy balance
 
 The Energy balance submodule derives sensible and latent heat fluxes from canopy and
 surface to the atmosphere, and updates air temperature, relative humidity, and vapor
@@ -174,24 +161,42 @@ driven by heat conductance because turbulence is typically low below the canopy
 flux. The vertical exchange of heat between soil levels is coupled to the atmospheric
 mixing.
 
-#### The Water balance
+#### Water balance
 
-The first part of the Water balance submodule determines the water balance within each
-grid cell including rainfall, intercept, throughfall and stemflow, surface water storage
-(= depression storage), surface runoff out of the grid cell (= overland flow),
-infiltration, percolation (= vertical flow), soil moisture profile, water table depth,
-and subsurface flow out of the grid cell.
+The Water balance submodule will link atmospheric humidity to the hydrology model and
+coordinate the exchange of water between pools, i.e. between the soil, plants, animals,
+and the atmosphere.
 
-The second part of the submodule caluclates the water balance across the full model grid
-based on the TOPMODEL (e.g. {cite:t}`metcalfe_dynamic_2015`) including surface runoff,
-subsurface flow, return flow, and streamflow.
+#### Wind
 
-#### The Atmospheric $\ce{CO_{2}}$ balance
+The wind submodule calculates the above- and within-canopy wind profiles for the Virtual
+Rainforest. These profiles will determine the exchange of heat, water, and $\ce{CO_{2}}$
+between soil and atmosphere below the canopy as well as the exchange with the atmsophere
+above the canopy.
 
-The Atmospheric $\ce{CO_{2}}$ submodule calculates the vertical profile of atmospheric
-$\ce{CO_{2}}$ below the canopy. It takes into account the carbon assimilation/
-respiration from plants and respiration from animals and soil microbes and mixes
+#### Atmospheric $\ce{CO_{2}}$
+
+The Atmospheric $\ce{CO_{2}}$ submodule will calculate the vertical profile of
+atmospheric $\ce{CO_{2}}$ below the canopy. It will include the carbon assimilation/
+respiration from plants and respiration from animals and soil microbes and mix
 vertically depending on wind speed below the canopy.
+
+## Hydrology Model
+
+The Hydrology model simulates the hydrological processes in the Virtual Rainforest. We
+placed hydrology in a separate model in order to allow easy replacement with a different
+hydrology model. Also, this provides more flexibility in defining the order of
+models an/or processes in the overall Virtual Rainforest workflow.
+
+The first part of the Hydrology model determines the water balance within each
+grid cell including rainfall, intercept, surface runoff out of the grid cell,
+infiltration, percolation (= vertical flow), soil moisture profile, and
+horizontal sub-surface flow out of the grid
+cell.
+
+The second part of the submodule calculates the water balance across the full model
+grid including accumulated surface runoff, sub-surface flow, return flow, and streamflow
+. This second part is still in development.
 
 ## Disturbance Model
 
