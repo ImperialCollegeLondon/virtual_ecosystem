@@ -111,10 +111,10 @@ def remove_file_logger() -> None:
     """Remove an existing file logger and return to stream logging."""
 
     # Find the file logger by name and remove it
-    vr_logfile = [
+    vr_logfile = next(
         handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
-    ]
-    LOGGER.removeHandler(vr_logfile[0])
+    )
+    LOGGER.removeHandler(vr_logfile)
 
     # Allow logger messages to propogate back down to the root StreamHandler
     LOGGER.propagate = True
