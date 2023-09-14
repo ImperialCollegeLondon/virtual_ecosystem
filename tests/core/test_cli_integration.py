@@ -8,7 +8,7 @@ def test_vr_run_install_example(capsys):
     from virtual_rainforest.entry_points import vr_run_cli
 
     with TemporaryDirectory() as tempdir:
-        vr_run_cli(args_list=["--install_example", tempdir])
+        vr_run_cli(args_list=["--install-example", tempdir])
 
         captured = capsys.readouterr()
         expected = "Example directory created at:"
@@ -22,7 +22,7 @@ def test_vr_run(capsys):
     with TemporaryDirectory() as tempdir:
         # Install the example directory to run it - tested above - and consume the
         # resulting stdout
-        vr_run_cli(args_list=["--install_example", tempdir])
+        vr_run_cli(args_list=["--install-example", tempdir])
         _ = capsys.readouterr()
 
         example_dir = Path(tempdir) / "vr_example"

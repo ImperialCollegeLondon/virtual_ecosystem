@@ -84,12 +84,12 @@ def install_example_directory(install_dir: Path) -> None:
         install_dir: the installation path.
     """
     if not install_dir.is_dir():
-        sys.stderr.write("--install_example path is not a valid directory.")
+        sys.stderr.write("--install-example path is not a valid directory.")
 
     example_dir = install_dir / "vr_example"
     if example_dir.exists():
         sys.stderr.write(
-            "VR example directory already present in --install_example path.\n"
+            "VR example directory already present in --install-example path.\n"
         )
 
     copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
@@ -107,7 +107,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     specific combinations of configuration files. These are combined and validated and
     then used to initialise and run the model.
 
-    As an alternative to providing configuration paths, the `--install_example` option
+    As an alternative to providing configuration paths, the `--install-example` option
     allows users to provide a location where a simple example set of datasets and
     configuration files provided with the Virtual Rainforest package can be installed.
     This option will create a `vr_example` directory in the location, and users can
@@ -128,8 +128,8 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     Args:
         args_list: This is a developer and testing facing argument that is used to
             simulate command line arguments, allowing this function to be called
-            directly. For example, ``vr_run --install_example /usr/abc`` can be
-            replicated by calling ``vr_run_cli(['--install_example', '/usr/abc/'])``.
+            directly. For example, ``vr_run --install-example /usr/abc`` can be
+            replicated by calling ``vr_run_cli(['--install-example', '/usr/abc/'])``.
     """
 
     # If no arguments list is provided
@@ -156,7 +156,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
 
     parser.add_argument(
-        "--install_example",
+        "--install-example",
         type=Path,
         help="Install the Virtual Rainforest example data to the given location",
         dest="install_example",
@@ -186,7 +186,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     # Cannot use both install example and paths
     if args.cfg_paths and args.install_example:
         sys.stderr.write(
-            "--install_example cannot be used in combination with configuration paths."
+            "--install-example cannot be used in combination with configuration paths."
         )
 
     # Install the example directory to the provided empty location if requested

@@ -28,7 +28,7 @@ create the `vr_example` directory at the location you choose and install all of 
 configuration and data files to run a model.
 
 ```shell
-vr_run --install_example /path/to/install/data
+vr_run --install-example /path/to/install/data
 ```
 
 You can then investigate the files needed to run the model and run the model itself:
