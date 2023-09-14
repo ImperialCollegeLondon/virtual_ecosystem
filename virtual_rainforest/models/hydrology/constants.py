@@ -91,4 +91,5 @@ class HydroConsts:
     capacity estimate after Von Hoyningen-Huene, (1981)."""
 
     groundwater_capacity: float = 0.9
-    """Ground water storage capacity."""
+    """Ground water storage capacity in relative volumetric water content. This might be
+    replaced with the implementation of below ground horizontal flow."""

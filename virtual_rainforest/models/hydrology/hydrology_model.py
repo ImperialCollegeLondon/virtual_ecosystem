@@ -534,7 +534,7 @@ class HydrologyModel(BaseModel):
                     np.full(
                         (
                             len(self.layer_roles) - self.layer_roles.count("soil"),
-                            len(self.data.grid.cell_id),
+                            self.data.grid.n_cells,
                         ),
                         np.nan,
                     ),
@@ -657,7 +657,7 @@ def calculate_vertical_flow(
     Returns:
         volumetric flow rate of water, [mm/timestep]
     """
-    m = 1 - 1 / nonlinearily_parameter
+    shape_parameter = 1 - 1 / nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
@@ -668,7 +668,8 @@ def calculate_vertical_flow(
     effective_conductivity = np.array(
         hydraulic_conductivity
         * np.sqrt(effective_saturation)
-        * (1 - (1 - (effective_saturation) ** (1 / m)) ** m) ** 2,
+        * (1 - (1 - (effective_saturation) ** (1 / shape_parameter)) ** shape_parameter)
+        ** 2,
     )
 
     # Calculate flow from top soil to lower soil in mm per month
@@ -755,15 +756,14 @@ def calculate_soil_evaporation(
         (17.67 * (temperature_k)) / (temperature_k + 243.5)
     )
 
+    pressure_deficit = atmospheric_pressure - saturation_vapour_pressure
     saturated_specific_humidity = (
         gas_constant_water_vapour / latent_heat_vapourisation
-    ) * (
-        saturation_vapour_pressure / (atmospheric_pressure - saturation_vapour_pressure)
-    )
+    ) * (saturation_vapour_pressure / pressure_deficit)
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = heat_transfer_coefficient / (wind_speed) ** 2
+    aerodynamic_resistance = heat_transfer_coefficient / wind_speed**2
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
@@ -900,9 +900,17 @@ def estimate_interception(
     :math:`S_{max}` is calculated using an empirical equation
     :cite:p:`von_hoyningen-huene_interzeption_1981`:
 
-    :math:`S_{max} = 0.935 + 0.498 * LAI - 0.00575 * LAI^{2}` for [LAI > 0.1], and
+      .. math::
+        :nowrap:
 
-    :math:`S_{max} = 0` for [LAI ≤ 0.1]`
+        \[
+            S_{max} =
+                \begin{cases}
+                    0.935 + 0.498 \cdot \text{LAI} - 0.00575 \cdot \text{LAI}^{2},
+                      & \text{LAI} > 0.1 \\
+                    0, &  \text{LAI} \le 0.1,
+                \end{cases}
+        \]
 
     where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
 
