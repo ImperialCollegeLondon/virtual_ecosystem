@@ -69,7 +69,7 @@ def _parse_command_line_params(
         raise to_raise
 
 
-def install_example_directory(install_dir: Path) -> None:
+def install_example_directory(install_dir: Path) -> int:
     """Install the example directory to a location.
 
     This function installs the example directory data files and configuration files
@@ -82,24 +82,28 @@ def install_example_directory(install_dir: Path) -> None:
 
     Args:
         install_dir: the installation path.
+
+    Returns:
+        An integer indicating success (0) or failure (1).
     """
     if not install_dir.is_dir():
         sys.stderr.write("--install-example path is not a valid directory.\n")
-        return
+        return 1
 
     example_dir = install_dir / "vr_example"
     if example_dir.exists():
         sys.stderr.write(
             f"VR example directory (vr_example already present in: {install_dir} \n"
         )
-        return
+        return 1
 
     copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
 
     print(f"Example directory created at:\n{example_dir}")
+    return 0
 
 
-def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
+def vr_run_cli(args_list: Optional[list[str]] = None) -> int:
     """Configure and run a Virtual Rainforest simulation.
 
     This program sets up and runs a Virtual Rainforest simulation. The program expects
@@ -132,6 +136,9 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
             simulate command line arguments, allowing this function to be called
             directly. For example, ``vr_run --install-example /usr/abc`` can be
             replicated by calling ``vr_run_cli(['--install-example', '/usr/abc/'])``.
+
+    Returns:
+        An integer indicating success (0) or failure (1)
     """
 
     # If no arguments list is provided
@@ -142,7 +149,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     # description of the function args_list, which should not be included in the command
     # line docs
     if vr_run_cli.__doc__ is not None:
-        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-7]))
+        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-10]))
     else:
         desc = "Python in -OO mode: no docs"
 
@@ -190,12 +197,12 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
         sys.stderr.write(
             "--install-example cannot be used in combination with cfg_paths.\n"
         )
-        return
+        return 1
 
     # Install the example directory to the provided empty location if requested
     if args.install_example:
-        install_example_directory(args.install_example)
-        return
+        installed = install_example_directory(args.install_example)
+        return installed
 
     # Otherwise run with the provided  config paths
     override_params: dict[str, Any] = {}
@@ -215,3 +222,4 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> None:
     )
 
     print("VR run complete.")
+    return 0
