@@ -1,6 +1,6 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Rainforest. At the moment, this includes rainwater
-interception by the canopy, surface evaporation, and all functions related to soil
+interception by the canopy, soil evaporation, and all functions related to surface
 runoff.
 """  # noqa: D205, D415
 
