@@ -12,22 +12,31 @@
                         "type": "object",
                         "properties": {
                             "name": {
-                                "type": "string",
-                                "default": ""
+                                "type": "string"
                             },
                             "taxa": {
-                                "type": "string",
-                                "default": ""
+                                "type": "string"
                             },
                             "diet": {
-                                "type": "string",
-                                "default": ""
+                                "type": "string"
+                            },
+                            "metabolic_type": {
+                                "type": "string"
+                            },
+                            "birth_mass": {
+                                "type": "number"
+                            },
+                            "adult_mass": {
+                                "type": "number"
                             }
                         },
                         "required": [
                             "name",
                             "taxa",
-                            "diet"
+                            "diet",
+                            "metabolic_type",
+                            "birth_mass",
+                            "adult_mass"
                         ]
                     }
                 }
