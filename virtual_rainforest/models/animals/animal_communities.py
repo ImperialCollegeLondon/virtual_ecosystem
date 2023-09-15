@@ -146,11 +146,8 @@ class AnimalCommunity:
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
 
-        # Create a snapshot list of the current cohorts
-        current_cohorts = list(self.all_animal_cohorts)
-
         # reproduction occurs for cohorts with sufficient energy
-        for cohort in current_cohorts:
+        for cohort in self.all_animal_cohorts:
             if cohort.can_reproduce():
                 self.birth(cohort)
 
@@ -208,12 +205,8 @@ class AnimalCommunity:
             # Filter the potential prey cohorts based on their size
             for cohort in potential_prey_cohorts:
                 if min_size <= cohort.mass <= max_size:
-                    # Check if the cohort has zero individuals
-                    # if cohort.individuals <= 0:
-                    # Call the die_cohort method here
-                    #    self.die_cohort(cohort)
-                    #    continue  # Skip this cohort and move on to the next one
                     prey.append(cohort)
+
         return prey
 
     def metabolize_community(self, dt: timedelta64) -> None:
