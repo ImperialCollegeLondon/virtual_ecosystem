@@ -93,8 +93,7 @@ simulating a particular aspect of the rainforest ecosystem. The models used for 
 specific simulation run can be set in the configuration and will typically include the
 four standard models:
 
-* the [`AbioticModel`](../api/abiotic.md) or
-  [`AbioticSimpleModel`](../api/abiotic_simple.md),
+* the [`AbioticSimpleModel`](../api/abiotic_simple.md),
 * the `AnimalModel`,
 * the `PlantModel` and the
 * [`SoilModel`](../api/soil.md)
