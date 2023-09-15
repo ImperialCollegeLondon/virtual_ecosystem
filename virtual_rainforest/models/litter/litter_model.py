@@ -198,30 +198,6 @@ class LitterModel(BaseModel):
     def setup(self) -> None:
         """Placeholder function to setup up the litter model."""
 
-        # TODO - At some point this could be used to calculate an initial litter input
-        # rate so that the soil model can be run before the litter model. Think we need
-        # to decide how we are handling model order first though.
-
-        # TODO - These variables should be created by the animal model, but it is not
-        # yet linked into the full vr_run flow yet. Once it is this step should be
-        # deleted.
-        self.data["decomposed_excrement"] = DataArray(
-            np.zeros_like(self.data.grid.cell_id),
-            dims=["cell_id"],
-            coords={
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="decomposed_excrement",
-        )
-        self.data["decomposed_carcasses"] = DataArray(
-            np.zeros_like(self.data.grid.cell_id),
-            dims=["cell_id"],
-            coords={
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="decomposed_carcasses",
-        )
-
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 

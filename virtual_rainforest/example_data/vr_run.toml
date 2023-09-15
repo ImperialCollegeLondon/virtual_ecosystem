@@ -2,6 +2,7 @@
 modules = [
     "hydrology",
     "abiotic_simple",
+    "animals",
     "litter",
     "soil"
 ]

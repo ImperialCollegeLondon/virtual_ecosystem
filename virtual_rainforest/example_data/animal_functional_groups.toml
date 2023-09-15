@@ -1,34 +1,4 @@
-# This file contains every tag required to build the config for the plants and soil
-# modules. Each value has been chosen to be different from the default value, so that
-# this file can be used to test that providing non-default values works.
-[core]
-modules = ["plants", "soil", "animals"]
-
-[core.grid]
-cell_nx = 10
-cell_ny = 10
-
-[core.timing]
-start_date = "2020-01-01"
-update_interval = "2 weeks"
-run_length = "50 years"
-
-[core.data_output_options]
-save_initial_state = true
-save_final_state = true
-out_initial_file_name = "model_at_start.nc"
-out_final_file_name = "model_at_end.nc"
-
-[plants]
-a_plant_integer = 12
-
-[[plants.ftypes]]
-pft_name = "shrub"
-max_height = 1.0
-
-[[plants.ftypes]]
-pft_name = "broadleaf"
-max_height = 50.0
+# animal_functional_groups.toml
 
 [[animals.functional_groups]]
 name = "carnivorous_bird"
@@ -77,4 +47,3 @@ diet = "herbivore"
 metabolic_type = "ectothermic"
 birth_mass = 0.0005
 adult_mass = 0.005
-

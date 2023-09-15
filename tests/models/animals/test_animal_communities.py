@@ -55,6 +55,22 @@ class TestAnimalCommunity:
             "herbivorous_insect",
         ]
 
+    def test_all_animal_cohorts_property(
+        self, animal_community_instance, animal_cohort_instance
+    ):
+        """Test the all_animal_cohorts property."""
+        from typing import Iterable
+
+        # Add an animal cohort to the community
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
+            animal_cohort_instance
+        )
+
+        # Check if the added cohort is in the all_animal_cohorts property
+        assert animal_cohort_instance in animal_community_instance.all_animal_cohorts
+        # Check the type of all_animal_cohorts
+        assert isinstance(animal_community_instance.all_animal_cohorts, Iterable)
+
     def test_populate_community(self, animal_community_instance):
         """Testing populate_community."""
         animal_community_instance.populate_community()
