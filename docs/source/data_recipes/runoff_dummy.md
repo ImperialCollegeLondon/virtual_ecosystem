@@ -17,7 +17,8 @@ kernelspec:
 # Create surface runoff dummy data
 
 This section explains how to randomly generate normally distributed surface runoff data
-to run `vr_run --example` without the SPLASH implementation.
+to run `vr_run` with the example data installed by `vr_run --install-example` without
+the SPLASH implementation.
 
 ```{code-cell} ipython3
 import numpy as np

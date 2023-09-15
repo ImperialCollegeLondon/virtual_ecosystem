@@ -7,7 +7,9 @@ import argparse
 import sys
 import textwrap
 from collections.abc import Sequence
-from typing import Any
+from pathlib import Path
+from shutil import copytree, ignore_patterns
+from typing import Any, Optional
 
 import virtual_rainforest as vr
 from virtual_rainforest import example_data_path
@@ -67,31 +69,108 @@ def _parse_command_line_params(
         raise to_raise
 
 
-def vr_run_cli() -> None:
+def install_example_directory(install_dir: Path) -> int:
+    """Install the example directory to a location.
+
+    This function installs the example directory data files and configuration files
+    provided within the package to a selected location. This allows users to look at the
+    simulation directory structure and files more easily and avoids working with the
+    original files inside the package tree.
+
+    The files are installed to a ``vr_example`` directory within the provided install
+    location.
+
+    Args:
+        install_dir: the installation path.
+
+    Returns:
+        An integer indicating success (0) or failure (1).
+    """
+    if not install_dir.is_dir():
+        sys.stderr.write("--install-example path is not a valid directory.\n")
+        return 1
+
+    example_dir = install_dir / "vr_example"
+    if example_dir.exists():
+        sys.stderr.write(
+            f"VR example directory (vr_example already present in: {install_dir} \n"
+        )
+        return 1
+
+    copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
+
+    print(f"Example directory created at:\n{example_dir}")
+    return 0
+
+
+def vr_run_cli(args_list: Optional[list[str]] = None) -> int:
     """Configure and run a Virtual Rainforest simulation.
 
-    This program sets up and runs a simulation of the Virtual Rainforest model. At
-    present this is incomplete. At the moment a set of configuration files are read in
-    based on user supplied paths, these are converted to a single configuration file,
-    which is then output for further reference. This combined configuration is then used
-    to initialise a set of models.
+    This program sets up and runs a Virtual Rainforest simulation. The program expects
+    to be provided with paths to TOML formatted configuration files for the simulation.
+    The configuration is modular: a directory path can be used to add all TOML
+    configuration files in the directory, or individual file paths can be used to select
+    specific combinations of configuration files. These are combined and validated and
+    then used to initialise and run the model.
 
-    The command accepts one or more paths to config files or folders containing config
-    files (cfg_paths). The set of config files found in those locations are then
-    combined and validated to make sure that they contain a complete and consistent
-    configuration for a virtual_rainforest simulation. The resolved complete
-    configuration will then be written to a single consolidated config file in the
-    output path with a default name of `vr_full_model_configuration.toml`. This can be
-    disabled by setting the `core.data_output_options.save_merged_config` option to
-    false.
+    As an alternative to providing configuration paths, the `--install-example` option
+    allows users to provide a location where a simple example set of datasets and
+    configuration files provided with the Virtual Rainforest package can be installed.
+    This option will create a `vr_example` directory in the location, and users can
+    examine the input files and run the simulation from that directory:
+
+    `vr_run /provided/install/path/vr_example`
+
+    The output directory for simulation results is typically set in the configuration
+    files, but can be overwritten using the `--outpath` option. A log file path can be
+    provided for logging output - if this is not provided the log will be written to the
+    console.
+
+    The resolved complete configuration will then be written to a single consolidated
+    config file in the output path with a default name of
+    `vr_full_model_configuration.toml`. This can be disabled by setting the
+    `core.data_output_options.save_merged_config` option to false.
+
+    Args:
+        args_list: This is a developer and testing facing argument that is used to
+            simulate command line arguments, allowing this function to be called
+            directly. For example, ``vr_run --install-example /usr/abc`` can be
+            replicated by calling ``vr_run_cli(['--install-example', '/usr/abc/'])``.
+
+    Returns:
+        An integer indicating success (0) or failure (1)
     """
 
-    # Check function docstring exists, as -OO flag strips docstrings I believe
-    desc = textwrap.dedent(vr_run_cli.__doc__ or "Python in -OO mode: no docs")
+    # If no arguments list is provided
+    if args_list is None:
+        args_list = sys.argv[1:]
+
+    # Check function docstring exists to safeguard against -OO mode, and strip off the
+    # description of the function args_list, which should not be included in the command
+    # line docs
+    if vr_run_cli.__doc__ is not None:
+        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-10]))
+    else:
+        desc = "Python in -OO mode: no docs"
+
     fmt = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc, formatter_class=fmt)
 
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s {version}".format(version=vr.__version__),
+    )
+
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
+
+    parser.add_argument(
+        "--install-example",
+        type=Path,
+        help="Install the Virtual Rainforest example data to the given location",
+        dest="install_example",
+    )
+
     parser.add_argument(
         "-o", "--outpath", type=str, help="Path for output files", dest="outpath"
     )
@@ -103,34 +182,29 @@ def vr_run_cli() -> None:
         help="Value for additional parameter (in the form parameter.name=something)",
         dest="params",
     )
-    parser.add_argument(
-        "--example",
-        action="store_true",
-        help="Run Virtual Rainforest with example data",
-        dest="example",
-    )
 
     parser.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s {version}".format(version=vr.__version__),
+        "--logfile",
+        type=Path,
+        help="A file path to use for logging a Virtual Rainforest simulation",
+        default=None,
     )
 
-    args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args(args=args_list)
 
-    cfg_paths: list[str] = []
-    if args.example:
-        cfg_paths.append(example_data_path)
-    if args.cfg_paths:
-        cfg_paths.extend(args.cfg_paths)
-
-    if not cfg_paths:
-        to_raise = ConfigurationError(
-            "Configuration paths must be provided! See vr_run --help"
+    # Cannot use both install example and paths
+    if args.cfg_paths and args.install_example:
+        sys.stderr.write(
+            "--install-example cannot be used in combination with cfg_paths.\n"
         )
-        LOGGER.critical(to_raise)
-        raise to_raise
+        return 1
 
+    # Install the example directory to the provided empty location if requested
+    if args.install_example:
+        installed = install_example_directory(args.install_example)
+        return installed
+
+    # Otherwise run with the provided  config paths
     override_params: dict[str, Any] = {}
     if args.outpath:
         # Set the output path
@@ -141,4 +215,11 @@ def vr_run_cli() -> None:
         _parse_command_line_params(args.params, override_params)
 
     # Run the virtual rainforest run function
-    vr_run(cfg_paths=cfg_paths, override_params=override_params)
+    vr_run(
+        cfg_paths=args.cfg_paths,
+        override_params=override_params,
+        logfile=args.logfile,
+    )
+
+    print("VR run complete.")
+    return 0

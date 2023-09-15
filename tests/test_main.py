@@ -6,7 +6,6 @@ defined in main.py that it calls.
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
-from pathlib import Path
 
 import numpy as np
 import pint
@@ -270,9 +269,7 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     """
 
     with pytest.raises(InitialisationError):
-        vr_run(cfg_string=config_content)
-        # If vr_run is successful (which it shouldn't be) clean up the file
-        Path("./delete_me.toml").unlink()
+        vr_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries)
 
