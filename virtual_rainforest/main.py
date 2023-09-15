@@ -18,7 +18,7 @@ from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -190,9 +190,10 @@ def extract_timing_details(
 
 
 def vr_run(
-    cfg_paths: Optional[Union[str, Path, Sequence[Union[str, Path]]]] = None,
-    cfg_string: Optional[str] = None,
+    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
+    cfg_strings: Union[str, list[str]] = [],
     override_params: dict[str, Any] = {},
+    logfile: Optional[Path] = None,
 ) -> None:
     """Perform a virtual rainforest simulation.
 
@@ -203,16 +204,27 @@ def vr_run(
 
     Args:
         cfg_paths: Set of paths to configuration files
-        cfg_string: An alternate string providing TOML formatted configuration data
+        cfg_strings: An alternate string providing TOML formatted configuration data
         override_params: Extra parameters provided by the user
-        merge_file_path: Path to save merged config file to (i.e. folder location + file
-            name)
+        logfile: An optional path to a log file, otherwise logging will print to the
+            console.
     """
 
+    # Switch from console logging to file logging
+    if logfile is not None:
+        add_file_logger(logfile)
+
     config = Config(
-        cfg_paths=cfg_paths, cfg_string=cfg_string, override_params=override_params
+        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
 
+    # Save the merged config if requested
+    data_opt = config["core"]["data_output_options"]
+    if data_opt["save_merged_config"]:
+        outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
+        config.export_config(outfile)
+
+    # Build core elements
     grid = Grid.from_config(config)
     data = Data(grid)
     data.load_data_config(config)
@@ -297,3 +309,7 @@ def vr_run(
         )
 
     LOGGER.info("Virtual rainforest model run completed!")
+
+    # Restore default logging settings
+    if logfile is not None:
+        remove_file_logger()

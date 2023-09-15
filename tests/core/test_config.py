@@ -11,7 +11,6 @@ from contextlib import nullcontext as does_not_raise
 from itertools import repeat
 from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -151,7 +150,7 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
 
 
 @pytest.mark.parametrize(
-    "cfg_paths, cfg_string, expected_cfg_paths, raises, err_msg",
+    "cfg_paths, cfg_strings, expected_cfg_paths, raises, err_msg",
     [
         pytest.param(
             "string1",
@@ -199,14 +198,25 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
             [],
             does_not_raise(),
             None,
-            id="cfg_string",
+            id="cfg_strings_as_str",
+        ),
+        pytest.param(
+            None,
+            [
+                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
+                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "patm\n"',
+            ],
+            [],
+            does_not_raise(),
+            None,
+            id="cfg_strings_as_list",
         ),
         pytest.param(
             None,
             None,
             [],
             pytest.raises(ValueError),
-            "Provide only one of either cfg_paths or cfg_string.",
+            "Provide cfg_paths or cfg_strings.",
             id="neither",
         ),
         pytest.param(
@@ -214,24 +224,25 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
             '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
             [],
             pytest.raises(ValueError),
-            "Provide only one of either cfg_paths or cfg_string.",
+            "Do not use both cfg_paths and cfg_strings.",
             id="both",
         ),
     ],
 )
-def test_Config_init(cfg_paths, cfg_string, expected_cfg_paths, raises, err_msg):
+def test_Config_init(cfg_paths, cfg_strings, expected_cfg_paths, raises, err_msg):
     """Tests the normalisation and startup of Config instance init."""
     from virtual_rainforest.core.config import Config
 
     # Just check normalisation and error conditions, no processing
     with raises as err:
-        cfg = Config(cfg_paths=cfg_paths, cfg_string=cfg_string, auto=False)
+        cfg = Config(cfg_paths=cfg_paths, cfg_strings=cfg_strings, auto=False)
 
         if not isinstance(raises, does_not_raise):
             assert str(err) == err_msg
 
         assert cfg.cfg_paths == expected_cfg_paths
-        assert cfg.cfg_string == cfg_string
+        if cfg_strings is not None:
+            assert cfg.from_cfg_strings is True
 
 
 @pytest.mark.parametrize(
@@ -339,43 +350,19 @@ def test_Config_load_config_toml(
     log_check(caplog, expected_log_entries)
 
 
-def test_Config_load_config_toml_string_not_set(caplog):
-    """Check errors for missing cfg_string."""
-    from virtual_rainforest.core.config import Config
-
-    # Initialise the Config instance and manually set the cfg_string attribute to be
-    # missing - this is a highly unlikely scenario but testing handling.
-    cfg = Config(cfg_string="Not going to be parsed", auto=False)
-    cfg.cfg_string = None
-    caplog.clear()
-
-    # Check that load_config_toml behaves as expected
-    with pytest.raises(RuntimeError) as err:
-        cfg.load_config_toml_string()
-        assert (
-            str(err.value)
-            == "Cannot run load_config_toml_string: no cfg_string loaded."
-        )
-
-    log_check(
-        caplog,
-        ((CRITICAL, "Cannot run load_config_toml_string: no cfg_string loaded."),),
-    )
-
-
 @pytest.mark.parametrize(
     "cfg_paths,expected_exception,expected_log_entries",
     [
         pytest.param(
             "all_config_bad.toml",
             pytest.raises(ConfigurationError),
-            ((CRITICAL, "TOML parsing error in cfg_string:"),),
+            ((CRITICAL, "TOML parsing error in cfg_strings:"),),
             id="toml_errors",
         ),
         pytest.param(
             "all_config.toml",
             does_not_raise(),
-            ((INFO, "Config TOML loaded from config string"),),
+            ((INFO, "Config TOML loaded from config strings"),),
             id="toml_valid",
         ),
     ],
@@ -383,14 +370,14 @@ def test_Config_load_config_toml_string_not_set(caplog):
 def test_Config_load_config_toml_string(
     caplog, shared_datadir, cfg_paths, expected_exception, expected_log_entries
 ):
-    """Check errors for incorrectly formatted cfg_string."""
+    """Check errors for incorrectly formatted cfg_strings."""
     from virtual_rainforest.core.config import Config
 
     # Initialise the Config instance and manually run the load process
     with open(Path(shared_datadir) / cfg_paths) as cfg_file:
-        cfg_string = cfg_file.read()
+        cfg_strings = cfg_file.read()
 
-    cfg = Config(cfg_string=cfg_string, auto=False)
+    cfg = Config(cfg_strings=cfg_strings, auto=False)
     caplog.clear()
 
     # Check that load_config_toml behaves as expected
@@ -414,7 +401,7 @@ def test_Config_load_config_toml_string(
             {"filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}}},
             does_not_raise(),
             {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
-            ((INFO, "Config built from single file"),),
+            ((INFO, "Config built from 1 file(s)"),),
             id="single_file_ok",
         ),
         pytest.param(
@@ -445,7 +432,7 @@ def test_Config_load_config_toml_string(
                     "modules": ["plants", "abiotic"],
                 }
             },
-            ((INFO, "Config built from merged files"),),
+            ((INFO, "Config built from 2 file(s)"),),
             id="two_files_valid",
         ),
         pytest.param(
@@ -461,7 +448,7 @@ def test_Config_load_config_toml_string(
                     "modules": ["plants", "abiotic"],
                 }
             },
-            ((INFO, "Config built from merged files"),),
+            ((INFO, "Config built from 3 file(s)"),),
             id="three_files_valid",
         ),
         pytest.param(
@@ -480,11 +467,11 @@ def test_Config_load_config_toml_string(
 def test_Config_build_config_paths(
     caplog, content, expected_dict, expected_exception, expected_log_entries
 ):
-    """Check building merged config from loaded conten from paths."""
+    """Check building merged config from loaded content from paths."""
     from virtual_rainforest.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
-    cfg = Config(cfg_paths=[], auto=False)
+    cfg = Config(cfg_paths=["path/not/used"], auto=False)
     cfg.toml_contents = content
     caplog.clear()
 
@@ -499,18 +486,36 @@ def test_Config_build_config_paths(
         assert cfg == expected_dict
 
 
-def test_Config_build_config_string(caplog):
+@pytest.mark.parametrize(
+    "cfg_strings",
+    [
+        pytest.param(
+            '[core]\nmodules = ["plants", "abiotic"]\n'
+            "[core.grid]\ncell_nx = 10\ncell_ny = 10",
+            id="a_string",
+        ),
+        pytest.param(
+            [
+                '[core]\nmodules = ["plants", "abiotic"]\n'
+                "[core.grid]\ncell_nx = 10\ncell_ny = 10"
+            ],
+            id="a_one_string_list",
+        ),
+        pytest.param(
+            [
+                '[core]\nmodules = ["plants", "abiotic"]\n',
+                "[core.grid]\ncell_nx = 10\ncell_ny = 10",
+            ],
+            id="a_two_string_list",
+        ),
+    ],
+)
+def test_Config_build_config_string(caplog, cfg_strings):
     """Check building merged config from loaded content from a string."""
     from virtual_rainforest.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
-    cfg = Config(
-        cfg_string=(
-            '[core]\nmodules = ["plants", "abiotic"]\n'
-            "[core.grid]\ncell_nx = 10\ncell_ny = 10"
-        ),
-        auto=False,
-    )
+    cfg = Config(cfg_strings=cfg_strings, auto=False)
     caplog.clear()
     cfg.load_config_toml_string()
 
@@ -534,16 +539,16 @@ def test_Config_build_config_string(caplog):
 
 
 @pytest.mark.parametrize(
-    "config_content,expected_exception,expected_log_entries",
+    "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            {"core": {"modules": ["soil", "plants"]}},
+            "[core]\nmodules = ['soil', 'plants']",
             does_not_raise(),
             ((INFO, "Validation schema for configuration built."),),
             id="core_modules_all_known",
         ),
         pytest.param(
-            {"core": {"modules": ["soil", "pants"]}},
+            "[core]\nmodules = ['soil', 'pants']",
             pytest.raises(ConfigurationError),
             ((ERROR, "Configuration contains module with no schema: pants"),),
             id="core_modules_include_unknown",
@@ -551,14 +556,15 @@ def test_Config_build_config_string(caplog):
     ],
 )
 def test_Config_build_schema(
-    caplog, config_content, expected_exception, expected_log_entries
+    caplog, cfg_strings, expected_exception, expected_log_entries
 ):
     """Test the build_schema method of Config."""
     from virtual_rainforest.core.config import Config
 
-    # create an empty config and directly set the merged configuration values
-    cfg = Config([], auto=False)
-    cfg.update(config_content)
+    # Build a config that tests schema validation
+    cfg = Config(cfg_strings=cfg_strings, auto=False)
+    cfg.load_config_toml_string()
+    cfg.build_config()
     caplog.clear()
 
     # Run the validation
@@ -569,10 +575,10 @@ def test_Config_build_schema(
 
 
 @pytest.mark.parametrize(
-    "config_content,expected_exception,expected_log_entries",
+    "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            {"core": {"modules": ["soil", "soil"]}},
+            "[core]\nmodules = ['soil', 'soil']",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -585,7 +591,7 @@ def test_Config_build_schema(
             id="core_unique_module_violation",
         ),
         pytest.param(
-            {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}, "modules": ["plants"]}},
+            "[core]\nmodules = ['plants']\n[core.grid]\ncell_nx = 10\ncell_ny=10",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -598,7 +604,7 @@ def test_Config_build_schema(
             id="missing_required_property",
         ),
         pytest.param(
-            {"core": {"grid": {"cell_nx": 10, "cell_ny": -10}, "modules": []}},
+            "[core]\nmodules = []\n[core.grid]\ncell_nx = 10\ncell_ny=-10",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -611,10 +617,8 @@ def test_Config_build_schema(
             id="minimum_value_violation",
         ),
         pytest.param(
-            {
-                "core": {"grid": {"cell_nx": 10, "cell_ny": 10}, "modules": ["soil"]},
-                "soil": {"no_layers": 123},
-            },
+            "[core]\nmodules = ['soil']\n[core.grid]\ncell_nx = 10\ncell_ny=10\n"
+            "[soil]\nno_layers=123\n",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -627,29 +631,25 @@ def test_Config_build_schema(
             id="unexpected_property",
         ),
         pytest.param(
-            {
-                "core": {"modules": ["abiotic_simple"]},
-            },
+            "[core]\nmodules = ['abiotic_simple']\n",
             does_not_raise(),
             ((INFO, "Configuration validated"),),
             id="no constants",
         ),
         pytest.param(
-            {
-                "core": {"modules": ["abiotic_simple"]},
-                "abiotic_simple": {
-                    "constants": {"AbioticSimpleConsts": {"constant1": 1.0}}
-                },
-            },
+            "[core]\nmodules = ['abiotic_simple']\n"
+            "[abiotic_simple.constants.AbioticSimpleConsts]\nconstant1 = 1.0\n",
             does_not_raise(),
             ((INFO, "Configuration validated"),),
             id="correct constant",
         ),
         pytest.param(
-            {
-                "core": {"modules": ["abiotic_simple"]},
-                "abiotic_simple": {"constants": {"constant1": 1.0}},
-            },
+            "[core]\nmodules = ['abiotic_simple']\n"
+            "[abiotic_simple.constants]\nconstant1 = 1.0\n",
+            # {
+            #     "core": {"modules": ["abiotic_simple"]},
+            #     "abiotic_simple": {"constants": {"constant1": 1.0}},
+            # },
             pytest.raises(ConfigurationError),
             (
                 (
@@ -669,14 +669,15 @@ def test_Config_build_schema(
     ],
 )
 def test_Config_validate_config(
-    caplog, config_content, expected_exception, expected_log_entries
+    caplog, cfg_strings, expected_exception, expected_log_entries
 ):
     """Test the validate_config method of Config."""
     from virtual_rainforest.core.config import Config
 
-    # create an empty config and directly set the merged configuration values
-    cfg = Config([], auto=False)
-    cfg.update(config_content)
+    # Get a Config object with a built schema and config, ready for validation
+    cfg = Config(cfg_strings=cfg_strings, auto=False)
+    cfg.load_config_toml_string()
+    cfg.build_config()
     cfg.build_schema()
     caplog.clear()
 
@@ -695,7 +696,7 @@ def test_Config_validate_config(
             (
                 (INFO, "Config paths resolve to 1 files"),
                 (INFO, "Config TOML loaded from"),
-                (INFO, "Config built from single file"),
+                (INFO, "Config built from 1 file(s)"),
                 (INFO, "Validation schema for configuration built."),
                 (INFO, "Configuration validated"),
             ),
@@ -705,7 +706,7 @@ def test_Config_validate_config(
             (
                 (INFO, "Config paths resolve to 1 files"),
                 (INFO, "Config TOML loaded from"),
-                (INFO, "Config built from single file"),
+                (INFO, "Config built from 1 file(s)"),
                 (INFO, "Validation schema for configuration built."),
                 (INFO, "Configuration validated"),
             ),
@@ -716,10 +717,8 @@ def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entrie
     """Checks that auto validation passes as expected."""
     from virtual_rainforest.core.config import Config
 
-    with patch.object(Config, "export_config") as export_mock:
-        Config(shared_datadir / file_path, auto=True)
-        log_check(caplog, expected_log_entries)
-        export_mock.assert_called_once()
+    Config(shared_datadir / file_path, auto=True)
+    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(

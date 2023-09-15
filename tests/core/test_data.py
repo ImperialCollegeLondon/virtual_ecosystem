@@ -525,7 +525,7 @@ def test_Data_load_to_dataarray_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=["cfg_string", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_strings", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
             """[core]
@@ -615,7 +615,7 @@ def test_Data_load_from_config(
     caplog,
     shared_datadir,
     fixture_load_data_grids,
-    cfg_string,
+    cfg_strings,
     exp_error,
     exp_msg,
     exp_log,
@@ -633,7 +633,7 @@ def test_Data_load_from_config(
     from virtual_rainforest.core.data import Data
 
     data = Data(fixture_load_data_grids)
-    cfg = Config(cfg_string=cfg_string)
+    cfg = Config(cfg_strings=cfg_strings)
     caplog.clear()
 
     # Edit the paths loaded to point to copies in shared_datadir
