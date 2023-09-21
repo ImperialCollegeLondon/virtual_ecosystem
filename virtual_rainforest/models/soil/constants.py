@@ -139,3 +139,16 @@ class SoilConsts:
 
     half_sat_pom_decomposition: float = 0.150
     """Half saturation constant for POM decomposition to LMWC [kg C m^-2]."""
+
+    universal_gas_constant: float = 8.314
+    """Universal gas constant [J mol^-1 K^-1].
+
+    TODO - This is definitely a core constant
+    """
+
+    arrhenius_reference_temp: float = 12.0
+    """Reference temperature for the Arrhenius equation [C].
+
+    TODO - When I've added the constants that this reference temperature pertains to,
+    mention them here.
+    """

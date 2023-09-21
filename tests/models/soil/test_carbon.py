@@ -199,6 +199,32 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
     assert np.allclose(binding_coefs, output_coefs)
 
 
+@pytest.mark.parametrize(
+    "activation_energy,expected_factors",
+    [
+        (30000.0, [2.57153601, 2.82565326, 3.10021393, 1.73629781]),
+        (45000.0, [4.12371761, 4.74983258, 5.45867825, 2.28789625]),
+        (57000.0, [6.01680536, 7.19657491, 8.58309980, 2.85289648]),
+    ],
+)
+def calculate_temperature_effect_on_microbes(
+    dummy_carbon_data, top_soil_layer_index, activation_energy, expected_factors
+):
+    """Test function to calculate microbial temperature response."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_temperature_effect_on_microbes,
+    )
+
+    actual_factors = calculate_temperature_effect_on_microbes(
+        soil_temperature=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        activation_energy=activation_energy,
+        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        gas_constant=SoilConsts.universal_gas_constant,
+    )
+
+    assert np.allclose(expected_factors, actual_factors)
+
+
 def test_convert_temperature_to_scalar(dummy_carbon_data, top_soil_layer_index):
     """Test that scalar_temperature runs and generates the correct value."""
     from virtual_rainforest.models.soil.carbon import convert_temperature_to_scalar

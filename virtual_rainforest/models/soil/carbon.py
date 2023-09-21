@@ -51,6 +51,8 @@ def calculate_soil_carbon_updates(
         A vector containing net changes to each pool. Order [lmwc, maom].
     """
 
+    # TODO - Get rid of these scalars, and then reparametrise the functions that call
+    # them appropriately
     # Find scalar factors that multiple rates
     temp_scalar = convert_temperature_to_scalar(
         soil_temp,
@@ -249,6 +251,36 @@ def calculate_binding_coefficient(
     """
 
     return 10.0 ** (binding_with_ph_slope * pH + binding_with_ph_intercept)
+
+
+def calculate_temperature_effect_on_microbes(
+    soil_temperature: NDArray[np.float32],
+    activation_energy: float,
+    reference_temperature: float,
+    gas_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate the effect that temperature has on microbial metabolic rates.
+
+    This uses a standard Arrhenius equation to calculate the impact of temperature.
+
+    This function takes temperatures in Celsius as inputs and converts them into Kelvin
+    for use in the Arrhenius equation. TODO - review this after we have decided how to
+    handle these conversions in general.
+
+    Args:
+        soil_temperature: The temperature of the soil [C]
+        activation_energy: Energy of activation [J mol^-1]
+        soil_temperature: The reference temperature of the Arrhenius equation [C]
+        gas_constant: The molar gas constant [J mol^-1 K^-1]
+
+    Returns:
+        A multiplicative factor capturing the effect of temperature on microbial rates
+    """
+
+    return np.exp(
+        (-activation_energy / gas_constant)
+        * ((1 / (soil_temperature + 273.15)) - (1 / (reference_temperature + 273.15)))
+    )
 
 
 def convert_temperature_to_scalar(
