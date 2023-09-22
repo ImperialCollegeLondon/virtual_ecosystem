@@ -81,6 +81,9 @@ class AnimalCommunity:
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
+        TODO: Implement juvenile dispersal.
+        TODO: Implement low-density trigger.
+
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
             destination: The AnimalCommunity the cohort is moving to.
@@ -125,6 +128,8 @@ class AnimalCommunity:
         A cohort can only reproduce if it has an excess of stored energy above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and mass=birth_mass.
+
+        TODO: Implement juvenile dispersal.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
@@ -209,15 +214,16 @@ class AnimalCommunity:
 
         return prey
 
-    def metabolize_community(self, dt: timedelta64) -> None:
+    def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
         Args:
+            temperature: Current air temperature (K).
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
         for cohort in self.all_animal_cohorts:
-            cohort.metabolize(dt)
+            cohort.metabolize(temperature, dt)
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.

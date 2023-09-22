@@ -39,6 +39,8 @@ def metabolic_rate(
 ) -> float:
     """Calculates the metabolic rate of animal cohorts.
 
+    TODO: Implement distinction between field and basal rates.
+
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         temperature: The temperature [Celsius] of the environment.
@@ -152,6 +154,8 @@ def prey_group_selection(
     structure can be built properly. In the parameterization stage of development this
     will be expanded into something realistic. I suspect some/much of the content will
     be shifted into functional_group definitions.
+
+    TODO: Implement real pred-prey mass ratio.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort

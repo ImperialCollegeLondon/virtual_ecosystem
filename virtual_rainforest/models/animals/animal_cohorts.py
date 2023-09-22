@@ -22,7 +22,6 @@ from virtual_rainforest.models.animals.constants import (
     ENERGY_PERCENTILE_THRESHOLD,
     REPRODUCTION_ENERGY_COST_MULTIPLIER,
     REPRODUCTION_ENERGY_MULTIPLIER,
-    TEMPERATURE,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -69,18 +68,20 @@ class AnimalCohort:
         """The number of individuals in the cohort."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.metabolic_rate: float = metabolic_rate(
+        """self.metabolic_rate: float = metabolic_rate(
             self.mass,
             TEMPERATURE,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
         )
-        """The rate at which energy is expended in [J/s]."""
+        """ """The rate at which energy is expended in [J/s]."""
         self.stored_energy: float = energetic_reserve_scaling(
             mass,
             self.functional_group.muscle_mass_terms,
             self.functional_group.fat_mass_terms,
         )
+        # TODO: Change currency from energy to mass.
+        # TODO: Implement pool of reproductive mass.
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
         self.reproduction_energy_threshold: float = (
@@ -116,6 +117,7 @@ class AnimalCohort:
         self.adult_natural_mortality_prob = natural_mortality_scaling(
             self.functional_group.adult_mass, self.functional_group.longevity_scaling
         )
+        # TODO: Distinguish between background, senesence, and starvation mortalities.
         """The per-day probability of an individual dying to natural causes."""
 
         # TODO - In future this should be parameterised using a constants dataclass, but
@@ -125,10 +127,15 @@ class AnimalCohort:
         self.decay_fraction_carcasses: float = DECAY_FRACTION_CARCASSES
         """The fraction of carcass biomass which decays before it gets consumed."""
 
-    def metabolize(self, dt: timedelta64) -> None:
+    def metabolize(self, temperature: float, dt: timedelta64) -> None:
         """The function to reduce stored_energy through basal metabolism.
 
+        TODO: Implement distinction between field and basal rates.
+        TODO: Implement proportion of day active.
+        TODO: Change currency from energy to mass.
+
         Args:
+            temperature: Current air temperature (K)
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
@@ -140,7 +147,12 @@ class AnimalCohort:
             raise ValueError("stored_energy cannot be negative.")
 
         # Number of seconds in a day * J/s metabolic rate, consider daily rate.
-        energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
+        energy_needed = metabolic_rate(
+            self.mass,
+            temperature,
+            self.functional_group.metabolic_rate_terms,
+            self.functional_group.metabolic_type,
+        ) * float((dt / timedelta64(1, "s")))
         self.stored_energy -= min(self.stored_energy, energy_needed)
 
     def excrete(
@@ -149,6 +161,8 @@ class AnimalCohort:
         consumed_energy: float,
     ) -> None:
         """Transfer waste energy from an animal cohort to the excrement pool.
+
+        TODO: Change currency from energy to mass
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.

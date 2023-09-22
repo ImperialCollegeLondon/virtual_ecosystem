@@ -181,7 +181,10 @@ class AnimalModel(BaseModel):
             community.forage_community()
             community.migrate_community()
             community.birth_community()
-            community.metabolize_community(self.update_interval_timedelta)
+            community.metabolize_community(
+                float(self.data["air_temperature"][0][community].values),
+                self.update_interval_timedelta,
+            )
             community.inflict_natural_mortality_community(
                 self.update_interval_timedelta
             )
