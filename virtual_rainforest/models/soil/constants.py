@@ -7,9 +7,6 @@ from dataclasses import dataclass
 
 # TODO - Need to figure out a sensible area to volume conversion
 
-# TODO - Need to either work out what the temp and moisture scalars are, or find an
-# alternative way of capturing temperature and moisture effects
-
 
 @dataclass(frozen=True)
 class SoilConsts:
@@ -54,36 +51,6 @@ class SoilConsts:
     """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
 
     Units of [(RWC)^-1]
-    """
-
-    temp_scalar_coefficient_1: float = 15.4
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Unclear exactly what this parameter is [degrees C]
-    """
-
-    temp_scalar_coefficient_2: float = 11.75
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Unclear exactly what this parameter is [units unclear]
-    """
-
-    temp_scalar_coefficient_3: float = 29.7
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Unclear exactly what this parameter is [units unclear]
-    """
-
-    temp_scalar_coefficient_4: float = 0.031
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Unclear exactly what this parameter is [units unclear]
-    """
-
-    temp_scalar_reference_temp: float = 30.0
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Reference temperature [degrees C]
     """
 
     reference_cue: float = 0.6
