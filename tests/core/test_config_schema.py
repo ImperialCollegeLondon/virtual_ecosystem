@@ -155,7 +155,7 @@ def test_merge_schemas():
     merged_schemas = merge_schemas(
         {
             "core": SCHEMA_REGISTRY["core"],
-            "abiotic": SCHEMA_REGISTRY["abiotic"],
+            "abiotic_simple": SCHEMA_REGISTRY["abiotic_simple"],
             "animals": SCHEMA_REGISTRY["animals"],
             "plants": SCHEMA_REGISTRY["plants"],
             "soil": SCHEMA_REGISTRY["soil"],
@@ -163,7 +163,7 @@ def test_merge_schemas():
     )
 
     assert set(merged_schemas["required"]) == set(
-        ["abiotic", "animals", "plants", "soil", "core"]
+        ["abiotic_simple", "animals", "plants", "soil", "core"]
     )
 
 
