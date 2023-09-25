@@ -54,6 +54,7 @@ def calculate_soil_carbon_updates(
         A vector containing net changes to each pool. Order [lmwc, maom].
     """
 
+    # TODO - Work out if I can use my new water factor in place of moist_scalar
     # TODO - Get rid of these scalars, and then reparametrise the functions that call
     # them appropriately
     # Find scalar factors that multiple rates
@@ -277,6 +278,39 @@ def calculate_temperature_effect_on_microbes(
         (-activation_energy / gas_constant)
         * ((1 / (soil_temperature + 273.15)) - (1 / (reference_temperature + 273.15)))
     )
+
+
+def calculate_water_potential_impact_on_microbes(
+    water_potential: NDArray[np.float32],
+    water_potential_halt: float,
+    water_potential_opt: float,
+    moisture_response_curvature: float,
+) -> NDArray[np.float32]:
+    """Calculate the effect that soil water potential has on microbial rates.
+
+    This function only returns valid output for soil water potentials that are less than
+    the optimal water potential.
+
+    Args:
+        water_potential: Soil water potential [kPa]
+        water_potential_halt: Water potential at which all microbial activity stops
+            [kPa]
+        water_potential_opt: Optimal water potential for microbial activity [kPa]
+        moisture_response_curvature: Parameter controlling the curvature of the moisture
+            response function [unitless]
+
+    Returns:
+        A multiplicative factor capturing the impact of moisture on soil microbe rates
+        decomposition [unitless]
+    """
+
+    # Calculate how much moisture suppresses microbial activity
+    supression = (
+        (np.log10(np.abs(water_potential)) - np.log10(abs(water_potential_opt)))
+        / (np.log10(abs(water_potential_halt)) - np.log10(abs(water_potential_opt)))
+    ) ** moisture_response_curvature
+
+    return 1 - supression
 
 
 def convert_moisture_to_scalar(

@@ -99,6 +99,24 @@ class SoilConsts:
     half_sat_pom_decomposition: float = 0.150
     """Half saturation constant for POM decomposition to LMWC [kg C m^-2]."""
 
+    soil_microbe_water_potential_optimum: float = -3.0
+    """The water potential at which soil microbial rates are maximised [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    soil_microbe_water_potential_halt: float = -15800.0
+    """The water potential at which soil microbial activity stops entirely [kPa].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
+    moisture_response_curvature: float = 1.47
+    """Curvature of the soil microbial moisture response function [unitless].
+
+    Value is taken from :cite:t`moyano_responses_2013`.
+    """
+
     universal_gas_constant: float = 8.314
     """Universal gas constant [J mol^-1 K^-1].
 

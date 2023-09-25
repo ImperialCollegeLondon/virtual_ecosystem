@@ -264,6 +264,26 @@ def test_convert_moisture_to_scalar(
     log_check(caplog, expected_log_entries)
 
 
+def test_calculate_water_potential_impact_on_microbes():
+    """Test the calculation of the impact of soil water on microbial rates."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_water_potential_impact_on_microbes,
+    )
+
+    water_potentials = [-3.0, -10.0, -250.0, -10000.0]
+
+    expected_factor = [1.0, 0.94414168, 0.62176357, 0.07747536]
+
+    actual_factor = calculate_water_potential_impact_on_microbes(
+        water_potential=water_potentials,
+        water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
+        water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
+        moisture_response_curvature=SoilConsts.moisture_response_curvature,
+    )
+
+    assert np.allclose(actual_factor, expected_factor)
+
+
 def test_calculate_maintenance_respiration(
     dummy_carbon_data, moist_scalars, top_soil_layer_index
 ):
