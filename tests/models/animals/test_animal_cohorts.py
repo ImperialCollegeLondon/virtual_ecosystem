@@ -1,7 +1,7 @@
 """Test module for animal_cohorts.py."""
 
 import pytest
-from numpy import timedelta64
+from numpy import isclose, timedelta64
 
 
 @pytest.fixture
@@ -26,6 +26,27 @@ def predator_cohort_instance(predator_functional_group_instance):
 
 
 @pytest.fixture
+def ectotherm_functional_group_instance(shared_datadir):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_rainforest.models.animals.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file)
+
+    return fg_list[5]
+
+
+@pytest.fixture
+def ectotherm_cohort_instance(ectotherm_functional_group_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(ectotherm_functional_group_instance, 100.0, 1)
+
+
+@pytest.fixture
 def prey_cohort_instance(herbivore_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
@@ -47,9 +68,6 @@ class TestAnimalCohort:
     def test_initialization(self, herbivore_cohort_instance):
         """Testing initialization of derived parameters for animal cohorts."""
         assert herbivore_cohort_instance.individuals == 1
-        assert herbivore_cohort_instance.metabolic_rate == pytest.approx(
-            3200.9029380, rel=1e-6
-        )
         assert herbivore_cohort_instance.stored_energy == pytest.approx(
             56531469253.03123, rel=1e-6
         )
@@ -78,36 +96,63 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
-        "dt, initial_energy, final_energy",
+        "dt, initial_energy, temperature, final_energy",
         [
-            (timedelta64(1, "D"), 28266000000.0, 27989441986.150745),
-            (timedelta64(1, "D"), 500.0, 0.0),
-            (timedelta64(1, "D"), 0.0, 0.0),
-            (timedelta64(3, "D"), 28266000000.0, 27436325958.45224),
+            (
+                timedelta64(1, "D"),
+                28266000000.0,
+                298.0,
+                27989441986.150745,
+            ),  # normal case
+            (timedelta64(1, "D"), 500.0, 298.0, 0.0),  # edge case: low energy
+            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero energy
+            (timedelta64(3, "D"), 28266000000.0, 298.0, 27436325958.45224),  # 3 days
         ],
     )
-    def test_metabolize(
-        self, herbivore_cohort_instance, dt, initial_energy, final_energy
+    def test_metabolize_endotherm(
+        self, herbivore_cohort_instance, dt, initial_energy, temperature, final_energy
     ):
-        """Testing metabolize at varying energy levels."""
+        """Testing metabolize with an endothermic metabolism."""
         herbivore_cohort_instance.stored_energy = initial_energy
-        herbivore_cohort_instance.metabolize(dt)
-        assert herbivore_cohort_instance.stored_energy == final_energy
+        herbivore_cohort_instance.metabolize(temperature, dt)
+        assert isclose(herbivore_cohort_instance.stored_energy, final_energy, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "dt, initial_energy, error_type",
+        "dt, initial_energy, temperature, final_energy",
         [
-            (-1, 28266000000.0, ValueError),
-            (timedelta64(1, "D"), -100.0, ValueError),
+            (
+                timedelta64(1, "D"),
+                28266000000.0,
+                298.0,
+                28265999999.700752,
+            ),  # normal case
+            (timedelta64(10, "D"), 1.0, 298.0, 0.0),  # edge case: low energy
+            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero energy
+        ],
+    )
+    def test_metabolize_ectotherm(
+        self, ectotherm_cohort_instance, dt, initial_energy, temperature, final_energy
+    ):
+        """Testing metabolize."""
+        ectotherm_cohort_instance.stored_energy = initial_energy
+        ectotherm_cohort_instance.metabolize(temperature, dt)
+        assert isclose(ectotherm_cohort_instance.stored_energy, final_energy, rtol=1e-9)
+
+    @pytest.mark.parametrize(
+        "dt, initial_energy, temperature, error_type",
+        [
+            (timedelta64(-1, "D"), 28266000000.0, 298.0, ValueError),
+            (timedelta64(1, "D"), -100.0, 298.0, ValueError),
+            # Add more invalid cases as needed
         ],
     )
     def test_metabolize_invalid_input(
-        self, herbivore_cohort_instance, dt, initial_energy, error_type
+        self, herbivore_cohort_instance, dt, initial_energy, temperature, error_type
     ):
-        """Testing metabolize with invalid inputs."""
+        """Testing metabolize for invalid input."""
         herbivore_cohort_instance.stored_energy = initial_energy
         with pytest.raises(error_type):
-            herbivore_cohort_instance.metabolize(dt)
+            herbivore_cohort_instance.metabolize(temperature, dt)
 
     @pytest.mark.parametrize(
         "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",

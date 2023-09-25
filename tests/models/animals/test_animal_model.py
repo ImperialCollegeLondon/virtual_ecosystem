@@ -11,14 +11,14 @@ from tests.conftest import log_check
 
 
 def test_animal_model_initialization(
-    caplog, data_instance, functional_group_list_instance
+    caplog, dummy_climate_data, functional_group_list_instance
 ):
     """Test `AnimalModel` initialization."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
     model = AnimalModel(
-        data_instance,
+        dummy_climate_data,
         pint.Quantity("1 week"),
         functional_group_list_instance,
     )
@@ -102,7 +102,7 @@ def test_animal_model_initialization(
 )
 def test_generate_animal_model(
     caplog,
-    data_instance,
+    dummy_climate_data,
     config,
     time_interval,
     raises,
@@ -114,7 +114,7 @@ def test_generate_animal_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AnimalModel.from_config(
-            data_instance,
+            dummy_climate_data,
             config,
             pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
@@ -150,7 +150,7 @@ def test_get_community_by_key(animal_model_instance):
         animal_model_instance.get_community_by_key(999)
 
 
-def test_update_method_sequence(data_instance, functional_group_list_instance):
+def test_update_method_sequence(dummy_climate_data, functional_group_list_instance):
     """Test update to ensure it runs the community methods in order.
 
     As a bonus this test checks that the litter output pools have all been created.
@@ -160,7 +160,7 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+        dummy_climate_data, pint.Quantity("1 week"), functional_group_list_instance
     )
 
     # Mock all the methods that are supposed to be called by update
@@ -198,13 +198,13 @@ def test_update_method_sequence(data_instance, functional_group_list_instance):
 
 
 def test_update_method_time_index_argument(
-    data_instance, functional_group_list_instance
+    dummy_climate_data, functional_group_list_instance
 ):
     """Test update to ensure the time index argument does not create an error."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        data_instance, pint.Quantity("1 week"), functional_group_list_instance
+        dummy_climate_data, pint.Quantity("1 week"), functional_group_list_instance
     )
 
     time_index = 5

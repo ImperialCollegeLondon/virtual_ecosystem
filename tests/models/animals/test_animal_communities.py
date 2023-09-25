@@ -350,7 +350,9 @@ class TestAnimalCommunity:
         )[0].age
         assert new_age == initial_age + 5
 
-    def test_metabolize_community(self, animal_community_instance, mocker):
+    def test_metabolize_community(
+        self, dummy_climate_data, animal_community_instance, mocker
+    ):
         """Testing metabolize_community."""
         from itertools import chain
 
@@ -359,7 +361,7 @@ class TestAnimalCommunity:
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
         mock_metabolize = mocker.patch.object(AnimalCohort, "metabolize")
-        animal_community_instance.metabolize_community(timedelta64(5, "D"))
+        animal_community_instance.metabolize_community(25.0, timedelta64(5, "D"))
         assert mock_metabolize.call_count == len(
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
