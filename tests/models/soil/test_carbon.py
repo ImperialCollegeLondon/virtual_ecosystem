@@ -47,9 +47,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.00400705, 0.0160287, 0.56067874, 0.00099348],
+        "soil_c_pool_lmwc": [0.00635771, 0.01694153, 0.56370312, 0.00109547],
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
-        "soil_c_pool_microbe": [-0.26064326, -0.13079199, -0.59780557, -0.01009672],
+        "soil_c_pool_microbe": [-0.14721293, -0.07501289, -0.34836582, -0.00536952],
         "soil_c_pool_pom": [-0.00087289, -0.00713832, -0.00675489, 0.00433923],
     }
 
@@ -264,16 +264,19 @@ def test_convert_moisture_to_scalar(
     log_check(caplog, expected_log_entries)
 
 
-def test_calculate_maintenance_respiration(dummy_carbon_data, moist_scalars):
+def test_calculate_maintenance_respiration(
+    dummy_carbon_data, moist_scalars, top_soil_layer_index
+):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
 
-    expected_resps = [0.15660745, 0.07847678, 0.35825709, 0.00604132]
+    expected_resps = [0.040826454, 0.021784850, 0.105792953, 0.001212128]
 
     main_resps = calculate_maintenance_respiration(
-        dummy_carbon_data["soil_c_pool_microbe"],
-        moist_scalars,
-        SoilConsts.microbial_turnover_rate,
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        moisture_scalar=moist_scalars,
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        constants=SoilConsts,
     )
 
     assert np.allclose(main_resps, expected_resps)
@@ -361,13 +364,13 @@ def test_calculate_microbial_carbon_uptake(
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [0.00471937, 0.00218256, 0.00924116, 0.00013996]
+    expected_uptake = [0.002368705, 0.001269728, 0.006216778, 3.796707e-5]
 
     actual_uptake = calculate_microbial_carbon_uptake(
-        dummy_carbon_data["soil_c_pool_lmwc"],
-        dummy_carbon_data["soil_c_pool_microbe"],
-        moist_scalars,
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        moisture_scalar=moist_scalars,
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
 

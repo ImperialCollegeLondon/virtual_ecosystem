@@ -369,6 +369,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
+    end_pom = [0.25, 2.34, 0.746, 0.3467]
 
     mock_integrate = mocker.patch.object(soil_model_fixture, "integrate")
 
@@ -377,6 +378,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
+            soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
         )
     )
 
@@ -388,6 +390,8 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
 
 
 @pytest.mark.parametrize(
@@ -399,13 +403,13 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05218031, 0.02838278, 1.17519834, 0.00548972], dims="cell_id"
+                        [0.05338309, 0.0289559, 1.19094661, 0.00554266], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.55064772, 1.72124753, 3.52938984, 0.5021095], dims="cell_id"
+                        [2.5508934, 1.72137897, 3.52120942, 0.50211244], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.67120733, 2.23576354, 11.02187343, 0.99496797],
+                        [5.72690515, 2.26294176, 11.13864882, 0.9973199],
                         dims="cell_id",
                     ),
                     pom=DataArray(
@@ -518,18 +522,18 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
 
     delta_pools = (
         [
-            0.00400705,
-            0.0160287,
-            0.56067874,
-            0.00099348,
+            0.00635771,
+            0.01694153,
+            0.56370312,
+            0.00109547,
             0.10296645,
             0.04445693,
             -0.31401747,
             0.00422143,
-            -0.26064326,
-            -0.13079199,
-            -0.59780557,
-            -0.01009672,
+            -0.14721293,
+            -0.07501289,
+            -0.34836582,
+            -0.00536952,
             -0.00087289,
             -0.00713832,
             -0.00675489,

@@ -10,8 +10,10 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
 
+# TODO - Once enzymes are added, temperature dependence of saturation constants should
+# be added.
 
-# TODO - Add in actual use of the new functions
+
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
@@ -74,10 +76,15 @@ def calculate_soil_carbon_updates(
         soil_c_pool_lmwc, soil_c_pool_microbe, moist_scalar, soil_temp, constants
     )
     microbial_respiration = calculate_maintenance_respiration(
-        soil_c_pool_microbe, moist_scalar, constants.microbial_turnover_rate
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        moisture_scalar=moist_scalar,
+        soil_temp=soil_temp,
+        constants=constants,
     )
     necromass_adsorption = calculate_necromass_adsorption(
-        soil_c_pool_microbe, moist_scalar, constants.necromass_adsorption_rate
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        moisture_scalar=moist_scalar,
+        necromass_adsorption_rate=constants.necromass_adsorption_rate,
     )
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc, moist_scalar, constants.leaching_rate_labile_carbon
@@ -311,7 +318,8 @@ def convert_moisture_to_scalar(
 def calculate_maintenance_respiration(
     soil_c_pool_microbe: NDArray[np.float32],
     moisture_scalar: NDArray[np.float32],
-    microbial_turnover_rate: float,
+    soil_temp: NDArray[np.float32],
+    constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate the maintenance respiration of the microbial pool.
 
@@ -319,13 +327,26 @@ def calculate_maintenance_respiration(
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         moisture_scalar: A scalar capturing the impact of soil moisture on process rates
             [unitless]
-        microbial_turnover_rate: Rate of microbial biomass turnover [day^-1]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        constants: Set of constants for the soil model.
 
     Returns:
-        Total respiration for all microbial biomass
+        Total maintenance respiration for all microbial biomass
     """
 
-    return microbial_turnover_rate * moisture_scalar * soil_c_pool_microbe
+    temp_factor = calculate_temperature_effect_on_microbes(
+        soil_temperature=soil_temp,
+        activation_energy=constants.activation_energy_microbial_turnover,
+        reference_temperature=constants.arrhenius_reference_temp,
+        gas_constant=constants.universal_gas_constant,
+    )
+
+    return (
+        constants.microbial_turnover_rate
+        * temp_factor
+        * moisture_scalar
+        * soil_c_pool_microbe
+    )
 
 
 def calculate_necromass_adsorption(
@@ -340,6 +361,7 @@ def calculate_necromass_adsorption(
         moisture_scalar: A scalar capturing the impact of soil moisture on process rates
             [unitless]
         necromass_adsorption_rate: Rate at which necromass is adsorbed by soil minerals
+            [day^-1]
 
     Returns:
         Adsorption of microbial biomass to mineral associated organic matter (MAOM)
@@ -355,6 +377,8 @@ def calculate_carbon_use_efficiency(
     cue_with_temperature: float,
 ) -> NDArray[np.float32]:
     """Calculate the (temperature dependant) carbon use efficiency.
+
+    TODO - This should be adapted to use an Arrhenius function at some point.
 
     Args:
         soil_temp: soil temperature for each soil grid cell [degrees C]
@@ -473,6 +497,12 @@ def calculate_microbial_carbon_uptake(
     microbial_saturation = calculate_microbial_saturation(
         soil_c_pool_microbe, constants.half_sat_microbial_activity
     )
+    temp_factor = calculate_temperature_effect_on_microbes(
+        soil_temperature=soil_temp,
+        activation_energy=constants.activation_energy_microbial_uptake,
+        reference_temperature=constants.arrhenius_reference_temp,
+        gas_constant=constants.universal_gas_constant,
+    )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
     # respired instead of being uptaken. This isn't currently of interest, but will be
@@ -481,6 +511,7 @@ def calculate_microbial_carbon_uptake(
     return (
         constants.max_uptake_rate_labile_C
         * moisture_scalar
+        * temp_factor
         * soil_c_pool_lmwc
         * microbial_saturation
         * carbon_use_efficency
