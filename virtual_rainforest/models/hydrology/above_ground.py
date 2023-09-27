@@ -19,6 +19,7 @@ def calculate_soil_evaporation(
     relative_humidity: NDArray[np.float32],
     atmospheric_pressure: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
+    soil_moisture_residual: Union[float, NDArray[np.float32]],
     wind_speed: Union[float, NDArray[np.float32]],
     celsius_to_kelvin: float,
     density_air: Union[float, NDArray[np.float32]],
@@ -35,8 +36,8 @@ def calculate_soil_evaporation(
 
     :math:`E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})`
 
-    where :math:`\Theta` is the top soil moisture (relative volumetric water content),
-    :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
+    where :math:`\Theta` is the available top soil moisture (relative volumetric water
+    content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
     density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless); see Mahfouf (1991).
@@ -49,6 +50,7 @@ def calculate_soil_evaporation(
         relative_humidity: relative humidity at reference height, []
         atmospheric_pressure: atmospheric pressure at reference height, [kPa]
         soil_moisture: Volumetric relative water content, [unitless]
+        soil_moisture_residual: residual soil moisture, [unitless]
         wind_speed: wind speed at reference height, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
@@ -63,8 +65,11 @@ def calculate_soil_evaporation(
     # Convert temperature to Kelvin
     temperature_k = temperature + celsius_to_kelvin
 
+    # Available soil moisture
+    soil_moisture_free = soil_moisture - soil_moisture_residual
+
     # Estimate alpha using the Barton (1979) equation
-    barton_ratio = (1.8 * soil_moisture) / (soil_moisture + 0.3)
+    barton_ratio = (1.8 * soil_moisture_free) / (soil_moisture_free + 0.3)
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
     saturation_vapour_pressure = 0.6112 * np.exp(
