@@ -165,3 +165,52 @@ def update_soil_moisture(
         )
 
     return soil_moisture_updated
+
+
+def soil_moisture_to_matric_potential(
+    soil_moisture: NDArray[np.float32],
+    soil_moisture_capacity: Union[float, NDArray[np.float32]],
+    soil_moisture_residual: Union[float, NDArray[np.float32]],
+    nonlinearily_parameter: Union[float, NDArray[np.float32]],
+    alpha: Union[float, NDArray[np.float32]],
+) -> NDArray[np.float32]:
+    r"""Convert soil moisture to matric potential using van Genuchten model.
+
+    The soil water content is converted to matric potential as follows:
+
+    :math:`S = \frac{\Theta-\Theta_{r}}{\Theta_{s}-\Theta_{r}} = (1+(\alpha*\Phi)^n)^-m`
+
+    where :math:`S` is the effective saturation (dimensionless), :math:`\Theta_{r}` and
+    :math:`\Theta_{s}` are the residual and saturated moisture content or soil moisture
+    capacity, respectively. `math`:\Phi` is the soil water matric potential and
+    :math:`m`, :math:`n`, and :math:`\alpha` are shape parameters of the water retention
+    curve.
+
+    Args:
+        soil_moisture: Volumetric relative water content in top soil, [unitless]
+        soil_moisture_capacity: soil moisture capacity, [unitless]
+        soil_moisture_residual: residual soil moisture, [unitless]
+        nonlinearily_parameter: dimensionless parameter n in van Genuchten model that
+            describes the degree of nonlinearity of the relationship between the
+            volumetric water content and the soil matric potential.
+        alpha: dimensionless parameter alpha in van Genuchten model that corresponds
+            approximately to the inverse of the air-entry value, [kPa-1]
+
+    Returns:
+        soil water matric potential, [kPa]
+    """
+
+    shape_parameter = 1 - 1 / nonlinearily_parameter
+
+    # Calculate soil effective saturation in rel. vol. water content for each layer:
+    effective_saturation = (soil_moisture - soil_moisture_residual) / (
+        soil_moisture_capacity - soil_moisture_residual
+    )
+
+    # Solve for phi
+    effective_saturation_m = effective_saturation ** (-1 / shape_parameter)
+    effective_saturation_1 = effective_saturation_m - 1
+    effective_saturation_n = effective_saturation_1 ** (1 / nonlinearily_parameter)
+    soil_matric_potential = effective_saturation_n / alpha
+
+    return soil_matric_potential
