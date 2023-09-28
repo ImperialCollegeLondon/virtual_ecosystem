@@ -60,10 +60,10 @@ def generate_canopy_model(
         cohort.canopy_area = np.array([5.0, 5.0, 5.0])
 
     # Calculate the canopy wide summaries
-    layer_heights = np.array([30.0, 20.0, 10.0])
-    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
-    layer_fapar = np.array([0.4, 0.2, 0.1])
-    layer_leaf_mass = np.array([10000, 10000, 10000])
+    layer_heights = np.array([30.0, 20.0, 10.0], dtype=np.float32)
+    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+    layer_fapar = np.array([0.4, 0.2, 0.1], dtype=np.float32)
+    layer_leaf_mass = np.array([10000.0, 10000.0, 10000.0], dtype=np.float32)
 
     return layer_heights, layer_leaf_area_indices, layer_fapar, layer_leaf_mass
 
