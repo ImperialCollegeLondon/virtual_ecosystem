@@ -19,8 +19,8 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-from virtual_rainforest.models.animals.dummy_plants import PlantResources
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+from virtual_rainforest.models.animals.plant_resources import PlantResources
 
 
 class AnimalCommunity:

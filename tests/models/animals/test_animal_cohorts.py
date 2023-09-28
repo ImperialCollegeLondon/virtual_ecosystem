@@ -213,7 +213,7 @@ class TestAnimalCohort:
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
         from virtual_rainforest.models.animals.animal_traits import DietType
         from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-        from virtual_rainforest.models.animals.dummy_plants import PlantResources
+        from virtual_rainforest.models.animals.plant_resources import PlantResources
 
         # Mocking the eat method of AnimalCohort
         mock_eat = mocker.patch.object(AnimalCohort, "eat")
