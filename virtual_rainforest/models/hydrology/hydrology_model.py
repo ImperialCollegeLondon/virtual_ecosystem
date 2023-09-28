@@ -462,6 +462,7 @@ class HydrologyModel(BaseModel):
                 atmospheric_pressure=subcanopy_pressure,
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.constants.soil_moisture_residual,
+                soil_moisture_capacity=self.constants.soil_moisture_capacity,
                 wind_speed=0.1,  # m/s TODO wind_speed in data object
                 celsius_to_kelvin=self.constants.celsius_to_kelvin,
                 density_air=self.constants.density_air,

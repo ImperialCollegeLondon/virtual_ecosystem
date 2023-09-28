@@ -20,6 +20,7 @@ def calculate_soil_evaporation(
     atmospheric_pressure: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
     soil_moisture_residual: Union[float, NDArray[np.float32]],
+    soil_moisture_capacity: Union[float, NDArray[np.float32]],
     wind_speed: Union[float, NDArray[np.float32]],
     celsius_to_kelvin: float,
     density_air: Union[float, NDArray[np.float32]],
@@ -51,6 +52,7 @@ def calculate_soil_evaporation(
         atmospheric_pressure: atmospheric pressure at reference height, [kPa]
         soil_moisture: Volumetric relative water content, [unitless]
         soil_moisture_residual: residual soil moisture, [unitless]
+        soil_moisture_capacity: soil moisture capacity, [unitless]
         wind_speed: wind speed at reference height, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
@@ -66,7 +68,11 @@ def calculate_soil_evaporation(
     temperature_k = temperature + celsius_to_kelvin
 
     # Available soil moisture
-    soil_moisture_free = soil_moisture - soil_moisture_residual
+    soil_moisture_free = np.clip(
+        (soil_moisture - soil_moisture_residual),
+        0.0,
+        (soil_moisture_capacity - soil_moisture_residual),
+    )
 
     # Estimate alpha using the Barton (1979) equation
     barton_ratio = (1.8 * soil_moisture_free) / (soil_moisture_free + 0.3)
