@@ -20,6 +20,7 @@ from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
 from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+from virtual_rainforest.models.animals.scaling_functions import damuths_law
 
 
 class AnimalCommunity:
@@ -72,7 +73,12 @@ class AnimalCommunity:
 
         """
         for functional_group in self.functional_groups:
-            cohort = AnimalCohort(functional_group, functional_group.adult_mass, 0.0)
+            individuals = damuths_law(
+                functional_group.adult_mass, functional_group.damuths_law_terms
+            )
+            cohort = AnimalCohort(
+                functional_group, functional_group.adult_mass, 0.0, individuals
+            )
             self.animal_cohorts[functional_group.name].append(cohort)
 
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
@@ -136,17 +142,22 @@ class AnimalCommunity:
             AnimalCohort.
 
         """
+        number_offspring = int(
+            (parent_cohort.reproductive_mass * parent_cohort.individuals)
+            / parent_cohort.functional_group.birth_mass
+        )
+
+        parent_cohort.reproductive_mass = 0.0
+
         # add a new cohort of the parental type to the community
         self.animal_cohorts[parent_cohort.name].append(
             AnimalCohort(
                 parent_cohort.functional_group,
                 parent_cohort.functional_group.birth_mass,
                 0.0,
+                number_offspring,
             )
         )
-
-        # reduce the parent cohorts stored energy by the reproduction cost
-        parent_cohort.stored_energy -= parent_cohort.reproduction_cost
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""

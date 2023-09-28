@@ -18,10 +18,9 @@ from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
     DECAY_FRACTION_CARCASSES,
     DECAY_FRACTION_EXCREMENT,
+    DISPERSAL_MASS_THRESHOLD,
     ENERGY_DENSITY,
-    ENERGY_PERCENTILE_THRESHOLD,
-    REPRODUCTION_ENERGY_COST_MULTIPLIER,
-    REPRODUCTION_ENERGY_MULTIPLIER,
+    REPRODUCTIVE_MASS_THRESHOLD,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -44,6 +43,7 @@ class AnimalCohort:
         functional_group: FunctionalGroup,
         mass: float,
         age: float,
+        individuals: int,
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -60,12 +60,16 @@ class AnimalCohort:
         """The functional type name of the animal cohort."""
         self.mass = mass
         """The average mass of an individual in the animal cohort [kg]."""
+        self.body_mass = mass
+        """The current average body mass of an individual [kg]."""
         self.age = age
         """The age of the animal cohort [days]."""
-        self.individuals: int = damuths_law(
+        self.individuals = individuals
+        """The number of individuals in this cohort."""
+        self.damuth_density: int = damuths_law(
             self.mass, self.functional_group.damuths_law_terms
         )
-        """The number of individuals in the cohort."""
+        """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         """self.metabolic_rate: float = metabolic_rate(
@@ -84,24 +88,11 @@ class AnimalCohort:
         # TODO: Implement pool of reproductive mass.
         """The individual energetic reserve [J] as the sum of muscle"
         mass [g] and fat mass [g] multiplied by its average energetic value."""
-        self.reproduction_energy_threshold: float = (
-            energetic_reserve_scaling(
-                mass,
-                self.functional_group.muscle_mass_terms,
-                self.functional_group.fat_mass_terms,
-            )
-            * REPRODUCTION_ENERGY_MULTIPLIER
-        )
-        """The energetic reserve threshold at which the cohort can reproduce."""
-        self.reproduction_cost: float = (
-            energetic_reserve_scaling(
-                mass,
-                self.functional_group.muscle_mass_terms,
-                self.functional_group.fat_mass_terms,
-            )
-            * REPRODUCTION_ENERGY_COST_MULTIPLIER
-        )
-        """The energetic reserve of reproduction."""
+        self.reproductive_mass: float = 0.0
+        """The pool of biomass from which the material of reproduction is drawn."""
+        self.reproductive_mass_threshold: float = REPRODUCTIVE_MASS_THRESHOLD
+        """The reproductive mass threshold at which the cohort can reproduce."""
+
         self.intake_rate: float = intake_rate_scaling(
             self.mass, self.functional_group.intake_rate_terms
         )
@@ -328,18 +319,17 @@ class AnimalCohort:
     def can_reproduce(self) -> bool:
         """Checks if a cohort has sufficient energy to reproduce.
 
-        Currently this keys off an excess of stored_energy, later in development this
-        reproduction system will work around a specific pool of reproductive mass.
-
         Return:
             Boolean of whether or not the cohort exceeds the reproduction threshold and
             can reproduce.
 
         """
-        return self.stored_energy >= self.reproduction_energy_threshold
+        return (
+            self.body_mass + self.reproductive_mass
+        ) / self.functional_group.adult_mass >= self.reproductive_mass_threshold
 
     def is_below_energy_threshold(self) -> bool:
-        """Check if cohort's energy is below a certain threshold.
+        """Check if cohort's mass is below a certain threshold.
 
         Currently, this is only used to threshold the migrate method. Using the
         reproduction threshold is a toy implementation.
@@ -347,10 +337,7 @@ class AnimalCohort:
         Return:
             A bool of whether the current energy state is above the migration threshold.
         """
-        return (
-            self.stored_energy
-            < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
-        )
+        return self.mass < self.functional_group.adult_mass * DISPERSAL_MASS_THRESHOLD
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
