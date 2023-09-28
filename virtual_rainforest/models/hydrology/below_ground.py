@@ -174,7 +174,7 @@ def soil_moisture_to_matric_potential(
     nonlinearily_parameter: Union[float, NDArray[np.float32]],
     alpha: Union[float, NDArray[np.float32]],
 ) -> NDArray[np.float32]:
-    r"""Convert soil moisture to matric potential using van Genuchten model.
+    r"""Convert soil moisture to matric potential using van Genuchten/Mualem model.
 
     The soil water content is converted to matric potential as follows:
 
