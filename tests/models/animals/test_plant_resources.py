@@ -3,7 +3,7 @@
 import pytest
 
 
-class TestPlantCommunity:
+class TestPlantResources:
     """Test Plant class."""
 
     @pytest.mark.parametrize(

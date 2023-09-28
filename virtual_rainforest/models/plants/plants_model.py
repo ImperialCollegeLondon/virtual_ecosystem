@@ -228,6 +228,8 @@ class PlantsModel(BaseModel):
         * the layer leaf area indices (``leaf_area_index``),
         * the fraction of absorbed photosynthetically active radation in each layer
           (``layer_fapar``), and
+        * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
+
         * the absorbed irradiance in each layer, including the remaining incident
           radation at ground level (``layer_absorbed_irradiation``).
         """
