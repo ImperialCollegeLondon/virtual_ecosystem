@@ -406,6 +406,13 @@ class HydrologyModel(BaseModel):
             * soil_layer_thickness
         ).to_numpy()
 
+        top_soil_moisture_capacity_mm = (
+            self.constants.soil_moisture_capacity * soil_layer_thickness[0]
+        )
+        top_soil_moisture_residual_mm = (
+            self.constants.soil_moisture_residual * soil_layer_thickness[0]
+        )
+
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
 
@@ -443,15 +450,19 @@ class HydrologyModel(BaseModel):
             soil_moisture_infiltrated = np.clip(
                 soil_moisture_mm[0] + precipitation_surface,
                 0,
-                (self.constants.soil_moisture_capacity * soil_layer_thickness[0]),
+                top_soil_moisture_capacity_mm,
             )
 
             # Calculate daily soil evaporation, [mm]
+            top_soil_moisture_vol = soil_moisture_infiltrated / soil_layer_thickness[0]
+
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=subcanopy_temperature,
                 relative_humidity=subcanopy_humidity,
                 atmospheric_pressure=subcanopy_pressure,
-                soil_moisture=soil_moisture_infiltrated / soil_layer_thickness[0],
+                soil_moisture=top_soil_moisture_vol,
+                soil_moisture_residual=self.constants.soil_moisture_residual,
+                soil_moisture_capacity=self.constants.soil_moisture_capacity,
                 wind_speed=0.1,  # m/s TODO wind_speed in data object
                 celsius_to_kelvin=self.constants.celsius_to_kelvin,
                 density_air=self.constants.density_air,
@@ -465,7 +476,11 @@ class HydrologyModel(BaseModel):
             soil_moisture_evap: NDArray[np.float32] = np.concatenate(
                 (
                     np.expand_dims(
-                        (soil_moisture_infiltrated - soil_evaporation),
+                        np.clip(
+                            (soil_moisture_infiltrated - soil_evaporation),
+                            top_soil_moisture_residual_mm,
+                            top_soil_moisture_capacity_mm,
+                        ),
                         axis=0,
                     ),
                     soil_moisture_mm[1:],
