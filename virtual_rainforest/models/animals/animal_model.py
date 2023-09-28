@@ -121,10 +121,11 @@ class AnimalModel(BaseModel):
         # Generate a dictionary of AnimalCommunity objects, one per grid cell.
         self.communities = {
             k: AnimalCommunity(
-                functional_groups,
-                k,
-                list(self.data.grid.neighbours[k]),
-                self.get_community_by_key,
+                functional_groups=functional_groups,
+                data=self.data,
+                community_key=k,
+                neighbouring_keys=list(self.data.grid.neighbours[k]),
+                get_destination=self.get_community_by_key,
             )
             for k in self.data.grid.cell_id
         }
