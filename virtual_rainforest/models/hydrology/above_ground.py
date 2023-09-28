@@ -286,10 +286,10 @@ def distribute_monthly_rainfall(
 
     Args:
         total_monthly_rainfall: Total monthly rainfall, [mm]
-        num_days (int, optional): Number of days to distribute the rainfall over.
+        num_days: Number of days to distribute the rainfall over
 
     Returns:
-        An array containing the daily rainfall amounts [mm].
+        An array containing the daily rainfall amounts, [mm]
     """
     np.random.seed(42)  # TODO move this to core for all models to be the same
 
