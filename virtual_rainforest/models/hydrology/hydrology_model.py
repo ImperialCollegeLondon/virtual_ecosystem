@@ -364,9 +364,10 @@ class HydrologyModel(BaseModel):
         days: int = 30
 
         # Select variables at relevant heights for current time step
-        current_precipitation = (
-            self.data["precipitation"].isel(time_index=time_index) / days
-        ).to_numpy()
+        current_precipitation = above_ground.distribute_monthly_rainfall(
+            (self.data["precipitation"].isel(time_index=time_index)).to_numpy(),
+            days,
+        )
         leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
         evapotranspiration = (
             self.data["evapotranspiration"].sum(dim="layers") / days
@@ -420,7 +421,7 @@ class HydrologyModel(BaseModel):
             # Interception of water in canopy, [mm]
             interception = above_ground.estimate_interception(
                 leaf_area_index=leaf_area_index_sum,
-                precipitation=current_precipitation,
+                precipitation=current_precipitation[:, day],
                 intercept_param_1=self.constants.intercept_param_1,
                 intercept_param_2=self.constants.intercept_param_2,
                 intercept_param_3=self.constants.intercept_param_3,
@@ -428,7 +429,7 @@ class HydrologyModel(BaseModel):
             )
 
             # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = current_precipitation - interception
+            precipitation_surface = current_precipitation[:, day] - interception
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate how much water can be added to soil before capacity is reached,

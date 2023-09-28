@@ -272,3 +272,36 @@ def estimate_interception(
         * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
         nan=0.0,
     )
+
+
+def distribute_monthly_rainfall(
+    total_monthly_rainfall: NDArray[np.float32],
+    num_days: int,
+) -> NDArray[np.float32]:
+    """Distributes total monthly rainfall over the specified number of days.
+
+    At the moment, this function allocates each millimeter of monthly rainfall to a
+    randomly selected day. In the future, this allocation could be based on observed
+    rainfall patterns.
+
+    Args:
+        total_monthly_rainfall: Total monthly rainfall, [mm]
+        num_days (int, optional): Number of days to distribute the rainfall over.
+
+    Returns:
+        An array containing the daily rainfall amounts [mm].
+    """
+    np.random.seed(42)  # TODO move this to core for all models to be the same
+
+    daily_rainfall_data = []
+    for total_monthly_rainfall in total_monthly_rainfall:
+        daily_rainfall = np.zeros(num_days)
+
+        for _ in range(int(total_monthly_rainfall)):
+            day = np.random.randint(0, num_days)  # Randomly select a day
+            daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
+
+        daily_rainfall *= total_monthly_rainfall / np.sum(daily_rainfall)
+        daily_rainfall_data.append(daily_rainfall)
+
+    return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)

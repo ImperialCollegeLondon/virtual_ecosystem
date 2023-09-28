@@ -401,7 +401,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.507389, 0.507389, 0.507389], [0.451635, 0.451635, 0.451635]],
+                    [[0.504361, 0.502679, 0.501345], [0.451635, 0.451635, 0.451635]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -409,7 +409,7 @@ def test_setup(
         ).assign_coords(model.data["layer_heights"].coords)
 
         exp_surf_prec = DataArray(
-            [177.113493, 177.113493, 177.113493],
+            [177.561204, 177.822518, 177.591868],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -419,7 +419,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [55.756815, 55.756815, 55.756815],
+            [54.432845, 53.850539, 53.01296],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -429,7 +429,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [117.182581, 117.182581, 117.182581],
+            [117.629926, 117.896289, 117.669184],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
