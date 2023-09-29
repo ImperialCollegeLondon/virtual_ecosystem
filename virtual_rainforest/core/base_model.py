@@ -80,7 +80,6 @@ from typing import Any, Type
 
 import pint
 
-from virtual_rainforest import AUTODISCOVER
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
@@ -439,24 +438,6 @@ class BaseModel(ABC):
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
-
-        if AUTODISCOVER:
-            # Add the new model to the registry - and yes, mypy, cls.model_name is
-            # definitely a string at this point.
-            if cls.model_name in MODEL_REGISTRY:
-                old_class_name = MODEL_REGISTRY[cls.model_name].__name__  # type: ignore
-                LOGGER.warning(
-                    "%s already registered under name '%s', replaced with %s",
-                    old_class_name,
-                    cls.model_name,
-                    cls.__name__,
-                )
-            else:
-                LOGGER.info(
-                    "%s registered under name '%s'", cls.__name__, cls.model_name
-                )
-
-            MODEL_REGISTRY[cls.model_name] = cls  # type: ignore
 
     def __repr__(self) -> str:
         """Represent a Model as a string."""
