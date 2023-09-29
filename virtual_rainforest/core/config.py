@@ -39,6 +39,7 @@ from jsonschema import Draft202012Validator, FormatChecker, exceptions, validato
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -615,7 +616,9 @@ class Config(dict):
 
         # Extract the modules requested in the configuration, falling back to the schema
         # defaults
-        core_schema = SCHEMA_REGISTRY["core"]
+
+        register_module("virtual_rainforest.core")
+        core_schema = MODULE_REGISTRY["core"]["schema"]
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
         try:
@@ -625,18 +628,22 @@ class Config(dict):
             # Revert to defaults
             requested_modules = defmods
 
+        # Register the requested modules
+        for module in requested_modules:
+            register_module(f"virtual_rainforest.models.{module}")
+
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
             # Trap unknown model schemas
-            if module not in SCHEMA_REGISTRY:
+            if module not in MODULE_REGISTRY:
                 to_raise = ConfigurationError(
                     f"Configuration contains module with no schema: {module}"
                 )
                 LOGGER.error(to_raise)
                 raise to_raise
 
-            all_schemas[module] = SCHEMA_REGISTRY[module]
+            all_schemas[module] = MODULE_REGISTRY[module]["schema"]
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
