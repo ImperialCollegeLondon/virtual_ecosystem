@@ -94,7 +94,7 @@ class HydroConsts:
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
 
-    infiltration_shape_parameter: float = 1
+    infiltration_shape_parameter: float = 1.0
     """Empirical shape parameter that affects how much of the water available for
     infiltration goes directly to groundwater via preferential bypass flow. A value of
     0 mean all surface water goes directly to groundwater, a value of 1 gives a linear

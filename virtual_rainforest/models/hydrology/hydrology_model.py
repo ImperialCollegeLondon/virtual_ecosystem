@@ -446,12 +446,27 @@ class HydrologyModel(BaseModel):
             )
             daily_lists["surface_runoff"].append(surface_runoff)
 
+            # Calculate preferential bypass flow, [mm]
+            bypass_flow = above_ground.calculate_bypass_flow(
+                top_soil_moisture=soil_moisture_mm[0],
+                sat_top_soil_moisture=top_soil_moisture_capacity_mm,
+                available_water=precipitation_surface - surface_runoff,
+                infiltration_shape_parameter=(
+                    self.constants.infiltration_shape_parameter
+                ),
+            )
+
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
-                soil_moisture_mm[0] + precipitation_surface,
+                (
+                    soil_moisture_mm[0]
+                    + precipitation_surface
+                    - surface_runoff
+                    - bypass_flow,
+                ),
                 0,
                 top_soil_moisture_capacity_mm,
-            )
+            ).squeeze()
 
             # Calculate daily soil evaporation, [mm]
             top_soil_moisture_vol = soil_moisture_infiltrated / soil_layer_thickness[0]
