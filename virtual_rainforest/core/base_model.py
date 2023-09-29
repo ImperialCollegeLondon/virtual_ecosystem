@@ -76,7 +76,7 @@ initialise and return a new instance of the class.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Type
+from typing import Any
 
 import pint
 
@@ -85,9 +85,6 @@ from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-
-MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
-"""A registry for different models."""
 
 
 class BaseModel(ABC):

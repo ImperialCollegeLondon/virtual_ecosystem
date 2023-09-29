@@ -45,12 +45,6 @@ if sys.version_info[:2] >= (3, 11):
 else:
     import tomli as tomllib
 
-SCHEMA_REGISTRY: dict[str, Any] = {}
-"""A registry for different module schema.
-
-:meta hide-value:
-"""
-
 
 def config_merge(
     dest: dict, source: dict, conflicts: tuple = (), path: str = ""

@@ -9,49 +9,12 @@ registered in. This allows for all model constants to be documented neatly.
 """  # noqa: D205, D415
 
 import dataclasses
-from typing import Any, Callable
+from typing import Any
 
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.registry import MODULE_REGISTRY
-
-CONSTANTS_REGISTRY: dict[str, dict[str, Callable]] = {}
-"""A registry for all the model constants data classes.
-
-:meta hide-value:
-"""
-
-
-def register_constants_class(model_name: str, constants_class: Callable) -> None:
-    """Simple function to add a constants class to the registry.
-
-    Args:
-        model_name: The name of the model that the constant class belongs to
-        class_name: The name of the constants class
-
-    Raises:
-        ValueError: If the model and class name have already been used to register a
-            constants class
-    """
-
-    class_name = constants_class.__name__
-
-    if model_name in CONSTANTS_REGISTRY:
-        if class_name in CONSTANTS_REGISTRY[model_name]:
-            excep = ValueError(
-                f"The constants class {model_name}.{class_name} is already registered"
-            )
-            LOGGER.critical(excep)
-            raise excep
-    else:
-        # If model name is yet registered add it in as an empty dictionary
-        CONSTANTS_REGISTRY[model_name] = {}
-
-    # Add data class to the constants registry
-    CONSTANTS_REGISTRY[model_name][class_name] = constants_class
-
-    LOGGER.info("Constants class %s.%s registered", model_name, class_name)
 
 
 def check_valid_constant_names(constants_config: dict, constants_class: Any) -> None:
