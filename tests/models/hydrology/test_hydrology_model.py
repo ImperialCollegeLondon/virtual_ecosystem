@@ -392,7 +392,7 @@ def test_setup(
         )
 
         # Run the update step
-        model.update(time_index=1)
+        model.update(time_index=1, seed=42)
 
         exp_soil_moisture = xr.concat(
             [

@@ -18,7 +18,7 @@ downstream functions so that all model configuration failures can be reported as
 from __future__ import annotations
 
 from math import sqrt
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -273,7 +273,7 @@ class HydrologyModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         r"""Function to update the hydrology model.
 
         At the moment, this step calculates surface precipitation, soil moisture,
@@ -357,6 +357,7 @@ class HydrologyModel(BaseModel):
         * surface_runoff_accumulated, [mm]
         * matric_potential, [kPa]
         """
+
         # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
@@ -366,10 +367,11 @@ class HydrologyModel(BaseModel):
         days: int = 30
 
         # Select variables at relevant heights for current time step
+        seed: Union[None, int] = kwargs.pop("seed", None)
         current_precipitation = above_ground.distribute_monthly_rainfall(
             (self.data["precipitation"].isel(time_index=time_index)).to_numpy(),
             days,
-            seed=None,  # TODO this is purely for testing purpose
+            seed=seed,
         )
         leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
         evapotranspiration = (

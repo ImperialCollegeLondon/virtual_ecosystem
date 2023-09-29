@@ -156,7 +156,7 @@ class AbioticSimpleModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic simple model.
 
         Args:
