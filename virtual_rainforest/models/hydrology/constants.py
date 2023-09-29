@@ -94,6 +94,10 @@ class HydroConsts:
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
 
+    alpha: float = 0.3
+    """Dimensionless parameter alpha in van Genuchten model that corresponds
+    approximately to the inverse of the air-entry value, [kPa-1]"""
+
     infiltration_shape_parameter: float = 1.0
     """Empirical shape parameter that affects how much of the water available for
     infiltration goes directly to groundwater via preferential bypass flow. A value of

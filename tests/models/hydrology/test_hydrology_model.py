@@ -408,6 +408,20 @@ def test_setup(
             dim="layers",
         ).assign_coords(model.data["layer_heights"].coords)
 
+        exp_matric_pot = xr.concat(
+            [
+                DataArray(
+                    np.full((13, 3), np.nan),
+                    dims=["layers", "cell_id"],
+                ),
+                DataArray(
+                    [[5.633922, 5.633922, 5.633922], [6.846069, 6.846069, 6.846069]],
+                    dims=["layers", "cell_id"],
+                ),
+            ],
+            dim="layers",
+        ).assign_coords(model.data["layer_heights"].coords)
+
         exp_surf_prec = DataArray(
             [177.113493, 177.113493, 177.113493],
             dims=["cell_id"],
@@ -463,6 +477,7 @@ def test_setup(
         np.testing.assert_allclose(
             model.data["surface_runoff_accumulated"], exp_runoff_acc
         )
+        np.testing.assert_allclose(model.data["matric_potential"], exp_matric_pot)
 
 
 def test_calculate_layer_thickness():
