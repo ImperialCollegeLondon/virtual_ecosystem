@@ -13,7 +13,7 @@ class PlantResources:
     """A class implementing the Resource protocol for plant data.
 
     This class acts as the interface between plant model data stored in the core data
-    object using the :class:`~virtual_rainforest.models.animals.protocols.Resources`
+    object using the :class:`~virtual_rainforest.models.animals.protocols.Resource`
     protocol.
 
     At present, it only exposes a single resource - the total leaf mass of the entire
