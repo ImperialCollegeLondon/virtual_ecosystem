@@ -13,12 +13,13 @@ from typing import Any, Optional, Type, Union
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
+from virtual_rainforest.core.base_model import BaseModel  # MODEL_REGISTRY
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_rainforest.core.registry import MODULE_REGISTRY
 
 
 def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
@@ -57,7 +58,9 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
 
     # Make list of missing models, and return an error if necessary
     miss_model = [
-        model for model in unique_models if model not in MODEL_REGISTRY.keys()
+        model
+        for model in unique_models
+        if model not in MODULE_REGISTRY or "model" not in MODULE_REGISTRY[model]
     ]
     if miss_model:
         to_raise = InitialisationError(
@@ -68,7 +71,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         raise to_raise
 
     # Then extract each model from the registry
-    modules = [MODEL_REGISTRY[model] for model in unique_models]
+    modules = [MODULE_REGISTRY[model_name]["model"] for model_name in unique_models]
 
     return modules
 
