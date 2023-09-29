@@ -296,14 +296,14 @@ def distribute_monthly_rainfall(
     rng = np.random.default_rng(seed)
 
     daily_rainfall_data = []
-    for total_monthly_rainfall in total_monthly_rainfall:
+    for rainfall in total_monthly_rainfall:
         daily_rainfall = np.zeros(num_days)
 
-        for _ in range(int(total_monthly_rainfall)):
+        for _ in range(int(rainfall)):
             day = rng.integers(0, num_days, seed)  # Randomly select a day
             daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
 
-        daily_rainfall *= total_monthly_rainfall / np.sum(daily_rainfall)
+        daily_rainfall *= rainfall / np.sum(daily_rainfall)
         daily_rainfall_data.append(daily_rainfall)
 
     return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)

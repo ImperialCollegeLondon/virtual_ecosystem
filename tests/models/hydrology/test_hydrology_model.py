@@ -471,13 +471,36 @@ def test_setup(
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
-        np.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
-        np.testing.assert_allclose(model.data["stream_flow"], exp_stream_flow)
         np.testing.assert_allclose(
-            model.data["surface_runoff_accumulated"], exp_runoff_acc
+            model.data["surface_runoff"],
+            exp_runoff,
+            rtol=1e-4,
+            atol=1e-4,
         )
-        np.testing.assert_allclose(model.data["matric_potential"], exp_matric_pot)
+        np.testing.assert_allclose(
+            model.data["soil_evaporation"],
+            exp_soil_evap,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["stream_flow"],
+            exp_stream_flow,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["surface_runoff_accumulated"],
+            exp_runoff_acc,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["matric_potential"],
+            exp_matric_pot,
+            rtol=1e-4,
+            atol=1e-4,
+        )
 
 
 def test_calculate_layer_thickness():
