@@ -26,9 +26,7 @@ Each of the hydrology sub-modules has its own API reference page:
   parameters and constants for the hydrology model. This is a temporary solution.
 """  # noqa: D205, D415
 
-from virtual_rainforest import AUTODISCOVER
-from virtual_rainforest.core.base_model import register_model
-from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
-if AUTODISCOVER:
-    register_model(__name__, HydrologyModel)
+from virtual_rainforest.models.hydrology.hydrology_model import (  # noqa: F401
+    HydrologyModel,
+)
