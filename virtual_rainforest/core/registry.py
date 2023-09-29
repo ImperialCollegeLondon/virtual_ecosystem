@@ -193,12 +193,20 @@ def register_constants_classes(module: ModuleType, module_name_short: str) -> No
             constants class
     """
 
-    constants_classes = (
-        class_ for class_ in getmembers(module.constants) if is_dataclass(class_[1])
-    )
-
+    # Create the dictionary for constants for this module
     if "constants" not in MODULE_REGISTRY[module_name_short]:
         MODULE_REGISTRY[module_name_short]["constants"] = {}
+
+    # Try and get the constants submodule and simply leave if none is present
+    constants_submodule = getattr(module, "constants", None)
+
+    if constants_submodule is None:
+        return
+
+    # Otherwise get any constant dataclasses and register them
+    constants_classes = (
+        class_ for class_ in getmembers(constants_submodule) if is_dataclass(class_[1])
+    )
 
     for class_name, class_obj in constants_classes:
         if class_name in MODULE_REGISTRY[module_name_short]["constants"]:
