@@ -14,6 +14,7 @@ from typing import Any, Callable
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.registry import MODULE_REGISTRY
 
 CONSTANTS_REGISTRY: dict[str, dict[str, Callable]] = {}
 """A registry for all the model constants data classes.
@@ -53,28 +54,22 @@ def register_constants_class(model_name: str, constants_class: Callable) -> None
     LOGGER.info("Constants class %s.%s registered", model_name, class_name)
 
 
-def check_valid_constant_names(
-    config: Config, model_name: str, class_name: str
-) -> None:
+def check_valid_constant_names(constants_config: dict, constants_class: Any) -> None:
     """Check that the constant names given in the config are valid.
 
     This checks that the constants are expected for the specific dataclass that they are
     assigned to, if not an error is raised.
 
     Args:
-        config: A validated Virtual Rainforest model configuration object.
-        model_name: Name of the model the constants belong to
-        class_name: Name of the specific dataclass the constants belong to
+        constants_config: A dictionary of configuration details for this constants class
+        constants_class: The constants dataclass to validate the details against.
 
     Raises:
         ConfigurationError: If unexpected constant names are used
     """
 
-    # Extract dataclass of interest from registry
-    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
-
     # Extract a set of provided constant names
-    provided_names = set(config[model_name]["constants"][class_name].keys())
+    provided_names = set(constants_config.keys())
 
     # Get a set of valid names
     valid_names = {fld.name for fld in dataclasses.fields(constants_class)}
@@ -84,7 +79,7 @@ def check_valid_constant_names(
     if unexpected_names:
         LOGGER.error(
             "Unknown names supplied for %s: %s"
-            % (class_name, ", ".join(unexpected_names))
+            % (constants_class.__name__, ", ".join(unexpected_names))
         )
         LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
         raise ConfigurationError()
@@ -108,14 +103,25 @@ def load_constants(config: Config, model_name: str, class_name: str) -> Any:
     """
 
     # Extract dataclass of interest from registry
-    constants_class = CONSTANTS_REGISTRY[model_name][class_name]
+    try:
+        constants_class = MODULE_REGISTRY[model_name]["constants"][class_name]
+    except KeyError as excep:
+        LOGGER.critical(f"Unknown constants class: {model_name}.{class_name}")
+        raise excep
 
-    # Check if any constants have been supplied
-    if model_name in config and "constants" in config[model_name]:
+    # Check if any constants have been supplied for this constants class
+    if (
+        model_name in config
+        and "constants" in config[model_name]
+        and class_name in config[model_name]["constants"]
+    ):
         # Checks that constants in config are as expected
-        check_valid_constant_names(config, model_name, class_name)
+        constants_config = config[model_name]["constants"][class_name]
+        check_valid_constant_names(
+            constants_config=constants_config, constants_class=constants_class
+        )
         # If an error isn't raised then generate the dataclass
-        return constants_class(**config[model_name]["constants"][class_name])
+        return constants_class(**constants_config)
 
     # If no constants are supplied then the defaults should be used
     return constants_class()
