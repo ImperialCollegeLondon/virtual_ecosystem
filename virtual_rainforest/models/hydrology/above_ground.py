@@ -289,7 +289,7 @@ def calculate_bypass_flow(
     the relative saturation of the superficial and upper soil layers. This results in
     the following equation (after LISFLOOD model):
 
-    :math:`D_{pref, gw} = W_{av} * \frac{w_{1}}{w_{s1}}**c_{pref}`
+    :math:`D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}`
 
     where :math:`D_{pref, gw}` is the amount of preferential flow per time step [mm],
     :math:`W_{av}` is the amount of water that is available for infiltration, and
