@@ -279,8 +279,8 @@ class HydrologyModel(BaseModel):
         vertical flow, soil evaporation, and surface runoff (per grid cell and
         accumulated), and estimates mean stream flow. These processes are problematic
         at a monthly timestep, which is why - as an intermediate step - the input
-        precipitation is divided by 30 days, the same day is run 30 times, and the
-        return variables are means or accumulated values.
+        precipitation is randomly distributed over 30 days, and the
+        return variables are monthly means or accumulated values.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
