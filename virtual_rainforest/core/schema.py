@@ -55,7 +55,7 @@ def set_defaults(
         yield error
 
 
-ValidatorWithDefaults: Draft202012Validator = validators.extend(
+ValidatorWithDefaults = validators.extend(
     Draft202012Validator, {"properties": set_defaults}
 )
 """A JSONSchema validator that sets defaults where required."""
