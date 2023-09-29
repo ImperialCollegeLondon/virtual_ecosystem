@@ -102,7 +102,7 @@ class AnimalCommunity:
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_energy_threshold():
+            if cohort.is_below_mass_threshold():
                 # Random walk destination from the neighbouring keys
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
@@ -131,7 +131,7 @@ class AnimalCommunity:
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
 
-        A cohort can only reproduce if it has an excess of stored energy above a
+        A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and mass=birth_mass.
 
@@ -162,7 +162,7 @@ class AnimalCommunity:
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
 
-        # reproduction occurs for cohorts with sufficient energy
+        # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
             if cohort.can_reproduce():
                 self.birth(cohort)
@@ -173,7 +173,7 @@ class AnimalCommunity:
         It should loop over every animal cohort in the community and call the
         collect_prey and forage_cohort functions. This will create a list of suitable
         trophic resources and then action foraging on those resources. Details of
-        energy transfer are handled inside forage_cohort and its helper functions.
+        mass transfer are handled inside forage_cohort and its helper functions.
         This will sooner be expanded to include functions for handling scavenging
         and soil consumption behaviors specifically.
 

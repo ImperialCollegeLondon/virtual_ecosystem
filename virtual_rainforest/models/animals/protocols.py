@@ -19,7 +19,7 @@ class Consumer(Protocol):
 class Pool(Protocol):
     """This is a protocol for defining dummy abiotic pools containing energy."""
 
-    stored_energy: float
+    mass_current: float
 
 
 class DecayPool(Protocol):
@@ -33,7 +33,7 @@ class DecayPool(Protocol):
 class Resource(Protocol):
     """This is the protocol for defining what classes work as trophic resources."""
 
-    stored_energy: float
+    mass_current: float
 
     def get_eaten(self, consumer: Consumer, pool: DecayPool) -> float:
         """The get_eaten method defines a resource."""
