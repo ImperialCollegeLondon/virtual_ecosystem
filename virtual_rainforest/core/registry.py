@@ -19,9 +19,8 @@ umbrella function and then separate functions to handle the components:
 """  # noqa: D205, D415
 
 
-import sys
 from dataclasses import is_dataclass
-from importlib import resources
+from importlib import import_module, resources
 from inspect import getmembers, isclass
 from pathlib import Path
 from types import ModuleType
@@ -59,13 +58,14 @@ def register_module(module_name: str) -> None:
             a child of BaseModel.
     """
 
-    # Get a reference to the module and get the short name
+    # Try and import the module from the name to get a reference to the module
     try:
-        module = sys.modules[module_name]
-    except KeyError as excep:
+        module = import_module(module_name)
+    except ModuleNotFoundError as excep:
         LOGGER.critical(f"Unknown module - registration failed: {module_name}")
         raise excep
 
+    # Extract the last component of the module name to act as unique short name
     module_name_short = module_name.split(".")[-1]
     is_not_core = module_name != "virtual_rainforest.core"
 
@@ -140,7 +140,7 @@ def register_model(
         LOGGER.critical(excep)
         raise excep
 
-    # Register the resulting single model
+    # Register the resulting single model class
     MODULE_REGISTRY[module_name_short]["model"] = model_obj
     LOGGER.info(f"Registered class for {module_name_short} model: {model_name}")
 
