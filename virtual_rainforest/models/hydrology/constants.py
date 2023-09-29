@@ -93,3 +93,7 @@ class HydroConsts:
     groundwater_capacity: float = 0.9
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
+
+    alpha: float = 0.3
+    """Dimensionless parameter alpha in van Genuchten model that corresponds
+    approximately to the inverse of the air-entry value, [kPa-1]"""
