@@ -90,6 +90,7 @@ class HydrologyModel(BaseModel):
         "soil_evaporation",
         "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
+        "matric_potential",
     )
     """Variables updated by the hydrology model."""
 
@@ -354,6 +355,7 @@ class HydrologyModel(BaseModel):
         * soil_evaporation, [mm]
         * stream_flow, [mm/timestep], currently simply P-ET
         * surface_runoff_accumulated, [mm]
+        * matric_potential, [kPa]
         """
         # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
@@ -523,6 +525,16 @@ class HydrologyModel(BaseModel):
                 soil_moisture_updated / soil_layer_thickness
             )
 
+            # Convert soil moisture to matric potential
+            matric_potential = below_ground.soil_moisture_to_matric_potential(
+                soil_moisture=soil_moisture_updated / soil_layer_thickness,
+                soil_moisture_capacity=self.constants.soil_moisture_capacity,
+                soil_moisture_residual=self.constants.soil_moisture_residual,
+                nonlinearily_parameter=self.constants.nonlinearily_parameter,
+                alpha=self.constants.alpha,
+            )
+            daily_lists["matric_potential"].append(matric_potential)
+
             # update soil_moisture_mm for next day
             soil_moisture_mm = soil_moisture_updated
 
@@ -543,28 +555,28 @@ class HydrologyModel(BaseModel):
             coords={"cell_id": self.data.grid.cell_id},
         )
 
-        # Return mean soil moisture, [-], and add atmospheric layers (nan)
-        soil_hydrology["soil_moisture"] = DataArray(
-            np.concatenate(
-                (
-                    np.full(
-                        (
-                            len(self.layer_roles) - self.layer_roles.count("soil"),
-                            self.data.grid.n_cells,
+        # Return mean soil moisture, [-], and matric potential, [kPa], and add
+        # atmospheric layers (nan)
+        for var in ["soil_moisture", "matric_potential"]:
+            soil_hydrology[var] = DataArray(
+                np.concatenate(
+                    (
+                        np.full(
+                            (
+                                len(self.layer_roles) - self.layer_roles.count("soil"),
+                                self.data.grid.n_cells,
+                            ),
+                            np.nan,
                         ),
-                        np.nan,
-                    ),
-                    np.mean(
-                        np.stack(daily_lists["soil_moisture"], axis=0),
-                        axis=0,
+                        np.mean(
+                            np.stack(daily_lists[var], axis=0),
+                            axis=0,
+                        ),
                     ),
                 ),
-            ),
-            dims=self.data["soil_moisture"].dims,
-            coords=self.data["soil_moisture"].coords,
-        )
-
-        # TODO Convert to matric potential
+                dims=self.data["layer_heights"].dims,
+                coords=self.data["layer_heights"].coords,
+            )
 
         # Calculate accumulated surface runoff for model time step
         # Get the runoff created by SPLASH or initial data set

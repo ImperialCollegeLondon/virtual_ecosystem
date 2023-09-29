@@ -83,3 +83,30 @@ def test_update_soil_moisture():
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
+
+
+def test_soil_moisture_to_matric_potential():
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.below_ground import (
+        soil_moisture_to_matric_potential,
+    )
+    from virtual_rainforest.models.hydrology.constants import HydroConsts
+
+    soil_moisture = np.array([[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]])
+
+    result = soil_moisture_to_matric_potential(
+        soil_moisture=soil_moisture,
+        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        nonlinearily_parameter=HydroConsts.nonlinearily_parameter,
+        alpha=HydroConsts.alpha,
+    )
+    exp_result = np.array(
+        [
+            [26.457513, 26.457513, 26.457513],
+            [5.773503, 5.773503, 5.773503],
+        ]
+    )
+
+    np.testing.assert_allclose(result, exp_result)
