@@ -5,7 +5,7 @@ runoff.
 """  # noqa: D205, D415
 
 from math import sqrt
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -277,6 +277,7 @@ def estimate_interception(
 def distribute_monthly_rainfall(
     total_monthly_rainfall: NDArray[np.float32],
     num_days: int,
+    seed: Optional[int] = None,
 ) -> NDArray[np.float32]:
     """Distributes total monthly rainfall over the specified number of days.
 
@@ -287,18 +288,19 @@ def distribute_monthly_rainfall(
     Args:
         total_monthly_rainfall: Total monthly rainfall, [mm]
         num_days: Number of days to distribute the rainfall over
+        seed: seed for random number generator, optional
 
     Returns:
         An array containing the daily rainfall amounts, [mm]
     """
-    np.random.seed(42)  # TODO move this to core for all models to be the same
+    rng = np.random.default_rng(seed)
 
     daily_rainfall_data = []
     for total_monthly_rainfall in total_monthly_rainfall:
         daily_rainfall = np.zeros(num_days)
 
         for _ in range(int(total_monthly_rainfall)):
-            day = np.random.randint(0, num_days)  # Randomly select a day
+            day = rng.integers(0, num_days, seed)  # Randomly select a day
             daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
 
         daily_rainfall *= total_monthly_rainfall / np.sum(daily_rainfall)

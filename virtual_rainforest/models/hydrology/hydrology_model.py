@@ -369,6 +369,7 @@ class HydrologyModel(BaseModel):
         current_precipitation = above_ground.distribute_monthly_rainfall(
             (self.data["precipitation"].isel(time_index=time_index)).to_numpy(),
             days,
+            seed=42,  # TODO this is purely for testing purpose
         )
         leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
         evapotranspiration = (

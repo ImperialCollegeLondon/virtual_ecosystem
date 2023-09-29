@@ -224,8 +224,8 @@ def test_distribute_monthly_rainfall():
     )
 
     monthly_rain = np.array([0.0, 20.0, 200.0])
-    result = distribute_monthly_rainfall(monthly_rain, 10)
-    result1 = distribute_monthly_rainfall(monthly_rain, 10)
+    result = distribute_monthly_rainfall(monthly_rain, 10, 42)
+    result1 = distribute_monthly_rainfall(monthly_rain, 10, 42)
 
     assert result.shape == (3, 10)
     np.testing.assert_allclose(result.sum(axis=1), monthly_rain)
