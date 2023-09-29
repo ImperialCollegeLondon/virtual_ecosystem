@@ -215,3 +215,18 @@ def test_estimate_interception():
     exp_result = np.array([0.0, 1.180619, 5.339031])
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_calculate_bypass_flow():
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.above_ground import calculate_bypass_flow
+
+    top_sm = np.array([20, 50, 80])
+    top_sm_sat = np.array([100, 100, 100])
+    av_water = np.array([20, 20, 20])
+
+    result = calculate_bypass_flow(top_sm, top_sm_sat, av_water, 1.0)
+    exp_result = np.array([4.0, 10.0, 16.0])
+
+    np.testing.assert_allclose(result, exp_result)

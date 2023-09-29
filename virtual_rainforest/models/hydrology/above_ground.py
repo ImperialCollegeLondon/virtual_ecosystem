@@ -272,3 +272,42 @@ def estimate_interception(
         * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
         nan=0.0,
     )
+
+
+def calculate_bypass_flow(
+    top_soil_moisture: NDArray[np.float32],
+    sat_top_soil_moisture: NDArray[np.float32],
+    available_water: NDArray[np.float32],
+    infiltration_shape_parameter: float,
+) -> NDArray[np.float32]:
+    r"""Calculate preferential bypass flow.
+
+    Bypass flow is here defined as the flow that bypasses the soil matrix and drains
+    directly to the groundwater. During each time step, a fraction of the water that is
+    available for infiltration is added to the groundwater directly (i.e. without first
+    entering the soil matrix). It is assumed that this fraction is a power function of
+    the relative saturation of the superficial and upper soil layers. This results in
+    the following equation (after LISFLOOD model):
+
+    :math:`D_{pref, gw} = W_{av} * \frac{w_{1}}{w_{s1}}**c_{pref}`
+
+    where :math:`D_{pref, gw}` is the amount of preferential flow per time step [mm],
+    :math:`W_{av}` is the amount of water that is available for infiltration, and
+    :math:`c_{pref}` is an empirical shape parameter. The equation results in a
+    preferential flow component that becomes increasingly important as the soil gets
+    wetter.
+
+    Args:
+        top_soil_moisture: soil moisture of top soil layer, [mm]
+        sat_top_soil_moisture: soil moisture of top soil layer at saturation, [mm]
+        available_water: amount of water available for infiltration, [mm]
+        infiltration_shape_parameter: shape parameter for infiltration
+
+    Returns:
+        preferential bypass flow, [mm]
+    """
+
+    return (
+        available_water
+        * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
+    )
