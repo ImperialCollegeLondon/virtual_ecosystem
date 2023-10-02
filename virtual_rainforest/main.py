@@ -70,10 +70,8 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         LOGGER.critical(to_raise)
         raise to_raise
 
-    # Then extract each model from the registry
-    modules = [MODULE_REGISTRY[model_name]["model"] for model_name in unique_models]
-
-    return modules
+    # Return the appropriate models from the registry
+    return [MODULE_REGISTRY[model_name]["model"] for model_name in unique_models]
 
 
 def configure_models(
