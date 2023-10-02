@@ -191,7 +191,7 @@ class PlantsModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
 
         This method first updates the canopy layers, so that growth in any previous

@@ -18,7 +18,7 @@ downstream functions so that all model configuration failures can be reported as
 from __future__ import annotations
 
 from math import sqrt
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -197,9 +197,9 @@ class HydrologyModel(BaseModel):
         first update(). For the within grid cell hydrology, soil moisture is initialised
         homogenously for all soil layers and groundwater storage is set to 90 percent of
         it's capacity. This design might change with the
-        implementation of the SPLASH model in the plant module which will take care of
-        the above-ground hydrology. Air temperature and relative humidity below the
-        canopy are set to the 2 m reference values.
+        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
+        model which will take care of the above-ground hydrology. Air temperature and
+        relative humidity below the canopy are set to the 2 m reference values.
 
         For the hydrology across the grid (above-/below-ground and accumulated runoff),
         this function uses the upstream neighbours of each grid cell (see
@@ -296,15 +296,15 @@ class HydrologyModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         r"""Function to update the hydrology model.
 
         At the moment, this step calculates surface precipitation, soil moisture,
         vertical flow, soil evaporation, and surface runoff (per grid cell and
         accumulated), and estimates mean stream flow. These processes are problematic
         at a monthly timestep, which is why - as an intermediate step - the input
-        precipitation is divided by 30 days, the same day is run 30 times, and the
-        return variables are means or accumulated values.
+        precipitation is randomly distributed over 30 days, and the
+        return variables are monthly means or accumulated values.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
@@ -380,6 +380,7 @@ class HydrologyModel(BaseModel):
         * surface_runoff_accumulated, [mm]
         * matric_potential, [kPa]
         """
+
         # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
@@ -389,9 +390,12 @@ class HydrologyModel(BaseModel):
         days: int = 30
 
         # Select variables at relevant heights for current time step
-        current_precipitation = (
-            self.data["precipitation"].isel(time_index=time_index) / days
-        ).to_numpy()
+        seed: Union[None, int] = kwargs.pop("seed", None)
+        current_precipitation = above_ground.distribute_monthly_rainfall(
+            (self.data["precipitation"].isel(time_index=time_index)).to_numpy(),
+            days,
+            seed=seed,
+        )
         leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
         evapotranspiration = (
             self.data["evapotranspiration"].sum(dim="layers") / days
@@ -445,7 +449,7 @@ class HydrologyModel(BaseModel):
             # Interception of water in canopy, [mm]
             interception = above_ground.estimate_interception(
                 leaf_area_index=leaf_area_index_sum,
-                precipitation=current_precipitation,
+                precipitation=current_precipitation[:, day],
                 intercept_param_1=self.constants.intercept_param_1,
                 intercept_param_2=self.constants.intercept_param_2,
                 intercept_param_3=self.constants.intercept_param_3,
@@ -453,7 +457,7 @@ class HydrologyModel(BaseModel):
             )
 
             # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = current_precipitation - interception
+            precipitation_surface = current_precipitation[:, day] - interception
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate how much water can be added to soil before capacity is reached,
@@ -471,12 +475,27 @@ class HydrologyModel(BaseModel):
             )
             daily_lists["surface_runoff"].append(surface_runoff)
 
+            # Calculate preferential bypass flow, [mm]
+            bypass_flow = above_ground.calculate_bypass_flow(
+                top_soil_moisture=soil_moisture_mm[0],
+                sat_top_soil_moisture=top_soil_moisture_capacity_mm,
+                available_water=precipitation_surface - surface_runoff,
+                infiltration_shape_parameter=(
+                    self.constants.infiltration_shape_parameter
+                ),
+            )
+
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
-                soil_moisture_mm[0] + precipitation_surface,
+                (
+                    soil_moisture_mm[0]
+                    + precipitation_surface
+                    - surface_runoff
+                    - bypass_flow,
+                ),
                 0,
                 top_soil_moisture_capacity_mm,
-            )
+            ).squeeze()
 
             # Calculate daily soil evaporation, [mm]
             top_soil_moisture_vol = soil_moisture_infiltrated / soil_layer_thickness[0]

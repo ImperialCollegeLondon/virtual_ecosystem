@@ -25,7 +25,8 @@ def calculate_vertical_flow(
     To calculate the flow of water through unsaturated soil, this function uses the
     Richards equation. First, the function calculates the effective saturation :math:`S`
     and effective hydraulic conductivity :math:`K(S)` based on the moisture content
-    :math:`\Theta` using the van Genuchten/Mualem model:
+    :math:`\Theta` using the Mualem-van Genuchten model
+    :cite:p:`van_genuchten_closed-form_1980`:
 
     :math:`S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}`
 
@@ -116,8 +117,9 @@ def update_soil_moisture(
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
-    of the current layer and adding it to the layer below. Additionally, the
-    evapotranspiration is removed from the second soil layer.
+    of the current layer and adding it to the layer below. The implementation is based
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+    removed from the second soil layer.
 
     Args:
         soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
@@ -172,7 +174,7 @@ def soil_moisture_to_matric_potential(
     nonlinearily_parameter: Union[float, NDArray[np.float32]],
     alpha: Union[float, NDArray[np.float32]],
 ) -> NDArray[np.float32]:
-    r"""Convert soil moisture to matric potential using van Genuchten/Mualem model.
+    r"""Convert soil moisture to matric potential using the Mualem-van Genuchten model.
 
     The soil water content is converted to matric potential as follows:
 
@@ -182,7 +184,7 @@ def soil_moisture_to_matric_potential(
     :math:`\Theta_{s}` are the residual and saturated moisture content or soil moisture
     capacity, respectively. `math`:\Phi` is the soil water matric potential and
     :math:`m`, :math:`n`, and :math:`\alpha` are shape parameters of the water retention
-    curve.
+    curve :cite:p:`van_genuchten_closed-form_1980`.
 
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]

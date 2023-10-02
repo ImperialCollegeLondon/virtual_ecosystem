@@ -1,11 +1,11 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
-processes for the Virtual Rainforest. At the moment, this includes rainwater
+processes for the Virtual Rainforest. At the moment, this includes rain water
 interception by the canopy, soil evaporation, and all functions related to surface
 runoff.
 """  # noqa: D205, D415
 
 from math import sqrt
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -30,8 +30,9 @@ def calculate_soil_evaporation(
 ) -> NDArray[np.float32]:
     r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
 
-    This function uses the so-called 'alpha' method to estimate the evaporative flux.
-    We here use the implementation by Barton (1979):
+    This function uses the so-called 'alpha' method to estimate the evaporative flux
+    :cite:p:`mahfouf_comparative_1991`.
+    We here use the implementation by :cite:t:`barton_parameterization_1979`:
 
     :math:`\alpha = \frac{1.8 * \Theta}{\Theta + 0.3}`
 
@@ -41,7 +42,7 @@ def calculate_soil_evaporation(
     content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
     density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
-    :math:`q_{g}` is the surface specific humidity (unitless); see Mahfouf (1991).
+    :math:`q_{g}` is the surface specific humidity (unitless).
 
     TODO add references
     TODO move constants to HydroConsts or CoreConstants and check values
@@ -215,7 +216,8 @@ def estimate_interception(
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
-    equation after :cite:t:`aston_rainfall_1979` and :cite:t:`merriam_note_1960`:
+    equation after :cite:t:`aston_rainfall_1979` and :cite:t:`merriam_note_1960` as
+    implemented in :cite:t:`van_der_knijff_lisflood_2010` :
 
     :math:`Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]`
 
@@ -271,4 +273,81 @@ def estimate_interception(
         max_capacity
         * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
         nan=0.0,
+    )
+
+
+def distribute_monthly_rainfall(
+    total_monthly_rainfall: NDArray[np.float32],
+    num_days: int,
+    seed: Optional[int] = None,
+) -> NDArray[np.float32]:
+    """Distributes total monthly rainfall over the specified number of days.
+
+    At the moment, this function allocates each millimeter of monthly rainfall to a
+    randomly selected day. In the future, this allocation could be based on observed
+    rainfall patterns.
+
+    Args:
+        total_monthly_rainfall: Total monthly rainfall, [mm]
+        num_days: Number of days to distribute the rainfall over
+        seed: seed for random number generator, optional
+
+    Returns:
+        An array containing the daily rainfall amounts, [mm]
+    """
+    rng = np.random.default_rng(seed)
+
+    daily_rainfall_data = []
+    for rainfall in total_monthly_rainfall:
+        daily_rainfall = np.zeros(num_days)
+
+        for _ in range(int(rainfall)):
+            day = rng.integers(0, num_days, seed)  # Randomly select a day
+            daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
+
+        daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        daily_rainfall_data.append(daily_rainfall)
+
+    return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)
+
+
+def calculate_bypass_flow(
+    top_soil_moisture: NDArray[np.float32],
+    sat_top_soil_moisture: NDArray[np.float32],
+    available_water: NDArray[np.float32],
+    infiltration_shape_parameter: float,
+) -> NDArray[np.float32]:
+    r"""Calculate preferential bypass flow.
+
+    Bypass flow is here defined as the flow that bypasses the soil matrix and drains
+    directly to the groundwater. During each time step, a fraction of the water that is
+    available for infiltration is added to the groundwater directly (i.e. without first
+    entering the soil matrix). It is assumed that this fraction is a power function of
+    the relative saturation of the superficial and upper soil layers. This results in
+    the following equation (after :cite:t:`van_der_knijff_lisflood_2010`):
+
+    :math:`D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}`
+
+    where :math:`D_{pref, gw}` is the amount of preferential flow per time step [mm],
+    :math:`W_{av}` is the amount of water that is available for infiltration, and
+    :math:`c_{pref}` is an empirical shape parameter. This parameter affects how much of
+    the water available for infiltration goes directly to groundwater via preferential
+    bypass flow; a value of 0 means all surface water goes directly to groundwater, a
+    value of 1 gives a linear relation between soil moisture and bypass flow.
+    The equation returns a preferential flow component that becomes increasingly
+    important as the soil gets wetter.
+
+    Args:
+        top_soil_moisture: soil moisture of top soil layer, [mm]
+        sat_top_soil_moisture: soil moisture of top soil layer at saturation, [mm]
+        available_water: amount of water available for infiltration, [mm]
+        infiltration_shape_parameter: shape parameter for infiltration
+
+    Returns:
+        preferential bypass flow, [mm]
+    """
+
+    return (
+        available_water
+        * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
     )
