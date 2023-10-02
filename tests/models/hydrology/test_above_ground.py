@@ -217,6 +217,21 @@ def test_estimate_interception():
     np.testing.assert_allclose(result, exp_result)
 
 
+def test_distribute_monthly_rainfall():
+    """Test that randomly generated numbers are reproducible."""
+    from virtual_rainforest.models.hydrology.above_ground import (
+        distribute_monthly_rainfall,
+    )
+
+    monthly_rain = np.array([0.0, 20.0, 200.0])
+    result = distribute_monthly_rainfall(monthly_rain, 10, 42)
+    result1 = distribute_monthly_rainfall(monthly_rain, 10, 42)
+
+    assert result.shape == (3, 10)
+    np.testing.assert_allclose(result.sum(axis=1), monthly_rain)
+    np.testing.assert_allclose(result, result1)
+
+
 def test_calculate_bypass_flow():
     """Test."""
 

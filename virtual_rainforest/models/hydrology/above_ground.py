@@ -5,7 +5,7 @@ runoff.
 """  # noqa: D205, D415
 
 from math import sqrt
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -274,6 +274,41 @@ def estimate_interception(
         * (1 - np.exp(-canopy_density_factor * precipitation / max_capacity)),
         nan=0.0,
     )
+
+
+def distribute_monthly_rainfall(
+    total_monthly_rainfall: NDArray[np.float32],
+    num_days: int,
+    seed: Optional[int] = None,
+) -> NDArray[np.float32]:
+    """Distributes total monthly rainfall over the specified number of days.
+
+    At the moment, this function allocates each millimeter of monthly rainfall to a
+    randomly selected day. In the future, this allocation could be based on observed
+    rainfall patterns.
+
+    Args:
+        total_monthly_rainfall: Total monthly rainfall, [mm]
+        num_days: Number of days to distribute the rainfall over
+        seed: seed for random number generator, optional
+
+    Returns:
+        An array containing the daily rainfall amounts, [mm]
+    """
+    rng = np.random.default_rng(seed)
+
+    daily_rainfall_data = []
+    for rainfall in total_monthly_rainfall:
+        daily_rainfall = np.zeros(num_days)
+
+        for _ in range(int(rainfall)):
+            day = rng.integers(0, num_days, seed)  # Randomly select a day
+            daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
+
+        daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        daily_rainfall_data.append(daily_rainfall)
+
+    return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)
 
 
 def calculate_bypass_flow(
