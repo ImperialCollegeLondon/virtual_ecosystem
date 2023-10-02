@@ -46,6 +46,9 @@ class HydrologyModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial volumetric relative water content [unitless]
             for all layers.
+        init_groundwater_saturation: Initial level of groundwater saturation in
+            volumetric relative water content [unitless] for all layers and grid cells
+            identical.
         constants: Set of constants for the hydrology model.
 
     Raises:
@@ -91,6 +94,7 @@ class HydrologyModel(BaseModel):
         "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
         "matric_potential",
+        "groundwater_storage",
     )
     """Variables updated by the hydrology model."""
 
@@ -101,6 +105,7 @@ class HydrologyModel(BaseModel):
         soil_layers: list[float],
         canopy_layers: int,
         initial_soil_moisture: float,
+        init_groundwater_saturation: float,
         constants: HydroConsts,
         **kwargs: Any,
     ):
@@ -133,6 +138,9 @@ class HydrologyModel(BaseModel):
         self.initial_soil_moisture = initial_soil_moisture
         """Initial volumetric relative water content [unitless] for all layers and grid
         cells identical."""
+        self.init_groundwater_saturation = init_groundwater_saturation
+        """Initial level of groundwater saturation in volumetric relative water content
+        [unitless] for all layers and grid cells identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
@@ -163,6 +171,7 @@ class HydrologyModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
+        init_groundwater_saturation = config["hydrology"]["init_groundwater_saturation"]
 
         # Load in the relevant constants
         constants = load_constants(config, "hydrology", "HydroConsts")
@@ -177,6 +186,7 @@ class HydrologyModel(BaseModel):
             soil_layers,
             canopy_layers,
             initial_soil_moisture,
+            init_groundwater_saturation,
             constants,
         )
 
@@ -185,7 +195,8 @@ class HydrologyModel(BaseModel):
 
         At the moment, this function initializes variables that are required to run the
         first update(). For the within grid cell hydrology, soil moisture is initialised
-        homogenously for all soil layers. This design might change with the
+        homogenously for all soil layers and groundwater storage is set to 90 percent of
+        it's capacity. This design might change with the
         implementation of the SPLASH model in the plant module which will take care of
         the above-ground hydrology. Air temperature and relative humidity below the
         canopy are set to the 2 m reference values.
@@ -248,6 +259,18 @@ class HydrologyModel(BaseModel):
                     "cell_id": self.data.grid.cell_id,
                 },
             )
+        )
+
+        # Create initial groundwater storage for two layers
+        initial_groundwater_storage = (
+            self.init_groundwater_saturation * self.constants.groundwater_capacity
+        )
+        self.data["groundwater_storage"] = DataArray(
+            np.full(
+                (2, self.data.grid.n_cells),
+                initial_groundwater_storage,
+            ),
+            dims=("groundwater_layers", "cell_id"),
         )
 
         # Get the runoff created by SPLASH or initial data set as the initial state:

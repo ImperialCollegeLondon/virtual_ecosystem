@@ -400,6 +400,11 @@ def dummy_climate_data(layer_roles_fixture):
         }
     )
 
+    data["groundwater_storage"] = DataArray(
+        np.full((2, 3), 0.81),
+        dims=("groundwater_layers", "cell_id"),
+    )
+
     return data
 
 

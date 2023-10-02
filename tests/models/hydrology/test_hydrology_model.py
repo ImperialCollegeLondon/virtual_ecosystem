@@ -16,10 +16,11 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
 
 @pytest.mark.parametrize(
-    "ini_soil_moisture,raises,expected_log_entries",
+    "ini_soil_moisture, ini_groundwater_sat, raises, expected_log_entries",
     [
         (
             0.5,
+            0.9,
             does_not_raise(),
             (
                 (
@@ -58,6 +59,7 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
         ),
         (
             -0.5,
+            0.9,
             pytest.raises(InitialisationError),
             (
                 (
@@ -68,6 +70,7 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
         ),
         (
             DataArray([50, 30, 20]),
+            0.9,
             pytest.raises(InitialisationError),
             (
                 (
@@ -82,6 +85,7 @@ def test_hydrology_model_initialization(
     caplog,
     dummy_climate_data,
     ini_soil_moisture,
+    ini_groundwater_sat,
     raises,
     expected_log_entries,
     layer_roles_fixture,
@@ -98,6 +102,7 @@ def test_hydrology_model_initialization(
             soil_layers,
             canopy_layers,
             ini_soil_moisture,
+            ini_groundwater_sat,
             constants=HydroConsts,
         )
 
@@ -114,6 +119,7 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
         assert model.initial_soil_moisture == ini_soil_moisture
+        assert model.init_groundwater_saturation == ini_groundwater_sat
         assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
 
     # Final check that expected logging entries are produced
@@ -144,6 +150,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
+                    "init_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 month"),
@@ -203,6 +210,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
+                    "init_groundwater_saturation": 0.9,
                     "constants": {"HydroConsts": {"soil_moisture_capacity": 0.7}},
                 },
             },
@@ -263,6 +271,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
+                    "init_groundwater_saturation": 0.9,
                     "constants": {"HydroConsts": {"soilm_cap": 0.7}},
                 },
             },
@@ -326,6 +335,7 @@ def test_generate_hydrology_model(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
+                    "init_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 month"),
@@ -345,6 +355,7 @@ def test_generate_hydrology_model(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
+                    "init_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 week"),
@@ -386,6 +397,16 @@ def test_setup(
                     "cell_id": [0, 1, 2],
                 },
                 name="soil_moisture",
+            ),
+            rtol=1e-3,
+            atol=1e-3,
+        )
+
+        np.testing.assert_allclose(
+            dummy_climate_data["groundwater_storage"],
+            DataArray(
+                [[0.81, 0.81, 0.81], [0.81, 0.81, 0.81]],
+                dims=("groundwater_layers", "cell_id"),
             ),
             rtol=1e-3,
             atol=1e-3,
