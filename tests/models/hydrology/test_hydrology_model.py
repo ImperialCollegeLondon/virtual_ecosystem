@@ -405,7 +405,7 @@ def test_setup(
         np.testing.assert_allclose(
             dummy_climate_data["groundwater_storage"],
             DataArray(
-                [[0.81, 0.81, 0.81], [0.81, 0.81, 0.81]],
+                [[450.0, 450.0, 450.0], [450.0, 450.0, 450.0]],
                 dims=("groundwater_layers", "cell_id"),
             ),
             rtol=1e-3,

@@ -90,7 +90,7 @@ class HydroConsts:
     """Parameter used to estimate vegetation density for maximum canopy interception
     capacity estimate after Von Hoyningen-Huene, (1981)."""
 
-    groundwater_capacity: float = 0.9
+    groundwater_capacity: float = 500
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
 

@@ -1,6 +1,6 @@
 """The ``models.hydrology.below_ground`` module simulates the below-ground hydrological
 processes for the Virtual Rainforest. At the moment, this includes vertical flow, and
-soil moisture. In the future, this will also include subsurface horizontal flow.
+soil moisture, and subsurface horizontal flow.
 """  # noqa: D205, D415
 
 from typing import Union
@@ -60,7 +60,7 @@ def calculate_vertical_flow(
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
-        groundwater_capacity: storage capacity of groundwater
+        groundwater_capacity: storage capacity of groundwater, [mm]
         seconds_to_day: factor to convert between second and day
 
     Returns:
@@ -96,12 +96,10 @@ def calculate_vertical_flow(
         )
         flow_min.append(flow_layer)
 
-    groundwater_storage = groundwater_capacity * np.sum(soil_layer_thickness, axis=0)
-
     outflow = np.where(
-        effective_conductivity[-1] < groundwater_storage,
+        effective_conductivity[-1] < groundwater_capacity,
         flow[-1],
-        groundwater_storage,
+        groundwater_capacity,
     )
     flow_min.append(outflow)
 
