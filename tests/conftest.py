@@ -139,12 +139,33 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
+            DataArray(
+                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                dims=["layers", "cell_id"],
+            ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+    # TODO - Eventually this should replace the dummy soil moisture entirely
+    data["soil_water_potential"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[-3.0, -10.0, -250.0, -10000.0]], dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
+    data["soil_water_potential"] = data["soil_water_potential"].assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": ("layers", layer_roles_fixture),

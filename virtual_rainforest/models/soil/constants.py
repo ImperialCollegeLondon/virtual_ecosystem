@@ -86,13 +86,6 @@ class SoilConsts:
     half_sat_microbial_pom_mineralisation: float = 0.012
     """Half saturation constant for microbial POM mineralisation [kg C m^-2]."""
 
-    max_decomp_rate_pom: float = 0.01
-    """Maximum (theoretical) rate for particulate organic matter break down.
-
-    Units of [kg C m^-2 day^-1]. Taken from :cite:t:`abramoff_millennial_2018`, where it
-    was obtained by calibration.
-    """
-
     leaching_rate_labile_carbon: float = 1.5e-3
     """Leaching rate for labile carbon (lmwc) [day^-1]."""
 
@@ -150,7 +143,20 @@ class SoilConsts:
     :attr:`max_uptake_rate_labile_C`.
     """
 
-    # TODO - Add another constant once we start tracking lignin
+    # TODO - Add another set of constants once we start tracking lignin
+    max_decomp_rate_pom: float = 0.2
+    """Maximum rate for particulate organic matter break down (at reference temp).
+
+    Units of [day^-1]. The reference temperature is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_pom_decomp`.
+
+    TODO - Once enzymes are included this should take the value of 200.0 [day^-1].
+
+    TODO - Source of this constant is not completely clear, investigate this further
+    once lignin chemistry is added.
+    """
+
     activation_energy_pom_decomp = 37000
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 

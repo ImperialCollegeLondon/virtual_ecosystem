@@ -222,7 +222,7 @@ def test_soil_model_initialization(
                 },
             },
             pint.Quantity("12 hours"),
-            0.01,
+            0.2,
             does_not_raise(),
             (
                 (
@@ -403,17 +403,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05338309, 0.0289559, 1.19094661, 0.00554266], dims="cell_id"
+                        [0.13122486, 0.30434087, 0.50603897, 0.01541668], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.5508934, 1.72137897, 3.52120942, 0.50211244], dims="cell_id"
+                        [2.54647825, 1.71347325, 4.32317632, 0.50157362], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.72690515, 2.26294176, 11.13864882, 0.9973199],
+                        [5.72558633, 2.27805994, 11.21111949, 0.99495352],
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.09956555, 0.9964321, 0.69662415, 0.35216909], dims="cell_id"
+                        [0.02067906, 0.71315457, 0.50003414, 0.34220289], dims="cell_id"
                     ),
                 )
             ),
@@ -522,22 +522,22 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
 
     delta_pools = (
         [
-            0.00635771,
-            0.01694153,
-            0.56370312,
-            0.00109547,
-            0.10296645,
-            0.04445693,
-            -0.31401747,
-            0.00422143,
-            -0.14721293,
-            -0.07501289,
-            -0.34836582,
-            -0.00536952,
-            -0.00087289,
-            -0.00713832,
-            -0.00675489,
-            0.00433923,
+            0.25811339,
+            0.59268969,
+            0.56854176,
+            0.02112981,
+            9.62045036e-2,
+            2.57661789e-2,
+            -8.92684371e-2,
+            2.94969783e-3,
+            -0.152887633,
+            -5.33057245e-2,
+            -0.186464076,
+            -1.01369817e-2,
+            -0.25379444,
+            -0.58709106,
+            -0.41248442,
+            -0.01566643,
         ],
     )
 
@@ -563,7 +563,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data,
         4,
         top_soil_layer_index,
-        delta_pools_ordered,
+        soil_water_potential=dummy_carbon_data["soil_water_potential"][
+            top_soil_layer_index
+        ],
+        delta_pools_ordered=delta_pools_ordered,
         constants=SoilConsts,
     )
 

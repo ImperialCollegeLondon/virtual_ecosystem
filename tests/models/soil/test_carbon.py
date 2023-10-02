@@ -15,13 +15,30 @@ from virtual_rainforest.models.soil.constants import SoilConsts
 
 @pytest.fixture
 def moist_scalars(dummy_carbon_data, top_soil_layer_index):
-    """Combined moisture and temperature scalars based on dummy carbon data."""
+    """Combined moisture scalars based on dummy carbon data."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
     moist_scalars = convert_moisture_to_scalar(
-        dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+        np.array([0.5, 0.7, 0.6, 0.2]),
         SoilConsts.moisture_scalar_coefficient,
         SoilConsts.moisture_scalar_exponent,
+    )
+
+    return moist_scalars
+
+
+@pytest.fixture
+def water_factors(dummy_carbon_data, top_soil_layer_index):
+    """Water potential factors based on dummy carbon data."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_water_potential_impact_on_microbes,
+    )
+
+    moist_scalars = calculate_water_potential_impact_on_microbes(
+        water_potential=dummy_carbon_data["soil_water_potential"][top_soil_layer_index],
+        water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
+        water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
+        moisture_response_curvature=SoilConsts.moisture_response_curvature,
     )
 
     return moist_scalars
@@ -31,13 +48,14 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
     """Test that top soil data can be extracted from the data object correctly."""
 
     top_soil_temps = [35.0, 37.5, 40.0, 25.0]
-    top_soil_moistures = [0.5, 0.7, 0.6, 0.2]
+    top_soil_water_potentials = [-3.0, -10.0, -250.0, -10000.0]
 
     assert np.allclose(
         dummy_carbon_data["soil_temperature"][top_soil_layer_index], top_soil_temps
     )
     assert np.allclose(
-        dummy_carbon_data["soil_moisture"][top_soil_layer_index], top_soil_moistures
+        dummy_carbon_data["soil_water_potential"][top_soil_layer_index],
+        top_soil_water_potentials,
     )
 
 
@@ -47,10 +65,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.00635771, 0.01694153, 0.56370312, 0.00109547],
+        "soil_c_pool_lmwc": [0.25848985, 0.59689914, 0.97126032, 0.02112157],
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
-        "soil_c_pool_microbe": [-0.14721293, -0.07501289, -0.34836582, -0.00536952],
-        "soil_c_pool_pom": [-0.00087289, -0.00713832, -0.00675489, 0.00433923],
+        "soil_c_pool_microbe": [-0.16002974, -0.07621788, -0.36452815, -0.01140086],
+        "soil_c_pool_pom": [-0.25379444, -0.58709106, -0.41248442, -0.01566643],
     }
 
     # Make order of pools object
@@ -59,17 +77,20 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         pool_order[pool] = np.array([])
 
     delta_pools = calculate_soil_carbon_updates(
-        dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
-        dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
-        dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
-        dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
-        dummy_carbon_data["pH"],
-        dummy_carbon_data["bulk_density"],
-        dummy_carbon_data["soil_moisture"][top_soil_layer_index],
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
-        dummy_carbon_data["percent_clay"],
-        dummy_carbon_data["litter_C_mineralisation_rate"],
-        pool_order,
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
+        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
+        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
+        pH=dummy_carbon_data["pH"],
+        bulk_density=dummy_carbon_data["bulk_density"],
+        soil_moisture=np.array([0.5, 0.7, 0.6, 0.2]),
+        soil_water_potential=dummy_carbon_data["soil_water_potential"][
+            top_soil_layer_index
+        ],
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        percent_clay=dummy_carbon_data["percent_clay"],
+        mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        delta_pools_ordered=pool_order,
         constants=SoilConsts,
     )
 
@@ -254,7 +275,7 @@ def test_convert_moisture_to_scalar(
             )
         else:
             moist_scalar = convert_moisture_to_scalar(
-                dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+                np.array([0.5, 0.7, 0.6, 0.2]),
                 SoilConsts.moisture_scalar_coefficient,
                 SoilConsts.moisture_scalar_exponent,
             )
@@ -290,11 +311,10 @@ def test_calculate_maintenance_respiration(
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
 
-    expected_resps = [0.040826454, 0.021784850, 0.105792953, 0.001212128]
+    expected_resps = [0.054432731, 0.022984963, 0.120127667, 0.007223044]
 
     main_resps = calculate_maintenance_respiration(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        moisture_scalar=moist_scalars,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
@@ -379,17 +399,17 @@ def test_calculate_pom_decomposition_saturation(dummy_carbon_data):
 
 
 def test_calculate_microbial_carbon_uptake(
-    dummy_carbon_data, top_soil_layer_index, moist_scalars
+    dummy_carbon_data, top_soil_layer_index, water_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [0.002368705, 0.001269728, 0.006216778, 3.796707e-5]
+    expected_uptake = [0.00315812, 0.00126484, 0.00438911, 1.75284e-5]
 
     actual_uptake = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        moisture_scalar=moist_scalars,
+        water_factor=water_factors,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
@@ -412,16 +432,19 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_scalars):
     assert np.allclose(actual_leaching, expected_leaching)
 
 
-def test_calculate_pom_decomposition(dummy_carbon_data, moist_scalars):
+def test_calculate_pom_decomposition(
+    dummy_carbon_data, top_soil_layer_index, water_factors
+):
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
 
-    expected_decomp = [0.00299395, 0.00819885, 0.00724489, 0.00116077]
+    expected_decomp = [0.2559155, 0.58815159, 0.41297442, 0.02116643]
 
     actual_decomp = calculate_pom_decomposition(
         dummy_carbon_data["soil_c_pool_pom"],
         dummy_carbon_data["soil_c_pool_microbe"],
-        moist_scalars,
+        water_factor=water_factors,
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
 

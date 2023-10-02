@@ -33,6 +33,10 @@ from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.models.litter.constants import LitterConsts
+from virtual_rainforest.models.litter.litter_model import (
+    convert_soil_moisture_to_water_potential,
+)
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 from virtual_rainforest.models.soil.constants import SoilConsts
 
@@ -191,6 +195,19 @@ class SoilModel(BaseModel):
             IntegrationError: When the integration cannot be successfully completed.
         """
 
+        # TODO - This is a stopgap solution until soil water potentials are calculated
+        # by the hydrology model. Once this has happened water potentials should no
+        # longer be calculated and supplied to construct_full_soil_model, instead the
+        # function should read them directly from the data object.
+        soil_water_potential = convert_soil_moisture_to_water_potential(
+            soil_moisture=self.data["soil_moisture"][
+                self.top_soil_layer_index
+            ].to_numpy(),
+            air_entry_water_potential=LitterConsts.air_entry_water_potential,
+            water_retention_curvature=LitterConsts.water_retention_curvature,
+            saturated_water_content=LitterConsts.saturated_water_content,
+        )
+
         # Find number of grid cells integration is being performed over
         no_cells = self.data.grid.n_cells
 
@@ -223,6 +240,7 @@ class SoilModel(BaseModel):
                 self.data,
                 no_cells,
                 self.top_soil_layer_index,
+                soil_water_potential,
                 delta_pools_ordered,
                 self.constants,
             ),
@@ -254,6 +272,7 @@ def construct_full_soil_model(
     data: Data,
     no_cells: int,
     top_soil_layer_index: int,
+    soil_water_potential: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
@@ -267,6 +286,7 @@ def construct_full_soil_model(
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
         top_soil_layer_index: Index for layer in data object representing top soil layer
+        soil_water_potential: Soil water potential for each grid cell [kPa]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         constants: Set of constants for the soil model.
@@ -288,6 +308,7 @@ def construct_full_soil_model(
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
+        soil_water_potential=soil_water_potential,
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
         mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
