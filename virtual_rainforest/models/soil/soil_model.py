@@ -156,7 +156,7 @@ class SoilModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Update the soil model by integrating.
 
         Args:
