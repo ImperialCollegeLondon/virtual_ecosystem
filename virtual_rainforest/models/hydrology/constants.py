@@ -49,8 +49,8 @@ class HydroConsts:
     """Factor to convert variable unit from seconds to day."""
 
     nonlinearily_parameter: float = 2.0
-    """Nonlinearity parameter n (dimensionless) in van Genuchten model for hydraulic
-    conductivity :cite:p:`van_genuchten_describing_1985`."""
+    """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model for
+    hydraulic conductivity :cite:p:`van_genuchten_closed-form_1980`."""
 
     meters_to_mm: float = 1000
     """Factor to convert variable unit from meters to millimeters."""
@@ -76,30 +76,31 @@ class HydroConsts:
 
     intercept_param_1: float = 0.935
     """Parameter in equation that estimates maximum canopy interception capacity after
-    Von Hoyningen-Huene, (1981)."""
+    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     intercept_param_2: float = 0.498
     """Parameter in equation that estimates maximum canopy interception capacity after
-    Von Hoyningen-Huene, (1981)."""
+    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     intercept_param_3: float = 0.00575
     """Parameter in equation that estimates maximum canopy interception capacity after
-    Von Hoyningen-Huene, (1981)."""
+    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     veg_density_param: float = 0.046
     """Parameter used to estimate vegetation density for maximum canopy interception
-    capacity estimate after Von Hoyningen-Huene, (1981)."""
+    capacity estimate after :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     groundwater_capacity: float = 0.9
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
 
     alpha: float = 0.3
-    """Dimensionless parameter alpha in van Genuchten model that corresponds
-    approximately to the inverse of the air-entry value, [kPa-1]"""
+    r"""Dimensionless parameter :math:`alpha` in van Genuchten model that corresponds
+    approximately to the inverse of the air-entry value, [kPa-1]
+    :cite:p:`van_genuchten_closed-form_1980`"""
 
     infiltration_shape_parameter: float = 1.0
     """Empirical shape parameter that affects how much of the water available for
     infiltration goes directly to groundwater via preferential bypass flow. A value of
-    0 mean all surface water goes directly to groundwater, a value of 1 gives a linear
-    relation."""
+    0 means all surface water goes directly to groundwater, a value of 1 gives a linear
+    relation between soil moisture and bypass flow."""

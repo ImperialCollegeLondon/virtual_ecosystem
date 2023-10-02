@@ -186,9 +186,9 @@ class HydrologyModel(BaseModel):
         At the moment, this function initializes variables that are required to run the
         first update(). For the within grid cell hydrology, soil moisture is initialised
         homogenously for all soil layers. This design might change with the
-        implementation of the SPLASH model in the plant module which will take care of
-        the above-ground hydrology. Air temperature and relative humidity below the
-        canopy are set to the 2 m reference values.
+        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
+        model which will take care of the above-ground hydrology. Air temperature and
+        relative humidity below the canopy are set to the 2 m reference values.
 
         For the hydrology across the grid (above-/below-ground and accumulated runoff),
         this function uses the upstream neighbours of each grid cell (see
