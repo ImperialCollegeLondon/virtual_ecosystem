@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Iterator
 
-import dpath.util  # type: ignore
+import dpath  # type: ignore
 from jsonschema import Draft202012Validator, exceptions, validators
 
 from virtual_rainforest.core.logger import LOGGER
@@ -56,7 +56,7 @@ def set_defaults(
 
 
 ValidatorWithDefaults = validators.extend(
-    Draft202012Validator, {"properties": set_defaults}
+    validator=Draft202012Validator, validators={"properties": set_defaults}
 )
 """A JSONSchema validator that sets defaults where required."""
 
@@ -116,7 +116,8 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
     The method merges a set of schemas for a set of desired modules into a single
     integrated schema that can then be used to validate a merged configuration for those
-    modules.
+    modules. The merge also updates the resulting schema to enforce that only properties
+    explicity listed in the schema can be included.
 
     Args:
         schema: A dictionary of schemas keyed by module name
@@ -134,15 +135,17 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
         # Add module name to list of required modules
         comb_schema["required"].append(this_module)
 
-    p_paths = []
-    # Recursively search for all instances of properties in the schema
-    for path, value in dpath.util.search(comb_schema, "**/properties", yielded=True):
-        # Remove final properties instance from path so that additionalProperties ends
-        # up in the right place
-        p_paths.append("" if path == "properties" else path[:-11])
+    # Recursively search for all instances of properties and insert
+    # additionalProperties=false to prevent undocumented properties in schema.
+    # It does seem odd that JSONSchema has no universal setting for this.
+    property_paths = [
+        path for path, _ in dpath.search(comb_schema, "**/properties", yielded=True)
+    ]
 
-    # Set additional properties to false everywhere that properties are defined
-    for path in p_paths:
-        dpath.util.new(comb_schema, f"{path}/additionalProperties", False)
+    for path in property_paths:
+        path_root = "" if path == "properties" else path[:-11]
+        dpath.new(
+            obj=comb_schema, path=f"{path_root}/additionalProperties", value=False
+        )
 
     return comb_schema
