@@ -33,11 +33,13 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
     )
 
     result = calculate_soil_evaporation(
-        temperature=np.array([10.0, 20.0, 30.0]),
+        temperature=np.array([20.0, 20.0, 30.0]),
         wind_speed=wind,
-        relative_humidity=np.array([70, 80, 90]),
+        relative_humidity=np.array([80, 80, 90]),
         atmospheric_pressure=np.array([90, 90, 90]),
-        soil_moisture=np.array([0.1, 0.5, 0.9]),
+        soil_moisture=np.array([0.01, 0.1, 0.5]),
+        soil_moisture_residual=0.1,
+        soil_moisture_capacity=0.9,
         celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
@@ -45,7 +47,7 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
     )
 
-    exp_result = np.array([1.523354, 3.86474, 4.473155])
+    exp_result = np.array([0.060855, 0.060855, 4.473155])
     np.testing.assert_allclose(result, exp_result, rtol=0.01)
 
 
