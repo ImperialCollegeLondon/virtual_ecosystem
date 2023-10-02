@@ -97,3 +97,16 @@ class HydroConsts:
     alpha: float = 0.3
     """Dimensionless parameter alpha in van Genuchten model that corresponds
     approximately to the inverse of the air-entry value, [kPa-1]"""
+
+    max_percolation_rate_uzlz: float = 1
+    """maximum perclation rate between pper and lower groundwater zone, [mm d-1]"""
+
+    groundwater_loss: float = 1
+    """constant amount of water that never rejoins the river channel and is lost beyond
+    the catchment boundaries or to deep groundwater systems, [mm]"""
+
+    reservoir_const_upper_groundwater: float = 20
+    """reservoir constant for the upper groundwater layer, [days]"""
+
+    reservoir_const_lower_groundwater: float = 20
+    """reservoir constant for the lower groundwater layer, [days]"""

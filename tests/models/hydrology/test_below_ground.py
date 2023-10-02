@@ -110,3 +110,30 @@ def test_soil_moisture_to_matric_potential():
     )
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_update_groundwater_storge(dummy_climate_data):
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.below_ground import (
+        update_groundwater_storge,
+    )
+    from virtual_rainforest.models.hydrology.constants import HydroConsts
+
+    data = dummy_climate_data
+    result = update_groundwater_storge(
+        groundwater_storage=np.array(data["groundwater_storage"]) * 100,
+        vertical_flow_to_groundwater=np.array([2, 4, 5]),
+        bypass_flow=np.array([2, 4, 5]),
+        max_percolation_rate_uzlz=HydroConsts.max_percolation_rate_uzlz,
+        groundwater_loss=HydroConsts.groundwater_loss,
+        reservoir_const_upper_groundwater=HydroConsts.reservoir_const_upper_groundwater,
+        reservoir_const_lower_groundwater=HydroConsts.reservoir_const_lower_groundwater,
+    )
+
+    exp_groundwater = np.array([[84.0, 88.0, 90.0], [81.0, 81.0, 81.0]])
+    exp_upper_flow = np.array([4.2, 4.4, 4.5])
+    exp_lower_flow = np.array([4.05, 4.05, 4.05])
+    np.testing.assert_allclose(result[0], exp_groundwater)
+    np.testing.assert_allclose(result[1], exp_upper_flow)
+    np.testing.assert_allclose(result[2], exp_lower_flow)

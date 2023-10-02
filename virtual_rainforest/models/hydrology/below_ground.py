@@ -60,7 +60,7 @@ def calculate_vertical_flow(
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
-        groundwater_capacity: storage capacity of groupwater
+        groundwater_capacity: storage capacity of groundwater
         seconds_to_day: factor to convert between second and day
 
     Returns:
@@ -214,3 +214,73 @@ def soil_moisture_to_matric_potential(
     soil_matric_potential = effective_saturation_n / alpha
 
     return soil_matric_potential
+
+
+def update_groundwater_storge(
+    groundwater_storage: NDArray[np.float32],
+    vertical_flow_to_groundwater: NDArray[np.float32],
+    bypass_flow: NDArray[np.float32],
+    max_percolation_rate_uzlz: Union[float, NDArray[np.float32]],
+    groundwater_loss: Union[float, NDArray[np.float32]],
+    reservoir_const_upper_groundwater: Union[float, NDArray[np.float32]],
+    reservoir_const_lower_groundwater: Union[float, NDArray[np.float32]],
+) -> list[NDArray[np.float32]]:
+    """Update groundwater storage and calculate below ground horizontal flow.
+
+    Groundwater storage and transport are modelled using two parallel linear reservoirs,
+    similar to the approach used in the HBV-96 model (Lindström et al., 1997) and the
+    LISFLOOD model. The upper zone represents a quick runoff component, which includes
+    fast groundwater and subsurface flow through macro-pores in the soil. The lower zone
+    represents the slow groundwater component that generates the base flow.
+
+    Args:
+        groundwater_storage: amount of water that is stored in the groundwater reservoir
+            , [mm]
+        vertical_flow_to_groundwater: flux from the lower soil layer to groundwater for
+            this timestep, [mm]
+        bypass_flow: flow that bypasses the soil matrix and drains directly to the
+            groundwater, [mm]
+        max_percolation_rate_uzlz: maximum perclation rate between pper and lower
+            groundwater zone, [mm d-1]
+        groundwater_loss: constant amount of water that never rejoins the river channel
+            and is lost beyond the catchment boundaries or to deep groundwater systems,
+            [mm]
+        reservoir_const_upper_groundwater: reservoir constant for the upper groundwater
+            layer, [days]
+        reservoir_const_lower_groundwater: reservoir constant for the lower groundwater
+            layer, [days]
+
+    Returns:
+        updated amount of water stored in upper and lower zone, outflow from the upper
+            zone to the channel, and outflow from the lower zone to the channel
+    """
+
+    # percolation to lower zone
+    percolation_to_lower_zone = np.where(
+        max_percolation_rate_uzlz < groundwater_storage[0],
+        max_percolation_rate_uzlz,
+        groundwater_storage[0],
+    )
+
+    # Update water stored in upper zone, [mm]
+    upper_zone = np.array(
+        groundwater_storage[0]
+        + vertical_flow_to_groundwater
+        + bypass_flow
+        - percolation_to_lower_zone
+    )
+
+    # Calculate outflow from the upper zone to the channel, [mm]
+    outflow_upper_zone = 1 / reservoir_const_upper_groundwater * upper_zone
+
+    # Update water stored in lower zone, [mm]
+    lower_zone = np.array(
+        groundwater_storage[1] + percolation_to_lower_zone - groundwater_loss
+    )
+
+    # Calculate outflow from the lower zone to the channel, [mm]
+    outflow_lower_zone = 1 / reservoir_const_lower_groundwater * lower_zone
+
+    updated_groundwater_storage = np.vstack((upper_zone, lower_zone))
+
+    return [updated_groundwater_storage, outflow_upper_zone, outflow_lower_zone]
