@@ -72,7 +72,8 @@ def load_constants(config: Config, model_name: str, class_name: str) -> Any:
         LOGGER.critical(f"Unknown constants class: {model_name}.{class_name}")
         raise excep
 
-    # Check if any constants have been supplied for this constants class
+    # Check if the configuration supplies validly named values to use with the constants
+    # class, otherwise return an instance with defalt values.
     if (
         model_name in config
         and "constants" in config[model_name]
