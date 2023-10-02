@@ -228,8 +228,10 @@ def update_groundwater_storge(
     """Update groundwater storage and calculate below ground horizontal flow.
 
     Groundwater storage and transport are modelled using two parallel linear reservoirs,
-    similar to the approach used in the HBV-96 model (Lindström et al., 1997) and the
-    LISFLOOD model. The upper zone represents a quick runoff component, which includes
+    similar to the approach used in the HBV-96 model
+    :cite:p:`lindstrom_development_1997` and the LISFLOOD
+    :cite:p:`van_der_knijff_lisflood_2010`.
+    The upper zone represents a quick runoff component, which includes
     fast groundwater and subsurface flow through macro-pores in the soil. The lower zone
     represents the slow groundwater component that generates the base flow.
 

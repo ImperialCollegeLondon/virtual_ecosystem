@@ -139,8 +139,7 @@ class HydrologyModel(BaseModel):
         """Initial volumetric relative water content [unitless] for all layers and grid
         cells identical."""
         self.init_groundwater_saturation = init_groundwater_saturation
-        """Initial level of groundwater saturation in volumetric relative water content
-        [unitless] for all layers and grid cells identical."""
+        """Initial level of groundwater saturation for all layers identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
