@@ -186,9 +186,9 @@ class HydrologyModel(BaseModel):
         At the moment, this function initializes variables that are required to run the
         first update(). For the within grid cell hydrology, soil moisture is initialised
         homogenously for all soil layers. This design might change with the
-        implementation of the SPLASH model in the plant module which will take care of
-        the above-ground hydrology. Air temperature and relative humidity below the
-        canopy are set to the 2 m reference values.
+        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
+        model which will take care of the above-ground hydrology. Air temperature and
+        relative humidity below the canopy are set to the 2 m reference values.
 
         For the hydrology across the grid (above-/below-ground and accumulated runoff),
         this function uses the upstream neighbours of each grid cell (see
@@ -452,12 +452,27 @@ class HydrologyModel(BaseModel):
             )
             daily_lists["surface_runoff"].append(surface_runoff)
 
+            # Calculate preferential bypass flow, [mm]
+            bypass_flow = above_ground.calculate_bypass_flow(
+                top_soil_moisture=soil_moisture_mm[0],
+                sat_top_soil_moisture=top_soil_moisture_capacity_mm,
+                available_water=precipitation_surface - surface_runoff,
+                infiltration_shape_parameter=(
+                    self.constants.infiltration_shape_parameter
+                ),
+            )
+
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
-                soil_moisture_mm[0] + precipitation_surface,
+                (
+                    soil_moisture_mm[0]
+                    + precipitation_surface
+                    - surface_runoff
+                    - bypass_flow,
+                ),
                 0,
                 top_soil_moisture_capacity_mm,
-            )
+            ).squeeze()
 
             # Calculate daily soil evaporation, [mm]
             top_soil_moisture_vol = soil_moisture_infiltrated / soil_layer_thickness[0]
