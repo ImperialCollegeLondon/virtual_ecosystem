@@ -15,22 +15,11 @@ from virtual_rainforest.models.animals.animal_traits import (
     TaxaType,
 )
 
-ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.MAMMAL: (0.75, 0.018),
-    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-    TaxaType.BIRD: (0.75, 0.05),
-    # Toy values.
-}
-
-ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.INSECT: (0.75, 0.08)
-    # Insect metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-}
-
-METABOLIC_RATE_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = {
+METABOLIC_RATE_TERMS_ENERGY: dict[
+    MetabolicType, dict[TaxaType, tuple[float, float]]
+] = {
     MetabolicType.ENDOTHERMIC: {
         TaxaType.MAMMAL: (0.75, 0.018),
-        # Mammalian herbivore population density, observed allometry (Damuth 1987).
         # [assumes kg mass]
         TaxaType.BIRD: (0.75, 0.05),
         # Toy values.
@@ -41,6 +30,17 @@ METABOLIC_RATE_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] =
     },
 }
 
+METABOLIC_RATE_TERMS: dict[MetabolicType, dict[str, tuple[float, float]]] = {
+    # Parameters from Madingley, mass based metabolic rates
+    MetabolicType.ENDOTHERMIC: {
+        "basal": (4.19 * 10**10, 0.69),
+        "field": (9.08 * 10**11, 0.7),
+    },
+    MetabolicType.ECTOTHERMIC: {
+        "basal": (4.19 * 10**10, 0.69),
+        "field": (1.49 * 10**11, 0.88),
+    },
+}
 
 DAMUTHS_LAW_TERMS: dict[TaxaType, dict[DietType, tuple[float, float]]] = {
     TaxaType.MAMMAL: {

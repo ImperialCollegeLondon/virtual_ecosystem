@@ -34,12 +34,12 @@ def damuths_law(mass: float, terms: tuple) -> int:
     return ceil(terms[1] * mass ** terms[0])
 
 
-def metabolic_rate(
+def metabolic_rate_energy(
     mass: float, temperature: float, terms: tuple, metabolic_type: MetabolicType
 ) -> float:
     """Calculates the metabolic rate of animal cohorts.
 
-    TODO: Implement distinction between field and basal rates.
+    Depreciated.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -65,10 +65,59 @@ def metabolic_rate(
         raise ValueError("Invalid metabolic type: {metabolic_type}")
 
 
+def metabolic_rate(
+    mass: float,
+    temperature: float,
+    terms: dict,
+    metabolic_type: MetabolicType,
+) -> float:
+    """Calculates metabolic rate in grams of body mass per day.
+
+    This follows the Madingley implementation, assuming a power-law relationship with
+    mass and an exponential relationship with temperature.
+
+    TODO: Implement activity windows to properly paramterize sigma.
+
+    Args:
+        mass: The body-mass [kg] of an AnimalCohort.
+        temperature: The temperature [Celsius] of the environment.
+        terms: The tuple of metabolic rate terms used.
+        metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
+
+    Returns:
+        The metabolic rate of an individual of the given cohort in [g/d].
+    """
+
+    Es = 3.7 * 10 ** (-2)  # energy to mass conversion constant (g/kJ)
+    sig = 0.5  # proportion of time-step with temp in active range (toy)
+    Ea = 0.69  # aggregate activation energy of metabolic reactions
+    kB = BOLTZMANN_CONSTANT
+    mass_g = mass * 1000  # convert mass to grams
+
+    if metabolic_type == MetabolicType.ENDOTHERMIC:
+        bf, Ib = terms["basal"]  # field metabolic constant and exponent
+        bb, If = terms["field"]  # basal metabolic constant and exponent
+        Tk = 310.0  # body temperature of the individual (K)
+        return Es * (
+            (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
+            + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+        )
+    elif metabolic_type == MetabolicType.ECTOTHERMIC:
+        bf, Ib = terms["basal"]  # field metabolic constant and exponent
+        bb, If = terms["field"]  # basal metabolic constant and exponent
+        Tk = temperature + 274.15  # body temperature of the individual (K)
+        return Es * (
+            (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
+            + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+        )
+    else:
+        raise ValueError("Invalid metabolic type: {metabolic_type}")
+
+
 def muscle_mass_scaling(mass: float, terms: tuple) -> float:
     """The function to set the amount of muscle mass on individual in an AnimalCohort.
 
-        Currently, this scaling relationship is only accurate for terrestrial mammals.
+    Currently, this scaling relationship is only accurate for terrestrial mammals.
         This will later be updated for additional functional types.
 
     Args:

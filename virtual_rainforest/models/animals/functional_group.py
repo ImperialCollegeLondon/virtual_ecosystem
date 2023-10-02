@@ -59,7 +59,7 @@ class FunctionalGroup:
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
-        self.metabolic_rate_terms = METABOLIC_RATE_TERMS[self.metabolic_type][self.taxa]
+        self.metabolic_rate_terms = METABOLIC_RATE_TERMS[self.metabolic_type]
         """The coefficient and exponent of metabolic rate."""
         self.damuths_law_terms = DAMUTHS_LAW_TERMS[self.taxa][self.diet]
         """The coefficient and exponent of damuth's law for population density."""

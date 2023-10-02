@@ -220,7 +220,7 @@ class AnimalCommunity:
 
             # Filter the potential prey cohorts based on their size
             for cohort in potential_prey_cohorts:
-                if min_size <= cohort.mass <= max_size:
+                if min_size <= cohort.mass_current <= max_size:
                     prey.append(cohort)
 
         return prey

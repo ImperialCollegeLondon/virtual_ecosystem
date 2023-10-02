@@ -56,8 +56,6 @@ class AnimalCohort:
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
         """The functional type name of the animal cohort."""
-        self.mass = mass
-        # TODO: remove
         """The average mass of an individual in the animal cohort [kg]."""
         self.mass_current = mass
         """The current average body mass of an individual [kg]."""
@@ -66,7 +64,7 @@ class AnimalCohort:
         self.individuals = individuals
         """The number of individuals in this cohort."""
         self.damuth_density: int = damuths_law(
-            self.mass, self.functional_group.damuths_law_terms
+            self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
         """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
@@ -77,13 +75,13 @@ class AnimalCohort:
         """The reproductive mass threshold at which the cohort can reproduce."""
 
         self.intake_rate: float = intake_rate_scaling(
-            self.mass, self.functional_group.intake_rate_terms
+            self.functional_group.adult_mass, self.functional_group.intake_rate_terms
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups = prey_group_selection(
             self.functional_group.diet,
-            self.mass,
+            self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
@@ -106,7 +104,7 @@ class AnimalCohort:
 
         TODO: Implement distinction between field and basal rates.
         TODO: Implement proportion of day active.
-        TODO: Change currency from energy to mass.
+        TODO: clean up units
 
         Args:
             temperature: Current air temperature (K)
@@ -120,14 +118,15 @@ class AnimalCohort:
         if self.mass_current < 0:
             raise ValueError("mass_current cannot be negative.")
 
-        # Number of seconds in a day * J/s metabolic rate, consider daily rate.
-        mass_needed = metabolic_rate(
-            self.mass,
+        #  g/day metabolic rate * number of days
+        mass_metabolized = metabolic_rate(
+            self.mass_current,
             temperature,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
-        ) * float((dt / timedelta64(1, "s")))
-        self.mass_current -= min(self.mass_current, mass_needed)
+        ) * float((dt / timedelta64(1, "d")))
+
+        self.mass_current -= min(self.mass_current, mass_metabolized)
 
     def excrete(
         self,
@@ -181,7 +180,7 @@ class AnimalCohort:
         self.individuals -= number_dead
 
         # Find total mass contained in the carcasses
-        carcass_mass = number_dead * self.mass
+        carcass_mass = number_dead * self.mass_current
 
         # Split this mass between carcass decay, and scavengeable carcasses
         carcass_pool.scavengeable_energy += (
@@ -209,14 +208,18 @@ class AnimalCohort:
         # Calculate the number of individuals that can be eaten based on intake rate
         # Here we assume predators can consume prey mass equivalent to daily intake
         number_eaten = min(
-            int((predator.intake_rate * predator.individuals) // self.mass),
+            int((predator.intake_rate * predator.individuals) // self.mass_current),
             self.individuals,
         )
 
         # Calculate the mass gain from eating prey
         # Here we assume all eaten mass is converted to consumer mass
         prey_mass = min(
-            (number_eaten * self.mass * self.functional_group.mechanical_efficiency),
+            (
+                number_eaten
+                * self.mass_current
+                * self.functional_group.mechanical_efficiency
+            ),
             self.mass_current,
         )
 
@@ -316,7 +319,10 @@ class AnimalCohort:
         Return:
             A bool of whether the current mass state is above the migration threshold.
         """
-        return self.mass < self.functional_group.adult_mass * DISPERSAL_MASS_THRESHOLD
+        return (
+            self.mass_current
+            < self.functional_group.adult_mass * DISPERSAL_MASS_THRESHOLD
+        )
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
