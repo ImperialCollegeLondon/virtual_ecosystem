@@ -441,6 +441,9 @@ class HydrologyModel(BaseModel):
             self.constants.soil_moisture_residual * soil_layer_thickness[0]
         )
 
+        # Get accumulated runoff from previous time step
+        accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
+
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
 
@@ -473,6 +476,17 @@ class HydrologyModel(BaseModel):
                 0,
             )
             daily_lists["surface_runoff"].append(surface_runoff)
+
+            # Calculate accumulated runoff for each cell (me + sum upstream neighbours)
+            new_accumulated_runoff = above_ground.accumulate_surface_runoff(
+                drainage_map=self.drainage_map,
+                surface_runoff=surface_runoff,
+                accumulated_runoff=accumulated_runoff,
+            )
+            daily_lists["surface_runoff_accumulated"].append(new_accumulated_runoff)
+
+            # set accumulated runoff for next day
+            accumulated_runoff = new_accumulated_runoff
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
@@ -582,7 +596,12 @@ class HydrologyModel(BaseModel):
         soil_hydrology = {}
 
         # Calculate monthly accumulated values
-        for var in ["precipitation_surface", "surface_runoff", "soil_evaporation"]:
+        for var in [
+            "precipitation_surface",
+            "surface_runoff",
+            "surface_runoff_accumulated",
+            "soil_evaporation",
+        ]:
             soil_hydrology[var] = DataArray(
                 np.sum(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",
@@ -617,24 +636,6 @@ class HydrologyModel(BaseModel):
                 dims=self.data["layer_heights"].dims,
                 coords=self.data["layer_heights"].coords,
             )
-
-        # Calculate accumulated surface runoff for model time step
-        # Get the runoff created by SPLASH or initial data set
-        single_cell_runoff = np.array(soil_hydrology["surface_runoff"])
-
-        # Get accumulated runoff from previous time step
-        accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
-
-        # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
-        new_accumulated_runoff = above_ground.accumulate_surface_runoff(
-            drainage_map=self.drainage_map,
-            surface_runoff=single_cell_runoff,
-            accumulated_runoff=accumulated_runoff,
-        )
-
-        soil_hydrology["surface_runoff_accumulated"] = DataArray(
-            new_accumulated_runoff, dims="cell_id"
-        )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
         # TODO add vertical and below-ground horizontal flow

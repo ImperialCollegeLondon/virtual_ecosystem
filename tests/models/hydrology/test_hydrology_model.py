@@ -469,7 +469,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff_acc = DataArray(
-            [0, 10, 150],
+            [0, 300, 4500],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
