@@ -46,9 +46,8 @@ class HydrologyModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial volumetric relative water content [unitless]
             for all layers.
-        init_groundwater_saturation: Initial level of groundwater saturation in
-            volumetric relative water content [unitless] for all layers and grid cells
-            identical.
+        init_groundwater_saturation: Initial level of groundwater saturation (between 0
+            and 1) for all layers and grid cells identical.
         constants: Set of constants for the hydrology model.
 
     Raises:
@@ -90,7 +89,7 @@ class HydrologyModel(BaseModel):
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
-        "P-ET_stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
+        "P-ET_stream_flow",  # Precipitation - evapotranspiration
         "surface_runoff_accumulated",
         "matric_potential",
         "groundwater_storage",
@@ -193,12 +192,14 @@ class HydrologyModel(BaseModel):
         """Function to set up the hydrology model.
 
         At the moment, this function initializes variables that are required to run the
-        first update(). For the within grid cell hydrology, soil moisture is initialised
-        homogenously for all soil layers and groundwater storage is set to 90 percent of
-        it's capacity. This design might change with the
-        implementation of the SPLASH model :cite:p:`davis_simple_2017` in the plant
-        model which will take care of the above-ground hydrology. Air temperature and
-        relative humidity below the canopy are set to the 2 m reference values.
+        first update(). Air temperature and relative humidity below the canopy are set
+        to the 2 m reference values.
+
+        For the within grid cell hydrology, soil moisture is initialised homogenously
+        for all soil layers and groundwater storage is set to the percentage of it's
+        capacity that was defined in the model configuration. This design might change
+        with the implementation of the SPLASH model :cite:p:`davis_simple_2017` which
+        will take care of part of the above-ground hydrology.
 
         For the hydrology across the grid (above-/below-ground and accumulated runoff),
         this function uses the upstream neighbours of each grid cell (see
@@ -260,7 +261,7 @@ class HydrologyModel(BaseModel):
             )
         )
 
-        # Create initial groundwater storage for two layers
+        # Create initial groundwater storage variable with two layers
         initial_groundwater_storage = (
             self.init_groundwater_saturation * self.constants.groundwater_capacity
         )
@@ -272,10 +273,10 @@ class HydrologyModel(BaseModel):
             dims=("groundwater_layers", "cell_id"),
         )
 
-        # Get the runoff created by SPLASH or initial data set as the initial state:
+        # Get the surface runoff from SPLASH or initial data set as the initial state:
         initial_runoff = np.array(self.data["surface_runoff"])
 
-        # Set initial accumulated runoff to zero
+        # Set initial accumulated surface runoff to zero
         accumulated_runoff = np.zeros_like(self.data["elevation"])
 
         # Calculate accumulated surface runoff for each cell
@@ -289,6 +290,14 @@ class HydrologyModel(BaseModel):
             new_accumulated_runoff,
             dims="cell_id",
             name="surface_runoff_accumulated",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
+
+        # Set initial sub-surface flow (including base flow) to zero
+        self.data["subsurface_flow_accumulated"] = DataArray(
+            np.zeros_like(self.data["elevation"]),
+            dims="cell_id",
+            name="subsurface_flow_accumulated",
             coords={"cell_id": self.data.grid.cell_id},
         )
 
@@ -381,7 +390,6 @@ class HydrologyModel(BaseModel):
         * groundwater_storage, [mm]
         * channel_flow, [mm] TODO convert to volume and account for area
         """
-
         # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
@@ -443,9 +451,9 @@ class HydrologyModel(BaseModel):
             self.constants.soil_moisture_residual * soil_layer_thickness[0]
         )
 
-        # Get accumulated runoff from previous time step
+        # Get accumulated runoff/flow and ground water level from previous time step
         accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
-
+        subsurface_flow_accumulated = np.array(self.data["subsurface_flow_accumulated"])
         groundwater_storage = np.array(self.data["groundwater_storage"])
 
         # Create lists for output variables to store daily data
@@ -488,9 +496,6 @@ class HydrologyModel(BaseModel):
                 accumulated_runoff=accumulated_runoff,
             )
             daily_lists["surface_runoff_accumulated"].append(new_accumulated_runoff)
-
-            # set accumulated runoff for next day
-            accumulated_runoff = new_accumulated_runoff
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
@@ -594,6 +599,7 @@ class HydrologyModel(BaseModel):
             daily_lists["matric_potential"].append(matric_potential)
 
             # calculate below ground horizontal flow and update ground water
+            # TODO for now I use the same function as above ground
             below_ground_flow = below_ground.update_groundwater_storge(
                 groundwater_storage=groundwater_storage,
                 vertical_flow_to_groundwater=vertical_flow[-1],
@@ -611,15 +617,24 @@ class HydrologyModel(BaseModel):
                 below_ground_flow["updated_groundwater_storage"]
             )
 
-            channel_flow = (  # TODO accumulate below ground flow
-                new_accumulated_runoff
-                + below_ground_flow["outflow_upper_zone"]
-                + below_ground_flow["outflow_lower_zone"]
+            # calculated subsurface accumulated flow
+            new_subsurface_flow_accumulated = above_ground.accumulate_surface_runoff(
+                drainage_map=self.drainage_map,
+                surface_runoff=(
+                    below_ground_flow["outflow_upper_zone"]
+                    + below_ground_flow["outflow_lower_zone"]
+                ),
+                accumulated_runoff=subsurface_flow_accumulated,
             )
+
+            # calculate channel flow as sum of above- and below ground flow
+            channel_flow = new_accumulated_runoff + new_subsurface_flow_accumulated
             daily_lists["channel_flow"].append(channel_flow)
 
-            # update soil_moisture_mm for next day
+            # update inputs for next day
             soil_moisture_mm = soil_moisture_updated
+            accumulated_runoff = new_accumulated_runoff
+            subsurface_flow_accumulated = new_subsurface_flow_accumulated
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}

@@ -469,7 +469,7 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_channel_flow = DataArray(
-            [1357.299035, 1657.313028, 5857.297088],
+            [0, 21225, 46350],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
