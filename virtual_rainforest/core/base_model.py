@@ -211,7 +211,7 @@ class BaseModel(ABC):
         """Function to spin up the model."""
 
     @abstractmethod
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the model.
 
         Args:
