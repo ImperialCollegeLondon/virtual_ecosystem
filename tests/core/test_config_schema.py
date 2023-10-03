@@ -67,7 +67,7 @@ def test_load_schema(
     expected_log_entries,
 ):
     """Tests schema loading and validation."""
-    from virtual_rainforest.core.config import load_schema
+    from virtual_rainforest.core.schema import load_schema
 
     caplog.clear()
 
@@ -135,7 +135,7 @@ def test_register_schema_errors(
 ):
     """Test that the schema registering decorator throws the correct errors."""
 
-    from virtual_rainforest.core.config import register_schema
+    from virtual_rainforest.core.schema import register_schema
 
     data = mocker.mock_open(read_data=schema)
     mocker.patch("builtins.open", data)
@@ -150,15 +150,24 @@ def test_register_schema_errors(
 
 def test_merge_schemas():
     """Test that module schemas are properly merged."""
-    from virtual_rainforest.core.config import SCHEMA_REGISTRY, merge_schemas
+
+    from importlib import import_module
+
+    from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+    from virtual_rainforest.core.schema import merge_schemas
+
+    register_module("virtual_rainforest.core")
+
+    for module in ["abiotic_simple", "animals", "plants", "soil"]:
+        import_module(f"virtual_rainforest.models.{module}")
 
     merged_schemas = merge_schemas(
         {
-            "core": SCHEMA_REGISTRY["core"],
-            "abiotic_simple": SCHEMA_REGISTRY["abiotic_simple"],
-            "animals": SCHEMA_REGISTRY["animals"],
-            "plants": SCHEMA_REGISTRY["plants"],
-            "soil": SCHEMA_REGISTRY["soil"],
+            "core": MODULE_REGISTRY["core"].schema,
+            "abiotic_simple": MODULE_REGISTRY["abiotic_simple"].schema,
+            "animals": MODULE_REGISTRY["animals"].schema,
+            "plants": MODULE_REGISTRY["plants"].schema,
+            "soil": MODULE_REGISTRY["soil"].schema,
         }
     )
 
