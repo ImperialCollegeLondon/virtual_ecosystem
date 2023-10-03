@@ -19,32 +19,38 @@ umbrella function and then separate functions to handle the components:
 """  # noqa: D205, D415
 
 
-from dataclasses import is_dataclass
+from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
-from inspect import getmembers, isclass
-from pathlib import Path
-from types import ModuleType
-from typing import Any
+from inspect import getmembers
+from typing import Any, Optional
 
+# from virtual_rainforest.core.base_model import BaseModel
+from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.schema import load_schema
 
-MODULE_REGISTRY: dict[str, Any] = {}
-"""Information about module schemas, constants and model, keyed by module name.
 
-The registry is a dictionary keyed by the final part of the module name. The entry for
-each module is itself a dictionary with 'model', 'constants' and 'schema' entries. For
-example:
+@dataclass
+class ModuleInfo:
+    """Dataclass for module information.
 
-MODULE_REGISTRY['plants']['model'] = <virtual_rainforest.models.plants.PlantsModel>
-MODULE_REGISTRY['plants']['constants'] = [
-    'PlantsConsts': <virtual_rainforest.models.plants.constants.PlantsConsts>
-]
-MODULE_REGISTRY['plants']['schema'] = {schema_dict}
-"""
+    This dataclass is used to hold individual module registration details within the
+    module registry.
+    """
+
+    model: Optional[Any]  # Optional[type[BaseModel]]
+    """The BaseModel subclass associated with the module."""
+    schema: dict[str, Any]
+    """The schema used to validate module configuration."""
+    constants_classes: dict[str, ConstantsDataclass]
+    """A dictionary of module constants classes."""
 
 
-def register_module(module_name: str) -> None:
+MODULE_REGISTRY_NEW: dict[str, ModuleInfo] = {}
+"""The module registry."""
+
+
+def register_module_new(module_name: str, model: Optional[Any] = None) -> None:
     """Register module components.
 
     This functions registers the module schemas, any constants classes and the main
@@ -67,156 +73,74 @@ def register_module(module_name: str) -> None:
 
     # Extract the last component of the module name to act as unique short name
     module_name_short = module_name.split(".")[-1]
-    is_not_core = module_name != "virtual_rainforest.core"
+    if module_name_short in MODULE_REGISTRY_NEW:
+        LOGGER.error(f"Module already registered: {module_name_short}")
+
+    is_core = module_name == "virtual_rainforest.core"
 
     LOGGER.info(f"Registering {module_name} module components")
 
-    # Create an entry for the module
-    if module_name_short not in MODULE_REGISTRY:
-        MODULE_REGISTRY[module_name_short] = {}
+    # Check on the model argument.
+    if is_core and model is not None:
+        msg = "No model should be registered for the core module."
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
+    elif not is_core and model is None:
+        msg = "A model class is required to register model modules."
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
+    elif model is not None:
+        if module_name_short != model.model_name:
+            msg = f"The model_name attribute and module name differ in {module_name}"
+            LOGGER.critical(msg)
+            raise RuntimeError(msg)
 
-    # Register the model unless this is core
-    if is_not_core:
-        register_model(
-            module=module, module_name=module_name, module_name_short=module_name_short
+        # Register the resulting single model class
+        LOGGER.info(
+            f"Registering model class for {module_name_short} model: {model.__name__}"
         )
 
     # Register the schema
-    schema_file_name = "model_schema.json" if is_not_core else "core_schema.json"
+    schema_file_name = "core_schema.json" if is_core else "model_schema.json"
     with resources.as_file(
         resources.files(module) / schema_file_name
     ) as schema_file_path:
-        register_schema(
-            module_name_short=module_name_short, schema_file_path=schema_file_path
-        )
-
-    # Find and register the constant dataclasses
-    register_constants_classes(module=module, module_name_short=module_name_short)
-
-
-def register_model(
-    module: ModuleType, module_name: str, module_name_short: str
-) -> None:
-    """Register the model component of a module.
-
-    This function automatically looks for a single subclass of a
-    :class:`~virtual_rainforest.core.base_model.BaseModel` within the members of the
-    provided module and adds it to the module registry.
-
-    Args:
-        module: A module object that might contain constants classes.
-        module_name: The full name of a module
-        module_name_short: The short name of the module.
-    """
-    from virtual_rainforest.core.base_model import BaseModel
-
-    # Extract BaseModel objects from the module root
-    model = [
-        (obj_name, obj)
-        for obj_name, obj in getmembers(module)
-        if isclass(obj) and issubclass(obj, BaseModel)
-    ]
-
-    # Trap missing and multiple models
-    if len(model) == 0:
-        excep = RuntimeError(f"Model object not found in {module_name}")
-        LOGGER.critical(excep)
-        raise excep
-
-    if len(model) > 1:
-        excep = RuntimeError(f"More than one model defined in in {module_name}")
-        LOGGER.critical(excep)
-        raise excep
-
-    # Trap models that do not follow the requirement that the BaseModel.model_name
-    # attribute matches the virtual_rainforest.models.model_name
-    # TODO - can we retire the model_name attribute if it just duplicates the module
-    #        name
-    model_name, model_obj = model[0]
-    if module_name_short != model_obj.model_name:
-        excep = RuntimeError(
-            f"The model_name attribute does not match the module name in {module_name}"
-        )
-        LOGGER.critical(excep)
-        raise excep
-
-    # Register the resulting single model class
-    MODULE_REGISTRY[module_name_short]["model"] = model_obj
-    LOGGER.info(f"Registered class for {module_name_short} model: {model_name}")
-
-
-def register_schema(module_name_short: str, schema_file_path: Path) -> None:
-    """Simple function to add configuration schema to the registry.
-
-    Args:
-        module_name: The name to register the schema under
-        schema_file_path: The file path to the JSON Schema file for the model
-
-    Raises:
-        ValueError: If the module name has already been used to register a schema
-    """
-
-    if (
-        module_name_short in MODULE_REGISTRY
-        and "schema" in MODULE_REGISTRY[module_name_short]
-    ):
-        excep = ValueError(
-            f"The module schema for {module_name_short} is already registered"
-        )
-        LOGGER.critical(excep)
-        raise excep
-
-    try:
-        MODULE_REGISTRY[module_name_short]["schema"] = load_schema(
-            module_name_short, schema_file_path
-        )
-    except Exception as excep:
-        LOGGER.critical(
-            f"Schema registration for {module_name_short} failed: check log"
-        )
-        raise excep
+        try:
+            schema = load_schema(
+                module_name=module_name_short, schema_file_path=schema_file_path
+            )
+        except Exception as excep:
+            LOGGER.critical(
+                f"Schema registration for {module_name_short} failed: check log"
+            )
+            raise excep
 
     LOGGER.info(
         "Schema registered for module %s: %s ", module_name_short, schema_file_path
     )
 
-
-def register_constants_classes(module: ModuleType, module_name_short: str) -> None:
-    """Simple function to add a constants class to the registry.
-
-    Args:
-        module: A module object that might contain constants classes.
-        module_name_short: The short name of the module
-
-    Raises:
-        ValueError: If the model and class name have already been used to register a
-            constants class
-    """
-
-    # Create the dictionary for constants for this module
-    if "constants" not in MODULE_REGISTRY[module_name_short]:
-        MODULE_REGISTRY[module_name_short]["constants"] = {}
-
-    # Try and get the constants submodule and simply leave if none is present
+    # Find and register the constant dataclasses
     constants_submodule = getattr(module, "constants", None)
 
     if constants_submodule is None:
-        return
+        constants_classes = {}
+    else:
+        # Get all subclasses of ConstantsDataclass, excluding the ABC
+        constants_classes = {
+            class_name: class_obj
+            for class_name, class_obj in getmembers(constants_submodule)
+            if is_dataclass(class_obj)
+            and issubclass(class_obj, ConstantsDataclass)
+            and not class_obj.__name__ == "ConstantsDataclass"
+        }
 
-    # Otherwise get any constant dataclasses and register them
-    constants_classes = (
-        class_ for class_ in getmembers(constants_submodule) if is_dataclass(class_[1])
-    )
-
-    for class_name, class_obj in constants_classes:
-        if class_name in MODULE_REGISTRY[module_name_short]["constants"]:
-            excep = ValueError(
-                f"Constants class {module_name_short}.{class_name} already registered"
+        for class_name in constants_classes.keys():
+            LOGGER.info(
+                "Constants class registered for module %s: %s ",
+                module_name_short,
+                class_name,
             )
-            LOGGER.critical(excep)
-            raise excep
 
-        # Add data class to the constants registry
-        MODULE_REGISTRY[module_name_short]["constants"][class_name] = class_obj
-
-        LOGGER.info("Constants class %s.%s registered", module_name_short, class_name)
+    MODULE_REGISTRY_NEW[module_name_short] = ModuleInfo(
+        model=model, schema=schema, constants_classes=constants_classes
+    )
