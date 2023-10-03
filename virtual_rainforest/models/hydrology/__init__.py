@@ -27,6 +27,7 @@ Each of the hydrology sub-modules has its own API reference page:
 """  # noqa: D205, D415
 
 
-from virtual_rainforest.models.hydrology.hydrology_model import (  # noqa: F401
-    HydrologyModel,
-)
+from virtual_rainforest.core.registry import register_module
+from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+
+register_module(module_name=__name__, model=HydrologyModel)

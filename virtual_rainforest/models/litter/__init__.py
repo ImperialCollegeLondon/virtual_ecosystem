@@ -14,4 +14,7 @@ Each of the litter sub-modules has its own API reference page:
 """  # noqa: D205, D415
 
 
-from virtual_rainforest.models.litter.litter_model import LitterModel  # noqa: F401
+from virtual_rainforest.core.registry import register_module
+from virtual_rainforest.models.litter.litter_model import LitterModel
+
+register_module(module_name=__name__, model=LitterModel)

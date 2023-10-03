@@ -33,7 +33,7 @@ def load_constants(config: Config, model_name: str, class_name: str) -> Any:
 
     # Extract dataclass of interest from registry
     try:
-        constants_class = MODULE_REGISTRY[model_name]["constants"][class_name]
+        constants_class = MODULE_REGISTRY[model_name].constants_classes[class_name]
     except KeyError as excep:
         LOGGER.critical(f"Unknown constants class: {model_name}.{class_name}")
         raise excep
@@ -46,7 +46,7 @@ def load_constants(config: Config, model_name: str, class_name: str) -> Any:
         return constants_class.from_config(constants_config)
     except (KeyError, IndexError):
         # No constants_config section, so return default instance.
-        return constants_class()
+        return constants_class()  # type: ignore [operator]  # FIXME !!!!!
     except ConfigurationError:
         # The from_config call failed, so log and exit.
         LOGGER.critical("Could not initialise {model_name}.{class_name} from config.")

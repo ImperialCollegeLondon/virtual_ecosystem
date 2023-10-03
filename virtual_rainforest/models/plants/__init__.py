@@ -11,4 +11,7 @@ in the Virtual Rainforest. The submodules provide:
 """  # noqa: D205, D415
 
 
-from virtual_rainforest.models.plants.plants_model import PlantsModel  # noqa: F401
+from virtual_rainforest.core.registry import register_module
+from virtual_rainforest.models.plants.plants_model import PlantsModel
+
+register_module(module_name=__name__, model=PlantsModel)

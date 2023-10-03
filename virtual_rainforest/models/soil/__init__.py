@@ -12,4 +12,7 @@ Each of the soil sub-modules has its own API reference page:
   containing the constants required by the broader soil model.
 """  # noqa: D205, D415
 
-from virtual_rainforest.models.soil.soil_model import SoilModel  # noqa: F401
+from virtual_rainforest.core.registry import register_module
+from virtual_rainforest.models.soil.soil_model import SoilModel
+
+register_module(module_name=__name__, model=SoilModel)

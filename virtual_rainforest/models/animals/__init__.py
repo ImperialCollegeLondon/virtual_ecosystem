@@ -27,4 +27,8 @@ Each of the animal sub-modules has its own API reference page:
   the animal module.
 """  # noqa: D205, D415
 
-from virtual_rainforest.models.animals.animal_model import AnimalModel  # noqa: F401
+
+from virtual_rainforest.core.registry import register_module
+from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+register_module(module_name=__name__, model=AnimalModel)
