@@ -91,10 +91,11 @@ class HydrologyModel(BaseModel):
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
-        "stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
+        "P-ET_stream_flow",  # P-ET; later surface_runoff_acc + below_ground_acc
         "surface_runoff_accumulated",
         "matric_potential",
         "groundwater_storage",
+        "channel_flow",
     )
     """Variables updated by the hydrology model."""
 
@@ -375,9 +376,11 @@ class HydrologyModel(BaseModel):
         * surface_runoff, [mm], equivalent to SPLASH runoff
         * vertical_flow, [mm/timestep]
         * soil_evaporation, [mm]
-        * stream_flow, [mm/timestep], currently simply P-ET
+        * P-ET stream_flow, [mm/timestep], currently simply P-ET
         * surface_runoff_accumulated, [mm]
         * matric_potential, [kPa]
+        * groundwater_storage, [mm]
+        * channel_flow, [mm] TODO convert to volume and account for area
         """
 
         # Determine number of days, currently only 30 days (=1 month)
@@ -443,6 +446,8 @@ class HydrologyModel(BaseModel):
 
         # Get accumulated runoff from previous time step
         accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
+
+        groundwater_storage = np.array(self.data["groundwater_storage"])
 
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
@@ -589,6 +594,31 @@ class HydrologyModel(BaseModel):
             )
             daily_lists["matric_potential"].append(matric_potential)
 
+            # calculate below ground horizontal flow and update ground water
+            below_ground_flow = below_ground.update_groundwater_storge(
+                groundwater_storage=groundwater_storage,
+                vertical_flow_to_groundwater=vertical_flow[-1],
+                bypass_flow=bypass_flow,
+                max_percolation_rate_uzlz=self.constants.max_percolation_rate_uzlz,
+                groundwater_loss=self.constants.groundwater_loss,
+                reservoir_const_upper_groundwater=(
+                    self.constants.reservoir_const_upper_groundwater
+                ),
+                reservoir_const_lower_groundwater=(
+                    self.constants.reservoir_const_lower_groundwater
+                ),
+            )
+            daily_lists["groundwater_storage"].append(
+                below_ground_flow["updated_groundwater_storage"]
+            )
+
+            channel_flow = (
+                new_accumulated_runoff
+                + below_ground_flow["outflow_upper_zone"]
+                + below_ground_flow["outflow_upper_zone"]
+            )
+            daily_lists["channel_flow"].append(channel_flow)
+
             # update soil_moisture_mm for next day
             soil_moisture_mm = soil_moisture_updated
 
@@ -601,6 +631,7 @@ class HydrologyModel(BaseModel):
             "surface_runoff",
             "surface_runoff_accumulated",
             "soil_evaporation",
+            "channel_flow",
         ]:
             soil_hydrology[var] = DataArray(
                 np.sum(np.stack(daily_lists[var], axis=1), axis=1),
@@ -638,7 +669,6 @@ class HydrologyModel(BaseModel):
             )
 
         # Calculate stream flow as Q= P-ET-dS ; vertical flow is not considered
-        # TODO add vertical and below-ground horizontal flow
         # The maximum stream flow capacity is set to an arbitray value, could be used to
         # flag flood events
 
@@ -649,7 +679,7 @@ class HydrologyModel(BaseModel):
             axis=0,
         )
 
-        soil_hydrology["stream_flow"] = DataArray(
+        soil_hydrology["P-ET_stream_flow"] = DataArray(
             np.clip(
                 (
                     soil_hydrology["precipitation_surface"]

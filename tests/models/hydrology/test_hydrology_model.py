@@ -468,6 +468,11 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
+        exp_channel_flow = DataArray(
+            [1357.299035, 1657.313028, 5857.297088],
+            dims=["cell_id"],
+            coords={"cell_id": [0, 1, 2]},
+        )
         exp_runoff_acc = DataArray(
             [0, 300, 4500],
             dims=["cell_id"],
@@ -505,8 +510,14 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["stream_flow"],
+            model.data["P-ET_stream_flow"],
             exp_stream_flow,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["channel_flow"],
+            exp_channel_flow,
             rtol=1e-4,
             atol=1e-4,
         )
