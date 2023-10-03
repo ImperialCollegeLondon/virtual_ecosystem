@@ -224,7 +224,7 @@ def update_groundwater_storge(
     groundwater_loss: Union[float, NDArray[np.float32]],
     reservoir_const_upper_groundwater: Union[float, NDArray[np.float32]],
     reservoir_const_lower_groundwater: Union[float, NDArray[np.float32]],
-) -> list[NDArray[np.float32]]:
+) -> dict[str, NDArray[np.float32]]:
     """Update groundwater storage and calculate below ground horizontal flow.
 
     Groundwater storage and transport are modelled using two parallel linear reservoirs,
@@ -257,6 +257,7 @@ def update_groundwater_storge(
             zone to the channel, and outflow from the lower zone to the channel
     """
 
+    output = {}
     # percolation to lower zone
     percolation_to_lower_zone = np.where(
         max_percolation_rate_uzlz < groundwater_storage[0],
@@ -273,7 +274,7 @@ def update_groundwater_storge(
     )
 
     # Calculate outflow from the upper zone to the channel, [mm]
-    outflow_upper_zone = 1 / reservoir_const_upper_groundwater * upper_zone
+    output["outflow_upper_zone"] = 1 / reservoir_const_upper_groundwater * upper_zone
 
     # Update water stored in lower zone, [mm]
     lower_zone = np.array(
@@ -281,8 +282,9 @@ def update_groundwater_storge(
     )
 
     # Calculate outflow from the lower zone to the channel, [mm]
-    outflow_lower_zone = 1 / reservoir_const_lower_groundwater * lower_zone
+    output["outflow_lower_zone"] = 1 / reservoir_const_lower_groundwater * lower_zone
 
-    updated_groundwater_storage = np.vstack((upper_zone, lower_zone))
+    # Update ground water storage
+    output["updated_groundwater_storage"] = np.vstack((upper_zone, lower_zone))
 
-    return [updated_groundwater_storage, outflow_upper_zone, outflow_lower_zone]
+    return output
