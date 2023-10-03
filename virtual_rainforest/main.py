@@ -13,7 +13,7 @@ from typing import Any, Optional, Type, Union
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel  # MODEL_REGISTRY
+from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
@@ -22,7 +22,7 @@ from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_
 from virtual_rainforest.core.registry import MODULE_REGISTRY
 
 
-def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
+def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[type[BaseModel]]
     """Select the models to be run for a specific virtual rainforest simulation.
 
     This function looks for models from a list of models, if these models can all be
@@ -57,11 +57,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
     LOGGER.info("Attempting to configure the following models: %s" % unique_models)
 
     # Make list of missing models, and return an error if necessary
-    miss_model = [
-        model
-        for model in unique_models
-        if model not in MODULE_REGISTRY or "model" not in MODULE_REGISTRY[model]
-    ]
+    miss_model = [model for model in unique_models if model not in MODULE_REGISTRY]
     if miss_model:
         to_raise = InitialisationError(
             f"The following models cannot be configured as they are not found in the "
@@ -71,7 +67,7 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         raise to_raise
 
     # Return the appropriate models from the registry
-    return [MODULE_REGISTRY[model_name]["model"] for model_name in unique_models]
+    return [MODULE_REGISTRY[model_name].model for model_name in unique_models]
 
 
 def configure_models(

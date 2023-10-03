@@ -74,7 +74,8 @@ def register_module(module_name: str, model: Optional[Any] = None) -> None:
     # Extract the last component of the module name to act as unique short name
     module_name_short = module_name.split(".")[-1]
     if module_name_short in MODULE_REGISTRY:
-        LOGGER.error(f"Module already registered: {module_name_short}")
+        LOGGER.warning(f"Module already registered: {module_name_short}")
+        return
 
     is_core = module_name == "virtual_rainforest.core"
 
