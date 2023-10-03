@@ -68,12 +68,15 @@ def dummy_litter_data(layer_roles_fixture):
     )
 
     # The layer dependant data has to be handled separately
-    data["soil_moisture"] = concat(
+    data["matric_potential"] = concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([[0.25, 0.45, 0.3]], dims=["layers", "cell_id"]),
+            DataArray(
+                [[-10.0, -25.0, -100.0]],
+                dims=["layers", "cell_id"],
+            ),
             DataArray(np.full((1, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",

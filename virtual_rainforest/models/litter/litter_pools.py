@@ -497,6 +497,9 @@ def calculate_moisture_effect_on_litter_decomp(
         decomposition [unitless]
     """
 
+    # TODO - Need to make sure that this function is properly defined for a plausible
+    # range of matric potentials.
+
     # Calculate how much moisture suppresses microbial activity
     supression = (
         (np.log10(np.abs(water_potential)) - np.log10(abs(water_potential_opt)))

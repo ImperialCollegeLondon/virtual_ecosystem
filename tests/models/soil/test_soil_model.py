@@ -479,6 +479,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         "pH",
         "bulk_density",
         "soil_moisture",
+        "matric_potential",
         "soil_temperature",
         "percent_clay",
         "litter_C_mineralisation_rate",
@@ -563,9 +564,6 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data,
         4,
         top_soil_layer_index,
-        soil_water_potential=dummy_carbon_data["soil_water_potential"][
-            top_soil_layer_index
-        ],
         delta_pools_ordered=delta_pools_ordered,
         constants=SoilConsts,
     )

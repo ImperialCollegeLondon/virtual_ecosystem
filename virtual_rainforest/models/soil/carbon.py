@@ -323,7 +323,8 @@ def calculate_water_potential_impact_on_microbes(
         decomposition [unitless]
     """
 
-    # TODO - Talk to Vivienne about this problem
+    # If the water potential is greater than the optimal then the function produces NaNs
+    # so the simulation should be interrupted
     if any(abs(water_potential) < abs(water_potential_opt)):
         err = ValueError("Water potential greater than minimum value")
         LOGGER.critical(err)

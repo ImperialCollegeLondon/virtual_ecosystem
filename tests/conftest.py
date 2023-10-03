@@ -155,7 +155,7 @@ def dummy_carbon_data(layer_roles_fixture):
         }
     )
     # TODO - Eventually this should replace the dummy soil moisture entirely
-    data["soil_water_potential"] = xr.concat(
+    data["matric_potential"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
@@ -164,8 +164,7 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
-    )
-    data["soil_water_potential"] = data["soil_water_potential"].assign_coords(
+    ).assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": ("layers", layer_roles_fixture),

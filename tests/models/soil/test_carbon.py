@@ -35,7 +35,7 @@ def water_factors(dummy_carbon_data, top_soil_layer_index):
     )
 
     moist_scalars = calculate_water_potential_impact_on_microbes(
-        water_potential=dummy_carbon_data["soil_water_potential"][top_soil_layer_index],
+        water_potential=dummy_carbon_data["matric_potential"][top_soil_layer_index],
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
         moisture_response_curvature=SoilConsts.moisture_response_curvature,
@@ -54,7 +54,7 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_temperature"][top_soil_layer_index], top_soil_temps
     )
     assert np.allclose(
-        dummy_carbon_data["soil_water_potential"][top_soil_layer_index],
+        dummy_carbon_data["matric_potential"][top_soil_layer_index],
         top_soil_water_potentials,
     )
 
@@ -84,9 +84,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
         soil_moisture=np.array([0.5, 0.7, 0.6, 0.2]),
-        soil_water_potential=dummy_carbon_data["soil_water_potential"][
+        soil_water_potential=dummy_carbon_data["matric_potential"][
             top_soil_layer_index
-        ],
+        ].to_numpy(),
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         percent_clay=dummy_carbon_data["percent_clay"],
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
@@ -291,7 +291,7 @@ def test_calculate_water_potential_impact_on_microbes():
         calculate_water_potential_impact_on_microbes,
     )
 
-    water_potentials = [-3.0, -10.0, -250.0, -10000.0]
+    water_potentials = np.array([-3.0, -10.0, -250.0, -10000.0])
 
     expected_factor = [1.0, 0.94414168, 0.62176357, 0.07747536]
 
