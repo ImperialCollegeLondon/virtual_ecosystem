@@ -29,6 +29,7 @@ imported, which ensures that all modules schemas are registered in
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Union
 
@@ -37,7 +38,7 @@ from jsonschema import FormatChecker
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+from virtual_rainforest.core.registry import MODULE_REGISTRY
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
 
 if sys.version_info[:2] >= (3, 11):
@@ -450,11 +451,12 @@ class Config(dict):
                 :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
         """
 
-        # Extract the modules requested in the configuration, falling back to the schema
+        # Import the core to trigger the registration of module components and then
+        # extract the modules requested in the configuration, falling back to the schema
         # defaults
 
-        register_module("virtual_rainforest.core")
-        core_schema = MODULE_REGISTRY["core"]["schema"]
+        import_module("virtual_rainforest.core")
+        core_schema = MODULE_REGISTRY["core"].schema
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
         try:
@@ -464,22 +466,14 @@ class Config(dict):
             # Revert to defaults
             requested_modules = defmods
 
-        # Register the requested modules
+        # Import the requested modules to trigger registration.
         for module in requested_modules:
-            register_module(f"virtual_rainforest.models.{module}")
+            import_module(f"virtual_rainforest.models.{module}")
 
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
-            # Trap unknown model schemas
-            if module not in MODULE_REGISTRY:
-                to_raise = ConfigurationError(
-                    f"Configuration contains module with no schema: {module}"
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            all_schemas[module] = MODULE_REGISTRY[module]["schema"]
+            all_schemas[module] = MODULE_REGISTRY[module].schema
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
