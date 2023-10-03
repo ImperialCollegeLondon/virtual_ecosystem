@@ -59,9 +59,8 @@ class HydrologyModel(BaseModel):
     * find a way to load daily (precipitation) data and loop over daily time_index
     * add time dimension to required_init_vars
     * allow for different time steps (currently only 30 days)
-    * implement below-ground horizontal flow and update stream flow
+    * accumulate below-ground horizontal flow and update stream flow
     * potentially move `calculate_drainage_map` to core
-    * Convert soil moisture to matric potential
     """
 
     model_name = "hydrology"
@@ -612,10 +611,10 @@ class HydrologyModel(BaseModel):
                 below_ground_flow["updated_groundwater_storage"]
             )
 
-            channel_flow = (
+            channel_flow = (  # TODO accumulate below ground flow
                 new_accumulated_runoff
                 + below_ground_flow["outflow_upper_zone"]
-                + below_ground_flow["outflow_upper_zone"]
+                + below_ground_flow["outflow_lower_zone"]
             )
             daily_lists["channel_flow"].append(channel_flow)
 
