@@ -38,7 +38,7 @@ from jsonschema import FormatChecker
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.registry import MODULE_REGISTRY
+from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
 
 if sys.version_info[:2] >= (3, 11):
@@ -451,11 +451,10 @@ class Config(dict):
                 :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
         """
 
-        # Import the core to trigger the registration of module components and then
-        # extract the modules requested in the configuration, falling back to the schema
-        # defaults
+        # Register the core module components and then extract the modules requested in
+        # the configuration, falling back to the schema defaults.
 
-        import_module("virtual_rainforest.core")
+        register_module(module_name="virtual_rainforest.core", model=None)
         core_schema = MODULE_REGISTRY["core"].schema
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
