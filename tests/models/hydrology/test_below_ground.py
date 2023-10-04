@@ -85,31 +85,24 @@ def test_update_soil_moisture():
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
 
 
-def test_soil_moisture_to_matric_potential():
-    """Test."""
-
+def test_convert_soil_moisture_to_water_potential(dummy_climate_data):
+    """Test that function to convert soil moisture to a water potential works."""
     from virtual_rainforest.models.hydrology.below_ground import (
-        soil_moisture_to_matric_potential,
+        convert_soil_moisture_to_water_potential,
     )
-    from virtual_rainforest.models.hydrology.constants import HydroConsts
 
-    soil_moisture = np.array([[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]])
-
-    result = soil_moisture_to_matric_potential(
-        soil_moisture=soil_moisture,
+    expected_potentials = np.array(
+        [-198467.26813379, -198467.26813379, -198467.26813379]
+    )
+    dummy_data = dummy_climate_data
+    actual_potentials = convert_soil_moisture_to_water_potential(
+        dummy_data["soil_moisture"].isel(layers=13).to_numpy(),
+        air_entry_water_potential=HydroConsts.air_entry_water_potential,
+        water_retention_curvature=HydroConsts.water_retention_curvature,
         soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
-        nonlinearily_parameter=HydroConsts.nonlinearily_parameter,
-        alpha=HydroConsts.alpha,
-    )
-    exp_result = np.array(
-        [
-            [26.457513, 26.457513, 26.457513],
-            [5.773503, 5.773503, 5.773503],
-        ]
     )
 
-    np.testing.assert_allclose(result, exp_result)
+    np.testing.assert_allclose(actual_potentials, expected_potentials)
 
 
 def test_update_groundwater_storge(dummy_climate_data):

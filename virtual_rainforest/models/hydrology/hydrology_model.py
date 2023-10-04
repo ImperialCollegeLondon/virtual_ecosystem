@@ -589,12 +589,11 @@ class HydrologyModel(BaseModel):
             )
 
             # Convert soil moisture to matric potential
-            matric_potential = below_ground.soil_moisture_to_matric_potential(
+            matric_potential = below_ground.convert_soil_moisture_to_water_potential(
                 soil_moisture=soil_moisture_updated / soil_layer_thickness,
+                air_entry_water_potential=self.constants.air_entry_water_potential,
+                water_retention_curvature=self.constants.water_retention_curvature,
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
-                soil_moisture_residual=self.constants.soil_moisture_residual,
-                nonlinearily_parameter=self.constants.nonlinearily_parameter,
-                alpha=self.constants.alpha,
             )
             daily_lists["matric_potential"].append(matric_potential)
 

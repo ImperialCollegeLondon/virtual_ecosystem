@@ -94,16 +94,29 @@ class HydroConsts:
     """Ground water storage capacity in relative volumetric water content. This might be
     replaced with the implementation of below ground horizontal flow."""
 
-    alpha: float = 0.3
-    r"""Dimensionless parameter :math:`alpha` in van Genuchten model that corresponds
-    approximately to the inverse of the air-entry value, [kPa-1]
-    :cite:p:`van_genuchten_closed-form_1980`"""
-
     infiltration_shape_parameter: float = 1.0
     """Empirical shape parameter that affects how much of the water available for
     infiltration goes directly to groundwater via preferential bypass flow. A value of
     0 means all surface water goes directly to groundwater, a value of 1 gives a linear
     relation between soil moisture and bypass flow."""
+
+    air_entry_water_potential: float = -3.815
+    """Water potential at which soil pores begin to aerate [kPa].
+
+    The constant is used to estimate soil water potential from soil moisture. As this
+    estimation is a stopgap this constant probably shouldn't become a core constant. The
+    value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`. In future, this could be calculated based on soil
+    texture.
+    """
+
+    water_retention_curvature: float = -7.22
+    """Curvature of the water retention curve.
+
+    The value is the average across all soil types found in
+    :cite:t:`cosby_statistical_1984`; see documentation for
+    :attr:`air_entry_water_potential` for further details.
+    """
 
     max_percolation_rate_uzlz: float = 1
     """Maximum perclation rate between pper and lower groundwater zone, [mm d-1]"""
