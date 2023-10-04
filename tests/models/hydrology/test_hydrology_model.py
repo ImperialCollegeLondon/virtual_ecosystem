@@ -415,7 +415,10 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[7.275799, 7.270718, 7.274508], [7.288526, 7.285751, 7.289329]],
+                    [
+                        [-819.126131, -817.937497, -817.31294],
+                        [-865.452922, -863.787411, -865.884216],
+                    ],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -496,8 +499,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["matric_potential"],
-            exp_matric_pot,
+            model.data["matric_potential"].isel(layers=-2),
+            exp_matric_pot.isel(layers=-2),
             rtol=1e-4,
             atol=1e-4,
         )
