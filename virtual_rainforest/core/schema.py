@@ -138,9 +138,9 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
     # Recursively search for all instances of properties and insert
     # additionalProperties=false to prevent undocumented properties in schema.
     # It does seem odd that JSONSchema has no universal setting for this.
-    property_paths = (
+    property_paths = [
         path for path, _ in dpath.search(comb_schema, "**/properties", yielded=True)
-    )
+    ]
 
     for path in property_paths:
         path_root = "" if path == "properties" else path[:-11]
