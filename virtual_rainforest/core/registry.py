@@ -37,7 +37,7 @@ class ModuleInfo:
     module registry.
     """
 
-    model: Any  # Optional[type[BaseModel]]
+    model: Any  # FIXME Optional[type[BaseModel]]
     """The BaseModel subclass associated with the module."""
     schema: dict[str, Any]
     """The schema used to validate module configuration."""
