@@ -491,7 +491,9 @@ class HydrologyModel(BaseModel):
                 latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
                 gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
                 heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
-                shading_parameter=self.constants.shading_parameter,
+                extinction_coefficient_global_radiation=(
+                    self.constants.extinction_coefficient_global_radiation
+                ),
             )
             daily_lists["soil_evaporation"].append(soil_evaporation)
 

@@ -46,10 +46,12 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
-        shading_parameter=HydroConsts.shading_parameter,
+        extinction_coefficient_global_radiation=(
+            HydroConsts.extinction_coefficient_global_radiation
+        ),
     )
 
-    exp_result = np.array([0.013579, 0.008236, 0.367179])
+    exp_result = np.array([0.007452, 0.003701, 0.135078])
     np.testing.assert_allclose(result, exp_result, rtol=0.01)
 
 

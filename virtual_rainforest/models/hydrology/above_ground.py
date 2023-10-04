@@ -28,7 +28,7 @@ def calculate_soil_evaporation(
     latent_heat_vapourisation: Union[float, NDArray[np.float32]],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
-    shading_parameter: float,
+    extinction_coefficient_global_radiation: float,
 ) -> NDArray[np.float32]:
     r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
 
@@ -46,12 +46,13 @@ def calculate_soil_evaporation(
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless).
 
-    In a final step, the bare soil evaporation is adjusted to shaded soil evaporation:
+    In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
+    :cite:t:`supit_system_1994`:
 
     :math:`E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)`
 
-    where :math:`kappa_{gb}` is a shading parameter, and :math:`LAI` is the leaf area
-    index.
+    where :math:`kappa_{gb}` is the extinction coefficient for global radiation, and
+    :math:`LAI` is the total leaf area index.
 
     Args:
         temperature: air temperature at reference height, [C]
@@ -66,6 +67,8 @@ def calculate_soil_evaporation(
         latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         heat_transfer_coefficient: heat transfer coefficient of air
+        extinction_coefficient_global_radiation: Extinction coefficient for global
+            radiation, [unitless]
 
     Returns:
         soil evaporation, [mm]
@@ -104,7 +107,7 @@ def calculate_soil_evaporation(
 
     # Return surface evaporation, [mm]
     return (evaporative_flux / latent_heat_vapourisation).squeeze() * np.exp(
-        -shading_parameter * leaf_area_index
+        -extinction_coefficient_global_radiation * leaf_area_index
     )
 
 
