@@ -51,10 +51,6 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
                 ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'surface_runoff' checked",
-                ),
             ),
         ),
         (
@@ -190,10 +186,6 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
                 ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'surface_runoff' checked",
-                ),
             ),
         ),
         (
@@ -250,10 +242,6 @@ def test_hydrology_model_initialization(
                 (
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'surface_runoff' checked",
                 ),
             ),
         ),
@@ -466,18 +454,13 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-        exp_stream_flow = DataArray(
-            [117.339795, 117.338423, 117.34047],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
         exp_channel_flow = DataArray(
-            [0, 21225, 46350],
+            [0, 1412, 2825],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_runoff_acc = DataArray(
-            [0, 300, 4500],
+            [0, 0, 0],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -509,12 +492,6 @@ def test_setup(
         np.testing.assert_allclose(
             model.data["soil_evaporation"],
             exp_soil_evap,
-            rtol=1e-4,
-            atol=1e-4,
-        )
-        np.testing.assert_allclose(
-            model.data["P-ET_stream_flow"],
-            exp_stream_flow,
             rtol=1e-4,
             atol=1e-4,
         )

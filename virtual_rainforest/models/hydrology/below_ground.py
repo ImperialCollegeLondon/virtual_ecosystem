@@ -253,7 +253,7 @@ def update_groundwater_storge(
     )
 
     # Calculate outflow from the upper zone to the channel, [mm]
-    output["outflow_upper_zone"] = 1 / reservoir_const_upper_groundwater * upper_zone
+    output["subsurface_flow"] = 1 / reservoir_const_upper_groundwater * upper_zone
 
     # Update water stored in lower zone, [mm]
     lower_zone = np.array(
@@ -261,7 +261,7 @@ def update_groundwater_storge(
     )
 
     # Calculate outflow from the lower zone to the channel, [mm]
-    output["outflow_lower_zone"] = 1 / reservoir_const_lower_groundwater * lower_zone
+    output["baseflow"] = 1 / reservoir_const_lower_groundwater * lower_zone
 
     # Update ground water storage
     output["updated_groundwater_storage"] = np.vstack((upper_zone, lower_zone))
