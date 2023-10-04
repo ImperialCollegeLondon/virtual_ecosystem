@@ -104,3 +104,6 @@ class HydroConsts:
     infiltration goes directly to groundwater via preferential bypass flow. A value of
     0 means all surface water goes directly to groundwater, a value of 1 gives a linear
     relation between soil moisture and bypass flow."""
+
+    shading_parameter: float = 0.5
+    """Parameter that reduced potential soil evaporation to shaded soil evaporation."""

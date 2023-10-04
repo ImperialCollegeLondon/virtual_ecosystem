@@ -40,14 +40,16 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         soil_moisture=np.array([0.01, 0.1, 0.5]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
+        leaf_area_index=np.array([3, 4, 5]),
         celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
+        shading_parameter=HydroConsts.shading_parameter,
     )
 
-    exp_result = np.array([0.060855, 0.060855, 4.473155])
+    exp_result = np.array([0.013579, 0.008236, 0.367179])
     np.testing.assert_allclose(result, exp_result, rtol=0.01)
 
 
