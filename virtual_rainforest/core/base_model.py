@@ -37,16 +37,13 @@ methods are provided to validate that the properties are set and valid in subcla
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
 
-Model registration
-------------------
+Model checking
+--------------
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
 the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
 method. This method is called automatically whenever a subclass of the ABC is imported:
-it validates the class attributes for the new class and then registers the model name
-and model class in the called :attr:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`
-register. This registry is used to identify requested model subclasses from the
-configuration details from  Virtual Rainforest simulation.
+it validates the class attributes for the new model class.
 
 The ``BaseModel.__init__`` method
 ----------------------------------
@@ -71,6 +68,17 @@ defined by subclasses and must be a factory method that takes a
 dictionary and returns an instance of the subclass. For any given model, the method
 should provide any code to validate the configuration and then use the configuration to
 initialise and return a new instance of the class.
+
+Model registration
+------------------
+
+Models have three core components: the
+:class:`~virtual_rainforest.core.base_model.BaseModel` subclass itself (``model``),
+a JSON schema for validating the model configuration (``schema``) and an optional set of
+user modifiable constants classes (``constants``, see
+:class:`~virtual_rainforest.core.constants_classes.ConstantsDataclass`). All model
+modules must register these components when they are imported: see the
+:mod:`~virtual_rainforest.core.registry` module.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -111,7 +119,7 @@ class BaseModel(ABC):
         """The model name.
 
         This class property sets the name used to refer to identify the model class in
-        the :data:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, within the
+        the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`, within the
         configuration settings and in logging messages.
         """
 

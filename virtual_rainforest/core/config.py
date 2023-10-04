@@ -3,28 +3,9 @@ configuration files, validate their contents, and then configure a ready to run 
 of the virtual rainforest model. The basic details of how this system is used can be
 found :doc:`here </virtual_rainforest/core/config>`.
 
-When a new module is defined a ``JSONSchema`` file should be written, which includes the
-expected configuration tags, their expected types, and any constraints on their values
-(e.g. the number of soil layers being strictly positive). Additionally, where sensible
-default values exist (e.g. 1 week for the model time step) they should also be included
-in the schema. This schema should be saved in the folder of the module that it relates
-to. In order to make this schema generally accessible the module's ``__init__.py``
-should call the :func:`register_schema` function, which will load and validate the
-schema before adding it to the registry. You will need to provides a module name to
-register the schema under, which should be unique to that model. The function also
-requires the path to the schema file, which should be located using the
-:func:`importlib.resources.path` context manager:
-
-.. code-block:: python
-
-    with resources.path(
-        "virtual_rainforest.models.soil", "soil_schema.json"
-    ) as schema_file_path:
-        register_schema(module_name="soil", schema_file_path=schema_file_path)
-
-The base Virtual Rainforest module will automatically import modules when it is
-imported, which ensures that all modules schemas are registered in
-:attr:`SCHEMA_REGISTRY`.
+The validation of configuration documents is done using JSONSchema documents associated
+with the different model components. See the :mod:`~virtual_rainforest.core.schema`
+module for details.
 """  # noqa: D205, D415
 import sys
 from collections.abc import Sequence
@@ -444,11 +425,6 @@ class Config(dict):
         for the requested modules are then loaded and combined using the
         :meth:`~virtual_rainforest.core.config.merge_schemas` function to generate a
         single validation schema for model configuration.
-
-        Raises:
-            ConfigurationError: if the requested modules includes a model name that does
-                not have an entry in the
-                :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`.
         """
 
         # Register the core module components and then extract the modules requested in

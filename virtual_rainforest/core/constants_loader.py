@@ -1,11 +1,9 @@
-"""The :mod:`~virtual_rainforest.core.constants` module is used to store constants that
-are used across the Virtual Rainforest. This includes universal constants, such as the
-strength of gravity, but also model constants that are shared between multiple models,
-such as the depth of the biogeochemically active soil layer.
-
-At the moment, no constants are actually stored in this module. It currently only
-contains the :attr:`CONSTANTS_REGISTRY`, which all model constants classes should be
-registered in. This allows for all model constants to be documented neatly.
+"""The :mod:`~virtual_rainforest.core.constants_loader` module  provides the function
+:mod:`~virtual_rainforest.core.constants_loader.load_constants`. This is a utility
+function that retrieves a constants dataclass from the
+:data:`~virtual_rainforest.core.registry.MODULE_REGISTRY` and then extracts any
+configuration details for that constants dataclass from a
+:mod:`~virtual_rainforest.core.config.Config` instance.
 """  # noqa: D205, D415
 
 from typing import Any

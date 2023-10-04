@@ -1,11 +1,25 @@
-"""The :mod:`~virtual_rainforest.core.schema` module  provides the
+"""The :mod:`~virtual_rainforest.core.schema` module  provides tools for handling the
+JSON schemas used to validate model configuration documents. The
 :func:`~virtual_rainforest.core.schema.load_schema` and
-:func:`~virtual_rainforest.core.schema.merge_schema` functions to build a single
-JSONSchema configuration validator from individual module schames. The JSONSchema
-validation is extended using the :func:`~virtual_rainforest.core.schema.set_defaults`
-iterator to provide a  global JSONSchema validator instance that handles
-the provision of default values within schema
-(:data:`~virtual_rainforest.core.registry.ValidatorWithDefaults`).
+:func:`~virtual_rainforest.core.schema.merge_schema` functions are used to load schema
+documents and then build a single JSONSchema across the models used in a simulation.
+
+The resulting merged schema is then used with the
+:data:`~virtual_rainforest.core.registry.ValidatorWithDefaults` JSON schema validator.
+This has been extended using the :func:`~virtual_rainforest.core.schema.set_defaults`
+iterator to provide a global JSONSchema validator instance that fills in missing entries
+in configuration documents from default values provided in the schemas.
+
+When a new model module is created, the JSONSchema file should be saved in the module
+directory as ``module_schema.json``. This document should define the
+expected configuration tags, their expected types, and any constraints on their values
+(e.g. the number of soil layers being strictly positive). Additionally, where sensible
+default values exist (e.g. 1 week for the model time step) they should also be included
+in the schema.
+
+The JSONSchema documents for a module should be loaded when a model is imported into the
+:data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`. See the
+:mod:`~virtual_rainforest.core.registry` module for details.
 """  # noqa: D205, D415
 
 

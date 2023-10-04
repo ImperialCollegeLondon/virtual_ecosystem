@@ -1,5 +1,6 @@
-"""This submodule contains a set of dataclasses containing core constants used across
-the Virtual Rainforest.
+"""This submodule contains dataclasses containing core constants used across
+the Virtual Rainforest. This includes universal constants but also constants that may be
+shared across model.
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
