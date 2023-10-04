@@ -8,12 +8,11 @@ from collections.abc import Sequence
 from itertools import chain
 from math import ceil
 from pathlib import Path
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional, Union
 
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
@@ -22,7 +21,7 @@ from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_
 from virtual_rainforest.core.registry import MODULE_REGISTRY
 
 
-def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[type[BaseModel]]
+def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[Type[BaseModel]]
     """Select the models to be run for a specific virtual rainforest simulation.
 
     This function looks for models from a list of models, if these models can all be
@@ -73,9 +72,9 @@ def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[type[Bas
 def configure_models(
     config: Config,
     data: Data,
-    model_list: list[Type[BaseModel]],
+    model_list: list[Any],  # FIXME -> list[Type[BaseModel]]
     update_interval: pint.Quantity,
-) -> dict[str, BaseModel]:
+) -> dict[str, Any]:  # FIXME -> list[Type[BaseModel]]
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
