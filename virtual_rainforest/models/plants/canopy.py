@@ -84,7 +84,7 @@ def build_canopy_arrays(
 
     Returns:
         A tuple of two dimensional numpy arrays giving the canopy layer heights and then
-        leaf area indices, fapar and leaf mass by cell id.
+        leaf area indices, :math:`f_{APAR}` and leaf mass by cell id.
     """
 
     # TODO - this could be a method of PlantCommunities but creates circular import of
