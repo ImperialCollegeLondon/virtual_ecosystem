@@ -18,8 +18,7 @@ from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
     DECAY_FRACTION_CARCASSES,
     DECAY_FRACTION_EXCREMENT,
-    DISPERSAL_MASS_THRESHOLD,
-    REPRODUCTIVE_MASS_THRESHOLD,
+    FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -71,8 +70,6 @@ class AnimalCohort:
         """Whether the cohort is alive [True] or dead [False]."""
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
-        self.reproductive_mass_threshold: float = REPRODUCTIVE_MASS_THRESHOLD
-        """The reproductive mass threshold at which the cohort can reproduce."""
 
         self.intake_rate: float = intake_rate_scaling(
             self.functional_group.adult_mass, self.functional_group.intake_rate_terms
@@ -133,9 +130,13 @@ class AnimalCohort:
         excrement_pool: DecayPool,
         mass_consumed: float,
     ) -> None:
-        """Transfer waste energy from an animal cohort to the excrement pool.
+        """Transfer waste mass from an animal cohort to the excrement pool.
 
-        TODO: Change currency from energy to mass
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
@@ -170,6 +171,12 @@ class AnimalCohort:
         are made to capture large body size and multi-grid occupancy, this will be
         updated.
 
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
+
         Args:
             number_dead: The number of individuals by which to decrease the population
                 count.
@@ -194,6 +201,12 @@ class AnimalCohort:
         Note: AnimalCohort mass_current is mean per individual mass within the
             cohort. Mass is not lost from mass_current from a predation event but the
             number of individuals in the cohort is reduced.
+
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
 
         Args:
             predator: The AnimalCohort preying on the eaten cohort.
@@ -229,7 +242,6 @@ class AnimalCohort:
         carcass_mass = prey_mass * (1 - self.functional_group.mechanical_efficiency)
 
         # Split this mass between carcass decay, and scavengeable carcasses
-        # TODO: update carcasses to use mass
         carcass_pool.scavengeable_energy += (
             1 - self.decay_fraction_carcasses
         ) * carcass_mass
@@ -295,34 +307,30 @@ class AnimalCohort:
 
         # get the per-individual energetic gain from the bulk value
         mass_consumed = food.get_eaten(self, pool) / self.individuals
-        self.mass_current += mass_consumed
+
+        if self.is_below_mass_threshold(FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD):
+            # if current mass equals or exceeds standard adult mass, gains to repro mass
+            self.reproductive_mass += mass_consumed
+        else:
+            self.mass_current += mass_consumed
         return mass_consumed  # for passing to excrete
 
-    def can_reproduce(self) -> bool:
-        """Checks if a cohort has sufficient reproductive mass to reproduce.
+    def is_below_mass_threshold(self, mass_threshold: float) -> bool:
+        """Check if cohort's total mass is below a certain threshold.
 
-        Return:
-            Boolean of whether or not the cohort exceeds the reproduction threshold and
-            can reproduce.
+        Currently used for thesholding: birth, dispersal, trophic flow to reproductive
+        mass.
 
-        """
-        return (
-            self.mass_current + self.reproductive_mass
-        ) / self.functional_group.adult_mass >= self.reproductive_mass_threshold
-
-    def is_below_mass_threshold(self) -> bool:
-        """Check if cohort's mass is below a certain threshold.
-
-        Currently, this is only used to threshold the migrate method. Using the
-        reproduction threshold is a toy implementation.
+        Args:
+            mass_threshold: a float value holding a threshold ratio of current total
+                mass to standard adult mass.
 
         Return:
             A bool of whether the current mass state is above the migration threshold.
         """
         return (
-            self.mass_current
-            < self.functional_group.adult_mass * DISPERSAL_MASS_THRESHOLD
-        )
+            self.mass_current + self.reproductive_mass
+        ) / self.functional_group.adult_mass >= mass_threshold
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float

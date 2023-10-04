@@ -77,6 +77,7 @@ def metabolic_rate(
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly paramterize sigma.
+    TODO: Move constants to constants file after constants rework.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.

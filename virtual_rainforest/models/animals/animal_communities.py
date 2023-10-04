@@ -17,6 +17,10 @@ from numpy import timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+from virtual_rainforest.models.animals.constants import (
+    BIRTH_MASS_THRESHOLD,
+    DISPERSAL_MASS_THRESHOLD,
+)
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
 from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
@@ -102,7 +106,7 @@ class AnimalCommunity:
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_mass_threshold():
+            if cohort.is_below_mass_threshold(DISPERSAL_MASS_THRESHOLD):
                 # Random walk destination from the neighbouring keys
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
@@ -164,7 +168,7 @@ class AnimalCommunity:
 
         # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if cohort.can_reproduce():
+            if cohort.is_below_mass_threshold(BIRTH_MASS_THRESHOLD):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
