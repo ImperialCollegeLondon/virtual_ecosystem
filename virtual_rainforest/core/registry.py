@@ -22,7 +22,7 @@ umbrella function and then separate functions to handle the components:
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
 from inspect import getmembers
-from typing import Any, Optional
+from typing import Any
 
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.logger import LOGGER
@@ -37,7 +37,7 @@ class ModuleInfo:
     module registry.
     """
 
-    model: Optional[Any]  # Optional[type[BaseModel]]
+    model: Any  # Optional[type[BaseModel]]
     """The BaseModel subclass associated with the module."""
     schema: dict[str, Any]
     """The schema used to validate module configuration."""
@@ -49,7 +49,7 @@ MODULE_REGISTRY: dict[str, ModuleInfo] = {}
 """The module registry."""
 
 
-def register_module(module_name: str, model: Optional[Any] = None) -> None:
+def register_module(module_name: str, model: Any = None) -> None:
     """Register module components.
 
     This functions registers the module schemas, any constants classes and the main
@@ -81,15 +81,17 @@ def register_module(module_name: str, model: Optional[Any] = None) -> None:
     LOGGER.info(f"Registering {module_name} module components")
 
     # Check on the model argument.
-    if is_core and model is not None:
+    if is_core and model:
         msg = "No model should be registered for the core module."
         LOGGER.critical(msg)
         raise RuntimeError(msg)
-    elif not is_core and model is None:
+
+    if not is_core and model is None:
         msg = "A model class is required to register model modules."
         LOGGER.critical(msg)
         raise RuntimeError(msg)
-    elif model is not None:
+
+    if model:
         if module_name_short != model.model_name:
             msg = f"The model_name attribute and module name differ in {module_name}"
             LOGGER.critical(msg)
