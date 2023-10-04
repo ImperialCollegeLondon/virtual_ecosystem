@@ -38,16 +38,17 @@ def load_constants(config: Config, model_name: str, class_name: str) -> Any:
         LOGGER.critical(f"Unknown constants class: {model_name}.{class_name}")
         raise excep
 
-    # If the configuration supplies a section for this constant class, use the
-    # ConstantsDataclass.from_config method to check that the arguments are valid for
-    # the specific dataclass, otherwise return the default.
+    # Extract the constant class configuration if present
+    constants_config = (
+        config[model_name]["constants"][class_name]
+        if "constants" in config[model_name]
+        and class_name in config[model_name]["constants"]
+        else {}
+    )
+
+    # Try and configure the constants class
     try:
-        constants_config = config[model_name]["constants"][class_name]
         return constants_class.from_config(constants_config)
-    except (KeyError, IndexError):
-        # No constants_config section, so return default instance.
-        return constants_class()  # type: ignore [operator]  # FIXME !!!!!
     except ConfigurationError:
-        # The from_config call failed, so log and exit.
         LOGGER.critical("Could not initialise {model_name}.{class_name} from config.")
         raise
