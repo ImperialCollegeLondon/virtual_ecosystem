@@ -401,7 +401,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.435508, 0.435743, 0.435522], [0.436075, 0.436175, 0.436045]],
+                    [[0.52002, 0.520263, 0.520006], [0.455899, 0.456052, 0.455858]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -416,8 +416,8 @@ def test_setup(
                 ),
                 DataArray(
                     [
-                        [-819.126131, -817.937497, -817.31294],
-                        [-865.452922, -863.787411, -865.884216],
+                        [-201.975325, -201.197219, -202.071172],
+                        [-549.007624, -547.513334, -549.340899],
                     ],
                     dims=["layers", "cell_id"],
                 ),
@@ -436,17 +436,17 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [31.965002, 32.054212, 31.948825],
+            [62.72513, 62.87226, 62.71498],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_soil_evap = DataArray(
-            [128.548244, 128.567175, 128.560722],
+            [16.433136, 16.433136, 16.433136],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [117.339795, 117.338423, 117.34047],
+            [117.161533, 117.159967, 117.162207],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -499,8 +499,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["matric_potential"].isel(layers=-2),
-            exp_matric_pot.isel(layers=-2),
+            model.data["matric_potential"],
+            exp_matric_pot,
             rtol=1e-4,
             atol=1e-4,
         )

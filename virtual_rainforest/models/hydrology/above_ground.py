@@ -21,12 +21,14 @@ def calculate_soil_evaporation(
     soil_moisture: NDArray[np.float32],
     soil_moisture_residual: Union[float, NDArray[np.float32]],
     soil_moisture_capacity: Union[float, NDArray[np.float32]],
+    leaf_area_index: NDArray[np.float32],
     wind_speed: Union[float, NDArray[np.float32]],
     celsius_to_kelvin: float,
     density_air: Union[float, NDArray[np.float32]],
     latent_heat_vapourisation: Union[float, NDArray[np.float32]],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
+    extinction_coefficient_global_radiation: float,
 ) -> NDArray[np.float32]:
     r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
 
@@ -44,8 +46,13 @@ def calculate_soil_evaporation(
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless).
 
-    TODO add references
-    TODO move constants to HydroConsts or CoreConstants and check values
+    In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
+    :cite:t:`supit_system_1994`:
+
+    :math:`E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)`
+
+    where :math:`kappa_{gb}` is the extinction coefficient for global radiation, and
+    :math:`LAI` is the total leaf area index.
 
     Args:
         temperature: air temperature at reference height, [C]
@@ -60,6 +67,8 @@ def calculate_soil_evaporation(
         latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         heat_transfer_coefficient: heat transfer coefficient of air
+        extinction_coefficient_global_radiation: Extinction coefficient for global
+            radiation, [unitless]
 
     Returns:
         soil evaporation, [mm]
@@ -97,7 +106,9 @@ def calculate_soil_evaporation(
     )
 
     # Return surface evaporation, [mm]
-    return (evaporative_flux / latent_heat_vapourisation).squeeze()
+    return (evaporative_flux / latent_heat_vapourisation).squeeze() * np.exp(
+        -extinction_coefficient_global_radiation * leaf_area_index
+    )
 
 
 def find_lowest_neighbour(

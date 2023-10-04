@@ -484,12 +484,16 @@ class HydrologyModel(BaseModel):
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.constants.soil_moisture_residual,
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
+                leaf_area_index=leaf_area_index_sum,
                 wind_speed=0.1,  # m/s TODO wind_speed in data object
                 celsius_to_kelvin=self.constants.celsius_to_kelvin,
                 density_air=self.constants.density_air,
                 latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
                 gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
                 heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
+                extinction_coefficient_global_radiation=(
+                    self.constants.extinction_coefficient_global_radiation
+                ),
             )
             daily_lists["soil_evaporation"].append(soil_evaporation)
 
