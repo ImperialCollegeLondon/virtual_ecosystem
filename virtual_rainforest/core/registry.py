@@ -103,9 +103,8 @@ def register_module(module_name: str, model: Any = None) -> None:
         )
 
     # Register the schema
-    schema_file_name = "core_schema.json" if is_core else "model_schema.json"
     with resources.as_file(
-        resources.files(module) / schema_file_name
+        resources.files(module) / "module_schema.json"
     ) as schema_file_path:
         try:
             schema = load_schema(
