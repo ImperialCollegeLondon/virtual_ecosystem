@@ -24,7 +24,6 @@ from importlib import import_module, resources
 from inspect import getmembers
 from typing import Any, Optional
 
-# from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.schema import load_schema
@@ -126,13 +125,14 @@ def register_module(module_name: str, model: Optional[Any] = None) -> None:
     if constants_submodule is None:
         constants_classes = {}
     else:
-        # Get all subclasses of ConstantsDataclass, excluding the ABC
+        # Get all subclasses of ConstantsDataclass, excluding the ABC where imported
+        # into the module members.
         constants_classes = {
             class_name: class_obj
             for class_name, class_obj in getmembers(constants_submodule)
             if is_dataclass(class_obj)
             and issubclass(class_obj, ConstantsDataclass)
-            and not class_obj.__name__ == "ConstantsDataclass"
+            and class_obj is not ConstantsDataclass
         }
 
         for class_name in constants_classes.keys():
