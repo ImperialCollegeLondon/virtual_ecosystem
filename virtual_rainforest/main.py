@@ -56,11 +56,11 @@ def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[Type[Bas
     LOGGER.info("Attempting to configure the following models: %s" % unique_models)
 
     # Make list of missing models, and return an error if necessary
-    miss_model = [model for model in unique_models if model not in MODULE_REGISTRY]
-    if miss_model:
+    missing_models = [model for model in unique_models if model not in MODULE_REGISTRY]
+    if missing_models:
         to_raise = InitialisationError(
             f"The following models cannot be configured as they are not found in the "
-            f"registry: {miss_model}"
+            f"registry: {', '.join(missing_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise
