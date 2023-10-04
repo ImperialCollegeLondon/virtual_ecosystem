@@ -122,7 +122,10 @@ def register_module(module_name: str, model: Any = None) -> None:
     )
 
     # Find and register the constant dataclasses
-    constants_submodule = getattr(module, "constants", None)
+    try:
+        constants_submodule = import_module(f"{module_name}.constants")
+    except ModuleNotFoundError:
+        constants_submodule = None
 
     if constants_submodule is None:
         constants_classes = {}
