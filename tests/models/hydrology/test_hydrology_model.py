@@ -392,7 +392,7 @@ def test_setup(
         )
 
         # Run the update step
-        model.update(time_index=1)
+        model.update(time_index=1, seed=42)
 
         exp_soil_moisture = xr.concat(
             [
@@ -401,7 +401,24 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.507389, 0.507389, 0.507389], [0.451635, 0.451635, 0.451635]],
+                    [[0.52002, 0.520263, 0.520006], [0.455899, 0.456052, 0.455858]],
+                    dims=["layers", "cell_id"],
+                ),
+            ],
+            dim="layers",
+        ).assign_coords(model.data["layer_heights"].coords)
+
+        exp_matric_pot = xr.concat(
+            [
+                DataArray(
+                    np.full((13, 3), np.nan),
+                    dims=["layers", "cell_id"],
+                ),
+                DataArray(
+                    [
+                        [-201.975325, -201.197219, -202.071172],
+                        [-549.007624, -547.513334, -549.340899],
+                    ],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -409,7 +426,7 @@ def test_setup(
         ).assign_coords(model.data["layer_heights"].coords)
 
         exp_surf_prec = DataArray(
-            [177.113493, 177.113493, 177.113493],
+            [177.121093, 177.118977, 177.121364],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -419,17 +436,17 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [55.756815, 55.756815, 55.756815],
+            [62.72513, 62.87226, 62.71498],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_soil_evap = DataArray(
-            [134.195781, 134.195781, 134.195781],
+            [16.433136, 16.433136, 16.433136],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_stream_flow = DataArray(
-            [117.182581, 117.182581, 117.182581],
+            [117.161533, 117.159967, 117.162207],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -446,8 +463,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["soil_moisture"].isel(layers=-2),
-            exp_soil_moisture.isel(layers=-2),
+            model.data["soil_moisture"],
+            exp_soil_moisture,
             rtol=1e-4,
             atol=1e-4,
         )
@@ -457,11 +474,35 @@ def test_setup(
             rtol=1e-4,
             atol=1e-4,
         )
-        np.testing.assert_allclose(model.data["surface_runoff"], exp_runoff)
-        np.testing.assert_allclose(model.data["soil_evaporation"], exp_soil_evap)
-        np.testing.assert_allclose(model.data["stream_flow"], exp_stream_flow)
         np.testing.assert_allclose(
-            model.data["surface_runoff_accumulated"], exp_runoff_acc
+            model.data["surface_runoff"],
+            exp_runoff,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["soil_evaporation"],
+            exp_soil_evap,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["stream_flow"],
+            exp_stream_flow,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["surface_runoff_accumulated"],
+            exp_runoff_acc,
+            rtol=1e-4,
+            atol=1e-4,
+        )
+        np.testing.assert_allclose(
+            model.data["matric_potential"],
+            exp_matric_pot,
+            rtol=1e-4,
+            atol=1e-4,
         )
 
 

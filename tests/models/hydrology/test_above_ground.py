@@ -40,14 +40,18 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         soil_moisture=np.array([0.01, 0.1, 0.5]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
+        leaf_area_index=np.array([3, 4, 5]),
         celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
         heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
+        extinction_coefficient_global_radiation=(
+            HydroConsts.extinction_coefficient_global_radiation
+        ),
     )
 
-    exp_result = np.array([0.060855, 0.060855, 4.473155])
+    exp_result = np.array([0.007452, 0.003701, 0.135078])
     np.testing.assert_allclose(result, exp_result, rtol=0.01)
 
 
@@ -213,5 +217,35 @@ def test_estimate_interception():
     )
 
     exp_result = np.array([0.0, 1.180619, 5.339031])
+
+    np.testing.assert_allclose(result, exp_result)
+
+
+def test_distribute_monthly_rainfall():
+    """Test that randomly generated numbers are reproducible."""
+    from virtual_rainforest.models.hydrology.above_ground import (
+        distribute_monthly_rainfall,
+    )
+
+    monthly_rain = np.array([0.0, 20.0, 200.0])
+    result = distribute_monthly_rainfall(monthly_rain, 10, 42)
+    result1 = distribute_monthly_rainfall(monthly_rain, 10, 42)
+
+    assert result.shape == (3, 10)
+    np.testing.assert_allclose(result.sum(axis=1), monthly_rain)
+    np.testing.assert_allclose(result, result1)
+
+
+def test_calculate_bypass_flow():
+    """Test."""
+
+    from virtual_rainforest.models.hydrology.above_ground import calculate_bypass_flow
+
+    top_sm = np.array([20, 50, 80])
+    top_sm_sat = np.array([100, 100, 100])
+    av_water = np.array([20, 20, 20])
+
+    result = calculate_bypass_flow(top_sm, top_sm_sat, av_water, 1.0)
+    exp_result = np.array([4.0, 10.0, 16.0])
 
     np.testing.assert_allclose(result, exp_result)

@@ -169,7 +169,7 @@ class AnimalModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to step the animal model through time.
 
         Currently this is a toy implementation.

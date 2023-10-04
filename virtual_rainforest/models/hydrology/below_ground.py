@@ -25,7 +25,8 @@ def calculate_vertical_flow(
     To calculate the flow of water through unsaturated soil, this function uses the
     Richards equation. First, the function calculates the effective saturation :math:`S`
     and effective hydraulic conductivity :math:`K(S)` based on the moisture content
-    :math:`\Theta` using the van Genuchten/Mualem model:
+    :math:`\Theta` using the Mualem-van Genuchten model
+    :cite:p:`van_genuchten_closed-form_1980`:
 
     :math:`S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}`
 
@@ -118,8 +119,9 @@ def update_soil_moisture(
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
-    of the current layer and adding it to the layer below. Additionally, the
-    evapotranspiration is removed from the second soil layer.
+    of the current layer and adding it to the layer below. The implementation is based
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+    removed from the second soil layer.
 
     Args:
         soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
@@ -165,3 +167,31 @@ def update_soil_moisture(
         )
 
     return soil_moisture_updated
+
+
+def convert_soil_moisture_to_water_potential(
+    soil_moisture: NDArray[np.float32],
+    air_entry_water_potential: float,
+    water_retention_curvature: float,
+    soil_moisture_capacity: float,
+) -> NDArray[np.float32]:
+    """Convert soil moisture into an estimate of water potential.
+
+    This function provides a coarse estimate of soil water potential. It is taken from
+    :cite:t:`campbell_simple_1974`.
+
+    Args:
+        soil_moisture: Volumetric relative water content [unitless]
+        air_entry_water_potential: Water potential at which soil pores begin to aerate
+            [kPa]
+        water_retention_curvature: Curvature of water retention curve [unitless]
+        soil_moisture_capacity: The relative water content at which the soil is fully
+            saturated [unitless].
+
+    Returns:
+        An estimate of the water potential of the soil [kPa]
+    """
+
+    return air_entry_water_potential * (
+        (soil_moisture / soil_moisture_capacity) ** water_retention_curvature
+    )
