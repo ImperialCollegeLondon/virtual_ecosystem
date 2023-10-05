@@ -118,6 +118,17 @@ class HydroConsts:
     :attr:`air_entry_water_potential` for further details.
     """
 
+    extinction_coefficient_global_radiation: float = 0.7
+    """Extinction coefficient for global radiation, [unitless].
+
+    This constant is used to reduce potential evaporation for bare soil to maximum
+    shaded evaporation in
+    :func:~virtual_rainforest.models.hydrology.above_ground.calculate_soil_evaporation`.
+    Typical values are 0.4 to 0.7 for monocotyledons and 0.65 to 1.1 for broad leaved
+    dicotyledons :cite:t:`monteith_light_1969`. The extinction coefficient can be
+    estimated from measurements of PAR above and below a canopy with a known LAI.
+    """
+
     max_percolation_rate_uzlz: float = 1
     """Maximum perclation rate between pper and lower groundwater zone, [mm d-1]"""
 
