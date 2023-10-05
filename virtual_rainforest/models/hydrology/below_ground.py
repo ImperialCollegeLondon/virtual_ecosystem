@@ -173,10 +173,16 @@ def convert_soil_moisture_to_water_potential(
     water_retention_curvature: float,
     soil_moisture_capacity: float,
 ) -> NDArray[np.float32]:
-    """Convert soil moisture into an estimate of water potential.
+    r"""Convert soil moisture into an estimate of water potential.
 
-    This function provides a coarse estimate of soil water potential. It is taken from
-    :cite:t:`campbell_simple_1974`.
+    This function provides a coarse estimate of soil water potential :math:`\Psi_{m}`.
+    It is taken from :cite:t:`campbell_simple_1974`:
+
+    :math:`\Psi_{m} = \Psi_{e} * (\frac{\Theta}{\Theta_{s}})^{b}`
+
+    where :math:`\Psi_{e}` is the air-entry, :math:`\Theta` is the volumetric water
+    content, :math:`\Theta_{s}` is the saturated water content, and :math:`b` is the
+    water retention curvature parameter.
 
     Args:
         soil_moisture: Volumetric relative water content [unitless]
