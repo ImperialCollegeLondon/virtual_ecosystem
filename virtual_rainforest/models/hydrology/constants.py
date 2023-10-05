@@ -91,7 +91,7 @@ class HydroConsts:
     capacity estimate after :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     groundwater_capacity: float = 500
-    """Ground water storage capacity in relative volumetric water content. This might be
+    """Ground water storage capacity in millimeters. This might be
     replaced with the implementation of below ground horizontal flow."""
 
     infiltration_shape_parameter: float = 1.0
