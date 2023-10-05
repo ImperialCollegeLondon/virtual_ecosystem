@@ -1,6 +1,6 @@
 """The ``models.hydrology.below_ground`` module simulates the below-ground hydrological
-processes for the Virtual Rainforest. At the moment, this includes vertical flow, and
-soil moisture, and subsurface horizontal flow.
+processes for the Virtual Rainforest. This includes vertical flow, soil moisture and
+matric potential, groundwater storage, and subsurface horizontal flow.
 """  # noqa: D205, D415
 
 from typing import Union

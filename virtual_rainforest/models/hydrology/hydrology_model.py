@@ -309,11 +309,11 @@ class HydrologyModel(BaseModel):
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
-        * total_rver_discharge, [mm]
+        * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
-        currently the only supported update interval. As an short-term workaround, the
+        currently the only supported update interval. As a short-term work around, the
         input precipitation is randomly distributed over 30 days and input
         evapotranspiration is divided by 30, and the return variables are monthly means
         or monthly accumulated values.
