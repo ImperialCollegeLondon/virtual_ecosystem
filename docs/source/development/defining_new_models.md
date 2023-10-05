@@ -55,31 +55,54 @@ touch virtual_rainforest/models/freshwater/constants.py
 
 ## Defining constants and their default values
 
-Each model should define a `constants.py` module. Constants and their default values
-should be defined in this module using {func}`dataclasses.dataclass`. These constants
-can be stored in a single data class or spread over multiple data classes. However,
-having a large number of data classes is likely to make the downstream code messier, so
-constants should only be split across multiple classes when there's a strong reason to
-do so.
+The definition of 'constant' in the Virtual Rainforest is basically a parameter of any
+kind that should be held constant throughout a simulation. However, while some constants
+are likely never to be varied, many constants are estimated with error and users
+may want to explore the sensitivity of simulations to changes in those values. We
+therefore use a framework for constants that allows constant values to be configured for
+any given simulation.
 
-It's also important that every constant is given an explicit type hint. If a type hint
+Each model needs to define a `constants.py` module that will define  one or more
+constants _dataclasses_, using the {func}`dataclasses.dataclass` decorator. Dataclasses
+provide an simple way to define a class containing a set of named constant attributes
+with default values. However, when an instance of a dataclass is created, it can be
+provided with an alternative value for an attribute, allowing default values to be
+overridden by the configuration for a particular simulation. All constant dataclasses
+must be configured to be _frozen_: the resulting dataclass instance can be configured
+when it is created, but cannot be altered while a simulation is running.
+
+The constants for a module can be stored in a single data class or spread over multiple
+data classes. However, having a large number of data classes is likely to make the
+downstream code messier, so constants should only be split across multiple classes when
+there's a strong reason to do so.
+
+Because dataclasses are widely used structures in Python, the Virtual Rainforest defines
+a specific {class}`~virtual_rainforest.core.constants_class.ConstantsDataclass` base
+class to uniquely identify _constants dataclasses_ from other dataclasses. This base
+class also provides the
+{meth}`~virtual_rainforest.core.constants_class.ConstantsDataclass.from_config` methods,
+which validates a configuration dictionary against the dataclass definition and returns
+a configured dataclass instance.
+
+It is important that every constant defined in a dataclass is typed. If this type hint
 is not provided then `dataclass` treats the constant as a class attribute rather than an
 instance attribute. This means that its value cannot be changed when a new instance is
 created.
 
-An example `constants.py` file is shown below:
+Putting all of these components together, the contents of a `constants.py` file will
+look like the following code:
 
-```python
+```{code-block} python
 from dataclasses import dataclass
 
-# The dataclass must be frozen to prevent constants from being accidentally altered
-# during runtime
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
+# Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
-class ExampleConsts:
+class ExampleConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `example_model` model."""
     
-    # Each constant must be given a type hint, otherwise its default value cannot be
-    # changed
+    # Constants must be typed, to make them configurable instance attributes.
     example_constant_1: float = -1.27
     """Details of source of constant and its units."""
 
@@ -94,33 +117,38 @@ The model file will define a new subclass of the
 
 ### Required package imports
 
-Before you create this subclass, you will need to import some packages are required by
-the `BaseModel` class. You may of course need to import other packages to support your
-model code, but you will need the following:
+You may of course need to import other packages or package members to support your model
+code, but the following imports are typically needed to create a new `BaseModel`
+subclass.
 
-```python
-# One of the member functions of the Model class returns a class instance. mypy doesn't
-# know how to handle this unless annotations are imported from __future__
+```{code-block} python
+
+# The BaseModel.from_config factory method returns an instance of the class, and 
+# annotations is required to allow typing to understand this return value.
 from __future__ import annotations
 
-# Any needed for type hints of the config dictionary as the values are of various types
+# To support the kwargs argument to BaseModel.__init__
 from typing import Any
 
-# pint.Quantity allows time units to be more easily interpreted
+# Data in the virtual rainforest is stored as xarray.DataArrays and array calculations 
+# typically use numpy.
+import numpy as np
+import xarray
 from pint import Quantity
 
-# The core data storage object
-from virtual_rainforest.core.data import Data
-
-# Logging of relevant information handled by Virtual Rainforest logger module
-from virtual_rainforest.core.logger import LOGGER
-
-# New model class will inherit from BaseModel.
+# These are the main imports required to set up a BaseModel instance:
+# - the BaseModel itself
+# - a Config , used to configure a BaseModel instance.
+# - the load_constants helper function to configure model constants.
+# - the Data class, used as a central data store within the simulation
+# - an custom exception to cover model initalisation failure
+# - the global LOGGER, used to report information to users.
 from virtual_rainforest.core.base_model import BaseModel
-
-# InitialisationError is a custom exception, for case where a `Model` class cannot be
-# properly initialised based on the data contained in the configuration
+from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.logger import LOGGER
 ```
 
 ### Defining the new class and class attributes
@@ -130,9 +158,9 @@ Now create a new class, that derives from the
 for the model and define the following four class attributes.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
-: This is a string providing a shorter, lower case  name that is used to refer to this
-model class in configuration files. It must be unique and model loading will fail if two
-model classes share a `model_name`.
+: This is a string providing the name that is used to refer to this model class in
+configuration files. This **must** match the chosen submodule name for the model, so the
+module `virtual_rainforest.models.freshwater` must use `freshwater` as the model name.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` attribute
 : This is a tuple that sets which variables must be present in the data used to create a
@@ -353,9 +381,9 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also generate the required constants classes from the
 config. At least one constants class should be created, but it's fine to split constants
 across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_rainforest.core.constants.load_constants` utility function can be used
-to construct the class with the default values replaced if they are overwritten in the
-config.
+{func}`~virtual_rainforest.core.constants_loader.load_constants` utility function can be
+used to construct the class with the default values replaced if they are overwritten in
+the config.
 
 As an example:
 
@@ -422,40 +450,32 @@ def cleanup(self) -> None:
 
 ## Setting up the model `__init__.py` file
 
-Lastly, you will need to set up the `__init__.py` file. The simple presence of the
-`__init__.py` file tells Python that the directory content should be treated as module,
-but then the file needs to contain code to do three things:
+Lastly, you will need to set up the `__init__.py` file in the submodule directory. This
+file is used to tell Python that the directory contains a package submodule, but can
+also be used to supply code that is automatically run when a module is imported.
 
-1. It also needs to import the main BaseModel subclass. So for example, it should import
-    `FreshwaterModel` from the `virtual_rainforest.models.freshwater.freshwater_model`
-    module. This gives a shorter reference for a commonly used object
-    (`virtual_rainforest.models.freshwater.FreshwaterModel`) but it also means
-    that the BaseModel class is always imported when the model module
-    (`virtual_rainforest.models.freshwater`) is imported.
+In the Virtual Rainforest, we use the `__init__.py` file in model submodules to register
+the model components in the {data}`~virtual_rainforest.core.registry.MODULE_REGISTRY`.
+This is a global dictionary that is used as a lookup table for the model schema,
+constants and core model object and, to ensure that it contains all that information for
+models that are being used, the `__init__.py` must contain code to populate the registry
+when the model is imported. The template for the file contents is:
 
-    When the package is loaded, all of the submodules `virtual_rainforest.models` are
-    loaded. This automatically triggers the registration of each model class in the
-    {data}`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, under the
-    {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute for the class.
-
-1. The `__init__.py` file also needs to register the JSONSchema file for the module, and
-   also add any constants classes to the registry. Both of these things are handled by
-   the {func}`~virtual_rainforest.core.base_model.register_model` helper function. This
-   function checks that the schema file can be loaded and is valid JSONSchema, and then
-   adds the schema to the {data}`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. It
-   also automatically discovers constants classes and adds them to the
-   {data}`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
-
-The resulting `__init__.py` file should then look something like this:
-
-```python
+```{code-block} python
 """This is the freshwater model module. The module level docstring should contain a 
-short description of the overall model design and purpose.
+short description of the overall model design and purpose, and link to key components 
+and how they interact.
 """  # noqa: D204, D415
 
-from virtual_rainforest.core.base_model import register_model
+from virtual_rainforest.core.registry import register_module
 from virtual_rainforest.models.freshwater.freshwater_model import FreshwaterModel
 
-
-register_model(__name__, FreshwaterModel)
+register_module(module_name=__name__, model=FreshwaterModel)
 ```
+
+Briefly, this imports the main BaseModel subclass for the subclass and then passes it on
+to the {func}`~virtual_rainforest.core.registry.register_module`. This automatically
+loads and validates the model schema, discovers any
+{class}`~virtual_rainforest.core.constants_class.ConstantsDataclass` in the `constants`
+submodule and then adds those, along with the BaseModel subclass to the
+{data}`~virtual_rainforest.core.registry.MODULE_REGISTRY`.
