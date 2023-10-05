@@ -362,3 +362,24 @@ def calculate_bypass_flow(
         available_water
         * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
     )
+
+
+def convert_mm_flow_to_m3_per_second(
+    river_discharge_mm: NDArray[np.float32],
+    area: Union[int, float],
+    days: int,
+    seconds_to_day: float,
+) -> NDArray[np.float32]:
+    """Convert channel flow from millimeters to m3/s.
+
+    Args:
+        channel_flow_mm: channel flow in [mm]
+        area: area of each grid cell, [m2]
+        days: number of days
+        seconds_to_day: second to day conversion factor
+
+    Returns:
+        channel flow for each grid cell in m3/s
+    """
+
+    return river_discharge_mm / 100 / days / seconds_to_day * area

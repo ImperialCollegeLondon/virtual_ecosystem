@@ -249,3 +249,22 @@ def test_calculate_bypass_flow():
     exp_result = np.array([4.0, 10.0, 16.0])
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_convert_mm_flow_to_m3_per_second():
+    """Test channel flow conversion."""
+
+    from virtual_rainforest.models.hydrology.above_ground import (
+        convert_mm_flow_to_m3_per_second,
+    )
+
+    channel_flow = np.array([100, 1000, 10000])
+    exp_result = np.array([0.003858, 0.03858, 0.385802])
+    result = convert_mm_flow_to_m3_per_second(
+        river_discharge_mm=channel_flow,
+        area=np.array([10000, 10000, 10000]),
+        days=30,
+        seconds_to_day=HydroConsts.seconds_to_day,
+    )
+
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

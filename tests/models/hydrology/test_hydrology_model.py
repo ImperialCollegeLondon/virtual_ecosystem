@@ -465,7 +465,7 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-        exp_channel_flow = DataArray(
+        exp_total_discharge = DataArray(
             [0, 1423, 2846],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
@@ -507,8 +507,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["channel_flow"],
-            exp_channel_flow,
+            model.data["total_river_discharge"],
+            exp_total_discharge,
             rtol=1e-4,
             atol=1e-4,
         )

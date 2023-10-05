@@ -87,7 +87,8 @@ class HydrologyModel(BaseModel):
         "surface_runoff_accumulated",
         "matric_potential",
         "groundwater_storage",
-        "channel_flow",
+        "river_discharge_rate",
+        "total_river_discharge",
         "subsurface_flow",
         "baseflow",
     )
@@ -308,7 +309,8 @@ class HydrologyModel(BaseModel):
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
-        * channel_flow, [mm] TODO convert to volume and account for area
+        * total_rver_discharge, [mm]
+        * river_discharge_rate, [m3 s-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As an short-term workaround, the
@@ -360,8 +362,8 @@ class HydrologyModel(BaseModel):
         . The horizontal flow between grid cells currently uses the same function as the
         above ground runoff.
 
-        Channel flow is calculated as the sum of above- and below ground horizontal flow
-        and converted to m3/s.
+        Total river discharge is calculated as the sum of above- and below ground
+        horizontal flow and converted to river discharge rate in m3/s.
 
         The function requires the following input variables from the data object:
 
@@ -677,9 +679,21 @@ class HydrologyModel(BaseModel):
             accumulated_runoff=previous_subsurface_flow_accumulated,
         )
 
-        # Calculate channel flow as sum of above- and below-ground flow, [mm]
-        soil_hydrology["channel_flow"] = DataArray(
-            new_accumulated_runoff + new_subsurface_flow_accumulated, dims="cell_id"
+        # Calculate total river discharge as sum of above- and below-ground flow, [mm]
+        total_river_discharge = new_accumulated_runoff + new_subsurface_flow_accumulated
+        soil_hydrology["total_river_discharge"] = DataArray(
+            total_river_discharge, dims="cell_id"
+        )
+
+        # Convert total discharge to river discharge rate, [m3 s-1]
+        river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
+            river_discharge_mm=total_river_discharge,
+            area=self.data.grid.cell_area,
+            days=days,
+            seconds_to_day=self.constants.seconds_to_day,
+        )
+        soil_hydrology["river_discharge_rate"] = DataArray(
+            river_discharge_rate, dims="cell_id"
         )
 
         # Save last state of groundwater stoage, [mm]
