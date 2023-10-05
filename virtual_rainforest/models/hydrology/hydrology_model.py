@@ -204,8 +204,9 @@ class HydrologyModel(BaseModel):
         with the implementation of the SPLASH model :cite:p:`davis_simple_2017` which
         will take care of part of the above-ground hydrology.
 
-        For the hydrology across the grid, this function initialises accumulated surface
-        runoff variable and the subsurface accumulated flow variable.
+        For the hydrology across the grid, this function initialises the accumulated
+        surface runoff variable and the subsurface accumulated flow variable. Both
+        require a spinup which is currently not implemented.
         """
 
         # Create 1-dimensional numpy array filled with initial soil moisture values for
@@ -294,13 +295,32 @@ class HydrologyModel(BaseModel):
     def update(self, time_index: int, **kwargs: Any) -> None:
         r"""Function to update the hydrology model.
 
-        At the moment, this step calculates surface precipitation, soil moisture,
-        vertical flow, soil evaporation, and surface runoff (per grid cell and
-        accumulated), and subsurface flow (per grid cell and accumulated), and channel
-        flow. These processes are problematic at a monthly timestep, which is why - as
-        an intermediate step - the input precipitation is randomly distributed over 30
-        days when the model update interval is set to '1 month', and the return
-        variables are monthly means or accumulated values.
+        This function calculates the main hydrological components of the Virtual
+        Rainforest and updates the following variables in the `data` object:
+
+        * precipitation_surface, [mm]
+        * soil_moisture, [-]
+        * matric_potential, [kPa]
+        * surface_runoff, [mm], equivalent to SPLASH runoff
+        * surface_runoff_accumulated, [mm]
+        * soil_evaporation, [mm]
+        * vertical_flow, [mm/timestep]
+        * groundwater_storage, [mm]
+        * subsurface_flow, [mm]
+        * baseflow, [mm]
+        * channel_flow, [mm] TODO convert to volume and account for area
+
+        Many of the underlying processes are problematic at a monthly timestep, which is
+        currently the only supported update interval. As an short-term workaround, the
+        input precipitation is randomly distributed over 30 days and input
+        evapotranspiration is divided by 30, and the return variables are monthly means
+        or monthly accumulated values.
+
+        Precipitation that reaches the surface is defined as incoming precipitation
+        minus canopy interception, which is estimated using a stroage-based approach,
+        see
+        :func:`~virtual_rainforest.models.hydrology.above_ground.estimate_interception`
+        .
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
@@ -329,14 +349,19 @@ class HydrologyModel(BaseModel):
         Soil moisture is updated by iteratively updating the soil moisture of individual
         layers under consideration of the vertical flow in and out of each layer, see
         :func:`~virtual_rainforest.models.hydrology.below_ground.update_soil_moisture`
+        . The conversion to matric potential is based on :cite:t:`campbell_simple_1974`,
+        see
+        :func:`~virtual_rainforest.models.hydrology.below_ground.convert_soil_moisture_to_water_potential`
         .
 
         Groundwater storage and flows are modelled using two parallel linear
         reservoirs, see
         :func:`~virtual_rainforest.models.hydrology.below_ground.update_groundwater_storge`
         . The horizontal flow between grid cells currently uses the same function as the
-        above ground runoff. Channel flow is calculated as the sum of above- and below
-        ground horizontal flow.
+        above ground runoff.
+
+        Channel flow is calculated as the sum of above- and below ground horizontal flow
+        and converted to m3/s.
 
         The function requires the following input variables from the data object:
 
@@ -354,20 +379,6 @@ class HydrologyModel(BaseModel):
 
         and a number of parameters that as described in detail in
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`.
-
-        The function updates the following variables in the `data` object:
-
-        * precipitation_surface, [mm]
-        * soil_moisture, [-]
-        * matric_potential, [kPa]
-        * surface_runoff, [mm], equivalent to SPLASH runoff
-        * surface_runoff_accumulated, [mm]
-        * soil_evaporation, [mm]
-        * vertical_flow, [mm/timestep]
-        * groundwater_storage, [mm]
-        * subsurface_flow, [mm]
-        * baseflow, [mm]
-        * channel_flow, [mm] TODO convert to volume and account for area
         """
         # Determine number of days, currently only 30 days (=1 month)
         if self.update_interval != Quantity("1 month"):
