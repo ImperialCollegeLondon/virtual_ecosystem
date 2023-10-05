@@ -84,16 +84,18 @@ class also provides the
 which validates a configuration dictionary against the dataclass definition and returns
 a configured dataclass instance.
 
-It is important that every constant defined in a dataclass is typed. If this type hint
-is not provided then `dataclass` treats the constant as a class attribute rather than an
-instance attribute. This means that its value cannot be changed when a new instance is
-created.
+Constants dataclasses can also provide truly universal constants that you do not want to
+be configurable. This can be done by explicitly typing a constants attribute as a class
+variable. All instances of the constants dataclass will provide the value, but it cannot
+be altered through configuration. Be aware that untyped attributes are also treated as
+class attributes but we prefer that class attributes are explicitly typed.
 
 Putting all of these components together, the contents of a `constants.py` file will
 look like the following code:
 
 ```{code-block} python
 from dataclasses import dataclass
+from typing import ClassVar
 
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 
@@ -106,8 +108,8 @@ class ExampleConsts(ConstantsDataclass):
     example_constant_1: float = -1.27
     """Details of source of constant and its units."""
 
-    example_constant_2: float = 5.4
-    """Details of source of constant and its units."""
+    example_constant_2: ClassVar[float] = 5.4
+    """A non-configurable global constants, with details and units."""
 ```
 
 ## Defining the new model class

@@ -28,7 +28,11 @@ use in a model:
 from __future__ import annotations
 
 from abc import ABC
-from dataclasses import dataclass, fields
+from dataclasses import (  # type: ignore [attr-defined]
+    _FIELD_CLASSVAR,
+    dataclass,
+    fields,
+)
 from typing import Any
 
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -40,7 +44,18 @@ class ConstantsDataclass(ABC):
     """The constants dataclass abstract base class.
 
     This abstract base class provides a template for all constants dataclasses in
-    models. This allows constants classes to be identified from a common class.
+    models. This allows constants classes to be identified from a common class. Within
+    the definition of subclasses, variables can either be defined as instance variables,
+    which can be configured by the user, or class variables, which cannot. This is
+    useful to prevent accidental modification of truly universal constants.
+
+    .. code-block:: python
+
+        @dataclass(frozen=True)
+        class ExampleConsts(ConstantsDataclass):
+
+            cannot_be_changed: ClassVar[float] = 1.0
+            can_be_configured: float = 2.0
     """
 
     @classmethod
@@ -54,17 +69,34 @@ class ConstantsDataclass(ABC):
 
         Raises:
             ConfigurationError: where the keys in the configuration dictionary do not
-                match the subclass fields.
+                match the subclass fields or the configuration attempts to set
+                non-configurable universal constants.
         """
 
         # Extract a set of provided constant names
         provided_names = set(config.keys())
 
-        # Get a set of valid names
+        # Get a set of valid names and also any class vars
         valid_names = {fld.name for fld in fields(cls)}
+        classvar_names = {
+            ky
+            for ky, val in cls.__dataclass_fields__.items()
+            if val._field_type == _FIELD_CLASSVAR  # type: ignore [attr-defined]
+        }
 
         # Check for unexpected names
         unexpected_names = provided_names.difference(valid_names)
+        unconfigurable_names = unexpected_names.intersection(classvar_names)
+
+        if unconfigurable_names:
+            msg = (
+                f"Universal constants in {cls.__name__} "
+                f'cannot be configured: {", ".join(unconfigurable_names)}'
+            )
+            LOGGER.error(msg)
+            LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
+            raise ConfigurationError(msg)
+
         if unexpected_names:
             msg = (
                 "Unknown names supplied "
