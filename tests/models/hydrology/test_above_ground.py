@@ -201,13 +201,13 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
 def test_estimate_interception():
     """Test."""
-    from virtual_rainforest.models.hydrology.above_ground import estimate_interception
+    from virtual_rainforest.models.hydrology.above_ground import calculate_interception
     from virtual_rainforest.models.hydrology.constants import HydroConsts
 
     precip = np.array([0, 20, 100])
     lai = np.array([0, 2, 10])
 
-    result = estimate_interception(
+    result = calculate_interception(
         leaf_area_index=lai,
         precipitation=precip,
         intercept_param_1=HydroConsts.intercept_param_1,

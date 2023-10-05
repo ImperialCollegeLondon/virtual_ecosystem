@@ -216,7 +216,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     return dict(enumerate(upstream_ids))
 
 
-def estimate_interception(
+def calculate_interception(
     leaf_area_index: NDArray[np.float32],
     precipitation: NDArray[np.float32],
     intercept_param_1: float,

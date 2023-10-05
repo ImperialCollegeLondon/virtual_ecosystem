@@ -319,7 +319,7 @@ class HydrologyModel(BaseModel):
         Precipitation that reaches the surface is defined as incoming precipitation
         minus canopy interception, which is estimated using a stroage-based approach,
         see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.estimate_interception`
+        :func:`~virtual_rainforest.models.hydrology.above_ground.calculate_interception`
         .
 
         Surface runoff is calculated with a simple bucket model based on
@@ -455,7 +455,7 @@ class HydrologyModel(BaseModel):
 
         for day in np.arange(days):
             # Interception of water in canopy, [mm]
-            interception = above_ground.estimate_interception(
+            interception = above_ground.calculate_interception(
                 leaf_area_index=leaf_area_index_sum,
                 precipitation=current_precipitation[:, day],
                 intercept_param_1=self.constants.intercept_param_1,
