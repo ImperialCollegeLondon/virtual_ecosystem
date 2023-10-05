@@ -370,16 +370,16 @@ def convert_mm_flow_to_m3_per_second(
     days: int,
     seconds_to_day: float,
 ) -> NDArray[np.float32]:
-    """Convert channel flow from millimeters to m3/s.
+    """Convert river discharge from millimeters to m3/s.
 
     Args:
-        channel_flow_mm: channel flow in [mm]
+        river_discharge_mm: total river discharge, [mm]
         area: area of each grid cell, [m2]
         days: number of days
         seconds_to_day: second to day conversion factor
 
     Returns:
-        channel flow for each grid cell in m3/s
+        river discharge rate for each grid cell in m3/s
     """
 
     return river_discharge_mm / 100 / days / seconds_to_day * area
