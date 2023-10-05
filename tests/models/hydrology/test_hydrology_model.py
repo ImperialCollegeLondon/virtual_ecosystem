@@ -75,6 +75,17 @@ from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
                 ),
             ),
         ),
+        (
+            0.5,
+            1.9,
+            pytest.raises(InitialisationError),
+            (
+                (
+                    ERROR,
+                    "The initial groundwater saturation has to be between 0 and 1!",
+                ),
+            ),
+        ),
     ],
 )
 def test_hydrology_model_initialization(
