@@ -59,6 +59,7 @@ class HydrologyModel(BaseModel):
     * add time dimension to required_init_vars
     * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
+    * replace or rename function for accumulated subsurface flow
     """
 
     model_name = "hydrology"
@@ -671,6 +672,7 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate subsurface accumulated flow, [mm]
+        # TODO replace or rename this function
         new_subsurface_flow_accumulated = above_ground.accumulate_surface_runoff(
             drainage_map=self.drainage_map,
             surface_runoff=np.array(
