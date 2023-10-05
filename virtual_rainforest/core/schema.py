@@ -134,7 +134,7 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
     explicity listed in the schema can be included.
 
     Args:
-        schema: A dictionary of schemas keyed by module name
+        schemas: A dictionary of schemas keyed by module name
 
     Returns:
         An integrated schema combining the modules.

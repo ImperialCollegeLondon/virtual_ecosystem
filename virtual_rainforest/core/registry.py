@@ -90,7 +90,7 @@ def register_module(module_name: str, model: Any = None) -> None:
         raise excep
 
     # Extract the last component of the module name to act as unique short name
-    module_name_short = module_name.split(".")[-1]
+    _, _, module_name_short = module_name.rpartition(".")
     if module_name_short in MODULE_REGISTRY:
         LOGGER.warning(f"Module already registered: {module_name_short}")
         return
