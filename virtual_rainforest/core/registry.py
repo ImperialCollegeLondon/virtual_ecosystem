@@ -20,7 +20,6 @@ that the model components are registered when the module is imported.
 
 """  # noqa: D205, D415
 
-
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
 from inspect import getmembers
@@ -75,6 +74,7 @@ def register_module(module_name: str, model: Any = None) -> None:
 
     Args:
         module_name: The name of the module containing the model to be registered
+        model: The model to be associated with the module, if any.
 
     Raises:
         RuntimeError: if - the core module is registered with a model, a model module is
@@ -82,17 +82,22 @@ def register_module(module_name: str, model: Any = None) -> None:
         Exception: loading the JSON schema fails.
     """
 
-    # Try and import the module from the name to get a reference to the module
+    # Extract the last component of the module name to act as unique short name
+    _, _, module_name_short = module_name.rpartition(".")
+    if module_name_short in MODULE_REGISTRY:
+        LOGGER.warning(f"Module already registered: {module_name_short}")
+        return
+
     try:
         module = import_module(module_name)
     except ModuleNotFoundError as excep:
         LOGGER.critical(f"Unknown module - registration failed: {module_name}")
         raise excep
 
-    # Extract the last component of the module name to act as unique short name
-    _, _, module_name_short = module_name.rpartition(".")
+    # Importing the module runs the module __init__, which can itself call
+    # register_module. If so then the registry will have been populated and
+    # the function can quit.
     if module_name_short in MODULE_REGISTRY:
-        LOGGER.warning(f"Module already registered: {module_name_short}")
         return
 
     is_core = module_name == "virtual_rainforest.core"
@@ -101,18 +106,18 @@ def register_module(module_name: str, model: Any = None) -> None:
 
     # Check on the model argument.
     if is_core and model:
-        msg = "No model should be registered for the core module."
+        msg = "No model should be registered for the core module"
         LOGGER.critical(msg)
         raise RuntimeError(msg)
 
     if not is_core and model is None:
-        msg = "A model class is required to register model modules."
+        msg = "A model class is required to register model modules"
         LOGGER.critical(msg)
         raise RuntimeError(msg)
 
     if model:
         if module_name_short != model.model_name:
-            msg = f"The model_name attribute and module name differ in {module_name}"
+            msg = f"Different model_name attribute and module name {module_name}"
             LOGGER.critical(msg)
             raise RuntimeError(msg)
 

@@ -1,0 +1,9 @@
+{
+    "type": "object",
+    "properties": {
+        "test_module": {}
+    },
+    "required": [
+        "test_module"
+    ]
+}
