@@ -10,19 +10,10 @@ use in a model:
 1. Create a `constants.py` submodule within the model.
 2. Import the :mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass` base
    class.
-3. Declare a new frozen dataclass as a subclass of the base class and populate the
-   dataclass with the required constant values.
-
-.. code-block:: python
-    from dataclasses import dataclass
-    from virtual_rainforest.core.constants import ConstantsDataclass
-
-    @dataclass(frozen=True)
-    class NewConstantsClass(ConstantsDataclass):
-
-        constant_one: float = 2.0
-        constant_two: int = 6
-
+3. Define a new frozen dataclass as a subclass of the base class and populate the
+   dataclass with the required constant values. See
+   :mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass` for syntax
+   details.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -90,11 +81,11 @@ class ConstantsDataclass(ABC):
 
         if unconfigurable_names:
             msg = (
-                f"Universal constants in {cls.__name__} "
-                f'cannot be configured: {", ".join(unconfigurable_names)}'
+                f"Constant in {cls.__name__} "
+                f'not configurable: {", ".join(unconfigurable_names)}'
             )
             LOGGER.error(msg)
-            LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
+            LOGGER.info("Valid names are: %s" % (", ".join(valid_names)))
             raise ConfigurationError(msg)
 
         if unexpected_names:
@@ -103,7 +94,7 @@ class ConstantsDataclass(ABC):
                 f'for {cls.__name__}: {", ".join(unexpected_names)}'
             )
             LOGGER.error(msg)
-            LOGGER.info("Valid names are as follows: %s" % (", ".join(valid_names)))
+            LOGGER.info("Valid names are: %s" % (", ".join(valid_names)))
             raise ConfigurationError(msg)
 
         return cls(**config)
