@@ -20,3 +20,6 @@ class CoreConsts(ConstantsDataclass):
 
     zero_Celsius: ClassVar[float] = constants.zero_Celsius
     """Conversion constant from Kelvin to Celsius (°)."""
+
+    placeholder: float = 123.4
+    """A placeholder configurable constant."""
