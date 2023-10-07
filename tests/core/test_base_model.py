@@ -482,7 +482,7 @@ def test_check_required_init_vars(
         def spinup(self) -> None:
             return super().spinup()
 
-        def update(self, time_index: int) -> None:
+        def update(self, time_index: int, **kwargs: Any) -> None:
             return super().update(time_index)
 
         def cleanup(self) -> None:
@@ -606,7 +606,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
         def spinup(self) -> None:
             return super().spinup()
 
-        def update(self, time_index: int) -> None:
+        def update(self, time_index: int, **kwargs: Any) -> None:
             return super().update(time_index)
 
         def cleanup(self) -> None:

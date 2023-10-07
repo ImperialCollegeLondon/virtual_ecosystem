@@ -201,7 +201,7 @@ class LitterModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Calculate changes in the litter pools and use them to update the pools.
 
         Args:
