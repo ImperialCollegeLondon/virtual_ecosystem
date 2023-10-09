@@ -15,7 +15,7 @@ from virtual_rainforest.models.soil.constants import SoilConsts
 
 @pytest.fixture
 def moist_scalars(dummy_carbon_data, top_soil_layer_index):
-    """Combined moisture scalars based on dummy carbon data."""
+    """Moisture scalars based on dummy carbon data."""
     from virtual_rainforest.models.soil.carbon import convert_moisture_to_scalar
 
     moist_scalars = convert_moisture_to_scalar(
