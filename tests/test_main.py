@@ -25,24 +25,14 @@ from .conftest import log_check
             ["soil"],  # valid input
             1,
             does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil']",
-                ),
-            ),
+            ((INFO, "Selecting the following models: soil"),),
             id="valid input",
         ),
         pytest.param(
             ["soil", "core"],
             1,
             does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil']",
-                ),
-            ),
+            ((INFO, "Selecting the following models: soil"),),
             id="ignores core",
         ),
         pytest.param(
@@ -50,15 +40,10 @@ from .conftest import log_check
             0,
             pytest.raises(InitialisationError),
             (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['freshwater', "
-                    "'soil']",
-                ),
+                (INFO, "Selecting the following models: freshwater, soil"),
                 (
                     CRITICAL,
-                    "The following models cannot be configured as they are not found in"
-                    " the registry: ['freshwater']",
+                    "Models not in module registry and cannot be selected: freshwater",
                 ),
             ),
             id="undefined model",
@@ -68,15 +53,8 @@ from .conftest import log_check
             2,
             does_not_raise(),
             (
-                (
-                    WARNING,
-                    "Duplicate model names were provided, these have been ignored.",
-                ),
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil', "
-                    "'abiotic_simple']",
-                ),
+                (WARNING, "Dropping duplicate model names: abiotic_simple"),
+                (INFO, "Selecting the following models: soil, abiotic_simple"),
             ),
             id="repeated model",
         ),
@@ -84,7 +62,16 @@ from .conftest import log_check
 )
 def test_select_models(caplog, model_list, no_models, raises, expected_log_entries):
     """Test the model selecting function."""
+
+    from virtual_rainforest.core.registry import register_module
     from virtual_rainforest.main import select_models
+
+    # Need to register the modules to be used in testing - the module registry persists
+    # between tests, so clear the log to avoid registration messages and then warning
+    # messages about re-registration.
+    register_module("virtual_rainforest.models.soil")
+    register_module("virtual_rainforest.models.abiotic_simple")
+    caplog.clear()
 
     with raises:
         models = select_models(model_list)

@@ -4,6 +4,7 @@ model.
 """  # noqa: D205, D415
 
 import os
+from collections import Counter
 from collections.abc import Sequence
 from itertools import chain
 from math import ceil
@@ -35,32 +36,26 @@ def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[Type[Bas
         InitialisationError: If one or more models cannot be found in the registry
     """
 
-    # TODO - The steps below to generate a cleaned model list would be simpler if set
-    # was used, but we need to preserve the list order so that models are loaded in the
-    # correct order. I we find an alternative approach to the order problem, then we can
-    # switch to using sets here.
-    unique_models = []
+    # Counter preserves order in the original list and detects duplicates
+    model_counts = Counter(model_list)
+    unique_models = list(model_counts.keys())
+    duplicated_models = [k for k, c in model_counts.items() if c > 1]
 
-    # Iterate over the original list
-    for model in model_list:
-        if model not in unique_models:
-            unique_models.append(model)
-
-    if len(unique_models) != len(model_list):
-        LOGGER.warning("Duplicate model names were provided, these have been ignored.")
+    if duplicated_models:
+        LOGGER.warning(f"Dropping duplicate model names: {','.join(duplicated_models)}")
 
     # Remove "core" from model list as it is not a model
     if "core" in unique_models:
         unique_models.remove("core")
 
-    LOGGER.info("Attempting to configure the following models: %s" % unique_models)
+    LOGGER.info("Selecting the following models: %s" % ", ".join(unique_models))
 
     # Make list of missing models, and return an error if necessary
     missing_models = [model for model in unique_models if model not in MODULE_REGISTRY]
     if missing_models:
         to_raise = InitialisationError(
-            f"The following models cannot be configured as they are not found in the "
-            f"registry: {', '.join(missing_models)}"
+            f"Models not in module registry and cannot be selected:"
+            f" {', '.join(missing_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise
