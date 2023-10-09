@@ -155,36 +155,37 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     return upstream_ids
 
 
-def accumulate_surface_runoff(
+def accumulate_horizontal_flow(
     drainage_map: dict[int, list[int]],
-    surface_runoff: np.ndarray,
-    accumulated_runoff: np.ndarray,
+    current_flow: np.ndarray,
+    previous_accumulated_flow: np.ndarray,
 ) -> np.ndarray:
-    """Calculate accumulated surface runoff for each grid cell.
+    """Calculate accumulated above-/belowground horizontal flow for each grid cell.
 
-    This function takes the accumulated surface runoff from the previous timestep and
-    adds all surface runoff of the current time step from upstream cell IDs.
+    This function takes the accumulated above-/belowground horizontal flow from the
+    previous timestep and adds all (sub-)surface flow of the current time step from
+    upstream cell IDs.
 
-    The function currently raises a `ValueError` if accumulated runoff is negative.
+    The function currently raises a `ValueError` if accumulated flow is negative.
 
     Args:
         drainage_map: dict of all upstream IDs for each grid cell
-        surface_runoff: surface runoff of the current time step, [mm]
-        accumulated_runoff: accumulated surface runoff from previous time step, [mm]
+        current_flow: (sub-)surface flow of the current time step, [mm]
+        previous_accumulated_flow: accumulated flow from previous time step, [mm]
 
     Returns:
-        accumulated surface runoff, [mm]
+        accumulated (sub-)surface flow, [mm]
     """
 
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
-        accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_ids])
+        previous_accumulated_flow[cell_id] += np.sum(current_flow[upstream_ids])
 
-    if (accumulated_runoff < 0.0).any():
-        to_raise = ValueError("The accumulated surface runoff should not be negative!")
+    if (previous_accumulated_flow < 0.0).any():
+        to_raise = ValueError("The accumulated flow should not be negative!")
         LOGGER.error(to_raise)
         raise to_raise
 
-    return accumulated_runoff
+    return previous_accumulated_flow
 
 
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:

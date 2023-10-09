@@ -98,17 +98,17 @@ def test_find_upstream_cells():
             (
                 (
                     ERROR,
-                    "The accumulated surface runoff should not be negative!",
+                    "The accumulated flow should not be negative!",
                 ),
             ),
         ),
     ],
 )
-def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entries):
+def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
     """Test."""
 
     from virtual_rainforest.models.hydrology.above_ground import (
-        accumulate_surface_runoff,
+        accumulate_horizontal_flow,
     )
 
     upstream_ids = {
@@ -125,7 +125,7 @@ def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entr
     exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
 
     with raises:
-        result = accumulate_surface_runoff(upstream_ids, surface_runoff, acc_runoff)
+        result = accumulate_horizontal_flow(upstream_ids, surface_runoff, acc_runoff)
         np.testing.assert_array_equal(result, exp_result)
 
     # Final check that expected logging entries are produced

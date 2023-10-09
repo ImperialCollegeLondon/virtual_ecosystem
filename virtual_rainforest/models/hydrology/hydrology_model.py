@@ -59,7 +59,6 @@ class HydrologyModel(BaseModel):
     * add time dimension to required_init_vars
     * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
-    * replace or rename function for accumulated subsurface flow
     """
 
     model_name = "hydrology"
@@ -152,7 +151,7 @@ class HydrologyModel(BaseModel):
             grid=self.data.grid,
             elevation=np.array(self.data["elevation"]),
         )
-        """Upstream neighbours for the calculation of accumulated runoff."""
+        """Upstream neighbours for the calculation of accumulated horizontal flow."""
 
     @classmethod
     def from_config(
@@ -620,10 +619,10 @@ class HydrologyModel(BaseModel):
             )
 
         # Calculate accumulated runoff for each cell (me + sum of upstream neighbours)
-        new_accumulated_runoff = above_ground.accumulate_surface_runoff(
+        new_accumulated_runoff = above_ground.accumulate_horizontal_flow(
             drainage_map=self.drainage_map,
-            surface_runoff=np.array(soil_hydrology["surface_runoff"]),
-            accumulated_runoff=hydro_input["previous_accumulated_runoff"],
+            current_flow=np.array(soil_hydrology["surface_runoff"]),
+            previous_accumulated_flow=hydro_input["previous_accumulated_runoff"],
         )
 
         soil_hydrology["surface_runoff_accumulated"] = DataArray(
@@ -631,13 +630,14 @@ class HydrologyModel(BaseModel):
         )
 
         # Calculate subsurface accumulated flow, [mm]
-        # TODO replace or rename this function
-        new_subsurface_flow_accumulated = above_ground.accumulate_surface_runoff(
+        new_subsurface_flow_accumulated = above_ground.accumulate_horizontal_flow(
             drainage_map=self.drainage_map,
-            surface_runoff=np.array(
+            current_flow=np.array(
                 soil_hydrology["subsurface_flow"] + soil_hydrology["baseflow"]
             ),
-            accumulated_runoff=hydro_input["previous_subsurface_flow_accumulated"],
+            previous_accumulated_flow=(
+                hydro_input["previous_subsurface_flow_accumulated"]
+            ),
         )
 
         # Calculate total river discharge as sum of above- and below-ground flow, [mm]
