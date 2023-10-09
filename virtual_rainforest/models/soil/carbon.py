@@ -77,13 +77,13 @@ def calculate_soil_carbon_updates(
     )
     # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
-        soil_c_pool_lmwc,
-        soil_c_pool_maom,
-        pH,
-        bulk_density,
-        moist_scalar,
-        percent_clay,
-        constants,
+        soil_c_pool_lmwc=soil_c_pool_lmwc,
+        soil_c_pool_maom=soil_c_pool_maom,
+        pH=pH,
+        bulk_density=bulk_density,
+        moisture_scalar=moist_scalar,
+        percent_clay=percent_clay,
+        constants=constants,
     )
     microbial_uptake = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
@@ -103,7 +103,9 @@ def calculate_soil_carbon_updates(
         necromass_adsorption_rate=constants.necromass_adsorption_rate,
     )
     labile_carbon_leaching = calculate_labile_carbon_leaching(
-        soil_c_pool_lmwc, moist_scalar, constants.leaching_rate_labile_carbon
+        soil_c_pool_lmwc=soil_c_pool_lmwc,
+        moisture_scalar=moist_scalar,
+        leaching_rate=constants.leaching_rate_labile_carbon,
     )
     pom_decomposition_to_lmwc = calculate_pom_decomposition(
         soil_c_pool_pom=soil_c_pool_pom,
