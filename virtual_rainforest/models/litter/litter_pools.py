@@ -502,8 +502,8 @@ def calculate_moisture_effect_on_litter_decomp(
 
     # Calculate how much moisture suppresses microbial activity
     supression = (
-        (np.log10(np.abs(water_potential)) - np.log10(abs(water_potential_opt)))
-        / (np.log10(abs(water_potential_halt)) - np.log10(abs(water_potential_opt)))
+        (np.log10(-water_potential) - np.log10(-water_potential_opt))
+        / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** moisture_response_curvature
 
     return 1 - supression

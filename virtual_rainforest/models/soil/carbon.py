@@ -325,15 +325,15 @@ def calculate_water_potential_impact_on_microbes(
 
     # If the water potential is greater than the optimal then the function produces NaNs
     # so the simulation should be interrupted
-    if any(abs(water_potential) < abs(water_potential_opt)):
+    if any(water_potential > water_potential_opt):
         err = ValueError("Water potential greater than minimum value")
         LOGGER.critical(err)
         raise err
 
     # Calculate how much moisture suppresses microbial activity
     supression = (
-        (np.log10(np.abs(water_potential)) - np.log10(abs(water_potential_opt)))
-        / (np.log10(abs(water_potential_halt)) - np.log10(abs(water_potential_opt)))
+        (np.log10(-water_potential) - np.log10(-water_potential_opt))
+        / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** moisture_response_curvature
 
     return 1 - supression
