@@ -6,6 +6,7 @@ organic matter (POM).
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.constants import convert_temperature, gas_constant
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
@@ -275,7 +276,6 @@ def calculate_temperature_effect_on_microbes(
     soil_temperature: NDArray[np.float32],
     activation_energy: float,
     reference_temperature: float,
-    gas_constant: float,
 ) -> NDArray[np.float32]:
     """Calculate the effect that temperature has on microbial metabolic rates.
 
@@ -289,15 +289,22 @@ def calculate_temperature_effect_on_microbes(
         soil_temperature: The temperature of the soil [C]
         activation_energy: Energy of activation [J mol^-1]
         soil_temperature: The reference temperature of the Arrhenius equation [C]
-        gas_constant: The molar gas constant [J mol^-1 K^-1]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
     """
 
+    # Convert the temperatures to Kelvin
+    soil_temp_in_kelvin = convert_temperature(
+        soil_temperature, old_scale="Celsius", new_scale="Kelvin"
+    )
+    ref_temp_in_kelvin = convert_temperature(
+        reference_temperature, old_scale="Celsius", new_scale="Kelvin"
+    )
+
     return np.exp(
         (-activation_energy / gas_constant)
-        * ((1 / (soil_temperature + 273.15)) - (1 / (reference_temperature + 273.15)))
+        * ((1 / (soil_temp_in_kelvin)) - (1 / (ref_temp_in_kelvin)))
     )
 
 
@@ -397,7 +404,6 @@ def calculate_maintenance_respiration(
         soil_temperature=soil_temp,
         activation_energy=constants.activation_energy_microbial_turnover,
         reference_temperature=constants.arrhenius_reference_temp,
-        gas_constant=constants.universal_gas_constant,
     )
 
     return constants.microbial_turnover_rate * temp_factor * soil_c_pool_microbe
@@ -555,7 +561,6 @@ def calculate_microbial_carbon_uptake(
         soil_temperature=soil_temp,
         activation_energy=constants.activation_energy_microbial_uptake,
         reference_temperature=constants.arrhenius_reference_temp,
-        gas_constant=constants.universal_gas_constant,
     )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
@@ -633,7 +638,6 @@ def calculate_pom_decomposition(
         soil_temperature=soil_temp,
         activation_energy=constants.activation_energy_pom_decomp,
         reference_temperature=constants.arrhenius_reference_temp,
-        gas_constant=constants.universal_gas_constant,
     )
 
     return (

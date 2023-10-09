@@ -65,10 +65,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.25848985, 0.59689914, 0.97126032, 0.02112157],
+        "soil_c_pool_lmwc": [0.25847352, 0.59685734, 0.97122869, 0.02112077],
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
-        "soil_c_pool_microbe": [-0.16002974, -0.07621788, -0.36452815, -0.01140086],
-        "soil_c_pool_pom": [-0.25379444, -0.58709106, -0.41248442, -0.01566643],
+        "soil_c_pool_microbe": [-0.16002809, -0.07621711, -0.36452355, -0.01140071],
+        "soil_c_pool_pom": [-0.25377786, -0.58704913, -0.41245236, -0.01566563],
     }
 
     # Make order of pools object
@@ -311,7 +311,7 @@ def test_calculate_maintenance_respiration(
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
 
-    expected_resps = [0.054432731, 0.022984963, 0.120127667, 0.007223044]
+    expected_resps = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
 
     main_resps = calculate_maintenance_respiration(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
@@ -404,7 +404,7 @@ def test_calculate_microbial_carbon_uptake(
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [0.00315812, 0.00126484, 0.00438911, 1.75284e-5]
+    expected_uptake = [3.15786124e-3, 1.26472838e-3, 4.38868085e-3, 1.75270792e-5]
 
     actual_uptake = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
@@ -438,7 +438,7 @@ def test_calculate_pom_decomposition(
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
 
-    expected_decomp = [0.2559155, 0.58815159, 0.41297442, 0.02116643]
+    expected_decomp = [0.25589892, 0.58810966, 0.41294236, 0.02116563]
 
     actual_decomp = calculate_pom_decomposition(
         dummy_carbon_data["soil_c_pool_pom"],

@@ -110,12 +110,6 @@ class SoilConsts:
     Value is taken from :cite:t`moyano_responses_2013`.
     """
 
-    universal_gas_constant: float = 8.314
-    """Universal gas constant [J mol^-1 K^-1].
-
-    TODO - This is definitely a core constant
-    """
-
     arrhenius_reference_temp: float = 12.0
     """Reference temperature for the Arrhenius equation [C].
 
