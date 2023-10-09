@@ -693,6 +693,7 @@ class HydrologyModel(BaseModel):
             area=self.data.grid.cell_area,
             days=days,
             seconds_to_day=self.constants.seconds_to_day,
+            meters_to_millimeters=self.constants.meters_to_mm,
         )
         soil_hydrology["river_discharge_rate"] = DataArray(
             river_discharge_rate, dims="cell_id"

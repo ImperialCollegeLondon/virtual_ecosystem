@@ -259,12 +259,13 @@ def test_convert_mm_flow_to_m3_per_second():
     )
 
     channel_flow = np.array([100, 1000, 10000])
-    exp_result = np.array([0.003858, 0.03858, 0.385802])
+    exp_result = np.array([0.0003858, 0.003858, 0.0385802])
     result = convert_mm_flow_to_m3_per_second(
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
         days=30,
         seconds_to_day=HydroConsts.seconds_to_day,
+        meters_to_millimeters=1000,
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

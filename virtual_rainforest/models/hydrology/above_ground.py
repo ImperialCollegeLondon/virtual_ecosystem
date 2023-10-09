@@ -369,6 +369,7 @@ def convert_mm_flow_to_m3_per_second(
     area: Union[int, float],
     days: int,
     seconds_to_day: float,
+    meters_to_millimeters: float,
 ) -> NDArray[np.float32]:
     """Convert river discharge from millimeters to m3/s.
 
@@ -377,9 +378,10 @@ def convert_mm_flow_to_m3_per_second(
         area: area of each grid cell, [m2]
         days: number of days
         seconds_to_day: second to day conversion factor
+        meters_to_millimeters: factor to convert between millimeters and meters
 
     Returns:
         river discharge rate for each grid cell in m3/s
     """
 
-    return river_discharge_mm / 100 / days / seconds_to_day * area
+    return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area

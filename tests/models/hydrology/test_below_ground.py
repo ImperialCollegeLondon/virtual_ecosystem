@@ -106,7 +106,7 @@ def test_convert_soil_moisture_to_water_potential(dummy_climate_data):
 
 
 def test_update_groundwater_storge(dummy_climate_data):
-    """Test."""
+    """Test the update_groundwater_storage() function."""
 
     from virtual_rainforest.models.hydrology.below_ground import (
         update_groundwater_storge,
