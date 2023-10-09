@@ -46,8 +46,8 @@ class HydrologyModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         initial_soil_moisture: The initial volumetric relative water content [unitless]
             for all layers.
-        init_groundwater_saturation: Initial level of groundwater saturation (between 0
-            and 1) for all layers and grid cells identical.
+        initial_groundwater_saturation: Initial level of groundwater saturation (between
+            0 and 1) for all layers and grid cells identical.
         constants: Set of constants for the hydrology model.
 
     Raises:
@@ -102,7 +102,7 @@ class HydrologyModel(BaseModel):
         soil_layers: list[float],
         canopy_layers: int,
         initial_soil_moisture: float,
-        init_groundwater_saturation: float,
+        initial_groundwater_saturation: float,
         constants: HydroConsts,
         **kwargs: Any,
     ):
@@ -119,7 +119,7 @@ class HydrologyModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        if init_groundwater_saturation < 0 or init_groundwater_saturation > 1:
+        if initial_groundwater_saturation < 0 or initial_groundwater_saturation > 1:
             to_raise = InitialisationError(
                 "The initial groundwater saturation has to be between 0 and 1!"
             )
@@ -142,7 +142,7 @@ class HydrologyModel(BaseModel):
         self.initial_soil_moisture = initial_soil_moisture
         """Initial volumetric relative water content [unitless] for all layers and grid
         cells identical."""
-        self.init_groundwater_saturation = init_groundwater_saturation
+        self.initial_groundwater_saturation = initial_groundwater_saturation
         """Initial level of groundwater saturation for all layers identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
@@ -174,7 +174,9 @@ class HydrologyModel(BaseModel):
         soil_layers = config["core"]["layers"]["soil_layers"]
         canopy_layers = config["core"]["layers"]["canopy_layers"]
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
-        init_groundwater_saturation = config["hydrology"]["init_groundwater_saturation"]
+        initial_groundwater_saturation = config["hydrology"][
+            "initial_groundwater_saturation"
+        ]
 
         # Load in the relevant constants
         constants = load_constants(config, "hydrology", "HydroConsts")
@@ -189,7 +191,7 @@ class HydrologyModel(BaseModel):
             soil_layers,
             canopy_layers,
             initial_soil_moisture,
-            init_groundwater_saturation,
+            initial_groundwater_saturation,
             constants,
         )
 
@@ -267,7 +269,7 @@ class HydrologyModel(BaseModel):
 
         # Create initial groundwater storage variable with two layers
         initial_groundwater_storage = (
-            self.init_groundwater_saturation * self.constants.groundwater_capacity
+            self.initial_groundwater_saturation * self.constants.groundwater_capacity
         )
         self.data["groundwater_storage"] = DataArray(
             np.full((2, self.data.grid.n_cells), initial_groundwater_storage),

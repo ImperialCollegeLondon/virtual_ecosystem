@@ -126,7 +126,7 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
         assert model.initial_soil_moisture == ini_soil_moisture
-        assert model.init_groundwater_saturation == ini_groundwater_sat
+        assert model.initial_groundwater_saturation == ini_groundwater_sat
         assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
 
     # Final check that expected logging entries are produced
@@ -157,7 +157,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
-                    "init_groundwater_saturation": 0.9,
+                    "initial_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 month"),
@@ -213,7 +213,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
-                    "init_groundwater_saturation": 0.9,
+                    "initial_groundwater_saturation": 0.9,
                     "constants": {"HydroConsts": {"soil_moisture_capacity": 0.7}},
                 },
             },
@@ -270,7 +270,7 @@ def test_hydrology_model_initialization(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
-                    "init_groundwater_saturation": 0.9,
+                    "initial_groundwater_saturation": 0.9,
                     "constants": {"HydroConsts": {"soilm_cap": 0.7}},
                 },
             },
@@ -334,7 +334,7 @@ def test_generate_hydrology_model(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
-                    "init_groundwater_saturation": 0.9,
+                    "initial_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 month"),
@@ -354,7 +354,7 @@ def test_generate_hydrology_model(
                 },
                 "hydrology": {
                     "initial_soil_moisture": 0.5,
-                    "init_groundwater_saturation": 0.9,
+                    "initial_groundwater_saturation": 0.9,
                 },
             },
             pint.Quantity("1 week"),

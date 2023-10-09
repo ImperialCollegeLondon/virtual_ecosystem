@@ -11,7 +11,7 @@
                     "exclusiveMinimum": 0,
                     "default": 0.5
                 },
-                "init_groundwater_saturation": {
+                "initial_groundwater_saturation": {
                     "description": "Initial ground water saturation for all layers",
                     "type": "number",
                     "exclusiveMinimum": 0,
@@ -33,7 +33,7 @@
             "default": {},
             "required": [
                 "initial_soil_moisture",
-                "init_groundwater_saturation"
+                "initial_groundwater_saturation"
             ]
         }
     },
