@@ -20,7 +20,7 @@ from virtual_rainforest.models.plants.community import PlantCohort, PlantCommuni
 
 def generate_canopy_model(
     community: list[PlantCohort],
-) -> tuple[NDArray, NDArray, NDArray]:
+) -> tuple[NDArray, NDArray, NDArray, NDArray]:
     """Generate the canopy structure for a plant community.
 
     This function takes a list of plant cohorts present in a community and uses the T
@@ -45,28 +45,32 @@ def generate_canopy_model(
         community: A list of plant cohorts.
 
     Returns:
-        A tuple of one dimensional numpy arrays giving the layer heights, leaf area
-        indices and :math:`f_{APAR}` from the canopy model.
+        A tuple of one dimensional numpy arrays giving the layer heights along with the
+        leaf area indices, :math:`f_{APAR}` and leaf masses from the canopy model.
     """
 
     # TODO - actually calculate these and think about whether pyrealm pads to a maximum
-    # canopy layer number.
+    #        canopy layer number.
 
-    # Calculate the canopy area within each layer for each cohort
+    # TODO - Need to expose cohort details within the data object in order to allow
+    #        animals to target specific PFT, size classes or layers
+
+    # Calculate the canopy area within each layer for each cohort.
     for cohort in community:
         cohort.canopy_area = np.array([5.0, 5.0, 5.0])
 
     # Calculate the canopy wide summaries
-    layer_heights = np.array([30.0, 20.0, 10.0])
-    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0])
-    layer_fapar = np.array([0.4, 0.2, 0.1])
+    layer_heights = np.array([30.0, 20.0, 10.0], dtype=np.float32)
+    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+    layer_fapar = np.array([0.4, 0.2, 0.1], dtype=np.float32)
+    layer_leaf_mass = np.array([10000.0, 10000.0, 10000.0], dtype=np.float32)
 
-    return layer_heights, layer_leaf_area_indices, layer_fapar
+    return layer_heights, layer_leaf_area_indices, layer_fapar, layer_leaf_mass
 
 
 def build_canopy_arrays(
     communities: PlantCommunities, n_canopy_layers: int
-) -> tuple[NDArray, NDArray, NDArray]:
+) -> tuple[NDArray, NDArray, NDArray, NDArray]:
     """Converts the PlantCommunities data into canopy layer data arrays.
 
     This function takes a list of plant cohorts present in a community and uses the T
@@ -79,17 +83,21 @@ def build_canopy_arrays(
         n_canopy_layers: The maximum number of permitted canopy layers.
 
     Returns:
-        A tuple of two dimensional numpy arrays giving the canopy layer heights and leaf
-        area indices by cell id.
+        A tuple of two dimensional numpy arrays giving the canopy layer heights and then
+        leaf area indices, :math:`f_{APAR}` and leaf mass by cell id.
     """
 
     # TODO - this could be a method of PlantCommunities but creates circular import of
     #        PlantCohorts
 
+    # TODO - maybe return dict[str, NDArray] as the number of layers is only going to
+    #        increase with the need for more resources and cohort data.
+
     # Initialise list of arrays
     layer_heights: list[NDArray[np.float32]] = []
     layer_leaf_area_index: list[NDArray[np.float32]] = []
     layer_fapar: list[NDArray[np.float32]] = []
+    layer_leaf_mass: list[NDArray[np.float32]] = []
     cell_has_too_many_layers: list[int] = []
 
     # Loop over the communities in each cell
@@ -120,6 +128,7 @@ def build_canopy_arrays(
         layer_heights.append(canopy_layers[0])
         layer_leaf_area_index.append(canopy_layers[1])
         layer_fapar.append(canopy_layers[2])
+        layer_leaf_mass.append(canopy_layers[3])
 
     # Bail if any cells had too many canopy layers
     if cell_has_too_many_layers:
@@ -135,6 +144,7 @@ def build_canopy_arrays(
         np.stack(layer_heights, axis=1),
         np.stack(layer_leaf_area_index, axis=1),
         np.stack(layer_fapar, axis=1),
+        np.stack(layer_leaf_mass, axis=1),
     )
 
 
@@ -145,7 +155,7 @@ def initialise_canopy_layers(
 
     This function initialises four data arrays describing the plant canopy structure and
     soil layer structure within a Data object: ``layer_heights``, ``leaf_area_index``,
-    ``layer_fapar`` and ``layer_absorbed_irradiation``.
+    ``layer_fapar``, ``layer_leaf_mass`` and ``layer_absorbed_irradiation``.
 
     Args:
         data: A Data object to update.
@@ -167,6 +177,7 @@ def initialise_canopy_layers(
         "layer_heights",
         "leaf_area_index",
         "layer_fapar",
+        "layer_leaf_mass",
         "layer_absorbed_irradiation",
     )
 
