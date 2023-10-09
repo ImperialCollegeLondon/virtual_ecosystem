@@ -82,96 +82,64 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
 
 
 @pytest.mark.parametrize(
-    "config,update_interval,output,raises,expected_log_entries",
+    "cfg_strings,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
+            "[core]\n[soil]",
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Configuring models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
+                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+                (DEBUG, "soil model: required var 'pH' checked"),
+                (DEBUG, "soil model: required var 'bulk_density' checked"),
+                (DEBUG, "soil model: required var 'percent_clay' checked"),
             ),
             id="valid config",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            "[core]\n[soil]",
             pint.Quantity("1 minute"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Configuring models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    ERROR,
-                    "The update interval is shorter than the model's lower bound",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
+                (ERROR, "The update interval is shorter than the model's lower bound"),
+                (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too short",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
+            "[core]\n[soil]\n",
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Configuring models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    ERROR,
-                    "The update interval is longer than the model's upper bound",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
+                (ERROR, "The update interval is longer than the model's upper bound"),
+                (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too long",
         ),
@@ -180,18 +148,24 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
 def test_configure_models(
     caplog,
     dummy_carbon_data,
-    config,
+    cfg_strings,
     update_interval,
     output,
     raises,
     expected_log_entries,
 ):
     """Test the function that configures the models."""
+
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.main import configure_models, select_models
 
-    with raises:
-        model_list = select_models(["soil"])
+    # Generate a configuration to use, using simple inputs to populate most from
+    # defaults. Then clear the caplog to isolate the logging for the function,
+    config = Config(cfg_strings=cfg_strings)
+    model_list = select_models(["soil"])
+    caplog.clear()
 
+    with raises:
         models = configure_models(
             config, dummy_carbon_data, model_list, update_interval
         )

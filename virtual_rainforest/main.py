@@ -82,6 +82,8 @@ def configure_models(
         InitialisationError: If one or more models cannot be properly configured
     """
 
+    LOGGER.info("Configuring models: %s" % ",".join(m.model_name for m in model_list))
+
     # Use factory methods to configure the desired models
     failed_models = []
     models_cfd = {}
@@ -95,8 +97,7 @@ def configure_models(
     # If any models fail to configure inform the user about it
     if failed_models:
         to_raise = InitialisationError(
-            f"Could not configure all the desired models, ending the simulation. The "
-            f"following models failed: {failed_models}."
+            f"Configuration failed for models: {','.join(failed_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise
