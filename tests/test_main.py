@@ -200,12 +200,19 @@ def test_configure_models(
             (
                 (INFO, "Config TOML loaded from config string"),
                 (INFO, "Config built from config string"),
+                (INFO, "Registering virtual_rainforest.core module components"),
+                (INFO, "Schema registered for module core: "),
+                (INFO, "Constants class registered for module core: CoreConsts "),
+                (INFO, "Registering virtual_rainforest.models.soil module components"),
+                (INFO, "Registering model class for soil model: SoilModel"),
+                (INFO, "Schema registered for module soil:"),
+                (INFO, "Constants class registered for module soil: SoilConsts "),
                 (INFO, "Validation schema for configuration built."),
                 (INFO, "Configuration validated"),
                 (INFO, "Grid created from configuration."),
                 (INFO, "Loading data from configuration"),
                 (WARNING, "No data sources defined in the data configuration."),
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Selecting the following models: soil"),
                 (
                     INFO,
                     "All models found in the registry, now attempting "
@@ -365,3 +372,5 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
         assert update_interval_as_quantity == output["update_interval_as_quantity"]
+
+    log_check(caplog=caplog, expected_log=expected_log_entries)
