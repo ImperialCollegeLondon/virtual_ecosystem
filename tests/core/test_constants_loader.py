@@ -40,6 +40,15 @@ from virtual_rainforest.core.exceptions import ConfigurationError
             id="bad_configuration",
         ),
         pytest.param(
+            "[core]\n[soil]\n",
+            "soil",
+            "SoilConsts",
+            pytest.raises(KeyError),
+            None,
+            ((CRITICAL, "Configuration does not include module: soil"),),
+            id="bad_configuration_does_not_include_constants",
+        ),
+        pytest.param(
             "[core]",
             "coral",
             "CoreConsts",
@@ -72,8 +81,11 @@ def test_load_constants(
     from virtual_rainforest.core.registry import register_module
 
     register_module("virtual_rainforest.core")
-
+    # Artificially create a configuration that omits the soil module. The soil module
+    # should be registered by the config creation, but trap what happens if the config
+    # doesn't match to the registered modules.
     config = Config(cfg_strings=cfg_strings)
+    _ = config.pop("soil") if "soil" in config else None
     caplog.clear()
 
     with raises:

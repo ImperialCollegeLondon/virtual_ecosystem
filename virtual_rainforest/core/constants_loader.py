@@ -40,6 +40,13 @@ def load_constants(config: Config, module_name: str, class_name: str) -> Any:
         LOGGER.critical(msg)
         raise KeyError(msg)
 
+    # Catch attempts to generate a constants class from a registered module that is not
+    # included in the configuration object
+    if module_name not in config:
+        msg = f"Configuration does not include module: {module_name}"
+        LOGGER.critical(msg)
+        raise KeyError(msg)
+
     # Get the class and extract the constant class configuration if present
     constants_class = MODULE_REGISTRY[module_name].constants_classes[class_name]
     constants_config = (
