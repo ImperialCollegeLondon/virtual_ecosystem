@@ -269,3 +269,20 @@ def test_convert_mm_flow_to_m3_per_second():
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
+
+
+def test_calculate_surface_runoff():
+    """Test surface runoff function."""
+
+    from virtual_rainforest.models.hydrology.above_ground import (
+        calculate_surface_runoff,
+    )
+
+    exp_result = np.array([50, 0, 50])
+    result = calculate_surface_runoff(
+        precipitation_surface=np.array([100, 200, 300]),
+        top_soil_moisture=np.array([150, 150, 150]),
+        top_soil_moisture_capacity=np.array([200, 400, 400]),
+    )
+
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

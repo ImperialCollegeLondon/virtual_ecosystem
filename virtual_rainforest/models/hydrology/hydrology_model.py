@@ -328,7 +328,9 @@ class HydrologyModel(BaseModel):
         .
 
         Surface runoff is calculated with a simple bucket model based on
-        :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+        :cite:t:`davis_simple_2017`, see
+        :func:`~virtual_rainforest.models.hydrology.above_ground.calculate_surface_runoff`
+        : if precipitation exceeds top soil moisture capacity
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
         added to the current soil moisture level and runoff is set to zero. Note that
@@ -397,63 +399,16 @@ class HydrologyModel(BaseModel):
         seed: Union[None, int] = kwargs.pop("seed", None)
 
         # Select variables at relevant heights for current time step
-        current_precipitation = above_ground.distribute_monthly_rainfall(
-            (self.data["precipitation"].isel(time_index=time_index)).to_numpy(),
-            days,
+        hydro_input = setup_hydrology_input_current_timestep(
+            data=self.data,
+            time_index=time_index,
+            days=days,
             seed=seed,
-        )
-        leaf_area_index_sum = self.data["leaf_area_index"].sum(dim="layers").to_numpy()
-        evapotranspiration = (
-            self.data["evapotranspiration"].sum(dim="layers") / days
-        ).to_numpy()
-        subcanopy_temperature = (
-            self.data["air_temperature"]
-            .isel(layers=self.layer_roles.index("subcanopy"))
-            .to_numpy()
-        )
-        subcanopy_humidity = (
-            self.data["relative_humidity"]
-            .isel(layers=self.layer_roles.index("subcanopy"))
-            .to_numpy()
-        )
-        subcanopy_pressure = (
-            self.data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
-        )
-        soil_layer_heights = (
-            self.data["layer_heights"]
-            .where(self.data["layer_heights"].layer_roles == "soil")
-            .dropna(dim="layers")
-        ).to_numpy()
-
-        # Calculate thickness of each layer, [mm]
-        soil_layer_thickness = calculate_layer_thickness(
-            soil_layer_heights=soil_layer_heights,
+            layer_roles=self.layer_roles,
+            soil_moisture_capacity=self.constants.soil_moisture_capacity,
+            soil_moisture_residual=self.constants.soil_moisture_residual,
             meters_to_mm=self.constants.meters_to_mm,
         )
-
-        # Convert soil moisture (volumetric relative water content) to mm as follows:
-        # water content in mm = relative water content / 100 * depth in mm
-        # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
-        soil_moisture_mm = (
-            self.data["soil_moisture"]
-            .where(self.data["soil_moisture"].layer_roles == "soil")
-            .dropna(dim="layers")
-            * soil_layer_thickness
-        ).to_numpy()
-
-        top_soil_moisture_capacity_mm = (
-            self.constants.soil_moisture_capacity * soil_layer_thickness[0]
-        )
-        top_soil_moisture_residual_mm = (
-            self.constants.soil_moisture_residual * soil_layer_thickness[0]
-        )
-
-        # Get accumulated runoff/flow and ground water level from previous time step
-        previous_accumulated_runoff = np.array(self.data["surface_runoff_accumulated"])
-        previous_subsurface_flow_accumulated = np.array(
-            self.data["subsurface_flow_accumulated"]
-        )
-        groundwater_storage = np.array(self.data["groundwater_storage"])
 
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
@@ -461,8 +416,8 @@ class HydrologyModel(BaseModel):
         for day in np.arange(days):
             # Interception of water in canopy, [mm]
             interception = above_ground.calculate_interception(
-                leaf_area_index=leaf_area_index_sum,
-                precipitation=current_precipitation[:, day],
+                leaf_area_index=hydro_input["leaf_area_index_sum"],
+                precipitation=hydro_input["current_precipitation"][:, day],
                 intercept_param_1=self.constants.intercept_param_1,
                 intercept_param_2=self.constants.intercept_param_2,
                 intercept_param_3=self.constants.intercept_param_3,
@@ -470,28 +425,24 @@ class HydrologyModel(BaseModel):
             )
 
             # Precipitation that reaches the surface per day, [mm]
-            precipitation_surface = current_precipitation[:, day] - interception
+            precipitation_surface = (
+                hydro_input["current_precipitation"][:, day] - interception
+            )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
-            # Calculate how much water can be added to soil before capacity is reached,
-            # [mm]
-            free_capacity_mm = (
-                self.constants.soil_moisture_capacity * soil_layer_thickness
-                - soil_moisture_mm
+            # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
+            surface_runoff = above_ground.calculate_surface_runoff(
+                precipitation_surface=precipitation_surface,
+                top_soil_moisture=hydro_input["soil_moisture_mm"][0],
+                top_soil_moisture_capacity=hydro_input["top_soil_moisture_capacity_mm"],
             )
 
-            # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
-            surface_runoff = np.where(
-                precipitation_surface > free_capacity_mm[0],
-                precipitation_surface - free_capacity_mm[0],
-                0,
-            )
             daily_lists["surface_runoff"].append(surface_runoff)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
-                top_soil_moisture=soil_moisture_mm[0],
-                sat_top_soil_moisture=top_soil_moisture_capacity_mm,
+                top_soil_moisture=hydro_input["soil_moisture_mm"][0],
+                sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity_mm"],
                 available_water=precipitation_surface - surface_runoff,
                 infiltration_shape_parameter=(
                     self.constants.infiltration_shape_parameter
@@ -501,26 +452,28 @@ class HydrologyModel(BaseModel):
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
                 (
-                    soil_moisture_mm[0]
+                    hydro_input["soil_moisture_mm"][0]
                     + precipitation_surface
                     - surface_runoff
                     - bypass_flow,
                 ),
                 0,
-                top_soil_moisture_capacity_mm,
+                hydro_input["top_soil_moisture_capacity_mm"],
             ).squeeze()
 
             # Calculate daily soil evaporation, [mm]
-            top_soil_moisture_vol = soil_moisture_infiltrated / soil_layer_thickness[0]
+            top_soil_moisture_vol = (
+                soil_moisture_infiltrated / hydro_input["soil_layer_thickness"][0]
+            )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
-                temperature=subcanopy_temperature,
-                relative_humidity=subcanopy_humidity,
-                atmospheric_pressure=subcanopy_pressure,
+                temperature=hydro_input["subcanopy_temperature"],
+                relative_humidity=hydro_input["subcanopy_humidity"],
+                atmospheric_pressure=hydro_input["subcanopy_pressure"],
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.constants.soil_moisture_residual,
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
-                leaf_area_index=leaf_area_index_sum,
+                leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed=0.1,  # m/s TODO wind_speed in data object
                 celsius_to_kelvin=self.constants.celsius_to_kelvin,
                 density_air=self.constants.density_air,
@@ -539,12 +492,12 @@ class HydrologyModel(BaseModel):
                     np.expand_dims(
                         np.clip(
                             (soil_moisture_infiltrated - soil_evaporation),
-                            top_soil_moisture_residual_mm,
-                            top_soil_moisture_capacity_mm,
+                            hydro_input["top_soil_moisture_residual_mm"],
+                            hydro_input["top_soil_moisture_capacity_mm"],
                         ),
                         axis=0,
                     ),
-                    soil_moisture_mm[1:],
+                    hydro_input["soil_moisture_mm"][1:],
                 )
             )
 
@@ -553,8 +506,8 @@ class HydrologyModel(BaseModel):
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
             vertical_flow = below_ground.calculate_vertical_flow(
-                soil_moisture=soil_moisture_evap / soil_layer_thickness,  # vol
-                soil_layer_thickness=soil_layer_thickness,  # mm
+                soil_moisture=soil_moisture_evap / hydro_input["soil_layer_thickness"],
+                soil_layer_thickness=hydro_input["soil_layer_thickness"],  # mm
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,  # vol
                 soil_moisture_residual=self.constants.soil_moisture_residual,  # vol
                 hydraulic_conductivity=self.constants.hydraulic_conductivity,  # m/s
@@ -570,22 +523,26 @@ class HydrologyModel(BaseModel):
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap,
                 vertical_flow=vertical_flow,
-                evapotranspiration=evapotranspiration,
+                evapotranspiration=hydro_input["current_evapotranspiration"],
                 soil_moisture_capacity=(
-                    self.constants.soil_moisture_capacity * soil_layer_thickness
+                    self.constants.soil_moisture_capacity
+                    * hydro_input["soil_layer_thickness"]
                 ),
                 soil_moisture_residual=(
-                    self.constants.soil_moisture_residual * soil_layer_thickness
+                    self.constants.soil_moisture_residual
+                    * hydro_input["soil_layer_thickness"]
                 ),
             )
 
             daily_lists["soil_moisture"].append(
-                soil_moisture_updated / soil_layer_thickness
+                soil_moisture_updated / hydro_input["soil_layer_thickness"]
             )
 
             # Convert soil moisture to matric potential
             matric_potential = below_ground.convert_soil_moisture_to_water_potential(
-                soil_moisture=soil_moisture_updated / soil_layer_thickness,
+                soil_moisture=(
+                    soil_moisture_updated / hydro_input["soil_layer_thickness"]
+                ),
                 air_entry_water_potential=self.constants.air_entry_water_potential,
                 water_retention_curvature=self.constants.water_retention_curvature,
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
@@ -594,7 +551,7 @@ class HydrologyModel(BaseModel):
 
             # calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storge(
-                groundwater_storage=groundwater_storage,
+                groundwater_storage=hydro_input["groundwater_storage"],
                 vertical_flow_to_groundwater=vertical_flow[-1],
                 bypass_flow=bypass_flow,
                 max_percolation_rate_uzlz=self.constants.max_percolation_rate_uzlz,
@@ -606,15 +563,15 @@ class HydrologyModel(BaseModel):
                     self.constants.reservoir_const_lower_groundwater
                 ),
             )
-            daily_lists["groundwater_storage"].append(
-                below_ground_flow["updated_groundwater_storage"]
-            )
-            daily_lists["subsurface_flow"].append(below_ground_flow["subsurface_flow"])
-            daily_lists["baseflow"].append(below_ground_flow["baseflow"])
+
+            for var in ["groundwater_storage", "subsurface_flow", "baseflow"]:
+                daily_lists[var].append(below_ground_flow[var])
 
             # update inputs for next day
-            soil_moisture_mm = soil_moisture_updated
-            groundwater_storage = below_ground_flow["updated_groundwater_storage"]
+            hydro_input["soil_moisture_mm"] = soil_moisture_updated
+            hydro_input["groundwater_storage"] = below_ground_flow[
+                "groundwater_storage"
+            ]
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
@@ -666,7 +623,7 @@ class HydrologyModel(BaseModel):
         new_accumulated_runoff = above_ground.accumulate_surface_runoff(
             drainage_map=self.drainage_map,
             surface_runoff=np.array(soil_hydrology["surface_runoff"]),
-            accumulated_runoff=previous_accumulated_runoff,
+            accumulated_runoff=hydro_input["previous_accumulated_runoff"],
         )
 
         soil_hydrology["surface_runoff_accumulated"] = DataArray(
@@ -680,7 +637,7 @@ class HydrologyModel(BaseModel):
             surface_runoff=np.array(
                 soil_hydrology["subsurface_flow"] + soil_hydrology["baseflow"]
             ),
-            accumulated_runoff=previous_subsurface_flow_accumulated,
+            accumulated_runoff=hydro_input["previous_subsurface_flow_accumulated"],
         )
 
         # Calculate total river discharge as sum of above- and below-ground flow, [mm]
@@ -735,3 +692,110 @@ def calculate_layer_thickness(
             for i in range(len(soil_layer_heights))
         ],
     )
+
+
+def setup_hydrology_input_current_timestep(
+    data: Data,
+    time_index: int,
+    days: int,
+    seed: Union[None, int],
+    layer_roles: list[str],
+    soil_moisture_capacity: float,
+    soil_moisture_residual: float,
+    meters_to_mm: float,
+) -> dict[str, NDArray[np.float32]]:
+    """Select and pre-process inputs to hydrology.update() for current time step.
+
+    The function resturns a dictionary with the following variables:
+
+    * current_precipitation
+    * subcanopy_temperature
+    * subcanopy_humidity
+    * subcanopy_pressure
+    * leaf_area_index_sum
+    * current_evapotranspiration
+    * soil_layer_heights
+    * soil_layer_thickness
+    * top_soil_moisture_capacity_mm
+    * top_soil_moisture_residual_mm
+    * soil_moisture_mm
+    * previous_accumulated_runoff
+    * previous_subsurface_flow_accumulated
+    * groundwater_storage
+
+    Args:
+        data: Data object that contains inputs from the microclimate model, the plant
+            model, and the hydrology model that are required for current update
+        time_index: time index
+        days: number of days
+        seed: seed for random rainfall generator
+        layer_roles: list of layer roles
+        soil_moisture_capacity: soil moisture capacity, unitless
+        soil_moisture_residual: soil moisture residual, unitless
+        meters_to_mm: factor to convert between meters and millimieters
+
+    Returns:
+        dictionary with all variables that are required to run one hydrology update()
+    """
+
+    output = {}
+
+    # Get atmospheric variables
+    output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
+        (data["precipitation"].isel(time_index=time_index)).to_numpy(),
+        num_days=days,
+        seed=seed,
+    )
+    output["subcanopy_temperature"] = (
+        data["air_temperature"].isel(layers=layer_roles.index("subcanopy"))
+    ).to_numpy()
+    output["subcanopy_humidity"] = (
+        data["relative_humidity"].isel(layers=layer_roles.index("subcanopy"))
+    ).to_numpy()
+    output["subcanopy_pressure"] = (
+        data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
+    )
+
+    # Get inputs from plant model
+    output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
+    output["current_evapotranspiration"] = (
+        data["evapotranspiration"].sum(dim="layers") / days
+    ).to_numpy()
+
+    # Select soil variables
+    output["soil_layer_heights"] = (
+        data["layer_heights"]
+        .where(data["layer_heights"].layer_roles == "soil")
+        .dropna(dim="layers")
+    ).to_numpy()
+    output["soil_layer_thickness"] = calculate_layer_thickness(  # [mm]
+        soil_layer_heights=output["soil_layer_heights"],
+        meters_to_mm=meters_to_mm,
+    )
+    output["top_soil_moisture_capacity_mm"] = (
+        soil_moisture_capacity * output["soil_layer_thickness"][0]
+    )
+    output["top_soil_moisture_residual_mm"] = (
+        soil_moisture_residual * output["soil_layer_thickness"][0]
+    )
+
+    # Convert soil moisture (volumetric relative water content) to mm as follows:
+    # water content in mm = relative water content / 100 * depth in mm
+    # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
+    output["soil_moisture_mm"] = (
+        data["soil_moisture"]
+        .where(data["soil_moisture"].layer_roles == "soil")
+        .dropna(dim="layers")
+        * output["soil_layer_thickness"]
+    ).to_numpy()
+
+    # Get accumulated runoff/flow and ground water level from previous time step
+    output["previous_accumulated_runoff"] = data[
+        "surface_runoff_accumulated"
+    ].to_numpy()
+    output["previous_subsurface_flow_accumulated"] = data[
+        "subsurface_flow_accumulated"
+    ].to_numpy()
+    output["groundwater_storage"] = data["groundwater_storage"].to_numpy()
+
+    return output

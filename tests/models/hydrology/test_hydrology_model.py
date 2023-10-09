@@ -539,3 +539,41 @@ def test_calculate_layer_thickness():
     result = calculate_layer_thickness(soil_layer_heights, 1000)
 
     np.testing.assert_allclose(result, exp_result)
+
+
+# def test_setup_hydrology_input_current_timestep(
+#     dummy_climate_data,
+#     layer_roles_fixture,
+# ):
+#     """Test that correct values are selected for current time step."""
+
+#     from virtual_rainforest.models.hydrology.hydrology_model import (
+#         setup_hydrology_input_current_timestep,
+#     )
+
+# result = setup_hydrology_input_current_timestep(
+#     data=dummy_climate_data,
+#     time_index=1,
+#     days=30,
+#     seed=42,
+#     layer_roles=layer_roles_fixture,
+#     soil_moisture_capacity=0.9,
+#     soil_moisture_residual=0.1,
+#     meters_to_mm=1000,
+# )
+
+# current_precipitation
+
+# subcanopy_temperature
+# subcanopy_humidity
+# subcanopy_pressure
+# leaf_area_index_sum
+# current_evapotranspiration
+# soil_layer_heights
+# soil_layer_thickness
+# top_soil_moisture_capacity_mm
+# top_soil_moisture_residual_mm
+# soil_moisture_mm
+# previous_accumulated_runoff
+# previous_subsurface_flow_accumulated
+# groundwater_storage

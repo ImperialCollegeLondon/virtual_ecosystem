@@ -385,3 +385,33 @@ def convert_mm_flow_to_m3_per_second(
     """
 
     return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area
+
+
+def calculate_surface_runoff(
+    precipitation_surface: NDArray[np.float32],
+    top_soil_moisture: NDArray[np.float32],
+    top_soil_moisture_capacity: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate surface runoff, [mm].
+
+    Surface runoff is calculated with a simple bucket model based on
+    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+    , the excess water is added to runoff and top soil moisture is set to soil
+    moisture capacity value; if the top soil is not saturated, precipitation is
+    added to the current soil moisture level and runoff is set to zero.
+
+    Args:
+        precipitation_surface: precipitation that reaches surface, [mm]
+        top_soil_moisture: water content of top soil layer, [mm]
+        top_soil_moisture_capacity: soil mositure capacity of top soil layer, [mm]
+    """
+
+    # Calculate how much water can be added to soil before capacity is reached, [mm]
+    free_capacity_mm = top_soil_moisture_capacity - top_soil_moisture
+
+    # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
+    return np.where(
+        precipitation_surface > free_capacity_mm,
+        precipitation_surface - free_capacity_mm,
+        0,
+    )

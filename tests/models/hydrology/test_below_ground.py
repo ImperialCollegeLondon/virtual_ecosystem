@@ -127,6 +127,6 @@ def test_update_groundwater_storge(dummy_climate_data):
     exp_groundwater = np.array([[453, 457, 459], [450.0, 450.0, 450.0]])
     exp_upper_flow = np.array([22.65, 22.85, 22.95])
     exp_lower_flow = np.array([22.5, 22.5, 22.5])
-    np.testing.assert_allclose(result["updated_groundwater_storage"], exp_groundwater)
+    np.testing.assert_allclose(result["groundwater_storage"], exp_groundwater)
     np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow)
     np.testing.assert_allclose(result["baseflow"], exp_lower_flow)

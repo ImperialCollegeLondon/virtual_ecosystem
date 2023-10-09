@@ -317,6 +317,8 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
     data["surface_runoff"] = DataArray([10, 50, 100], dims="cell_id")
+    data["surface_runoff_accumulated"] = DataArray([0, 10, 300], dims="cell_id")
+    data["subsurface_flow_accumulated"] = DataArray([10, 10, 30], dims="cell_id")
     data["soil_moisture"] = xr.concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
