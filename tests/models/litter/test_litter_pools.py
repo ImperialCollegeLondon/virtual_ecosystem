@@ -14,28 +14,23 @@ def temp_and_water_factors(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Temperature and water factors for the various litter layers."""
-    from virtual_rainforest.models.litter.litter_model import (
-        convert_soil_moisture_to_water_potential,
-    )
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_environmental_factors,
-    )
-
-    water_potentials = convert_soil_moisture_to_water_potential(
-        dummy_litter_data["soil_moisture"][top_soil_layer_index],
-        air_entry_water_potential=LitterConsts.air_entry_water_potential,
-        water_retention_curvature=LitterConsts.water_retention_curvature,
-        saturated_water_content=LitterConsts.saturated_water_content,
     )
 
     environmental_factors = calculate_environmental_factors(
         surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
         topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
-        water_potential=water_potentials,
+        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
         constants=LitterConsts,
     )
 
     return environmental_factors
+
+
+# TODO - Compare the below
+# [-297.1410435034187, -4.264765510307134, -79.66618999943468]
+# [-10.0, -25.0, -100.0]
 
 
 @pytest.fixture
@@ -59,9 +54,6 @@ def test_calculate_environmental_factors(
         calculate_environmental_factors,
     )
 
-    # TODO - hardcoding this in, but eventually this should be added to the data object.
-    water_potentials = [-10.0, -25.0, -100.0]
-
     expected_water_factors = [1.0, 0.88496823, 0.71093190]
     expected_temp_above_factors = [0.1878681, 0.1878681, 0.1878681]
     expected_temp_below_factors = [0.2732009, 0.2732009, 0.2732009]
@@ -69,7 +61,7 @@ def test_calculate_environmental_factors(
     environmental_factors = calculate_environmental_factors(
         surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
         topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
-        water_potential=water_potentials,
+        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
         constants=LitterConsts,
     )
 
@@ -104,7 +96,7 @@ def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
         calculate_moisture_effect_on_litter_decomp,
     )
 
-    water_potentials = [-10.0, -25.0, -100.0, -400.0]
+    water_potentials = np.array([-10.0, -25.0, -100.0, -400.0])
 
     expected_factor = [1.0, 0.88496823, 0.71093190, 0.53689556]
 
@@ -139,9 +131,6 @@ def test_calculate_change_in_litter_variables(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Test that litter pool update calculation is correct."""
-    from virtual_rainforest.models.litter.litter_model import (
-        convert_soil_moisture_to_water_potential,
-    )
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_change_in_litter_variables,
     )
@@ -150,21 +139,13 @@ def test_calculate_change_in_litter_variables(
         "litter_pool_above_metabolic": [0.29587973, 0.14851276, 0.07041856],
         "litter_pool_above_structural": [0.50055126, 0.25010012, 0.0907076],
         "litter_pool_woody": [4.702103, 11.802315, 7.300997],
-        "litter_pool_below_metabolic": [0.394145, 0.35923, 0.069006],
-        "litter_pool_below_structural": [0.60027118, 0.30975403, 0.02047743],
+        "litter_pool_below_metabolic": [0.38949196, 0.36147436, 0.06906041],
+        "litter_pool_below_structural": [0.60011634, 0.30989963, 0.02047753],
         "lignin_above_structural": [0.4996410, 0.1004310, 0.6964345],
         "lignin_woody": [0.49989001, 0.79989045, 0.34998229],
         "lignin_below_structural": [0.499760108, 0.249922519, 0.737107757],
-        "litter_C_mineralisation_rate": [0.0212182, 0.02746286, 0.00796359],
+        "litter_C_mineralisation_rate": [0.02987233, 0.02316114, 0.00786517],
     }
-
-    # Calculate water potential
-    water_potential = convert_soil_moisture_to_water_potential(
-        dummy_litter_data["soil_moisture"][top_soil_layer_index].to_numpy(),
-        air_entry_water_potential=LitterConsts.air_entry_water_potential,
-        water_retention_curvature=LitterConsts.water_retention_curvature,
-        saturated_water_content=LitterConsts.saturated_water_content,
-    )
 
     result = calculate_change_in_litter_variables(
         surface_temp=dummy_litter_data["air_temperature"][
@@ -173,7 +154,9 @@ def test_calculate_change_in_litter_variables(
         topsoil_temp=dummy_litter_data["soil_temperature"][
             top_soil_layer_index
         ].to_numpy(),
-        water_potential=water_potential,
+        water_potential=dummy_litter_data["matric_potential"][
+            top_soil_layer_index
+        ].to_numpy(),
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
         above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
         woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
@@ -200,8 +183,8 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
         "metabolic_above": [0.00450883, 0.00225442, 0.00105206],
         "structural_above": [1.67429665e-4, 6.18573593e-4, 1.10869077e-5],
         "woody": [0.0004832, 0.00027069, 0.0015888],
-        "metabolic_below": [0.00627503, 0.01118989, 0.00141417],
-        "structural_below": [2.08818451e-4, 7.25965456e-4, 2.56818870e-6],
+        "metabolic_below": [0.01092804, 0.00894564, 0.00135959],
+        "structural_below": [3.63659952e-04, 5.80365659e-04, 2.46907410e-06],
     }
 
     actual_decay = calculate_decay_rates(
@@ -362,7 +345,7 @@ def test_calculate_litter_decay_metabolic_below(
         calculate_litter_decay_metabolic_below,
     )
 
-    expected_decay = [0.00627503, 0.01118989, 0.00141417]
+    expected_decay = [0.01092804, 0.00894564, 0.00135959]
 
     actual_decay = calculate_litter_decay_metabolic_below(
         temperature_factor=temp_and_water_factors["temp_below"],
@@ -382,7 +365,7 @@ def test_calculate_litter_decay_structural_below(
         calculate_litter_decay_structural_below,
     )
 
-    expected_decay = [2.08818451e-04, 7.25965456e-04, 2.56818870e-06]
+    expected_decay = [3.63659952e-04, 5.80365659e-04, 2.46907410e-06]
 
     actual_decay = calculate_litter_decay_structural_below(
         temperature_factor=temp_and_water_factors["temp_below"],
