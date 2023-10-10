@@ -403,10 +403,10 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.13122264, 0.30432201, 0.50601794, 0.01541629], dims="cell_id"
+                        [0.13149332, 0.30443375, 0.50688537, 0.01545192], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.54647825, 1.71347325, 4.32317632, 0.50157362], dims="cell_id"
+                        [2.54647536, 1.71347434, 4.32290784, 0.50157408], dims="cell_id"
                     ),
                     microbe=DataArray(
                         [5.72558633, 2.27805994, 11.21111949, 0.99495352],
@@ -527,10 +527,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
 
     delta_pools = (
         [
-            0.25809707,
-            0.59264789,
-            0.56851013,
-            0.02112901,
+            0.258641361,
+            0.592877709,
+            0.569711349,
+            2.12012472e-2,
             0.0962045,
             0.02576618,
             -0.08926844,

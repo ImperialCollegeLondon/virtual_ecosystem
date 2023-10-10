@@ -19,7 +19,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.25847352, 0.59685734, 0.97122869, 0.02112077],
+        "soil_c_pool_lmwc": [0.259017816, 0.597087164, 0.972429914, 0.02119301],
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
         "soil_c_pool_microbe": [-0.16002809, -0.07621711, -0.36452355, -0.01140071],
         "soil_c_pool_pom": [-0.25377786, -0.58704913, -0.41245236, -0.01566563],

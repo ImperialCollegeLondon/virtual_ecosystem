@@ -135,6 +135,7 @@ def calculate_soil_carbon_updates(
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
+        + pom_enzyme_turnover
         - lmwc_to_maom
         - microbial_uptake
         - labile_carbon_leaching
