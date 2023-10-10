@@ -1,7 +1,7 @@
 """The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
-Rainforest. At the moment four pools are modelled, these are low molecular weight carbon
-(LMWC), mineral associated organic matter (MAOM), microbial biomass, and particulate
-organic matter (POM).
+Rainforest. At the moment five pools are modelled, these are low molecular weight carbon
+(LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
+matter (POM), and POM degrading enzymes.
 """  # noqa: D205, D415
 
 import numpy as np
@@ -24,6 +24,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_maom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     soil_c_pool_pom: NDArray[np.float32],
+    soil_enzyme_pom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -45,6 +46,8 @@ def calculate_soil_carbon_updates(
         soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
+        soil_enzyme_pom: Amount of enzyme that breaks down particulate organic matter
+            [kg C m^-3]
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
@@ -104,6 +107,13 @@ def calculate_soil_carbon_updates(
         soil_temp=soil_temp,
         constants=constants,
     )
+    pom_enzyme_production = calculate_enzyme_production(
+        maintenance_respiration=microbial_respiration,
+        enzyme_fraction=constants.pom_enzyme_maintenance_fraction,
+    )
+    pom_enzyme_turnover = calculate_enzyme_turnover(
+        enzyme_pool=soil_enzyme_pom, turnover_rate=constants.pom_enzyme_turnover_rate
+    )
     necromass_adsorption = calculate_necromass_adsorption(
         soil_c_pool_microbe=soil_c_pool_microbe,
         moisture_scalar=moist_scalar,
@@ -136,6 +146,7 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate - pom_decomposition_to_lmwc
     )
+    delta_pools_ordered["soil_enzyme_pom"] = pom_enzyme_production - pom_enzyme_turnover
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
@@ -348,7 +359,6 @@ def calculate_carbon_use_efficiency(
     return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
 
 
-# TODO - Integrate these functions into the main simulation flow
 def calculate_enzyme_production(
     maintenance_respiration: NDArray[np.float32], enzyme_fraction: float
 ) -> NDArray[np.float32]:

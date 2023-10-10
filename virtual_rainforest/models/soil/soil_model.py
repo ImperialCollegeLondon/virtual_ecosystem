@@ -204,6 +204,7 @@ class SoilModel(BaseModel):
                 self.data[str(name)].to_numpy()
                 for name in self.data.data.keys()
                 if str(name).startswith("soil_c_pool_")
+                or str(name).startswith("soil_enzyme_")
             ]
         )
 
@@ -212,6 +213,7 @@ class SoilModel(BaseModel):
             str(name): np.array([])
             for name in self.data.data.keys()
             if str(name).startswith("soil_c_pool_")
+            or str(name).startswith("soil_enzyme_")
         }
 
         # Carry out simulation

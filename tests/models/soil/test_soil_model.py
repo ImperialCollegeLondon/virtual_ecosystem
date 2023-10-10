@@ -415,6 +415,9 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
                     pom=DataArray(
                         [0.02068157, 0.71317448, 0.50004912, 0.34220329], dims="cell_id"
                     ),
+                    enzyme_pom=DataArray(
+                        [0.02267725, 0.00957542, 0.05004861, 0.0030099], dims="cell_id"
+                    ),
                 )
             ),
             (),
@@ -453,6 +456,7 @@ def test_integrate_soil_model(
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
         assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
         assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
+        assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -491,7 +495,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
     pool_names = [
         str(name)
         for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_")
+        if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
     ]
 
     # Add pool values from object in reversed order
@@ -539,6 +543,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
             -0.58704913,
             -0.41245236,
             -0.01566563,
+            1.18e-8,
+            1.67e-8,
+            1.8e-9,
+            -1.12e-8,
         ],
     )
 
@@ -548,6 +556,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
             dummy_carbon_data[str(name)].to_numpy()
             for name in dummy_carbon_data.data.keys()
             if str(name).startswith("soil_c_pool_")
+            or str(name).startswith("soil_enzyme_")
         ]
     )
 
@@ -555,7 +564,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     delta_pools_ordered = {
         str(name): np.array([])
         for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_")
+        if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
     }
 
     rate_of_change = construct_full_soil_model(

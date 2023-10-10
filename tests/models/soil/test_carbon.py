@@ -23,6 +23,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
         "soil_c_pool_microbe": [-0.16002809, -0.07621711, -0.36452355, -0.01140071],
         "soil_c_pool_pom": [-0.25377786, -0.58704913, -0.41245236, -0.01566563],
+        "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
     # Make order of pools object
@@ -35,6 +36,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"].to_numpy(),
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
         soil_moisture=np.array([0.5, 0.7, 0.6, 0.2]),
