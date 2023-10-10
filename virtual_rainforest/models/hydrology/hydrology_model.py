@@ -338,7 +338,7 @@ class HydrologyModel(BaseModel):
         cell based above-ground hydrology. The accumulated surface runoff is calculated
         as the sum of current runoff and the runoff from upstream cells at the previous
         time step, see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.accumulate_surface_runoff`
+        :func:`~virtual_rainforest.models.hydrology.above_ground.accumulate_horizontal_flow`
         .
 
         Potential soil evaporation is calculated with classical bulk aerodynamic
