@@ -12,7 +12,7 @@
                     "default": 0.5
                 },
                 "initial_groundwater_saturation": {
-                    "description": "Initial ground water saturation for all layers",
+                    "description": "Initial ground water saturation for all layers, unitless",
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "default": 0.9
