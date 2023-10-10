@@ -19,7 +19,7 @@ from jsonschema import FormatChecker
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+from virtual_rainforest.core.registry import MODULE_REGISTRY
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
 
 if sys.version_info[:2] >= (3, 11):
@@ -427,10 +427,9 @@ class Config(dict):
         single validation schema for model configuration.
         """
 
-        # Register the core module components and then extract the modules requested in
-        # the configuration, falling back to the schema defaults.
-
-        register_module(module_name="virtual_rainforest.core", model=None)
+        # Import core to register the core module components and then extract the
+        # modules requested in the configuration, falling back to the schema defaults.
+        import_module("virtual_rainforest.core")
         core_schema = MODULE_REGISTRY["core"].schema
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
@@ -441,9 +440,14 @@ class Config(dict):
             # Revert to defaults
             requested_modules = defmods
 
-        # Import the requested modules to trigger registration.
+        # Import the requested modules to trigger registration, catching unknown models
         for module in requested_modules:
-            import_module(f"virtual_rainforest.models.{module}")
+            try:
+                import_module(f"virtual_rainforest.models.{module}")
+            except ModuleNotFoundError:
+                msg = f"Module not found for model in configuration: {module}"
+                LOGGER.critical(msg)
+                raise ValueError(msg)
 
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}

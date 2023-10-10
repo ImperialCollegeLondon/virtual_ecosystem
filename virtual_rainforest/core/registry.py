@@ -20,6 +20,8 @@ that the model components are registered when the module is imported.
 
 """  # noqa: D205, D415
 
+
+import sys
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
 from inspect import getmembers
@@ -70,35 +72,44 @@ def register_module(module_name: str, model: Any = None) -> None:
     :func:`~virtual_rainforest.core.base_model.BaseModel` subclass for a module and then
     adds a :class:`~virtual_rainforest.core.registry.ModuleInfo` dataclass instance to
     the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY` containing those
-    details.
+    details. The :mod:`~virtual_rainforest.core` module does not have an associated
+    module and it is an error to register that module with a model. Similarly,
+    :mod:`~virtual_rainforest.models` modules must provide a model and it is an error to
+    register a module without one.
+
+    This function is intended to always be be called to register a module from within
+    the ``__init__.py`` for that module. It expects to be able to use
+    :data:`sys.modules` to access the module object which, when called from within the
+    context of ``__init__.py``, will have been added to :data:`sys.modules`.
+
+    To register a module outside of the context of the module `__init__.py`, for example
+    for testing purposes, that module must first be explicitly imported to make it
+    accessible from :data:`sys.modules`.
 
     Args:
         module_name: The name of the module containing the model to be registered
         model: The model to be associated with the module, if any.
 
     Raises:
-        RuntimeError: if - the core module is registered with a model, a model module is
-            registered without a module, or the module cannot be found.
+        RuntimeError: the core module is registered with a model, a model module is
+            registered without a module, or the module cannot be found in
+            :data:`sys.modules`.
         Exception: loading the JSON schema fails.
     """
 
     # Extract the last component of the module name to act as unique short name
     _, _, module_name_short = module_name.rpartition(".")
+
     if module_name_short in MODULE_REGISTRY:
         LOGGER.warning(f"Module already registered: {module_name_short}")
         return
 
     try:
-        module = import_module(module_name)
-    except ModuleNotFoundError as excep:
-        LOGGER.critical(f"Unknown module - registration failed: {module_name}")
-        raise excep
-
-    # Importing the module runs the module __init__, which can itself call
-    # register_module. If so then the registry will have been populated and
-    # the function can quit.
-    if module_name_short in MODULE_REGISTRY:
-        return
+        module = sys.modules[module_name]
+    except KeyError:
+        msg = f"Module not found in sys.modules - registration failed: {module_name}"
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
 
     is_core = module_name == "virtual_rainforest.core"
 

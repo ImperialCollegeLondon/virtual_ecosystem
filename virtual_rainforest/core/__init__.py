@@ -32,3 +32,7 @@ Each of the core sub-modules has its own API reference page:
 The :mod:`~virtual_rainforest.core` module itself is only responsible for loading the
 configuration schema for the core submodules.
 """  # noqa: D205, D415
+
+from virtual_rainforest.core.registry import register_module
+
+register_module(module_name=__name__, model=None)
