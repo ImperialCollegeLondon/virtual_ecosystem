@@ -16,16 +16,13 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 @pytest.mark.parametrize(
     argnames=["use_grid", "exp_err", "expected_log"],
     argvalues=[
-        (
+        pytest.param(
             False,
             pytest.raises(TypeError),
             ((CRITICAL, "Data must be initialised with a Grid object"),),
+            id="init_not_grid",
         ),
-        (
-            True,
-            does_not_raise(),
-            (),
-        ),
+        pytest.param(True, does_not_raise(), (), id="init_is_grid"),
     ],
 )
 def test_Data_init(caplog, use_grid, exp_err, expected_log):
@@ -33,6 +30,8 @@ def test_Data_init(caplog, use_grid, exp_err, expected_log):
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+
+    caplog.clear()
 
     # Switch on what to provide as grid
     grid = Grid() if use_grid else 1
@@ -956,7 +955,9 @@ def test_Data_add_from_dict(dummy_climate_data):
 def test_output_current_state(mocker, dummy_carbon_data, time_index):
     """Test that function to output the current data state works as intended."""
 
-    from virtual_rainforest.core.base_model import MODEL_REGISTRY
+    # Set up the registry and load the soil model
+    import virtual_rainforest.models.soil  # noqa: #F401
+    from virtual_rainforest.core.registry import MODULE_REGISTRY
 
     data_options = {"out_folder_continuous": "."}
 
@@ -964,7 +965,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
-    models_cfd = {"soil": MODEL_REGISTRY["soil"]}
+    models_cfd = {"soil": MODULE_REGISTRY["soil"].model}
 
     # Only variables in the data object that are updated by a model should be output
     all_variables = [
@@ -980,7 +981,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
 
     # Check that the mocked function was called once with correct input (which is
     # calculated in the higher level function)
-    assert mock_save.call_count == 1
+    mock_save.assert_called_once()
     assert mock_save.call_args == mocker.call(
         Path(f"./continuous_state{time_index:05}.nc"),
         [
