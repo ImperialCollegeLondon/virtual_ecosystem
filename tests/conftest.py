@@ -126,6 +126,10 @@ def dummy_carbon_data(layer_roles_fixture):
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["soil_c_pool_pom"] = DataArray([0.1, 1.0, 0.7, 0.35], dims=["cell_id"])
     """Particulate organic matter pool (kg C m^-3)"""
+    data["soil_enzyme_pom"] = DataArray(
+        [0.022679, 0.009576, 0.050051, 0.003010], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down particulate organic matter (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])

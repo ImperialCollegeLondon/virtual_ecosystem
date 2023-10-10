@@ -129,7 +129,7 @@ class SoilConsts:
     once fungi are added.
     """
 
-    activation_energy_microbial_uptake = 47000
+    activation_energy_microbial_uptake: float = 47000
     """Activation energy for microbial uptake of low molecular weight carbon [J K^-1].
 
     Value taken from :cite:t:`wang_development_2013`. The maximum labile carbon uptake
@@ -151,7 +151,7 @@ class SoilConsts:
     once lignin chemistry is added.
     """
 
-    activation_energy_pom_decomp = 37000
+    activation_energy_pom_decomp: float = 37000
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.
@@ -174,4 +174,30 @@ class SoilConsts:
 
     Value taken from :cite:t:`wang_development_2013`. The microbial turnover rate that
     this activation energy corresponds to is given by :attr:`microbial_turnover_rate`.
+    """
+
+    # TODO - At some point I need to split these enzyme constants into fungi and
+    # bacteria specific constants
+    pom_enzyme_turnover_rate: float = 2.4e-2
+    """Turnover rate for POM degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maom_enzyme_turnover_rate: float = 2.4e-2
+    """Turnover rate for MAOM degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    pom_enzyme_maintenance_fraction: float = 1e-2
+    """Fraction of maintenance used to produce POM degrading enzymes [unitless].
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maom_enzyme_maintenance_fraction: float = 1e-2
+    """Fraction of maintenance used to produce MAOM degrading enzymes [unitless].
+
+    Value taken from :cite:t:`wang_development_2013`.
     """

@@ -211,6 +211,64 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index
     assert np.allclose(actual_cues, expected_cues)
 
 
+@pytest.mark.parametrize(
+    "fraction,expected_prods",
+    [
+        (
+            1e-2,
+            [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5],
+        ),
+        (
+            5e-2,
+            [0.002721539, 0.0011492035, 0.006006129, 0.000361144],
+        ),
+        (
+            1e-3,
+            [5.443078e-5, 2.298407e-5, 0.00012012258, 7.22288e-6],
+        ),
+    ],
+)
+def test_calculate_enzyme_production(fraction, expected_prods):
+    """Check that enzyme production rates are calculated correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_enzyme_production
+
+    maintenance_resps = np.array([0.05443078, 0.02298407, 0.12012258, 0.00722288])
+
+    actual_prods = calculate_enzyme_production(
+        maintenance_respiration=maintenance_resps, enzyme_fraction=fraction
+    )
+
+    assert np.allclose(actual_prods, expected_prods)
+
+
+@pytest.mark.parametrize(
+    "turnover,expected_decay",
+    [
+        (
+            2.4e-2,
+            [0.000544296, 0.000229824, 0.001201224, 7.224e-5],
+        ),
+        (
+            6.5e-2,
+            [0.001474135, 0.00062244, 0.003253315, 0.00019565],
+        ),
+        (
+            2.4e-3,
+            [5.44296e-5, 2.29824e-5, 0.0001201224, 7.224e-6],
+        ),
+    ],
+)
+def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
+    """Check that enzyme turnover rates are calculated correctly."""
+    from virtual_rainforest.models.soil.carbon import calculate_enzyme_turnover
+
+    actual_decay = calculate_enzyme_turnover(
+        enzyme_pool=dummy_carbon_data["soil_enzyme_pom"], turnover_rate=turnover
+    )
+
+    assert np.allclose(actual_decay, expected_decay)
+
+
 def test_calculate_microbial_saturation(dummy_carbon_data):
     """Check microbial activity saturation calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_saturation

@@ -97,6 +97,8 @@ def calculate_soil_carbon_updates(
         soil_temp=soil_temp,
         constants=constants,
     )
+    # TODO - This isn't a true carbon loss as some of this goes into enzyme production.
+    # This needs to be properly handled before full carbon tracking can be attempted.
     microbial_respiration = calculate_maintenance_respiration(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
@@ -289,7 +291,7 @@ def calculate_maintenance_respiration(
         constants: Set of constants for the soil model.
 
     Returns:
-        Total maintenance respiration for all microbial biomass
+        Total maintenance respiration rate for all microbial biomass [kg C m^-3 day^-1]
     """
 
     temp_factor = calculate_temperature_effect_on_microbes(
@@ -344,6 +346,41 @@ def calculate_carbon_use_efficiency(
     """
 
     return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
+
+
+# TODO - Integrate these functions into the main simulation flow
+def calculate_enzyme_production(
+    maintenance_respiration: NDArray[np.float32], enzyme_fraction: float
+) -> NDArray[np.float32]:
+    """Calculate the rate of production of a specific enzyme class.
+
+    Args:
+        maintenance_respiration: Maintenance respiration rate for microbial biomass pool
+            [kg C m^-3 day^-1]
+        enzyme_fraction: Fraction of maintenance respiration dedicated to
+            production of the specific enzyme class [unitless]
+
+    Returns:
+        Production rate for the specific enzyme class [kg C m^-3 day^-1]
+    """
+
+    return enzyme_fraction * maintenance_respiration
+
+
+def calculate_enzyme_turnover(
+    enzyme_pool: NDArray[np.float32], turnover_rate: float
+) -> NDArray[np.float32]:
+    """Calculate the turnover rate of a specific enzyme class.
+
+    Args:
+        enzyme_pool: The pool size for the enzyme class in question [kg C m^-3]
+        turnover_rate: The rate at which enzymes in the pool turnover [day^-1]
+
+    Returns:
+        The rate at which enzymes are lost from the pool [kg C m^-3 day^-1]
+    """
+
+    return turnover_rate * enzyme_pool
 
 
 def calculate_microbial_saturation(
