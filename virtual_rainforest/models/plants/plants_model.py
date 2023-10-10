@@ -91,6 +91,7 @@ class PlantsModel(BaseModel):
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "layer_absorbed_irradiation",
         "herbivory",
         "transpiration",
@@ -227,19 +228,22 @@ class PlantsModel(BaseModel):
         * the layer leaf area indices (``leaf_area_index``),
         * the fraction of absorbed photosynthetically active radation in each layer
           (``layer_fapar``), and
+        * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
+
         * the absorbed irradiance in each layer, including the remaining incident
           radation at ground level (``layer_absorbed_irradiation``).
         """
         # Retrive the canopy model arrays and insert into the data object.
-        canopy_heights, canopy_lai, canopy_fapar = build_canopy_arrays(
+        canopy_data = build_canopy_arrays(
             self.communities,
             n_canopy_layers=self.canopy_layers,
         )
 
         # Insert the canopy layers into the data objects
-        self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_heights
-        self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_lai
-        self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_fapar
+        self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_data[0]
+        self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
+        self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
+        self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
 
     def set_absorbed_irradiance(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.

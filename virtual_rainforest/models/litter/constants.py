@@ -162,38 +162,6 @@ class LitterConsts:
     being.
     """
 
-    air_entry_water_potential: float = -3.815
-    """Water potential at which soil pores begin to aerate [kPa].
-
-    The constant is used to estimate soil water potential from soil moisture. As this
-    estimation is a stopgap this constant probably shouldn't become a core constant. The
-    value is the average across all soil types found in
-    :cite:t:`cosby_statistical_1984`. In future, this could be calculated based on soil
-    texture.
-
-    TODO: This estimation of water potential will either be moved to or superseded by
-    the hydrology model. So these constants should **not** remain here in the long term.
-    """
-
-    water_retention_curvature: float = -7.22
-    """Curvature of the water retention curve.
-
-    The value is the average across all soil types found in
-    :cite:t:`cosby_statistical_1984`; see documentation for
-    :attr:`air_entry_water_potential` for further details.
-    """
-
-    saturated_water_content: float = 0.457
-    """Relative water content at which the soil is completely saturated [unitless].
-
-    The value is the average across all soil types found in
-    :cite:t:`cosby_statistical_1984`; see documentation for
-    :attr:`air_entry_water_potential` for further details.
-
-    TODO: This constant already exists within the hydrology model, once the hydrology
-    model handles soil water potential, this constant **must** be deleted.
-    """
-
     lignin_inhibition_factor: float = -5.0
     """Exponential factor expressing the extent that lignin inhibits litter breakdown.
 

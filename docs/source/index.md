@@ -115,7 +115,7 @@ team.
   Animal Scaling Functions <api/animals/scaling_functions.md> 
   Animal Constants <api/animals/constants.md> 
   Animal Decay <api/animals/decay.md> 
-  Animal Dummy Plants and Soils <api/animals/dummy_plants.md> 
+  Animal Plant Resources <api/animals/plant_resources.md> 
   Litter Overview <api/litter.md>
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>

@@ -23,11 +23,14 @@ def test_generate_canopy_model(plants_data, flora):
     communities = PlantCommunities(plants_data, flora)
 
     for _, community in communities.items():
-        layer_hght, layer_lai, layer_fapar = generate_canopy_model(community=community)
+        canopy_data = generate_canopy_model(community=community)
 
-        assert isinstance(layer_hght, ndarray)
-        assert isinstance(layer_lai, ndarray)
-        assert isinstance(layer_fapar, ndarray)
+        assert isinstance(canopy_data[0], ndarray)  # layer_hght
+        assert isinstance(canopy_data[1], ndarray)  # layer_lai
+        assert isinstance(canopy_data[2], ndarray)  # layer_fapar
+        assert isinstance(canopy_data[3], ndarray)  # layer_leaf_mass
+
+        assert np.all([arr.ndim == 1 for arr in canopy_data])
 
         for cohort in community:
             assert np.allclose(
@@ -39,9 +42,9 @@ def test_generate_canopy_model(plants_data, flora):
 @pytest.mark.parametrize(
     argnames="max_layers, raises, exp_log",
     argvalues=[
-        (10, does_not_raise(), None),
-        (5, does_not_raise(), None),
-        (
+        pytest.param(10, does_not_raise(), None, id="many_layers"),
+        pytest.param(5, does_not_raise(), None, id="enough_layers"),
+        pytest.param(
             1,
             pytest.raises(ConfigurationError),
             (
@@ -50,6 +53,7 @@ def test_generate_canopy_model(plants_data, flora):
                     "Generated canopy has more layers than the configured maximum",
                 ),
             ),
+            id="not_enough_layers",
         ),
     ],
 )
@@ -66,16 +70,15 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
     with raises:
         # Build the canopy layers, which takes the generated canopy model, pads to the
         # configured maximum and stacks into arrays by cell id
-        layer_hght, layer_lai, layer_fapar = build_canopy_arrays(
+        canopy_data = build_canopy_arrays(
             communities=communities, n_canopy_layers=max_layers
         )
 
-        # Check the layers are the right size and that the cohort.canopy_areas have been
-        # padded successfully
+        # Check the canopy layers arrays are the right size and that the
+        # cohort.canopy_areas have been padded successfully
         if isinstance(raises, does_not_raise):
-            assert layer_hght.shape == (max_layers, len(communities))
-            assert layer_lai.shape == (max_layers, len(communities))
-            assert layer_fapar.shape == (max_layers, len(communities))
+            for arr in canopy_data:
+                assert arr.shape == (max_layers, len(communities))
 
             for community in communities.values():
                 for cohort in community:
@@ -101,6 +104,7 @@ def test_initialise_canopy_layers(caplog, plants_data):
         "layer_heights",
         "leaf_area_index",
         "layer_fapar",
+        "layer_leaf_mass",
         "layer_absorbed_irradiation",
     )
 

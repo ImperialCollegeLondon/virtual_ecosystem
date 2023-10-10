@@ -5,16 +5,17 @@ import pytest
 
 @pytest.fixture
 def animal_community_destination_instance(
-    functional_group_list_instance, animal_model_instance
+    functional_group_list_instance, animal_model_instance, plant_data_instance
 ):
     """Fixture for an animal community used in tests."""
     from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
 
     return AnimalCommunity(
-        functional_group_list_instance,
-        1,
-        [0, 1, 2, 4],
-        animal_model_instance.get_community_by_key,
+        functional_groups=functional_group_list_instance,
+        data=plant_data_instance,
+        community_key=4,
+        neighbouring_keys=[1, 3, 5, 7],
+        get_destination=animal_model_instance.get_community_by_key,
     )
 
 

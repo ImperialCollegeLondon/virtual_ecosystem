@@ -441,12 +441,12 @@ def test_update(litter_model_fixture, dummy_litter_data):
     end_above_meta = [0.29587973, 0.14851276, 0.07041856]
     end_above_struct = [0.50055126, 0.25010012, 0.0907076]
     end_woody = [4.702103, 11.802315, 7.300997]
-    end_below_meta = [0.394145, 0.35923, 0.069006]
-    end_below_struct = [0.60027118, 0.30975403, 0.02047743]
+    end_below_meta = [0.38949196, 0.36147436, 0.06906041]
+    end_below_struct = [0.60011634, 0.30989963, 0.02047753]
     end_lignin_above_struct = [0.4996410, 0.1004310, 0.6964345]
     end_lignin_woody = [0.49989001, 0.79989045, 0.34998229]
     end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757]
-    c_mineral = [0.0212182, 0.02746286, 0.00796359]
+    c_mineral = [0.02987233, 0.02316114, 0.00786517]
 
     litter_model_fixture.update(time_index=0)
 
@@ -468,23 +468,3 @@ def test_update(litter_model_fixture, dummy_litter_data):
         dummy_litter_data["lignin_below_structural"], end_lignin_below_struct
     )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
-
-
-def test_convert_soil_moisture_to_water_potential(
-    dummy_litter_data, top_soil_layer_index
-):
-    """Test that function to convert soil moisture to a water potential works."""
-    from virtual_rainforest.models.litter.litter_model import (
-        convert_soil_moisture_to_water_potential,
-    )
-
-    expected_potentials = [-297.14104, -4.2647655, -79.666189]
-
-    actual_potentials = convert_soil_moisture_to_water_potential(
-        dummy_litter_data["soil_moisture"][top_soil_layer_index].to_numpy(),
-        air_entry_water_potential=LitterConsts.air_entry_water_potential,
-        water_retention_curvature=LitterConsts.water_retention_curvature,
-        saturated_water_content=LitterConsts.saturated_water_content,
-    )
-
-    assert np.allclose(actual_potentials, expected_potentials)

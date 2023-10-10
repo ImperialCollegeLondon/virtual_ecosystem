@@ -213,13 +213,13 @@ class TestAnimalCohort:
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
         from virtual_rainforest.models.animals.animal_traits import DietType
         from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-        from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
+        from virtual_rainforest.models.animals.plant_resources import PlantResources
 
         # Mocking the eat method of AnimalCohort
         mock_eat = mocker.patch.object(AnimalCohort, "eat")
 
         # Instances
-        plant_list_instance = [mocker.MagicMock(spec=PlantCommunity)]
+        plant_list_instance = [mocker.MagicMock(spec=PlantResources)]
         animal_list_instance = [
             mocker.MagicMock(spec=AnimalCohort) for _ in range(3)
         ]  # Assuming 3 animal cohorts

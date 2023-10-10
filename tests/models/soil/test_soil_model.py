@@ -222,7 +222,7 @@ def test_soil_model_initialization(
                 },
             },
             pint.Quantity("12 hours"),
-            0.01,
+            0.2,
             does_not_raise(),
             (
                 (
@@ -369,6 +369,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
+    end_pom = [0.25, 2.34, 0.746, 0.3467]
 
     mock_integrate = mocker.patch.object(soil_model_fixture, "integrate")
 
@@ -377,6 +378,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             soil_c_pool_lmwc=DataArray(end_lmwc, dims="cell_id"),
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
+            soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
         )
     )
 
@@ -388,6 +390,8 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_carbon_data["soil_c_pool_lmwc"], end_lmwc)
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
 
 
 @pytest.mark.parametrize(
@@ -399,17 +403,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05283173, 0.03076934, 1.87751275, 0.00561615], dims="cell_id"
+                        [0.13122264, 0.30432201, 0.50601794, 0.01541629], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.56409185, 1.72670677, 2.84168443, 0.50266489], dims="cell_id"
+                        [2.54647825, 1.71347325, 4.32317632, 0.50157362], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.63681284, 2.21869505, 10.96048678, 0.99364838],
+                        [5.72558633, 2.27805994, 11.21111949, 0.99495352],
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.09916254, 0.99531802, 0.69563758, 0.35201611], dims="cell_id"
+                        [0.02068157, 0.71317448, 0.50004912, 0.34220329], dims="cell_id"
                     ),
                 )
             ),
@@ -475,6 +479,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         "pH",
         "bulk_density",
         "soil_moisture",
+        "matric_potential",
         "soil_temperature",
         "percent_clay",
         "litter_C_mineralisation_rate",
@@ -516,24 +521,26 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
 
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
-    delta_pools = [
-        0.00509349,
-        0.02038796,
-        0.71353723,
-        0.00125521,
-        0.13088391,
-        0.05654771,
-        -0.39962841,
-        0.00533357,
-        -0.33131188,
-        -0.16636299,
-        -0.76078599,
-        -0.01275669,
-        -0.00168464,
-        -0.00936813,
-        -0.00873008,
-        0.00403342,
-    ]
+    delta_pools = (
+        [
+            0.25809707,
+            0.59264789,
+            0.56851013,
+            0.02112901,
+            0.0962045,
+            0.02576618,
+            -0.08926844,
+            0.0029497,
+            -0.15288599,
+            -0.05330495,
+            -0.18645947,
+            -0.01013683,
+            -0.25377786,
+            -0.58704913,
+            -0.41245236,
+            -0.01566563,
+        ],
+    )
 
     # make pools
     pools = np.concatenate(
@@ -557,7 +564,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data,
         4,
         top_soil_layer_index,
-        delta_pools_ordered,
+        delta_pools_ordered=delta_pools_ordered,
         constants=SoilConsts,
     )
 
