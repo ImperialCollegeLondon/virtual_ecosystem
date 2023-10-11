@@ -95,11 +95,12 @@ def add_file_logger(logfile: Path) -> None:
     It also turns off record propagation so that logging messages are only sent to that
     file and not to the parent StreamHandler.
 
-    If the file handler already exists, then an exception is raised, as this could be an
-    attempt to log to a different file.
-
     Args:
-      logfile: The path to a file to use for logging.
+        logfile: The path to a file to use for logging.
+
+    Raises:
+        RuntimeError: If the file handler already exists. If the logging is to move to a
+            new file, the existing handler needs to be explicitly removed first.
     """
 
     for handler in LOGGER.handlers:
