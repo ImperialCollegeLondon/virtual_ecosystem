@@ -84,12 +84,13 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger("virtual_rainforest")
+""":class:`logging.Logger`: The core logger instance used in the Virtual Rainforest."""
 
 
 def add_file_logger(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
-    This function adds a FileHandler with the name `vr_logfile` to
+    This function adds a FileHandler with the name ``vr_logfile`` to
     :data:`~virtual_rainforest.core.logger.LOGGER` using the provided ``logfile`` path.
     It also turns off record propagation so that logging messages are only sent to that
     file and not to the parent StreamHandler.
@@ -123,7 +124,7 @@ def remove_file_logger() -> None:
     """Remove the file logger and return to stream logging.
 
     This function attempts to remove the ``vr_logfile`` FileHandler that is added by
-    :func:`~virtual_rainforest.core.logging.add_file_logger`. If that file handler is
+    :func:`~virtual_rainforest.core.logger.add_file_logger`. If that file handler is
     not found it simple exits, otherwise it removes the file handler and restores
     message propagation.
     """

@@ -53,7 +53,7 @@ def test_add_file_logger_twice_fails(teardown_hook):
     from virtual_rainforest.core.logger import add_file_logger
 
     with TemporaryDirectory() as tempdir:
-        tempfile = Path(tempdir) / "test_add_logger.log"
+        tempfile = Path(tempdir) / "test_add_file_logger.log"
         add_file_logger(logfile=tempfile)
 
         with pytest.raises(RuntimeError) as excep:
