@@ -32,19 +32,28 @@ def test_vr_run(capsys):
             _ = capsys.readouterr()
 
             example_dir = Path(tempdir) / "vr_example"
+            logfile = example_dir / "vr_example.log"
             vr_run_cli(
                 args_list=[
                     str(example_dir),
                     "--outpath",
                     str(example_dir),
                     "--logfile",
-                    str(example_dir / "vr_example.log"),
+                    str(logfile),
                 ]
             )
 
+            # Test the command line output is as expected
             captured = capsys.readouterr()
             expected = "VR run complete."
             assert captured.out.startswith(expected)
+
+            # Check the logfile has been populated as expected
+            assert logfile.exists()
+            with open(logfile) as logfile_io:
+                contents = logfile_io.readlines()
+                assert "Virtual rainforest model run completed!" in contents[-1]
+
         except Exception as excep:
             # If the code above fails then tidy up the logger to restore normal stream
             # logging rather than leaving all other tests logging to the file and then
