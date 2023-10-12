@@ -10,7 +10,6 @@ module for details.
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Union
 
@@ -19,7 +18,7 @@ from jsonschema import FormatChecker
 
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.registry import MODULE_REGISTRY
+from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
 
 if sys.version_info[:2] >= (3, 11):
@@ -427,9 +426,9 @@ class Config(dict):
         single validation schema for model configuration.
         """
 
-        # Import core to register the core module components and then extract the
-        # modules requested in the configuration, falling back to the schema defaults.
-        import_module("virtual_rainforest.core")
+        # Register the core module components and then extract the modules requested in
+        # the configuration, falling back to the schema defaults.
+        register_module("virtual_rainforest.core")
         core_schema = MODULE_REGISTRY["core"].schema
         defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
@@ -440,14 +439,9 @@ class Config(dict):
             # Revert to defaults
             requested_modules = defmods
 
-        # Import the requested modules to trigger registration, catching unknown models
+        # Register the requested modules
         for module in requested_modules:
-            try:
-                import_module(f"virtual_rainforest.models.{module}")
-            except ModuleNotFoundError:
-                msg = f"Module not found for model in configuration: {module}"
-                LOGGER.critical(msg)
-                raise ValueError(msg)
+            register_module(f"virtual_rainforest.models.{module}")
 
         # Generate a dictionary of schemas for requested modules
         all_schemas: dict[str, Any] = {"core": core_schema}
