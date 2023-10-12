@@ -80,15 +80,15 @@ def test_load_schema(
 def test_merge_schemas():
     """Test that module schemas are properly merged."""
 
-    from importlib import import_module
-
     from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
     from virtual_rainforest.core.schema import merge_schemas
 
+    # Import the models to populate the registry
     register_module("virtual_rainforest.core")
-
-    for module in ["abiotic_simple", "animals", "plants", "soil"]:
-        import_module(f"virtual_rainforest.models.{module}")
+    register_module("virtual_rainforest.models.abiotic_simple")
+    register_module("virtual_rainforest.models.animals")
+    register_module("virtual_rainforest.models.plants")
+    register_module("virtual_rainforest.models.soil")
 
     merged_schemas = merge_schemas(
         {
