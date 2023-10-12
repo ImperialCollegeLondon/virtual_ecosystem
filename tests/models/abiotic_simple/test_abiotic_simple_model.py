@@ -135,7 +135,7 @@ def test_abiotic_simple_model_initialization(
                     "abiotic_simple model: required var 'layer_heights' checked",
                 ),
             ),
-            id="default_config_correct",
+            id="default_config",
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"

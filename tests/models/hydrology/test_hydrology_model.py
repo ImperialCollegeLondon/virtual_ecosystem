@@ -163,7 +163,7 @@ def test_hydrology_model_initialization(
                     "hydrology model: required var 'surface_runoff' checked",
                 ),
             ),
-            id="default_config_correct",
+            id="default_config",
         ),
         pytest.param(
             "[core]\nmodules = ['hydrology']\n"

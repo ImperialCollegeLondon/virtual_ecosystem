@@ -196,28 +196,9 @@ def test_configure_models(
             cell_area = 10000
             cell_nx = 3
             cell_ny = 3
+            [soil]
             """,
             (
-                (INFO, "Config TOML loaded from config string"),
-                (INFO, "Config built from config string"),
-                (INFO, "Registering virtual_rainforest.core module components"),
-                (INFO, "Schema registered for module core: "),
-                (INFO, "Constants class registered for module core: CoreConsts "),
-                (INFO, "Registering virtual_rainforest.models.soil module components"),
-                (INFO, "Registering model class for soil model: SoilModel"),
-                (INFO, "Schema registered for module soil:"),
-                (INFO, "Constants class registered for module soil: SoilConsts "),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-                (INFO, "Grid created from configuration."),
-                (INFO, "Loading data from configuration"),
-                (WARNING, "No data sources defined in the data configuration."),
-                (INFO, "Selecting the following models: soil"),
-                (
-                    INFO,
-                    "All models found in the registry, now attempting "
-                    "to configure them.",
-                ),
                 (
                     CRITICAL,
                     "Units for core.timing.update_interval are not valid time units: "
@@ -236,10 +217,16 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     schema validation.
     """
 
+    # In order to get consistent logs, the MODULE_REGISTRY needs to be empty, and this
+    # is not true across tests, so purposefully clear the registry
+    from virtual_rainforest.core.registry import MODULE_REGISTRY
+
+    MODULE_REGISTRY.clear()
+
     with pytest.raises(InitialisationError):
         vr_run(cfg_strings=config_content)
 
-    log_check(caplog, expected_log_entries)
+    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
 
 
 @pytest.mark.parametrize(

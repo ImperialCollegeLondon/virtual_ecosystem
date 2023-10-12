@@ -271,10 +271,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                     DEBUG,
                     "litter model: required var 'litter_pool_above_structural' checked",
                 ),
-                (
-                    DEBUG,
-                    "litter model: required var 'litter_pool_woody' checked",
-                ),
+                (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
                 (
                     DEBUG,
                     "litter model: required var 'litter_pool_below_metabolic' checked",
@@ -283,18 +280,9 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                     DEBUG,
                     "litter model: required var 'litter_pool_below_structural' checked",
                 ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_above_structural' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_woody' checked",
-                ),
-                (
-                    DEBUG,
-                    "litter model: required var 'lignin_below_structural' checked",
-                ),
+                (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
+                (DEBUG, "litter model: required var 'lignin_woody' checked"),
+                (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
             ),
             id="modified_config_correct",
         ),
@@ -310,7 +298,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                 (INFO, "Valid names are: "),
                 (CRITICAL, "Could not initialise litter.LitterConsts from config"),
             ),
-            id="modified_config_correct",
+            id="modified_config_incorrect",
         ),
     ],
 )
@@ -330,7 +318,7 @@ def test_generate_litter_model(
     from virtual_rainforest.models.litter.litter_model import LitterModel
 
     # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
+    register_module("virtual_rainforest.models.litter")
     # Build the config object
     config = Config(cfg_strings=cfg_string)
     caplog.clear()

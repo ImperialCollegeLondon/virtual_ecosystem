@@ -73,7 +73,7 @@ def test_load_constants(
 ):
     """Check that function to load in specified constants classes works as expected."""
 
-    from scipy import constants
+    from scipy import constants  # type: ignore
 
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.constants import CoreConsts
