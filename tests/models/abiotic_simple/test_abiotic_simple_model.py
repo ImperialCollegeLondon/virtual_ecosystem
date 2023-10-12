@@ -11,9 +11,6 @@ from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-    AbioticSimpleModel,
-)
 
 
 @pytest.mark.parametrize(
@@ -65,6 +62,9 @@ def test_abiotic_simple_model_initialization(
     layer_roles_fixture,
 ):
     """Test `AbioticSimpleModel` initialization."""
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
     from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
     with raises:
@@ -228,6 +228,9 @@ def test_generate_abiotic_simple_model(
     """Test that the initialisation of the simple abiotic model works as expected."""
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
 
     # Register the module components to access constants classes
     register_module("virtual_rainforest.models.abiotic_simple")
@@ -257,9 +260,13 @@ def test_setup(
     """Test set up and update."""
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+        AbioticSimpleModel,
+    )
 
     # Register the module components to access constants classes
     register_module("virtual_rainforest.models.abiotic_simple")
+
     # Build the config object
     config = Config(
         cfg_strings="[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n"
