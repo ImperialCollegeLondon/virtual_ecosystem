@@ -127,11 +127,6 @@ def calculate_soil_carbon_updates(
     pom_enzyme_turnover = calculate_enzyme_turnover(
         enzyme_pool=soil_enzyme_pom, turnover_rate=constants.pom_enzyme_turnover_rate
     )
-    necromass_adsorption = calculate_necromass_adsorption(
-        soil_c_pool_microbe=soil_c_pool_microbe,
-        moisture_scalar=moist_scalar,
-        necromass_adsorption_rate=constants.necromass_adsorption_rate,
-    )
     labile_carbon_leaching = calculate_labile_carbon_leaching(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         moisture_scalar=moist_scalar,
@@ -154,9 +149,9 @@ def calculate_soil_carbon_updates(
         - microbial_uptake
         - labile_carbon_leaching
     )
-    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
+    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
     delta_pools_ordered["soil_c_pool_microbe"] = (
-        microbial_uptake - biomass_losses.maintenance_synthesis - necromass_adsorption
+        microbial_uptake - biomass_losses.maintenance_synthesis
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate
@@ -387,28 +382,6 @@ def calculate_maintenance_biomass_synthesis(
     )
 
     return constants.microbial_turnover_rate * temp_factor * soil_c_pool_microbe
-
-
-# TODO - Once I use maintenance respiration directly I can get rid of this
-def calculate_necromass_adsorption(
-    soil_c_pool_microbe: NDArray[np.float32],
-    moisture_scalar: NDArray[np.float32],
-    necromass_adsorption_rate: float,
-) -> NDArray[np.float32]:
-    """Calculate adsorption of microbial necromass to soil minerals.
-
-    Args:
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        moisture_scalar: A scalar capturing the impact of soil moisture on process rates
-            [unitless]
-        necromass_adsorption_rate: Rate at which necromass is adsorbed by soil minerals
-            [day^-1]
-
-    Returns:
-        Adsorption of microbial biomass to mineral associated organic matter (MAOM)
-    """
-
-    return necromass_adsorption_rate * moisture_scalar * soil_c_pool_microbe
 
 
 def calculate_carbon_use_efficiency(

@@ -20,8 +20,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
 
     change_in_pools = {
         "soil_c_pool_lmwc": [0.2856888982, 0.6083493583, 1.0312899782, 0.0247322212],
-        "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
-        "soil_c_pool_microbe": [-0.16002809, -0.07621711, -0.36452355, -0.01140071],
+        "soil_c_pool_maom": [-5.788721e-3, -1.004083e-2, -0.5628071, 2.607437e-5],
+        "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
         "soil_c_pool_pom": [-0.2271067778, -0.5757869357, -0.3535922958, -0.0121264188],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
@@ -216,21 +216,6 @@ def test_calculate_maintenance_biomass_synthesis(
     )
 
     assert np.allclose(actual_loss, expected_loss)
-
-
-def test_calculate_necromass_adsorption(dummy_carbon_data, moist_scalars):
-    """Check maintenance respiration cost calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_necromass_adsorption
-
-    expected_adsorps = [0.10875517, 0.05449776, 0.24878964, 0.00419536]
-
-    actual_adsorps = calculate_necromass_adsorption(
-        dummy_carbon_data["soil_c_pool_microbe"],
-        moist_scalars,
-        SoilConsts.necromass_adsorption_rate,
-    )
-
-    assert np.allclose(actual_adsorps, expected_adsorps)
 
 
 def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index):
