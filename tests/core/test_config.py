@@ -302,6 +302,8 @@ def test_Config_resolve_config_paths(
     """Checks errors for missing config files."""
     from virtual_rainforest.core.config import Config
 
+    caplog.clear()
+
     # Init the class
     cfg = Config([shared_datadir / p for p in cfg_paths], auto=False)
 
@@ -549,8 +551,14 @@ def test_Config_build_config_string(caplog, cfg_strings):
         ),
         pytest.param(
             "[core]\nmodules = ['soil', 'pants']",
-            pytest.raises(ConfigurationError),
-            ((ERROR, "Configuration contains module with no schema: pants"),),
+            pytest.raises(ModuleNotFoundError),
+            (
+                (
+                    CRITICAL,
+                    "Unknown module - registration failed: "
+                    "virtual_rainforest.models.pants",
+                ),
+            ),
             id="core_modules_include_unknown",
         ),
     ],
@@ -565,13 +573,13 @@ def test_Config_build_schema(
     cfg = Config(cfg_strings=cfg_strings, auto=False)
     cfg.load_config_toml_string()
     cfg.build_config()
-    caplog.clear()
 
     # Run the validation
     with expected_exception:
         cfg.build_schema()
 
-    log_check(caplog, expected_log_entries)
+    # Check the last line of the log
+    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
 
 
 @pytest.mark.parametrize(
@@ -689,36 +697,39 @@ def test_Config_validate_config(
 
 
 @pytest.mark.parametrize(
-    "file_path,expected_log_entries",
+    "file_path",
     [
-        (
-            "default_config.toml",  # File entirely of defaults
-            (
-                (INFO, "Config paths resolve to 1 files"),
-                (INFO, "Config TOML loaded from"),
-                (INFO, "Config built from 1 file(s)"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-            ),
-        ),
-        (
-            "all_config.toml",  # File with no defaults
-            (
-                (INFO, "Config paths resolve to 1 files"),
-                (INFO, "Config TOML loaded from"),
-                (INFO, "Config built from 1 file(s)"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-            ),
-        ),
+        "default_config.toml",  # File entirely of defaults
+        "all_config.toml",  # File with no defaults
     ],
 )
-def test_Config_init_auto(caplog, shared_datadir, file_path, expected_log_entries):
+def test_Config_init_auto(caplog, shared_datadir, file_path):
     """Checks that auto validation passes as expected."""
     from virtual_rainforest.core.config import Config
 
     Config(shared_datadir / file_path, auto=True)
-    log_check(caplog, expected_log_entries)
+
+    # Check the logs - the build schema step can spit out variable length messages
+    # because of the module registration process, so just check the log starts and ends
+    # as expected
+    log_check(
+        caplog=caplog,
+        expected_log=(
+            (INFO, "Config paths resolve to 1 files"),
+            (INFO, "Config TOML loaded from"),
+            (INFO, "Config built from 1 file(s)"),
+        ),
+        subset=slice(3),
+    )
+
+    log_check(
+        caplog=caplog,
+        expected_log=(
+            (INFO, "Validation schema for configuration built."),
+            (INFO, "Configuration validated"),
+        ),
+        subset=slice(-2, None, None),
+    )
 
 
 @pytest.mark.parametrize(
