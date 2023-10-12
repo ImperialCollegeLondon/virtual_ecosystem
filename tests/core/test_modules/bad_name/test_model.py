@@ -3,7 +3,7 @@
 from virtual_rainforest.core.base_model import BaseModel
 
 
-class TestModel(BaseModel):
+class ATestModel(BaseModel):
     """A test module."""
 
     model_name = "name_is_not_bad_name"

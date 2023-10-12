@@ -3,7 +3,7 @@
 from virtual_rainforest.core.base_model import BaseModel
 
 
-class TestModel1(BaseModel):
+class ATestModel1(BaseModel):
     """A test module."""
 
     model_name = "two_models"
@@ -13,7 +13,7 @@ class TestModel1(BaseModel):
     vars_updated = tuple()
 
 
-class TestModel2(BaseModel):
+class ATestModel2(BaseModel):
     """A second unwanted test module."""
 
     model_name = "two_models"
