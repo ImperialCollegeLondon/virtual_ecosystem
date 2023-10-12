@@ -19,10 +19,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.259017816, 0.597087164, 0.972429914, 0.02119301],
+        "soil_c_pool_lmwc": [0.2856888982, 0.6083493583, 1.0312899782, 0.0247322212],
         "soil_c_pool_maom": [0.10296645, 0.04445693, -0.31401747, 0.00422143],
         "soil_c_pool_microbe": [-0.16002809, -0.07621711, -0.36452355, -0.01140071],
-        "soil_c_pool_pom": [-0.25377786, -0.58704913, -0.41245236, -0.01566563],
+        "soil_c_pool_pom": [-0.2271067778, -0.5757869357, -0.3535922958, -0.0121264188],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
@@ -165,21 +165,57 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
     assert np.allclose(binding_coefs, output_coefs)
 
 
-def test_calculate_maintenance_respiration(
-    dummy_carbon_data, moist_scalars, top_soil_layer_index
-):
-    """Check maintenance respiration cost calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_maintenance_respiration
+def test_determine_microbial_biomass_losses(dummy_carbon_data, top_soil_layer_index):
+    """Check that the determination of microbial biomass losses works correctly."""
+    from virtual_rainforest.models.soil.carbon import determine_microbial_biomass_losses
 
-    expected_resps = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
+    expected_maintenance = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
+    expected_pom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
+    expected_maom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
+    expected_decay_to_pom = [0.0266710822, 0.0112621943, 0.0588600642, 0.0035392112]
+    expected_decay_to_lmwc = [0.0266710822, 0.0112621943, 0.0588600642, 0.0035392112]
 
-    main_resps = calculate_maintenance_respiration(
+    losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
 
-    assert np.allclose(main_resps, expected_resps)
+    # Check that each rate matches expectation
+    assert np.allclose(losses.maintenance_synthesis, expected_maintenance)
+    assert np.allclose(losses.pom_enzyme_production, expected_pom_enzyme)
+    assert np.allclose(losses.maom_enzyme_production, expected_maom_enzyme)
+    assert np.allclose(losses.necromass_decay_to_lmwc, expected_decay_to_lmwc)
+    assert np.allclose(losses.necromass_decay_to_pom, expected_decay_to_pom)
+
+    # Then check that sum of other rates is the same as the overall
+    # maintenance_synthesis rate
+    assert np.allclose(
+        losses.maintenance_synthesis,
+        losses.pom_enzyme_production
+        + losses.maom_enzyme_production
+        + losses.necromass_decay_to_lmwc
+        + losses.necromass_decay_to_pom,
+    )
+
+
+def test_calculate_maintenance_biomass_synthesis(
+    dummy_carbon_data, moist_scalars, top_soil_layer_index
+):
+    """Check maintenance respiration cost calculates correctly."""
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_maintenance_biomass_synthesis,
+    )
+
+    expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
+
+    actual_loss = calculate_maintenance_biomass_synthesis(
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_loss, expected_loss)
 
 
 def test_calculate_necromass_adsorption(dummy_carbon_data, moist_scalars):
@@ -211,36 +247,6 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index
     )
 
     assert np.allclose(actual_cues, expected_cues)
-
-
-@pytest.mark.parametrize(
-    "fraction,expected_prods",
-    [
-        (
-            1e-2,
-            [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5],
-        ),
-        (
-            5e-2,
-            [0.002721539, 0.0011492035, 0.006006129, 0.000361144],
-        ),
-        (
-            1e-3,
-            [5.443078e-5, 2.298407e-5, 0.00012012258, 7.22288e-6],
-        ),
-    ],
-)
-def test_calculate_enzyme_production(fraction, expected_prods):
-    """Check that enzyme production rates are calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_enzyme_production
-
-    maintenance_resps = np.array([0.05443078, 0.02298407, 0.12012258, 0.00722288])
-
-    actual_prods = calculate_enzyme_production(
-        maintenance_respiration=maintenance_resps, enzyme_fraction=fraction
-    )
-
-    assert np.allclose(actual_prods, expected_prods)
 
 
 @pytest.mark.parametrize(

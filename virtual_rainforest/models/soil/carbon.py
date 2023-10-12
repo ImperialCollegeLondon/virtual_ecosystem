@@ -4,6 +4,8 @@ Rainforest. At the moment five pools are modelled, these are low molecular weigh
 matter (POM), and POM degrading enzymes.
 """  # noqa: D205, D415
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -17,6 +19,23 @@ from virtual_rainforest.models.soil.env_factors import (
 
 # TODO - Once enzymes are added, temperature dependence of saturation constants should
 # be added.
+
+
+@dataclass
+class MicrobialBiomassLoss:
+    """A data class to store the various biomass losses from microbial biomass."""
+
+    maintenance_synthesis: NDArray[np.float32]
+    """Rate at which biomass must be synthesised to balance losses [kg C m^-3 day^-1].
+    """
+    pom_enzyme_production: NDArray[np.float32]
+    """Rate at which POM degrading enzymes are produced [kg C m^-3 day^-1]."""
+    maom_enzyme_production: NDArray[np.float32]
+    """Rate at which MAOM degrading enzymes are produced [kg C m^-3 day^-1]."""
+    necromass_decay_to_lmwc: NDArray[np.float32]
+    """Rate at which biomass is lost to the LMWC pool [kg C m^-3 day^-1]."""
+    necromass_decay_to_pom: NDArray[np.float32]
+    """Rate at which biomass is lost to the POMM pool [kg C m^-3 day^-1]."""
 
 
 def calculate_soil_carbon_updates(
@@ -100,16 +119,10 @@ def calculate_soil_carbon_updates(
         soil_temp=soil_temp,
         constants=constants,
     )
-    # TODO - This isn't a true carbon loss as some of this goes into enzyme production.
-    # This needs to be properly handled before full carbon tracking can be attempted.
-    microbial_respiration = calculate_maintenance_respiration(
+    biomass_losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
         constants=constants,
-    )
-    pom_enzyme_production = calculate_enzyme_production(
-        maintenance_respiration=microbial_respiration,
-        enzyme_fraction=constants.pom_enzyme_maintenance_fraction,
     )
     pom_enzyme_turnover = calculate_enzyme_turnover(
         enzyme_pool=soil_enzyme_pom, turnover_rate=constants.pom_enzyme_turnover_rate
@@ -135,6 +148,7 @@ def calculate_soil_carbon_updates(
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
+        + biomass_losses.necromass_decay_to_lmwc
         + pom_enzyme_turnover
         - lmwc_to_maom
         - microbial_uptake
@@ -142,12 +156,16 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom + necromass_adsorption
     delta_pools_ordered["soil_c_pool_microbe"] = (
-        microbial_uptake - microbial_respiration - necromass_adsorption
+        microbial_uptake - biomass_losses.maintenance_synthesis - necromass_adsorption
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate - pom_decomposition_to_lmwc
+        mineralisation_rate
+        + biomass_losses.necromass_decay_to_pom
+        - pom_decomposition_to_lmwc
     )
-    delta_pools_ordered["soil_enzyme_pom"] = pom_enzyme_production - pom_enzyme_turnover
+    delta_pools_ordered["soil_enzyme_pom"] = (
+        biomass_losses.pom_enzyme_production - pom_enzyme_turnover
+    )
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
@@ -290,12 +308,17 @@ def calculate_binding_coefficient(
     return 10.0 ** (binding_with_ph_slope * pH + binding_with_ph_intercept)
 
 
-def calculate_maintenance_respiration(
+def determine_microbial_biomass_losses(
     soil_c_pool_microbe: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
-) -> NDArray[np.float32]:
-    """Calculate the maintenance respiration of the microbial pool.
+) -> MicrobialBiomassLoss:
+    """Calculate all of the losses from the microbial biomass pool.
+
+    Microbes need to synthesis new biomass at a certain rate just to maintain their
+    current biomass. This function calculates this overall rate and the various losses
+    that contribute to this rate. The main sources of this loss are the external
+    excretion of enzymes, cell death, and protein degradation.
 
     Args:
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
@@ -303,7 +326,58 @@ def calculate_maintenance_respiration(
         constants: Set of constants for the soil model.
 
     Returns:
-        Total maintenance respiration rate for all microbial biomass [kg C m^-3 day^-1]
+        A dataclass containing all the losses from the microbial biomass pool.
+    """
+
+    # Calculate the rate of maintenance synthesis
+    maintenance_synthesis = calculate_maintenance_biomass_synthesis(
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        soil_temp=soil_temp,
+        constants=constants,
+    )
+
+    # Calculation the production of each enzyme class
+    pom_enzyme_production = constants.maintenance_pom_enzyme * maintenance_synthesis
+    maom_enzyme_production = constants.maintenance_maom_enzyme * maintenance_synthesis
+
+    # Remaining maintenance synthesis is used to replace degraded proteins and cells
+    replacement_synthesis = (
+        1 - constants.maintenance_pom_enzyme - constants.maintenance_maom_enzyme
+    ) * maintenance_synthesis
+
+    # TODO - This split will change when a necromass pool is introduced
+    # These proteins and cells that are replaced decay into either the POM or LMWC pool
+    necromass_to_lmwc = (1 - constants.necromass_to_pom) * replacement_synthesis
+    necromass_to_pom = constants.necromass_to_pom * replacement_synthesis
+
+    return MicrobialBiomassLoss(
+        maintenance_synthesis=maintenance_synthesis,
+        pom_enzyme_production=pom_enzyme_production,
+        maom_enzyme_production=maom_enzyme_production,
+        necromass_decay_to_lmwc=necromass_to_lmwc,
+        necromass_decay_to_pom=necromass_to_pom,
+    )
+
+
+def calculate_maintenance_biomass_synthesis(
+    soil_c_pool_microbe: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    constants: SoilConsts,
+) -> NDArray[np.float32]:
+    """Calculate microbial biomass synthesis rate required to offset losses.
+
+    In order for a microbial population to not decline it must synthesise enough new
+    biomass to offset losses. These losses mostly come from cell death and protein
+    decay, but also include loses due to extracellular enzyme excretion.
+
+    Args:
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate of microbial biomass loss that must be matched to maintain a steady
+        population [kg C m^-3 day^-1]
     """
 
     temp_factor = calculate_temperature_effect_on_microbes(
@@ -315,6 +389,7 @@ def calculate_maintenance_respiration(
     return constants.microbial_turnover_rate * temp_factor * soil_c_pool_microbe
 
 
+# TODO - Once I use maintenance respiration directly I can get rid of this
 def calculate_necromass_adsorption(
     soil_c_pool_microbe: NDArray[np.float32],
     moisture_scalar: NDArray[np.float32],
@@ -358,24 +433,6 @@ def calculate_carbon_use_efficiency(
     """
 
     return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
-
-
-def calculate_enzyme_production(
-    maintenance_respiration: NDArray[np.float32], enzyme_fraction: float
-) -> NDArray[np.float32]:
-    """Calculate the rate of production of a specific enzyme class.
-
-    Args:
-        maintenance_respiration: Maintenance respiration rate for microbial biomass pool
-            [kg C m^-3 day^-1]
-        enzyme_fraction: Fraction of maintenance respiration dedicated to
-            production of the specific enzyme class [unitless]
-
-    Returns:
-        Production rate for the specific enzyme class [kg C m^-3 day^-1]
-    """
-
-    return enzyme_fraction * maintenance_respiration
 
 
 def calculate_enzyme_turnover(
@@ -562,7 +619,7 @@ def calculate_pom_decomposition(
 
     Returns:
         The amount of particulate organic matter (POM) decomposed into labile carbon
-            (LMWC)
+        (LMWC)
     """
 
     # Calculate the two relevant saturations

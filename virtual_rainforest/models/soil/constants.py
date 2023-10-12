@@ -190,14 +190,20 @@ class SoilConsts:
     Value taken from :cite:t:`wang_development_2013`.
     """
 
-    pom_enzyme_maintenance_fraction: float = 1e-2
-    """Fraction of maintenance used to produce POM degrading enzymes [unitless].
+    maintenance_pom_enzyme: float = 1e-2
+    """Fraction of maintenance synthesis used to produce POM degrading enzymes.
 
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
-    maom_enzyme_maintenance_fraction: float = 1e-2
-    """Fraction of maintenance used to produce MAOM degrading enzymes [unitless].
+    maintenance_maom_enzyme: float = 1e-2
+    """Fraction of maintenance synthesis used to produce MAOM degrading enzymes.
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    necromass_to_pom: float = 0.5
+    """Proportion of necromass that flows to POM rather than LMWC [unitless].
 
     Value taken from :cite:t:`wang_development_2013`.
     """
