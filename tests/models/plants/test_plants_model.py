@@ -156,6 +156,7 @@ def test_PlantsModel_update(fxt_plants_model):
         ("layer_heights", (30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
+        ("layer_leaf_mass", 30000 * 4),
         ("layer_absorbed_irradiation", 1000 * 4),
     )
 

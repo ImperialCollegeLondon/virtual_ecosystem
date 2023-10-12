@@ -98,17 +98,17 @@ def test_find_upstream_cells():
             (
                 (
                     ERROR,
-                    "The accumulated surface runoff should not be negative!",
+                    "The accumulated flow should not be negative!",
                 ),
             ),
         ),
     ],
 )
-def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entries):
+def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
     """Test."""
 
     from virtual_rainforest.models.hydrology.above_ground import (
-        accumulate_surface_runoff,
+        accumulate_horizontal_flow,
     )
 
     upstream_ids = {
@@ -125,7 +125,7 @@ def test_accumulate_surface_runoff(caplog, acc_runoff, raises, expected_log_entr
     exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
 
     with raises:
-        result = accumulate_surface_runoff(upstream_ids, surface_runoff, acc_runoff)
+        result = accumulate_horizontal_flow(upstream_ids, surface_runoff, acc_runoff)
         np.testing.assert_array_equal(result, exp_result)
 
     # Final check that expected logging entries are produced
@@ -201,13 +201,13 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
 def test_estimate_interception():
     """Test."""
-    from virtual_rainforest.models.hydrology.above_ground import estimate_interception
+    from virtual_rainforest.models.hydrology.above_ground import calculate_interception
     from virtual_rainforest.models.hydrology.constants import HydroConsts
 
     precip = np.array([0, 20, 100])
     lai = np.array([0, 2, 10])
 
-    result = estimate_interception(
+    result = calculate_interception(
         leaf_area_index=lai,
         precipitation=precip,
         intercept_param_1=HydroConsts.intercept_param_1,
@@ -249,3 +249,40 @@ def test_calculate_bypass_flow():
     exp_result = np.array([4.0, 10.0, 16.0])
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_convert_mm_flow_to_m3_per_second():
+    """Test channel flow conversion."""
+
+    from virtual_rainforest.models.hydrology.above_ground import (
+        convert_mm_flow_to_m3_per_second,
+    )
+
+    channel_flow = np.array([100, 1000, 10000])
+    exp_result = np.array([0.0003858, 0.003858, 0.0385802])
+    result = convert_mm_flow_to_m3_per_second(
+        river_discharge_mm=channel_flow,
+        area=np.array([10000, 10000, 10000]),
+        days=30,
+        seconds_to_day=HydroConsts.seconds_to_day,
+        meters_to_millimeters=1000,
+    )
+
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)
+
+
+def test_calculate_surface_runoff():
+    """Test surface runoff function."""
+
+    from virtual_rainforest.models.hydrology.above_ground import (
+        calculate_surface_runoff,
+    )
+
+    exp_result = np.array([50, 0, 50])
+    result = calculate_surface_runoff(
+        precipitation_surface=np.array([100, 200, 300]),
+        top_soil_moisture=np.array([150, 150, 150]),
+        top_soil_moisture_capacity=np.array([200, 400, 400]),
+    )
+
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

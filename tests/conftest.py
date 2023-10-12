@@ -165,12 +165,32 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
+            DataArray(
+                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                dims=["layers", "cell_id"],
+            ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+    # TODO - Eventually this should replace the dummy soil moisture entirely
+    data["matric_potential"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[-3.0, -10.0, -250.0, -10000.0]], dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": ("layers", layer_roles_fixture),
@@ -343,6 +363,8 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
     data["surface_runoff"] = DataArray([10, 50, 100], dims="cell_id")
+    data["surface_runoff_accumulated"] = DataArray([0, 10, 300], dims="cell_id")
+    data["subsurface_flow_accumulated"] = DataArray([10, 10, 30], dims="cell_id")
     data["soil_moisture"] = xr.concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
@@ -426,77 +448,9 @@ def dummy_climate_data(layer_roles_fixture):
         }
     )
 
+    data["groundwater_storage"] = DataArray(
+        np.full((2, 3), 450),
+        dims=("groundwater_layers", "cell_id"),
+    )
+
     return data
-
-
-@pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
-@pytest.fixture
-def animal_model_instance(data_instance, functional_group_list_instance):
-    """Fixture for an animal model object used in tests."""
-    from pint import Quantity
-
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    return AnimalModel(data_instance, Quantity("1 day"), functional_group_list_instance)
-
-
-@pytest.fixture
-def animal_community_instance(functional_group_list_instance, animal_model_instance):
-    """Fixture for an animal community used in tests."""
-    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-
-    return AnimalCommunity(
-        functional_group_list_instance,
-        0,
-        [0, 1, 3],
-        animal_model_instance.get_community_by_key,
-    )
-
-
-@pytest.fixture
-def herbivore_functional_group_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list[3]
-
-
-@pytest.fixture
-def herbivore_cohort_instance(herbivore_functional_group_instance):
-    """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-
-    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1)
-
-
-@pytest.fixture
-def excrement_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.decay import ExcrementPool
-
-    return ExcrementPool(100000.0, 0.0)
-
-
-@pytest.fixture
-def plant_instance():
-    """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
-
-    return PlantCommunity(10000.0)
