@@ -62,6 +62,7 @@ def test_abiotic_simple_model_initialization(
     layer_roles_fixture,
 ):
     """Test `AbioticSimpleModel` initialization."""
+    from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
@@ -78,14 +79,7 @@ def test_abiotic_simple_model_initialization(
         )
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(
-            [
-                "setup",
-                "spinup",
-                "update",
-                "cleanup",
-            ]
-        ).issubset(dir(model))
+        assert isinstance(model, BaseModel)
         assert model.model_name == "abiotic_simple"
         assert repr(model) == "AbioticSimpleModel(update_interval = 1 week)"
         assert model.layer_roles == layer_roles_fixture

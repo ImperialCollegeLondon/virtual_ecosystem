@@ -32,41 +32,7 @@ def litter_model_fixture(dummy_litter_data):
 
 def test_litter_model_initialization(caplog, dummy_litter_data):
     """Test `LitterModel` initialization."""
-
-    expected_log_entries = (
-        (
-            DEBUG,
-            "litter model: required var 'litter_pool_above_metabolic' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'litter_pool_above_structural' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'litter_pool_woody' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'litter_pool_below_metabolic' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'litter_pool_below_structural' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'lignin_above_structural' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'lignin_woody' checked",
-        ),
-        (
-            DEBUG,
-            "litter model: required var 'lignin_below_structural' checked",
-        ),
-    )
+    from virtual_rainforest.core.base_model import BaseModel
 
     model = LitterModel(
         data=dummy_litter_data,
@@ -77,13 +43,31 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
     )
 
     # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+    assert isinstance(model, BaseModel)
     assert model.model_name == "litter"
     assert str(model) == "A litter model instance"
     assert repr(model) == "LitterModel(update_interval = 1 week)"
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(
+        caplog,
+        expected_log=(
+            (DEBUG, "litter model: required var 'litter_pool_above_metabolic' checked"),
+            (
+                DEBUG,
+                "litter model: required var 'litter_pool_above_structural' checked",
+            ),
+            (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
+            (DEBUG, "litter model: required var 'litter_pool_below_metabolic' checked"),
+            (
+                DEBUG,
+                "litter model: required var 'litter_pool_below_structural' checked",
+            ),
+            (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
+            (DEBUG, "litter model: required var 'lignin_woody' checked"),
+            (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+        ),
+    )
 
 
 def test_litter_model_initialization_no_data(caplog):

@@ -14,6 +14,7 @@ def test_animal_model_initialization(
     caplog, data_instance, functional_group_list_instance
 ):
     """Test `AnimalModel` initialization."""
+    from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
@@ -24,7 +25,7 @@ def test_animal_model_initialization(
     )
 
     # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+    assert isinstance(model, BaseModel)
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
     assert repr(model) == "AnimalModel(update_interval = 1 week)"

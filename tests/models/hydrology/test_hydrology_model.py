@@ -87,6 +87,7 @@ def test_hydrology_model_initialization(
     canopy_layers=10,
 ):
     """Test `HydrologyModel` initialization."""
+    from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.models.hydrology.constants import HydroConsts
     from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
@@ -102,14 +103,7 @@ def test_hydrology_model_initialization(
         )
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(
-            [
-                "setup",
-                "spinup",
-                "update",
-                "cleanup",
-            ]
-        ).issubset(dir(model))
+        assert isinstance(model, BaseModel)
         assert model.model_name == "hydrology"
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
