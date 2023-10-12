@@ -217,12 +217,6 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     schema validation.
     """
 
-    # In order to get consistent logs, the MODULE_REGISTRY needs to be empty, and this
-    # is not true across tests, so purposefully clear the registry
-    from virtual_rainforest.core.registry import MODULE_REGISTRY
-
-    MODULE_REGISTRY.clear()
-
     with pytest.raises(InitialisationError):
         vr_run(cfg_strings=config_content)
 

@@ -108,8 +108,6 @@ def test_registry(caplog, module_name, raises, exp_log):
         register_module,
     )
 
-    MODULE_REGISTRY.clear()
-
     # Get the short name
     _, _, short_name = module_name.rpartition(".")
 

@@ -45,6 +45,20 @@ def log_check(
     )
 
 
+@pytest.fixture(autouse=True)
+def reset_module_registry():
+    """Reset the module registry.
+
+    The register_module function updates the MODULE_REGISTRY, which persists between
+    tests. This autouse fixture is used to ensure that the registry is always cleared
+    before tests start, so that the correct registration of modules within tests is
+    enforced.
+    """
+    from virtual_rainforest.core.registry import MODULE_REGISTRY
+
+    MODULE_REGISTRY.clear()
+
+
 # Shared fixtures
 
 

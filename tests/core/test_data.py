@@ -955,9 +955,10 @@ def test_Data_add_from_dict(dummy_climate_data):
 def test_output_current_state(mocker, dummy_carbon_data, time_index):
     """Test that function to output the current data state works as intended."""
 
-    # Set up the registry and load the soil model
-    import virtual_rainforest.models.soil  # noqa: #F401
-    from virtual_rainforest.core.registry import MODULE_REGISTRY
+    # Set up the registry with the soil model
+    from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+
+    register_module("virtual_rainforest.models.soil")
 
     data_options = {"out_folder_continuous": "."}
 
