@@ -1,9 +1,9 @@
 {
     "type": "object",
     "properties": {
-        "test_module": {}
+        "one_model": {}
     },
     "required": [
-        "test_module"
+        "one_model"
     ]
 }

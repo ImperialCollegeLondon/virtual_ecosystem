@@ -43,6 +43,9 @@ class ModuleInfo:
     constants_classes: dict[str, ConstantsDataclass]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
+    is_core: bool
+    """Logical flag indicating if an instance contains registration information for the
+    core module."""
 
 
 MODULE_REGISTRY: dict[str, ModuleInfo] = {}
@@ -87,7 +90,7 @@ def register_module(module_name: str) -> None:
     _, _, module_name_short = module_name.rpartition(".")
 
     if module_name_short in MODULE_REGISTRY:
-        LOGGER.warning(f"Module already registered: {module_name_short}")
+        LOGGER.warning(f"Module already registered: {module_name}")
         return
 
     # Try and import the module from the name to get a reference to the module
@@ -99,7 +102,7 @@ def register_module(module_name: str) -> None:
 
     is_core = module_name == "virtual_rainforest.core"
 
-    LOGGER.info(f"Registering {module_name} module components")
+    LOGGER.info(f"Registering module: {module_name}")
 
     # Locate _one_ BaseModel class in the module root if this is not the core.
     if is_core:
@@ -133,9 +136,7 @@ def register_module(module_name: str) -> None:
             raise RuntimeError(msg)
 
         # Register the resulting single model class
-        LOGGER.info(
-            f"Registering model class for {module_name_short} model: {model.__name__}"
-        )
+        LOGGER.info(f"Registering model class for {module_name}: {model.__name__}")
 
     # Register the schema
     with resources.as_file(
@@ -151,9 +152,7 @@ def register_module(module_name: str) -> None:
             )
             raise excep
 
-    LOGGER.info(
-        "Schema registered for module %s: %s ", module_name_short, schema_file_path
-    )
+    LOGGER.info("Schema registered for %s: %s ", module_name, schema_file_path)
 
     # Find and register the constant dataclasses
     try:
@@ -176,11 +175,11 @@ def register_module(module_name: str) -> None:
 
         for class_name in constants_classes.keys():
             LOGGER.info(
-                "Constants class registered for module %s: %s ",
-                module_name_short,
+                "Constants class registered for %s: %s ",
+                module_name,
                 class_name,
             )
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
-        model=model, schema=schema, constants_classes=constants_classes
+        model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
     )
