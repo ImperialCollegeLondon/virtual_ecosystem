@@ -422,7 +422,7 @@ class Config(dict):
         `core.modules` entry, using the core schema default if this entry is missing.
         This sets the requested modules to be used in the configured model. The schemas
         for the requested modules are then loaded and combined using the
-        :meth:`~virtual_rainforest.core.config.merge_schemas` function to generate a
+        :meth:`~virtual_rainforest.core.schema.merge_schemas` function to generate a
         single validation schema for model configuration.
         """
 

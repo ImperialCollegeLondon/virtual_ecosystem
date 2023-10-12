@@ -1,11 +1,11 @@
 """The :mod:`~virtual_rainforest.core.schema` module  provides tools for handling the
 JSON schemas used to validate model configuration documents. The
 :func:`~virtual_rainforest.core.schema.load_schema` and
-:func:`~virtual_rainforest.core.schema.merge_schema` functions are used to load schema
+:func:`~virtual_rainforest.core.schema.merge_schemas` functions are used to load schema
 documents and then build a single JSONSchema across the models used in a simulation.
 
 The resulting merged schema is then used with the
-:data:`~virtual_rainforest.core.registry.ValidatorWithDefaults` JSON schema validator.
+:data:`~virtual_rainforest.core.schema.ValidatorWithDefaults` JSON schema validator.
 This has been extended using the :func:`~virtual_rainforest.core.schema.set_defaults`
 iterator to provide a global JSONSchema validator instance that fills in missing entries
 in configuration documents from default values provided in the schemas.

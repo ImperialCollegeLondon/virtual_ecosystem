@@ -16,7 +16,7 @@ from virtual_rainforest.core.constants_class import ConstantsDataclass
 
 @dataclass(frozen=True)
 class CoreConsts(ConstantsDataclass):
-    """Core constants for use across the :mod:`virtual_rainforest` modules."""
+    """Core constants for use across the Virtual Rainforest modules."""
 
     zero_Celsius: ClassVar[float] = constants.zero_Celsius
     """Conversion constant from Kelvin to Celsius (°)."""

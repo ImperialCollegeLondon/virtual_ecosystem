@@ -76,7 +76,7 @@ Models have three core components: the
 :class:`~virtual_rainforest.core.base_model.BaseModel` subclass itself (``model``),
 a JSON schema for validating the model configuration (``schema``) and an optional set of
 user modifiable constants classes (``constants``, see
-:class:`~virtual_rainforest.core.constants_classes.ConstantsDataclass`). All model
+:class:`~virtual_rainforest.core.constants_class.ConstantsDataclass`). All model
 modules must register these components when they are imported: see the
 :mod:`~virtual_rainforest.core.registry` module.
 """  # noqa: D205, D415
