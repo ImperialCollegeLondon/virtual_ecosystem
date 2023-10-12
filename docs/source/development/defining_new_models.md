@@ -14,11 +14,11 @@ kernelspec:
 
 # Creating new Virtual Rainforest models
 
-The Virtual Rainforest initially contains a set of models defining four core components
-of the rainforest: the `abiotic`, `animals`, `plants` and `soil` models. However, the
-simulation is designed to be modular:
+The Virtual Rainforest initially contains a set of models defining core components of
+the rainforest, examples include the `abiotic`, `animals`, `plants` and `soil` models.
+However, the simulation is designed to be modular:
 
-* Different combinations of models can be configured for a particular simulation, and
+* Different combinations of models can be configured for a particular simulation.
 * New models can be defined in order to extend the simulation or alter the implemention:
   examples of new functionality might be `freshwater` or `disturbance` models.
 
@@ -41,7 +41,7 @@ to add other python modules containing different parts of the module functionali
   `virtual_rainforest` package.
 * A python module  `{model_name}_model.py` that will contain the main model
   object.
-* A JSON Schema file defining the model configuration, called `model_schema.json`.
+* A JSON Schema file defining the model configuration, called `schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model.
 
 For example:
@@ -49,7 +49,7 @@ For example:
 ```bash
 touch virtual_rainforest/models/freshwater/__init__.py
 touch virtual_rainforest/models/freshwater/freshwater_model.py
-touch virtual_rainforest/models/freshwater/model_schema.json
+touch virtual_rainforest/models/freshwater/schema.json
 touch virtual_rainforest/models/freshwater/constants.py
 ```
 
@@ -63,13 +63,13 @@ therefore use a framework for constants that allows constant values to be config
 any given simulation.
 
 Each model needs to define a `constants.py` module that will define  one or more
-constants _dataclasses_, using the {func}`dataclasses.dataclass` decorator. Dataclasses
-provide an simple way to define a class containing a set of named constant attributes
-with default values. However, when an instance of a dataclass is created, it can be
-provided with an alternative value for an attribute, allowing default values to be
-overridden by the configuration for a particular simulation. All constant dataclasses
-must be configured to be _frozen_: the resulting dataclass instance can be configured
-when it is created, but cannot be altered while a simulation is running.
+constants _dataclasses_. Dataclasses provide an simple way to define a class containing
+a set of named constant attributes with default values. However, when an instance of a
+dataclass is created, it can be provided with an alternative value for an attribute,
+allowing default values to be overridden by the configuration for a particular
+simulation. All constant dataclasses must be configured to be _frozen_: the resulting
+dataclass instance can be configured when it is created, but cannot be altered while a
+simulation is running.
 
 The constants for a module can be stored in a single data class or spread over multiple
 data classes. However, having a large number of data classes is likely to make the
@@ -84,11 +84,11 @@ class also provides the
 which validates a configuration dictionary against the dataclass definition and returns
 a configured dataclass instance.
 
-Constants dataclasses can also provide truly universal constants that you do not want to
-be configurable. This can be done by explicitly typing a constants attribute as a class
-variable. All instances of the constants dataclass will provide the value, but it cannot
-be altered through configuration. Be aware that untyped attributes are also treated as
-class attributes but we prefer that class attributes are explicitly typed.
+Constants dataclasses can also provide truly universal constants that you explicitly do
+not want users to be able to alter. This can be done by  typing a constants attribute as
+a class variable. All instances of the constants dataclass will provide the value, but
+it cannot be altered through configuration. Be aware that untyped attributes are also
+treated as class attributes but we prefer that class attributes are explicitly typed.
 
 Putting all of these components together, the contents of a `constants.py` file will
 look like the following code:
@@ -101,7 +101,7 @@ from virtual_rainforest.core.constants_class import ConstantsDataclass
 
 # Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
-class ExampleConsts(ConstantsDataclass):
+class FreshwaterConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `example_model` model."""
     
     # Constants must be typed, to make them configurable instance attributes.
@@ -151,6 +151,11 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
+
+# You will likely also have a set of imports of model specific code such as constants 
+# classes and other classes and functions. For example:
+from virtual_rainforest.models.freshwater.constants import FreshwaterConsts
+from virtual_rainforest.models.freshwater.streamflow import calculate_streamflow
 ```
 
 ### Defining the new class and class attributes
@@ -365,7 +370,8 @@ properties.
 Configuration files are used to create a configuration object (see
 {class}`~virtual_rainforest.core.config.Config`), which contains details of the
 configuration process but also provides a dictionary interface to the configuration
-data. So, the example above might result in a `Config` object with the following data.
+data. So, the example above might result in a `Config` object with the following model
+specific data.
 
 ```python
 {'freshwater': {'update_interval': "1 month",  "no_of_ponds": 3}}
@@ -456,12 +462,12 @@ Lastly, you will need to set up the `__init__.py` file in the submodule director
 file is used to tell Python that the directory contains a package submodule, but can
 also be used to supply code that is automatically run when a module is imported.
 
-In the Virtual Rainforest, we use the `__init__.py` file in model submodules to register
-the model components in the {data}`~virtual_rainforest.core.registry.MODULE_REGISTRY`.
-This is a global dictionary that is used as a lookup table for the model schema,
-constants and core model object and, to ensure that it contains all that information for
-models that are being used, the `__init__.py` must contain code to populate the registry
-when the model is imported. The template for the file contents is:
+In the Virtual Rainforest, we use the `__init__.py` file in model submodules to:
+
+* provide a brief overview of the module, and
+* import the model object into the module root to make it easier to import.
+
+The file will look something like:
 
 ```{code-block} python
 """This is the freshwater model module. The module level docstring should contain a 
@@ -469,15 +475,16 @@ short description of the overall model design and purpose, and link to key compo
 and how they interact.
 """  # noqa: D204, D415
 
-from virtual_rainforest.core.registry import register_module
-from virtual_rainforest.models.freshwater.freshwater_model import FreshwaterModel
-
-register_module(module_name=__name__, model=FreshwaterModel)
+from virtual_rainforest.models.freshwater.freshwater_model import (  # noqa: F401
+    FreshwaterModel,
+)  
 ```
 
-Briefly, this imports the main BaseModel subclass for the subclass and then passes it on
-to the {func}`~virtual_rainforest.core.registry.register_module`. This automatically
+Under the hood, when a given model is used in a simulation, then the configuration
+process automatically loads all of the model components for that model using the
+{func}`~virtual_rainforest.core.registry.register_module` function. This automatically
 loads and validates the model schema, discovers any
 {class}`~virtual_rainforest.core.constants_class.ConstantsDataclass` in the `constants`
-submodule and then adds those, along with the BaseModel subclass to the
-{data}`~virtual_rainforest.core.registry.MODULE_REGISTRY`.
+submodule and then adds those, along with the BaseModel subclass to a central
+{data}`~virtual_rainforest.core.registry.MODULE_REGISTRY` object, which is used to allow
+the simulation code to easily access model components.
