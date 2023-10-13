@@ -138,8 +138,8 @@ def remove_file_logger() -> None:
     except StopIteration:
         return
 
-    LOGGER.removeHandler(vr_logfile)
     vr_logfile.close()
+    LOGGER.removeHandler(vr_logfile)
 
     # Allow logger messages to propogate back down to the root StreamHandler
     LOGGER.propagate = True
