@@ -17,9 +17,6 @@ from virtual_rainforest.models.soil.env_factors import (
     convert_moisture_to_scalar,
 )
 
-# TODO - Once enzymes are added, temperature dependence of saturation constants should
-# be added.
-
 
 @dataclass
 class MicrobialBiomassLoss:
@@ -65,8 +62,8 @@ def calculate_soil_carbon_updates(
         soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
-        soil_enzyme_pom: Amount of enzyme that breaks down particulate organic matter
-            [kg C m^-3]
+        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
+            matter [kg C m^-3]
         pH: pH values for each soil grid cell
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
@@ -132,9 +129,10 @@ def calculate_soil_carbon_updates(
         moisture_scalar=moist_scalar,
         leaching_rate=constants.leaching_rate_labile_carbon,
     )
+    # TODO - POM decomposition should not only be to LMWC
     pom_decomposition_to_lmwc = calculate_pom_decomposition(
         soil_c_pool_pom=soil_c_pool_pom,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        soil_enzyme_pom=soil_enzyme_pom,
         water_factor=water_factor,
         soil_temp=soil_temp,
         constants=constants,
@@ -446,56 +444,7 @@ def calculate_microbial_saturation(
     return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
 
 
-def calculate_microbial_pom_mineralisation_saturation(
-    soil_c_pool_microbe: NDArray[np.float32],
-    half_sat_microbial_mineralisation: float,
-) -> NDArray[np.float32]:
-    """Calculate microbial POM mineralisation saturation (with increasing biomass).
-
-    This ensures that microbial mineralisation of POM (per unit biomass) drops as
-    biomass density increases. This is adopted from Abramoff et al. This function is
-    very similar to the
-    :func:`~virtual_rainforest.models.soil.carbon.calculate_microbial_saturation`
-    function. They could in theory be reworked into a single function, but it doesn't
-    seem worth the effort as we do not anticipate using biomass saturation functions
-    beyond the first model draft.
-
-    Args:
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        half_sat_microbial_mineralisation: Half saturation constant for microbial
-            mineralisation of POM
-
-    Returns:
-        A rescaling of microbial biomass that takes into account POM mineralisation rate
-        saturation with increasing biomass density
-    """
-
-    return soil_c_pool_microbe / (
-        soil_c_pool_microbe + half_sat_microbial_mineralisation
-    )
-
-
-def calculate_pom_decomposition_saturation(
-    soil_c_pool_pom: NDArray[np.float32],
-    half_sat_pom_decomposition: float,
-) -> NDArray[np.float32]:
-    """Calculate particulate organic matter (POM) decomposition saturation.
-
-    This ensures that decomposition of POM to low molecular weight carbon (LMWC)
-    saturates with increasing POM. This effect arises from the saturation of enzymes
-    with increasing substrate.
-
-    Args:
-        soil_c_pool_pom: Particulate organic matter (carbon) pool [kg C m^-3]
-        half_sat_pom_decomposition: Half saturation constant for POM decomposition
-
-    Returns:
-        The saturation of the decomposition process
-    """
-
-    return soil_c_pool_pom / (soil_c_pool_pom + half_sat_pom_decomposition)
-
-
+# TODO - This function also needs reworking
 def calculate_microbial_carbon_uptake(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -570,21 +519,26 @@ def calculate_labile_carbon_leaching(
     return leaching_rate * moisture_scalar * soil_c_pool_lmwc
 
 
+# TODO - Should consider making this a generic function, i.e. not POM specific
+# TODO - As a first pass we are ignoring the clay and pH factors here. Once I've sorted
+# the temperature factors I should add them.
 def calculate_pom_decomposition(
     soil_c_pool_pom: NDArray[np.float32],
-    soil_c_pool_microbe: NDArray[np.float32],
+    soil_enzyme_pom: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
-    """Calculate decomposition of particulate organic matter into labile carbon (LMWC).
+    """Calculate rate of particulate organic matter decomposition.
 
-    This is adopted from Abramoff et al. We definitely want to change this down the line
-    to something that uses enzymes explicitly.
+    This function calculates various environmental factors that effect enzyme activity,
+    then uses these to find environmental adjusted rate and saturation constants. These
+    are then used to find the POM decomposition rate.
 
     Args:
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
+            matter [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
@@ -595,25 +549,25 @@ def calculate_pom_decomposition(
         (LMWC)
     """
 
-    # Calculate the two relevant saturations
-    saturation_with_biomass = calculate_microbial_pom_mineralisation_saturation(
-        soil_c_pool_microbe, constants.half_sat_microbial_pom_mineralisation
-    )
-    saturation_with_pom = calculate_pom_decomposition_saturation(
-        soil_c_pool_pom, constants.half_sat_pom_decomposition
-    )
-
-    # Calculate the impact of temperature on the rate
-    temp_factor = calculate_temperature_effect_on_microbes(
+    # Calculate the factors which impact the rate and saturation constants
+    temp_factor_rate = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_pom_decomp,
+        activation_energy=constants.activation_energy_pom_decomp_rate,
+        reference_temperature=constants.arrhenius_reference_temp,
+    )
+    temp_factor_saturation = calculate_temperature_effect_on_microbes(
+        soil_temperature=soil_temp,
+        activation_energy=constants.activation_energy_pom_decomp_saturation,
         reference_temperature=constants.arrhenius_reference_temp,
     )
 
+    # Calculate the adjusted rate and saturation constants
+    rate_constant = constants.max_decomp_rate_pom * temp_factor_rate * water_factor
+    saturation_constant = constants.half_sat_pom_decomposition * temp_factor_saturation
+
     return (
-        constants.max_decomp_rate_pom
-        * saturation_with_pom
-        * saturation_with_biomass
-        * water_factor
-        * temp_factor
+        rate_constant
+        * soil_enzyme_pom
+        * soil_c_pool_pom
+        / (saturation_constant + soil_c_pool_pom)
     )

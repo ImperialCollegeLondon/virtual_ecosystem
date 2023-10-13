@@ -222,7 +222,7 @@ def test_soil_model_initialization(
                 },
             },
             pint.Quantity("12 hours"),
-            0.2,
+            60.0,
             does_not_raise(),
             (
                 (
@@ -403,17 +403,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.1502544, 0.30981779, 0.54905976, 0.01720145], dims="cell_id"
+                        [0.06586076, 0.03315667, 0.2746924, 0.00681042], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49626565, 1.69807102, 4.27549122, 0.50013555], dims="cell_id"
+                        [2.49714781, 1.69664147, 4.36360871, 0.50002117], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77621702, 2.29382118, 11.24667052, 0.99641455],
+                        [5.77467395, 2.28937409, 11.24397935, 0.99640541],
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.02799626, 0.71863676, 0.52836946, 0.34396149], dims="cell_id"
+                        [0.11307659, 1.0012327, 0.71733366, 0.3544765], dims="cell_id"
                     ),
                     enzyme_pom=DataArray(
                         [0.02267844, 0.00957582, 0.05004954, 0.00300993], dims="cell_id"
@@ -526,10 +526,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        0.285312441,
-        0.604139906,
-        0.628571415,
-        2.47404600e-02,
+        3.18353462e-02,
+        2.58553974e-02,
+        0.239864016,
+        3.65417054e-03,
         -5.40856802e-3,
         -5.81942847e-3,
         -0.159994002,
@@ -538,10 +538,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         -2.17193460e-2,
         -0.115733902,
         -7.20535616e-3,
-        -0.227106777,
-        -0.575786938,
-        -0.353592292,
-        -1.21264202e-2,
+        2.63703183e-02,
+        2.49757017e-03,
+        3.51151076e-02,
+        8.95986922e-03,
         1.17571917e-8,
         1.67442231e-8,
         1.83311362e-9,

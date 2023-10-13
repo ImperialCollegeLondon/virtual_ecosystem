@@ -27,11 +27,11 @@ def water_factors(dummy_carbon_data, top_soil_layer_index):
         calculate_water_potential_impact_on_microbes,
     )
 
-    moist_scalars = calculate_water_potential_impact_on_microbes(
+    water_factors = calculate_water_potential_impact_on_microbes(
         water_potential=dummy_carbon_data["matric_potential"][top_soil_layer_index],
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
         moisture_response_curvature=SoilConsts.moisture_response_curvature,
     )
 
-    return moist_scalars
+    return water_factors

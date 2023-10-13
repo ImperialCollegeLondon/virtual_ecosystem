@@ -83,14 +83,8 @@ class SoilConsts:
     Units of [kg C m^-2].
     """
 
-    half_sat_microbial_pom_mineralisation: float = 0.012
-    """Half saturation constant for microbial POM mineralisation [kg C m^-2]."""
-
     leaching_rate_labile_carbon: float = 1.5e-3
     """Leaching rate for labile carbon (lmwc) [day^-1]."""
-
-    half_sat_pom_decomposition: float = 0.150
-    """Half saturation constant for POM decomposition to LMWC [kg C m^-2]."""
 
     soil_microbe_water_potential_optimum: float = -3.0
     """The water potential at which soil microbial rates are maximised [kPa].
@@ -138,20 +132,34 @@ class SoilConsts:
     """
 
     # TODO - Add another set of constants once we start tracking lignin
-    max_decomp_rate_pom: float = 0.2
+    half_sat_pom_decomposition: float = 70.0
+    """Half saturation constant for POM decomposition to LMWC [kg C m^-2].
+
+    This was calculated from the value provided in :cite:t:`wang_development_2013`
+    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
+    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
+    is given by :attr:`activation_energy_pom_decomp_saturation`.
+    """
+
+    activation_energy_pom_decomp_saturation: float = 30000
+    """Activation energy for decomposition of particulate organic matter [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
+    # TODO - Add another set of constants once we start tracking lignin
+    max_decomp_rate_pom: float = 60.0
     """Maximum rate for particulate organic matter break down (at reference temp).
 
     Units of [day^-1]. The reference temperature is given by
     :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
-    by :attr:`activation_energy_pom_decomp`.
-
-    TODO - Once enzymes are included this should take the value of 200.0 [day^-1].
+    by :attr:`activation_energy_pom_decomp_rate`.
 
     TODO - Source of this constant is not completely clear, investigate this further
     once lignin chemistry is added.
     """
 
-    activation_energy_pom_decomp: float = 37000
+    activation_energy_pom_decomp_rate: float = 37000
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.

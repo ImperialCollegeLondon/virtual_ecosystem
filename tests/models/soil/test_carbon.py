@@ -19,10 +19,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.2856888982, 0.6083493583, 1.0312899782, 0.0247322212],
+        "soil_c_pool_lmwc": [0.03221181, 0.03006485, 0.64258258, 0.00364594],
         "soil_c_pool_maom": [-5.788721e-3, -1.004083e-2, -0.5628071, 2.607437e-5],
         "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
-        "soil_c_pool_pom": [-0.2271067778, -0.5757869357, -0.3535922958, -0.0121264188],
+        "soil_c_pool_pom": [0.02637032, 0.00249757, 0.03511511, 0.00895987],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
@@ -276,37 +276,6 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
     assert np.allclose(actual_saturated, expected_saturated)
 
 
-def test_calculate_microbial_pom_mineralisation_saturation(dummy_carbon_data):
-    """Check microbial mineralisation saturation calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import (
-        calculate_microbial_pom_mineralisation_saturation,
-    )
-
-    expected_saturated = [0.99793530, 0.99480968, 0.99893917, 0.98814229]
-
-    actual_saturated = calculate_microbial_pom_mineralisation_saturation(
-        dummy_carbon_data["soil_c_pool_microbe"],
-        SoilConsts.half_sat_microbial_pom_mineralisation,
-    )
-
-    assert np.allclose(actual_saturated, expected_saturated)
-
-
-def test_calculate_pom_decomposition_saturation(dummy_carbon_data):
-    """Check POM decomposition saturation calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import (
-        calculate_pom_decomposition_saturation,
-    )
-
-    expected_saturated = [0.4, 0.86956521, 0.82352941, 0.7]
-
-    actual_saturated = calculate_pom_decomposition_saturation(
-        dummy_carbon_data["soil_c_pool_pom"], SoilConsts.half_sat_pom_decomposition
-    )
-
-    assert np.allclose(actual_saturated, expected_saturated)
-
-
 def test_calculate_microbial_carbon_uptake(
     dummy_carbon_data, top_soil_layer_index, water_factors
 ):
@@ -347,11 +316,11 @@ def test_calculate_pom_decomposition(
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
 
-    expected_decomp = [0.25589892, 0.58810966, 0.41294236, 0.02116563]
+    expected_decomp = [0.002421821, 0.009825156, 0.024234958, 7.934357e-5]
 
     actual_decomp = calculate_pom_decomposition(
-        dummy_carbon_data["soil_c_pool_pom"],
-        dummy_carbon_data["soil_c_pool_microbe"],
+        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         water_factor=water_factors,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
