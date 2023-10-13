@@ -1,4 +1,16 @@
-"""Testing the logger functions."""
+"""Testing the logger functions.
+
+Note the use of the autouse teardown_hook fixture. This  acts as a safeguard against
+failing tests leaving active file loggers on the vr LOGGER instance, which then causes
+interference _between_ tests. Each individual test should clear up its own logger setup
+but if a test fails, this fixture should tidy up and stop logger issues propagating
+across tests.
+
+In addition, Windows cannot exit ``with TemporaryDirectory`` blocks cleanly while the
+file being used by a FileHandler is still open, so these need to explicitly closed down
+using ``remove_file_handler`` inside the ``with`` rather than relying on the teardown
+hook to close the file when the test exits.
+"""
 
 from logging import INFO
 from pathlib import Path
@@ -9,24 +21,25 @@ import pytest
 from tests.conftest import log_check
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def teardown_hook():
-    """Logger test teardown hook.
-
-    Does not provide anything but acts as a teardown to remove file handlers if the
-    tests fail for some reason.
-    """
+    """Logger test teardown hook."""
     from virtual_rainforest.core.logger import remove_file_logger
 
     yield
+
     # Code following the yield will be executed by pytest during test cleanup, so should
     # remove any remaining file loggers.
     remove_file_logger()
 
 
-def test_add_file_logger(teardown_hook):
+def test_add_file_logger():
     """Test the add_file_logger function works."""
-    from virtual_rainforest.core.logger import LOGGER, add_file_logger
+    from virtual_rainforest.core.logger import (
+        LOGGER,
+        add_file_logger,
+        remove_file_logger,
+    )
 
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / "test_add_file_logger.log"
@@ -44,13 +57,16 @@ def test_add_file_logger(teardown_hook):
             assert len(contents) == 1
             assert (
                 contents[0]
-                == "[INFO] - test_logger - test_add_file_logger(34) - Message logged\n"
+                == "[INFO] - test_logger - test_add_file_logger(47) - Message logged\n"
             )
 
+        # Close the logger to shut down open files within the TemporaryDirectory block
+        remove_file_logger()
 
-def test_add_file_logger_twice_fails(teardown_hook):
+
+def test_add_file_logger_twice_fails():
     """Test that add_logger function works."""
-    from virtual_rainforest.core.logger import add_file_logger
+    from virtual_rainforest.core.logger import add_file_logger, remove_file_logger
 
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / "test_add_file_logger.log"
@@ -61,8 +77,11 @@ def test_add_file_logger_twice_fails(teardown_hook):
 
         assert str(excep.value).startswith("Already logging to file:")
 
+        # Close the logger to shut down open files within the TemporaryDirectory block
+        remove_file_logger()
 
-def test_remove_file_logger(caplog, teardown_hook):
+
+def test_remove_file_logger(caplog):
     """Tests that remove_file_logger behaves as expected."""
     from virtual_rainforest.core.logger import (
         LOGGER,
@@ -93,5 +112,5 @@ def test_remove_file_logger(caplog, teardown_hook):
         )
 
         # Check that calling remove_file_logger works cleanly when there is no existing
-        # file logger
+        # file logger.
         remove_file_logger()
