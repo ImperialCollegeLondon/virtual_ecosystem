@@ -108,6 +108,8 @@ nitpick_ignore = [
     ("py:class", "numpy.float32"),
     # TODO - Delete this once Vivienne has merged this feature into develop
     ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
+    # Something off about JSONSchema intersphinx mapping?
+    ("py:obj", "virtual_rainforest.core.schema.ValidatorWithDefaults.ID_OF"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),

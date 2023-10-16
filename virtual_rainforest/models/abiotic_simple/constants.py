@@ -6,9 +6,11 @@ in that they should not be changed during a particular simulation.
 
 from dataclasses import dataclass
 
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
 
 @dataclass(frozen=True)
-class AbioticSimpleConsts:
+class AbioticSimpleConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
     air_temperature_gradient: float = -1.27

@@ -1,0 +1,9 @@
+{
+    "type": "object",
+    "properties": {
+        "one_model": {}
+    },
+    "required": [
+        "one_model"
+    ]
+}

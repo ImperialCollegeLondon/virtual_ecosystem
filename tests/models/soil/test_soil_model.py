@@ -1,8 +1,7 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from copy import deepcopy
-from logging import DEBUG, ERROR, INFO
+from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
 import pint
@@ -12,341 +11,227 @@ from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.models.soil.constants import SoilConsts
-from virtual_rainforest.models.soil.soil_model import IntegrationError, SoilModel
+from virtual_rainforest.models.soil.soil_model import IntegrationError
 
 
 @pytest.fixture
 def soil_model_fixture(dummy_carbon_data):
     """Create a soil model fixture based on the dummy carbon data."""
 
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
-    config = {
-        "core": {
-            "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
-            "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
-        },
-    }
-    return SoilModel.from_config(dummy_carbon_data, config, pint.Quantity("12 hours"))
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.abiotic_simple")
+    # Build the config object
+    config = Config(
+        cfg_strings="[core]\nmodules=['soil']\n"
+        "[core.timing]\nupdate_interval = '12 hours'"
+    )
+
+    return SoilModel.from_config(
+        data=dummy_carbon_data, config=config, update_interval=pint.Quantity("12 hours")
+    )
 
 
-@pytest.mark.parametrize(
-    "bad_data,raises,expected_log_entries",
-    [
-        (
-            [],
-            does_not_raise(),
-            (
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
-            ),
+def test_soil_model_initialization(caplog, dummy_carbon_data):
+    """Test `SoilModel` initialization with good data."""
+
+    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.models.soil.constants import SoilConsts
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    model = SoilModel(
+        dummy_carbon_data,
+        pint.Quantity("1 week"),
+        [-0.5, -1.0],
+        10,
+        constants=SoilConsts,
+    )
+
+    # In cases where it passes then checks that the object has the right properties
+    assert isinstance(model, BaseModel)
+    assert hasattr(model, "integrate")
+    assert model.model_name == "soil"
+    assert str(model) == "A soil model instance"
+    assert repr(model) == "SoilModel(update_interval = 1 week)"
+
+    # Final check that expected logging entries are produced
+    log_check(
+        caplog,
+        expected_log=(
+            (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+            (DEBUG, "soil model: required var 'pH' checked"),
+            (DEBUG, "soil model: required var 'bulk_density' checked"),
+            (DEBUG, "soil model: required var 'percent_clay' checked"),
         ),
-        (
-            1,
-            pytest.raises(ValueError),
-            (
-                (
-                    ERROR,
-                    "soil model: init data missing required var " "'soil_c_pool_maom'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var " "'soil_c_pool_lmwc'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var "
-                    "'soil_c_pool_microbe'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var " "'soil_c_pool_pom'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var 'pH'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var 'bulk_density'",
-                ),
-                (
-                    ERROR,
-                    "soil model: init data missing required var 'percent_clay'",
-                ),
-                (
-                    ERROR,
-                    "soil model: error checking required_init_vars, see log.",
-                ),
-            ),
-        ),
-        (
-            2,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    INFO,
-                    "Replacing data array for 'soil_c_pool_lmwc'",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
-                (
-                    ERROR,
-                    "Initial carbon pools contain at least one negative value!",
-                ),
-            ),
-        ),
-    ],
-)
-def test_soil_model_initialization(
-    caplog, dummy_carbon_data, bad_data, raises, expected_log_entries
-):
-    """Test `SoilModel` initialization."""
+    )
+
+
+def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
+    """Test `SoilModel` initialization with no data."""
 
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.models.soil.constants import SoilConsts
+    from virtual_rainforest.models.soil.soil_model import SoilModel
 
-    with raises:
-        # Initialize model
-        if bad_data:
-            # Make four cell grid
-            grid = Grid(cell_nx=4, cell_ny=1)
-            carbon_data = Data(grid)
-            # On second test actually populate this data to test bounds
-            if bad_data == 2:
-                carbon_data = deepcopy(dummy_carbon_data)
-                # Put incorrect data in for lmwc
-                carbon_data["soil_c_pool_lmwc"] = DataArray(
-                    [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
-                )
-            # Initialise model with bad data object
-            model = SoilModel(
-                carbon_data,
-                pint.Quantity("1 week"),
-                [-0.5, -1.0],
-                10,
-                constants=SoilConsts,
-            )
-        else:
-            model = SoilModel(
-                dummy_carbon_data,
-                pint.Quantity("1 week"),
-                [-0.5, -1.0],
-                10,
-                constants=SoilConsts,
-            )
+    with pytest.raises(ValueError):
+        # Make four cell grid
+        grid = Grid(cell_nx=4, cell_ny=1)
+        empty_data = Data(grid)
 
-        # In cases where it passes then checks that the object has the right properties
-        assert set(["setup", "spinup", "update", "cleanup", "integrate"]).issubset(
-            dir(model)
+        # Try and initialise model with empty data object
+        _ = SoilModel(
+            empty_data,
+            pint.Quantity("1 week"),
+            [-0.5, -1.0],
+            10,
+            constants=SoilConsts,
         )
-        assert model.model_name == "soil"
-        assert str(model) == "A soil model instance"
-        assert repr(model) == "SoilModel(update_interval = 1 week)"
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(
+        caplog,
+        expected_log=(
+            (ERROR, "soil model: init data missing required var 'soil_c_pool_maom'"),
+            (ERROR, "soil model: init data missing required var 'soil_c_pool_lmwc'"),
+            (ERROR, "soil model: init data missing required var 'soil_c_pool_microbe'"),
+            (ERROR, "soil model: init data missing required var 'soil_c_pool_pom'"),
+            (ERROR, "soil model: init data missing required var 'pH'"),
+            (ERROR, "soil model: init data missing required var 'bulk_density'"),
+            (ERROR, "soil model: init data missing required var 'percent_clay'"),
+            (ERROR, "soil model: error checking required_init_vars, see log."),
+        ),
+    )
+
+
+def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
+    """Test `SoilModel` initialization."""
+
+    from virtual_rainforest.models.soil.constants import SoilConsts
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    with pytest.raises(InitialisationError):
+        # Put incorrect data in for lmwc
+        dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+            [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
+        )
+
+        # Initialise model with bad data object
+        _ = SoilModel(
+            dummy_carbon_data,
+            pint.Quantity("1 week"),
+            [-0.5, -1.0],
+            10,
+            constants=SoilConsts,
+        )
+
+    # Final check that expected logging entries are produced
+    log_check(
+        caplog,
+        expected_log=(
+            (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+            (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+            (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+            (DEBUG, "soil model: required var 'pH' checked"),
+            (DEBUG, "soil model: required var 'bulk_density' checked"),
+            (DEBUG, "soil model: required var 'percent_clay' checked"),
+            (ERROR, "Initial carbon pools contain at least one negative value!"),
+        ),
+    )
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,max_decomp,raises,expected_log_entries",
+    "cfg_string,time_interval,max_decomp,raises,expected_log_entries",
     [
-        (
-            {},
-            None,
-            None,
-            pytest.raises(KeyError),
-            (),  # This error isn't handled so doesn't generate logging
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
-                    },
-                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
-                },
-            },
+        pytest.param(
+            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n",
             pint.Quantity("12 hours"),
             0.2,
             does_not_raise(),
             (
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
+                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+                (DEBUG, "soil model: required var 'pH' checked"),
+                (DEBUG, "soil model: required var 'bulk_density' checked"),
+                (DEBUG, "soil model: required var 'percent_clay' checked"),
             ),
+            id="default_config",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
-                    },
-                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
-                },
-                "soil": {"constants": {"SoilConsts": {"max_decomp_rate_pom": 0.05}}},
-            },
+        pytest.param(
+            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n"
+            "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05\n",
             pint.Quantity("12 hours"),
             0.05,
             does_not_raise(),
             (
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
+                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+                (DEBUG, "soil model: required var 'pH' checked"),
+                (DEBUG, "soil model: required var 'bulk_density' checked"),
+                (DEBUG, "soil model: required var 'percent_clay' checked"),
             ),
+            id="modified_config_correct",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "12 hours",
-                    },
-                    "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
-                },
-                "soil": {"constants": {"SoilConsts": {"max_decomp_rate": 0.05}}},
-            },
+        pytest.param(
+            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n"
+            "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
             None,
             pytest.raises(ConfigurationError),
             (
-                (
-                    ERROR,
-                    "Unknown names supplied for SoilConsts: max_decomp_rate",
-                ),
-                (
-                    INFO,
-                    "Valid names are as follows: ",
-                ),
+                (ERROR, "Unknown names supplied for SoilConsts: max_decomp_rate"),
+                (INFO, "Valid names are: "),
+                (CRITICAL, "Could not initialise soil.SoilConsts from config"),
             ),
+            id="modified_config_incorrect",
         ),
     ],
 )
 def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
-    config,
+    cfg_string,
     time_interval,
     max_decomp,
     raises,
     expected_log_entries,
 ):
     """Test that the function to initialise the soil model behaves as expected."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.soil")
+
+    # Build the config object
+    config = Config(cfg_strings=cfg_string)
+    caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
@@ -464,9 +349,14 @@ def test_integrate_soil_model(
 def test_order_independance(dummy_carbon_data, soil_model_fixture):
     """Check that pool order in the data object doesn't change integration result."""
 
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
+    from virtual_rainforest.core.registry import register_module
     from virtual_rainforest.models.soil.soil_model import SoilModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.abiotic_simple")
 
     # Create new data object with same size as dummy_carbon_data fixture
     grid = Grid(
@@ -499,12 +389,10 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         new_data[pool_name] = dummy_carbon_data[pool_name]
 
     # Use this new data to make a new soil model object
-    config = {
-        "core": {
-            "timing": {"start_date": "2020-01-01", "update_interval": "12 hours"},
-            "layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10},
-        },
-    }
+    config = Config(
+        cfg_strings="[core]\nmodules=['soil']\n"
+        "[core.timing]\nupdate_interval = '12 hours'\n"
+    )
     new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
 
     # Integrate using both data objects
@@ -518,7 +406,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
 def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     """Test that the function that creates the object to integrate exists and works."""
-
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = (

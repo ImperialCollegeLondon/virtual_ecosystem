@@ -5,6 +5,18 @@
          "description": "Configuration settings for the core module",
          "type": "object",
          "properties": {
+            "constants": {
+               "description": "Constants for the core module",
+               "type": "object",
+               "properties": {
+                  "CoreConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "CoreConsts"
+               ]
+            },
             "grid": {
                "description": "Details of the grid to configure",
                "type": "object",
