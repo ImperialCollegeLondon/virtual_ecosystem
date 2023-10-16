@@ -1,7 +1,7 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Rainforest. At the moment, this includes rain water
-interception by the canopy, soil evaporation, and all functions related to surface
-runoff.
+interception by the canopy, soil evaporation, and functions related to surface
+runoff, bypass flow, and river discharge.
 """  # noqa: D205, D415
 
 from math import sqrt
@@ -155,36 +155,37 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     return upstream_ids
 
 
-def accumulate_surface_runoff(
+def accumulate_horizontal_flow(
     drainage_map: dict[int, list[int]],
-    surface_runoff: np.ndarray,
-    accumulated_runoff: np.ndarray,
+    current_flow: np.ndarray,
+    previous_accumulated_flow: np.ndarray,
 ) -> np.ndarray:
-    """Calculate accumulated surface runoff for each grid cell.
+    """Calculate accumulated above-/belowground horizontal flow for each grid cell.
 
-    This function takes the accumulated surface runoff from the previous timestep and
-    adds all surface runoff of the current time step from upstream cell IDs.
+    This function takes the accumulated above-/belowground horizontal flow from the
+    previous timestep and adds all (sub-)surface flow of the current time step from
+    upstream cell IDs.
 
-    The function currently raises a `ValueError` if accumulated runoff is negative.
+    The function currently raises a `ValueError` if accumulated flow is negative.
 
     Args:
         drainage_map: dict of all upstream IDs for each grid cell
-        surface_runoff: surface runoff of the current time step, [mm]
-        accumulated_runoff: accumulated surface runoff from previous time step, [mm]
+        current_flow: (sub-)surface flow of the current time step, [mm]
+        previous_accumulated_flow: accumulated flow from previous time step, [mm]
 
     Returns:
-        accumulated surface runoff, [mm]
+        accumulated (sub-)surface flow, [mm]
     """
 
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
-        accumulated_runoff[cell_id] += np.sum(surface_runoff[upstream_ids])
+        previous_accumulated_flow[cell_id] += np.sum(current_flow[upstream_ids])
 
-    if (accumulated_runoff < 0.0).any():
-        to_raise = ValueError("The accumulated surface runoff should not be negative!")
+    if (previous_accumulated_flow < 0.0).any():
+        to_raise = ValueError("The accumulated flow should not be negative!")
         LOGGER.error(to_raise)
         raise to_raise
 
-    return accumulated_runoff
+    return previous_accumulated_flow
 
 
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:
@@ -216,7 +217,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     return dict(enumerate(upstream_ids))
 
 
-def estimate_interception(
+def calculate_interception(
     leaf_area_index: NDArray[np.float32],
     precipitation: NDArray[np.float32],
     intercept_param_1: float,
@@ -361,4 +362,57 @@ def calculate_bypass_flow(
     return (
         available_water
         * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
+    )
+
+
+def convert_mm_flow_to_m3_per_second(
+    river_discharge_mm: NDArray[np.float32],
+    area: Union[int, float],
+    days: int,
+    seconds_to_day: float,
+    meters_to_millimeters: float,
+) -> NDArray[np.float32]:
+    """Convert river discharge from millimeters to m3/s.
+
+    Args:
+        river_discharge_mm: total river discharge, [mm]
+        area: area of each grid cell, [m2]
+        days: number of days
+        seconds_to_day: second to day conversion factor
+        meters_to_millimeters: factor to convert between millimeters and meters
+
+    Returns:
+        river discharge rate for each grid cell in m3/s
+    """
+
+    return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area
+
+
+def calculate_surface_runoff(
+    precipitation_surface: NDArray[np.float32],
+    top_soil_moisture: NDArray[np.float32],
+    top_soil_moisture_capacity: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate surface runoff, [mm].
+
+    Surface runoff is calculated with a simple bucket model based on
+    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+    , the excess water is added to runoff and top soil moisture is set to soil
+    moisture capacity value; if the top soil is not saturated, precipitation is
+    added to the current soil moisture level and runoff is set to zero.
+
+    Args:
+        precipitation_surface: precipitation that reaches surface, [mm]
+        top_soil_moisture: water content of top soil layer, [mm]
+        top_soil_moisture_capacity: soil mositure capacity of top soil layer, [mm]
+    """
+
+    # Calculate how much water can be added to soil before capacity is reached, [mm]
+    free_capacity_mm = top_soil_moisture_capacity - top_soil_moisture
+
+    # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
+    return np.where(
+        precipitation_surface > free_capacity_mm,
+        precipitation_surface - free_capacity_mm,
+        0,
     )

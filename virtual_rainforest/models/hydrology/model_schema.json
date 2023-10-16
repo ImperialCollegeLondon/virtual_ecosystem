@@ -11,6 +11,12 @@
                     "exclusiveMinimum": 0,
                     "default": 0.5
                 },
+                "initial_groundwater_saturation": {
+                    "description": "Initial ground water saturation for all layers, unitless",
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "default": 0.9
+                },
                 "constants": {
                     "description": "Constants for the hydrology module",
                     "type": "object",
@@ -26,7 +32,8 @@
             },
             "default": {},
             "required": [
-                "initial_soil_moisture"
+                "initial_soil_moisture",
+                "initial_groundwater_saturation"
             ]
         }
     },
