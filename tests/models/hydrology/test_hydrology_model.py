@@ -1,7 +1,7 @@
 """Test module for hydrology.hydrology_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import DEBUG, ERROR, INFO
+from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
 import pint
@@ -11,8 +11,6 @@ from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.models.hydrology.constants import HydroConsts
-from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
 
 @pytest.mark.parametrize(
@@ -100,6 +98,9 @@ def test_hydrology_model_initialization(
     canopy_layers=10,
 ):
     """Test `HydrologyModel` initialization."""
+    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.models.hydrology.constants import HydroConsts
+    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
     with raises:
         # Initialize model
@@ -114,14 +115,7 @@ def test_hydrology_model_initialization(
         )
 
         # In cases where it passes then checks that the object has the right properties
-        assert set(
-            [
-                "setup",
-                "spinup",
-                "update",
-                "cleanup",
-            ]
-        ).issubset(dir(model))
+        assert isinstance(model, BaseModel)
         assert model.model_name == "hydrology"
         assert repr(model) == "HydrologyModel(update_interval = 1 month)"
         assert model.layer_roles == layer_roles_fixture
@@ -134,36 +128,17 @@ def test_hydrology_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,sm_capacity,raises,expected_log_entries",
+    "cfg_string,time_interval,sm_capacity,raises,expected_log_entries",
     [
-        (
-            {},
-            None,
-            None,
-            pytest.raises(KeyError),
-            (),  # This error isn't handled so doesn't generate logging
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 month",
-                    },
-                    "layers": {
-                        "soil_layers": [-0.5, -1.0],
-                        "canopy_layers": 10,
-                    },
-                },
-                "hydrology": {
-                    "initial_soil_moisture": 0.5,
-                    "initial_groundwater_saturation": 0.9,
-                },
-            },
+        pytest.param(
+            "[core]\nmodules = ['hydrology']\n"
+            "[hydrology]\ninitial_soil_moisture = 0.5\n"
+            "initial_groundwater_saturation = 0.9\n",
             pint.Quantity("1 month"),
             0.9,
             does_not_raise(),
             (
+                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the hydrology model "
@@ -198,29 +173,18 @@ def test_hydrology_model_initialization(
                     "hydrology model: required var 'elevation' checked",
                 ),
             ),
+            id="default_config",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 month",
-                    },
-                    "layers": {
-                        "soil_layers": [-0.5, -1.0],
-                        "canopy_layers": 10,
-                    },
-                },
-                "hydrology": {
-                    "initial_soil_moisture": 0.5,
-                    "initial_groundwater_saturation": 0.9,
-                    "constants": {"HydroConsts": {"soil_moisture_capacity": 0.7}},
-                },
-            },
+        pytest.param(
+            "[core]\nmodules = ['hydrology']\n"
+            "[hydrology]\ninitial_soil_moisture = 0.5\n"
+            "initial_groundwater_saturation = 0.9\n"
+            "[hydrology.constants.HydroConsts]\nsoil_moisture_capacity = 0.7\n",
             pint.Quantity("1 month"),
             0.7,
             does_not_raise(),
             (
+                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the hydrology model "
@@ -255,45 +219,29 @@ def test_hydrology_model_initialization(
                     "hydrology model: required var 'elevation' checked",
                 ),
             ),
+            id="modified_config_correct",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 month",
-                    },
-                    "layers": {
-                        "soil_layers": [-0.5, -1.0],
-                        "canopy_layers": 10,
-                    },
-                },
-                "hydrology": {
-                    "initial_soil_moisture": 0.5,
-                    "initial_groundwater_saturation": 0.9,
-                    "constants": {"HydroConsts": {"soilm_cap": 0.7}},
-                },
-            },
+        pytest.param(
+            "[core]\nmodules = ['hydrology']\n"
+            "[hydrology]\ninitial_soil_moisture = 0.5\n"
+            "initial_groundwater_saturation = 0.9\n"
+            "[hydrology.constants.HydroConsts]\nsoilm_cap = 0.7\n",
             None,
             None,
             pytest.raises(ConfigurationError),
             (
-                (
-                    ERROR,
-                    "Unknown names supplied for HydroConsts: " "soilm_cap",
-                ),
-                (
-                    INFO,
-                    "Valid names are as follows: ",
-                ),
+                (ERROR, "Unknown names supplied for HydroConsts: " "soilm_cap"),
+                (INFO, "Valid names are: "),
+                (CRITICAL, "Could not initialise hydrology.HydroConsts from config"),
             ),
+            id="modified_config_incorrect",
         ),
     ],
 )
 def test_generate_hydrology_model(
     caplog,
     dummy_climate_data,
-    config,
+    cfg_string,
     time_interval,
     sm_capacity,
     raises,
@@ -301,6 +249,17 @@ def test_generate_hydrology_model(
     layer_roles_fixture,
 ):
     """Test that the initialisation of the hydrology model works as expected."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.hydrology")
+
+    # Build the config object
+    config = Config(cfg_strings=cfg_string)
+    caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
@@ -318,58 +277,45 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "config,time_interval, raises",
+    "cfg_string,time_interval, raises",
     [
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 month",
-                    },
-                    "layers": {
-                        "soil_layers": [-0.5, -1.0],
-                        "canopy_layers": 10,
-                    },
-                },
-                "hydrology": {
-                    "initial_soil_moisture": 0.5,
-                    "initial_groundwater_saturation": 0.9,
-                },
-            },
+        pytest.param(
+            "[core]\nmodules=['hydrology']\n"
+            "[core.timing]\nupdate_interval = '1 month'\n"
+            "[hydrology]\ninitial_soil_moisture = 0.5\n"
+            "initial_groundwater_saturation = 0.9\n",
             pint.Quantity("1 month"),
             does_not_raise(),
+            id="updates correctly",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 week",
-                    },
-                    "layers": {
-                        "soil_layers": [-0.5, -1.0],
-                        "canopy_layers": 10,
-                    },
-                },
-                "hydrology": {
-                    "initial_soil_moisture": 0.5,
-                    "initial_groundwater_saturation": 0.9,
-                },
-            },
+        pytest.param(
+            "[core]\nmodules=['hydrology']\n"
+            "[core.timing]\nupdate_interval = '1 week'\n"
+            "[hydrology]\ninitial_soil_moisture = 0.5\n"
+            "initial_groundwater_saturation = 0.9\n",
             pint.Quantity("1 week"),
             pytest.raises(NotImplementedError),
+            id="incorrect update frequency",
         ),
     ],
 )
 def test_setup(
     dummy_climate_data,
-    config,
+    cfg_string,
     layer_roles_fixture,
     time_interval,
     raises,
 ):
     """Test set up and update."""
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.hydrology")
+
+    # Build the config object
+    config = Config(cfg_strings=cfg_string)
 
     with raises:
         # initialise model

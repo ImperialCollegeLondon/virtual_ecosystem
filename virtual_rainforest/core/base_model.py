@@ -37,16 +37,13 @@ methods are provided to validate that the properties are set and valid in subcla
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
 
-Model registration
-------------------
+Model checking
+--------------
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
 the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
 method. This method is called automatically whenever a subclass of the ABC is imported:
-it validates the class attributes for the new class and then registers the model name
-and model class in the called :attr:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`
-register. This registry is used to identify requested model subclasses from the
-configuration details from  Virtual Rainforest simulation.
+it validates the class attributes for the new model class.
 
 The ``BaseModel.__init__`` method
 ----------------------------------
@@ -71,28 +68,31 @@ defined by subclasses and must be a factory method that takes a
 dictionary and returns an instance of the subclass. For any given model, the method
 should provide any code to validate the configuration and then use the configuration to
 initialise and return a new instance of the class.
+
+Model registration
+------------------
+
+Models have three core components: the
+:class:`~virtual_rainforest.core.base_model.BaseModel` subclass itself (``model``),
+a JSON schema for validating the model configuration (``schema``) and an optional set of
+user modifiable constants classes (``constants``, see
+:class:`~virtual_rainforest.core.constants_class.ConstantsDataclass`). All model
+modules must register these components when they are imported: see the
+:mod:`~virtual_rainforest.core.registry` module.
 """  # noqa: D205, D415
 
 from __future__ import annotations
 
-import sys
 from abc import ABC, abstractmethod
-from dataclasses import is_dataclass
-from importlib import resources
-from inspect import getmembers
-from typing import Any, Type
+from typing import Any
 
 import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
-from virtual_rainforest.core.config import Config, register_schema
-from virtual_rainforest.core.constants import register_constants_class
+from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
-
-MODEL_REGISTRY: dict[str, Type[BaseModel]] = {}
-"""A registry for different models."""
 
 
 class BaseModel(ABC):
@@ -119,7 +119,7 @@ class BaseModel(ABC):
         """The model name.
 
         This class property sets the name used to refer to identify the model class in
-        the :data:`~virtual_rainforest.core.base_model.MODEL_REGISTRY`, within the
+        the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`, within the
         configuration settings and in logging messages.
         """
 
@@ -444,21 +444,6 @@ class BaseModel(ABC):
             LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
             raise excep
 
-        # Add the new model to the registry - and yes, mypy, cls.model_name is
-        # definitely a string at this point.
-        if cls.model_name in MODEL_REGISTRY:
-            old_class_name = MODEL_REGISTRY[cls.model_name].__name__  # type: ignore
-            LOGGER.warning(
-                "%s already registered under name '%s', replaced with %s",
-                old_class_name,
-                cls.model_name,
-                cls.__name__,
-            )
-        else:
-            LOGGER.info("%s registered under name '%s'", cls.__name__, cls.model_name)
-
-        MODEL_REGISTRY[cls.model_name] = cls  # type: ignore
-
     def __repr__(self) -> str:
         """Represent a Model as a string."""
 
@@ -523,48 +508,3 @@ class BaseModel(ABC):
             )
             LOGGER.error(error)
             raise error
-
-
-def register_model(module_name: str, model: type[BaseModel]) -> None:
-    """Helper function to register the things required to setup a given model.
-
-    This registers the model configuration schema to the
-    :data:`~virtual_rainforest.core.config.SCHEMA_REGISTRY`. It also finds all constants
-    classes that have been defined and registers them to the
-    :data:`~virtual_rainforest.core.constants.CONSTANTS_REGISTRY`.
-
-    Args:
-        module_name: The name of the module containing the model to be registered
-        model: The model to be registered.
-
-    Raises:
-        ConfigurationError: If the module does not define a single Model class which is
-            a child of BaseModel.
-    """
-
-    # Get a reference to the module
-    module = sys.modules[module_name]
-
-    # Check that name of the supplied Model class matches the name of the module
-    module_model_stem = module.__name__.split(".")[-1]
-    if model.model_name != module_model_stem:
-        excep = ConfigurationError(
-            f"Wrong model provided for registration expected {module_model_stem} got "
-            f"{model.model_name}"
-        )
-        LOGGER.critical(excep)
-        raise excep
-
-    # Register the schema
-    with resources.path(module, "model_schema.json") as schema_file_path:
-        register_schema(
-            module_name=getattr(model, "model_name"), schema_file_path=schema_file_path
-        )
-
-    # Find and register the constant dataclasses
-    constants_class_names = [
-        obj for nm, obj in getmembers(module.constants) if is_dataclass(obj)
-    ]
-    for const_class in constants_class_names:
-        # Import dataclass of interest
-        register_constants_class(module_model_stem, const_class)

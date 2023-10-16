@@ -4,7 +4,7 @@ This module tests the functionality of base_model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR
 from typing import Any
 
 import pint
@@ -239,8 +239,8 @@ def data_instance():
             "UnnamedModel",
             does_not_raise(),
             None,
-            [(INFO, "UnnamedModel registered under name 'should_pass'")],
-            id="should pass and register",
+            [],
+            id="should pass",
         ),
         pytest.param(
             """class UnnamedModel2(BaseModel):
@@ -254,14 +254,8 @@ def data_instance():
             "UnnamedModel2",
             does_not_raise(),
             None,
-            [
-                (
-                    WARNING,
-                    "UnnamedModel already registered under name 'should_pass', "
-                    "replaced with UnnamedModel2",
-                )
-            ],
-            id="should pass and replace",
+            [],
+            id="should pass - replaces",
         ),
         pytest.param(
             """class UnnamedModel(BaseModel):
@@ -275,9 +269,7 @@ def data_instance():
             "UnnamedModel",
             does_not_raise(),
             None,
-            [
-                (INFO, "UnnamedModel registered under name 'should_also_pass'"),
-            ],
+            [],
             id="should pass - RIV not empty",
         ),
     ],
@@ -291,7 +283,8 @@ def test_init_subclass(caplog, code, reg_name, cls_name, exp_raise, exp_msg, exp
 
     # BaseModel is required here in the code being exec'd from the params.
     from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
-    from virtual_rainforest.core.base_model import MODEL_REGISTRY
+
+    caplog.clear()
 
     with exp_raise as err:
         # Run the code to define the model
@@ -300,10 +293,6 @@ def test_init_subclass(caplog, code, reg_name, cls_name, exp_raise, exp_msg, exp
     if err:
         # Check any error message
         assert str(err.value) == exp_msg
-    else:
-        # Check the model is registered as expected.
-        assert reg_name in MODEL_REGISTRY
-        assert MODEL_REGISTRY[reg_name].__name__ == cls_name
 
     log_check(caplog, exp_log)
 
@@ -628,33 +617,5 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
             start_time=datetime64(config["core"]["timing"]["start_date"]),
         )
         assert inst.update_interval == timestep
-
-    log_check(caplog, expected_log)
-
-
-def test_register_model(caplog):
-    """Test that helper function for model registration works correctly."""
-    from virtual_rainforest.core.base_model import register_model
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    with pytest.raises(ValueError):
-        register_model("virtual_rainforest.models.animals", AnimalModel)
-
-    expected_log = ((CRITICAL, "The module schema for animals is already registered"),)
-
-    log_check(caplog, expected_log)
-
-
-def test_register_wrong_model(caplog):
-    """Test that helper function an error is raised if the wrong model is registered."""
-    from virtual_rainforest.core.base_model import register_model
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    with pytest.raises(ConfigurationError):
-        register_model("virtual_rainforest.models.soil", AnimalModel)
-
-    expected_log = (
-        (CRITICAL, "Wrong model provided for registration expected soil got animals"),
-    )
 
     log_check(caplog, expected_log)

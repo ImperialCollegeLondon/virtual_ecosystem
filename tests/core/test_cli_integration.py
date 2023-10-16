@@ -17,6 +17,7 @@ def test_vr_run_install_example(capsys):
 
 def test_vr_run(capsys):
     """Test that the CLI can successfully run with example data."""
+    # import virtual_rainforest.core  # noqa #F401
     from virtual_rainforest.entry_points import vr_run_cli
 
     with TemporaryDirectory() as tempdir:
@@ -31,8 +32,8 @@ def test_vr_run(capsys):
                 str(example_dir),
                 "--outpath",
                 str(example_dir),
-                "--logfile",
-                str(example_dir / "vr_example.log"),
+                # "--logfile",
+                # str(example_dir / "vr_example.log"),
             ]
         )
 

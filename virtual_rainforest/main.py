@@ -4,24 +4,25 @@ model.
 """  # noqa: D205, D415
 
 import os
+from collections import Counter
 from collections.abc import Sequence
 from itertools import chain
 from math import ceil
 from pathlib import Path
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional, Union
 
 import pint
 from numpy import datetime64, timedelta64
 
-from virtual_rainforest.core.base_model import MODEL_REGISTRY, BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_rainforest.core.registry import MODULE_REGISTRY
 
 
-def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
+def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[Type[BaseModel]]
     """Select the models to be run for a specific virtual rainforest simulation.
 
     This function looks for models from a list of models, if these models can all be
@@ -35,50 +36,40 @@ def select_models(model_list: list[str]) -> list[Type[BaseModel]]:
         InitialisationError: If one or more models cannot be found in the registry
     """
 
-    # TODO - The steps below to generate a cleaned model list would be simpler if set
-    # was used, but we need to preserve the list order so that models are loaded in the
-    # correct order. I we find an alternative approach to the order problem, then we can
-    # switch to using sets here.
-    unique_models = []
+    # Counter preserves order in the original list and detects duplicates
+    model_counts = Counter(model_list)
+    unique_models = list(model_counts.keys())
+    duplicated_models = [k for k, c in model_counts.items() if c > 1]
 
-    # Iterate over the original list
-    for model in model_list:
-        if model not in unique_models:
-            unique_models.append(model)
-
-    if len(unique_models) != len(model_list):
-        LOGGER.warning("Duplicate model names were provided, these have been ignored.")
+    if duplicated_models:
+        LOGGER.warning(f"Dropping duplicate model names: {','.join(duplicated_models)}")
 
     # Remove "core" from model list as it is not a model
     if "core" in unique_models:
         unique_models.remove("core")
 
-    LOGGER.info("Attempting to configure the following models: %s" % unique_models)
+    LOGGER.info("Selecting the following models: %s" % ", ".join(unique_models))
 
     # Make list of missing models, and return an error if necessary
-    miss_model = [
-        model for model in unique_models if model not in MODEL_REGISTRY.keys()
-    ]
-    if miss_model:
+    missing_models = [model for model in unique_models if model not in MODULE_REGISTRY]
+    if missing_models:
         to_raise = InitialisationError(
-            f"The following models cannot be configured as they are not found in the "
-            f"registry: {miss_model}"
+            f"Models not in module registry and cannot be selected:"
+            f" {', '.join(missing_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise
 
-    # Then extract each model from the registry
-    modules = [MODEL_REGISTRY[model] for model in unique_models]
-
-    return modules
+    # Return the appropriate models from the registry
+    return [MODULE_REGISTRY[model_name].model for model_name in unique_models]
 
 
 def configure_models(
     config: Config,
     data: Data,
-    model_list: list[Type[BaseModel]],
+    model_list: list[Any],  # FIXME -> list[Type[BaseModel]]
     update_interval: pint.Quantity,
-) -> dict[str, BaseModel]:
+) -> dict[str, Any]:  # FIXME -> list[Type[BaseModel]]
     """Configure a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
@@ -90,6 +81,8 @@ def configure_models(
     Raises:
         InitialisationError: If one or more models cannot be properly configured
     """
+
+    LOGGER.info("Configuring models: %s" % ",".join(m.model_name for m in model_list))
 
     # Use factory methods to configure the desired models
     failed_models = []
@@ -104,8 +97,7 @@ def configure_models(
     # If any models fail to configure inform the user about it
     if failed_models:
         to_raise = InitialisationError(
-            f"Could not configure all the desired models, ending the simulation. The "
-            f"following models failed: {failed_models}."
+            f"Configuration failed for models: {','.join(failed_models)}"
         )
         LOGGER.critical(to_raise)
         raise to_raise

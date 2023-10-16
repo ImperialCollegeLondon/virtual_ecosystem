@@ -2,9 +2,8 @@
 
 import json
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, ERROR
+from logging import ERROR
 
-import jsonschema
 import pytest
 from jsonschema.exceptions import SchemaError
 
@@ -67,7 +66,7 @@ def test_load_schema(
     expected_log_entries,
 ):
     """Tests schema loading and validation."""
-    from virtual_rainforest.core.config import load_schema
+    from virtual_rainforest.core.schema import load_schema
 
     caplog.clear()
 
@@ -78,87 +77,26 @@ def test_load_schema(
     log_check(caplog, expected_log_entries)
 
 
-@pytest.mark.parametrize(
-    "schema_name,schema,expected_exception,expected_log_entries",
-    [
-        (
-            "core",
-            "",
-            ValueError,
-            (
-                (
-                    CRITICAL,
-                    "The module schema for core is already registered",
-                ),
-            ),
-        ),
-        (
-            "test",
-            "najsnjasnda",
-            json.JSONDecodeError,
-            (
-                (ERROR, "JSON error in schema file"),
-                (CRITICAL, "Schema registration for test failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_1",
-            '{"type": "hobbit", "properties": {"bad_module_1": {}}}',
-            jsonschema.SchemaError,
-            (
-                (ERROR, "Module schema invalid in: "),
-                (CRITICAL, "Schema registration for bad_module_1 failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_2",
-            '{"type": "object", "properties": {"bad_module_1": {}}}',
-            ValueError,
-            (
-                (ERROR, "Missing key in module schema bad_module_2:"),
-                (CRITICAL, "Schema registration for bad_module_2 failed: check log"),
-            ),
-        ),
-        (
-            "bad_module_3",
-            '{"type": "object", "properties": {"bad_module_3": {}}}',
-            ValueError,
-            (
-                (ERROR, "Missing key in module schema bad_module_3"),
-                (CRITICAL, "Schema registration for bad_module_3 failed: check log"),
-            ),
-        ),
-    ],
-)
-def test_register_schema_errors(
-    caplog, mocker, schema_name, schema, expected_exception, expected_log_entries
-):
-    """Test that the schema registering decorator throws the correct errors."""
-
-    from virtual_rainforest.core.config import register_schema
-
-    data = mocker.mock_open(read_data=schema)
-    mocker.patch("builtins.open", data)
-
-    # Check that construct_combined_schema fails as expected
-    with pytest.raises(expected_exception):
-        register_schema(schema_name, "file_path")
-
-    # Then check that the correct (critical error) log messages are emitted
-    log_check(caplog, expected_log_entries)
-
-
 def test_merge_schemas():
     """Test that module schemas are properly merged."""
-    from virtual_rainforest.core.config import SCHEMA_REGISTRY, merge_schemas
+
+    from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+    from virtual_rainforest.core.schema import merge_schemas
+
+    # Import the models to populate the registry
+    register_module("virtual_rainforest.core")
+    register_module("virtual_rainforest.models.abiotic_simple")
+    register_module("virtual_rainforest.models.animals")
+    register_module("virtual_rainforest.models.plants")
+    register_module("virtual_rainforest.models.soil")
 
     merged_schemas = merge_schemas(
         {
-            "core": SCHEMA_REGISTRY["core"],
-            "abiotic_simple": SCHEMA_REGISTRY["abiotic_simple"],
-            "animals": SCHEMA_REGISTRY["animals"],
-            "plants": SCHEMA_REGISTRY["plants"],
-            "soil": SCHEMA_REGISTRY["soil"],
+            "core": MODULE_REGISTRY["core"].schema,
+            "abiotic_simple": MODULE_REGISTRY["abiotic_simple"].schema,
+            "animals": MODULE_REGISTRY["animals"].schema,
+            "plants": MODULE_REGISTRY["plants"].schema,
+            "soil": MODULE_REGISTRY["soil"].schema,
         }
     )
 
