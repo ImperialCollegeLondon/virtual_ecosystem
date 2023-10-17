@@ -84,14 +84,28 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger("virtual_rainforest")
+""":class:`logging.Logger`: The core logger instance used in the Virtual Rainforest."""
 
 
 def add_file_logger(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
+    This function adds a FileHandler with the name ``vr_logfile`` to
+    :data:`~virtual_rainforest.core.logger.LOGGER` using the provided ``logfile`` path.
+    It also turns off record propagation so that logging messages are only sent to that
+    file and not to the parent StreamHandler.
+
     Args:
-      logfile: The path to a file to use for logging.
+        logfile: The path to a file to use for logging.
+
+    Raises:
+        RuntimeError: If the file handler already exists. If the logging is to move to a
+            new file, the existing handler needs to be explicitly removed first.
     """
+
+    for handler in LOGGER.handlers:
+        if isinstance(handler, logging.FileHandler) and handler.name == "vr_logfile":
+            raise RuntimeError(f"Already logging to file: {handler.baseFilename}")
 
     # Do not propogate errors up to parent handler - this avoids mirroring the log
     # output through the StreamHandler associated with the root logger
@@ -108,12 +122,23 @@ def add_file_logger(logfile: Path) -> None:
 
 
 def remove_file_logger() -> None:
-    """Remove an existing file logger and return to stream logging."""
+    """Remove the file logger and return to stream logging.
 
-    # Find the file logger by name and remove it
-    vr_logfile = next(
-        handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
-    )
+    This function attempts to remove the ``vr_logfile`` FileHandler that is added by
+    :func:`~virtual_rainforest.core.logger.add_file_logger`. If that file handler is
+    not found it simple exits, otherwise it removes the file handler and restores
+    message propagation.
+    """
+
+    try:
+        # Find the file logger by name and remove it
+        vr_logfile = next(
+            handler for handler in LOGGER.handlers if handler.name == "vr_logfile"
+        )
+    except StopIteration:
+        return
+
+    vr_logfile.close()
     LOGGER.removeHandler(vr_logfile)
 
     # Allow logger messages to propogate back down to the root StreamHandler

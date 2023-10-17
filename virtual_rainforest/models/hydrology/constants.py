@@ -10,9 +10,11 @@ examples within reasonable bounds.
 
 from dataclasses import dataclass
 
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
 
 @dataclass(frozen=True)
-class HydroConsts:
+class HydroConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `hydrology` model."""
 
     soil_moisture_capacity: float = 0.9
