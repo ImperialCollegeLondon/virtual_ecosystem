@@ -4,9 +4,11 @@
 
 from dataclasses import dataclass
 
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
 
 @dataclass(frozen=True)
-class PlantsConsts:
+class PlantsConsts(ConstantsDataclass):
     """Constants for the :mod:`~virtual_rainforest.models.plants`model."""
 
     placeholder: float = 1.0

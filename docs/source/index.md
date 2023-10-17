@@ -90,6 +90,10 @@ team.
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
   Core Constants <api/core/constants.md>
+  Constants Classes <api/core/constants_class.md>
+  Constants Loader <api/core/constants_loader.md>
+  Schema <api/core/schema.md>
+  Module Registry <api/core/registry.md>
   Utility functions <api/core/utils.md>
   Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>

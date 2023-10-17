@@ -5,11 +5,13 @@ constants (fitting relationships taken from the literature) required by the broa
 
 from dataclasses import dataclass
 
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
 # TODO - Need to figure out a sensible area to volume conversion
 
 
 @dataclass(frozen=True)
-class SoilConsts:
+class SoilConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `soil` model.
 
     All constants are taken from :cite:t:`abramoff_millennial_2018` unless otherwise
