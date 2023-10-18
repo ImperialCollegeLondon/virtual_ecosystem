@@ -21,35 +21,35 @@ from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
 
 
-def configure_models(
+def initialise_models(
     config: Config,
     data: Data,
-    model_list: list[Any],  # FIXME -> list[Type[BaseModel]]
+    models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
     update_interval: pint.Quantity,
-) -> dict[str, Any]:  # FIXME -> list[Type[BaseModel]]
-    """Configure a set of models for use in a `virtual_rainforest` simulation.
+) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
+    """Initialise a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
         config: A validated Virtual Rainforest model configuration object.
         data: A Data instance.
-        modules: A set of models to be configured
+        modules: A dictionary of models to be configured.
         update_interval: The interval with which each model is updated
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
     """
 
-    LOGGER.info("Configuring models: %s" % ",".join(m.model_name for m in model_list))
+    LOGGER.info("Initialising models: %s" % ",".join(models.keys()))
 
     # Use factory methods to configure the desired models
     failed_models = []
     models_cfd = {}
-    for model in model_list:
+    for model_name, model_class in models.items():
         try:
-            this_model = model.from_config(data, config, update_interval)
-            models_cfd[this_model.model_name] = this_model
+            this_model = model_class.from_config(data, config, update_interval)
+            models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
-            failed_models.append(model.model_name)
+            failed_models.append(model_name)
 
     # If any models fail to configure inform the user about it
     if failed_models:
@@ -139,33 +139,56 @@ def extract_timing_details(
 
 
 def _get_model_sequence(
-    config: Config, models: dict[str, Any], stage: str
-) -> tuple[str, ...]:  # FIXME dict[str, Any]-> dict[str, Type[BaseModel]]
+    config: Config, models: dict[str, Any], method: str
+) -> dict[str, Any]:  # FIXME dict[str, Any]-> dict[str, Type[BaseModel]]
     """Get a tuple of the model execution sequence for a given model stage.
 
     This function uses the ``priority`` sections in model configurations to establish an
-    execution sequence for a given stage (currently, one of ``init`` or ``update``). The
-    entries in this list
+    execution sequence for a given model method (currently, one of ``init`` or
+    ``update``). For example, the configuration:
 
+    .. code-block:: toml
+        [plants.priorities]
+        init = ['abiotic']
+        update = ['abiotic']
 
+    would set that the ``plants`` model should be both initialised and updated before
+    the ``abiotic`` model.
+
+    Args:
+        config: A validated configuration object.
+        models: A dictionary of model subclasses or instances.
+        method: The :class:`~virtual_rainforest.core.base_model.BaseModel` method to use
+            to define the model execution sequence.
+
+    Returns:
+        The function returns a dictionary, keyed by model name, of model classes or
+        instances in the requested execution order.
+
+    Raises:
+        ConfigurationError: if the configuration priority details include a model name
+            that is not included in the configuration or if the configuration priorities
+            are cyclic.
     """
 
     # Extract priority information for the models for the given step
     priorities: dict[str, list[str]] = {}
     for model_name in models:
-        priorities[model_name] = config[model_name]["priority"][stage]
+        priorities[model_name] = config[model_name]["priority"][method]
 
     # Find a resolved running order for those priorities
     sorter = TopologicalSorter(priorities)
 
+    # Find a resolved execution order, checking for cyclic priorities
     try:
         resolved_order: tuple[str, ...] = tuple(sorter.static_order())
     except CycleError as excep:
-        to_raise = f"Model {stage} priorities form a cycle: {', '.join(excep.args[1])}"
+        to_raise = f"Model {method} priorities are cyclic: {', '.join(excep.args[1])}"
         LOGGER.critical(to_raise)
         raise ConfigurationError(to_raise)
 
-    return tuple(reversed(resolved_order))
+    # Return a dictionary of models in execution order
+    return {model_name: models[model_name] for model_name in (reversed(resolved_order))}
 
 
 def vr_run(
@@ -219,24 +242,23 @@ def vr_run(
     ) = extract_timing_details(config)
 
     # Get the model initialisation sequence and initialise
-    init_order = _get_model_sequence(config=config, models=model_list, stage="init")
-    init_models = [model_list[mname] for mname in init_order]
-    models_cfd = configure_models(
+    init_sequence = _get_model_sequence(
+        config=config, models=config.model_classes, method="init"
+    )
+    models_init = initialise_models(
         config=config,
         data=data,
-        model_list=init_models,
+        models=init_sequence,
         update_interval=update_interval_as_quantity,
     )
 
-    LOGGER.info(
-        "All models successfully configured, now attempting to initialise them."
-    )
+    LOGGER.info("All models successfully intialised.")
 
     # Setup all models (those with placeholder setup processes won't change at all)
-    for model in models_cfd.values():
+    for model in models_init.values():
         model.setup()
 
-    LOGGER.info("All models successfully set up, now attempting to run them.")
+    LOGGER.info("All models successfully set up.")
 
     # TODO - A model spin up might be needed here in future
 
@@ -258,13 +280,15 @@ def vr_run(
     continuous_data_files = []
 
     # Only variables in the data object that are updated by a model should be output
-    all_variables = (model.vars_updated for model in models_cfd.values())
+    all_variables = (model.vars_updated for model in models_init.values())
     # Then flatten the list to generate list of variables to output
     variables_to_save = list(chain.from_iterable(all_variables))
 
-    # Get the model update sequence
-    update_order = _get_model_sequence(config=config, models=model_list, stage="update")
-    update_sequence = {mname: models_cfd[mname] for mname in update_order}
+    # Take the models in their current execution sequence and change to the model update
+    # sequence
+    models_update = _get_model_sequence(
+        config=config, models=models_init, method="update"
+    )
 
     # Setup the timing loop
     time_index = 0
@@ -272,7 +296,7 @@ def vr_run(
         current_time += update_interval
 
         # Run update() method for every model
-        for model in update_sequence.values():
+        for model in models_update.values():
             model.update(time_index)
 
         # With updates complete increment the time_index
