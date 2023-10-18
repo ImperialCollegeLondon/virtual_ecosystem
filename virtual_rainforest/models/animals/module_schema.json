@@ -39,6 +39,26 @@
                             "adult_mass"
                         ]
                     }
+                },
+                "priority": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "init": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
             },
             "default": {},

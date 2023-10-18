@@ -16,6 +16,28 @@
                     "required": [
                         "AbioticSimpleConsts"
                     ]
+                },
+                "priority": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "init": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update": {
+                            "type": "array",
+                            "default": [
+                                "plants"
+                            ],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 }
             },
             "default": {},
