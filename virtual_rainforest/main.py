@@ -4,8 +4,8 @@ model.
 """  # noqa: D205, D415
 
 import os
-from collections import Counter
 from collections.abc import Sequence
+from graphlib import CycleError, TopologicalSorter
 from itertools import chain
 from math import ceil
 from pathlib import Path
@@ -19,49 +19,6 @@ from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
-from virtual_rainforest.core.registry import MODULE_REGISTRY
-
-
-def select_models(model_list: list[str]) -> list[Any]:  # FIXME -> list[Type[BaseModel]]
-    """Select the models to be run for a specific virtual rainforest simulation.
-
-    This function looks for models from a list of models, if these models can all be
-    found in the registry then they are returned. Otherwise an error is logged, which
-    should be handled appropriately downstream.
-
-    Args:
-        model_list: A list of models to select
-
-    Raises:
-        InitialisationError: If one or more models cannot be found in the registry
-    """
-
-    # Counter preserves order in the original list and detects duplicates
-    model_counts = Counter(model_list)
-    unique_models = list(model_counts.keys())
-    duplicated_models = [k for k, c in model_counts.items() if c > 1]
-
-    if duplicated_models:
-        LOGGER.warning(f"Dropping duplicate model names: {','.join(duplicated_models)}")
-
-    # Remove "core" from model list as it is not a model
-    if "core" in unique_models:
-        unique_models.remove("core")
-
-    LOGGER.info("Selecting the following models: %s" % ", ".join(unique_models))
-
-    # Make list of missing models, and return an error if necessary
-    missing_models = [model for model in unique_models if model not in MODULE_REGISTRY]
-    if missing_models:
-        to_raise = InitialisationError(
-            f"Models not in module registry and cannot be selected:"
-            f" {', '.join(missing_models)}"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Return the appropriate models from the registry
-    return [MODULE_REGISTRY[model_name].model for model_name in unique_models]
 
 
 def configure_models(
@@ -181,6 +138,36 @@ def extract_timing_details(
     return start_time, update_interval, raw_interval, end_time
 
 
+def _get_model_sequence(
+    config: Config, models: dict[str, Any], stage: str
+) -> tuple[str, ...]:  # FIXME dict[str, Any]-> dict[str, Type[BaseModel]]
+    """Get a tuple of the model execution sequence for a given model stage.
+
+    This function uses the ``priority`` sections in model configurations to establish an
+    execution sequence for a given stage (currently, one of ``init`` or ``update``). The
+    entries in this list
+
+
+    """
+
+    # Extract priority information for the models for the given step
+    priorities: dict[str, list[str]] = {}
+    for model_name in models:
+        priorities[model_name] = config[model_name]["priority"][stage]
+
+    # Find a resolved running order for those priorities
+    sorter = TopologicalSorter(priorities)
+
+    try:
+        resolved_order: tuple[str, ...] = tuple(sorter.static_order())
+    except CycleError as excep:
+        to_raise = f"Model {stage} priorities form a cycle: {', '.join(excep.args[1])}"
+        LOGGER.critical(to_raise)
+        raise ConfigurationError(to_raise)
+
+    return tuple(reversed(resolved_order))
+
+
 def vr_run(
     cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
     cfg_strings: Union[str, list[str]] = [],
@@ -221,8 +208,6 @@ def vr_run(
     data = Data(grid)
     data.load_data_config(config)
 
-    model_list = select_models(config["core"]["modules"])
-
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Extract all the relevant timing details
@@ -233,7 +218,15 @@ def vr_run(
         end_time,
     ) = extract_timing_details(config)
 
-    models_cfd = configure_models(config, data, model_list, update_interval_as_quantity)
+    # Get the model initialisation sequence and initialise
+    init_order = _get_model_sequence(config=config, models=model_list, stage="init")
+    init_models = [model_list[mname] for mname in init_order]
+    models_cfd = configure_models(
+        config=config,
+        data=data,
+        model_list=init_models,
+        update_interval=update_interval_as_quantity,
+    )
 
     LOGGER.info(
         "All models successfully configured, now attempting to initialise them."
@@ -269,13 +262,17 @@ def vr_run(
     # Then flatten the list to generate list of variables to output
     variables_to_save = list(chain.from_iterable(all_variables))
 
+    # Get the model update sequence
+    update_order = _get_model_sequence(config=config, models=model_list, stage="update")
+    update_sequence = {mname: models_cfd[mname] for mname in update_order}
+
     # Setup the timing loop
     time_index = 0
     while current_time < end_time:
         current_time += update_interval
 
         # Run update() method for every model
-        for model in models_cfd.values():
+        for model in update_sequence.values():
             model.update(time_index)
 
         # With updates complete increment the time_index
