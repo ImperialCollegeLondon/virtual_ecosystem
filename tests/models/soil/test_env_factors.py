@@ -122,3 +122,63 @@ def test_calculate_water_potential_impact_on_microbes():
     )
 
     assert np.allclose(actual_factor, expected_factor)
+
+
+def test_calculate_pH_suitability():
+    """Test that calculation of pH suitability is correct."""
+    from virtual_rainforest.models.soil.env_factors import calculate_pH_suitability
+
+    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
+    expected_inhib = [0.25, 1.0, 0.428571428, 1.0, 0.0, 0.0]
+
+    actual_inhib = calculate_pH_suitability(
+        soil_pH=pH_values,
+        maximum_pH=SoilConsts.max_pH_microbes,
+        minimum_pH=SoilConsts.min_pH_microbes,
+        lower_optimum_pH=SoilConsts.lowest_optimal_pH_microbes,
+        upper_optimum_pH=SoilConsts.highest_optimal_pH_microbes,
+    )
+
+    assert np.allclose(expected_inhib, actual_inhib)
+
+
+@pytest.mark.parametrize(
+    argnames=["params"],
+    argvalues=[
+        pytest.param(
+            {
+                "maximum_pH": 7.0,
+                "minimum_pH": 2.5,
+                "lower_optimum_pH": 4.5,
+                "upper_optimum_pH": 7.5,
+            },
+            id="maximum_pH too low",
+        ),
+        pytest.param(
+            {
+                "maximum_pH": 11.0,
+                "minimum_pH": 2.5,
+                "lower_optimum_pH": 1.5,
+                "upper_optimum_pH": 7.5,
+            },
+            id="lower_optimum_pH too low",
+        ),
+        pytest.param(
+            {
+                "maximum_pH": 11.0,
+                "minimum_pH": 2.5,
+                "lower_optimum_pH": 4.5,
+                "upper_optimum_pH": 3.5,
+            },
+            id="upper_optimum_pH too low",
+        ),
+    ],
+)
+def test_calculate_pH_suitability_errors(params):
+    """Test that calculation of pH suitability generates errors if constants are bad."""
+    from virtual_rainforest.models.soil.env_factors import calculate_pH_suitability
+
+    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
+
+    with pytest.raises(ValueError):
+        calculate_pH_suitability(soil_pH=pH_values, **params)

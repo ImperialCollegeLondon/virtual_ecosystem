@@ -19,10 +19,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.03221181, 0.03006485, 0.64258258, 0.00364594],
+        "soil_c_pool_lmwc": [0.03039544, 0.03006485, 0.62873403, 0.00364594],
         "soil_c_pool_maom": [-5.788721e-3, -1.004083e-2, -0.5628071, 2.607437e-5],
         "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
-        "soil_c_pool_pom": [0.02637032, 0.00249757, 0.03511511, 0.00895987],
+        "soil_c_pool_pom": [0.02818668, 0.00249757, 0.04896366, 0.00895987],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
@@ -277,7 +277,7 @@ def test_calculate_microbial_saturation(dummy_carbon_data):
 
 
 def test_calculate_microbial_carbon_uptake(
-    dummy_carbon_data, top_soil_layer_index, water_factors
+    dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
@@ -287,7 +287,7 @@ def test_calculate_microbial_carbon_uptake(
     actual_uptake = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        water_factor=water_factors,
+        water_factor=environmental_factors["water"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )
@@ -311,17 +311,18 @@ def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_scalars):
 
 
 def test_calculate_pom_decomposition(
-    dummy_carbon_data, top_soil_layer_index, water_factors
+    dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
 
-    expected_decomp = [0.002421821, 0.009825156, 0.024234958, 7.934357e-5]
+    expected_decomp = [0.00060545525, 0.009825156, 0.010386410, 7.934357e-5]
 
     actual_decomp = calculate_pom_decomposition(
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        water_factor=water_factors,
+        water_factor=environmental_factors["water"],
+        pH_factor=environmental_factors["pH"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )

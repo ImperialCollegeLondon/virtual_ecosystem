@@ -217,3 +217,37 @@ class SoilConsts(ConstantsDataclass):
 
     Value taken from :cite:t:`wang_development_2013`.
     """
+
+    # TODO - The 4 constants below should take different values for fungi and bacteria,
+    # once that separation is implemented.
+    min_pH_microbes: float = 2.5
+    """Soil pH below which microbial activity is completely inhibited [unitless].
+
+    This value cannot be larger than :attr:`lowest_optimal_pH_microbes`. The default
+    value was obtained by averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`.
+    """
+
+    lowest_optimal_pH_microbes: float = 4.5
+    """Soil pH above which microbial activity is not inhibited at all [unitless].
+
+    This value cannot be smaller than :attr:`min_pH_microbes` or larger than
+    :attr:`highest_optimal_pH_microbes`. The default value was obtained by averaging the
+    fungi and bacteria specific values given in :cite:t:`orwin_organic_2011`.
+    """
+
+    highest_optimal_pH_microbes: float = 7.5
+    """Soil pH below which microbial activity is not inhibited at all [unitless].
+
+    This value cannot be smaller than :attr:`lowest_optimal_pH_microbes` or larger than
+    :attr:`max_pH_microbes`. The default value was obtained by averaging the fungi
+    and bacteria specific values given in :cite:t:`orwin_organic_2011`.
+    """
+
+    max_pH_microbes: float = 11.0
+    """Soil pH above which microbial activity is completely inhibited [unitless].
+
+    This value cannot be smaller than :attr:`highest_optimal_pH_microbes`. The default
+    value was obtained by averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`.
+    """

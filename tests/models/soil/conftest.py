@@ -21,9 +21,10 @@ def moist_scalars(dummy_carbon_data, top_soil_layer_index):
 
 
 @pytest.fixture
-def water_factors(dummy_carbon_data, top_soil_layer_index):
-    """Water potential factors based on dummy carbon data."""
+def environmental_factors(dummy_carbon_data, top_soil_layer_index):
+    """Environmental factors based on dummy carbon data."""
     from virtual_rainforest.models.soil.env_factors import (
+        calculate_pH_suitability,
         calculate_water_potential_impact_on_microbes,
     )
 
@@ -34,4 +35,12 @@ def water_factors(dummy_carbon_data, top_soil_layer_index):
         moisture_response_curvature=SoilConsts.moisture_response_curvature,
     )
 
-    return water_factors
+    pH_factors = calculate_pH_suitability(
+        soil_pH=dummy_carbon_data["pH"],
+        maximum_pH=SoilConsts.max_pH_microbes,
+        minimum_pH=SoilConsts.min_pH_microbes,
+        lower_optimum_pH=SoilConsts.lowest_optimal_pH_microbes,
+        upper_optimum_pH=SoilConsts.highest_optimal_pH_microbes,
+    )
+
+    return {"water": water_factors, "pH": pH_factors}

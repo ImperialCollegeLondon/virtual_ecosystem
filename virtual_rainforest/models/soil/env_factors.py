@@ -86,6 +86,68 @@ def calculate_water_potential_impact_on_microbes(
     return 1 - supression
 
 
+def calculate_pH_suitability(
+    soil_pH: NDArray[np.float32],
+    maximum_pH: float,
+    minimum_pH: float,
+    upper_optimum_pH: float,
+    lower_optimum_pH: float,
+) -> NDArray[np.float32]:
+    """Calculate the suitability of the soil pH for microbial activity.
+
+    This function is taken from :cite:t:`orwin_organic_2011`. pH values within the
+    optimal range are assumed to cause no microbial inhibition, and pH values above a
+    certain value or below a certain value are assumed to cause total inhibition. Linear
+    declines then occur between the edges of the optimal range and the zone of total
+    inhibition.
+
+    Args:
+        soil_pH: The pH of the soil [unitless]
+        maximum_pH: pH above which microbial rates are completely inhibited [unitless]
+        minimum_pH: pH below which microbial rates are completely inhibited [unitless]
+        upper_optimum_pH: pH above which suitability declines [unitless]
+        lower_optimum_pH: pH below which suitability declines [unitless]
+
+    Returns:
+        A multiplicative factor capturing the effect of pH on microbial rates
+    """
+
+    # TODO - This check is necessary to prevent nonsensical output being generated,
+    # however it could be done when constants are loaded, rather than for every function
+    # call
+    if (
+        maximum_pH <= upper_optimum_pH
+        or upper_optimum_pH <= lower_optimum_pH
+        or lower_optimum_pH <= minimum_pH
+    ):
+        to_raise = ValueError("At least one pH threshold has an invalid value!")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    pH_factors = np.full(len(soil_pH), np.nan)
+
+    # zero below minimum or above maximum pH
+    pH_factors[soil_pH < minimum_pH] = 0
+    pH_factors[soil_pH > maximum_pH] = 0
+    # and one between the two thresholds
+    pH_factors[(lower_optimum_pH <= soil_pH) & (soil_pH <= upper_optimum_pH)] = 1
+
+    # Find points that lie between optimal region and maximum/minimum
+    between_opt_and_min = (minimum_pH <= soil_pH) & (soil_pH < lower_optimum_pH)
+    between_opt_and_max = (upper_optimum_pH < soil_pH) & (soil_pH <= maximum_pH)
+
+    # Linear increase from minimum pH value to lower threshold
+    pH_factors[between_opt_and_min] = (soil_pH[between_opt_and_min] - minimum_pH) / (
+        lower_optimum_pH - minimum_pH
+    )
+    # Linear decrease from the upper threshold to maximum pH
+    pH_factors[between_opt_and_max] = (
+        soil_pH[between_opt_and_max] - upper_optimum_pH
+    ) / (maximum_pH - upper_optimum_pH)
+
+    return pH_factors
+
+
 def convert_moisture_to_scalar(
     soil_moisture: NDArray[np.float32],
     moisture_scalar_coefficient: float,
