@@ -30,9 +30,7 @@
                         },
                         "update": {
                             "type": "array",
-                            "default": [
-                                "plants"
-                            ],
+                            "default": [],
                             "items": {
                                 "type": "string"
                             }
