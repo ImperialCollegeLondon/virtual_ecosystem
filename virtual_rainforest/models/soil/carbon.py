@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
+    calculate_pH_suitability,
     calculate_temperature_effect_on_microbes,
     calculate_water_potential_impact_on_microbes,
     convert_moisture_to_scalar,
@@ -64,7 +65,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
-        pH: pH values for each soil grid cell
+        pH: pH values for each soil grid cell [unitless]
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
         soil_water_potential: Soil water potential for each grid cell [kPa]
@@ -98,6 +99,14 @@ def calculate_soil_carbon_updates(
         water_potential_halt=constants.soil_microbe_water_potential_halt,
         water_potential_opt=constants.soil_microbe_water_potential_optimum,
         moisture_response_curvature=constants.moisture_response_curvature,
+    )
+    # Find the impact of soil pH on microbial rates
+    pH_factor = calculate_pH_suitability(
+        soil_pH=pH,
+        maximum_pH=constants.max_pH_microbes,
+        minimum_pH=constants.min_pH_microbes,
+        lower_optimum_pH=constants.lowest_optimal_pH_microbes,
+        upper_optimum_pH=constants.highest_optimal_pH_microbes,
     )
     # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
@@ -134,6 +143,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_pom=soil_c_pool_pom,
         soil_enzyme_pom=soil_enzyme_pom,
         water_factor=water_factor,
+        pH_factor=pH_factor,
         soil_temp=soil_temp,
         constants=constants,
     )
@@ -340,6 +350,7 @@ def determine_microbial_biomass_losses(
 
     # TODO - This split will change when a necromass pool is introduced
     # These proteins and cells that are replaced decay into either the POM or LMWC pool
+    # TODO - This split should depend on clay content
     necromass_to_lmwc = (1 - constants.necromass_to_pom) * replacement_synthesis
     necromass_to_pom = constants.necromass_to_pom * replacement_synthesis
 
@@ -444,7 +455,8 @@ def calculate_microbial_saturation(
     return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
 
 
-# TODO - This function also needs reworking
+# TODO - This function also needs reworking, when I do this I need to pay careful
+# attention to carbon use efficiency
 def calculate_microbial_carbon_uptake(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -520,12 +532,13 @@ def calculate_labile_carbon_leaching(
 
 
 # TODO - Should consider making this a generic function, i.e. not POM specific
-# TODO - As a first pass we are ignoring the clay and pH factors here. Once I've sorted
-# the temperature factors I should add them.
+# TODO - We are currently ignoring the clay factor here. Once I've sorted the
+# pH factor I should add clay in.
 def calculate_pom_decomposition(
     soil_c_pool_pom: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     water_factor: NDArray[np.float32],
+    pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
@@ -541,6 +554,7 @@ def calculate_pom_decomposition(
             matter [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
+        pH_factor: A factor capturing the impact of soil pH on microbial rates
         soil_temp: soil temperature for each soil grid cell [degrees C]
         constants: Set of constants for the soil model.
 
@@ -562,7 +576,9 @@ def calculate_pom_decomposition(
     )
 
     # Calculate the adjusted rate and saturation constants
-    rate_constant = constants.max_decomp_rate_pom * temp_factor_rate * water_factor
+    rate_constant = (
+        constants.max_decomp_rate_pom * temp_factor_rate * water_factor * pH_factor
+    )
     saturation_constant = constants.half_sat_pom_decomposition * temp_factor_saturation
 
     return (
