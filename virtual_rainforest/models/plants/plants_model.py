@@ -259,7 +259,9 @@ class PlantsModel(BaseModel):
 
         # Extract a PPFD time slice
         canopy_top_ppfd = (
-            self.data["photosynthetic_photon_flux_density"].isel(time=time_index).data
+            self.data["photosynthetic_photon_flux_density"]
+            .isel(time_index=time_index)
+            .data
         )
 
         # Calculate the fate of PPFD through the layers

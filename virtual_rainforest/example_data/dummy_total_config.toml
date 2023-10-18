@@ -19,18 +19,18 @@ var_name = "atmospheric_co2_ref"
 [[core.data.variable]]
 file = "ERA5_land_dummy.nc"
 var_name = "mean_annual_temperature"
-[[core.data.variable]]
-file = "plants_dummy.nc"
-var_name = "layer_heights"
-[[core.data.variable]]
-file = "plants_dummy.nc"
-var_name = "leaf_area_index"
+# [[core.data.variable]]
+# file = "plants_dummy.nc"
+# var_name = "layer_heights"
+# [[core.data.variable]]
+# file = "plants_dummy.nc"
+# var_name = "leaf_area_index"
 [[core.data.variable]]
 file = "plants_dummy.nc"
 var_name = "evapotranspiration"
-[[core.data.variable]]
-file = "plants_dummy.nc"
-var_name = "layer_leaf_mass"
+# [[core.data.variable]]
+# file = "plants_dummy.nc"
+# var_name = "layer_leaf_mass"
 
 
 [[core.data.variable]]
@@ -86,3 +86,20 @@ var_name = "lignin_woody"
 [[core.data.variable]]
 file = "dummy_litter_data.nc"
 var_name = "lignin_below_structural"
+
+
+[[core.data.variable]]
+file = "example_plant_data.nc"
+var_name = "plant_cohorts_n"
+[[core.data.variable]]
+file = "example_plant_data.nc"
+var_name = "plant_cohorts_pft"
+[[core.data.variable]]
+file = "example_plant_data.nc"
+var_name = "plant_cohorts_cell_id"
+[[core.data.variable]]
+file = "example_plant_data.nc"
+var_name = "plant_cohorts_dbh"
+[[core.data.variable]]
+file = "example_plant_data.nc"
+var_name = "photosynthetic_photon_flux_density"
