@@ -171,24 +171,45 @@ def _get_model_sequence(
             are cyclic.
     """
 
-    # Extract priority information for the models for the given step
+    # Extract priority information for the models for the given step, checking that the
+    # entries are sane
     priorities: dict[str, list[str]] = {}
     for model_name in models:
+        config_priorities = config[model_name]["priority"][method]
+
+        # Check the model doesn't have priority over itself
+        if model_name in config_priorities:
+            to_raise = f"Model {method} priorities for {model_name} includes itself"
+            LOGGER.critical(to_raise)
+            raise ConfigurationError(to_raise)
+
+        # Check the priorities are all models included in the configuration.
+        unknown_priorities = set(config_priorities).difference(models.keys())
+        if unknown_priorities:
+            to_raise = (
+                f"Model {method} priorities for {model_name} includes "
+                f"unconfigured models: {','.join(unknown_priorities)}"
+            )
+            LOGGER.critical(to_raise)
+            raise ConfigurationError(to_raise)
+
         priorities[model_name] = config[model_name]["priority"][method]
 
     # Find a resolved running order for those priorities
     sorter = TopologicalSorter(priorities)
 
-    # Find a resolved execution order, checking for cyclic priorities
+    # Find a resolved execution order, checking for cyclic priorities, and then reverse
+    # it as TopologicalSorter places item _after_ their priorities.
     try:
-        resolved_order: tuple[str, ...] = tuple(sorter.static_order())
+        resolved_order: list[str] = list(reversed(list(sorter.static_order())))
     except CycleError as excep:
         to_raise = f"Model {method} priorities are cyclic: {', '.join(excep.args[1])}"
         LOGGER.critical(to_raise)
         raise ConfigurationError(to_raise)
 
     # Return a dictionary of models in execution order
-    return {model_name: models[model_name] for model_name in (reversed(resolved_order))}
+    LOGGER.info(f"Model {method} execution order set: {', '.join(resolved_order)}")
+    return {model_name: models[model_name] for model_name in resolved_order}
 
 
 def vr_run(

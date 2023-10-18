@@ -16,7 +16,6 @@ from typing import Any, Union
 import tomli_w
 from jsonschema import FormatChecker
 
-from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
@@ -197,7 +196,7 @@ class Config(dict):
         self.from_cfg_strings: bool = False
         """A boolean flag indicating whether paths or strings were used to create the
         instance."""
-        self.model_classes: dict[str, BaseModel]
+        self.model_classes: dict[str, Any] = {}  # FIXME: -> dict[str, Type[BaseModel]]
         """A dictionary of the model classes specified in the configuration, keyed by
         model name."""
 
