@@ -11,86 +11,22 @@ import numpy as np
 import pint
 import pytest
 
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.main import vr_run
 
 from .conftest import log_check
 
 
 @pytest.mark.parametrize(
-    "model_list,no_models,raises,expected_log_entries",
-    [
-        pytest.param(
-            ["soil"],  # valid input
-            1,
-            does_not_raise(),
-            ((INFO, "Selecting the following models: soil"),),
-            id="valid input",
-        ),
-        pytest.param(
-            ["soil", "core"],
-            1,
-            does_not_raise(),
-            ((INFO, "Selecting the following models: soil"),),
-            id="ignores core",
-        ),
-        pytest.param(
-            ["freshwater", "soil"],  # Model that hasn't been defined
-            0,
-            pytest.raises(InitialisationError),
-            (
-                (INFO, "Selecting the following models: freshwater, soil"),
-                (
-                    CRITICAL,
-                    "Models not in module registry and cannot be selected: freshwater",
-                ),
-            ),
-            id="undefined model",
-        ),
-        pytest.param(
-            ["soil", "abiotic_simple", "abiotic_simple"],
-            2,
-            does_not_raise(),
-            (
-                (WARNING, "Dropping duplicate model names: abiotic_simple"),
-                (INFO, "Selecting the following models: soil, abiotic_simple"),
-            ),
-            id="repeated model",
-        ),
-    ],
-)
-def test_select_models(caplog, model_list, no_models, raises, expected_log_entries):
-    """Test the model selecting function."""
-
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.main import select_models
-
-    # Need to register the modules to be used in testing - the module registry persists
-    # between tests, so clear the log to avoid registration messages and then warning
-    # messages about re-registration.
-    register_module("virtual_rainforest.models.soil")
-    register_module("virtual_rainforest.models.abiotic_simple")
-    caplog.clear()
-
-    with raises:
-        models = select_models(model_list)
-        assert len(models) == no_models
-        assert all([type(model) == type(BaseModel) for model in models])
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
     "cfg_strings,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil]",
+            "[core]\nmodules=['soil']\n",
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
             (
-                (INFO, "Configuring models: soil"),
+                (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
@@ -108,12 +44,12 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="valid config",
         ),
         pytest.param(
-            "[core]\n[soil]",
+            "[core]\nmodules=['soil']\n",
             pint.Quantity("1 minute"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Configuring models: soil"),
+                (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
@@ -126,12 +62,12 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
             id="update interval too short",
         ),
         pytest.param(
-            "[core]\n[soil]\n",
+            "[core]\nmodules=['soil']\n",
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Configuring models: soil"),
+                (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
@@ -145,7 +81,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
         ),
     ],
 )
-def test_configure_models(
+def test_initialise_models(
     caplog,
     dummy_carbon_data,
     cfg_strings,
@@ -154,20 +90,22 @@ def test_configure_models(
     raises,
     expected_log_entries,
 ):
-    """Test the function that configures the models."""
+    """Test the function that initialises the models."""
 
     from virtual_rainforest.core.config import Config
-    from virtual_rainforest.main import configure_models, select_models
+    from virtual_rainforest.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
     config = Config(cfg_strings=cfg_strings)
-    model_list = select_models(["soil"])
     caplog.clear()
 
     with raises:
-        models = configure_models(
-            config, dummy_carbon_data, model_list, update_interval
+        models = initialise_models(
+            config=config,
+            data=dummy_carbon_data,
+            models=config.model_classes,
+            update_interval=update_interval,
         )
 
         if output is None:
@@ -355,3 +293,95 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert update_interval_as_quantity == output["update_interval_as_quantity"]
 
     log_check(caplog=caplog, expected_log=expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "cfg_strings,method,raises,model_keys,expected_log_entries",
+    [
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[soil.depends]\ninit=['abiotic_simple']\n",
+            "init",
+            does_not_raise(),
+            ["abiotic_simple", "soil"],
+            ((INFO, "Model init execution order set: abiotic_simple, soil"),),
+            id="valid init depends",
+        ),
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[abiotic_simple.depends]\nupdate=['soil']\n",
+            "update",
+            does_not_raise(),
+            ["soil", "abiotic_simple"],
+            ((INFO, "Model update execution order set: soil, abiotic_simple"),),
+            id="valid update depends",
+        ),
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[abiotic_simple.depends]\nupdate=['soil']\n"
+            "[soil.depends]\nupdate=['abiotic_simple']\n",
+            "update",
+            pytest.raises(ConfigurationError),
+            None,
+            ((CRITICAL, "Model update dependencies are cyclic"),),
+            id="cyclic dependencies",
+        ),
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
+            "update",
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    CRITICAL,
+                    "Model update dependencies for abiotic_simple includes itself",
+                ),
+            ),
+            id="depends over self",
+        ),
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[abiotic_simple.depends]\nupdate=['plants', 'soil']\n",
+            "update",
+            does_not_raise(),
+            ["soil", "abiotic_simple"],
+            (
+                (
+                    WARNING,
+                    "Configuration does not include all of the models listed in "
+                    "update dependencies for abiotic_simple: plants",
+                ),
+                (INFO, "Model update execution order set: soil, abiotic_simple"),
+            ),
+            id="depends includes unconfigured models",
+        ),
+    ],
+)
+def test_get_model_sequence(
+    caplog,
+    cfg_strings,
+    raises,
+    method,
+    model_keys,
+    expected_log_entries,
+):
+    """Test the function that sets the model sequence."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.main import _get_model_sequence
+
+    # Generate a configuration to use, using simple inputs to populate most from
+    # defaults. Then clear the caplog to isolate the logging for the function,
+    config = Config(cfg_strings=cfg_strings)
+    caplog.clear()
+
+    with raises:
+        model_sequence = _get_model_sequence(
+            config=config, models=config.model_classes, method=method
+        )
+
+        if isinstance(raises, does_not_raise):
+            assert model_keys == list(model_sequence.keys())
+
+    log_check(caplog, expected_log_entries)
