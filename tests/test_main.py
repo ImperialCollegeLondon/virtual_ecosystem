@@ -21,7 +21,7 @@ from .conftest import log_check
     "cfg_strings,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules=['soil']\n",
+            "[core]\n[soil]\n",
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
@@ -44,7 +44,7 @@ from .conftest import log_check
             id="valid config",
         ),
         pytest.param(
-            "[core]\nmodules=['soil']\n",
+            "[core]\n[soil]\n",
             pint.Quantity("1 minute"),
             None,
             pytest.raises(InitialisationError),
@@ -62,7 +62,7 @@ from .conftest import log_check
             id="update interval too short",
         ),
         pytest.param(
-            "[core]\nmodules=['soil']\n",
+            "[core]\n[soil]\n",
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
@@ -121,7 +121,6 @@ def test_initialise_models(
     [
         pytest.param(
             """[core]
-            modules = ["soil",]
             data = {}
             [core.data_output_options]
             save_merged_config = false
@@ -299,8 +298,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     "cfg_strings,method,raises,model_keys,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[soil.depends]\ninit=['abiotic_simple']\n",
+            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n[abiotic_simple]",
             "init",
             does_not_raise(),
             ["abiotic_simple", "soil"],
@@ -308,8 +306,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             id="valid init depends",
         ),
         pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.depends]\nupdate=['soil']\n",
+            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n[soil]\n",
             "update",
             does_not_raise(),
             ["soil", "abiotic_simple"],
@@ -317,8 +314,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             id="valid update depends",
         ),
         pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.depends]\nupdate=['soil']\n"
+            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n"
             "[soil.depends]\nupdate=['abiotic_simple']\n",
             "update",
             pytest.raises(ConfigurationError),
@@ -327,8 +323,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             id="cyclic dependencies",
         ),
         pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
+            "[core]\n[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
             "update",
             pytest.raises(ConfigurationError),
             None,
@@ -341,8 +336,7 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             id="depends over self",
         ),
         pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.depends]\nupdate=['plants', 'soil']\n",
+            "[core]\n[abiotic_simple.depends]\nupdate=['plants', 'soil']\n[soil]",
             "update",
             does_not_raise(),
             ["soil", "abiotic_simple"],
