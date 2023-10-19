@@ -421,32 +421,35 @@ class Config(dict):
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
 
-        This method identifies the modules to be configured from the config
-        `core.modules` entry, using the core schema default if this entry is missing.
-        This sets the requested modules to be used in the configured model. The schemas
-        for the requested modules are then loaded and combined using the
-        :meth:`~virtual_rainforest.core.schema.merge_schemas` function to generate a
-        single validation schema for model configuration.
+        This method identifies the modules to be configured from the top-level
+        configuration keys, setting the requested modules to be used in the configured
+        simulation. The schemas for the requested modules are then loaded and combined
+        using the :meth:`~virtual_rainforest.core.schema.merge_schemas` function to
+        generate a single validation schema for model configuration.
         """
 
-        # Register the core module components and then extract the modules requested in
-        # the configuration, falling back to the schema defaults.
+        # Extract the requested modules, which are the top-level config keys.
+        requested_modules: list[str] = list(self.keys())
+
+        # Must include core
+        if "core" not in requested_modules:
+            to_raise = ConfigurationError("Configuration is missing the core module")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        # Remove core from module list and then register the core module components
+        # and access the core schema.
+        requested_modules.remove("core")
         register_module("virtual_rainforest.core")
         core_schema = MODULE_REGISTRY["core"].schema
-        defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
-        try:
-            # Provided in config
-            requested_modules = self["core"]["modules"]
-        except KeyError:
-            # Revert to defaults
-            requested_modules = defmods
-
-        # Register the requested modules
+        # Attempt to register the requested modules - this function will handle unknown
+        # module names and exit.
         for module in requested_modules:
             register_module(f"virtual_rainforest.models.{module}")
 
-        # Generate a dictionary of schemas for requested modules
+        # Generate a dictionary of schemas for requested modules and populate the
+        # model_classes attribute
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
             all_schemas[module] = MODULE_REGISTRY[module].schema
