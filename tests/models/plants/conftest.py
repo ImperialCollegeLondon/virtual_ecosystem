@@ -6,7 +6,7 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def plants_config(shared_datadir):
+def plants_config():
     """Simple configuration fixture for use in tests."""
 
     from virtual_rainforest.core.config import Config
