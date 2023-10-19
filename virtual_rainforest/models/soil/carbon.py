@@ -152,8 +152,7 @@ def calculate_soil_carbon_updates(
         moisture_scalar=moist_scalar,
         leaching_rate=constants.leaching_rate_labile_carbon,
     )
-    # TODO - POM decomposition should not only be to LMWC
-    pom_decomposition_to_lmwc = calculate_pom_decomposition(
+    pom_decomposition_rate = calculate_pom_decomposition(
         soil_c_pool_pom=soil_c_pool_pom,
         soil_enzyme_pom=soil_enzyme_pom,
         water_factor=water_factor,
@@ -161,6 +160,13 @@ def calculate_soil_carbon_updates(
         clay_factor_saturation=clay_factor_saturation,
         soil_temp=soil_temp,
         constants=constants,
+    )
+
+    pom_decomposition_to_lmwc = (
+        pom_decomposition_rate * constants.pom_decomposition_fraction_lmwc
+    )
+    pom_decomposition_to_maom = pom_decomposition_rate * (
+        1 - constants.pom_decomposition_fraction_lmwc
     )
 
     # Determine net changes to the pools
@@ -172,14 +178,14 @@ def calculate_soil_carbon_updates(
         - microbial_uptake
         - labile_carbon_leaching
     )
-    delta_pools_ordered["soil_c_pool_maom"] = lmwc_to_maom
+    delta_pools_ordered["soil_c_pool_maom"] = pom_decomposition_to_maom + lmwc_to_maom
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_uptake - biomass_losses.maintenance_synthesis
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate
         + biomass_losses.necromass_decay_to_pom
-        - pom_decomposition_to_lmwc
+        - pom_decomposition_rate
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
@@ -580,8 +586,8 @@ def calculate_pom_decomposition(
         constants: Set of constants for the soil model.
 
     Returns:
-        The amount of particulate organic matter (POM) decomposed into labile carbon
-        (LMWC)
+        The amount of particulate organic matter (POM) decomposed into both labile
+        carbon (LMWC) and mineral associated organic matter (MAOM) [kg C m^-3 day^-1]
     """
 
     # Calculate the factors which impact the rate and saturation constants

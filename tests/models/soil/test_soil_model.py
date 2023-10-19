@@ -293,13 +293,13 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05502994, 0.02925043, 0.24313984, 0.00546537], dims="cell_id"
+                        [0.0549357, 0.02698085, 0.23853806, 0.005455], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49725453, 1.69675747, 4.37382291, 0.50001191], dims="cell_id"
+                        [2.49735024, 1.69906323, 4.37846968, 0.50002228], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77450303, 2.28931252, 11.24367309, 0.99640423],
+                        [5.77450159, 2.28927686, 11.24362854, 0.99640422],
                         dims="cell_id",
                     ),
                     pom=DataArray(
@@ -420,14 +420,14 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        1.01140181e-2,
-        1.81175266e-2,
-        0.196441848,
-        9.38398891e-4,
-        -5.40856802e-3,
-        -5.81942847e-3,
-        -0.159994002,
-        1.82192909e-5,
+        9.94409582e-3,
+        1.36575750e-2,
+        0.190189092,
+        9.17686491e-4,
+        -5.23864573e-3,
+        -1.35947690e-3,
+        -0.153741246,
+        3.89316909e-5,
         -5.12729145e-2,
         -2.17193460e-2,
         -0.115733902,

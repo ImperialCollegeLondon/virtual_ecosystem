@@ -272,3 +272,9 @@ class SoilConsts(ConstantsDataclass):
     negative so increases in clay leads to a lower proportion of necromass decaying to
     LMWC. The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
     """
+
+    pom_decomposition_fraction_lmwc: float = 0.5
+    """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
