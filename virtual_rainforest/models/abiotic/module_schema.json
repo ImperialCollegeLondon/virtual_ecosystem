@@ -2,11 +2,11 @@
     "type": "object",
     "properties": {
         "abiotic": {
-            "description": "Configuration settings for the abiotic module",
+            "description": "Configuration settings for the abiotic model",
             "type": "object",
             "properties": {
                 "constants": {
-                    "description": "Constants for the abiotic module",
+                    "description": "Constants for the abiotic model",
                     "type": "object",
                     "properties": {
                         "AbioticConsts": {

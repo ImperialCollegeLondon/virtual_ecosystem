@@ -6,7 +6,9 @@ simulation.
 
 from dataclasses import dataclass
 
+from virtual_rainforest.core.constants_class import ConstantsDataclass
+
 
 @dataclass(frozen=True)
-class AbioticConsts:
+class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""

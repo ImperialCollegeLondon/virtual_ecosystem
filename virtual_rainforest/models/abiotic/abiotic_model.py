@@ -22,7 +22,7 @@ from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import load_constants
+from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
@@ -46,7 +46,7 @@ class AbioticModel(BaseModel):
     """Shortest time scale that abiotic model can sensibly capture."""
     upper_bound_on_time_scale = "1 day"
     """Longest time scale that abiotic model can sensibly capture."""
-    required_init_vars = ()
+    required_init_vars = (("air_temperature_ref", ("spatial",)),)
     """The required variables and axes for the abiotic model"""
     vars_updated = ()
     """Variables updated by the abiotic model"""
@@ -101,7 +101,13 @@ class AbioticModel(BaseModel):
             "Information required to initialise the abiotic model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, constants)
+        return cls(
+            data,
+            update_interval,
+            soil_layers,
+            canopy_layers,
+            constants,
+        )
 
     def setup(self) -> None:
         """Function to set up the abiotic model."""
