@@ -220,7 +220,6 @@
             "data_output_options",
             "grid",
             "timing",
-            "modules",
             "layers"
          ]
       }

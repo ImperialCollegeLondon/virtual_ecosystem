@@ -318,7 +318,7 @@ def test_Config_resolve_config_paths(
     "cfg_paths,expected_exception,expected_log_entries",
     [
         pytest.param(
-            ["all_config_bad.toml"],
+            ["toml_errors.toml"],
             pytest.raises(ConfigurationError),
             (
                 (ERROR, "Config TOML parsing error in"),
@@ -356,7 +356,7 @@ def test_Config_load_config_toml(
     "cfg_paths,expected_exception,expected_log_entries",
     [
         pytest.param(
-            "all_config_bad.toml",
+            "toml_errors.toml",
             pytest.raises(ConfigurationError),
             ((CRITICAL, "TOML parsing error in cfg_strings:"),),
             id="toml_errors",
@@ -390,19 +390,17 @@ def test_Config_load_config_toml_string(
 
 
 @pytest.mark.parametrize(
-    "content,expected_exception,expected_dict,expected_log_entries",
+    "content,expected_exception,expected_log_entries",
     [
         pytest.param(
             {},
             does_not_raise(),
-            {},
             ((WARNING, "No config files set"),),
             id="no_file_warns",
         ),
         pytest.param(
             {"filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}}},
             does_not_raise(),
-            {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
             ((INFO, "Config built from 1 file(s)"),),
             id="single_file_ok",
         ),
@@ -412,7 +410,6 @@ def test_Config_load_config_toml_string(
                 "filename2.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
             },
             pytest.raises(ConfigurationError),
-            None,
             (
                 (
                     CRITICAL,
@@ -424,50 +421,37 @@ def test_Config_load_config_toml_string(
         ),
         pytest.param(
             {
-                "filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
-                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+                "filename1.toml": {"core": {"grid": {"cell_nx": 10}}},
+                "filename2.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             does_not_raise(),
-            {
-                "core": {
-                    "grid": {"cell_nx": 10, "cell_ny": 10},
-                    "modules": ["plants", "abiotic"],
-                }
-            },
             ((INFO, "Config built from 2 file(s)"),),
             id="two_files_valid",
         ),
         pytest.param(
             {
                 "filename1.toml": {"core": {"grid": {"cell_nx": 10}}},
-                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+                "filename2.toml": {"core": {}},
                 "filename3.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             does_not_raise(),
-            {
-                "core": {
-                    "grid": {"cell_nx": 10, "cell_ny": 10},
-                    "modules": ["plants", "abiotic"],
-                }
-            },
             ((INFO, "Config built from 3 file(s)"),),
             id="three_files_valid",
         ),
         pytest.param(
             {
                 "filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}},
-                "filename2.toml": {"core": {"modules": ["plants", "abiotic"]}},
+                "filename2.toml": {"core": {}},
                 "filename3.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             pytest.raises(ConfigurationError),
-            None,
             ((CRITICAL, "Duplicated entries in config files: core.grid.cell_ny"),),
             id="three_files_conflict",
         ),
     ],
 )
 def test_Config_build_config_paths(
-    caplog, content, expected_dict, expected_exception, expected_log_entries
+    caplog, content, expected_exception, expected_log_entries
 ):
     """Check building merged config from loaded content from paths."""
     from virtual_rainforest.core.config import Config
@@ -478,36 +462,29 @@ def test_Config_build_config_paths(
     caplog.clear()
 
     # Check that build_config behaves as expected
-    with expected_exception:
+    with expected_exception as excep:
         cfg.build_config()
 
-    log_check(caplog, expected_log_entries)
+        if isinstance(excep, does_not_raise):
+            if not cfg.toml_contents == {}:
+                assert cfg == {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}}
 
-    # Assert that the config dictionary is as expected
-    if expected_dict is not None:
-        assert cfg == expected_dict
+    log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
     "cfg_strings",
     [
         pytest.param(
-            '[core]\nmodules = ["plants", "abiotic"]\n'
-            "[core.grid]\ncell_nx = 10\ncell_ny = 10",
+            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny = 10",
             id="a_string",
         ),
         pytest.param(
-            [
-                '[core]\nmodules = ["plants", "abiotic"]\n'
-                "[core.grid]\ncell_nx = 10\ncell_ny = 10"
-            ],
+            ["[core]\n[core.grid]\ncell_nx = 10\ncell_ny = 10"],
             id="a_one_string_list",
         ),
         pytest.param(
-            [
-                '[core]\nmodules = ["plants", "abiotic"]\n',
-                "[core.grid]\ncell_nx = 10\ncell_ny = 10",
-            ],
+            ["[core]\n[core.grid]\ncell_nx = 10\n", "[core.grid]\ncell_ny = 10"],
             id="a_two_string_list",
         ),
     ],
@@ -535,7 +512,6 @@ def test_Config_build_config_string(caplog, cfg_strings):
     assert cfg == {
         "core": {
             "grid": {"cell_nx": 10, "cell_ny": 10},
-            "modules": ["plants", "abiotic"],
         }
     }
 
@@ -544,13 +520,13 @@ def test_Config_build_config_string(caplog, cfg_strings):
     "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules = ['soil', 'plants']",
+            "[core]\n[soil]\n[abiotic_simple]",
             does_not_raise(),
             ((INFO, "Validation schema for configuration built."),),
             id="core_modules_all_known",
         ),
         pytest.param(
-            "[core]\nmodules = ['soil', 'pants']",
+            "[core]\n[pants]",
             pytest.raises(ModuleNotFoundError),
             (
                 (
@@ -586,20 +562,7 @@ def test_Config_build_schema(
     "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules = ['soil', 'soil']",
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Configuration error in ['core', 'modules']: "
-                    "['soil', 'soil'] has non-unique elements",
-                ),
-                (CRITICAL, "Configuration contains schema violations: check log"),
-            ),
-            id="core_unique_module_violation",
-        ),
-        pytest.param(
-            "[core]\nmodules = ['plants']\n[core.grid]\ncell_nx = 10\ncell_ny=10",
+            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=10\n[plants]\n",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -612,7 +575,7 @@ def test_Config_build_schema(
             id="missing_required_property",
         ),
         pytest.param(
-            "[core]\nmodules = []\n[core.grid]\ncell_nx = 10\ncell_ny=-10",
+            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=-10",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -625,8 +588,7 @@ def test_Config_build_schema(
             id="minimum_value_violation",
         ),
         pytest.param(
-            "[core]\nmodules = ['soil']\n[core.grid]\ncell_nx = 10\ncell_ny=10\n"
-            "[soil]\nno_layers=123\n",
+            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=10\n[soil]\nno_layers=123\n",
             pytest.raises(ConfigurationError),
             (
                 (
@@ -639,25 +601,19 @@ def test_Config_build_schema(
             id="unexpected_property",
         ),
         pytest.param(
-            "[core]\nmodules = ['abiotic_simple']\n",
+            "[core]\n[abiotic_simple]\n",
             does_not_raise(),
             ((INFO, "Configuration validated"),),
             id="no constants",
         ),
         pytest.param(
-            "[core]\nmodules = ['abiotic_simple']\n"
-            "[abiotic_simple.constants.AbioticSimpleConsts]\nconstant1 = 1.0\n",
+            "[core]\n[abiotic_simple.constants.AbioticSimpleConsts]\nconstant1 = 1.0\n",
             does_not_raise(),
             ((INFO, "Configuration validated"),),
             id="correct constant",
         ),
         pytest.param(
-            "[core]\nmodules = ['abiotic_simple']\n"
-            "[abiotic_simple.constants]\nconstant1 = 1.0\n",
-            # {
-            #     "core": {"modules": ["abiotic_simple"]},
-            #     "abiotic_simple": {"constants": {"constant1": 1.0}},
-            # },
+            "[core]\n[abiotic_simple.constants]\nconstant1 = 1.0\n",
             pytest.raises(ConfigurationError),
             (
                 (
