@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
 import numpy as np
 import pint
@@ -300,55 +300,61 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     [
         pytest.param(
             "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[soil.priority]\ninit=['abiotic_simple']\n",
+            "[soil.depends]\ninit=['abiotic_simple']\n",
             "init",
             does_not_raise(),
             ["soil", "abiotic_simple"],
             ((INFO, "Model init execution order set: soil, abiotic_simple"),),
-            id="valid init priority",
+            id="valid init depends",
         ),
         pytest.param(
             "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.priority]\nupdate=['soil']\n",
+            "[abiotic_simple.depends]\nupdate=['soil']\n",
             "update",
             does_not_raise(),
             ["abiotic_simple", "soil"],
             ((INFO, "Model update execution order set: abiotic_simple, soil"),),
-            id="valid update priority",
+            id="valid update depends",
         ),
         pytest.param(
             "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.priority]\nupdate=['soil']\n"
-            "[soil.priority]\nupdate=['abiotic_simple']\n",
+            "[abiotic_simple.depends]\nupdate=['soil']\n"
+            "[soil.depends]\nupdate=['abiotic_simple']\n",
             "update",
             pytest.raises(ConfigurationError),
             None,
-            ((CRITICAL, "Model update priorities are cyclic"),),
-            id="cyclic priorities",
+            ((CRITICAL, "Model update dependencies are cyclic"),),
+            id="cyclic dependencies",
         ),
         pytest.param(
             "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.priority]\nupdate=['abiotic_simple']\n",
-            "update",
-            pytest.raises(ConfigurationError),
-            None,
-            ((CRITICAL, "Model update priorities for abiotic_simple includes itself"),),
-            id="priority over self",
-        ),
-        pytest.param(
-            "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.priority]\nupdate=['plants']\n",
+            "[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
             "update",
             pytest.raises(ConfigurationError),
             None,
             (
                 (
                     CRITICAL,
-                    "Model update priorities for abiotic_simple includes "
-                    "unconfigured models",
+                    "Model update dependencies for abiotic_simple includes itself",
                 ),
             ),
-            id="priority includes unknown",
+            id="depends over self",
+        ),
+        pytest.param(
+            "[core]\nmodules=['soil','abiotic_simple']\n"
+            "[abiotic_simple.depends]\nupdate=['plants']\n",
+            "update",
+            does_not_raise(),
+            ["abiotic_simple", "soil"],
+            (
+                (
+                    WARNING,
+                    "Configuration does not include all of the models listed in "
+                    "update dependencies for abiotic_simple: plants",
+                ),
+                (INFO, "Model update execution order set: abiotic_simple, soil"),
+            ),
+            id="depends includes unconfigured models",
         ),
     ],
 )

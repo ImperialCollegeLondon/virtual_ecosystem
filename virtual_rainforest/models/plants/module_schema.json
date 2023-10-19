@@ -42,7 +42,7 @@
                "type": "integer",
                "default": 1
             },
-            "priority": {
+            "depends": {
                "type": "object",
                "default": {},
                "properties": {

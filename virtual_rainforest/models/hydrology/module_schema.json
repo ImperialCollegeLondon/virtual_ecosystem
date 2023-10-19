@@ -29,7 +29,7 @@
                         "HydroConsts"
                     ]
                 },
-                "priority": {
+                "depends": {
                     "type": "object",
                     "default": {},
                     "properties": {
