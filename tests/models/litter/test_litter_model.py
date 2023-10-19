@@ -25,8 +25,7 @@ def litter_model_fixture(dummy_litter_data):
     register_module("virtual_rainforest.models.abiotic_simple")
     # Build the config object
     config = Config(
-        cfg_strings="[core]\nmodules=['litter']\n"
-        "[core.timing]\nupdate_interval = '24 hours'"
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"
     )
 
     return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("24 hours"))
@@ -202,8 +201,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
     "cfg_string,time_interval,temp_response,raises,expected_log_entries",
     [
         pytest.param(
-            "[core.timing]\nupdate_interval = '24 hours'\n"
-            "[core]\nmodules = ['litter']\n",
+            "[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n",
             pint.Quantity("24 hours"),
             3.36,
             does_not_raise(),
@@ -250,8 +248,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
             id="default_config",
         ),
         pytest.param(
-            "[core.timing]\nupdate_interval = '24 hours'\n"
-            "[core]\nmodules = ['litter']\n"
+            "[core]\n[core.timing]\nupdate_interval = '24 hours'\n"
             "[litter.constants.LitterConsts]\nlitter_decomp_temp_response = 4.44\n",
             pint.Quantity("24 hours"),
             4.44,
@@ -288,7 +285,6 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '24 hours'\n"
-            "[core]\nmodules = ['litter']\n"
             "[litter.constants.LitterConsts]\ndecomp_rate = 4.44\n",
             None,
             None,
