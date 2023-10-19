@@ -80,6 +80,7 @@ class AnimalCommunity:
             individuals = damuths_law(
                 functional_group.adult_mass, functional_group.damuths_law_terms
             )
+
             cohort = AnimalCohort(
                 functional_group, functional_group.adult_mass, 0.0, individuals
             )
@@ -168,7 +169,7 @@ class AnimalCommunity:
 
         # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_mass_threshold(BIRTH_MASS_THRESHOLD):
+            if not cohort.is_below_mass_threshold(BIRTH_MASS_THRESHOLD):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
@@ -181,11 +182,18 @@ class AnimalCommunity:
         This will sooner be expanded to include functions for handling scavenging
         and soil consumption behaviors specifically.
 
+        TODO: Remove individuals = 0 check once die_cohort placement is finalized
+
 
         """
         plant_list = [self.plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
+            if (
+                consumer_cohort.individuals == 0
+            ):  # temporary while finalizing die_cohort placements
+                continue
+
             prey_list = self.collect_prey(consumer_cohort)
             food_choice = consumer_cohort.forage_cohort(
                 plant_list=plant_list,
@@ -224,7 +232,11 @@ class AnimalCommunity:
 
             # Filter the potential prey cohorts based on their size
             for cohort in potential_prey_cohorts:
-                if min_size <= cohort.mass_current <= max_size:
+                if (
+                    min_size <= cohort.mass_current <= max_size
+                    and cohort.individuals != 0
+                    and cohort != consumer_cohort
+                ):
                     prey.append(cohort)
 
         return prey

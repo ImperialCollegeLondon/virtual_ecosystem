@@ -8,8 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+from math import ceil
 from random import choice
-from typing import Sequence
+from typing import Optional, Sequence
 
 from numpy import random, timedelta64
 
@@ -115,13 +116,13 @@ class AnimalCohort:
         if self.mass_current < 0:
             raise ValueError("mass_current cannot be negative.")
 
-        #  g/day metabolic rate * number of days
+        #  kg/day metabolic rate * number of days
         mass_metabolized = metabolic_rate(
             self.mass_current,
             temperature,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
-        ) * float((dt / timedelta64(1, "d")))
+        ) * float((dt / timedelta64(1, "D")))
 
         self.mass_current -= min(self.mass_current, mass_metabolized)
 
@@ -221,7 +222,7 @@ class AnimalCohort:
         # Calculate the number of individuals that can be eaten based on intake rate
         # Here we assume predators can consume prey mass equivalent to daily intake
         number_eaten = min(
-            int((predator.intake_rate * predator.individuals) // self.mass_current),
+            ceil((predator.intake_rate * predator.individuals) / self.mass_current),
             self.individuals,
         )
 
@@ -256,13 +257,15 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> Resource:
+    ) -> Optional[Resource]:  # Note the optional here, temporary
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
         AnimalCommunity.forage_community and performs a simple random uniform selection.
         After this, excrete is called to pass excess waste to the excrement pool.
         Later this function will involve more complex weightings of prey options.
+
+        TODO: Fix the occasional division by zero bug in eat and then remove Optional
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
@@ -272,14 +275,27 @@ class AnimalCohort:
 
         """
 
-        if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            food_choice = choice(plant_list)
-            mass_consumed = self.eat(food_choice, excrement_pool)
-        elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-            food_choice = choice(animal_list)
-            mass_consumed = self.eat(food_choice, carcass_pool)
-        else:
-            LOGGER.info("No food available.")
+        mass_consumed = 0.0  # Initialize to 0.0
+
+        try:
+            if self.functional_group.diet == DietType.HERBIVORE and plant_list:
+                food_choice = choice(plant_list)
+                mass_consumed = self.eat(food_choice, excrement_pool)
+            elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
+                food_choice = choice(animal_list)
+                mass_consumed = self.eat(food_choice, carcass_pool)
+            else:
+                LOGGER.info("No food available.")
+                food_choice = None  # No food available
+
+        except ValueError as e:
+            if str(e) == "Individuals cannot be 0.":
+                LOGGER.warning("Tried to eat with zero individuals in the cohort.")
+                mass_consumed = 0
+                food_choice = None  # No food was actually consumed
+            else:
+                raise
+
         # excrete excess digestive wastes
         self.excrete(excrement_pool, mass_consumed)
 
@@ -305,14 +321,18 @@ class AnimalCohort:
         if self.individuals == 0:
             raise ValueError("Individuals cannot be 0.")
 
+        if self is food:
+            raise ValueError("The food and the consumer are the same object.")
+
         # get the per-individual energetic gain from the bulk value
         mass_consumed = food.get_eaten(self, pool) / self.individuals
 
         if self.is_below_mass_threshold(FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD):
             # if current mass equals or exceeds standard adult mass, gains to repro mass
-            self.reproductive_mass += mass_consumed
-        else:
             self.mass_current += mass_consumed
+        else:
+            # otherwise, gains flow to non-reproductive body mass.
+            self.reproductive_mass += mass_consumed
         return mass_consumed  # for passing to excrete
 
     def is_below_mass_threshold(self, mass_threshold: float) -> bool:
@@ -330,7 +350,7 @@ class AnimalCohort:
         """
         return (
             self.mass_current + self.reproductive_mass
-        ) / self.functional_group.adult_mass >= mass_threshold
+        ) / self.functional_group.adult_mass < mass_threshold
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float

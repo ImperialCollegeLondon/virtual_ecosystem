@@ -22,7 +22,7 @@ def predator_cohort_instance(predator_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(predator_functional_group_instance, 10000.0, 1)
+    return AnimalCohort(predator_functional_group_instance, 10000.0, 1, 10)
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def ectotherm_cohort_instance(ectotherm_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(ectotherm_functional_group_instance, 100.0, 1)
+    return AnimalCohort(ectotherm_functional_group_instance, 100.0, 1, 10)
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def prey_cohort_instance(herbivore_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herbivore_functional_group_instance, 100.0, 1)
+    return AnimalCohort(herbivore_functional_group_instance, 100.0, 1, 10)
 
 
 @pytest.fixture
@@ -67,16 +67,14 @@ class TestAnimalCohort:
 
     def test_initialization(self, herbivore_cohort_instance):
         """Testing initialization of derived parameters for animal cohorts."""
-        assert herbivore_cohort_instance.individuals == 1
-        assert herbivore_cohort_instance.stored_energy == pytest.approx(
-            56531469253.03123, rel=1e-6
-        )
+        assert herbivore_cohort_instance.individuals == 10
+        assert herbivore_cohort_instance.mass_current == 10000.0
 
     @pytest.mark.parametrize(
-        "functional_group, mass, age, error_type",
+        "functional_group, mass, age, individuals, error_type",
         [
-            (lambda fg: fg, -1000.0, 1.0, ValueError),
-            (lambda fg: fg, 1000.0, -1.0, ValueError),
+            (lambda fg: fg, -1000.0, 1.0, 10, ValueError),
+            (lambda fg: fg, 1000.0, -1.0, 10, ValueError),
         ],
     )
     def test_invalid_animal_cohort_initialization(
@@ -85,6 +83,7 @@ class TestAnimalCohort:
         functional_group,
         mass,
         age,
+        individuals,
         error_type,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
@@ -92,54 +91,54 @@ class TestAnimalCohort:
 
         with pytest.raises(error_type):
             AnimalCohort(
-                functional_group(herbivore_functional_group_instance), mass, age
+                functional_group(herbivore_functional_group_instance),
+                mass,
+                age,
+                individuals,
             )
 
     @pytest.mark.parametrize(
-        "dt, initial_energy, temperature, final_energy",
+        "dt, initial_mass, temperature, final_mass",
         [
-            (
-                timedelta64(1, "D"),
-                28266000000.0,
-                298.0,
-                27989441986.150745,
-            ),  # normal case
-            (timedelta64(1, "D"), 500.0, 298.0, 0.0),  # edge case: low energy
-            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero energy
-            (timedelta64(3, "D"), 28266000000.0, 298.0, 27436325958.45224),  # 3 days
+            (timedelta64(1, "D"), 1000.0, 298.0, 998.5205247106326),  # normal case
+            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero mass
+            (timedelta64(3, "D"), 1000.0, 298.0, 995.5615741318977),  # 3 days
         ],
     )
     def test_metabolize_endotherm(
-        self, herbivore_cohort_instance, dt, initial_energy, temperature, final_energy
+        self, herbivore_cohort_instance, dt, initial_mass, temperature, final_mass
     ):
         """Testing metabolize with an endothermic metabolism."""
-        herbivore_cohort_instance.stored_energy = initial_energy
+        herbivore_cohort_instance.mass_current = initial_mass
         herbivore_cohort_instance.metabolize(temperature, dt)
-        assert isclose(herbivore_cohort_instance.stored_energy, final_energy, rtol=1e-9)
+        assert herbivore_cohort_instance.mass_current == final_mass
+        assert isclose(herbivore_cohort_instance.mass_current, final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "dt, initial_energy, temperature, final_energy",
+        "dt, initial_mass, temperature, final_mass",
         [
+            (timedelta64(1, "D"), 100.0, 20.0, 99.95896219913648),  # normal case
+            (timedelta64(1, "D"), 0.0, 20.0, 0.0),  # edge case: zero mass
             (
                 timedelta64(1, "D"),
-                28266000000.0,
-                298.0,
-                28265999999.700752,
-            ),  # normal case
-            (timedelta64(10, "D"), 1.0, 298.0, 0.0),  # edge case: low energy
-            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero energy
+                100.0,
+                0.0,
+                99.99436706014961,
+            ),  # edge case: zero temperature
         ],
     )
     def test_metabolize_ectotherm(
-        self, ectotherm_cohort_instance, dt, initial_energy, temperature, final_energy
+        self, ectotherm_cohort_instance, dt, initial_mass, temperature, final_mass
     ):
-        """Testing metabolize."""
-        ectotherm_cohort_instance.stored_energy = initial_energy
+        """Testing metabolize with ectotherms."""
+        # from math import isclose
+
+        ectotherm_cohort_instance.mass_current = initial_mass
         ectotherm_cohort_instance.metabolize(temperature, dt)
-        assert isclose(ectotherm_cohort_instance.stored_energy, final_energy, rtol=1e-9)
+        assert ectotherm_cohort_instance.mass_current == final_mass
 
     @pytest.mark.parametrize(
-        "dt, initial_energy, temperature, error_type",
+        "dt, initial_mass, temperature, error_type",
         [
             (timedelta64(-1, "D"), 28266000000.0, 298.0, ValueError),
             (timedelta64(1, "D"), -100.0, 298.0, ValueError),
@@ -147,18 +146,18 @@ class TestAnimalCohort:
         ],
     )
     def test_metabolize_invalid_input(
-        self, herbivore_cohort_instance, dt, initial_energy, temperature, error_type
+        self, herbivore_cohort_instance, dt, initial_mass, temperature, error_type
     ):
         """Testing metabolize for invalid input."""
-        herbivore_cohort_instance.stored_energy = initial_energy
+        herbivore_cohort_instance.mass_current = initial_mass
         with pytest.raises(error_type):
             herbivore_cohort_instance.metabolize(temperature, dt)
 
     @pytest.mark.parametrize(
         "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",
         [
-            (1000.0, 1050.0, 0.0, 50.0, 1000.0),
-            (0.0, 50.0, 1000.0, 1050.0, 1000.0),
+            (1000.0, 1500.0, 0.0, 500.0, 1000.0),
+            (0.0, 500.0, 1000.0, 1500.0, 1000.0),
             (1000.0, 1000.0, 0.0, 0.0, 0.0),
             (0.0, 0.0, 1000.0, 1000.0, 0.0),
         ],
@@ -207,8 +206,8 @@ class TestAnimalCohort:
         argvalues=[
             (0, 0, 0, 0.0, 0.0, 0.0),
             (0, 1000, 1000, 0.0, 0.0, 0.0),
-            (1, 1, 0, 1.0, 56000001.0, 1.4e7),
-            (100, 200, 100, 0.0, 5.6e9, 1.4e9),
+            (1, 1, 0, 1.0, 8001.0, 2000.0),
+            (100, 200, 100, 0.0, 800000.0, 200000.0),
         ],
     )
     def test_die_individual(
@@ -308,58 +307,82 @@ class TestAnimalCohort:
         mock_food = mocker.MagicMock(spec=Resource)
         mock_pool = mocker.MagicMock(spec=Pool)
 
-        herbivore_cohort_instance.individuals = (
-            10  # Setting a non-zero value for individuals
-        )
-        herbivore_cohort_instance.stored_energy = (
-            0  # Setting initial energy to 0 for simplicity
-        )
+        # Common Setup
+        herbivore_cohort_instance.individuals = 10
+        mock_mass_return = 100
+        mock_food.get_eaten.return_value = mock_mass_return
 
-        # Mocking get_eaten to return a fixed energy value
-        mock_energy_return = 100  # Example energy return value
-        mock_food.get_eaten.return_value = mock_energy_return
+        # Scenario 1: Test mass_current is updated when below threshold
+        herbivore_cohort_instance.mass_current = 0  # Resetting for test
+        herbivore_cohort_instance.reproductive_mass = 0  # Resetting for test
+        herbivore_cohort_instance.is_below_mass_threshold = mocker.MagicMock(
+            return_value=True
+        )
 
         # Execution
         herbivore_cohort_instance.eat(mock_food, mock_pool)
 
-        # Assertions
-        mock_food.get_eaten.assert_called_once_with(
-            herbivore_cohort_instance, mock_pool
-        )
+        # Assertions for Scenario 1
         assert (
-            herbivore_cohort_instance.stored_energy
-            == mock_energy_return / herbivore_cohort_instance.individuals
+            herbivore_cohort_instance.mass_current
+            == mock_mass_return / herbivore_cohort_instance.individuals
+        )
+        assert herbivore_cohort_instance.reproductive_mass == 0
+
+        # Scenario 2: Test reproductive_mass is updated when above threshold
+        herbivore_cohort_instance.mass_current = 0  # Resetting for test
+        herbivore_cohort_instance.reproductive_mass = 0  # Resetting for test
+        herbivore_cohort_instance.is_below_mass_threshold = mocker.MagicMock(
+            return_value=False
         )
 
-        # Test ValueError for zero individuals
+        # Execution
+        herbivore_cohort_instance.eat(mock_food, mock_pool)
+
+        # Assertions for Scenario 2
+        assert (
+            herbivore_cohort_instance.reproductive_mass
+            == mock_mass_return / herbivore_cohort_instance.individuals
+        )
+        assert herbivore_cohort_instance.mass_current == 0
+
+        # Testing for ValueError when individuals are 0
         herbivore_cohort_instance.individuals = 0
         with pytest.raises(ValueError, match="Individuals cannot be 0."):
             herbivore_cohort_instance.eat(mock_food, mock_pool)
 
-    def test_can_reproduce_method(self, herbivore_cohort_instance):
+    def test_is_below_mass_threshold(self, herbivore_cohort_instance):
         """Test the can_reproduce method of AnimalCohort."""
+        from virtual_rainforest.models.animals.constants import BIRTH_MASS_THRESHOLD
 
+        # TODO: test other mass thresholds
         # 1. Test when stored_energy is exactly equal to the threshold
-        herbivore_cohort_instance.stored_energy = (
-            herbivore_cohort_instance.reproduction_energy_threshold
+        herbivore_cohort_instance.mass_current = (
+            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
         )
-        assert herbivore_cohort_instance.can_reproduce()
+        assert not herbivore_cohort_instance.is_below_mass_threshold(
+            BIRTH_MASS_THRESHOLD
+        )
 
         # 2. Test when stored_energy is just below the threshold
-        herbivore_cohort_instance.stored_energy = (
-            herbivore_cohort_instance.reproduction_energy_threshold - 0.01
+        herbivore_cohort_instance.mass_current = (
+            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            - 0.01
         )
-        assert not herbivore_cohort_instance.can_reproduce()
+        assert herbivore_cohort_instance.is_below_mass_threshold(BIRTH_MASS_THRESHOLD)
 
         # 3. Test when stored_energy is above the threshold
-        herbivore_cohort_instance.stored_energy = (
-            herbivore_cohort_instance.reproduction_energy_threshold + 0.01
+        herbivore_cohort_instance.mass_current = (
+            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            + 0.01
         )
-        assert herbivore_cohort_instance.can_reproduce()
+        assert not herbivore_cohort_instance.is_below_mass_threshold(
+            BIRTH_MASS_THRESHOLD
+        )
 
         # 4. Test with stored_energy set to 0
-        herbivore_cohort_instance.stored_energy = 0.0
-        assert not herbivore_cohort_instance.can_reproduce()
+        herbivore_cohort_instance.mass_current = 0.0
+        assert herbivore_cohort_instance.is_below_mass_threshold(BIRTH_MASS_THRESHOLD)
 
     @pytest.mark.parametrize(
         "initial_individuals, number_days, mortality_prob",

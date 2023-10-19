@@ -96,20 +96,28 @@ def metabolic_rate(
     mass_g = mass * 1000  # convert mass to grams
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:
-        bf, Ib = terms["basal"]  # field metabolic constant and exponent
-        bb, If = terms["field"]  # basal metabolic constant and exponent
+        Ib, bf = terms["basal"]  # field metabolic constant and exponent
+        If, bb = terms["field"]  # basal metabolic constant and exponent
         Tk = 310.0  # body temperature of the individual (K)
-        return Es * (
-            (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
-            + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+        return (
+            Es
+            * (
+                (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
+                + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+            )
+            / 1000  # convert back to kg
         )
     elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        bf, Ib = terms["basal"]  # field metabolic constant and exponent
-        bb, If = terms["field"]  # basal metabolic constant and exponent
+        Ib, bf = terms["basal"]  # field metabolic constant and exponent
+        If, bb = terms["field"]  # basal metabolic constant and exponent
         Tk = temperature + 274.15  # body temperature of the individual (K)
-        return Es * (
-            (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
-            + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+        return (
+            Es
+            * (
+                (sig * If * exp(-(Ea / (kB * Tk)))) * mass_g**bf
+                + ((1 - sig) * Ib * exp(-(Ea / (kB * Tk)))) * mass_g**bb
+            )
+            / 1000  # convert back to kg
         )
     else:
         raise ValueError("Invalid metabolic type: {metabolic_type}")

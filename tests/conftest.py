@@ -457,7 +457,7 @@ def herbivore_cohort_instance(herbivore_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1)
+    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1, 10)
 
 
 @pytest.fixture
