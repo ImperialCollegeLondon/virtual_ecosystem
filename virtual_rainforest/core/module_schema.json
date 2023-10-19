@@ -86,18 +86,6 @@
                   "run_length"
                ]
             },
-            "modules": {
-               "description": "List of modules to be configured",
-               "type": "array",
-               "items": {
-                  "type": "string"
-               },
-               "default": [
-                  "abiotic_simple",
-                  "soil"
-               ],
-               "uniqueItems": true
-            },
             "data": {
                "description": "Configuration settings for the core data module",
                "type": "object",

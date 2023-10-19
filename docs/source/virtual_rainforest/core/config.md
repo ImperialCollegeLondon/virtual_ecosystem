@@ -114,22 +114,11 @@ follows the pattern below:
                   "nx",
                   "ny"
                ]
-            },
-            "modules": {
-               "description": "List of modules to be configured",
-               "type": "array",
-               "items": {
-                  "type": "string"
-               },
-               "default": [
-                  "plants"
-               ]
             }
          },
          "default": {},
          "required": [
             "grid",
-            "modules"
          ]
       }
    },
@@ -140,11 +129,13 @@ follows the pattern below:
 ```
 
 The type of every single tag should be specified, with `object` as the type for tags
-that are mere containers for lower level tags (i.e. `core`). In cases where strictly
+that are containers for more nested tags (i.e. `core`). In cases where strictly
 positive values are required this is achieved by setting `exclusiveMinimum` to zero. For
 each `object`, the `required` key specifies the tags that must be included for
-validation to pass. We don't allow tags that are not included within a schema, therefore
-the config module automatically sets `additionalProperties` as false for every object in
+validation to pass.
+
+We do not permit configuration tags that are not included within a schema, therefore the
+config module automatically sets `additionalProperties` as `false` for every object in
 the schema. The `default` key is used to specify the default value that should be
 inserted if the tag in question is not provided for the user. The default value for all
 objects should be set as `{}` to ensure that nested defaults can be found and populated.
