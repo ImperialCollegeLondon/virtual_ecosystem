@@ -19,10 +19,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.03012983, 0.0291596, 0.63085313, 0.00360802],
+        "soil_c_pool_lmwc": [0.01049048, 0.02232698, 0.59916041, 0.00093016],
         "soil_c_pool_maom": [-5.788721e-3, -1.004083e-2, -0.5628071, 2.607437e-5],
         "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
-        "soil_c_pool_pom": [0.0284523, 0.00340282, 0.04684455, 0.00899779],
+        "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
@@ -166,19 +166,22 @@ def test_calculate_binding_coefficient(dummy_carbon_data):
     assert np.allclose(binding_coefs, output_coefs)
 
 
-def test_determine_microbial_biomass_losses(dummy_carbon_data, top_soil_layer_index):
+def test_determine_microbial_biomass_losses(
+    dummy_carbon_data, top_soil_layer_index, environmental_factors
+):
     """Check that the determination of microbial biomass losses works correctly."""
     from virtual_rainforest.models.soil.carbon import determine_microbial_biomass_losses
 
     expected_maintenance = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
     expected_pom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
     expected_maom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
-    expected_decay_to_pom = [0.0266710822, 0.0112621943, 0.0588600642, 0.0035392112]
-    expected_decay_to_lmwc = [0.0266710822, 0.0112621943, 0.0588600642, 0.0035392112]
+    expected_decay_to_pom = [0.04631043, 0.01809481, 0.09055279, 0.00621707]
+    expected_decay_to_lmwc = [0.007031729, 0.004429577, 0.027167343, 8.613595e-4]
 
     losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        clay_factor_decay=environmental_factors["clay_decay"],
         constants=SoilConsts,
     )
 

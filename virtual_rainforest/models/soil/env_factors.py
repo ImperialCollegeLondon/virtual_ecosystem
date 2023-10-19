@@ -173,6 +173,26 @@ def calculate_clay_impact_on_enzyme_saturation(
     return base_protection + protection_with_clay * clay_fraction
 
 
+def calculate_clay_impact_on_necromass_decay(
+    clay_fraction: NDArray[np.float32], decay_exponent: float
+) -> NDArray[np.float32]:
+    """Calculate the impact that soil clay has on necromass decay to LMWC.
+
+    Necromass which doesn't breakdown fully gets added to the POM pool instead.
+
+    Args:
+        clay_fraction: The fraction of the soil which is clay [unitless]
+        sorption_exponent: Controls the impact that differences in soil clay content
+            have on the proportion of necromass that decays to LMWC [unitless]
+
+    Returns:
+        A multiplicative factor capturing the impact that soil clay has on the
+        proportion of necromass decay which sorbs to form POM [unitless]
+    """
+
+    return np.exp(decay_exponent * clay_fraction)
+
+
 def convert_moisture_to_scalar(
     soil_moisture: NDArray[np.float32],
     moisture_scalar_coefficient: float,

@@ -13,6 +13,7 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
     calculate_clay_impact_on_enzyme_saturation,
+    calculate_clay_impact_on_necromass_decay,
     calculate_pH_suitability,
     calculate_temperature_effect_on_microbes,
     calculate_water_potential_impact_on_microbes,
@@ -116,6 +117,10 @@ def calculate_soil_carbon_updates(
         base_protection=constants.base_soil_protection,
         protection_with_clay=constants.soil_protection_with_clay,
     )
+    clay_factor_decay = calculate_clay_impact_on_necromass_decay(
+        clay_fraction=clay_fraction,
+        decay_exponent=constants.clay_necromass_decay_exponent,
+    )
     # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
@@ -136,6 +141,7 @@ def calculate_soil_carbon_updates(
     biomass_losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
+        clay_factor_decay=clay_factor_decay,
         constants=constants,
     )
     pom_enzyme_turnover = calculate_enzyme_turnover(
@@ -323,6 +329,7 @@ def calculate_binding_coefficient(
 def determine_microbial_biomass_losses(
     soil_c_pool_microbe: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
+    clay_factor_decay: NDArray[np.float32],
     constants: SoilConsts,
 ) -> MicrobialBiomassLoss:
     """Calculate all of the losses from the microbial biomass pool.
@@ -335,6 +342,8 @@ def determine_microbial_biomass_losses(
     Args:
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
+        clay_factor_decay: A factor capturing the impact of soil clay fraction on
+            necromass decay destination [unitless]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -358,10 +367,11 @@ def determine_microbial_biomass_losses(
     ) * maintenance_synthesis
 
     # TODO - This split will change when a necromass pool is introduced
+    # Calculate fraction of necromass that decays to LMWC
+    necromass_proportion_to_lmwc = constants.necromass_to_lmwc * clay_factor_decay
     # These proteins and cells that are replaced decay into either the POM or LMWC pool
-    # TODO - This split should depend on clay content
-    necromass_to_lmwc = (1 - constants.necromass_to_pom) * replacement_synthesis
-    necromass_to_pom = constants.necromass_to_pom * replacement_synthesis
+    necromass_to_lmwc = necromass_proportion_to_lmwc * replacement_synthesis
+    necromass_to_pom = (1 - necromass_proportion_to_lmwc) * replacement_synthesis
 
     return MicrobialBiomassLoss(
         maintenance_synthesis=maintenance_synthesis,

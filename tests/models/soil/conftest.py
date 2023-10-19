@@ -25,6 +25,7 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
     """Environmental factors based on dummy carbon data."""
     from virtual_rainforest.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
+        calculate_clay_impact_on_necromass_decay,
         calculate_pH_suitability,
         calculate_water_potential_impact_on_microbes,
     )
@@ -50,8 +51,14 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
         protection_with_clay=SoilConsts.soil_protection_with_clay,
     )
 
+    clay_decay_factors = calculate_clay_impact_on_necromass_decay(
+        clay_fraction=dummy_carbon_data["clay_fraction"],
+        decay_exponent=SoilConsts.clay_necromass_decay_exponent,
+    )
+
     return {
         "water": water_factors,
         "pH": pH_factors,
         "clay_saturation": clay_saturation_factors,
+        "clay_decay": clay_decay_factors,
     }

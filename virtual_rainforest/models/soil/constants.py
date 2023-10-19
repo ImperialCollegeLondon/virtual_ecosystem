@@ -212,8 +212,8 @@ class SoilConsts(ConstantsDataclass):
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
-    necromass_to_pom: float = 0.5
-    """Proportion of necromass that flows to POM rather than LMWC [unitless].
+    necromass_to_lmwc: float = 0.25
+    """Proportion of necromass that flows to LMWC rather than POM [unitless].
 
     Value taken from :cite:t:`wang_development_2013`.
     """
@@ -263,4 +263,12 @@ class SoilConsts(ConstantsDataclass):
 
     This protection contributes multiplicatively to the effective saturation constant.
     The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    clay_necromass_decay_exponent: float = -0.8
+    """Change in proportion of necromass which decays with increasing soil clay content.
+
+    [unitless]. The function this is used in is an exponential, and the sign should be
+    negative so increases in clay leads to a lower proportion of necromass decaying to
+    LMWC. The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
     """

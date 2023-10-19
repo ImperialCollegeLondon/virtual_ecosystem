@@ -293,17 +293,17 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.06475936, 0.03269922, 0.26609274, 0.0067915], dims="cell_id"
+                        [0.05502994, 0.02925043, 0.24313984, 0.00546537], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49715829, 1.69665433, 4.36638124, 0.50002103], dims="cell_id"
+                        [2.49725453, 1.69675747, 4.37382291, 0.50001191], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77467395, 2.28937409, 11.24397935, 0.99640541],
+                        [5.77450303, 2.28931252, 11.24367309, 0.99640423],
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.11418484, 1.00168459, 0.72324476, 0.35449558], dims="cell_id"
+                        [0.12397446, 1.00508531, 0.73898089, 0.35583206], dims="cell_id"
                     ),
                     enzyme_pom=DataArray(
                         [0.02267844, 0.00957582, 0.05004954, 0.00300993], dims="cell_id"
@@ -420,10 +420,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        2.97533690e-2,
-        2.49501443e-2,
-        0.228134569,
-        3.61625177e-3,
+        1.01140181e-2,
+        1.81175266e-2,
+        0.196441848,
+        9.38398891e-4,
         -5.40856802e-3,
         -5.81942847e-3,
         -0.159994002,
@@ -432,10 +432,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         -2.17193460e-2,
         -0.115733902,
         -7.20535616e-3,
-        2.84522955e-2,
-        3.40282332e-3,
-        4.68445539e-2,
-        8.99778799e-3,
+        4.80916464e-2,
+        1.02354410e-2,
+        7.85372753e-2,
+        1.16756409e-2,
         1.17571917e-8,
         1.67442231e-8,
         1.83311362e-9,

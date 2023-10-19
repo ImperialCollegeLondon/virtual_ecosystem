@@ -199,3 +199,19 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
     )
 
     assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
+    """Test calculation of the effect of soil clay fraction on necromass decay."""
+    from virtual_rainforest.models.soil.env_factors import (
+        calculate_clay_impact_on_necromass_decay,
+    )
+
+    expected_factor = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
+
+    actual_factor = calculate_clay_impact_on_necromass_decay(
+        clay_fraction=dummy_carbon_data["clay_fraction"],
+        decay_exponent=SoilConsts.clay_necromass_decay_exponent,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
