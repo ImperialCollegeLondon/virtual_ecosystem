@@ -19,10 +19,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.03039544, 0.03006485, 0.62873403, 0.00364594],
+        "soil_c_pool_lmwc": [0.03012983, 0.0291596, 0.63085313, 0.00360802],
         "soil_c_pool_maom": [-5.788721e-3, -1.004083e-2, -0.5628071, 2.607437e-5],
         "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
-        "soil_c_pool_pom": [0.02818668, 0.00249757, 0.04896366, 0.00895987],
+        "soil_c_pool_pom": [0.0284523, 0.00340282, 0.04684455, 0.00899779],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
 
@@ -45,6 +45,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         ].to_numpy(),
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         percent_clay=dummy_carbon_data["percent_clay"],
+        clay_fraction=dummy_carbon_data["clay_fraction"],
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         delta_pools_ordered=pool_order,
         constants=SoilConsts,
@@ -316,13 +317,14 @@ def test_calculate_pom_decomposition(
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
 
-    expected_decomp = [0.00060545525, 0.009825156, 0.010386410, 7.934357e-5]
+    expected_decomp = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
 
     actual_decomp = calculate_pom_decomposition(
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         water_factor=environmental_factors["water"],
         pH_factor=environmental_factors["pH"],
+        clay_factor_saturation=environmental_factors["clay_saturation"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         constants=SoilConsts,
     )

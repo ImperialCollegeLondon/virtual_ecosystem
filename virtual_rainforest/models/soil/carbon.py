@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
+    calculate_clay_impact_on_enzyme_saturation,
     calculate_pH_suitability,
     calculate_temperature_effect_on_microbes,
     calculate_water_potential_impact_on_microbes,
@@ -48,6 +49,7 @@ def calculate_soil_carbon_updates(
     soil_water_potential: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
+    clay_fraction: NDArray[np.float32],
     mineralisation_rate: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     constants: SoilConsts,
@@ -71,6 +73,7 @@ def calculate_soil_carbon_updates(
         soil_water_potential: Soil water potential for each grid cell [kPa]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         percent_clay: Percentage clay for each soil grid cell
+        clay_fraction: The clay fraction for each soil grid cell [unitless]
         mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3
             day^-1]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
@@ -108,6 +111,11 @@ def calculate_soil_carbon_updates(
         lower_optimum_pH=constants.lowest_optimal_pH_microbes,
         upper_optimum_pH=constants.highest_optimal_pH_microbes,
     )
+    clay_factor_saturation = calculate_clay_impact_on_enzyme_saturation(
+        clay_fraction=clay_fraction,
+        base_protection=constants.base_soil_protection,
+        protection_with_clay=constants.soil_protection_with_clay,
+    )
     # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
@@ -144,6 +152,7 @@ def calculate_soil_carbon_updates(
         soil_enzyme_pom=soil_enzyme_pom,
         water_factor=water_factor,
         pH_factor=pH_factor,
+        clay_factor_saturation=clay_factor_saturation,
         soil_temp=soil_temp,
         constants=constants,
     )
@@ -532,13 +541,12 @@ def calculate_labile_carbon_leaching(
 
 
 # TODO - Should consider making this a generic function, i.e. not POM specific
-# TODO - We are currently ignoring the clay factor here. Once I've sorted the
-# pH factor I should add clay in.
 def calculate_pom_decomposition(
     soil_c_pool_pom: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
+    clay_factor_saturation: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
@@ -555,6 +563,9 @@ def calculate_pom_decomposition(
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
+            [unitless]
+        clay_factor_saturation: A factor capturing the impact of soil clay fraction on
+            enzyme saturation constants [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         constants: Set of constants for the soil model.
 
@@ -579,7 +590,11 @@ def calculate_pom_decomposition(
     rate_constant = (
         constants.max_decomp_rate_pom * temp_factor_rate * water_factor * pH_factor
     )
-    saturation_constant = constants.half_sat_pom_decomposition * temp_factor_saturation
+    saturation_constant = (
+        constants.half_sat_pom_decomposition
+        * temp_factor_saturation
+        * clay_factor_saturation
+    )
 
     return (
         rate_constant

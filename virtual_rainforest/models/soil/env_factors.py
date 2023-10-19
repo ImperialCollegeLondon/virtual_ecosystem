@@ -148,6 +148,31 @@ def calculate_pH_suitability(
     return pH_factors
 
 
+def calculate_clay_impact_on_enzyme_saturation(
+    clay_fraction: NDArray[np.float32],
+    base_protection: float,
+    protection_with_clay: float,
+) -> NDArray[np.float32]:
+    """Calculate the impact that the soil clay fraction has on enzyme saturation.
+
+    This factor impacts enzyme saturation constants, based on the assumption that finely
+    textured soils will restrict enzyme access to available C substrates (which protects
+    them). Its form is taken from :cite:t:`fatichi_mechanistic_2019`.
+
+    Args:
+        clay_fraction: The fraction of the soil which is clay [unitless]
+        base_protection: The protection that a soil with no clay provides [unitless]
+        protection_with_clay: The rate at which protection increases with increasing
+           clay [unitless]
+
+    Returns:
+        A multiplicative factor capturing how much the protection due to soil structure
+        changes the effective saturation constant by [unitless]
+    """
+
+    return base_protection + protection_with_clay * clay_fraction
+
+
 def convert_moisture_to_scalar(
     soil_moisture: NDArray[np.float32],
     moisture_scalar_coefficient: float,

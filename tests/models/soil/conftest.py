@@ -24,6 +24,7 @@ def moist_scalars(dummy_carbon_data, top_soil_layer_index):
 def environmental_factors(dummy_carbon_data, top_soil_layer_index):
     """Environmental factors based on dummy carbon data."""
     from virtual_rainforest.models.soil.env_factors import (
+        calculate_clay_impact_on_enzyme_saturation,
         calculate_pH_suitability,
         calculate_water_potential_impact_on_microbes,
     )
@@ -43,4 +44,14 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
         upper_optimum_pH=SoilConsts.highest_optimal_pH_microbes,
     )
 
-    return {"water": water_factors, "pH": pH_factors}
+    clay_saturation_factors = calculate_clay_impact_on_enzyme_saturation(
+        clay_fraction=dummy_carbon_data["clay_fraction"],
+        base_protection=SoilConsts.base_soil_protection,
+        protection_with_clay=SoilConsts.soil_protection_with_clay,
+    )
+
+    return {
+        "water": water_factors,
+        "pH": pH_factors,
+        "clay_saturation": clay_saturation_factors,
+    }

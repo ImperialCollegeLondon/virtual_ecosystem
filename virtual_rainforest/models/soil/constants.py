@@ -251,3 +251,16 @@ class SoilConsts(ConstantsDataclass):
     value was obtained by averaging the fungi and bacteria specific values given in
     :cite:t:`orwin_organic_2011`.
     """
+
+    base_soil_protection: float = 0.694
+    """Basal change in saturation constants due to soil structure [unitless]
+
+    This value is multiplicative and is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    soil_protection_with_clay: float = 1.36
+    """Rate at which soil protection of carbon increases with clay content [unitless].
+
+    This protection contributes multiplicatively to the effective saturation constant.
+    The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """

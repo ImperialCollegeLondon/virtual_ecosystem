@@ -104,6 +104,7 @@ def test_select_models(caplog, model_list, no_models, raises, expected_log_entri
                 (DEBUG, "soil model: required var 'pH' checked"),
                 (DEBUG, "soil model: required var 'bulk_density' checked"),
                 (DEBUG, "soil model: required var 'percent_clay' checked"),
+                (DEBUG, "soil model: required var 'clay_fraction' checked"),
             ),
             id="valid config",
         ),

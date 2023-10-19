@@ -182,3 +182,20 @@ def test_calculate_pH_suitability_errors(params):
 
     with pytest.raises(ValueError):
         calculate_pH_suitability(soil_pH=pH_values, **params)
+
+
+def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
+    """Test calculation of the effect of soil clay fraction on saturation constants."""
+    from virtual_rainforest.models.soil.env_factors import (
+        calculate_clay_impact_on_enzyme_saturation,
+    )
+
+    expected_factor = [1.782, 1.102, 0.83, 1.918]
+
+    actual_factor = calculate_clay_impact_on_enzyme_saturation(
+        clay_fraction=dummy_carbon_data["clay_fraction"],
+        base_protection=SoilConsts.base_soil_protection,
+        protection_with_clay=SoilConsts.soil_protection_with_clay,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)

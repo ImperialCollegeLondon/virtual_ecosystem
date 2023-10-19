@@ -40,6 +40,9 @@ bulk_density_values = 1200.0 + 600.0 * (gradient) / (64)
 # Generate a range of plausible values (27.0-40.0) for the clay content [%].
 percent_clay_values = 27.0 + 13.0 * (gradient) / (64)
 
+# Generate a range of plausible values (0.27-0.40) for the clay fraction [fraction].
+clay_fraction_values = 0.27 + 0.13 * (gradient) / (64)
+
 # Generate a range of plausible values (0.005-0.01) for the lmwc pool [kg C m^-3].
 lmwc_values = 0.005 + 0.005 * (gradient) / (64)
 
@@ -70,6 +73,7 @@ dummy_soil_data = Dataset(
         pH=(["x", "y"], pH_values),
         bulk_density=(["x", "y"], bulk_density_values),
         percent_clay=(["x", "y"], percent_clay_values),
+        clay_fraction=(["x", "y"], clay_fraction_values),
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
         soil_c_pool_microbe=(["x", "y"], microbial_C_values),
