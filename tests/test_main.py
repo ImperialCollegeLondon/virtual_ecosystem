@@ -303,8 +303,8 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             "[soil.depends]\ninit=['abiotic_simple']\n",
             "init",
             does_not_raise(),
-            ["soil", "abiotic_simple"],
-            ((INFO, "Model init execution order set: soil, abiotic_simple"),),
+            ["abiotic_simple", "soil"],
+            ((INFO, "Model init execution order set: abiotic_simple, soil"),),
             id="valid init depends",
         ),
         pytest.param(
@@ -312,8 +312,8 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
             "[abiotic_simple.depends]\nupdate=['soil']\n",
             "update",
             does_not_raise(),
-            ["abiotic_simple", "soil"],
-            ((INFO, "Model update execution order set: abiotic_simple, soil"),),
+            ["soil", "abiotic_simple"],
+            ((INFO, "Model update execution order set: soil, abiotic_simple"),),
             id="valid update depends",
         ),
         pytest.param(
@@ -342,17 +342,17 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         ),
         pytest.param(
             "[core]\nmodules=['soil','abiotic_simple']\n"
-            "[abiotic_simple.depends]\nupdate=['plants']\n",
+            "[abiotic_simple.depends]\nupdate=['plants', 'soil']\n",
             "update",
             does_not_raise(),
-            ["abiotic_simple", "soil"],
+            ["soil", "abiotic_simple"],
             (
                 (
                     WARNING,
                     "Configuration does not include all of the models listed in "
                     "update dependencies for abiotic_simple: plants",
                 ),
-                (INFO, "Model update execution order set: abiotic_simple, soil"),
+                (INFO, "Model update execution order set: soil, abiotic_simple"),
             ),
             id="depends includes unconfigured models",
         ),

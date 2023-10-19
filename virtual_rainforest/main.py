@@ -201,10 +201,9 @@ def _get_model_sequence(
     # Find a resolved running order for those dependencies
     sorter = TopologicalSorter(depends)
 
-    # Find a resolved execution order, checking for cyclic dependencies, and then
-    # reverse it as TopologicalSorter places item _after_ their dependencies.
+    # Find a resolved execution order, checking for cyclic dependencies.
     try:
-        resolved_order: list[str] = list(reversed(list(sorter.static_order())))
+        resolved_order: list[str] = list(sorter.static_order())
     except CycleError as excep:
         to_raise = f"Model {method} dependencies are cyclic: {', '.join(excep.args[1])}"
         LOGGER.critical(to_raise)
