@@ -1,5 +1,4 @@
 [core]
-modules = ["plants", "hydrology", "abiotic_simple", "animals", "litter", "soil"]
 
 [plants]
 a_plant_integer = 12
@@ -11,3 +10,9 @@ max_height = 1.0
 [[plants.ftypes]]
 pft_name = "broadleaf"
 max_height = 50.0
+
+[hydrology]
+[abiotic_simple]
+[animals]
+[litter]
+[soil]

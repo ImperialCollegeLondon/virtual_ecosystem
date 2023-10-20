@@ -528,7 +528,6 @@ def test_Data_load_to_dataarray_data_handling(
     argvalues=[
         pytest.param(
             """[core]
-               modules = []
                [[core.data.variable]]
                file = "cellid_coords.nc"
                var_name = "temp"
@@ -558,9 +557,7 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            """[core]
-               modules = []
-               """,
+            """[core]\n""",
             does_not_raise(),
             None,
             (
@@ -571,7 +568,6 @@ def test_Data_load_to_dataarray_data_handling(
         ),
         pytest.param(
             """[core]
-               modules = []
                [[core.data.variable]]
                file = "cellid_coords.nc"
                var_name = "temp"

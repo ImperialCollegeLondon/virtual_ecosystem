@@ -196,6 +196,9 @@ class Config(dict):
         self.from_cfg_strings: bool = False
         """A boolean flag indicating whether paths or strings were used to create the
         instance."""
+        self.model_classes: dict[str, Any] = {}  # FIXME: -> dict[str, Type[BaseModel]]
+        """A dictionary of the model classes specified in the configuration, keyed by
+        model name."""
 
         # Prohibit using both paths and string
         if not (cfg_paths or cfg_strings):
@@ -418,35 +421,38 @@ class Config(dict):
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.
 
-        This method identifies the modules to be configured from the config
-        `core.modules` entry, using the core schema default if this entry is missing.
-        This sets the requested modules to be used in the configured model. The schemas
-        for the requested modules are then loaded and combined using the
-        :meth:`~virtual_rainforest.core.schema.merge_schemas` function to generate a
-        single validation schema for model configuration.
+        This method identifies the modules to be configured from the top-level
+        configuration keys, setting the requested modules to be used in the configured
+        simulation. The schemas for the requested modules are then loaded and combined
+        using the :meth:`~virtual_rainforest.core.schema.merge_schemas` function to
+        generate a single validation schema for model configuration.
         """
 
-        # Register the core module components and then extract the modules requested in
-        # the configuration, falling back to the schema defaults.
+        # Extract the requested modules, which are the top-level config keys.
+        requested_modules: list[str] = list(self.keys())
+
+        # Warn if implicitly using core defaults, otherwise remove core to generate a
+        # list of optional modules to be registered.
+        if "core" not in requested_modules:
+            LOGGER.warning("No core configuration section, using defaults.")
+        else:
+            requested_modules.remove("core")
+
+        # Register the core module components and access the core schema.
         register_module("virtual_rainforest.core")
         core_schema = MODULE_REGISTRY["core"].schema
-        defmods = core_schema["properties"]["core"]["properties"]["modules"]["default"]
 
-        try:
-            # Provided in config
-            requested_modules = self["core"]["modules"]
-        except KeyError:
-            # Revert to defaults
-            requested_modules = defmods
-
-        # Register the requested modules
+        # Attempt to register the requested modules - this function will handle unknown
+        # module names and exit.
         for module in requested_modules:
             register_module(f"virtual_rainforest.models.{module}")
 
-        # Generate a dictionary of schemas for requested modules
+        # Generate a dictionary of schemas for requested modules and populate the
+        # model_classes attribute
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
             all_schemas[module] = MODULE_REGISTRY[module].schema
+            self.model_classes[module] = MODULE_REGISTRY[module].model
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)

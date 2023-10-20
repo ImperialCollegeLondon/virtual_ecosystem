@@ -19,8 +19,6 @@ configuration is shown below:
 
 ```toml
 [core]
-modules = ["plants"]
-
 [core.grid]
 cell_nx = 10
 cell_ny = 10
@@ -30,25 +28,57 @@ Here, the first tag indicates the module in question (e.g. `core`), and subseque
 indicate (potentially nested) module level configuration details (e.g. horizontal grid
 size `cell_nx`).
 
-The configuration system does not require a single input config file, instead the config
-input can be spread across an arbitrarily large number of config files. However,
-information cannot be repeated between files as there is no way to establish which of
-two values (of e.g. `core.grid.cell_nx`) the user intended to provide. In this case, the
-module will throw critical error and the `virtual_rainforest` model will not configure.
-The user supplies a list of config files and/or folders to look for config files, within
-the supplied folders every `toml` file will be read in. Once the complete configuration
-is validated, it is saved as a single file using a user provided name and location. If a
-file already exists with this name at this location, the configuration process will
-critically fail. This minimises the chance of significant confusion downstream.
+The configuration system does not require a single input config file, instead the
+configuration can be separated out into a set of config files. This allows different
+configuration files to be re-used in a modular way, allowing a library of configuration
+options to be set up.
+
+When a simulation is run, users can identify a set of specific configuration files or
+specific folders containing a set of files that should all be used. This set of files
+will be loaded and assembled into a complete configuration. Optionally, the
+configuration can include instructions to export the assembled configuration as single
+file that provides a useful record of the setup for a particular simulation.
+
+```toml
+[core.data_output_options]
+save_merged_config = true
+output = "/output/directory"
+out_merge_file_name = "merged_configuration.toml"
+```
+
+Note that **configuration setting cannot be repeated between files** as there is no way
+to establish which of two values (of e.g. `core.grid.cell_nx`) the user intended to
+provide. When settings are repeated, the configuration process will report a critical
+error and the simulation will terminate.
 
 ## Optional module loading
 
 The config system allows for different module implementations and combinations to be
-configured. While the `core` module must always be configured, all other modules are
-optional. A list of modules to be configured can be specified using the tag
-`core.modules`. If this list includes repeated module names configuration will
-critically fail. If this tag isn't provided the default set of modules will be loaded,
-i.e. the standard versions of `animals`, `plants`, `soil`, and `abiotic`.
+configured. The choice of models to be configured is indicated by including the required
+model names as top level entries in the model configuration. Note that the model name is
+required, even if the configuration uses all of the default settings. For example, this
+configuration specifies that four models are to be used, all with their default
+settings:
+
+```toml
+[core]  # optional
+[soil]
+[hydrology]
+[plants]
+[abiotic_simple]
+```
+
+The `[core]` element is optional as the Virtual Rainforest core module is always
+required and the default core settings will be used if it is omitted. It can be useful
+to include it as a reminder that a particular configuration is intentionally using the
+default settings. Each module configuration section can of course be expanded to change
+defaults.
+
+```{warning}
+Note that there is no guarantee that a particular set of configured models work in
+combination. You will need to look at model details to understand which other modules
+might be required.
+```
 
 ## JSON schema
 
@@ -92,22 +122,11 @@ follows the pattern below:
                   "nx",
                   "ny"
                ]
-            },
-            "modules": {
-               "description": "List of modules to be configured",
-               "type": "array",
-               "items": {
-                  "type": "string"
-               },
-               "default": [
-                  "plants"
-               ]
             }
          },
          "default": {},
          "required": [
             "grid",
-            "modules"
          ]
       }
    },
@@ -118,11 +137,13 @@ follows the pattern below:
 ```
 
 The type of every single tag should be specified, with `object` as the type for tags
-that are mere containers for lower level tags (i.e. `core`). In cases where strictly
+that are containers for more nested tags (i.e. `core`). In cases where strictly
 positive values are required this is achieved by setting `exclusiveMinimum` to zero. For
 each `object`, the `required` key specifies the tags that must be included for
-validation to pass. We don't allow tags that are not included within a schema, therefore
-the config module automatically sets `additionalProperties` as false for every object in
+validation to pass.
+
+We do not permit configuration tags that are not included within a schema, therefore the
+config module automatically sets `additionalProperties` as `false` for every object in
 the schema. The `default` key is used to specify the default value that should be
 inserted if the tag in question is not provided for the user. The default value for all
 objects should be set as `{}` to ensure that nested defaults can be found and populated.
