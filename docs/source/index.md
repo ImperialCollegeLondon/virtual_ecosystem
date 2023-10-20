@@ -90,6 +90,10 @@ team.
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
   Core Constants <api/core/constants.md>
+  Constants Classes <api/core/constants_class.md>
+  Constants Loader <api/core/constants_loader.md>
+  Schema <api/core/schema.md>
+  Module Registry <api/core/registry.md>
   Utility functions <api/core/utils.md>
   Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
@@ -115,7 +119,7 @@ team.
   Animal Scaling Functions <api/animals/scaling_functions.md> 
   Animal Constants <api/animals/constants.md> 
   Animal Decay <api/animals/decay.md> 
-  Animal Dummy Plants and Soils <api/animals/dummy_plants.md> 
+  Animal Plant Resources <api/animals/plant_resources.md> 
   Litter Overview <api/litter.md>
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>

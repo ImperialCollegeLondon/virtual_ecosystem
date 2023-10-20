@@ -11,202 +11,101 @@ import numpy as np
 import pint
 import pytest
 
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.main import vr_run
 
 from .conftest import log_check
 
 
 @pytest.mark.parametrize(
-    "model_list,no_models,raises,expected_log_entries",
+    "cfg_strings,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            ["soil"],  # valid input
-            1,
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil']",
-                ),
-            ),
-            id="valid input",
-        ),
-        pytest.param(
-            ["soil", "core"],
-            1,
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil']",
-                ),
-            ),
-            id="ignores core",
-        ),
-        pytest.param(
-            ["freshwater", "soil"],  # Model that hasn't been defined
-            0,
-            pytest.raises(InitialisationError),
-            (
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['freshwater', "
-                    "'soil']",
-                ),
-                (
-                    CRITICAL,
-                    "The following models cannot be configured as they are not found in"
-                    " the registry: ['freshwater']",
-                ),
-            ),
-            id="undefined model",
-        ),
-        pytest.param(
-            ["soil", "abiotic_simple", "abiotic_simple"],
-            2,
-            does_not_raise(),
-            (
-                (
-                    WARNING,
-                    "Duplicate model names were provided, these have been ignored.",
-                ),
-                (
-                    INFO,
-                    "Attempting to configure the following models: ['soil', "
-                    "'abiotic_simple']",
-                ),
-            ),
-            id="repeated model",
-        ),
-    ],
-)
-def test_select_models(caplog, model_list, no_models, raises, expected_log_entries):
-    """Test the model selecting function."""
-    from virtual_rainforest.main import select_models
-
-    with raises:
-        models = select_models(model_list)
-        assert len(models) == no_models
-        assert all([type(model) == type(BaseModel) for model in models])
-
-    log_check(caplog, expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    "config,update_interval,output,raises,expected_log_entries",
-    [
-        pytest.param(
-            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
+            "[core]\n[soil]\n",
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Initialising models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_maom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_lmwc' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_microbe' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'soil_c_pool_pom' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'pH' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'bulk_density' checked",
-                ),
-                (
-                    DEBUG,
-                    "soil model: required var 'percent_clay' checked",
-                ),
+                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+                (DEBUG, "soil model: required var 'pH' checked"),
+                (DEBUG, "soil model: required var 'bulk_density' checked"),
+                (DEBUG, "soil model: required var 'percent_clay' checked"),
             ),
             id="valid config",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": 2, "canopy_layers": 10}}},
+            "[core]\n[soil]\n",
             pint.Quantity("1 minute"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Initialising models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    ERROR,
-                    "The update interval is shorter than the model's lower bound",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
+                (ERROR, "The update interval is shorter than the model's lower bound"),
+                (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too short",
         ),
         pytest.param(
-            {"core": {"layers": {"soil_layers": [-0.5, -1.0], "canopy_layers": 10}}},
+            "[core]\n[soil]\n",
             pint.Quantity("1 year"),
             None,
             pytest.raises(InitialisationError),
             (
-                (INFO, "Attempting to configure the following models: ['soil']"),
+                (INFO, "Initialising models: soil"),
+                (INFO, "Initialised soil.SoilConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (
-                    ERROR,
-                    "The update interval is longer than the model's upper bound",
-                ),
-                (
-                    CRITICAL,
-                    "Could not configure all the desired models, ending the "
-                    "simulation.",
-                ),
+                (ERROR, "The update interval is longer than the model's upper bound"),
+                (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too long",
         ),
     ],
 )
-def test_configure_models(
+def test_initialise_models(
     caplog,
     dummy_carbon_data,
-    config,
+    cfg_strings,
     update_interval,
     output,
     raises,
     expected_log_entries,
 ):
-    """Test the function that configures the models."""
-    from virtual_rainforest.main import configure_models, select_models
+    """Test the function that initialises the models."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.main import initialise_models
+
+    # Generate a configuration to use, using simple inputs to populate most from
+    # defaults. Then clear the caplog to isolate the logging for the function,
+    config = Config(cfg_strings=cfg_strings)
+    caplog.clear()
 
     with raises:
-        model_list = select_models(["soil"])
-
-        models = configure_models(
-            config, dummy_carbon_data, model_list, update_interval
+        models = initialise_models(
+            config=config,
+            data=dummy_carbon_data,
+            models=config.model_classes,
+            update_interval=update_interval,
         )
 
         if output is None:
@@ -222,7 +121,6 @@ def test_configure_models(
     [
         pytest.param(
             """[core]
-            modules = ["soil",]
             data = {}
             [core.data_output_options]
             save_merged_config = false
@@ -235,21 +133,9 @@ def test_configure_models(
             cell_area = 10000
             cell_nx = 3
             cell_ny = 3
+            [soil]
             """,
             (
-                (INFO, "Config TOML loaded from config string"),
-                (INFO, "Config built from config string"),
-                (INFO, "Validation schema for configuration built."),
-                (INFO, "Configuration validated"),
-                (INFO, "Grid created from configuration."),
-                (INFO, "Loading data from configuration"),
-                (WARNING, "No data sources defined in the data configuration."),
-                (INFO, "Attempting to configure the following models: ['soil']"),
-                (
-                    INFO,
-                    "All models found in the registry, now attempting "
-                    "to configure them.",
-                ),
                 (
                     CRITICAL,
                     "Units for core.timing.update_interval are not valid time units: "
@@ -271,7 +157,7 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     with pytest.raises(InitialisationError):
         vr_run(cfg_strings=config_content)
 
-    log_check(caplog, expected_log_entries)
+    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
 
 
 @pytest.mark.parametrize(
@@ -404,3 +290,92 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
         assert update_interval == output["update_interval"]
         assert current_time == output["start_time"]
         assert update_interval_as_quantity == output["update_interval_as_quantity"]
+
+    log_check(caplog=caplog, expected_log=expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "cfg_strings,method,raises,model_keys,expected_log_entries",
+    [
+        pytest.param(
+            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n[abiotic_simple]",
+            "init",
+            does_not_raise(),
+            ["abiotic_simple", "soil"],
+            ((INFO, "Model init execution order set: abiotic_simple, soil"),),
+            id="valid init depends",
+        ),
+        pytest.param(
+            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n[soil]\n",
+            "update",
+            does_not_raise(),
+            ["soil", "abiotic_simple"],
+            ((INFO, "Model update execution order set: soil, abiotic_simple"),),
+            id="valid update depends",
+        ),
+        pytest.param(
+            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n"
+            "[soil.depends]\nupdate=['abiotic_simple']\n",
+            "update",
+            pytest.raises(ConfigurationError),
+            None,
+            ((CRITICAL, "Model update dependencies are cyclic"),),
+            id="cyclic dependencies",
+        ),
+        pytest.param(
+            "[core]\n[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
+            "update",
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    CRITICAL,
+                    "Model update dependencies for abiotic_simple includes itself",
+                ),
+            ),
+            id="depends over self",
+        ),
+        pytest.param(
+            "[core]\n[abiotic_simple.depends]\nupdate=['plants', 'soil']\n[soil]",
+            "update",
+            does_not_raise(),
+            ["soil", "abiotic_simple"],
+            (
+                (
+                    WARNING,
+                    "Configuration does not include all of the models listed in "
+                    "update dependencies for abiotic_simple: plants",
+                ),
+                (INFO, "Model update execution order set: soil, abiotic_simple"),
+            ),
+            id="depends includes unconfigured models",
+        ),
+    ],
+)
+def test_get_model_sequence(
+    caplog,
+    cfg_strings,
+    raises,
+    method,
+    model_keys,
+    expected_log_entries,
+):
+    """Test the function that sets the model sequence."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.main import _get_model_sequence
+
+    # Generate a configuration to use, using simple inputs to populate most from
+    # defaults. Then clear the caplog to isolate the logging for the function,
+    config = Config(cfg_strings=cfg_strings)
+    caplog.clear()
+
+    with raises:
+        model_sequence = _get_model_sequence(
+            config=config, models=config.model_classes, method=method
+        )
+
+        if isinstance(raises, does_not_raise):
+            assert model_keys == list(model_sequence.keys())
+
+    log_check(caplog, expected_log_entries)

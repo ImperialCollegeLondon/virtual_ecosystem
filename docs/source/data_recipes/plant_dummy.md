@@ -26,15 +26,18 @@ section provides a recipe to create such an input conform with the dummy data fo
 import numpy as np
 from xarray import DataArray, Dataset
 
-# set layer roles
-layer_roles = ["above"] + 10 * ["canopy"] + ["subcanopy"] + ["surface"] + 2 * ["soil"]
+from virtual_rainforest.core.utils import set_layer_roles
 
-plant_dummy = {}
+layer_roles = set_layer_roles(10, [-0.5, -1.0])
+
+# Compile a dataset
+
+plant_dummy_dataset = Dataset()
 layer_heights = np.repeat(
         a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.1, -1.0],
         repeats=[1, 1, 1, 1, 7, 1, 1, 1, 1],
     )
-plant_dummy["layer_heights"] = DataArray(
+plant_dummy_dataset["layer_heights"] = DataArray(
         np.broadcast_to(layer_heights, (81, 15)).T,
         dims=["layers", "cell_id"],
         coords={
@@ -46,7 +49,7 @@ plant_dummy["layer_heights"] = DataArray(
     )
 
 leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
-plant_dummy["leaf_area_index"] = DataArray(
+plant_dummy_dataset["leaf_area_index"] = DataArray(
         np.broadcast_to(leaf_area_index, (81, 15)).T,
         dims=["layers", "cell_id"],
         coords={
@@ -57,8 +60,21 @@ plant_dummy["leaf_area_index"] = DataArray(
         name="leaf_area_index",
 )
 
+layer_leaf_mass = np.repeat(a=[np.nan, 10000.0, np.nan], repeats=[1, 3, 11])
+plant_dummy_dataset["layer_leaf_mass"] = DataArray(
+        np.broadcast_to(leaf_area_index, (81, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles),
+            "cell_id": np.arange(0,81),
+        },
+        name="layer_leaf_mass",
+)
+
+
 evapotranspiration = np.repeat(a=[np.nan, 20.0, np.nan], repeats=[1, 3, 11])
-plant_dummy["evapotranspiration"] = DataArray(
+plant_dummy_dataset["evapotranspiration"] = DataArray(
         np.broadcast_to(evapotranspiration, (81, 15)).T,
         dims=["layers", "cell_id"],
         coords={
@@ -68,8 +84,6 @@ plant_dummy["evapotranspiration"] = DataArray(
         },
         name="evapotranspiration",
 )
-# Make dictionary of DataArrays into a Dataset
-plant_dummy_dataset = Dataset(plant_dummy)
 
 plant_dummy_dataset
 ```

@@ -1,6 +1,6 @@
 """The ``models.hydrology.below_ground`` module simulates the below-ground hydrological
-processes for the Virtual Rainforest. At the moment, this includes vertical flow, and
-soil moisture. In the future, this will also include subsurface horizontal flow.
+processes for the Virtual Rainforest. This includes vertical flow, soil moisture and
+matric potential, groundwater storage, and subsurface horizontal flow.
 """  # noqa: D205, D415
 
 from typing import Union
@@ -25,7 +25,8 @@ def calculate_vertical_flow(
     To calculate the flow of water through unsaturated soil, this function uses the
     Richards equation. First, the function calculates the effective saturation :math:`S`
     and effective hydraulic conductivity :math:`K(S)` based on the moisture content
-    :math:`\Theta` using the van Genuchten/Mualem model:
+    :math:`\Theta` using the Mualem-van Genuchten model
+    :cite:p:`van_genuchten_closed-form_1980`:
 
     :math:`S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}`
 
@@ -60,7 +61,7 @@ def calculate_vertical_flow(
         nonlinearily_parameter: dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
-        groundwater_capacity: storage capacity of groupwater
+        groundwater_capacity: storage capacity of groundwater, [mm]
         seconds_to_day: factor to convert between second and day
 
     Returns:
@@ -96,12 +97,10 @@ def calculate_vertical_flow(
         )
         flow_min.append(flow_layer)
 
-    groundwater_storage = groundwater_capacity * np.sum(soil_layer_thickness, axis=0)
-
     outflow = np.where(
-        effective_conductivity[-1] < groundwater_storage,
+        effective_conductivity[-1] < groundwater_capacity,
         flow[-1],
-        groundwater_storage,
+        groundwater_capacity,
     )
     flow_min.append(outflow)
 
@@ -118,8 +117,9 @@ def update_soil_moisture(
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
-    of the current layer and adding it to the layer below. Additionally, the
-    evapotranspiration is removed from the second soil layer.
+    of the current layer and adding it to the layer below. The implementation is based
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+    removed from the second soil layer.
 
     Args:
         soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
@@ -165,3 +165,156 @@ def update_soil_moisture(
         )
 
     return soil_moisture_updated
+
+
+def convert_soil_moisture_to_water_potential(
+    soil_moisture: NDArray[np.float32],
+    air_entry_water_potential: float,
+    water_retention_curvature: float,
+    soil_moisture_capacity: float,
+) -> NDArray[np.float32]:
+    r"""Convert soil moisture into an estimate of water potential.
+
+    This function provides a coarse estimate of soil water potential :math:`\Psi_{m}`.
+    It is taken from :cite:t:`campbell_simple_1974`:
+
+    :math:`\Psi_{m} = \Psi_{e} * (\frac{\Theta}{\Theta_{s}})^{b}`
+
+    where :math:`\Psi_{e}` is the air-entry, :math:`\Theta` is the volumetric water
+    content, :math:`\Theta_{s}` is the saturated water content, and :math:`b` is the
+    water retention curvature parameter.
+
+    Args:
+        soil_moisture: Volumetric relative water content [unitless]
+        air_entry_water_potential: Water potential at which soil pores begin to aerate
+            [kPa]
+        water_retention_curvature: Curvature of water retention curve [unitless]
+        soil_moisture_capacity: The relative water content at which the soil is fully
+            saturated [unitless].
+
+    Returns:
+        An estimate of the water potential of the soil [kPa]
+    """
+
+    return air_entry_water_potential * (
+        (soil_moisture / soil_moisture_capacity) ** water_retention_curvature
+    )
+
+
+def update_groundwater_storge(
+    groundwater_storage: NDArray[np.float32],
+    vertical_flow_to_groundwater: NDArray[np.float32],
+    bypass_flow: NDArray[np.float32],
+    max_percolation_rate_uzlz: Union[float, NDArray[np.float32]],
+    groundwater_loss: Union[float, NDArray[np.float32]],
+    reservoir_const_upper_groundwater: Union[float, NDArray[np.float32]],
+    reservoir_const_lower_groundwater: Union[float, NDArray[np.float32]],
+) -> dict[str, NDArray[np.float32]]:
+    r"""Update groundwater storage and calculate below ground horizontal flow.
+
+    Groundwater storage and transport are modelled using two parallel linear reservoirs,
+    similar to the approach used in the HBV-96 model
+    :cite:p:`lindstrom_development_1997` and the LISFLOOD
+    :cite:p:`van_der_knijff_lisflood_2010` (see for full documentation).
+
+    The upper zone represents a quick runoff component, which includes fast groundwater
+    and subsurface flow through macro-pores in the soil. The lower zone represents the
+    slow groundwater component that generates the base flow.
+
+    The outflow from the upper zone to the channel, :math:`Q_{uz}`, [mm], equals:
+
+    :math:`Q_{uz} = \frac{1}{T_{uz}} * UZ * \Delta t`
+
+    where :math:`T_{uz}` is the reservoir constant for the upper groundwater layer
+    [days], and :math:`UZ` is the amount of water that is stored in the upper zone [mm].
+    The amount of water stored in the upper zone is computed as follows:
+
+    :math:`UZ = D_{ls,gw} + D_{pref,gw} - D{uz,lz}`
+
+    where :math:`D_{ls,gw}` is the flow from the lower soil layer to groundwater,
+    :math:`D_{pref,gw}` is the amount of preferential flow or bypass flow per time step,
+    :math:`D_{uz,lz}` is the amount of water that percolates from the upper to the lower
+    zone, all in [mm].
+
+    The water percolates from the upper to the lower zone is the inflow to the lower
+    groundwater zone. This amount of water is provided by the upper groundwater zone.
+    :math:`D_{uz,lz}` is a fixed amount per computational time step and it is defined as
+    follows:
+
+    :math:`D_{uz,lz} = min(GW_{perc} * \Delta t, UZ)`
+
+    where :math:`GW_{perc}`, [mm day], is the maximum percolation rate from the upper to
+    the lower groundwater zone. The outflow from the lower zone to the channel is then
+    computed by:
+
+    :math:`Q_{lz} = \frac{1}{T_{lz}} * LZ * \Delta t`
+
+    :math:`T_{lz}` is the reservoir constant for the lower groundwater layer, [days],
+    and :math:`LZ` is the amount of water that is stored in the lower zone, [mm].
+    :math:`LZ` is computed as follows:
+
+    :math:`LZ = D_{uz,lz} - (GW_{loss} * \Delta t)`
+
+    where :math:`D_{uz,lz}` is the percolation from the upper groundwater zone,[mm],
+    and :math:`GW_{loss}` is the maximum percolation rate from the lower groundwater
+    zone, [mm day].
+
+    The amount of water defined by :math:`GW_{loss}` never rejoins the river channel and
+    is lost beyond the catchment boundaries or to deep groundwater systems. The larger
+    the value of ath:`GW_{loss}`, the larger the amount of water that leaves the system.
+
+    Args:
+        groundwater_storage: amount of water that is stored in the groundwater reservoir
+            , [mm]
+        vertical_flow_to_groundwater: flux from the lower soil layer to groundwater for
+            this timestep, [mm]
+        bypass_flow: flow that bypasses the soil matrix and drains directly to the
+            groundwater, [mm]
+        max_percolation_rate_uzlz: maximum percolation rate between upper and lower
+            groundwater zone, [mm d-1]
+        groundwater_loss: constant amount of water that never rejoins the river channel
+            and is lost beyond the catchment boundaries or to deep groundwater systems,
+            [mm]
+        reservoir_const_upper_groundwater: reservoir constant for the upper groundwater
+            layer, [days]
+        reservoir_const_lower_groundwater: reservoir constant for the lower groundwater
+            layer, [days]
+
+    Returns:
+        updated amount of water stored in upper and lower zone, outflow from the upper
+        zone to the channel, and outflow from the lower zone to the channel
+    """
+
+    output = {}
+    # The water that percolates from the upper to the lower groundwater zone is defined
+    # as the minumum of `max_percolation_rate_uzlz` and the amount water stored in upper
+    # zone, here `groundwater_storage[0]`
+    percolation_to_lower_zone = np.where(
+        max_percolation_rate_uzlz < groundwater_storage[0],
+        max_percolation_rate_uzlz,
+        groundwater_storage[0],
+    )
+
+    # Update water stored in upper zone, [mm]
+    upper_zone = np.array(
+        groundwater_storage[0]
+        + vertical_flow_to_groundwater
+        + bypass_flow
+        - percolation_to_lower_zone
+    )
+
+    # Calculate outflow from the upper zone to the channel, [mm]
+    output["subsurface_flow"] = upper_zone / reservoir_const_upper_groundwater
+
+    # Update water stored in lower zone, [mm]
+    lower_zone = np.array(
+        groundwater_storage[1] + percolation_to_lower_zone - groundwater_loss
+    )
+
+    # Calculate outflow from the lower zone to the channel, [mm]
+    output["baseflow"] = lower_zone / reservoir_const_lower_groundwater
+
+    # Update ground water storage
+    output["groundwater_storage"] = np.vstack((upper_zone, lower_zone))
+
+    return output

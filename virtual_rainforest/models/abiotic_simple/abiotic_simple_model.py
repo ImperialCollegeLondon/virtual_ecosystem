@@ -25,7 +25,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import load_constants
+from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
@@ -156,7 +156,7 @@ class AbioticSimpleModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic simple model.
 
         Args:

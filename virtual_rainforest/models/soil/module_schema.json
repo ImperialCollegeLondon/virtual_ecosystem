@@ -1,0 +1,48 @@
+{
+   "type": "object",
+   "properties": {
+      "soil": {
+         "description": "Configuration settings for the soil module",
+         "type": "object",
+         "properties": {
+            "constants": {
+               "description": "Constants for the soil module",
+               "type": "object",
+               "properties": {
+                  "SoilConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "SoilConsts"
+               ]
+            },
+            "depends": {
+               "type": "object",
+               "default": {},
+               "properties": {
+                  "init": {
+                     "type": "array",
+                     "default": [],
+                     "items": {
+                        "type": "string"
+                     }
+                  },
+                  "update": {
+                     "type": "array",
+                     "default": [],
+                     "items": {
+                        "type": "string"
+                     }
+                  }
+               }
+            }
+         },
+         "default": {},
+         "required": []
+      }
+   },
+   "required": [
+      "soil"
+   ]
+}

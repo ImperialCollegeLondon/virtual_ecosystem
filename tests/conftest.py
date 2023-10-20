@@ -1,6 +1,6 @@
 """Collection of fixtures to assist the testing scripts."""
 from logging import DEBUG
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pytest
@@ -15,22 +15,68 @@ from virtual_rainforest.core.logger import LOGGER
 LOGGER.setLevel(DEBUG)
 
 
-def log_check(caplog: pytest.LogCaptureFixture, expected_log: tuple[tuple]) -> None:
+def log_check(
+    caplog: pytest.LogCaptureFixture,
+    expected_log: tuple[tuple],
+    subset: Optional[slice] = None,
+) -> None:
     """Helper function to check that the captured log is as expected.
 
     Arguments:
         caplog: An instance of the caplog fixture
         expected_log: An iterable of 2-tuples containing the log level and message.
+        subset: Only check a specified subset of the captured log.
     """
 
-    assert len(expected_log) == len(caplog.records)
+    # caplog.records is just a list of LogRecord objects, so can use a slice to drop
+    # down to a subset of the records.
+    if subset is None:
+        captured_records = caplog.records
+    else:
+        captured_records = caplog.records[subset]
+
+    assert len(expected_log) == len(captured_records)
 
     assert all(
-        [exp[0] == rec.levelno for exp, rec in zip(expected_log, caplog.records)]
+        [exp[0] == rec.levelno for exp, rec in zip(expected_log, captured_records)]
     )
     assert all(
-        [exp[1] in rec.message for exp, rec in zip(expected_log, caplog.records)]
+        [exp[1] in rec.message for exp, rec in zip(expected_log, captured_records)]
     )
+
+
+def record_found_in_log(
+    caplog: pytest.LogCaptureFixture,
+    find: tuple[int, str],
+) -> bool:
+    """Helper function to look for a specific logging record in the captured log.
+
+    Arguments:
+        caplog: An instance of the caplog fixture
+        find: A tuple giving the logging level and message to look for
+    """
+
+    try:
+        # Iterate over the record tuples, ignoring the leading element
+        # giving the logger name
+        _ = next(msg for msg in caplog.record_tuples if msg[1:] == find)
+        return True
+    except StopIteration:
+        return False
+
+
+@pytest.fixture(autouse=True)
+def reset_module_registry():
+    """Reset the module registry.
+
+    The register_module function updates the MODULE_REGISTRY, which persists between
+    tests. This autouse fixture is used to ensure that the registry is always cleared
+    before tests start, so that the correct registration of modules within tests is
+    enforced.
+    """
+    from virtual_rainforest.core.registry import MODULE_REGISTRY
+
+    MODULE_REGISTRY.clear()
 
 
 # Shared fixtures
@@ -139,12 +185,32 @@ def dummy_carbon_data(layer_roles_fixture):
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
-            DataArray([[0.5, 0.7, 0.6, 0.2]], dims=["layers", "cell_id"]),
+            DataArray(
+                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                dims=["layers", "cell_id"],
+            ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        }
+    )
+    # TODO - Eventually this should replace the dummy soil moisture entirely
+    data["matric_potential"] = xr.concat(
+        [
+            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
+            # At present the soil model only uses the top soil layer, so this is the
+            # only one with real test values in
+            DataArray([[-3.0, -10.0, -250.0, -10000.0]], dims=["layers", "cell_id"]),
+            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": ("layers", layer_roles_fixture),
@@ -317,6 +383,8 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
     data["surface_runoff"] = DataArray([10, 50, 100], dims="cell_id")
+    data["surface_runoff_accumulated"] = DataArray([0, 10, 300], dims="cell_id")
+    data["subsurface_flow_accumulated"] = DataArray([10, 10, 30], dims="cell_id")
     data["soil_moisture"] = xr.concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
@@ -400,77 +468,9 @@ def dummy_climate_data(layer_roles_fixture):
         }
     )
 
+    data["groundwater_storage"] = DataArray(
+        np.full((2, 3), 450),
+        dims=("groundwater_layers", "cell_id"),
+    )
+
     return data
-
-
-@pytest.fixture
-def functional_group_list_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list
-
-
-@pytest.fixture
-def animal_model_instance(data_instance, functional_group_list_instance):
-    """Fixture for an animal model object used in tests."""
-    from pint import Quantity
-
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
-
-    return AnimalModel(data_instance, Quantity("1 day"), functional_group_list_instance)
-
-
-@pytest.fixture
-def animal_community_instance(functional_group_list_instance, animal_model_instance):
-    """Fixture for an animal community used in tests."""
-    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-
-    return AnimalCommunity(
-        functional_group_list_instance,
-        0,
-        [0, 1, 3],
-        animal_model_instance.get_community_by_key,
-    )
-
-
-@pytest.fixture
-def herbivore_functional_group_instance(shared_datadir):
-    """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
-        import_functional_groups,
-    )
-
-    file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
-
-    return fg_list[3]
-
-
-@pytest.fixture
-def herbivore_cohort_instance(herbivore_functional_group_instance):
-    """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-
-    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1, 10)
-
-
-@pytest.fixture
-def excrement_instance():
-    """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.decay import ExcrementPool
-
-    return ExcrementPool(100000.0, 0.0)
-
-
-@pytest.fixture
-def plant_instance():
-    """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
-
-    return PlantCommunity(10000.0)

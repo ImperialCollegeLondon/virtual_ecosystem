@@ -15,6 +15,7 @@ from typing import Callable, Iterable
 
 from numpy import timedelta64
 
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 from virtual_rainforest.models.animals.constants import (
@@ -22,22 +23,34 @@ from virtual_rainforest.models.animals.constants import (
     DISPERSAL_MASS_THRESHOLD,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-from virtual_rainforest.models.animals.dummy_plants import PlantCommunity
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+from virtual_rainforest.models.animals.plant_resources import PlantResources
 from virtual_rainforest.models.animals.scaling_functions import damuths_law
 
 
 class AnimalCommunity:
-    """This is a class for the animal community of a grid cell."""
+    """This is a class for the animal community of a grid cell.
+
+    Args:
+        functional_groups: A list of FunctionalGroup objects
+        data: The core data object
+        community_key: The integer key of the cell id for this community
+        neighbouring_keys: A list of cell id keys for neighbouring communities
+        get_destination: A function to return a destination AnimalCommunity for
+            migration.
+    """
 
     def __init__(
         self,
         functional_groups: list[FunctionalGroup],
+        data: Data,
         community_key: int,
         neighbouring_keys: list[int],
         get_destination: Callable[[int], "AnimalCommunity"],
     ) -> None:
-        """The constructor of the AnimalCommunity class."""
+        # The constructor of the AnimalCommunity class.
+        self.data = data
+        """A reference to the core data object."""
         self.functional_groups = tuple(functional_groups)
         """A list of all FunctionalGroup types in the model."""
         self.community_key = community_key
@@ -50,10 +63,11 @@ class AnimalCommunity:
         self.animal_cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
         }
-        """Generate a dictionary of functional groups within the community."""
-        self.plant_community: PlantCommunity = PlantCommunity(10000.0)
+        """A dictionary of lists of animal cohort keyed by functional group."""
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
+        """A pool for animal carcasses within the community."""
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
+        """A pool for excrement within the community."""
 
     @property
     def all_animal_cohorts(self) -> Iterable[AnimalCohort]:
@@ -182,11 +196,14 @@ class AnimalCommunity:
         This will sooner be expanded to include functions for handling scavenging
         and soil consumption behaviors specifically.
 
-        TODO: Remove individuals = 0 check once die_cohort placement is finalized
-
 
         """
-        plant_list = [self.plant_community]
+        # Generate the plant resources for foraging.
+        plant_community: PlantResources = PlantResources(
+            data=self.data, cell_id=self.community_key
+        )
+
+        plant_list = [plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
             if (

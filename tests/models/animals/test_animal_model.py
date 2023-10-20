@@ -14,6 +14,7 @@ def test_animal_model_initialization(
     caplog, dummy_climate_data, functional_group_list_instance
 ):
     """Test `AnimalModel` initialization."""
+    from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     # Initialize model
@@ -24,7 +25,7 @@ def test_animal_model_initialization(
     )
 
     # In cases where it passes then checks that the object has the right properties
-    assert set(["setup", "spinup", "update", "cleanup"]).issubset(dir(model))
+    assert isinstance(model, BaseModel)
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
     assert repr(model) == "AnimalModel(update_interval = 1 week)"
@@ -102,7 +103,7 @@ def test_animal_model_initialization(
 )
 def test_generate_animal_model(
     caplog,
-    dummy_climate_data,
+    plant_data_instance,
     config,
     time_interval,
     raises,
@@ -114,7 +115,7 @@ def test_generate_animal_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AnimalModel.from_config(
-            dummy_climate_data,
+            plant_data_instance,
             config,
             pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
@@ -198,13 +199,13 @@ def test_update_method_sequence(dummy_climate_data, functional_group_list_instan
 
 
 def test_update_method_time_index_argument(
-    dummy_climate_data, functional_group_list_instance
+    plant_data_instance, functional_group_list_instance
 ):
     """Test update to ensure the time index argument does not create an error."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        dummy_climate_data, pint.Quantity("1 week"), functional_group_list_instance
+        plant_data_instance, pint.Quantity("1 week"), functional_group_list_instance
     )
 
     time_index = 5

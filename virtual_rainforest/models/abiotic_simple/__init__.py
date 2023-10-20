@@ -19,9 +19,6 @@ Each of the abiotic sub-modules has its own API reference page:
 
 """  # noqa: D205, D415
 
-from virtual_rainforest.core.base_model import register_model
-from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (  # noqa: F401, E501
     AbioticSimpleModel,
 )
-
-register_model(__name__, AbioticSimpleModel)

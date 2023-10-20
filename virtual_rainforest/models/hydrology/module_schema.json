@@ -1,0 +1,63 @@
+{
+    "type": "object",
+    "properties": {
+        "hydrology": {
+            "description": "Configuration settings for the hydrology module",
+            "type": "object",
+            "properties": {
+                "initial_soil_moisture": {
+                    "description": "Initial soil moisture for all layers",
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "default": 0.5
+                },
+                "initial_groundwater_saturation": {
+                    "description": "Initial ground water saturation for all layers, unitless",
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "default": 0.9
+                },
+                "constants": {
+                    "description": "Constants for the hydrology module",
+                    "type": "object",
+                    "properties": {
+                        "HydroConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "HydroConsts"
+                    ]
+                },
+                "depends": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "init": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "default": {},
+            "required": [
+                "initial_soil_moisture",
+                "initial_groundwater_saturation"
+            ]
+        }
+    },
+    "required": [
+        "hydrology"
+    ]
+}

@@ -5,6 +5,18 @@
          "description": "Configuration settings for the core module",
          "type": "object",
          "properties": {
+            "constants": {
+               "description": "Constants for the core module",
+               "type": "object",
+               "properties": {
+                  "CoreConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "CoreConsts"
+               ]
+            },
             "grid": {
                "description": "Details of the grid to configure",
                "type": "object",
@@ -73,18 +85,6 @@
                   "update_interval",
                   "run_length"
                ]
-            },
-            "modules": {
-               "description": "List of modules to be configured",
-               "type": "array",
-               "items": {
-                  "type": "string"
-               },
-               "default": [
-                  "abiotic_simple",
-                  "soil"
-               ],
-               "uniqueItems": true
             },
             "data": {
                "description": "Configuration settings for the core data module",
@@ -220,7 +220,6 @@
             "data_output_options",
             "grid",
             "timing",
-            "modules",
             "layers"
          ]
       }

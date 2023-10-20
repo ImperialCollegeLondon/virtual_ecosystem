@@ -1,5 +1,5 @@
 """The `models.animals.protocols` module contains a class provides eatability definition
-used by AnimalCohorts, PlantCommunity, and Carcasses in the
+used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_rainforest.models.animals` module.
 """  # noqa: D205, D415
 

@@ -28,7 +28,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import load_constants
+from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
@@ -156,7 +156,7 @@ class SoilModel(BaseModel):
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self, time_index: int) -> None:
+    def update(self, time_index: int, **kwargs: Any) -> None:
         """Update the soil model by integrating.
 
         Args:
@@ -288,6 +288,7 @@ def construct_full_soil_model(
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
+        soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         percent_clay=data["percent_clay"].to_numpy(),
         mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
