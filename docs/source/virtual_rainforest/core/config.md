@@ -54,23 +54,31 @@ error and the simulation will terminate.
 ## Optional module loading
 
 The config system allows for different module implementations and combinations to be
-configured. While the `core` module must always be configured, the choice of which other
-modules to include is a configurable choice. The choice of models to be configured is
-indicated by including the required model names as top level entries in the
-model configuration. Note that the model name is required, even if the configuration
-uses all of the default settings. For example, this configuration specifies that four
-models are to be used, all with their default settings:
+configured. The choice of models to be configured is indicated by including the required
+model names as top level entries in the model configuration. Note that the model name is
+required, even if the configuration uses all of the default settings. For example, this
+configuration specifies that four models are to be used, all with their default
+settings:
 
 ```toml
-[core]
+[core]  # optional
 [soil]
 [hydrology]
 [plants]
 [abiotic_simple]
 ```
 
-Each model configuration section can of course be expanded to change defaults. Note that
-there is no guarantee that a particular set of configured models work in combination.
+The `[core]` element is optional as the Virtual Rainforest core module is always
+required and the default core settings will be used if it is omitted. It can be useful
+to include it as a reminder that a particular configuration is intentionally using the
+default settings. Each module configuration section can of course be expanded to change
+defaults.
+
+```{warning}
+Note that there is no guarantee that a particular set of configured models work in
+combination. You will need to look at model details to understand which other modules
+might be required.
+```
 
 ## JSON schema
 

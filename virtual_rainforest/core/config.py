@@ -431,15 +431,14 @@ class Config(dict):
         # Extract the requested modules, which are the top-level config keys.
         requested_modules: list[str] = list(self.keys())
 
-        # Must include core
+        # Warn if implicitly using core defaults, otherwise remove core to generate a
+        # list of optional modules to be registered.
         if "core" not in requested_modules:
-            to_raise = ConfigurationError("Configuration is missing the core module")
-            LOGGER.critical(to_raise)
-            raise to_raise
+            LOGGER.warning("No core configuration section, using defaults.")
+        else:
+            requested_modules.remove("core")
 
-        # Remove core from module list and then register the core module components
-        # and access the core schema.
-        requested_modules.remove("core")
+        # Register the core module components and access the core schema.
         register_module("virtual_rainforest.core")
         core_schema = MODULE_REGISTRY["core"].schema
 

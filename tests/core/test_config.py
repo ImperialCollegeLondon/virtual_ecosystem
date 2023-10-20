@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import log_check
+from tests.conftest import log_check, record_found_in_log
 from virtual_rainforest.core.exceptions import ConfigurationError
 
 
@@ -517,30 +517,36 @@ def test_Config_build_config_string(caplog, cfg_strings):
 
 
 @pytest.mark.parametrize(
-    "cfg_strings,expected_exception,expected_log_entries",
+    "cfg_strings,expected_exception,find_log_entry,last_log_entry",
     [
         pytest.param(
             "[core]\n[soil]\n[abiotic_simple]",
             does_not_raise(),
-            ((INFO, "Validation schema for configuration built."),),
+            None,
+            (INFO, "Validation schema for configuration built."),
             id="core_modules_all_known",
+        ),
+        pytest.param(
+            "[soil]\n[abiotic_simple]",
+            does_not_raise(),
+            (WARNING, "No core configuration section, using defaults."),
+            (INFO, "Validation schema for configuration built."),
+            id="core_modules_implicit_core",
         ),
         pytest.param(
             "[core]\n[pants]",
             pytest.raises(ModuleNotFoundError),
+            None,
             (
-                (
-                    CRITICAL,
-                    "Unknown module - registration failed: "
-                    "virtual_rainforest.models.pants",
-                ),
+                CRITICAL,
+                "Unknown module - registration failed: virtual_rainforest.models.pants",
             ),
             id="core_modules_include_unknown",
         ),
     ],
 )
 def test_Config_build_schema(
-    caplog, cfg_strings, expected_exception, expected_log_entries
+    caplog, cfg_strings, expected_exception, find_log_entry, last_log_entry
 ):
     """Test the build_schema method of Config."""
     from virtual_rainforest.core.config import Config
@@ -554,8 +560,12 @@ def test_Config_build_schema(
     with expected_exception:
         cfg.build_schema()
 
+    # Look for specific log entries if provided
+    if find_log_entry is not None:
+        assert record_found_in_log(caplog, find_log_entry)
+
     # Check the last line of the log
-    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
+    log_check(caplog, (last_log_entry,), subset=slice(-1, None, None))
 
 
 @pytest.mark.parametrize(
