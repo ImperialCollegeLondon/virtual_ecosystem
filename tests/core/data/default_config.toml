@@ -1,2 +1,5 @@
-# This schema is currently empty as every soil and simple_abiotic config option has a
-# default
+# This configuration loads core, abiotic_simple and soil - assumes these can be fully
+# configured from defaults alone
+[core]
+[abiotic_simple]
+[soil]

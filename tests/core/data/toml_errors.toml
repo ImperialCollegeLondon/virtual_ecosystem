@@ -1,0 +1,5 @@
+[core
+
+[core.grid]
+nx = 10
+ny = 10
