@@ -196,6 +196,9 @@ class Config(dict):
         self.from_cfg_strings: bool = False
         """A boolean flag indicating whether paths or strings were used to create the
         instance."""
+        self.model_classes: dict[str, Any] = {}  # FIXME: -> dict[str, Type[BaseModel]]
+        """A dictionary of the model classes specified in the configuration, keyed by
+        model name."""
 
         # Prohibit using both paths and string
         if not (cfg_paths or cfg_strings):
@@ -447,6 +450,7 @@ class Config(dict):
         all_schemas: dict[str, Any] = {"core": core_schema}
         for module in requested_modules:
             all_schemas[module] = MODULE_REGISTRY[module].schema
+            self.model_classes[module] = MODULE_REGISTRY[module].model
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
