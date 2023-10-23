@@ -206,4 +206,9 @@ def initialise_canopy_layers(
             },
         )
 
+    # initialise the soil layer heights
+    data["layer_heights"].loc[
+        dict(layers=data["layer_roles"] == "soil")
+    ] = np.row_stack(soil_layers)
+
     return data
