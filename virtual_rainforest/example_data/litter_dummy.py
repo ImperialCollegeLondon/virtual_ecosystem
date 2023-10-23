@@ -1,28 +1,12 @@
----
-jupytext:
-  cell_metadata_filter: -all
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.13.8
-kernelspec:
-  display_name: vr_python3
-  language: python
-  name: vr_python3
----
-
-# Necessary litter data for dummy module
+"""Necessary litter data for `vr_run` example.
 
 This section explains how to generate the data required to run the litter component of
-the dummy model. **It is important to note that none of this data is real data**.
+the dummy model. It is important to note that none of this data is real data.
 Instead, the code below creates some typical values for the required input data and
 generates a simple spatial pattern. Descriptions of the relevant litter pools can be
-found [here](../virtual_rainforest/soil/soil_details).
+found here: /virtual_rainforest/docs/source/virtual_rainforest/soil/soil_details.md.
+"""
 
-```{code-cell} ipython3
 import numpy as np
 from xarray import Dataset
 
@@ -30,7 +14,7 @@ from xarray import Dataset
 # direction independently, so cell (0,0) is at the origin, whereas cell (2,3) is 180m
 # from the origin in the x direction and 270m in the y direction.
 cell_spacing = np.arange(0, 721, 90)
-gradient = np.multiply.outer(cell_spacing/90, cell_spacing/90)
+gradient = np.multiply.outer(cell_spacing / 90, cell_spacing / 90)
 
 # Generate a range of plausible values (0.05-0.5) for the above ground metabolic litter
 # pools [kg C m^-2].
@@ -40,14 +24,14 @@ above_metabolic_values = 0.05 + 0.45 * (gradient) / (64)
 # pools [kg C m^-2].
 above_structural_values = 0.05 + 0.45 * (gradient) / (64)
 
-# Generate a range of plausible values (4.75-12.0) for the woody litter pools [kg C m^-2].
+# Generate range of plausible values (4.75-12.0) for the woody litter pools [kg C m^-2].
 woody_values = 4.75 + 7.25 * (gradient) / (64)
 
 # Generate a range of plausible values (0.03-0.08) for the below ground metabolic litter
 # pools [kg C m^-2].
 below_metabolic_values = 0.03 + 0.05 * (gradient) / (64)
 
-# Generate a range of plausible values (0.05-0.125) for the below ground structural litter
+# Generate range of plausible values (0.05-0.125) for the below ground structural litter
 # pools [kg C m^-2].
 below_structural_values = 0.05 + 0.075 * (gradient) / (64)
 
@@ -72,10 +56,6 @@ dummy_litter_data = Dataset(
     ),
     attrs=dict(description="Litter data for dummy Virtual Rainforest model."),
 )
-dummy_litter_data
-```
 
-```python
 # Save the dummy litter data file as netcdf
 dummy_litter_data.to_netcdf("./dummy_litter_data.nc")
-```

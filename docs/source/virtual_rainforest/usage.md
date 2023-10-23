@@ -21,11 +21,13 @@ access to all relevant dependencies.
 
 ## Running an example Virtual Rainforest simulation
 
-Some example data is included with Virtual Rainforest to provide an introduction to the
-file formats and configuration. To try Virtual Rainforest using this example data, you
-first need to install the data to a location of your choice. The command below will
-create the `vr_example` directory at the location you choose and install all of the
-configuration and data files to run a model.
+Some [example data](./example_data.md) is included with Virtual Rainforest to provide
+an introduction to the file formats and configuration. To try Virtual Rainforest using
+this example data, you first need to install the data to a location of your choice. The
+command below will create the `vr_example` directory at the location you choose and
+install all of the configuration and data files to run a model. The code to reproduce
+the data is described [here](./example_data.md) and provided in the `vr_example`
+directory.
 
 ```shell
 vr_run --install-example /path/to/install/data

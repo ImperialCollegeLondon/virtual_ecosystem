@@ -69,6 +69,9 @@ simulations:
   [here for hourly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=overview)
   and [here for monthly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview)
 
+  Example code to manipulate downloaded ERA5-Land data as used in the `vr_run` example
+  is available [here](../../../virtual_rainforest/example_data/climate_dummy.py).
+
 * WFDE5
   
   This global dataset provides bias-corrected reconstruction of near-surface
@@ -77,7 +80,9 @@ simulations:
   available in hourly and daily time steps for the period 1979-2019 in 0.5 x 0.5 deg
   resolution.
   
-  The full documentation and download link can be accessed [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/derived-near-surface-meteorological-variables?tab=overview).
+  The full documentation and download link can be accessed
+  [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/derived-near-surface-meteorological-variables?tab=overview)
+  .
 
 * CORDEX-SEA
   
@@ -90,14 +95,14 @@ simulations:
   
   The full documentation and download link can be accessed [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/projections-cordex-domains-single-levels?tab=overview).
 
-* Atmospheric CO2
+* Atmospheric $\ce{CO_{2}}$
   
-  Observed global CO2 levels (Mauna Loa, NOAA/GML) are available in monthly or annual
-  resolution (1958 - present) [here](https://gml.noaa.gov/ccgg/trends/graph.html).
-  Monthly data derived from satellite observation (2002 - present) is available
+  Observed global $\ce{CO_{2}}$ levels (Mauna Loa, NOAA/GML) are available in monthly or
+  annual resolution (1958 - present) [here](https://gml.noaa.gov/ccgg/trends/graph.html)
+  .  Monthly data derived from satellite observation (2002 - present) is available
   [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/satellite-carbon-dioxide?tab=overview)
-  . Alternatively, reconstructed gridded monthly CO2 data for the historical period
-  (1953 - 2013) and future CMIP6 scenarios (2015 - 2150) can be downloaded
+  . Alternatively, reconstructed gridded monthly $\ce{CO_{2}}$ data for the historical
+  period (1953 - 2013) and future CMIP6 scenarios (2015 - 2150) can be downloaded
   [here](https://zenodo.org/record/5021361){cite:p}`cheng_wei_global_2021`.
   
 ## Step-by-step example
@@ -121,10 +126,12 @@ from the CORDEX-SEA:
 * Ensemble member (r1i1p1)
 * Start year and End year (here: 2001-2005)
 
-Once you selected the data, you can either download the dataset for further processing,
-[see here](./ERA5_preprocessing_example.md) an example of how to manipulate ERA5 data
-using xarray, or click on 'show Toolbox request' at the bottom of the page, copy the
-code, and open the CDS toolbox editor.
+Once you selected the data, you can either download the dataset for further processing
+or click on 'show Toolbox request' at the bottom of the page, copy the code, and open
+the CDS toolbox editor.
+
+The code to manipulate climate data as used in the `vr_run --example` is available
+here [see here](../../../virtual_rainforest/example_data/climate_dummy.py).
 
 ### Toolbox template CORDEX-SEA
 
