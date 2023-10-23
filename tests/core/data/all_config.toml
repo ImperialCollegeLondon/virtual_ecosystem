@@ -2,7 +2,6 @@
 # modules. Each value has been chosen to be different from the default value, so that
 # this file can be used to test that providing non-default values works.
 [core]
-modules = ["plants", "soil", "animals"]
 
 [core.grid]
 cell_nx = 10
@@ -77,4 +76,3 @@ diet = "herbivore"
 metabolic_type = "ectothermic"
 birth_mass = 0.0005
 adult_mass = 0.005
-

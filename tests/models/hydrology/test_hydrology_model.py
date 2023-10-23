@@ -131,7 +131,7 @@ def test_hydrology_model_initialization(
     "cfg_string,time_interval,sm_capacity,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules = ['hydrology']\n"
+            "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n",
             pint.Quantity("1 month"),
@@ -176,7 +176,7 @@ def test_hydrology_model_initialization(
             id="default_config",
         ),
         pytest.param(
-            "[core]\nmodules = ['hydrology']\n"
+            "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
             "[hydrology.constants.HydroConsts]\nsoil_moisture_capacity = 0.7\n",
@@ -222,7 +222,7 @@ def test_hydrology_model_initialization(
             id="modified_config_correct",
         ),
         pytest.param(
-            "[core]\nmodules = ['hydrology']\n"
+            "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
             "[hydrology.constants.HydroConsts]\nsoilm_cap = 0.7\n",
@@ -280,7 +280,7 @@ def test_generate_hydrology_model(
     "cfg_string,time_interval, raises",
     [
         pytest.param(
-            "[core]\nmodules=['hydrology']\n"
+            "[core]\n"
             "[core.timing]\nupdate_interval = '1 month'\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n",
@@ -289,7 +289,7 @@ def test_generate_hydrology_model(
             id="updates correctly",
         ),
         pytest.param(
-            "[core]\nmodules=['hydrology']\n"
+            "[core]\n"
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n",
