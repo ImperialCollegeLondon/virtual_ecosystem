@@ -64,14 +64,14 @@ class PlantResources:
         # Minimum of the energy available and amount that can be consumed in an 8 hour
         # foraging window .
         mass_consumed = min(
-            self.stored_energy,
+            self.mass_current,
             herbivore.intake_rate * herbivore.individuals,
         )
 
         # TODO - this needs to feedback herbivory to into the data object and hence back
         # into the plant model, but for now, the energy is consumed and not lost from
         # plants.
-        self.stored_energy -= mass_consumed
+        self.mass_current -= mass_consumed
 
         # TODO - All plant matter that animals fail to eat currently goes into the
         # excrement pool. This isn't ideal, but will do for now. This herbivore
