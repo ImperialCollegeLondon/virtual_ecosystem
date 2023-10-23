@@ -761,6 +761,9 @@ def setup_hydrology_input_current_timestep(
         data["layer_heights"].isel(layers=data["layer_roles"] == "soil").to_numpy()
     )
 
+    # FIXME - there's an implicit axis order built into these calculations (vertical
+    #         profile is axis 0) that needs fixing.
+
     output["soil_layer_thickness"] = calculate_layer_thickness(  # [mm]
         soil_layer_heights=output["soil_layer_heights"],
         meters_to_mm=meters_to_mm,
