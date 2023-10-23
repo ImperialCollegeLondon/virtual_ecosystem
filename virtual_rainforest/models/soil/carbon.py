@@ -131,10 +131,11 @@ def calculate_soil_carbon_updates(
         percent_clay=percent_clay,
         constants=constants,
     )
-    microbial_uptake = calculate_microbial_carbon_uptake(
+    microbial_uptake, microbial_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
+        pH_factor=pH_factor,
         soil_temp=soil_temp,
         constants=constants,
     )
@@ -180,7 +181,7 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_c_pool_maom"] = pom_decomposition_to_maom + lmwc_to_maom
     delta_pools_ordered["soil_c_pool_microbe"] = (
-        microbial_uptake - biomass_losses.maintenance_synthesis
+        microbial_assimilation - biomass_losses.maintenance_synthesis
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate
@@ -458,79 +459,76 @@ def calculate_enzyme_turnover(
     return turnover_rate * enzyme_pool
 
 
-def calculate_microbial_saturation(
-    soil_c_pool_microbe: NDArray[np.float32],
-    half_sat_microbial_activity: float,
-) -> NDArray[np.float32]:
-    """Calculate microbial activity saturation.
-
-    This ensures that microbial activity (per unit biomass) drops as biomass density
-    increases. This is adopted from Abramoff et al. It feels like an assumption that
-    should be revised as the Virtual Rainforest develops.
-
-    Args:
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        half_sat_microbial_activity: Half saturation constant for microbial activity
-
-    Returns:
-        A rescaling of microbial biomass that takes into account activity saturation
-        with increasing biomass density
-    """
-
-    return soil_c_pool_microbe / (soil_c_pool_microbe + half_sat_microbial_activity)
-
-
-# TODO - This function also needs reworking, when I do this I need to pay careful
-# attention to carbon use efficiency
 def calculate_microbial_carbon_uptake(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     water_factor: NDArray[np.float32],
+    pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
-) -> NDArray[np.float32]:
-    """Calculate amount of labile carbon taken up by microbes.
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Calculate uptake and assimilation of labile carbon by microbes.
+
+    This function starts by calculating the impact that environmental factors have on
+    the rate and saturation constants for microbial uptake. These constants are then
+    used to calculate the rate of uptake of labile carbon. Carbon use efficiency is then
+    calculated and used to find how much of this carbon ends up assimilated as biomass
+    (rather than respired).
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
+        pH_factor: A factor capturing the impact of soil pH on microbial rates
+            [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         constants: Set of constants for the soil model.
 
     Returns:
-        Uptake of low molecular weight carbon (LMWC) by the soil microbial biomass.
+        A tuple containing the uptake rate of low molecular weight carbon (LMWC) by the
+        soil microbial biomass, and the rate at which this causes microbial biomass to
+        increase.
     """
 
-    # Calculate carbon use efficiency and microbial saturation
+    # Calculate carbon use efficiency
     carbon_use_efficency = calculate_carbon_use_efficiency(
         soil_temp,
         constants.reference_cue,
         constants.cue_reference_temp,
         constants.cue_with_temperature,
     )
-    microbial_saturation = calculate_microbial_saturation(
-        soil_c_pool_microbe, constants.half_sat_microbial_activity
-    )
-    temp_factor = calculate_temperature_effect_on_microbes(
+    # Calculate impact of temperature on the rate and saturation constants
+    temp_factor_rate = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
         activation_energy=constants.activation_energy_microbial_uptake,
         reference_temperature=constants.arrhenius_reference_temp,
     )
+    temp_factor_saturation = calculate_temperature_effect_on_microbes(
+        soil_temperature=soil_temp,
+        activation_energy=constants.activation_energy_labile_C_saturation,
+        reference_temperature=constants.arrhenius_reference_temp,
+    )
+    # Then use to calculate rate constant and saturation constant (which also change
+    # with other environmental conditions)
+    rate_constant = (
+        constants.max_uptake_rate_labile_C * temp_factor_rate * water_factor * pH_factor
+    )
+    saturation_constant = constants.half_sat_labile_C_uptake * temp_factor_saturation
+
+    # Calculate both the rate of carbon uptake, and the rate at which this carbon is
+    # assimilated into microbial biomass.
+    uptake_rate = rate_constant * np.divide(
+        (soil_c_pool_lmwc * soil_c_pool_microbe),
+        (soil_c_pool_lmwc + saturation_constant),
+    )
+    assimilation_rate = uptake_rate * carbon_use_efficency
 
     # TODO - the quantities calculated above can be used to calculate the carbon
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
-    return (
-        constants.max_uptake_rate_labile_C
-        * water_factor
-        * temp_factor
-        * soil_c_pool_lmwc
-        * microbial_saturation
-        * carbon_use_efficency
-    )
+    return uptake_rate, assimilation_rate
 
 
 def calculate_labile_carbon_leaching(

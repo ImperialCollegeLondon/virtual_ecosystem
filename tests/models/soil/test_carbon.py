@@ -19,9 +19,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.01032055, 0.01786703, 0.59290765, 0.00090945],
+        "soil_c_pool_lmwc": [-0.03136336, -0.01277637, 0.41176723, 0.00070135],
         "soil_c_pool_maom": [-5.618799e-3, -5.58088254e-3, -0.556554353, 4.6786768e-5],
-        "soil_c_pool_microbe": [-0.05127291, -0.02171935, -0.1157339, -0.00720536],
+        "soil_c_pool_microbe": [-0.03828773, -0.01245439, -0.06446385, -0.00711458],
         "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
     }
@@ -266,37 +266,28 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     assert np.allclose(actual_decay, expected_decay)
 
 
-def test_calculate_microbial_saturation(dummy_carbon_data):
-    """Check microbial activity saturation calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_microbial_saturation
-
-    expected_saturated = [0.99876016, 0.99687933, 0.99936324, 0.99285147]
-
-    actual_saturated = calculate_microbial_saturation(
-        dummy_carbon_data["soil_c_pool_microbe"],
-        SoilConsts.half_sat_microbial_activity,
-    )
-
-    assert np.allclose(actual_saturated, expected_saturated)
-
-
 def test_calculate_microbial_carbon_uptake(
     dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [3.15786124e-3, 1.26472838e-3, 4.38868085e-3, 1.75270792e-5]
+    expected_uptake = [0.04484178, 0.03190812, 0.18552910, 0.00022563]
+    expected_assimilation = [0.01614304, 0.01052968, 0.05565873, 1.08303e-4]
 
-    actual_uptake = calculate_microbial_carbon_uptake(
+    actual_uptake, actual_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         water_factor=environmental_factors["water"],
-        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        pH_factor=environmental_factors["pH"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            top_soil_layer_index
+        ].to_numpy(),
         constants=SoilConsts,
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
+    assert np.allclose(actual_assimilation, expected_assimilation)
 
 
 def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_scalars):

@@ -73,18 +73,6 @@ class SoilConsts(ConstantsDataclass):
     Default value taken from :cite:t:`abramoff_millennial_2018`.
     """
 
-    necromass_adsorption_rate: float = 0.025
-    """Rate at which necromass is adsorbed by soil minerals [day^-1].
-
-    Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
-    """
-
-    half_sat_microbial_activity: float = 0.0072
-    """Half saturation constant for microbial activity (with increasing biomass).
-
-    Units of [kg C m^-2].
-    """
-
     leaching_rate_labile_carbon: float = 1.5e-3
     """Leaching rate for labile carbon (lmwc) [day^-1]."""
 
@@ -133,18 +121,35 @@ class SoilConsts(ConstantsDataclass):
     :attr:`max_uptake_rate_labile_C`.
     """
 
+    half_sat_labile_C_uptake: float = 0.091
+    """Half saturation constant for microbial uptake of labile carbon (LMWC).
+
+    [kg C m^-2]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3],
+    and a topsoil depth of 0.25 [m]. The reference temperature is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_labile_C_saturation`.
+    """
+
+    activation_energy_labile_C_saturation: float = 30000
+    """Activation energy for labile C uptake saturation constant [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
     # TODO - Add another set of constants once we start tracking lignin
     half_sat_pom_decomposition: float = 70.0
     """Half saturation constant for POM decomposition to LMWC [kg C m^-2].
 
     This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
-    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
-    is given by :attr:`activation_energy_pom_decomp_saturation`.
+    assuming an average bulk density of 1400 [kg m^-3], and a topsoil depth of 0.25 [m].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_pom_decomp_saturation`.
     """
 
     activation_energy_pom_decomp_saturation: float = 30000
-    """Activation energy for decomposition of particulate organic matter [J K^-1].
+    """Activation energy for POM decomposition saturation constant [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.
     """
