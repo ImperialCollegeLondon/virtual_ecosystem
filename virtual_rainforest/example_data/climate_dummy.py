@@ -140,9 +140,11 @@ dataset_xy_dummy = dataset_xy_100.isel(x=np.arange(9), y=np.arange(9))
 # At the moemnt, the dummy model iterates over time indices rather than real datetime.
 # Therefore, we add a `time_index` coordinate to the dataset:
 
-dataset_xy_timeindex = dataset_xy_dummy.expand_dims(
-    dim={"time_index": 24}
-).assign_coords({"time_index": np.arange(0, 24, 1)})
+dataset_xy_timeindex = (
+    dataset_xy_dummy.rename_dims({"time": "time_index"})
+    .assign_coords({"time_index": np.arange(0, 24, 1)})
+    .drop("time")
+)
 
 # 11. Save netcdf
 # Once we confirmed that our dataset is complete and our calculations are correct, we
