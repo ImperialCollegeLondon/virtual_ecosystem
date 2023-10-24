@@ -22,9 +22,11 @@ of the Virtual Rainforest. This document describes how to download climate data 
 the Copernicus [Climate Data Store](https://cds.climate.copernicus.eu/) (CDS) and basic
 pre-processing options using the
 [CDS toolbox](https://cds.climate.copernicus.eu/cdsapp#!/toolbox).
-At present, the pre-processing does not include scaling or topographic adjustment.
+You need to create a user account to access all data and functionalities.
 
-NOTE: You need to create a user account to access all data and functionalities.
+```{note}
+At present, the pre-processing does not include scaling or topographic adjustment.
+```
 
 ## Climate input variables
 
@@ -33,7 +35,7 @@ variables (or derivatives) at each time step (default: monthly means):
 
 * Air temperature (typically 2m; mean, minimum, and maximum)
 * Air humidity (typically 2m; relative or specific humidity)
-* Air pressure (typically mean sealevel or surface pressure)
+* Air pressure (typically mean sea level or surface pressure)
 * Wind speed (typically 10m)
 * Precipitation
   
@@ -63,7 +65,7 @@ simulations:
 
   ERA5-Land is a reanalysis dataset providing a consistent view of the evolution of land
   variables over several decades at an enhanced resolution compared to ERA5 (0.1 x 0.1
-  deg resolution).
+  deg).
 
   The full documentation and download link can be accessed
   [here for hourly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=overview)
@@ -103,7 +105,7 @@ simulations:
   [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/satellite-carbon-dioxide?tab=overview)
   . Alternatively, reconstructed gridded monthly $\ce{CO_{2}}$ data for the historical
   period (1953 - 2013) and future CMIP6 scenarios (2015 - 2150) can be downloaded
-  [here](https://zenodo.org/record/5021361){cite:p}`cheng_wei_global_2021`.
+  [here](https://zenodo.org/record/5021361) {cite:p}`cheng_wei_global_2021`.
   
 ## Step-by-step example
 
@@ -114,7 +116,7 @@ data, navigate to the tab 'Download Data'.
 ### Selection
 
 This is an example of a selection of tabs to download historical '2m air temperature'
-from the CORDEX-SEA:
+from the CORDEX-SEA (you can download multiple variables and years in one request):
 
 * Domain (South-East Asia),
 * Experiment (here: 'historical', RCPs available)
@@ -130,8 +132,8 @@ Once you selected the data, you can either download the dataset for further proc
 or click on 'show Toolbox request' at the bottom of the page, copy the code, and open
 the CDS toolbox editor.
 
-The code to manipulate climate data as used in the `vr_run --example` is available
-here [see here](../../../virtual_rainforest/example_data/climate_dummy.py).
+The code to manipulate climate data as used in the `vr_run` example is available
+[here](../../../virtual_rainforest/example_data/climate_dummy.py).
 
 ### Toolbox template CORDEX-SEA
 
