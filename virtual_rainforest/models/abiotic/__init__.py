@@ -12,6 +12,9 @@ Each of the abiotic sub-modules has its own API reference page:
 * The :mod:`~virtual_rainforest.models.abiotic.constants` submodule provides a
   set of dataclasses containing the constants required by the broader abiotic model.
 
+* The :mod:`~virtual_rainforest.models.abiotic.abiotic_tools` submodule contains a set
+  of general functions that are shared across submodules in the
+  :mod:`~virtual_rainforest.models.abiotic` model.
 """  # noqa: D205, D415
 
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel  # noqa: F401
