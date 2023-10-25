@@ -1,5 +1,7 @@
 """The ``models.abiotic.abiotic_tools`` module contains a set of general functions that
 are shared across submodules in the :mod:`~virtual_rainforest.models.abiotic` model.
+
+TODO cross-check with pyrealm for duplication/ different implementation
 """  # noqa: D205, D415
 
 import numpy as np
@@ -72,8 +74,7 @@ def calculate_latent_heat_vaporisation(
 ) -> NDArray[np.float32]:
     """Calculate latent heat of vaporisation.
 
-    Implementation after Eq. 8, Henderson-Sellers (1984).
-    TODO add reference
+    Implementation after Eq. 8, :cite:t:`henderson-sellers_new_1984`.
 
     Args:
         temperature: Air temperature, [C]
