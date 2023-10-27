@@ -38,3 +38,25 @@ class AbioticConsts(ConstantsDataclass):
     latent_heat_vap_equ_factor_2: float = 33.91
     """Factor in calculation of latent heat of vaporisation, (Henderson-Sellers, 1984).
     """
+
+    zero_plane_scaling_parameter: float = 7.5
+    """Control parameter for scaling zero displacement/height
+        :cite:p:`raupach_simplified_1994`."""
+    substrate_surface_drag_coefficient: float = 0.003
+    """Substrate-surface drag coefficient :cite:p:`maclean_microclimc_2021`."""
+    roughness_element_drag_coefficient: float = 0.3
+    """Roughness-element drag coefficient :cite:p:`maclean_microclimc_2021`."""
+    roughness_sublayer_depth_parameter: float = 0.193
+    """Parameter characterizes the roughness sublayer depth
+        :cite:p:`maclean_microclimc_2021`."""
+    max_ratio_wind_to_friction_velocity: float = 0.3
+    """Maximum ratio of wind velocity to friction velocity
+        :cite:p:`maclean_microclimc_2021`."""
+    drag_coefficient: float = 0.2
+    """Drag coefficient :cite:p:`maclean_microclimc_2021`."""
+    relative_turbulence_intensity: float = 0.5
+    """Relative turbulence intensity :cite:p:`maclean_microclimc_2021`."""
+    diabatic_correction_factor_below: float = 1
+    "Diabatic correction factor below canopy."
+    mixing_length_factor: float = 0.32
+    """Factor in calculation of mixing length :cite:p:`maclean_microclimc_2021`."""
