@@ -169,9 +169,9 @@ def calculate_soil_carbon_updates(
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
         soil_layer_thickness=core_constants.depth_of_active_soil_layer,
     )
-    pom_decomposition_rate = calculate_pom_decomposition(
-        soil_c_pool_pom=soil_c_pool_pom,
-        soil_enzyme_pom=soil_enzyme_pom,
+    pom_decomposition_rate = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=soil_c_pool_pom,
+        soil_enzyme=soil_enzyme_pom,
         water_factor=water_factor,
         pH_factor=pH_factor,
         clay_factor_saturation=clay_factor_saturation,
@@ -550,26 +550,25 @@ def calculate_microbial_carbon_uptake(
     return uptake_rate, assimilation_rate
 
 
-# TODO - Should consider making this a generic function, i.e. not POM specific
-def calculate_pom_decomposition(
-    soil_c_pool_pom: NDArray[np.float32],
-    soil_enzyme_pom: NDArray[np.float32],
+def calculate_enzyme_mediated_decomposition(
+    soil_c_pool: NDArray[np.float32],
+    soil_enzyme: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     clay_factor_saturation: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
-    """Calculate rate of particulate organic matter decomposition.
+    """Calculate rate of a enzyme mediated decomposition process.
 
     This function calculates various environmental factors that effect enzyme activity,
     then uses these to find environmental adjusted rate and saturation constants. These
-    are then used to find the POM decomposition rate.
+    are then used to find the decomposition rate of the pool in question.
 
     Args:
-        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
-        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
-            matter [kg C m^-3]
+        soil_c_pool: Size of organic matter pool [kg C m^-3]
+        soil_enzyme: Amount of enzyme class which breaks down the organic matter pool in
+            question [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
@@ -580,8 +579,8 @@ def calculate_pom_decomposition(
         constants: Set of constants for the soil model.
 
     Returns:
-        The amount of particulate organic matter (POM) decomposed into both labile
-        carbon (LMWC) and mineral associated organic matter (MAOM) [kg C m^-3 day^-1]
+        The rate of decomposition of the organic matter pool in question [kg C m^-3
+        day^-1]
     """
 
     # Calculate the factors which impact the rate and saturation constants
@@ -607,8 +606,5 @@ def calculate_pom_decomposition(
     )
 
     return (
-        rate_constant
-        * soil_enzyme_pom
-        * soil_c_pool_pom
-        / (saturation_constant + soil_c_pool_pom)
+        rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool)
     )

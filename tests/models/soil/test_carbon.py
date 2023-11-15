@@ -294,17 +294,19 @@ def test_calculate_microbial_carbon_uptake(
     assert np.allclose(actual_assimilation, expected_assimilation)
 
 
-def test_calculate_pom_decomposition(
+def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_pom_decomposition
+    from virtual_rainforest.models.soil.carbon import (
+        calculate_enzyme_mediated_decomposition,
+    )
 
     expected_decomp = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
 
-    actual_decomp = calculate_pom_decomposition(
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+    actual_decomp = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
+        soil_enzyme=dummy_carbon_data["soil_enzyme_pom"],
         water_factor=environmental_factors["water"],
         pH_factor=environmental_factors["pH"],
         clay_factor_saturation=environmental_factors["clay_saturation"],
