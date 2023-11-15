@@ -314,6 +314,9 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
                     enzyme_pom=DataArray(
                         [0.02267854, 0.00957584, 0.05005016, 0.00300993], dims="cell_id"
                     ),
+                    enzyme_maom=DataArray(
+                        [0.03544542, 0.0116745, 0.02538689, 0.00454144], dims="cell_id"
+                    ),
                 )
             ),
             (),
@@ -353,6 +356,7 @@ def test_integrate_soil_model(
         assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
         assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
         assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
+        assert np.allclose(new_pools["soil_enzyme_maom"], final_pools["enzyme_maom"])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -447,6 +451,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         1.67442231e-8,
         1.83311362e-9,
         -1.11675865e-08,
+        -0.00031009,
+        -5.09593e-5,
+        0.0005990658,
+        -3.72112e-5,
     ]
 
     # make pools

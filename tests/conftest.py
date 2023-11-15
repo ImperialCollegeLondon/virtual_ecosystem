@@ -176,6 +176,10 @@ def dummy_carbon_data(layer_roles_fixture):
         [0.022679, 0.009576, 0.050051, 0.003010], dims=["cell_id"]
     )
     """Soil enzyme that breaks down particulate organic matter (kg C m^-3)"""
+    data["soil_enzyme_maom"] = DataArray(
+        [0.0356, 0.0117, 0.02509, 0.00456], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down mineral associated organic matter (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
     # TODO - The below variable will be superseeded and should be deleted.

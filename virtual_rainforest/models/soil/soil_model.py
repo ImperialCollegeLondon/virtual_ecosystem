@@ -85,6 +85,7 @@ class SoilModel(BaseModel):
         "soil_c_pool_microbe",
         "soil_c_pool_pom",
         "soil_enzyme_pom",
+        "soil_enzyme_maom",
     )
     """Variables updated by the soil model."""
 

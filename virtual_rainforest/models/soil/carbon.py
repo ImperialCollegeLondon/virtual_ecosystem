@@ -37,15 +37,17 @@ class MicrobialBiomassLoss:
     necromass_decay_to_lmwc: NDArray[np.float32]
     """Rate at which biomass is lost to the LMWC pool [kg C m^-3 day^-1]."""
     necromass_decay_to_pom: NDArray[np.float32]
-    """Rate at which biomass is lost to the POMM pool [kg C m^-3 day^-1]."""
+    """Rate at which biomass is lost to the POM pool [kg C m^-3 day^-1]."""
 
 
+# TODO - This function should probably be shortened
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     soil_c_pool_pom: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
+    soil_enzyme_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -72,6 +74,8 @@ def calculate_soil_carbon_updates(
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
+        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
+            organic matter [kg C m^-3]
         pH: pH values for each soil grid cell [unitless]
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: relative water content for each soil grid cell [unitless]
@@ -154,6 +158,10 @@ def calculate_soil_carbon_updates(
         enzyme_pool=soil_enzyme_pom,
         turnover_rate=model_constants.pom_enzyme_turnover_rate,
     )
+    maom_enzyme_turnover = calculate_enzyme_turnover(
+        enzyme_pool=soil_enzyme_maom,
+        turnover_rate=model_constants.maom_enzyme_turnover_rate,
+    )
     labile_carbon_leaching = calculate_leaching_rate(
         solute_density=soil_c_pool_lmwc,
         vertical_flow_rate=vertical_flow_rate,
@@ -198,6 +206,9 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
+    )
+    delta_pools_ordered["soil_enzyme_maom"] = (
+        biomass_losses.maom_enzyme_production - maom_enzyme_turnover
     )
 
     # Create output array of pools in desired order
