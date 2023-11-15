@@ -73,9 +73,6 @@ class SoilConsts(ConstantsDataclass):
     Default value taken from :cite:t:`abramoff_millennial_2018`.
     """
 
-    leaching_rate_labile_carbon: float = 1.5e-3
-    """Leaching rate for labile carbon (lmwc) [day^-1]."""
-
     soil_microbe_water_potential_optimum: float = -3.0
     """The water potential at which soil microbial rates are maximised [kPa].
 
@@ -282,4 +279,11 @@ class SoilConsts(ConstantsDataclass):
     """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
 
     Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    solubility_coefficient_lmwc: float = 0.05
+    """Solubility coefficient for low molecular weight organic carbon [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
     """

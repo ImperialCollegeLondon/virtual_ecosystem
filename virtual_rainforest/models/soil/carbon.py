@@ -9,11 +9,13 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
     calculate_clay_impact_on_enzyme_saturation,
     calculate_clay_impact_on_necromass_decay,
+    calculate_leaching_rate,
     calculate_pH_suitability,
     calculate_temperature_effect_on_microbes,
     calculate_water_potential_impact_on_microbes,
@@ -48,12 +50,14 @@ def calculate_soil_carbon_updates(
     bulk_density: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
     soil_water_potential: NDArray[np.float32],
+    vertical_flow_rate: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     percent_clay: NDArray[np.float32],
     clay_fraction: NDArray[np.float32],
     mineralisation_rate: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
-    constants: SoilConsts,
+    core_constants: CoreConsts,
+    model_constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate net change for each carbon pool.
 
@@ -79,7 +83,8 @@ def calculate_soil_carbon_updates(
             day^-1]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
-        constants: Set of constants for the soil model.
+        core_constants: Set of constants shared between models.
+        model_constants: Set of constants for the soil model.
 
     Returns:
         A vector containing net changes to each pool. Order [lmwc, maom].
@@ -94,32 +99,32 @@ def calculate_soil_carbon_updates(
     # Find the impact of soil water content on chemical soil processes
     moist_scalar = convert_moisture_to_scalar(
         soil_moisture,
-        constants.moisture_scalar_coefficient,
-        constants.moisture_scalar_exponent,
+        model_constants.moisture_scalar_coefficient,
+        model_constants.moisture_scalar_exponent,
     )
     # Find the impact of soil water potential on the biochemical soil processes
     water_factor = calculate_water_potential_impact_on_microbes(
         water_potential=soil_water_potential,
-        water_potential_halt=constants.soil_microbe_water_potential_halt,
-        water_potential_opt=constants.soil_microbe_water_potential_optimum,
-        moisture_response_curvature=constants.moisture_response_curvature,
+        water_potential_halt=model_constants.soil_microbe_water_potential_halt,
+        water_potential_opt=model_constants.soil_microbe_water_potential_optimum,
+        moisture_response_curvature=model_constants.moisture_response_curvature,
     )
     # Find the impact of soil pH on microbial rates
     pH_factor = calculate_pH_suitability(
         soil_pH=pH,
-        maximum_pH=constants.max_pH_microbes,
-        minimum_pH=constants.min_pH_microbes,
-        lower_optimum_pH=constants.lowest_optimal_pH_microbes,
-        upper_optimum_pH=constants.highest_optimal_pH_microbes,
+        maximum_pH=model_constants.max_pH_microbes,
+        minimum_pH=model_constants.min_pH_microbes,
+        lower_optimum_pH=model_constants.lowest_optimal_pH_microbes,
+        upper_optimum_pH=model_constants.highest_optimal_pH_microbes,
     )
     clay_factor_saturation = calculate_clay_impact_on_enzyme_saturation(
         clay_fraction=clay_fraction,
-        base_protection=constants.base_soil_protection,
-        protection_with_clay=constants.soil_protection_with_clay,
+        base_protection=model_constants.base_soil_protection,
+        protection_with_clay=model_constants.soil_protection_with_clay,
     )
     clay_factor_decay = calculate_clay_impact_on_necromass_decay(
         clay_fraction=clay_fraction,
-        decay_exponent=constants.clay_necromass_decay_exponent,
+        decay_exponent=model_constants.clay_necromass_decay_exponent,
     )
     # Calculate transfers between pools
     lmwc_to_maom = calculate_mineral_association(
@@ -129,7 +134,7 @@ def calculate_soil_carbon_updates(
         bulk_density=bulk_density,
         moisture_scalar=moist_scalar,
         percent_clay=percent_clay,
-        constants=constants,
+        constants=model_constants,
     )
     microbial_uptake, microbial_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
@@ -137,21 +142,24 @@ def calculate_soil_carbon_updates(
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        constants=constants,
+        constants=model_constants,
     )
     biomass_losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
         clay_factor_decay=clay_factor_decay,
-        constants=constants,
+        constants=model_constants,
     )
     pom_enzyme_turnover = calculate_enzyme_turnover(
-        enzyme_pool=soil_enzyme_pom, turnover_rate=constants.pom_enzyme_turnover_rate
+        enzyme_pool=soil_enzyme_pom,
+        turnover_rate=model_constants.pom_enzyme_turnover_rate,
     )
-    labile_carbon_leaching = calculate_labile_carbon_leaching(
-        soil_c_pool_lmwc=soil_c_pool_lmwc,
-        moisture_scalar=moist_scalar,
-        leaching_rate=constants.leaching_rate_labile_carbon,
+    labile_carbon_leaching = calculate_leaching_rate(
+        solute_density=soil_c_pool_lmwc,
+        vertical_flow_rate=vertical_flow_rate,
+        soil_moisture=soil_moisture,
+        solubility_coefficient=model_constants.solubility_coefficient_lmwc,
+        soil_layer_thickness=core_constants.depth_of_active_soil_layer,
     )
     pom_decomposition_rate = calculate_pom_decomposition(
         soil_c_pool_pom=soil_c_pool_pom,
@@ -160,14 +168,14 @@ def calculate_soil_carbon_updates(
         pH_factor=pH_factor,
         clay_factor_saturation=clay_factor_saturation,
         soil_temp=soil_temp,
-        constants=constants,
+        constants=model_constants,
     )
 
     pom_decomposition_to_lmwc = (
-        pom_decomposition_rate * constants.pom_decomposition_fraction_lmwc
+        pom_decomposition_rate * model_constants.pom_decomposition_fraction_lmwc
     )
     pom_decomposition_to_maom = pom_decomposition_rate * (
-        1 - constants.pom_decomposition_fraction_lmwc
+        1 - model_constants.pom_decomposition_fraction_lmwc
     )
 
     # Determine net changes to the pools
@@ -529,29 +537,6 @@ def calculate_microbial_carbon_uptake(
     # in future
 
     return uptake_rate, assimilation_rate
-
-
-def calculate_labile_carbon_leaching(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    moisture_scalar: NDArray[np.float32],
-    leaching_rate: float,
-) -> NDArray[np.float32]:
-    """Calculate rate at which labile carbon is leached.
-
-    This is adopted from Abramoff et al. We definitely need to give more thought to how
-    we model leaching.
-
-    Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
-        moisture_scalar: A scalar capturing the impact of soil moisture on process rates
-            [unitless]
-        leaching_rate: The rate at which labile carbon leaches from the soil [day^-1]
-
-    Returns:
-        The amount of labile carbon leached
-    """
-
-    return leaching_rate * moisture_scalar * soil_c_pool_lmwc
 
 
 # TODO - Should consider making this a generic function, i.e. not POM specific

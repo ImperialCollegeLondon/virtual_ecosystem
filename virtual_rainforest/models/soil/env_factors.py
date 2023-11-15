@@ -193,6 +193,44 @@ def calculate_clay_impact_on_necromass_decay(
     return np.exp(decay_exponent * clay_fraction)
 
 
+def calculate_leaching_rate(
+    solute_density: NDArray[np.float32],
+    vertical_flow_rate: NDArray[np.float32],
+    soil_moisture: NDArray[np.float32],
+    solubility_coefficient: float,
+    soil_layer_thickness: float,
+) -> NDArray[np.float32]:
+    """Calculate leaching rate for a given solute based on flow rate.
+
+    This functional form is adapted from :cite:t:`porporato_hydrologic_2003`. The amount
+    of solute that is expected to be found in dissolved form is calculated by
+    multiplying the solute density by its solubility coefficient. This is then
+    multiplied by the frequency with which the water column is completely replaced, i.e.
+    the ratio of vertical flow rate to water column height.
+
+    Args:
+        solute_density: The density of the solute in the soil [kg solute m^-3]
+        vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
+        soil_moisture: Volumetric relative water content of the soil [unitless]
+        solubility_coefficient: The solubility coefficient of the solute in question
+            [unitless]
+        soil_layer_thickness: Thickness of the biogeochemically active soil layer [m]
+
+    Returns:
+        The rate at which the solute in question is leached [kg solute m^-3 day^-1]
+    """
+
+    # Vertical flow rate has to be converted into m day^-1
+    vert_flow_meters = vertical_flow_rate / 1e3
+
+    return (
+        solubility_coefficient
+        * solute_density
+        * vert_flow_meters
+        / (soil_moisture * soil_layer_thickness)
+    )
+
+
 def convert_moisture_to_scalar(
     soil_moisture: NDArray[np.float32],
     moisture_scalar_coefficient: float,

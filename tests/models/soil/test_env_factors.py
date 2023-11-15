@@ -215,3 +215,22 @@ def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
     )
 
     assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
+    """Test calculation of solute leaching rates."""
+    from virtual_rainforest.core.constants import CoreConsts
+    from virtual_rainforest.models.soil.env_factors import calculate_leaching_rate
+
+    expected_rate = [2.11654578e-6, 5.00124972e-6, 1.95271585e-4, 1.03504239e-4]
+    vertical_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+
+    actual_rate = calculate_leaching_rate(
+        solute_density=dummy_carbon_data["soil_c_pool_lmwc"],
+        vertical_flow_rate=vertical_flow_per_day,
+        soil_moisture=dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+        solubility_coefficient=SoilConsts.solubility_coefficient_lmwc,
+        soil_layer_thickness=CoreConsts.depth_of_active_soil_layer,
+    )
+
+    assert np.allclose(expected_rate, actual_rate)

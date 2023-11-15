@@ -28,6 +28,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -52,6 +53,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -70,6 +72,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "

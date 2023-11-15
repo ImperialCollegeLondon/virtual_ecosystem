@@ -36,8 +36,8 @@ def soil_model_fixture(dummy_carbon_data):
 
 def test_soil_model_initialization(caplog, dummy_carbon_data):
     """Test `SoilModel` initialization with good data."""
-
     from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
@@ -46,7 +46,8 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
         pint.Quantity("1 week"),
         [-0.5, -1.0],
         10,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
+        core_constants=CoreConsts,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -75,6 +76,7 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
 def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
     """Test `SoilModel` initialization with no data."""
 
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.soil.constants import SoilConsts
@@ -91,7 +93,8 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
             pint.Quantity("1 week"),
             [-0.5, -1.0],
             10,
-            constants=SoilConsts,
+            model_constants=SoilConsts,
+            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -114,6 +117,7 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
 def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
     """Test `SoilModel` initialization."""
 
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
@@ -129,7 +133,8 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             pint.Quantity("1 week"),
             [-0.5, -1.0],
             10,
-            constants=SoilConsts,
+            model_constants=SoilConsts,
+            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -160,6 +165,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -184,6 +190,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -245,7 +252,7 @@ def test_generate_soil_model(
             pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.update_interval == time_interval
-        assert model.constants.max_decomp_rate_pom == max_decomp
+        assert model.model_constants.max_decomp_rate_pom == max_decomp
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -292,13 +299,13 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.03670482, 0.01379379, 0.10414558, 0.0053484], dims="cell_id"
+                        [0.0366784, 0.01370983, 0.09813822, 0.00504219], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49755088, 1.69965201, 4.42234252, 0.50002163], dims="cell_id"
+                        [2.49755121, 1.69965727, 4.42458918, 0.5000198], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77992088, 2.29292886, 11.26824886, 0.99645086],
+                        [5.77991878, 2.29291625, 11.26764116, 0.99644925],
                         dims="cell_id",
                     ),
                     pom=DataArray(
@@ -378,6 +385,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         "bulk_density",
         "soil_moisture",
         "matric_potential",
+        "vertical_flow",
         "soil_temperature",
         "percent_clay",
         "clay_fraction",
@@ -414,14 +422,15 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
 def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     """Test that the function that creates the object to integrate exists and works."""
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -3.17398232e-2,
-        -1.69858261e-2,
-        9.04866583e-3,
-        7.09581365e-4,
+        -3.16893813e-2,
+        -1.69743479e-2,
+        8.89094764e-3,
+        7.00110385e-4,
         -5.23864573e-3,
         -1.35947690e-3,
         -0.153741246,
@@ -457,14 +466,21 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
     }
 
+    # Find rate of flow per day
+    vertical_flow_per_day = (
+        dummy_carbon_data["vertical_flow"][top_soil_layer_index].to_numpy() / 30.0
+    )
+
     rate_of_change = construct_full_soil_model(
         0.0,
-        pools,
-        dummy_carbon_data,
-        4,
-        top_soil_layer_index,
+        pools=pools,
+        data=dummy_carbon_data,
+        vertical_flow_per_day=vertical_flow_per_day,
+        no_cells=4,
+        top_soil_layer_index=top_soil_layer_index,
         delta_pools_ordered=delta_pools_ordered,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
+        core_constants=CoreConsts,
     )
 
     assert np.allclose(delta_pools, rate_of_change)

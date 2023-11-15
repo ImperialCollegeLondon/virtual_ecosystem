@@ -15,11 +15,11 @@ from virtual_rainforest.models.soil.constants import SoilConsts
 
 def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     """Test that the two pool update functions work correctly."""
-
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [-0.03136336, -0.01277637, 0.41176723, 0.00070135],
+        "soil_c_pool_lmwc": [-0.03136711, -0.01283366, 0.40939933, 0.00046411],
         "soil_c_pool_maom": [-5.618799e-3, -5.58088254e-3, -0.556554353, 4.6786768e-5],
         "soil_c_pool_microbe": [-0.03828773, -0.01245439, -0.06446385, -0.00711458],
         "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
@@ -43,12 +43,14 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_water_potential=dummy_carbon_data["matric_potential"][
             top_soil_layer_index
         ].to_numpy(),
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"][top_soil_layer_index],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         percent_clay=dummy_carbon_data["percent_clay"],
         clay_fraction=dummy_carbon_data["clay_fraction"],
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         delta_pools_ordered=pool_order,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
+        core_constants=CoreConsts,
     )
 
     # Check that the updates are correctly calculated. Using a loop here implicitly
@@ -288,21 +290,6 @@ def test_calculate_microbial_carbon_uptake(
 
     assert np.allclose(actual_uptake, expected_uptake)
     assert np.allclose(actual_assimilation, expected_assimilation)
-
-
-def test_calculate_labile_carbon_leaching(dummy_carbon_data, moist_scalars):
-    """Check leaching of labile carbon is calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_labile_carbon_leaching
-
-    expected_leaching = [5.62526764e-05, 2.84336164e-05, 1.32100695e-04, 1.25860748e-06]
-
-    actual_leaching = calculate_labile_carbon_leaching(
-        dummy_carbon_data["soil_c_pool_lmwc"],
-        moist_scalars,
-        SoilConsts.leaching_rate_labile_carbon,
-    )
-
-    assert np.allclose(actual_leaching, expected_leaching)
 
 
 def test_calculate_pom_decomposition(

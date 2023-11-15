@@ -33,8 +33,8 @@ def litter_model_fixture(dummy_litter_data):
 
 def test_litter_model_initialization(caplog, dummy_litter_data):
     """Test `LitterModel` initialization."""
-
     from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.litter.constants import LitterConsts
     from virtual_rainforest.models.litter.litter_model import LitterModel
 
@@ -43,7 +43,8 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
         update_interval=pint.Quantity("1 week"),
         soil_layers=[-0.5, -1.0],
         canopy_layers=10,
-        constants=LitterConsts,
+        model_constants=LitterConsts,
+        core_constants=CoreConsts,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -76,7 +77,7 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
 
 def test_litter_model_initialization_no_data(caplog):
     """Test `LitterModel` initialization fails when all data is missing."""
-
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.litter.constants import LitterConsts
@@ -94,7 +95,8 @@ def test_litter_model_initialization_no_data(caplog):
             update_interval=pint.Quantity("1 week"),
             soil_layers=2,  # FIXME - incorrect soil layer spec in model
             canopy_layers=10,
-            constants=LitterConsts,
+            model_constants=LitterConsts,
+            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -149,7 +151,7 @@ def test_litter_model_initialization_no_data(caplog):
 
 def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
-
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.litter.constants import LitterConsts
     from virtual_rainforest.models.litter.litter_model import LitterModel
 
@@ -164,7 +166,8 @@ def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
             update_interval=pint.Quantity("1 week"),
             soil_layers=2,
             canopy_layers=10,
-            constants=LitterConsts,
+            model_constants=LitterConsts,
+            core_constants=CoreConsts,
         )
 
     # Final check that the last log entry is as expected
@@ -177,7 +180,7 @@ def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
 
 def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data):
     """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.litter.constants import LitterConsts
     from virtual_rainforest.models.litter.litter_model import LitterModel
 
@@ -187,7 +190,14 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
         # Put incorrect data in for woody lignin
         litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1], dims=["cell_id"])
 
-        LitterModel(litter_data, pint.Quantity("1 week"), 2, 10, constants=LitterConsts)
+        LitterModel(
+            litter_data,
+            pint.Quantity("1 week"),
+            2,
+            10,
+            model_constants=LitterConsts,
+            core_constants=CoreConsts,
+        )
 
     # Final check that expected logging entries are produced
     log_check(
@@ -207,6 +217,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
             does_not_raise(),
             (
                 (INFO, "Initialised litter.LitterConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -255,6 +266,7 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
             does_not_raise(),
             (
                 (INFO, "Initialised litter.LitterConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -327,7 +339,7 @@ def test_generate_litter_model(
             pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.update_interval == time_interval
-        assert model.constants.litter_decomp_temp_response == temp_response
+        assert model.model_constants.litter_decomp_temp_response == temp_response
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

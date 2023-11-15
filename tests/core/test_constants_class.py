@@ -29,14 +29,14 @@ def test_cannot_create_unfrozen_constants_dataclass():
         pytest.param(
             {},
             does_not_raise(),
-            123.4,
+            0.25,
             (),
             id="defaults_with_no_config",
         ),
         pytest.param(
-            {"placeholder": 432.1},
+            {"depth_of_active_soil_layer": 1.55},
             does_not_raise(),
-            432.1,
+            1.55,
             (),
             id="configured",
         ),
@@ -70,6 +70,6 @@ def test_ConstantsDataclass_from_config(caplog, config, raises, exp_val, exp_log
         constants_instance = CoreConsts.from_config(config)
 
         if isinstance(raises, does_not_raise):
-            assert constants_instance.placeholder == exp_val
+            assert constants_instance.depth_of_active_soil_layer == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)
