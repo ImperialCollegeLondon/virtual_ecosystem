@@ -155,6 +155,7 @@ class AnimalCommunity:
         with age 0 and mass=birth_mass.
 
         TODO: Implement juvenile dispersal.
+        TODO: Check whether madingley discards excess reproductive mass
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
@@ -166,6 +167,7 @@ class AnimalCommunity:
             / parent_cohort.functional_group.birth_mass
         )
 
+        # reduce reproductive mass by amount used to generate offspring
         parent_cohort.reproductive_mass = 0.0
 
         # add a new cohort of the parental type to the community
@@ -196,6 +198,7 @@ class AnimalCommunity:
         This will sooner be expanded to include functions for handling scavenging
         and soil consumption behaviors specifically.
 
+        TODO Remove excess die_cohort related checks
 
         """
         # Generate the plant resources for foraging.
@@ -252,7 +255,7 @@ class AnimalCommunity:
                 if (
                     min_size <= cohort.mass_current <= max_size
                     and cohort.individuals != 0
-                    and cohort != consumer_cohort
+                    and cohort is not consumer_cohort
                 ):
                     prey.append(cohort)
 

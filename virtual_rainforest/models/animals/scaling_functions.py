@@ -39,16 +39,16 @@ def metabolic_rate_energy(
 ) -> float:
     """Calculates the metabolic rate of animal cohorts.
 
-    Depreciated.
+    TODO: No longer in use. Remove this method after constants rework.
 
     Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        temperature: The temperature [Celsius] of the environment.
-        terms: The tuple of metabolic rate terms used.
-        metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
+         mass: The body-mass [kg] of an AnimalCohort.
+         temperature: The temperature [Celsius] of the environment.
+         terms: The tuple of metabolic rate terms used.
+         metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
 
     Returns:
-        The metabolic rate of an individual of the given cohort in [J/s].
+         The metabolic rate of an individual of the given cohort in [J/s].
 
     """
     mass_g = mass * 1000  # Convert mass to grams

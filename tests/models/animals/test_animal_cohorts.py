@@ -346,11 +346,6 @@ class TestAnimalCohort:
         )
         assert herbivore_cohort_instance.mass_current == 0
 
-        # Testing for ValueError when individuals are 0
-        herbivore_cohort_instance.individuals = 0
-        with pytest.raises(ValueError, match="Individuals cannot be 0."):
-            herbivore_cohort_instance.eat(mock_food, mock_pool)
-
     def test_is_below_mass_threshold(self, herbivore_cohort_instance):
         """Test the can_reproduce method of AnimalCohort."""
         from virtual_rainforest.models.animals.constants import BIRTH_MASS_THRESHOLD

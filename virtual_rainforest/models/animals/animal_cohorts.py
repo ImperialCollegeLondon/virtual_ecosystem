@@ -275,6 +275,10 @@ class AnimalCohort:
 
         """
 
+        if self.individuals == 0:
+            LOGGER.warning("No individuals in cohort to forage.")
+            return None  # Early return with no food choice
+
         mass_consumed = 0.0  # Initialize to 0.0
 
         try:
@@ -289,12 +293,7 @@ class AnimalCohort:
                 food_choice = None  # No food available
 
         except ValueError as e:
-            if str(e) == "Individuals cannot be 0.":
-                LOGGER.warning("Tried to eat with zero individuals in the cohort.")
-                mass_consumed = 0
-                food_choice = None  # No food was actually consumed
-            else:
-                raise
+            raise e
 
         # excrete excess digestive wastes
         self.excrete(excrement_pool, mass_consumed)
@@ -319,7 +318,7 @@ class AnimalCohort:
         """
         # Check if self.individuals is greater than zero
         if self.individuals == 0:
-            raise ValueError("Individuals cannot be 0.")
+            return 0.0
 
         if self is food:
             raise ValueError("The food and the consumer are the same object.")

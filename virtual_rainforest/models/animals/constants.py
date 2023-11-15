@@ -31,12 +31,12 @@ class AnimalConsts:
         default_factory=lambda: {
             # Parameters from Madingley, mass-based metabolic rates
             MetabolicType.ENDOTHERMIC: {
-                "basal": (4.19 * 10**10, 0.69),
-                "field": (9.08 * 10**11, 0.7),
+                "basal": (4.19e10, 0.69),
+                "field": (9.08e11, 0.7),
             },
             MetabolicType.ECTOTHERMIC: {
-                "basal": (4.19 * 10**10, 0.69),
-                "field": (1.49 * 10**11, 0.88),
+                "basal": (4.19e10, 0.69),
+                "field": (1.49e11, 0.88),
             },
         }
     )
@@ -45,12 +45,12 @@ class AnimalConsts:
 METABOLIC_RATE_TERMS: dict[MetabolicType, dict[str, tuple[float, float]]] = {
     # Parameters from Madingley, mass based metabolic rates
     MetabolicType.ENDOTHERMIC: {
-        "basal": (4.19 * 10**10, 0.69),
-        "field": (9.08 * 10**11, 0.7),
+        "basal": (4.19e10, 0.69),
+        "field": (9.08e11, 0.7),
     },
     MetabolicType.ECTOTHERMIC: {
-        "basal": (4.19 * 10**10, 0.69),
-        "field": (1.49 * 10**11, 0.88),
+        "basal": (4.19e10, 0.69),
+        "field": (1.49e11, 0.88),
     },
 }
 
