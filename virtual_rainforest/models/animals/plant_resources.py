@@ -31,7 +31,7 @@ class PlantResources:
         self.data = data
         """A reference to the core data object."""
         self.mass_current: float = (
-            data["layer_leaf_mass"].sum(dim="layers").to_numpy()[cell_id]
+            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
         )
         """The mass of the plant leaf mass [kg]."""
 
