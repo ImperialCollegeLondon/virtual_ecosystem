@@ -18,9 +18,14 @@ from numpy import timedelta64
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+from virtual_rainforest.models.animals.constants import (
+    BIRTH_MASS_THRESHOLD,
+    DISPERSAL_MASS_THRESHOLD,
+)
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.plant_resources import PlantResources
+from virtual_rainforest.models.animals.scaling_functions import damuths_law
 
 
 class AnimalCommunity:
@@ -86,7 +91,13 @@ class AnimalCommunity:
 
         """
         for functional_group in self.functional_groups:
-            cohort = AnimalCohort(functional_group, functional_group.adult_mass, 0.0)
+            individuals = damuths_law(
+                functional_group.adult_mass, functional_group.damuths_law_terms
+            )
+
+            cohort = AnimalCohort(
+                functional_group, functional_group.adult_mass, 0.0, individuals
+            )
             self.animal_cohorts[functional_group.name].append(cohort)
 
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
@@ -94,6 +105,9 @@ class AnimalCommunity:
 
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
+
+        TODO: Implement juvenile dispersal.
+        TODO: Implement low-density trigger.
 
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
@@ -107,7 +121,7 @@ class AnimalCommunity:
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_energy_threshold():
+            if cohort.is_below_mass_threshold(DISPERSAL_MASS_THRESHOLD):
                 # Random walk destination from the neighbouring keys
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
@@ -136,33 +150,42 @@ class AnimalCommunity:
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
 
-        A cohort can only reproduce if it has an excess of stored energy above a
+        A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and mass=birth_mass.
+
+        TODO: Implement juvenile dispersal.
+        TODO: Check whether madingley discards excess reproductive mass
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
             AnimalCohort.
 
         """
+        number_offspring = int(
+            (parent_cohort.reproductive_mass * parent_cohort.individuals)
+            / parent_cohort.functional_group.birth_mass
+        )
+
+        # reduce reproductive mass by amount used to generate offspring
+        parent_cohort.reproductive_mass = 0.0
+
         # add a new cohort of the parental type to the community
         self.animal_cohorts[parent_cohort.name].append(
             AnimalCohort(
                 parent_cohort.functional_group,
                 parent_cohort.functional_group.birth_mass,
                 0.0,
+                number_offspring,
             )
         )
-
-        # reduce the parent cohorts stored energy by the reproduction cost
-        parent_cohort.stored_energy -= parent_cohort.reproduction_cost
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
 
-        # reproduction occurs for cohorts with sufficient energy
+        # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if cohort.can_reproduce():
+            if not cohort.is_below_mass_threshold(BIRTH_MASS_THRESHOLD):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
@@ -171,10 +194,11 @@ class AnimalCommunity:
         It should loop over every animal cohort in the community and call the
         collect_prey and forage_cohort functions. This will create a list of suitable
         trophic resources and then action foraging on those resources. Details of
-        energy transfer are handled inside forage_cohort and its helper functions.
+        mass transfer are handled inside forage_cohort and its helper functions.
         This will sooner be expanded to include functions for handling scavenging
         and soil consumption behaviors specifically.
 
+        TODO Remove excess die_cohort related checks
 
         """
         # Generate the plant resources for foraging.
@@ -185,6 +209,11 @@ class AnimalCommunity:
         plant_list = [plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
+            if (
+                consumer_cohort.individuals == 0
+            ):  # temporary while finalizing die_cohort placements
+                continue
+
             prey_list = self.collect_prey(consumer_cohort)
             food_choice = consumer_cohort.forage_cohort(
                 plant_list=plant_list,
@@ -223,20 +252,25 @@ class AnimalCommunity:
 
             # Filter the potential prey cohorts based on their size
             for cohort in potential_prey_cohorts:
-                if min_size <= cohort.mass <= max_size:
+                if (
+                    min_size <= cohort.mass_current <= max_size
+                    and cohort.individuals != 0
+                    and cohort is not consumer_cohort
+                ):
                     prey.append(cohort)
 
         return prey
 
-    def metabolize_community(self, dt: timedelta64) -> None:
+    def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
         Args:
+            temperature: Current air temperature (K).
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
         for cohort in self.all_animal_cohorts:
-            cohort.metabolize(dt)
+            cohort.metabolize(temperature, dt)
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.

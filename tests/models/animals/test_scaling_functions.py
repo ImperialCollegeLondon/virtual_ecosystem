@@ -24,24 +24,36 @@ def test_damuths_law(mass, population_density, terms):
     "mass, temperature, terms, metabolic_type, met_rate",
     [
         # Test cases for an endothermic animal
-        (0.0, 25, (0.75, 0.047), "endothermic", 0.0),
-        (1.0, 25, (0.75, 0.047), "endothermic", 8.357913),
-        (1000.0, 25, (0.75, 0.047), "endothermic", 1486.270500),
-        # Test cases for an ectothermic animal
-        (0.0, 25, (0.75, 0.047), "ectothermic", 0.0),
+        (0.0, 25, {"basal": (0.75, 0.047), "field": (0.75, 0.047)}, "endothermic", 0.0),
         (
             1.0,
             25,
-            (0.75, 0.047),
-            "ectothermic",
-            1.068530698734203e-11,
+            {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
+            "endothermic",
+            2.3264417757316824e-16,
         ),
         (
             1000.0,
             25,
-            (0.75, 0.047),
+            {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
+            "endothermic",
+            3.218786623537764e-16,
+        ),
+        # Test cases for an ectothermic animal
+        (0.0, 25, {"basal": (0.75, 0.047), "field": (0.75, 0.047)}, "ectothermic", 0.0),
+        (
+            1.0,
+            25,
+            {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
             "ectothermic",
-            1.478383149667868e-11,
+            9.116692117764761e-17,
+        ),
+        (
+            1000.0,
+            25,
+            {"basal": (0.75, 0.047), "field": (0.75, 0.047)},
+            "ectothermic",
+            1.261354870157637e-16,
         ),
     ],
 )
