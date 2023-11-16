@@ -3,13 +3,9 @@
 This module tests the functionality of the soil carbon module
 """
 
-from contextlib import nullcontext as does_not_raise
-from logging import ERROR
-
 import numpy as np
 import pytest
 
-from tests.conftest import log_check
 from virtual_rainforest.models.soil.constants import SoilConsts
 
 
@@ -19,8 +15,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [-0.03136711, -0.01283366, 0.40939933, 0.00046411],
-        "soil_c_pool_maom": [-5.618799e-3, -5.58088254e-3, -0.556554353, 4.6786768e-5],
+        "soil_c_pool_lmwc": [-3.70969075e-2, -2.2791314e-2, -0.15100693, 7.2342438e-4],
+        "soil_c_pool_maom": [1.6992235e-4, 4.45995156e-3, 6.252756e-3, 2.0712399e-5],
         "soil_c_pool_microbe": [-0.03828773, -0.01245439, -0.06446385, -0.00711458],
         "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
@@ -41,13 +37,15 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
-        soil_moisture=np.array([0.5, 0.7, 0.6, 0.2]),
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            top_soil_layer_index
+        ].to_numpy(),
         soil_water_potential=dummy_carbon_data["matric_potential"][
             top_soil_layer_index
         ].to_numpy(),
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"][top_soil_layer_index],
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"][top_soil_layer_index]
+        / 30.0,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
-        percent_clay=dummy_carbon_data["percent_clay"],
         clay_fraction=dummy_carbon_data["clay_fraction"],
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         delta_pools_ordered=pool_order,
@@ -59,115 +57,6 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     # checks that the output order matches the input order.
     for i, pool in enumerate(change_in_pools.keys()):
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
-
-
-def test_calculate_mineral_association(dummy_carbon_data, moist_scalars):
-    """Test that mineral_association runs and generates the correct values."""
-
-    from virtual_rainforest.models.soil.carbon import calculate_mineral_association
-
-    output_l_to_m = [-5.78872135e-03, -1.00408341e-02, -5.62807109e-01, 2.60743689e-05]
-
-    # Then calculate mineral association rate
-    lmwc_to_maom = calculate_mineral_association(
-        dummy_carbon_data["soil_c_pool_lmwc"],
-        dummy_carbon_data["soil_c_pool_maom"],
-        dummy_carbon_data["pH"],
-        dummy_carbon_data["bulk_density"],
-        moist_scalars,
-        dummy_carbon_data["percent_clay"],
-        constants=SoilConsts,
-    )
-
-    # Check that expected values are generated
-    assert np.allclose(lmwc_to_maom, output_l_to_m)
-
-
-def test_calculate_equilibrium_maom(dummy_carbon_data):
-    """Test that equilibrium maom calculation works as expected."""
-    from virtual_rainforest.models.soil.carbon import calculate_equilibrium_maom
-
-    Q_max = [2.38520786, 1.98025934, 0.64714262, 2.80537157]
-    output_eqb_maoms = [2.13182275, 0.65105909, 0.36433141, 0.58717765]
-
-    equib_maoms = calculate_equilibrium_maom(
-        dummy_carbon_data["pH"],
-        Q_max,
-        dummy_carbon_data["soil_c_pool_lmwc"],
-        constants=SoilConsts,
-    )
-    assert np.allclose(equib_maoms, output_eqb_maoms)
-
-
-@pytest.mark.parametrize(
-    "alternative,output_capacities,raises,expected_log_entries",
-    [
-        (
-            None,
-            [2.38520786, 1.98025934, 0.64714262, 2.80537157],
-            does_not_raise(),
-            (),
-        ),
-        (
-            [156.0],
-            [],
-            pytest.raises(ValueError),
-            ((ERROR, "Relative clay content must be expressed as a percentage!"),),
-        ),
-        (
-            [-9.0],
-            [],
-            pytest.raises(ValueError),
-            ((ERROR, "Relative clay content must be expressed as a percentage!"),),
-        ),
-    ],
-)
-def test_calculate_max_sorption_capacity(
-    caplog,
-    dummy_carbon_data,
-    alternative,
-    output_capacities,
-    raises,
-    expected_log_entries,
-):
-    """Test that max sorption capacity calculation works as expected."""
-    from virtual_rainforest.models.soil.carbon import calculate_max_sorption_capacity
-
-    # Check that initialisation fails (or doesn't) as expected
-    with raises:
-        if alternative:
-            max_capacities = calculate_max_sorption_capacity(
-                dummy_carbon_data["bulk_density"],
-                np.array(alternative, dtype=np.float32),
-                SoilConsts.max_sorption_with_clay_slope,
-                SoilConsts.max_sorption_with_clay_intercept,
-            )
-        else:
-            max_capacities = calculate_max_sorption_capacity(
-                dummy_carbon_data["bulk_density"],
-                dummy_carbon_data["percent_clay"],
-                SoilConsts.max_sorption_with_clay_slope,
-                SoilConsts.max_sorption_with_clay_intercept,
-            )
-
-        assert np.allclose(max_capacities, output_capacities)
-
-    log_check(caplog, expected_log_entries)
-
-
-def test_calculate_binding_coefficient(dummy_carbon_data):
-    """Test that Langmuir binding coefficient calculation works as expected."""
-    from virtual_rainforest.models.soil.carbon import calculate_binding_coefficient
-
-    output_coefs = [168.26740611, 24.49063242, 12.88249552, 52.9419581]
-
-    binding_coefs = calculate_binding_coefficient(
-        dummy_carbon_data["pH"],
-        SoilConsts.binding_with_ph_slope,
-        SoilConsts.binding_with_ph_intercept,
-    )
-
-    assert np.allclose(binding_coefs, output_coefs)
 
 
 def test_determine_microbial_biomass_losses(
@@ -208,7 +97,7 @@ def test_determine_microbial_biomass_losses(
 
 
 def test_calculate_maintenance_biomass_synthesis(
-    dummy_carbon_data, moist_scalars, top_soil_layer_index
+    dummy_carbon_data, top_soil_layer_index
 ):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_rainforest.models.soil.carbon import (

@@ -40,7 +40,6 @@ from .conftest import log_check
                 (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
                 (DEBUG, "soil model: required var 'pH' checked"),
                 (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'percent_clay' checked"),
                 (DEBUG, "soil model: required var 'clay_fraction' checked"),
             ),
             id="valid config",

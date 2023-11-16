@@ -67,7 +67,6 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
             (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
             (DEBUG, "soil model: required var 'pH' checked"),
             (DEBUG, "soil model: required var 'bulk_density' checked"),
-            (DEBUG, "soil model: required var 'percent_clay' checked"),
             (DEBUG, "soil model: required var 'clay_fraction' checked"),
         ),
     )
@@ -107,7 +106,6 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
             (ERROR, "soil model: init data missing required var 'soil_c_pool_pom'"),
             (ERROR, "soil model: init data missing required var 'pH'"),
             (ERROR, "soil model: init data missing required var 'bulk_density'"),
-            (ERROR, "soil model: init data missing required var 'percent_clay'"),
             (ERROR, "soil model: init data missing required var 'clay_fraction'"),
             (ERROR, "soil model: error checking required_init_vars, see log."),
         ),
@@ -148,7 +146,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
             (DEBUG, "soil model: required var 'pH' checked"),
             (DEBUG, "soil model: required var 'bulk_density' checked"),
-            (DEBUG, "soil model: required var 'percent_clay' checked"),
             (DEBUG, "soil model: required var 'clay_fraction' checked"),
             (ERROR, "Initial carbon pools contain at least one negative value!"),
         ),
@@ -177,7 +174,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
                 (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
                 (DEBUG, "soil model: required var 'pH' checked"),
                 (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'percent_clay' checked"),
                 (DEBUG, "soil model: required var 'clay_fraction' checked"),
             ),
             id="default_config",
@@ -202,7 +198,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
                 (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
                 (DEBUG, "soil model: required var 'pH' checked"),
                 (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'percent_clay' checked"),
                 (DEBUG, "soil model: required var 'clay_fraction' checked"),
             ),
             id="modified_config_correct",
@@ -299,17 +294,16 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.0366784, 0.01370983, 0.09813822, 0.00504219], dims="cell_id"
+                        [0.03460932, 0.01198232, 0.04607224, 0.00520078], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49755121, 1.69965727, 4.42458918, 0.5000198], dims="cell_id"
+                        [2.50009515, 1.70223563, 4.50321333, 0.50001044], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77991878, 2.29291625, 11.26764116, 0.99644925],
-                        dims="cell_id",
+                        [5.779758, 2.2926573, 11.26080985, 0.99645009], dims="cell_id"
                     ),
                     pom=DataArray(
-                        [0.12398595, 1.00509301, 0.73903078, 0.35583213], dims="cell_id"
+                        [0.12398572, 1.00509262, 0.73902017, 0.35583213], dims="cell_id"
                     ),
                     enzyme_pom=DataArray(
                         [0.02267854, 0.00957584, 0.05005016, 0.00300993], dims="cell_id"
@@ -391,7 +385,6 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         "matric_potential",
         "vertical_flow",
         "soil_temperature",
-        "percent_clay",
         "clay_fraction",
         "litter_C_mineralisation_rate",
     ]
@@ -431,14 +424,14 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -3.16893813e-2,
-        -1.69743479e-2,
-        8.89094764e-3,
-        7.00110385e-4,
-        -5.23864573e-3,
-        -1.35947690e-3,
-        -0.153741246,
-        3.89316909e-5,
+        -3.70969075e-2,
+        -2.2791314e-2,
+        -0.15100693,
+        7.2342438e-4,
+        1.6992235e-4,
+        4.45995156e-3,
+        6.252756e-3,
+        2.0712399e-5,
         -3.82877348e-2,
         -1.24543917e-2,
         -6.44638512e-2,

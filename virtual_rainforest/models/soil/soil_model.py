@@ -71,7 +71,6 @@ class SoilModel(BaseModel):
         ("soil_c_pool_pom", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
-        ("percent_clay", ("spatial",)),
         ("clay_fraction", ("spatial",)),
     )
     """Required initialisation variables for the soil model.
@@ -323,7 +322,6 @@ def construct_full_soil_model(
         soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
         vertical_flow_rate=vertical_flow_per_day,
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
-        percent_clay=data["percent_clay"].to_numpy(),
         clay_fraction=data["clay_fraction"].to_numpy(),
         mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,

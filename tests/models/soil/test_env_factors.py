@@ -3,13 +3,9 @@
 This module tests the functions which calculate environmental impacts on soil processes.
 """
 
-from contextlib import nullcontext as does_not_raise
-from logging import ERROR
-
 import numpy as np
 import pytest
 
-from tests.conftest import log_check
 from virtual_rainforest.models.soil.constants import SoilConsts
 
 
@@ -52,56 +48,6 @@ def calculate_temperature_effect_on_microbes(
     )
 
     assert np.allclose(expected_factors, actual_factors)
-
-
-@pytest.mark.parametrize(
-    "alternative,output_scalars,raises,expected_log_entries",
-    [
-        (None, [0.750035, 0.947787, 0.880671, 0.167814], does_not_raise(), ()),
-        (
-            [-0.2],
-            [],
-            pytest.raises(ValueError),
-            ((ERROR, "Relative water content cannot go below zero or above one!"),),
-        ),
-        (
-            [2.7],
-            [],
-            pytest.raises(ValueError),
-            ((ERROR, "Relative water content cannot go below zero or above one!"),),
-        ),
-    ],
-)
-def test_convert_moisture_to_scalar(
-    caplog,
-    dummy_carbon_data,
-    alternative,
-    output_scalars,
-    raises,
-    expected_log_entries,
-    top_soil_layer_index,
-):
-    """Test that scalar_moisture runs and generates the correct value."""
-    from virtual_rainforest.models.soil.env_factors import convert_moisture_to_scalar
-
-    # Check that initialisation fails (or doesn't) as expected
-    with raises:
-        if alternative:
-            moist_scalar = convert_moisture_to_scalar(
-                np.array(alternative, dtype=np.float32),
-                SoilConsts.moisture_scalar_coefficient,
-                SoilConsts.moisture_scalar_exponent,
-            )
-        else:
-            moist_scalar = convert_moisture_to_scalar(
-                np.array([0.5, 0.7, 0.6, 0.2]),
-                SoilConsts.moisture_scalar_coefficient,
-                SoilConsts.moisture_scalar_exponent,
-            )
-
-        assert np.allclose(moist_scalar, output_scalars)
-
-    log_check(caplog, expected_log_entries)
 
 
 def test_calculate_water_potential_impact_on_microbes():
@@ -222,7 +168,7 @@ def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.env_factors import calculate_leaching_rate
 
-    expected_rate = [2.11654578e-6, 5.00124972e-6, 1.95271585e-4, 1.03504239e-4]
+    expected_rate = [1.07473723e-6, 2.53952130e-6, 9.91551977e-5, 5.25567712e-5]
     vertical_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
 
     actual_rate = calculate_leaching_rate(

@@ -182,8 +182,6 @@ def dummy_carbon_data(layer_roles_fixture):
     """Soil enzyme that breaks down mineral associated organic matter (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
-    # TODO - The below variable will be superseeded and should be deleted.
-    data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
     data["clay_fraction"] = DataArray([0.8, 0.3, 0.1, 0.9], dims=["cell_id"])
     data["litter_C_mineralisation_rate"] = DataArray(
         [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
@@ -213,7 +211,7 @@ def dummy_carbon_data(layer_roles_fixture):
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray(
-                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                [[0.9304620050, 0.787549327, 0.504263188, 0.302527807]],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),

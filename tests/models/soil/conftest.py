@@ -1,23 +1,8 @@
 """Collection of fixtures to assist the testing of the soil model."""
 
-import numpy as np
 import pytest
 
 from virtual_rainforest.models.soil.constants import SoilConsts
-
-
-@pytest.fixture
-def moist_scalars(dummy_carbon_data, top_soil_layer_index):
-    """Moisture scalars based on dummy carbon data."""
-    from virtual_rainforest.models.soil.env_factors import convert_moisture_to_scalar
-
-    moist_scalars = convert_moisture_to_scalar(
-        np.array([0.5, 0.7, 0.6, 0.2]),
-        SoilConsts.moisture_scalar_coefficient,
-        SoilConsts.moisture_scalar_exponent,
-    )
-
-    return moist_scalars
 
 
 @pytest.fixture

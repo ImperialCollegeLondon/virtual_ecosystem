@@ -48,9 +48,6 @@ file = "dummy_soil_data.nc"
 var_name = "bulk_density"
 [[core.data.variable]]
 file = "dummy_soil_data.nc"
-var_name = "percent_clay"
-[[core.data.variable]]
-file = "dummy_soil_data.nc"
 var_name = "clay_fraction"
 [[core.data.variable]]
 file = "dummy_soil_data.nc"

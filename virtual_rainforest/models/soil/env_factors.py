@@ -229,39 +229,3 @@ def calculate_leaching_rate(
         * vert_flow_meters
         / (soil_moisture * soil_layer_thickness)
     )
-
-
-def convert_moisture_to_scalar(
-    soil_moisture: NDArray[np.float32],
-    moisture_scalar_coefficient: float,
-    moisture_scalar_exponent: float,
-) -> NDArray[np.float32]:
-    """Convert soil moisture into a factor to multiply rates by.
-
-    This form is used in :cite:t:`abramoff_millennial_2018` to minimise differences with
-    the CENTURY model. We very likely want to define our own functional form here. I'm
-    also a bit unsure how this form was even obtained, so further work here is very
-    needed.
-
-    Args:
-        soil_moisture: relative water content for each soil grid cell [unitless]
-        moisture_scalar_coefficient: [unit less]
-        moisture_scalar_exponent: [(Relative water content)^-1]
-
-    Returns:
-        A scalar that captures the impact of soil moisture on process rates
-    """
-
-    if np.any(soil_moisture > 1.0) or np.any(soil_moisture < 0.0):
-        to_raise = ValueError(
-            "Relative water content cannot go below zero or above one!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    # This expression is drawn from Abramoff et al. (2018)
-    return 1 / (
-        1
-        + moisture_scalar_coefficient
-        * np.exp(-moisture_scalar_exponent * soil_moisture)
-    )
