@@ -12,12 +12,9 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
-    calculate_clay_impact_on_enzyme_saturation,
-    calculate_clay_impact_on_necromass_decay,
+    calculate_environmental_factors,
     calculate_leaching_rate,
-    calculate_pH_suitability,
     calculate_temperature_effect_on_microbes,
-    calculate_water_potential_impact_on_microbes,
 )
 
 
@@ -91,42 +88,26 @@ def calculate_soil_carbon_updates(
         A vector containing net changes to each pool. Order [lmwc, maom].
     """
 
-    # Find the impact of soil water potential on the biochemical soil processes
-    water_factor = calculate_water_potential_impact_on_microbes(
-        water_potential=soil_water_potential,
-        water_potential_halt=model_constants.soil_microbe_water_potential_halt,
-        water_potential_opt=model_constants.soil_microbe_water_potential_optimum,
-        moisture_response_curvature=model_constants.moisture_response_curvature,
-    )
-    # Find the impact of soil pH on microbial rates
-    pH_factor = calculate_pH_suitability(
-        soil_pH=pH,
-        maximum_pH=model_constants.max_pH_microbes,
-        minimum_pH=model_constants.min_pH_microbes,
-        lower_optimum_pH=model_constants.lowest_optimal_pH_microbes,
-        upper_optimum_pH=model_constants.highest_optimal_pH_microbes,
-    )
-    clay_factor_saturation = calculate_clay_impact_on_enzyme_saturation(
+    # Find environmental factors which impact biogeochemical soil processes
+    env_factors = calculate_environmental_factors(
+        soil_water_potential=soil_water_potential,
+        pH=pH,
         clay_fraction=clay_fraction,
-        base_protection=model_constants.base_soil_protection,
-        protection_with_clay=model_constants.soil_protection_with_clay,
+        constants=model_constants,
     )
-    clay_factor_decay = calculate_clay_impact_on_necromass_decay(
-        clay_fraction=clay_fraction,
-        decay_exponent=model_constants.clay_necromass_decay_exponent,
-    )
+
     microbial_uptake, microbial_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
-        water_factor=water_factor,
-        pH_factor=pH_factor,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=model_constants,
     )
     biomass_losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
-        clay_factor_decay=clay_factor_decay,
+        clay_factor_decay=env_factors.clay_decay,
         constants=model_constants,
     )
     pom_enzyme_turnover = calculate_enzyme_turnover(
@@ -147,9 +128,9 @@ def calculate_soil_carbon_updates(
     pom_decomposition_rate = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_pom,
         soil_enzyme=soil_enzyme_pom,
-        water_factor=water_factor,
-        pH_factor=pH_factor,
-        clay_factor_saturation=clay_factor_saturation,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        clay_factor_saturation=env_factors.clay_saturation,
         soil_temp=soil_temp,
         reference_temp=model_constants.arrhenius_reference_temp,
         max_decomp_rate=model_constants.max_decomp_rate_pom,
@@ -167,9 +148,9 @@ def calculate_soil_carbon_updates(
     maom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_maom,
         soil_enzyme=soil_enzyme_maom,
-        water_factor=water_factor,
-        pH_factor=pH_factor,
-        clay_factor_saturation=clay_factor_saturation,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        clay_factor_saturation=env_factors.clay_saturation,
         soil_temp=soil_temp,
         reference_temp=model_constants.arrhenius_reference_temp,
         max_decomp_rate=model_constants.max_decomp_rate_maom,
