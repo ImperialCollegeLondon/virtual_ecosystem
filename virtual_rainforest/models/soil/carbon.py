@@ -38,9 +38,8 @@ class MicrobialBiomassLoss:
     """Rate at which biomass is lost to the POM pool [kg C m^-3 day^-1]."""
 
 
-# TODO - This function should probably be shortened. First step is group the calculation
-# of environmental factors. Otherwise there's probably stuff that I'm missing, which I
-# should tackle later
+# TODO - This function should probably be shortened, leaving as is for the moment as a
+# sensible split will probably be more obvious once more is added to this function.
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],

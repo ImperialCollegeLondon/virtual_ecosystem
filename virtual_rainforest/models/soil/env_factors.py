@@ -3,11 +3,85 @@ capture the impact that environmental factors have on microbial rates. These inc
 temperature, soil water potential, pH and soil texture.
 """  # noqa: D205, D415
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature, gas_constant
 
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.models.soil.constants import SoilConsts
+
+
+@dataclass
+class EnvironmentalFactors:
+    """The various factors through which the environment effects soil cycling rates."""
+
+    water: NDArray[np.float32]
+    """Impact of soil water potential on enzymatic rates [unitless]."""
+    pH: NDArray[np.float32]
+    """Impact of soil pH on enzymatic rates [unitless]."""
+    clay_saturation: NDArray[np.float32]
+    """Impact of soil clay fraction on enzyme saturation constants [unitless]."""
+    clay_decay: NDArray[np.float32]
+    """Impact of soil clay fraction on necromass decay destination [unitless]."""
+
+
+def calculate_environmental_factors(
+    soil_water_potential: NDArray[np.float32],
+    pH: NDArray[np.float32],
+    clay_fraction: NDArray[np.float32],
+    constants: SoilConsts,
+) -> EnvironmentalFactors:
+    """Calculate the impact of the environment has on relevant biogeochemical rates.
+
+    For each environmental effect a multiplicative factor is calculated, and all of them
+    are returned in a single object for use elsewhere in the soil model.
+
+    Args:
+        soil_water_potential: Soil water potential for each grid cell [kPa] pH: pH
+        values for each soil grid cell [unitless] clay_fraction: The clay fraction for
+        each soil grid cell [unitless] constants: Set of constants for the soil model
+
+    Returns:
+        An object containing four environmental factors, one for the effect of water
+        potential on enzyme rates, one for the effect of pH on enzyme rates, one for the
+        effect of clay fraction on enzyme saturation, and one for the effect of clay on
+        necromass decay destination.
+    """
+
+    # Calculate the impact that each environment variable has on the relevant
+    # biogeochemical soil processes
+    water_factor = calculate_water_potential_impact_on_microbes(
+        water_potential=soil_water_potential,
+        water_potential_halt=constants.soil_microbe_water_potential_halt,
+        water_potential_opt=constants.soil_microbe_water_potential_optimum,
+        moisture_response_curvature=constants.moisture_response_curvature,
+    )
+    pH_factor = calculate_pH_suitability(
+        soil_pH=pH,
+        maximum_pH=constants.max_pH_microbes,
+        minimum_pH=constants.min_pH_microbes,
+        lower_optimum_pH=constants.lowest_optimal_pH_microbes,
+        upper_optimum_pH=constants.highest_optimal_pH_microbes,
+    )
+    clay_factor_saturation = calculate_clay_impact_on_enzyme_saturation(
+        clay_fraction=clay_fraction,
+        base_protection=constants.base_soil_protection,
+        protection_with_clay=constants.soil_protection_with_clay,
+    )
+    clay_factor_decay = calculate_clay_impact_on_necromass_decay(
+        clay_fraction=clay_fraction,
+        decay_exponent=constants.clay_necromass_decay_exponent,
+    )
+
+    # Combine all factors into a single EnvironmentalFactors object
+    return EnvironmentalFactors(
+        water=water_factor,
+        pH=pH_factor,
+        clay_saturation=clay_factor_saturation,
+        clay_decay=clay_factor_decay,
+    )
 
 
 def calculate_temperature_effect_on_microbes(

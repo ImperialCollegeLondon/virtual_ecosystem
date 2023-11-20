@@ -6,8 +6,6 @@ This module tests the functions which calculate environmental impacts on soil pr
 import numpy as np
 import pytest
 
-from virtual_rainforest.models.soil.constants import SoilConsts
-
 
 def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
     """Test that top soil data can be extracted from the data object correctly."""
@@ -24,6 +22,33 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
     )
 
 
+def test_calculate_environmental_factors(dummy_carbon_data, top_soil_layer_index):
+    """Test that function to calculate all set of environmental factors works."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
+    from virtual_rainforest.models.soil.env_factors import (
+        calculate_environmental_factors,
+    )
+
+    expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
+    expected_pH = [0.25, 1.0, 0.428571428, 1.0]
+    expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
+    expected_clay_decay = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
+
+    env_factors = calculate_environmental_factors(
+        soil_water_potential=dummy_carbon_data["matric_potential"][
+            top_soil_layer_index
+        ],
+        pH=dummy_carbon_data["pH"],
+        clay_fraction=dummy_carbon_data["clay_fraction"],
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(env_factors.water, expected_water)
+    assert np.allclose(env_factors.pH, expected_pH)
+    assert np.allclose(env_factors.clay_saturation, expected_clay_sat)
+    assert np.allclose(env_factors.clay_decay, expected_clay_decay)
+
+
 @pytest.mark.parametrize(
     "activation_energy,expected_factors",
     [
@@ -36,6 +61,7 @@ def calculate_temperature_effect_on_microbes(
     dummy_carbon_data, top_soil_layer_index, activation_energy, expected_factors
 ):
     """Test function to calculate microbial temperature response."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import (
         calculate_temperature_effect_on_microbes,
     )
@@ -50,18 +76,19 @@ def calculate_temperature_effect_on_microbes(
     assert np.allclose(expected_factors, actual_factors)
 
 
-def test_calculate_water_potential_impact_on_microbes():
+def test_calculate_water_potential_impact_on_microbes(
+    dummy_carbon_data, top_soil_layer_index
+):
     """Test the calculation of the impact of soil water on microbial rates."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
-    water_potentials = np.array([-3.0, -10.0, -250.0, -10000.0])
-
     expected_factor = [1.0, 0.94414168, 0.62176357, 0.07747536]
 
     actual_factor = calculate_water_potential_impact_on_microbes(
-        water_potential=water_potentials,
+        water_potential=dummy_carbon_data["matric_potential"][top_soil_layer_index],
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
         moisture_response_curvature=SoilConsts.moisture_response_curvature,
@@ -72,6 +99,7 @@ def test_calculate_water_potential_impact_on_microbes():
 
 def test_calculate_pH_suitability():
     """Test that calculation of pH suitability is correct."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import calculate_pH_suitability
 
     pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
@@ -132,6 +160,7 @@ def test_calculate_pH_suitability_errors(params):
 
 def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
     """Test calculation of the effect of soil clay fraction on saturation constants."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
     )
@@ -149,6 +178,7 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
 
 def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
     """Test calculation of the effect of soil clay fraction on necromass decay."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import (
         calculate_clay_impact_on_necromass_decay,
     )
@@ -166,6 +196,7 @@ def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
 def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
     """Test calculation of solute leaching rates."""
     from virtual_rainforest.core.constants import CoreConsts
+    from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import calculate_leaching_rate
 
     expected_rate = [1.07473723e-6, 2.53952130e-6, 9.91551977e-5, 5.25567712e-5]
