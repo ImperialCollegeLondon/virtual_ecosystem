@@ -39,9 +39,10 @@ def calculate_environmental_factors(
     are returned in a single object for use elsewhere in the soil model.
 
     Args:
-        soil_water_potential: Soil water potential for each grid cell [kPa] pH: pH
-        values for each soil grid cell [unitless] clay_fraction: The clay fraction for
-        each soil grid cell [unitless] constants: Set of constants for the soil model
+        soil_water_potential: Soil water potential for each grid cell [kPa]
+        pH: pH values for each soil grid cell [unitless]
+        clay_fraction: The clay fraction for each soil grid cell [unitless]
+        constants: Set of constants for the soil model
 
     Returns:
         An object containing four environmental factors, one for the effect of water
