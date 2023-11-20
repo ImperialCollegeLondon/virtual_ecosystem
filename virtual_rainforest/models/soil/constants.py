@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 
-# TODO - Need to figure out a sensible area to volume conversion
+# TODO - Once lignin is tracked a large number of constants will have to be duplicated
 
 
 @dataclass(frozen=True)
@@ -77,14 +77,14 @@ class SoilConsts(ConstantsDataclass):
     :attr:`max_uptake_rate_labile_C`.
     """
 
-    half_sat_labile_C_uptake: float = 0.091
+    half_sat_labile_C_uptake: float = 0.364
     """Half saturation constant for microbial uptake of labile carbon (LMWC).
 
-    [kg C m^-2]. This was calculated from the value provided in
-    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3],
-    and a topsoil depth of 0.25 [m]. The reference temperature is given by
-    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
-    by :attr:`activation_energy_labile_C_saturation`.
+    [kg C m^-3]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_labile_C_saturation`.
     """
 
     activation_energy_labile_C_saturation: float = 30000
@@ -93,15 +93,13 @@ class SoilConsts(ConstantsDataclass):
     Taken from :cite:t:`wang_development_2013`.
     """
 
-    # TODO - Add another set of constants once we start tracking lignin
     half_sat_pom_decomposition: float = 70.0
-    """Half saturation constant for POM decomposition to LMWC [kg C m^-2].
+    """Half saturation constant for POM decomposition to LMWC [kg C m^-3].
 
     This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3], and a topsoil depth of 0.25 [m].
-    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
-    corresponding activation energy is given by
-    :attr:`activation_energy_pom_decomp_saturation`.
+    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
+    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
+    is given by :attr:`activation_energy_pom_decomp_saturation`.
     """
 
     activation_energy_pom_decomp_saturation: float = 30000
@@ -110,7 +108,6 @@ class SoilConsts(ConstantsDataclass):
     Taken from :cite:t:`wang_development_2013`.
     """
 
-    # TODO - Add another set of constants once we start tracking lignin
     max_decomp_rate_pom: float = 60.0
     """Maximum rate for particulate organic matter break down (at reference temp).
 
@@ -126,6 +123,36 @@ class SoilConsts(ConstantsDataclass):
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.
+    """
+
+    half_sat_maom_decomposition: float = 350.0
+    """Half saturation constant for MAOM decomposition to LMWC [kg C m^-3].
+
+    This was calculated from the value provided in :cite:t:`wang_development_2013`
+    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
+    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
+    is given by :attr:`activation_energy_maom_decomp_saturation`.
+    """
+
+    activation_energy_maom_decomp_saturation: float = 30000
+    """Activation energy for MAOM decomposition saturation constant [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
+    max_decomp_rate_maom: float = 24.0
+    """Maximum rate for mineral associated organic matter decomposition enzyme.
+
+    Units of [day^-1]. The rate is for a reference temperature which is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_maom_decomp_rate`. The value is taken from
+    :cite:t:`wang_development_2013`.
+    """
+
+    activation_energy_maom_decomp_rate: float = 47000
+    """Activation energy for decomposition of mineral associated organic matter.
+
+    Units of [J K^-1]. Taken from :cite:t:`wang_development_2013`.
     """
 
     # TODO - Split this and the following into 2 constants once fungi are introduced

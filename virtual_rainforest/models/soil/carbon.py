@@ -38,7 +38,9 @@ class MicrobialBiomassLoss:
     """Rate at which biomass is lost to the POM pool [kg C m^-3 day^-1]."""
 
 
-# TODO - This function should probably be shortened
+# TODO - This function should probably be shortened. First step is group the calculation
+# of environmental factors. Otherwise there's probably stuff that I'm missing, which I
+# should tackle later
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
@@ -150,26 +152,45 @@ def calculate_soil_carbon_updates(
         pH_factor=pH_factor,
         clay_factor_saturation=clay_factor_saturation,
         soil_temp=soil_temp,
-        constants=model_constants,
+        reference_temp=model_constants.arrhenius_reference_temp,
+        max_decomp_rate=model_constants.max_decomp_rate_pom,
+        activation_energy_rate=model_constants.activation_energy_pom_decomp_rate,
+        half_saturation=model_constants.half_sat_pom_decomposition,
+        activation_energy_sat=model_constants.activation_energy_pom_decomp_saturation,
     )
-
+    # Calculate how pom decomposition is split between lmwc and maom pools
     pom_decomposition_to_lmwc = (
         pom_decomposition_rate * model_constants.pom_decomposition_fraction_lmwc
     )
     pom_decomposition_to_maom = pom_decomposition_rate * (
         1 - model_constants.pom_decomposition_fraction_lmwc
     )
-    # TODO - Use enzyme decomp equation to calculate lmwc to maom transfer
+    maom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=soil_c_pool_maom,
+        soil_enzyme=soil_enzyme_maom,
+        water_factor=water_factor,
+        pH_factor=pH_factor,
+        clay_factor_saturation=clay_factor_saturation,
+        soil_temp=soil_temp,
+        reference_temp=model_constants.arrhenius_reference_temp,
+        max_decomp_rate=model_constants.max_decomp_rate_maom,
+        activation_energy_rate=model_constants.activation_energy_maom_decomp_rate,
+        half_saturation=model_constants.half_sat_maom_decomposition,
+        activation_energy_sat=model_constants.activation_energy_maom_decomp_saturation,
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
         + biomass_losses.necromass_decay_to_lmwc
         + pom_enzyme_turnover
+        + maom_decomposition_to_lmwc
         - microbial_uptake
         - labile_carbon_leaching
     )
-    delta_pools_ordered["soil_c_pool_maom"] = pom_decomposition_to_maom
+    delta_pools_ordered["soil_c_pool_maom"] = (
+        pom_decomposition_to_maom - maom_decomposition_to_lmwc
+    )
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_assimilation - biomass_losses.maintenance_synthesis
     )
@@ -394,7 +415,11 @@ def calculate_enzyme_mediated_decomposition(
     pH_factor: NDArray[np.float32],
     clay_factor_saturation: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    constants: SoilConsts,
+    reference_temp: float,
+    max_decomp_rate: float,
+    activation_energy_rate: float,
+    half_saturation: float,
+    activation_energy_sat: float,
 ) -> NDArray[np.float32]:
     """Calculate rate of a enzyme mediated decomposition process.
 
@@ -413,7 +438,15 @@ def calculate_enzyme_mediated_decomposition(
         clay_factor_saturation: A factor capturing the impact of soil clay fraction on
             enzyme saturation constants [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        constants: Set of constants for the soil model.
+        reference_temp: The reference temperature that enzyme rates were determined
+            relative to [degrees C]
+        max_decomp_rate: The maximum rate of substrate decomposition (at the reference
+            temperature) [day^-1]
+        activation_energy_rate: Activation energy for maximum decomposition rate
+            [J K^-1]
+        half_saturation: Half saturation constant for decomposition (at the reference
+            temperature) [kg C m^-3]
+        activation_energy_sat: Activation energy for decomposition saturation [J K^-1]
 
     Returns:
         The rate of decomposition of the organic matter pool in question [kg C m^-3
@@ -423,23 +456,19 @@ def calculate_enzyme_mediated_decomposition(
     # Calculate the factors which impact the rate and saturation constants
     temp_factor_rate = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_pom_decomp_rate,
-        reference_temperature=constants.arrhenius_reference_temp,
+        activation_energy=activation_energy_rate,
+        reference_temperature=reference_temp,
     )
     temp_factor_saturation = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_pom_decomp_saturation,
-        reference_temperature=constants.arrhenius_reference_temp,
+        activation_energy=activation_energy_sat,
+        reference_temperature=reference_temp,
     )
 
     # Calculate the adjusted rate and saturation constants
-    rate_constant = (
-        constants.max_decomp_rate_pom * temp_factor_rate * water_factor * pH_factor
-    )
+    rate_constant = max_decomp_rate * temp_factor_rate * water_factor * pH_factor
     saturation_constant = (
-        constants.half_sat_pom_decomposition
-        * temp_factor_saturation
-        * clay_factor_saturation
+        half_saturation * temp_factor_saturation * clay_factor_saturation
     )
 
     return (

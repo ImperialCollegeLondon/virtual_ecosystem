@@ -15,9 +15,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [-3.70969075e-2, -2.2791314e-2, -0.15100693, 7.2342438e-4],
-        "soil_c_pool_maom": [1.6992235e-4, 4.45995156e-3, 6.252756e-3, 2.0712399e-5],
-        "soil_c_pool_microbe": [-0.03828773, -0.01245439, -0.06446385, -0.00711458],
+        "soil_c_pool_lmwc": [-0.00371115, 0.00278502, -0.01849181, 0.00089995],
+        "soil_c_pool_maom": [-1.28996257e-3, 2.35822401e-3, 1.5570399e-3, 1.2082886e-5],
+        "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
         "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
@@ -165,8 +165,8 @@ def test_calculate_microbial_carbon_uptake(
     """Check microbial carbon uptake calculates correctly."""
     from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
 
-    expected_uptake = [0.04484178, 0.03190812, 0.18552910, 0.00022563]
-    expected_assimilation = [0.01614304, 0.01052968, 0.05565873, 1.08303e-4]
+    expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
+    expected_assimilation = [4.64972597e-3, 2.78306303e-3, 1.73129097e-2, 2.77134508e-5]
 
     actual_uptake, actual_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
@@ -200,7 +200,11 @@ def test_calculate_enzyme_mediated_decomposition(
         pH_factor=environmental_factors["pH"],
         clay_factor_saturation=environmental_factors["clay_saturation"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
-        constants=SoilConsts,
+        reference_temp=SoilConsts.arrhenius_reference_temp,
+        max_decomp_rate=SoilConsts.max_decomp_rate_pom,
+        activation_energy_rate=SoilConsts.activation_energy_pom_decomp_rate,
+        half_saturation=SoilConsts.half_sat_pom_decomposition,
+        activation_energy_sat=SoilConsts.activation_energy_pom_decomp_saturation,
     )
 
     assert np.allclose(actual_decomp, expected_decomp)
