@@ -60,3 +60,13 @@ class AbioticConsts(ConstantsDataclass):
     "Diabatic correction factor below canopy."
     mixing_length_factor: float = 0.32
     """Factor in calculation of mixing length :cite:p:`maclean_microclimc_2021`."""
+    min_relative_turbulence_intensity: float = 0.36
+    """minimum relative turbulence intensity, default value from Shaw et al (1974)
+    Agricultural Meteorology, 13: 419-425. """
+    max_relative_turbulence_intensity: float = 0.9
+    """maximum relative turbulence intensity, default value from Shaw et al (1974)
+        Agricultural Meteorology, 13: 419-425."""
+    min_wind_speed_above_canopy: float = 0.55
+    """Minimum wind speed above the canopy, [m/s]."""
+    min_roughness_length: float = 0.05
+    """Minimum roughness length, [m]."""

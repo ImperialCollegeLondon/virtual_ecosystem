@@ -49,10 +49,10 @@ def test_calculate_zero_plane_displacement(dummy_data):
 
     from virtual_rainforest.models.abiotic.wind import calculate_zero_plane_displacement
 
-    plant_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
+    leaf_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_data.data["canopy_height"].to_numpy(),
-        plant_area_index=plant_area_index.to_numpy(),
+        leaf_area_index=leaf_area_index.to_numpy(),
         zero_plane_scaling_parameter=AbioticConsts.zero_plane_scaling_parameter,
     )
 
@@ -66,10 +66,10 @@ def test_calculate_roughness_length_momentum(dummy_data):
         calculate_roughness_length_momentum,
     )
 
-    plant_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
+    leaf_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_data.data["canopy_height"].to_numpy(),
-        plant_area_index=plant_area_index.to_numpy(),
+        leaf_area_index=leaf_area_index.to_numpy(),
         zero_plane_displacement=np.array([0, 8, 43]),
         substrate_surface_drag_coefficient=(
             AbioticConsts.substrate_surface_drag_coefficient
@@ -83,6 +83,7 @@ def test_calculate_roughness_length_momentum(dummy_data):
         max_ratio_wind_to_friction_velocity=(
             AbioticConsts.max_ratio_wind_to_friction_velocity
         ),
+        min_roughness_length=AbioticConsts.min_roughness_length,
         von_karman_constant=AbioticConsts.von_karmans_constant,
     )
 
@@ -99,53 +100,29 @@ def test_calculate_diabatic_correction_above(dummy_data):
     )
 
     result = calculate_diabatic_correction_above(
+        molar_density_air=np.repeat(28.96, 3),
+        specific_heat_air=np.repeat(1, 3),
         temperature=dummy_data["air_temperature"].to_numpy(),
-        atmospheric_pressure=dummy_data["atmospheric_pressure"].to_numpy(),
         sensible_heat_flux=dummy_data["sensible_heat_flux_topofcanopy"].to_numpy(),
         friction_velocity=dummy_data["friction_velocity"].to_numpy(),
-        wind_heights_above_canopy=np.array([1, 15, 50]),
+        wind_heights=np.array([1, 15, 50]),
         zero_plane_displacement=np.array([0, 8, 43]),
         celsius_to_kelvin=AbioticConsts.celsius_to_kelvin,
-        standard_pressure=AbioticConsts.standard_pressure,
-        standard_mole=AbioticConsts.standard_mole,
-        molar_heat_capacity_air=AbioticConsts.molar_heat_capacity_air,
-        specific_heat_equ_factor_1=AbioticConsts.specific_heat_equ_factor_1,
-        specific_heat_equ_factor_2=AbioticConsts.specific_heat_equ_factor_2,
         von_karmans_constant=AbioticConsts.von_karmans_constant,
     )
 
-    exp_result_h = np.array([7.5154e-05, 6.2562e-04, 3.0957e-04])
-    exp_result_m = np.array([4.5093e-05, 3.7534e-04, 1.857e-04])
+    exp_result_h = np.array([0.003044, 0.026923, 0.012881])
+    exp_result_m = np.array([0.001827, 0.016154, 0.007729])
     np.testing.assert_allclose(result["psi_h"], exp_result_h, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result["psi_m"], exp_result_m, rtol=1e-4, atol=1e-4)
 
 
-def test_calculate_wind_attenuation_coefficient(dummy_data):
-    """Test wind attenuation coefficient with and without vegetation."""
-
-    from virtual_rainforest.models.abiotic.wind import (
-        calculate_wind_attenuation_coefficient,
-    )
-
-    plant_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
-    result = calculate_wind_attenuation_coefficient(
-        canopy_height=dummy_data.data["canopy_height"].to_numpy(),
-        plant_area_index=plant_area_index,
-        mixing_length=np.array([0, 0.4, 1.5]),
-        drag_coefficient=AbioticConsts.drag_coefficient,
-        relative_turbulence_intensity=AbioticConsts.relative_turbulence_intensity,
-        diabatic_correction_factor_below=AbioticConsts.diabatic_correction_factor_below,
-    )
-
-    np.testing.assert_allclose(result, np.array([0.0, 5.91608, 7.302967]))
-
-
-def test_calculate_mixing_length(dummy_data):
+def test_calculate_mean_mixing_length(dummy_data):
     """Test mixing length with and without vegetation."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_mixing_length
+    from virtual_rainforest.models.abiotic.wind import calculate_mean_mixing_length
 
-    result = calculate_mixing_length(
+    result = calculate_mean_mixing_length(
         canopy_height=dummy_data.data["canopy_height"].to_numpy(),
         zero_plane_displacement=np.array([0, 8, 43]),
         roughness_length_momentum=np.array([0.003, 0.435, 1.521]),
@@ -155,6 +132,60 @@ def test_calculate_mixing_length(dummy_data):
     np.testing.assert_allclose(
         result, np.array([0, 0.419, 1.467]), rtol=1e-3, atol=1e-3
     )
+
+
+def test_generate_relative_turbulence_intensity(dummy_data):
+    """Test relative turbulence intensity."""
+
+    from virtual_rainforest.models.abiotic.wind import (
+        generate_relative_turbulence_intensity,
+    )
+
+    result = generate_relative_turbulence_intensity(
+        layer_heights=dummy_data["wind_layer_heights"].to_numpy(),
+        min_relative_turbulence_intensity=(
+            AbioticConsts.min_relative_turbulence_intensity
+        ),
+        max_relative_turbulence_intensity=(
+            AbioticConsts.max_relative_turbulence_intensity
+        ),
+        increasing_with_height=True,
+    )
+
+    exp_result = np.array(
+        [[0.414, 3.06, 8.46], [0.9, 8.46, 13.86], [3.06, 13.86, 30.06]]
+    )
+    np.testing.assert_allclose(result, exp_result)
+
+
+def test_calculate_wind_attenuation_coefficient(dummy_data):
+    """Test wind attenuation coefficient with and without vegetation."""
+
+    from virtual_rainforest.models.abiotic.wind import (
+        calculate_wind_attenuation_coefficient,
+    )
+
+    leaf_area_index = dummy_data.data["leaf_area_index"].to_numpy()
+    relative_turbulence_intensity = np.array(
+        [[0.414, 3.06, 8.46], [0.9, 8.46, 13.86], [3.06, 13.86, 30.06]]
+    )
+    result = calculate_wind_attenuation_coefficient(
+        canopy_height=dummy_data.data["canopy_height"].to_numpy(),
+        leaf_area_index=leaf_area_index,
+        mean_mixing_length=np.array([0, 0.4, 1.5]),
+        drag_coefficient=AbioticConsts.drag_coefficient,
+        relative_turbulence_intensity=relative_turbulence_intensity,
+        diabatic_correction_factor_below=AbioticConsts.diabatic_correction_factor_below,
+    )
+
+    exp_result = np.array(
+        [
+            [0.0, 0.9039, 1.4036],
+            [0.0, 0.7688, 1.0966],
+            [0.0, 0.7356, 0.7446],
+        ]
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
 def test_wind_log_profile():
@@ -176,143 +207,58 @@ def test_wind_log_profile():
     )
 
 
-def test_calculate_wind_profile(dummy_data):
-    """Test if wind profile is calculated correctly for different height."""
+def test_calculate_friction_velocity(dummy_data):
+    """Calculate friction velocity."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_wind_profile
+    from virtual_rainforest.models.abiotic.wind import calculate_fricition_velocity
 
-    plant_area_index = dummy_data.data["leaf_area_index"].sum(dim="layers")
-    result = calculate_wind_profile(
-        wind_speed_ref=dummy_data["wind_speed_ref"].to_numpy(),
-        wind_layer_heights=np.array([[5, 12, 60], [0.1, 8, 10]]),
+    result = calculate_fricition_velocity(
+        wind_speed_ref=dummy_data["wind_speed_ref"],
         reference_height=10.0,
-        attenuation_coefficient=np.array([0, 4, 7]),
-        plant_area_index=plant_area_index,
-        canopy_height=dummy_data["canopy_height"].to_numpy(),
-        diabatic_correction_momentum=np.array([0, 0, 0]),
-        ground_layer_vegetation_height=0.1,
-        roughness_sublayer_depth_parameter=(
-            AbioticConsts.roughness_sublayer_depth_parameter
-        ),
-        zero_plane_scaling_parameter=AbioticConsts.zero_plane_scaling_parameter,
-        substrate_surface_drag_coefficient=(
-            AbioticConsts.substrate_surface_drag_coefficient
-        ),
-        roughness_element_drag_coefficient=(
-            AbioticConsts.roughness_element_drag_coefficient
-        ),
-        max_ratio_wind_to_friction_velocity=(
-            AbioticConsts.max_ratio_wind_to_friction_velocity
-        ),
+        zeroplane_displacement=np.array([0, 8, 43]),
+        roughness_length_momentum=np.array([0.003, 0.435, 1.521]),
+        diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
         von_karmans_constant=AbioticConsts.von_karmans_constant,
     )
+    exp_result = np.array([0.0, 1.310997, 4.0])
+    np.testing.assert_allclose(result, exp_result)
 
-    np.testing.assert_allclose(
-        result,
-        np.array([[0, 7.935657, 24.623732], [0, 1.471923, 0.036979]]),
-        rtol=1e-3,
-        atol=1e-3,
+
+def test_calculate_wind_above_canopy():
+    """Wind speed above canopy."""
+
+    from virtual_rainforest.models.abiotic.wind import calculate_wind_above_canopy
+
+    result = calculate_wind_above_canopy(
+        friction_velocity=np.array([0, 1.3, 4]),
+        wind_layer_heights=np.array([2, 12, 52]),
+        zeroplane_displacement=np.array([0, 8, 43]),
+        roughness_length_momentum=np.array([0.003, 0.435, 1.521]),
+        diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
+        von_karmans_constant=AbioticConsts.von_karmans_constant,
+        min_wind_speed_above_canopy=AbioticConsts.min_wind_speed_above_canopy,
     )
 
-
-# def test_calculate_wind_above_canopy(dummy_data):
-#     """Test wind above canopy."""
-
-#     from virtual_rainforest.models.abiotic import wind
-
-#     result = wind.calculate_wind_above_canopy(
-#         wind_heights=DataArray(
-#             [[10, 20, 30], [20, 30, 40], [40, 50, 60]], dims=["heights", "cell_id"]
-#         ),
-#         zero_plane_displacement=DataArray([0, 10, 10], dims="cell_id"),
-#         roughness_length_momentum=DataArray([0.003, 0.4, 1.5], dims="cell_id"),
-#         diabatic_correction_momentum_above=DataArray(
-#             [[1, 1, 1], [1, 1, 1], [1, 1, 1]], dims=["heights", "cell_id"]
-#         ),
-#         friction_velocity=dummy_data["friction_velocity"],
-#     )
-
-#     xr.testing.assert_allclose(
-#         result,
-#         DataArray(
-#             [
-#                 [244.3518425, 265.14625792, 285.94067333],
-#                 [41.23594781, 49.90028757, 58.56462732],
-#                 [13.95133583, 15.97866137, 18.53278949],
-#             ],
-#             dims=["cell_id", "heights"],
-#         ),
-#     )
+    exp_result = np.array([0.0, 7.211, 18.779])
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-# def test_calculate_wind_below_canopy(dummy_data):
-#     """Test wind within canopy."""
+def test_calculate_wind_canopy(dummy_data):
+    """Test below canopy wind profile."""
 
-#     from virtual_rainforest.models.abiotic import wind
+    from virtual_rainforest.models.abiotic.wind import calculate_wind_canopy
 
-#     result = wind.calculate_wind_below_canopy(
-#         canopy_node_heights=dummy_data.data["canopy_node_heights"],
-#         wind_profile_above=DataArray(
-#             [
-#                 [244.0, 265.0, 285.0],
-#                 [41.0, 49.0, 58.0],
-#                 [13.0, 15.0, 18.0],
-#             ],
-#             dims=["cell_id", "heights"],
-#         ),
-#         wind_attenuation_coefficient=DataArray([0, 0.1, 0.3], dims=["cell_id"]),
-#         canopy_height=dummy_data.data["canopy_height"],
-#     )
-
-#     xr.testing.assert_allclose(
-#         result,
-#         DataArray(
-#             [
-#                 [0.0, 0.0, 0.0],
-#                 [52.48057, 60.973724, 67.386386],
-#                 [13.334728, 15.492744, 16.450761],
-#             ],
-#             dims=["cell_id", "canopy_layers"],
-#         ),
-#     )
-
-
-# def test_calculate_wind_profile(dummy_data):
-#     """Test wind profile above and within canopy."""
-
-#     from virtual_rainforest.models.abiotic import wind
-
-#     result = wind.calculate_wind_profile(
-#         wind_heights=DataArray(
-#             [[10, 20, 30], [20, 30, 40], [40, 50, 60]], dims=["heights", "cell_id"]
-#         ),
-#         canopy_node_heights=dummy_data.data["canopy_node_heights"],
-#         data=dummy_data,
-#     )
-
-#     # check wind above canopy
-#     xr.testing.assert_allclose(
-#         result[0],
-#         DataArray(
-#             DataArray(
-#                 [
-#                     [244.351842, 265.146258, 285.940673],
-#                     [46.458135, 54.341054, 62.595567],
-#                     [0.0, 0.0, 13.311866],
-#                 ],
-#                 dims=["cell_id", "heights"],
-#             ),
-#         ),
-#     )
-#     # check wind below canopy
-#     xr.testing.assert_allclose(
-#         result[1],
-#         DataArray(
-#             [
-#                 [0.0, 0.0, 0.0],
-#                 [5.950523e-02, 2.030195e03, 2.135631e06],
-#                 [6.086929e-03, 2.846548e-01, 1.325216e00],
-#             ],
-#             dims=["cell_id", "canopy_layers"],
-#         ),
-#     )
+    result = calculate_wind_canopy(
+        top_of_canopy_wind_speed=np.array([2, 5, 7]),
+        wind_layer_heights=dummy_data["wind_layer_heights"],
+        canopy_height=dummy_data["canopy_height"],
+        attenuation_coefficient=np.array([0, 0.9, 1.4]),
+    )
+    exp_result = np.array(
+        [
+            [0.0, 1.797693e308, 1.797693e308],
+            [2.0, 7.841561, 57.16319],
+            [2.0, 3.188141, 8.051917],
+        ]
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
