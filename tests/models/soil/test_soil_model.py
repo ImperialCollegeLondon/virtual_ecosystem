@@ -26,8 +26,7 @@ def soil_model_fixture(dummy_carbon_data):
     register_module("virtual_rainforest.models.abiotic_simple")
     # Build the config object
     config = Config(
-        cfg_strings="[core]\nmodules=['soil']\n"
-        "[core.timing]\nupdate_interval = '12 hours'"
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
     )
 
     return SoilModel.from_config(
@@ -152,7 +151,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
     "cfg_string,time_interval,max_decomp,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n",
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n",
             pint.Quantity("12 hours"),
             0.2,
             does_not_raise(),
@@ -174,7 +173,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             id="default_config",
         ),
         pytest.param(
-            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n"
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05\n",
             pint.Quantity("12 hours"),
             0.05,
@@ -197,7 +196,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             id="modified_config_correct",
         ),
         pytest.param(
-            "[core]\nmodules=['soil']\n[core.timing]\nupdate_interval = '12 hours'\n"
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
             None,
@@ -390,8 +389,7 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
 
     # Use this new data to make a new soil model object
     config = Config(
-        cfg_strings="[core]\nmodules=['soil']\n"
-        "[core.timing]\nupdate_interval = '12 hours'\n"
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
     )
     new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
 

@@ -8,8 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+from math import ceil
 from random import choice
-from typing import Sequence
+from typing import Optional, Sequence
 
 from numpy import random, timedelta64
 
@@ -18,18 +19,13 @@ from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import (
     DECAY_FRACTION_CARCASSES,
     DECAY_FRACTION_EXCREMENT,
-    ENERGY_DENSITY,
-    ENERGY_PERCENTILE_THRESHOLD,
-    REPRODUCTION_ENERGY_COST_MULTIPLIER,
-    REPRODUCTION_ENERGY_MULTIPLIER,
-    TEMPERATURE,
+    FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD,
 )
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.protocols import Consumer, DecayPool, Resource
 from virtual_rainforest.models.animals.scaling_functions import (
     damuths_law,
-    energetic_reserve_scaling,
     intake_rate_scaling,
     metabolic_rate,
     natural_mortality_scaling,
@@ -45,6 +41,7 @@ class AnimalCohort:
         functional_group: FunctionalGroup,
         mass: float,
         age: float,
+        individuals: int,
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -59,56 +56,30 @@ class AnimalCohort:
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
         """The functional type name of the animal cohort."""
-        self.mass = mass
         """The average mass of an individual in the animal cohort [kg]."""
+        self.mass_current = mass
+        """The current average body mass of an individual [kg]."""
         self.age = age
         """The age of the animal cohort [days]."""
-        self.individuals: int = damuths_law(
-            self.mass, self.functional_group.damuths_law_terms
+        self.individuals = individuals
+        """The number of individuals in this cohort."""
+        self.damuth_density: int = damuths_law(
+            self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
-        """The number of individuals in the cohort."""
+        """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
-        self.metabolic_rate: float = metabolic_rate(
-            self.mass,
-            TEMPERATURE,
-            self.functional_group.metabolic_rate_terms,
-            self.functional_group.metabolic_type,
-        )
-        """The rate at which energy is expended in [J/s]."""
-        self.stored_energy: float = energetic_reserve_scaling(
-            mass,
-            self.functional_group.muscle_mass_terms,
-            self.functional_group.fat_mass_terms,
-        )
-        """The individual energetic reserve [J] as the sum of muscle"
-        mass [g] and fat mass [g] multiplied by its average energetic value."""
-        self.reproduction_energy_threshold: float = (
-            energetic_reserve_scaling(
-                mass,
-                self.functional_group.muscle_mass_terms,
-                self.functional_group.fat_mass_terms,
-            )
-            * REPRODUCTION_ENERGY_MULTIPLIER
-        )
-        """The energetic reserve threshold at which the cohort can reproduce."""
-        self.reproduction_cost: float = (
-            energetic_reserve_scaling(
-                mass,
-                self.functional_group.muscle_mass_terms,
-                self.functional_group.fat_mass_terms,
-            )
-            * REPRODUCTION_ENERGY_COST_MULTIPLIER
-        )
-        """The energetic reserve of reproduction."""
+        self.reproductive_mass: float = 0.0
+        """The pool of biomass from which the material of reproduction is drawn."""
+
         self.intake_rate: float = intake_rate_scaling(
-            self.mass, self.functional_group.intake_rate_terms
+            self.functional_group.adult_mass, self.functional_group.intake_rate_terms
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
         self.prey_groups = prey_group_selection(
             self.functional_group.diet,
-            self.mass,
+            self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
@@ -116,6 +87,7 @@ class AnimalCohort:
         self.adult_natural_mortality_prob = natural_mortality_scaling(
             self.functional_group.adult_mass, self.functional_group.longevity_scaling
         )
+        # TODO: Distinguish between background, senesence, and starvation mortalities.
         """The per-day probability of an individual dying to natural causes."""
 
         # TODO - In future this should be parameterised using a constants dataclass, but
@@ -125,10 +97,15 @@ class AnimalCohort:
         self.decay_fraction_carcasses: float = DECAY_FRACTION_CARCASSES
         """The fraction of carcass biomass which decays before it gets consumed."""
 
-    def metabolize(self, dt: timedelta64) -> None:
-        """The function to reduce stored_energy through basal metabolism.
+    def metabolize(self, temperature: float, dt: timedelta64) -> None:
+        """The function to reduce mass_current through basal metabolism.
+
+        TODO: Implement distinction between field and basal rates.
+        TODO: Implement proportion of day active.
+        TODO: clean up units
 
         Args:
+            temperature: Current air temperature (K)
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
@@ -136,27 +113,39 @@ class AnimalCohort:
         if dt < timedelta64(0, "D"):
             raise ValueError("dt cannot be negative.")
 
-        if self.stored_energy < 0:
-            raise ValueError("stored_energy cannot be negative.")
+        if self.mass_current < 0:
+            raise ValueError("mass_current cannot be negative.")
 
-        # Number of seconds in a day * J/s metabolic rate, consider daily rate.
-        energy_needed = self.metabolic_rate * float((dt / timedelta64(1, "s")))
-        self.stored_energy -= min(self.stored_energy, energy_needed)
+        #  kg/day metabolic rate * number of days
+        mass_metabolized = metabolic_rate(
+            self.mass_current,
+            temperature,
+            self.functional_group.metabolic_rate_terms,
+            self.functional_group.metabolic_type,
+        ) * float((dt / timedelta64(1, "D")))
+
+        self.mass_current -= min(self.mass_current, mass_metabolized)
 
     def excrete(
         self,
         excrement_pool: DecayPool,
-        consumed_energy: float,
+        mass_consumed: float,
     ) -> None:
-        """Transfer waste energy from an animal cohort to the excrement pool.
+        """Transfer waste mass from an animal cohort to the excrement pool.
+
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
-            consumed_energy: The amount of energy flowing through cohort digestion.
+            mass_consumed: The amount of mass flowing through cohort digestion.
         """
-        # Find total waste energy, the total amount of waste is then found by the
+        # Find total waste mass, the total amount of waste is then found by the
         # average cohort member * number individuals.
-        waste_energy = consumed_energy * self.functional_group.conversion_efficiency
+        waste_energy = mass_consumed * self.functional_group.conversion_efficiency
 
         # This total waste is then split between decay and scavengeable excrement
         excrement_pool.scavengeable_energy += (
@@ -183,6 +172,12 @@ class AnimalCohort:
         are made to capture large body size and multi-grid occupancy, this will be
         updated.
 
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
+
         Args:
             number_dead: The number of individuals by which to decrease the population
                 count.
@@ -192,21 +187,27 @@ class AnimalCohort:
         """
         self.individuals -= number_dead
 
-        # Find total energy contained in the carcasses
-        carcass_energy = number_dead * self.mass * ENERGY_DENSITY["meat"]
+        # Find total mass contained in the carcasses
+        carcass_mass = number_dead * self.mass_current
 
-        # Split this energy between carcass decay, and scavengeable carcasses
+        # Split this mass between carcass decay, and scavengeable carcasses
         carcass_pool.scavengeable_energy += (
             1 - self.decay_fraction_carcasses
-        ) * carcass_energy
-        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_energy
+        ) * carcass_mass
+        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
 
     def get_eaten(self, predator: Consumer, carcass_pool: DecayPool) -> float:
         """This function handles AnimalCohorts being subject to predation.
 
-        Note: AnimalCohort stored_energy is mean per individual energy within the
-            cohort. Energy is not lost from stored_energy from a predation event but the
+        Note: AnimalCohort mass_current is mean per individual mass within the
+            cohort. Mass is not lost from mass_current from a predation event but the
             number of individuals in the cohort is reduced.
+
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
+
+        TODO: Rework after update litter pools for mass
 
         Args:
             predator: The AnimalCohort preying on the eaten cohort.
@@ -214,42 +215,41 @@ class AnimalCohort:
               dead individuals are delivered.
 
         Returns:
-            A float of the energy value of the lost individuals after digestive
+            A float of the mass value of the lost individuals after digestive
                 efficiencies are accounted for.
 
         """
         # Calculate the number of individuals that can be eaten based on intake rate
         # Here we assume predators can consume prey mass equivalent to daily intake
         number_eaten = min(
-            int((predator.intake_rate * predator.individuals) // self.mass),
+            ceil((predator.intake_rate * predator.individuals) / self.mass_current),
             self.individuals,
         )
 
-        # Calculate the energy gain from eating prey
-        # Here we assume all eaten mass is converted to energy
-        prey_energy = min(
+        # Calculate the mass gain from eating prey
+        # Here we assume all eaten mass is converted to consumer mass
+        prey_mass = min(
             (
                 number_eaten
-                * self.mass
-                * ENERGY_DENSITY["meat"]
+                * self.mass_current
                 * self.functional_group.mechanical_efficiency
             ),
-            self.stored_energy,
+            self.mass_current,
         )
 
         # Reduce the number of individuals in the prey cohort
         self.individuals -= number_eaten
         # Calculate excess from deficits of efficiency, which flows to the carcass pool
-        carcass_energy = prey_energy * (1 - self.functional_group.mechanical_efficiency)
+        carcass_mass = prey_mass * (1 - self.functional_group.mechanical_efficiency)
 
-        # Split this energy between carcass decay, and scavengeable carcasses
+        # Split this mass between carcass decay, and scavengeable carcasses
         carcass_pool.scavengeable_energy += (
             1 - self.decay_fraction_carcasses
-        ) * carcass_energy
-        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_energy
+        ) * carcass_mass
+        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
 
-        # return the net energetic gain of predation
-        return prey_energy * predator.functional_group.conversion_efficiency
+        # return the net mass gain of predation
+        return prey_mass * predator.functional_group.conversion_efficiency
 
     def forage_cohort(
         self,
@@ -257,13 +257,15 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> Resource:
+    ) -> Optional[Resource]:  # Note the optional here, temporary
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
         AnimalCommunity.forage_community and performs a simple random uniform selection.
         After this, excrete is called to pass excess waste to the excrement pool.
         Later this function will involve more complex weightings of prey options.
+
+        TODO: Fix the occasional division by zero bug in eat and then remove Optional
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
@@ -273,24 +275,36 @@ class AnimalCohort:
 
         """
 
-        if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            food_choice = choice(plant_list)
-            consumed_energy = self.eat(food_choice, excrement_pool)
-        elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-            food_choice = choice(animal_list)
-            consumed_energy = self.eat(food_choice, carcass_pool)
-        else:
-            LOGGER.info("No food available.")
+        if self.individuals == 0:
+            LOGGER.warning("No individuals in cohort to forage.")
+            return None  # Early return with no food choice
+
+        mass_consumed = 0.0  # Initialize to 0.0
+
+        try:
+            if self.functional_group.diet == DietType.HERBIVORE and plant_list:
+                food_choice = choice(plant_list)
+                mass_consumed = self.eat(food_choice, excrement_pool)
+            elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
+                food_choice = choice(animal_list)
+                mass_consumed = self.eat(food_choice, carcass_pool)
+            else:
+                LOGGER.info("No food available.")
+                food_choice = None  # No food available
+
+        except ValueError as e:
+            raise e
+
         # excrete excess digestive wastes
-        self.excrete(excrement_pool, consumed_energy)
+        self.excrete(excrement_pool, mass_consumed)
 
         return food_choice
 
     def eat(self, food: Resource, pool: DecayPool) -> float:
-        """This function handles the energy transfer of a trophic interaction.
+        """This function handles the mass transfer of a trophic interaction.
 
         Currently, all this does is call the food's get_eaten method and pass the
-        returned energy value to the consumer.
+        returned mass value to the consumer.
 
         Args:
             food: An object of a Resource class (currently: AnimalCohort, Plant
@@ -299,44 +313,43 @@ class AnimalCohort:
                   pools like soil or carcass pools.
 
         Returns:
-            The amount of consumed energy so it can be used to determine waste output.
+            The amount of consumed mass so it can be used to determine waste output.
 
         """
         # Check if self.individuals is greater than zero
         if self.individuals == 0:
-            raise ValueError("Individuals cannot be 0.")
+            return 0.0
+
+        if self is food:
+            raise ValueError("The food and the consumer are the same object.")
 
         # get the per-individual energetic gain from the bulk value
-        energy = food.get_eaten(self, pool) / self.individuals
-        self.stored_energy += energy
-        return energy  # for passing to excrete
+        mass_consumed = food.get_eaten(self, pool) / self.individuals
 
-    def can_reproduce(self) -> bool:
-        """Checks if a cohort has sufficient energy to reproduce.
+        if self.is_below_mass_threshold(FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD):
+            # if current mass equals or exceeds standard adult mass, gains to repro mass
+            self.mass_current += mass_consumed
+        else:
+            # otherwise, gains flow to non-reproductive body mass.
+            self.reproductive_mass += mass_consumed
+        return mass_consumed  # for passing to excrete
 
-        Currently this keys off an excess of stored_energy, later in development this
-        reproduction system will work around a specific pool of reproductive mass.
+    def is_below_mass_threshold(self, mass_threshold: float) -> bool:
+        """Check if cohort's total mass is below a certain threshold.
 
-        Return:
-            Boolean of whether or not the cohort exceeds the reproduction threshold and
-            can reproduce.
+        Currently used for thesholding: birth, dispersal, trophic flow to reproductive
+        mass.
 
-        """
-        return self.stored_energy >= self.reproduction_energy_threshold
-
-    def is_below_energy_threshold(self) -> bool:
-        """Check if cohort's energy is below a certain threshold.
-
-        Currently, this is only used to threshold the migrate method. Using the
-        reproduction threshold is a toy implementation.
+        Args:
+            mass_threshold: a float value holding a threshold ratio of current total
+                mass to standard adult mass.
 
         Return:
-            A bool of whether the current energy state is above the migration threshold.
+            A bool of whether the current mass state is above the migration threshold.
         """
         return (
-            self.stored_energy
-            < ENERGY_PERCENTILE_THRESHOLD * self.reproduction_energy_threshold
-        )
+            self.mass_current + self.reproductive_mass
+        ) / self.functional_group.adult_mass < mass_threshold
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
