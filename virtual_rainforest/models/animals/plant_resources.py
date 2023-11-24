@@ -5,7 +5,7 @@ required for setting up and testing the early stages of the animal module.
 from __future__ import annotations
 
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
+from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.protocols import Consumer, DecayPool
 
 
@@ -26,7 +26,7 @@ class PlantResources:
         cell_id: The cell id for the plant community to expose.
     """
 
-    def __init__(self, data: Data, cell_id: int) -> None:
+    def __init__(self, data: Data, cell_id: int, constants: AnimalConsts) -> None:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""
@@ -38,7 +38,7 @@ class PlantResources:
         # Calculate energy availability
         # TODO - this needs to be handed back to the plants model, which will define PFT
         #        specific conversions to different resources.
-        self.energy_density: float = ENERGY_DENSITY["plant"]
+        self.energy_density: float = constants.energy_density["plant"]
         """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
         self.energy_max: float = self.mass_current * self.energy_density
         """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""

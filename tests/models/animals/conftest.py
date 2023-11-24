@@ -77,31 +77,49 @@ def plant_climate_data_instance(layer_roles_fixture):
 
 
 @pytest.fixture
-def functional_group_list_instance(shared_datadir):
+def constants_instance():
+    """Fixture for an instance of animal constants."""
+    from virtual_rainforest.models.animals.constants import AnimalConsts
+
+    return AnimalConsts()
+
+
+@pytest.fixture
+def functional_group_list_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants_instance)
 
     return fg_list
 
 
 @pytest.fixture
-def animal_model_instance(data_instance, functional_group_list_instance):
+def animal_model_instance(
+    data_instance, functional_group_list_instance, constants_instance
+):
     """Fixture for an animal model object used in tests."""
     from pint import Quantity
 
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
-    return AnimalModel(data_instance, Quantity("1 day"), functional_group_list_instance)
+    return AnimalModel(
+        data_instance,
+        Quantity("1 day"),
+        functional_group_list_instance,
+        constants_instance,
+    )
 
 
 @pytest.fixture
 def animal_community_instance(
-    functional_group_list_instance, animal_model_instance, plant_data_instance
+    functional_group_list_instance,
+    animal_model_instance,
+    plant_data_instance,
+    constants_instance,
 ):
     """Fixture for an animal community used in tests."""
     from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
@@ -112,28 +130,31 @@ def animal_community_instance(
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
         get_destination=animal_model_instance.get_community_by_key,
+        constants=constants_instance,
     )
 
 
 @pytest.fixture
-def herbivore_functional_group_instance(shared_datadir):
+def herbivore_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants_instance)
 
     return fg_list[3]
 
 
 @pytest.fixture
-def herbivore_cohort_instance(herbivore_functional_group_instance):
+def herbivore_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1, 10)
+    return AnimalCohort(
+        herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
+    )
 
 
 @pytest.fixture
