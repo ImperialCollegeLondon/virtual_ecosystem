@@ -175,15 +175,10 @@ def test_calculate_wind_attenuation_coefficient(dummy_data):
         mean_mixing_length=np.array([0, 0.4, 1.5]),
         drag_coefficient=AbioticConsts.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
-        diabatic_correction_factor_below=AbioticConsts.diabatic_correction_factor_below,
     )
 
     exp_result = np.array(
-        [
-            [0.0, 0.9039, 1.4036],
-            [0.0, 0.7688, 1.0966],
-            [0.0, 0.7356, 0.7446],
-        ]
+        [[0.0, 0.816, 1.970], [0.0, 0.591, 1.202], [0.0, 0.541, 0.554]]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
@@ -248,11 +243,14 @@ def test_calculate_wind_canopy(dummy_data):
 
     from virtual_rainforest.models.abiotic.wind import calculate_wind_canopy
 
+    atten_coeff = np.array(
+        [[0.0, 0.816, 1.970], [0.0, 0.591, 1.202], [0.0, 0.541, 0.554]]
+    )
     result = calculate_wind_canopy(
         top_of_canopy_wind_speed=np.array([2, 5, 7]),
         wind_layer_heights=dummy_data["wind_layer_heights"],
         canopy_height=dummy_data["canopy_height"],
-        attenuation_coefficient=np.array([0, 0.9, 1.4]),
+        attenuation_coefficient=atten_coeff,
     )
     exp_result = np.array(
         [

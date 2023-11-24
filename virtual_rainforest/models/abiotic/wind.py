@@ -28,7 +28,6 @@ mixing length, equivalent to the free space between the leaves and stems. For
 details, see :cite:t:`maclean_microclimc_2021`.
 
 TODO: add sanity checks, errors and logging
-TODO add function that calls all the steps and returns info for data object
 """  # noqa: D205, D415
 
 from typing import Union
@@ -286,7 +285,6 @@ def calculate_wind_attenuation_coefficient(
     mean_mixing_length: NDArray[np.float32],
     drag_coefficient: float,
     relative_turbulence_intensity: NDArray[np.float32],
-    diabatic_correction_factor_below: float,
 ) -> NDArray[np.float32]:
     """Calculate wind attenuation coefficient.
 
@@ -300,24 +298,17 @@ def calculate_wind_attenuation_coefficient(
         mean_mixing_length: Mixing length for canopy air transport, [m]
         drag_coefficient: Drag coefficient
         relative_turbulence_intensity: Relative turbulence intensity
-        diabatic_correction_factor_below: Diabatic correction factor for momentum
 
     Returns:
         wind attenuation coefficient
     """
 
-    intermediate_coefficient1 = (
+    intermediate_coefficient = (
         (drag_coefficient * leaf_area_index * canopy_height)
         / (2 * mean_mixing_length * relative_turbulence_intensity),
     )
 
-    intermediate_coefficient2 = np.power(intermediate_coefficient1, 0.5)
-
-    atten_coeff = intermediate_coefficient2 * np.power(
-        diabatic_correction_factor_below, 0.5
-    )
-
-    return np.nan_to_num(atten_coeff, nan=0).squeeze()
+    return np.nan_to_num(intermediate_coefficient, nan=0).squeeze()
 
 
 def wind_log_profile(
@@ -461,104 +452,3 @@ def calculate_wind_canopy(
         * np.exp(attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)),
         nan=0,
     ).squeeze()
-
-
-# def update_wind_profile( TODO this is outdated
-#     wind_heights_above_canopy: NDArray[np.float32],
-#     wind_heights_below_canopy: NDArray[np.float32],
-#     temperature: NDArray[np.float32],
-#     atmospheric_pressure: NDArray[np.float32],
-#     friction_velocity: NDArray[np.float32],
-#     canopy_height: NDArray[np.float32],
-#     leaf_area_index: NDArray[np.float32],
-#     sensible_heat_topofcanopy: NDArray[np.float32],
-#     abiotic_const: AbioticConsts,
-# ) -> Tuple[DataArray, DataArray]:
-#     r"""Calculate wind profile above and below canopy.
-
-#     Args:
-#         wind_heights_above_canopy: array of heights above canopy for which wind speed
-#             is calculated, [m]
-#         wind_heights_below_canopy: array of heights below canopy for which wind speed
-#             is calculated, [m], base on 'layer_heights' variable
-#         temperature: Air temperature, [C]
-#         atmospheric_pressure: Atmospheric pressure, [kPa]
-#         friction_velocity: friction velocity, TODO
-#         canopy_height: Canopy height, [m]
-#         leaf_area_index: leaf area index, [m m-1]
-#         sensible_heat_topofcanopy: Sensible heat flux at the top of the canopy, TODO
-#         abiotic_const: An AbioticConsts instance
-
-#     Returns:
-#         vertical wind profile above canopy, [m s-1]
-#         vertical wind profile within canopy, [m s-1]
-#     """
-
-#     # preparatory calculations for wind profiles
-#     zero_plane_displacement = calculate_zero_plane_displacement(
-#         canopy_height=canopy_height,
-#         leaf_area_index=leaf_area_index,
-#         zero_plane_scaling_parameter=abiotic_const.zero_plane_scaling_parameter,
-#     )
-#     roughness_length_momentum = calculate_roughness_length_momentum(
-#         canopy_height=canopy_height,
-#         leaf_area_index=leaf_area_index,
-#         zero_plane_displacement=zero_plane_displacement,
-#         substrate_surface_drag_coefficient=(
-#             abiotic_const.substrate_surface_drag_coefficient
-#         ),
-#         roughness_element_drag_coefficient=(
-#             abiotic_const.roughness_element_drag_coefficient
-#         ),
-#         roughness_sublayer_depth_parameter=(
-#             abiotic_const.roughness_sublayer_depth_parameter
-#         ),
-#         max_ratio_wind_to_friction_velocity=(
-#             abiotic_const.max_ratio_wind_to_friction_velocity
-#         ),
-#     )
-
-#     diabatic_correction_momentum_above = calculate_diabatic_correction_momentum_above(
-#         temperature=temperature,
-#         atmospheric_pressure=atmospheric_pressure,
-#         sensible_heat_flux=sensible_heat_topofcanopy,
-#         friction_velocity=friction_velocity,
-#         wind_heights=wind_heights_above_canopy,
-#         zero_plane_displacement=zero_plane_displacement,
-#         celsius_to_kelvin=abiotic_const.celsius_to_kelvin,
-#         gravity=abiotic_const.gravity,
-#     )
-
-#     mean_mixing_length = calculate_mean_mixing_length(
-#         canopy_height=canopy_height,
-#         zero_plane_displacement=zero_plane_displacement,
-#         roughness_length_momentum=roughness_length_momentum,
-#         mixing_length_factor=abiotic_const.mixing_length_factor,
-#     )
-
-#     wind_attenuation_coefficient = calculate_wind_attenuation_coefficient(
-#         canopy_height=canopy_height,
-#         leaf_area_index=leaf_area_index,
-#         mean_mixing_length=mean_mixing_length,
-#         drag_coefficient=abiotic_const.drag_coefficient,
-#         relative_turbulence_intensity=abiotic_const.relative_turbulence_intensity,
-#         diabatic_correction_factor_below=abiotic_const.diabatic_correction_factor_below,
-#     )
-
-#     # Calculate wind profiles and return as Tuple
-#     wind_profile_above = calculate_wind_above_canopy(
-#         wind_heights_above_canopy=wind_heights_above_canopy,
-#         zero_plane_displacement=zero_plane_displacement,
-#         roughness_length_momentum=roughness_length_momentum,
-#         diabatic_correction_momentum_above=diabatic_correction_momentum_above,
-#         friction_velocity=friction_velocity,
-#     )
-
-#     wind_profile_canopy = calculate_wind_below_canopy(
-#         canopy_node_heights=wind_heights_below_canopy,
-#         wind_profile_above=wind_profile_above,
-#         wind_attenuation_coefficient=wind_attenuation_coefficient,
-#         canopy_height=canopy_height,
-#     )
-
-#     return wind_profile_above, wind_profile_canopy
