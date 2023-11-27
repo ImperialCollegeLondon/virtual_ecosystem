@@ -41,6 +41,28 @@
                "description": "Integer relevant to the plant module",
                "type": "integer",
                "default": 1
+            },
+            "depends": {
+               "type": "object",
+               "default": {},
+               "properties": {
+                  "init": {
+                     "type": "array",
+                     "default": [],
+                     "items": {
+                        "type": "string"
+                     }
+                  },
+                  "update": {
+                     "type": "array",
+                     "default": [
+                        "plants"
+                     ],
+                     "items": {
+                        "type": "string"
+                     }
+                  }
+               }
             }
          },
          "default": {},

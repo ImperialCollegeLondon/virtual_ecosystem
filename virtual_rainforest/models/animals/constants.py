@@ -1,4 +1,4 @@
-"""The `models.animals.constants` module contains a set of dictionaries containing
+"""The `models.animals.constants` module contains a set of dataclasses containing
 constants" (fitting relationships taken from the literature) required by the broader
 :mod:`~virtual_rainforest.models.animals` module
 
@@ -9,38 +9,50 @@ parameters required for determining the function of a specific AnimalCohort and 
 avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
+from dataclasses import dataclass, field
+
 from virtual_rainforest.models.animals.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
 )
 
-ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.MAMMAL: (0.75, 0.018),
-    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-    TaxaType.BIRD: (0.75, 0.05),
-    # Toy values.
-}
 
-ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.INSECT: (0.75, 0.08)
-    # Insect metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-}
+@dataclass(frozen=True)
+class AnimalConsts:
+    """Dataclass to store all constants related to metabolic rates.
 
-METABOLIC_RATE_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = {
+    TODO: The entire constants fille will be reworked in this style after the energy to
+    mass conversion.
+
+    """
+
+    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
+        default_factory=lambda: {
+            # Parameters from Madingley, mass-based metabolic rates
+            MetabolicType.ENDOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (9.08e11, 0.7),
+            },
+            MetabolicType.ECTOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (1.49e11, 0.88),
+            },
+        }
+    )
+
+
+METABOLIC_RATE_TERMS: dict[MetabolicType, dict[str, tuple[float, float]]] = {
+    # Parameters from Madingley, mass based metabolic rates
     MetabolicType.ENDOTHERMIC: {
-        TaxaType.MAMMAL: (0.75, 0.018),
-        # Mammalian herbivore population density, observed allometry (Damuth 1987).
-        # [assumes kg mass]
-        TaxaType.BIRD: (0.75, 0.05),
-        # Toy values.
+        "basal": (4.19e10, 0.69),
+        "field": (9.08e11, 0.7),
     },
     MetabolicType.ECTOTHERMIC: {
-        TaxaType.INSECT: (0.75, 0.08)
-        # Toy values.
+        "basal": (4.19e10, 0.69),
+        "field": (1.49e11, 0.88),
     },
 }
-
 
 DAMUTHS_LAW_TERMS: dict[TaxaType, dict[DietType, tuple[float, float]]] = {
     TaxaType.MAMMAL: {
@@ -140,8 +152,13 @@ BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 
-REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
-REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs
+BIRTH_MASS_THRESHOLD: float = 1.5  # Toy value for thresholding reproduction.
+
+FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD: float = (
+    1.0  # Toy value for threshold of trophic flow to reproductive mass.
+)
+
+DISPERSAL_MASS_THRESHOLD: float = 0.75  # Toy value for thesholding dispersal.
 
 ENERGY_PERCENTILE_THRESHOLD: float = 0.5  # Toy value for initiating migration
 

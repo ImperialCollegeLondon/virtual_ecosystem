@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 import xarray
+from xarray import DataArray
 
 
 @pytest.fixture
@@ -17,6 +18,59 @@ def plant_data_instance():
     leaf_mass[1:4, :] = 10000
     data["layer_leaf_mass"] = xarray.DataArray(
         data=leaf_mass, dims=["layers", "cell_id"]
+    )
+
+    return data
+
+
+@pytest.fixture
+def plant_climate_data_instance(layer_roles_fixture):
+    """Fixture returning a combination of plant and air temperature data."""
+
+    from virtual_rainforest.core.data import Data
+    from virtual_rainforest.core.grid import Grid
+
+    # Setup the data object with four cells.
+    grid = Grid(
+        grid_type="square",
+        cell_nx=3,
+        cell_ny=1,
+    )
+    data = Data(grid)
+
+    leaf_mass = np.full((15, 3), fill_value=np.nan)
+    leaf_mass[1:4, :] = 10000
+    data["layer_leaf_mass"] = xarray.DataArray(
+        data=leaf_mass, dims=["layers", "cell_id"]
+    )
+    data["air_temperature"] = xarray.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.844995, 29.844995, 29.844995],
+                    [28.87117, 28.87117, 28.87117],
+                    [27.206405, 27.206405, 27.206405],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [22.65, 22.65, 22.65],
+                    [16.145945, 16.145945, 16.145945],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "cell_id": data.grid.cell_id,
+        }
     )
 
     return data
@@ -79,7 +133,7 @@ def herbivore_cohort_instance(herbivore_functional_group_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1)
+    return AnimalCohort(herbivore_functional_group_instance, 10000.0, 1, 10)
 
 
 @pytest.fixture

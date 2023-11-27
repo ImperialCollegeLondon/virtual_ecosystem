@@ -1,5 +1,4 @@
 [core]
-modules = [plants, soil]
 
 [core.grid]
 nx = 10
