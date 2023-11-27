@@ -22,11 +22,13 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
     )
 
 
-def test_calculate_environmental_factors(dummy_carbon_data, top_soil_layer_index):
+def test_calculate_environmental_effect_factors(
+    dummy_carbon_data, top_soil_layer_index
+):
     """Test that function to calculate all set of environmental factors works."""
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.env_factors import (
-        calculate_environmental_factors,
+        calculate_environmental_effect_factors,
     )
 
     expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
@@ -34,7 +36,7 @@ def test_calculate_environmental_factors(dummy_carbon_data, top_soil_layer_index
     expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
     expected_clay_decay = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
 
-    env_factors = calculate_environmental_factors(
+    env_factors = calculate_environmental_effect_factors(
         soil_water_potential=dummy_carbon_data["matric_potential"][
             top_soil_layer_index
         ],

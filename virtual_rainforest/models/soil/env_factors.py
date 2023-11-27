@@ -14,7 +14,7 @@ from virtual_rainforest.models.soil.constants import SoilConsts
 
 
 @dataclass
-class EnvironmentalFactors:
+class EnvironmentalEffectFactors:
     """The various factors through which the environment effects soil cycling rates."""
 
     water: NDArray[np.float32]
@@ -27,13 +27,13 @@ class EnvironmentalFactors:
     """Impact of soil clay fraction on necromass decay destination [unitless]."""
 
 
-def calculate_environmental_factors(
+def calculate_environmental_effect_factors(
     soil_water_potential: NDArray[np.float32],
     pH: NDArray[np.float32],
     clay_fraction: NDArray[np.float32],
     constants: SoilConsts,
-) -> EnvironmentalFactors:
-    """Calculate the impact of the environment has on relevant biogeochemical rates.
+) -> EnvironmentalEffectFactors:
+    """Calculate the effects that the environment has on relevant biogeochemical rates.
 
     For each environmental effect a multiplicative factor is calculated, and all of them
     are returned in a single object for use elsewhere in the soil model.
@@ -77,7 +77,7 @@ def calculate_environmental_factors(
     )
 
     # Combine all factors into a single EnvironmentalFactors object
-    return EnvironmentalFactors(
+    return EnvironmentalEffectFactors(
         water=water_factor,
         pH=pH_factor,
         clay_saturation=clay_factor_saturation,

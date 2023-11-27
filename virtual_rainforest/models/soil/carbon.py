@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.soil.constants import SoilConsts
 from virtual_rainforest.models.soil.env_factors import (
-    calculate_environmental_factors,
+    calculate_environmental_effect_factors,
     calculate_leaching_rate,
     calculate_temperature_effect_on_microbes,
 )
@@ -89,7 +89,7 @@ def calculate_soil_carbon_updates(
     """
 
     # Find environmental factors which impact biogeochemical soil processes
-    env_factors = calculate_environmental_factors(
+    env_factors = calculate_environmental_effect_factors(
         soil_water_potential=soil_water_potential,
         pH=pH,
         clay_fraction=clay_fraction,
