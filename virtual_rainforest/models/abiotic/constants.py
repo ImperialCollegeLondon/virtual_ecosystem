@@ -40,7 +40,7 @@ class AbioticConsts(ConstantsDataclass):
     """Control parameter for scaling zero displacement to height, dimensionless.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
-    :cite:p:`raupach_simplified_1994`."""
+    :cite:t:`raupach_simplified_1994`."""
 
     substrate_surface_drag_coefficient: float = 0.003
     """Substrate-surface drag coefficient, dimensionless.
@@ -140,7 +140,7 @@ class AbioticConsts(ConstantsDataclass):
     yasuda_stability_parameter2: float = 2
     """Parameter to approximate diabatic correction factors for heat and momentum.
 
-    Value is taken from :cite:t:`yasuda_turbulent_1988."""
+    Value is taken from :cite:t:`yasuda_turbulent_1988`."""
 
     yasuda_stability_parameter3: float = 16
     """Parameter to approximate diabatic correction factors for heat and momentum.
