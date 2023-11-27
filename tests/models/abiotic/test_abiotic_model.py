@@ -60,8 +60,7 @@ def test_abiotic_model_initialization(
     "cfg_string,time_interval,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\nmodules=['abiotic']\n"
-            "[core.timing]\nupdate_interval = '1 day'\n",
+            "[core]\n[core.timing]\nupdate_interval = '1 day'\n[abiotic]\n",
             pint.Quantity("1 day"),
             does_not_raise(),
             (
@@ -79,8 +78,7 @@ def test_abiotic_model_initialization(
             id="initialises correctly",
         ),
         pytest.param(
-            "[core]\nmodules=['abiotic']\n"
-            "[core.timing]\nupdate_interval = '1 month'\n",
+            "[core]\n[core.timing]\nupdate_interval = '1 month'\n[abiotic]\n",
             pint.Quantity("1 month"),
             pytest.raises(ConfigurationError),
             (
