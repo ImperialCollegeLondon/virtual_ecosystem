@@ -234,10 +234,7 @@ class SoilModel(BaseModel):
         # model only currently gives total flow (over the entire time step) rather than
         # flow rates
         # Convert vertical flow into per day units
-        vertical_flow_per_day = (
-            self.data["vertical_flow"][self.top_soil_layer_index].to_numpy()
-            / update_time
-        )
+        vertical_flow_per_day = self.data["vertical_flow"].to_numpy() / update_time
 
         # Carry out simulation
         output = solve_ivp(

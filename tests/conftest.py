@@ -187,22 +187,7 @@ def dummy_carbon_data(layer_roles_fixture):
         [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
     )
     # Data for combined vertical flow (for entire timestep)
-    data["vertical_flow"] = xr.concat(
-        [
-            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
-            # At present the soil model only uses the top soil layer, so this is the
-            # only one with real test values in
-            DataArray([[3.0, 15.0, 75.0, 47.7]], dims=["layers", "cell_id"]),
-            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": data.grid.cell_id,
-        }
-    )
+    data["vertical_flow"] = DataArray([3.0, 15.0, 75.0, 47.7], dims=["cell_id"])
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(

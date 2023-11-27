@@ -468,9 +468,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     }
 
     # Find rate of flow per day
-    vertical_flow_per_day = (
-        dummy_carbon_data["vertical_flow"][top_soil_layer_index].to_numpy() / 30.0
-    )
+    vertical_flow_per_day = dummy_carbon_data["vertical_flow"].to_numpy() / 30.0
 
     rate_of_change = construct_full_soil_model(
         0.0,
