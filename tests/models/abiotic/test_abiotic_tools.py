@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 
 
@@ -15,9 +16,9 @@ def test_calculate_molar_density_air():
     result = calculate_molar_density_air(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
         atmospheric_pressure=np.full((3, 3), 96),
-        standard_mole=AbioticConsts.standard_mole,
-        standard_pressure=AbioticConsts.standard_pressure,
-        celsius_to_kelvin=AbioticConsts.celsius_to_kelvin,
+        standard_mole=CoreConsts.standard_mole,
+        standard_pressure=CoreConsts.standard_pressure,
+        celsius_to_kelvin=CoreConsts.zero_Celsius,
     )
     np.testing.assert_allclose(
         result,
@@ -42,7 +43,7 @@ def test_calculate_specific_heat_air():
 
     result = calculate_specific_heat_air(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
-        molar_heat_capacity_air=AbioticConsts.molar_heat_capacity_air,
+        molar_heat_capacity_air=CoreConsts.molar_heat_capacity_air,
         specific_heat_equ_factor_1=AbioticConsts.specific_heat_equ_factor_1,
         specific_heat_equ_factor_2=AbioticConsts.specific_heat_equ_factor_2,
     )
@@ -63,7 +64,7 @@ def test_calculate_latent_heat_vaporisation():
 
     result = calculate_latent_heat_vaporisation(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
-        celsius_to_kelvin=AbioticConsts.celsius_to_kelvin,
+        celsius_to_kelvin=CoreConsts.zero_Celsius,
         latent_heat_vap_equ_factor_1=AbioticConsts.latent_heat_vap_equ_factor_1,
         latent_heat_vap_equ_factor_2=AbioticConsts.latent_heat_vap_equ_factor_2,
     )

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 
 
@@ -84,7 +85,7 @@ def test_calculate_roughness_length_momentum(dummy_data):
             AbioticConsts.max_ratio_wind_to_friction_velocity
         ),
         min_roughness_length=AbioticConsts.min_roughness_length,
-        von_karman_constant=AbioticConsts.von_karmans_constant,
+        von_karman_constant=CoreConsts.von_karmans_constant,
     )
 
     np.testing.assert_allclose(
@@ -107,8 +108,8 @@ def test_calculate_diabatic_correction_above(dummy_data):
         friction_velocity=dummy_data["friction_velocity"].to_numpy(),
         wind_heights=np.array([1, 15, 50]),
         zero_plane_displacement=np.array([0, 8, 43]),
-        celsius_to_kelvin=AbioticConsts.celsius_to_kelvin,
-        von_karmans_constant=AbioticConsts.von_karmans_constant,
+        celsius_to_kelvin=CoreConsts.zero_Celsius,
+        von_karmans_constant=CoreConsts.von_karmans_constant,
         yasuda_stability_parameter1=AbioticConsts.yasuda_stability_parameter1,
         yasuda_stability_parameter2=AbioticConsts.yasuda_stability_parameter2,
         yasuda_stability_parameter3=AbioticConsts.yasuda_stability_parameter3,
@@ -217,7 +218,7 @@ def test_calculate_friction_velocity(dummy_data):
         zeroplane_displacement=np.array([0, 8, 43]),
         roughness_length_momentum=np.array([0.003, 0.435, 1.521]),
         diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
-        von_karmans_constant=AbioticConsts.von_karmans_constant,
+        von_karmans_constant=CoreConsts.von_karmans_constant,
     )
     exp_result = np.array([0.0, 1.310997, 4.0])
     np.testing.assert_allclose(result, exp_result)
@@ -234,7 +235,7 @@ def test_calculate_wind_above_canopy():
         zeroplane_displacement=np.array([0, 8, 43]),
         roughness_length_momentum=np.array([0.003, 0.435, 1.521]),
         diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
-        von_karmans_constant=AbioticConsts.von_karmans_constant,
+        von_karmans_constant=CoreConsts.von_karmans_constant,
         min_wind_speed_above_canopy=AbioticConsts.min_wind_speed_above_canopy,
     )
 

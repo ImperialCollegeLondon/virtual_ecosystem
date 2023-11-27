@@ -6,41 +6,12 @@ simulation.
 
 from dataclasses import dataclass
 
-from scipy.constants import Stefan_Boltzmann, atmosphere, gravitational_constant
-
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)
 class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""
-
-    celsius_to_kelvin: float = 273.15
-    """TODO CoreConst! Factor to convert temperature between Celsius and Kelvin."""
-
-    standard_pressure: float = atmosphere / 1000
-    """TODO CoreConst! Standard atmospheric pressure, [kPa]"""
-
-    standard_mole: float = 44.642
-    """TODO CoreConst! Moles of ideal gas in 1 m^3 air at standard atmosphere."""
-
-    molar_heat_capacity_air: float = 29.19
-    """TODO CoreConst! Molar heat capacity of air, [J mol-1 K-1]."""
-
-    gravity: float = gravitational_constant
-    """TODO CoreConst! Newtonian constant of gravitation, [m s-1]."""
-
-    stefan_boltzmann_constant: float = Stefan_Boltzmann
-    """TODO CoreConst! Stefan-Boltzmann constant, [W m-2 K-4].
-
-    The Stefan-Boltzmann constant relates the energy radiated by a black body to its
-    temperature."""
-
-    von_karmans_constant: float = 0.4
-    """TODO CoreConst? Von Karman's constant, [unitless].
-
-    The von Karman's constant describes the logarithmic velocity profile of a turbulent
-    fluid near a no-slip boundary."""
 
     specific_heat_equ_factor_1: float = 2e-05
     """Factor in calculation of molar specific heat of air.
