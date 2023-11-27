@@ -99,6 +99,24 @@ def test_calculate_water_potential_impact_on_microbes(
     assert np.allclose(actual_factor, expected_factor)
 
 
+def test_soil_water_potential_too_high(dummy_carbon_data, top_soil_layer_index):
+    """Test that too high soil water potential results in an error."""
+    from virtual_rainforest.models.soil.constants import SoilConsts
+    from virtual_rainforest.models.soil.env_factors import (
+        calculate_water_potential_impact_on_microbes,
+    )
+
+    water_potentials = np.array([-2.0, -10.0, -250.0, -10000.0])
+
+    with pytest.raises(ValueError):
+        calculate_water_potential_impact_on_microbes(
+            water_potential=water_potentials,
+            water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
+            water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
+            moisture_response_curvature=SoilConsts.moisture_response_curvature,
+        )
+
+
 def test_calculate_pH_suitability():
     """Test that calculation of pH suitability is correct."""
     from virtual_rainforest.models.soil.constants import SoilConsts

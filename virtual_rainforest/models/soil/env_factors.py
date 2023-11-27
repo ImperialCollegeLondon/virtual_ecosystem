@@ -147,7 +147,7 @@ def calculate_water_potential_impact_on_microbes(
 
     # If the water potential is greater than the optimal then the function produces NaNs
     # so the simulation should be interrupted
-    if any(water_potential > water_potential_opt):
+    if np.any(water_potential > water_potential_opt):
         err = ValueError("Water potential greater than minimum value")
         LOGGER.critical(err)
         raise err
