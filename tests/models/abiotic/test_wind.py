@@ -109,6 +109,10 @@ def test_calculate_diabatic_correction_above(dummy_data):
         zero_plane_displacement=np.array([0, 8, 43]),
         celsius_to_kelvin=AbioticConsts.celsius_to_kelvin,
         von_karmans_constant=AbioticConsts.von_karmans_constant,
+        yasuda_stability_parameter1=AbioticConsts.yasuda_stability_parameter1,
+        yasuda_stability_parameter2=AbioticConsts.yasuda_stability_parameter2,
+        yasuda_stability_parameter3=AbioticConsts.yasuda_stability_parameter3,
+        diabatic_heat_momentum_ratio=AbioticConsts.diabatic_heat_momentum_ratio,
     )
 
     exp_result_h = np.array([0.003044, 0.026923, 0.012881])
@@ -254,9 +258,9 @@ def test_calculate_wind_canopy(dummy_data):
     )
     exp_result = np.array(
         [
-            [0.0, 1.797693e308, 1.797693e308],
-            [2.0, 7.841561, 57.16319],
-            [2.0, 3.188141, 8.051917],
+            [0.000000e000, 1.797693e308, 1.797693e308],
+            [2.000000e000, 6.718990e000, 4.247477e001],
+            [2.000000e000, 3.814989e000, 7.398743e000],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)

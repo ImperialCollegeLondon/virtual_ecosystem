@@ -59,20 +59,16 @@ def calculate_zero_plane_displacement(
         zero place displacement height, [m]
     """
 
-    # Calculate in presence of vegetation
-    leaf_area_index_displacement = np.where(
-        leaf_area_index > 0, leaf_area_index, np.nan
-    )
+    # Select grid cells where vegetation is present
+    displacement = np.where(leaf_area_index > 0, leaf_area_index, np.nan)
 
-    scale_displacement = np.sqrt(
-        zero_plane_scaling_parameter * leaf_area_index_displacement
-    )
-
+    # Calculate zero displacement height
+    scale_displacement = np.sqrt(zero_plane_scaling_parameter * displacement)
     zero_place_displacement = (
         (1 - (1 - np.exp(-scale_displacement)) / scale_displacement) * canopy_height,
     )
 
-    # no displacement in absence of vegetation
+    # No displacement in absence of vegetation
     return np.nan_to_num(zero_place_displacement, nan=0.0).squeeze()
 
 
@@ -154,6 +150,10 @@ def calculate_diabatic_correction_above(
     zero_plane_displacement: NDArray[np.float32],
     celsius_to_kelvin: float,
     von_karmans_constant: float,
+    yasuda_stability_parameter1: float,
+    yasuda_stability_parameter2: float,
+    yasuda_stability_parameter3: float,
+    diabatic_heat_momentum_ratio: float,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculates the diabatic correction factors for momentum and heat above canopy.
 
@@ -176,6 +176,14 @@ def calculate_diabatic_correction_above(
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
         von_karmans_constant
+        yasuda_stability_parameter1: Parameter to approximate diabatic correction
+            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+        yasuda_stability_parameter2: Parameter to approximate diabatic correction
+            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+        yasuda_stability_parameter3: Parameter to approximate diabatic correction
+            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+        diabatic_heat_momentum_ratio: Factor that relates diabatic correction
+            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
 
     Returns:
         diabatic correction factors for heat (psi_h) and momentum (psi_m) transfer
@@ -193,20 +201,20 @@ def calculate_diabatic_correction_above(
         * friction_velocity
     )
 
-    stable_condition = 6 * np.log(1 - stability)
-    unstable_condition = -2 * np.log((1 + np.sqrt(1 - 16 * stability)) / 2)
+    stable_condition = yasuda_stability_parameter1 * np.log(1 - stability)
+    unstable_condition = -yasuda_stability_parameter2 * np.log(
+        (1 + np.sqrt(1 - yasuda_stability_parameter3 * stability)) / 2
+    )
 
     diabatic_correction_heat = np.where(
-        stability < 0, stable_condition, unstable_condition
+        sensible_heat_flux < 0, stable_condition, unstable_condition
     )
 
     diabatic_correction_momentum = np.where(
-        stability < 0, diabatic_correction_heat, 0.6 * diabatic_correction_heat
+        sensible_heat_flux < 0,
+        diabatic_correction_heat,
+        diabatic_heat_momentum_ratio * diabatic_correction_heat,
     )
-
-    # Apply upper threshold
-    diabatic_correction_momentum = np.minimum(diabatic_correction_momentum, 5)
-    diabatic_correction_heat = np.minimum(diabatic_correction_heat, 5)
 
     return {"psi_m": diabatic_correction_momentum, "psi_h": diabatic_correction_heat}
 
