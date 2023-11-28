@@ -166,8 +166,10 @@ def excrement_instance():
 
 
 @pytest.fixture
-def plant_instance(plant_data_instance):
+def plant_instance(plant_data_instance, constants_instance):
     """Fixture for a plant community used in tests."""
     from virtual_rainforest.models.animals.plant_resources import PlantResources
 
-    return PlantResources(data=plant_data_instance, cell_id=4)
+    return PlantResources(
+        data=plant_data_instance, cell_id=4, constants=constants_instance
+    )

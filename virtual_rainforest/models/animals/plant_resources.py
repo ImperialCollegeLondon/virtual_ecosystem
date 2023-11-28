@@ -34,11 +34,12 @@ class PlantResources:
             data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
         )
         """The mass of the plant leaf mass [kg]."""
-
+        self.constants = constants
+        """The animals constants."""
         # Calculate energy availability
         # TODO - this needs to be handed back to the plants model, which will define PFT
         #        specific conversions to different resources.
-        self.energy_density: float = constants.energy_density["plant"]
+        self.energy_density: float = self.constants.energy_density["plant"]
         """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
         self.energy_max: float = self.mass_current * self.energy_density
         """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
