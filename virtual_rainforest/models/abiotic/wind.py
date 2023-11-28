@@ -439,6 +439,7 @@ def calculate_wind_canopy(
     wind_layer_heights: NDArray[np.float32],
     canopy_height: NDArray[np.float32],
     attenuation_coefficient: NDArray[np.float32],
+    min_windspeed_below_canopy: float,
 ) -> NDArray[np.float32]:
     """Calculate wind profile for individual canopy layers with variable leaf area.
 
@@ -448,8 +449,11 @@ def calculate_wind_canopy(
         top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m /s]
         wind_layer_heights: Height of canopy layer node, [m]
         canopy_height: Height to top of canopy layer, [m]
-        attenuation_coefficient: Attenuation coefficient as returned by
+        attenuation_coefficient: Mean attenuation coefficient based on the profile
+            calculated by
             :func:`~virtual_rainforest.models.abiotic.wind.calculate_wind_attenuation_coefficient`
+        min_windspeed_below_canopy: Minimum wind speed below the canopy or in absence of
+            vegetation, [m/s]. This value is set to avoid dividion by zero.
 
     Returns:
         wind speed at height of canopy node, [m/s]
@@ -458,5 +462,5 @@ def calculate_wind_canopy(
     return np.nan_to_num(
         top_of_canopy_wind_speed
         * np.exp(attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)),
-        nan=0,
+        nan=min_windspeed_below_canopy,
     ).squeeze()

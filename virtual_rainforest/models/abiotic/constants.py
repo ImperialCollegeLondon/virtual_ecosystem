@@ -45,10 +45,10 @@ class AbioticConsts(ConstantsDataclass):
     substrate_surface_drag_coefficient: float = 0.003
     """Substrate-surface drag coefficient, dimensionless.
 
-    The substrate-surface drag coefficient represents the ratio of drag force exerted on
-    a surface to the dynamic pressure, crucial for modeling airflow over different
-    surface types, such as vegetation or rough terrain. Implementation and value from
-    :cite:t:`maclean_microclimc_2021`."""
+    The substrate-surface drag coefficient represents the resistance encountered by an
+    object moving on or through a surface and varies based on the nature of the surface
+    and the object's properties. Here, it affects how wind speed is altered by a surface
+    . Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     roughness_element_drag_coefficient: float = 0.3
     """Roughness-element drag coefficient, dimensionless.
@@ -84,14 +84,14 @@ class AbioticConsts(ConstantsDataclass):
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     relative_turbulence_intensity: float = 0.5
-    """Relative turbulence intensity.
+    """Relative turbulence intensity, dimensionless.
 
     The relative turbulence intensity is a proportionality factor that relates the mean
     eddy velocity is assumed to the local wind speed below the canopy. Implementation
     and value from :cite:t:`maclean_microclimc_2021`."""
 
     diabatic_correction_factor_below: float = 1
-    """Diabatic correction factor below canopy.
+    """Diabatic correction factor below canopy, dimensionless.
 
     The diabatic correction factor is a scaling adjustment used to compensate for the
     effects of vertical heat transfer or thermal non-adiabaticity on atmospheric
@@ -101,12 +101,12 @@ class AbioticConsts(ConstantsDataclass):
     """
 
     mixing_length_factor: float = 0.32
-    """Factor in calculation of mixing length.
+    """Factor in calculation of mixing length, dimensionless.
 
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     min_relative_turbulence_intensity: float = 0.36
-    """Minimum relative turbulence intensity.
+    """Minimum relative turbulence intensity, dimensionless.
 
     See :attr:`relative_turbulence_intensity`.
     The default value is taken from Shaw et al (1974) Agricultural Meteorology, 13:
@@ -115,7 +115,7 @@ class AbioticConsts(ConstantsDataclass):
     """
 
     max_relative_turbulence_intensity: float = 0.9
-    """Maximum relative turbulence intensity.
+    """Maximum relative turbulence intensity, dimensionless.
 
     See :attr:`relative_turbulence_intensity`.
     The default value from Shaw et al (1974) Agricultural Meteorology, 13: 419-425.
@@ -127,27 +127,36 @@ class AbioticConsts(ConstantsDataclass):
 
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
+    min_windspeed_below_canopy: float = 0.001
+    """Minimum wind speed below the canopy or in absence of vegetation, [m/s]."""
+
     min_roughness_length: float = 0.05
     """Minimum roughness length, [m].
 
+    The minimum roughness length represents the lowest height at which the surface
+    roughness significantly affects the wind flow over a particular terrain or surface.
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     yasuda_stability_parameter1: float = 6
     """Parameter to approximate diabatic correction factors for heat and momentum.
 
-    after :cite:t:`yasuda_turbulent_1988`."""
+    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
+    values taken from :cite:t:`yasuda_turbulent_1988`."""
 
     yasuda_stability_parameter2: float = 2
     """Parameter to approximate diabatic correction factors for heat and momentum.
 
-    Value is taken from :cite:t:`yasuda_turbulent_1988`."""
+    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
+    values taken from :cite:t:`yasuda_turbulent_1988`."""
 
     yasuda_stability_parameter3: float = 16
     """Parameter to approximate diabatic correction factors for heat and momentum.
 
-    Value is taken :cite:t:`yasuda_turbulent_1988`."""
+    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
+    values taken from :cite:t:`yasuda_turbulent_1988`."""
 
     diabatic_heat_momentum_ratio: float = 0.6
     """Factor that relates diabatic correction factors for heat and momentum.
 
-    Value is taken :cite:t:`yasuda_turbulent_1988`."""
+    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
+    values taken from :cite:t:`yasuda_turbulent_1988`."""
