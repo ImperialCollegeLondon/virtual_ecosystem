@@ -215,19 +215,17 @@ class SoilModel(BaseModel):
         # Construct vector of initial values y0
         y0 = np.concatenate(
             [
-                self.data[str(name)].to_numpy()
-                for name in self.data.data.keys()
-                if str(name).startswith("soil_c_pool_")
-                or str(name).startswith("soil_enzyme_")
+                self.data[name].to_numpy()
+                for name in map(str, self.data.data.keys())
+                if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
             ]
         )
 
         # Find and store order of pools
         delta_pools_ordered = {
-            str(name): np.array([])
-            for name in self.data.data.keys()
-            if str(name).startswith("soil_c_pool_")
-            or str(name).startswith("soil_enzyme_")
+            name: np.array([])
+            for name in map(str, self.data.data.keys())
+            if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
         }
 
         # TODO - This is a work around as (to the best of my knowledge) the hydrology
