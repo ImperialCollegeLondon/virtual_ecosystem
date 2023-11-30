@@ -16,11 +16,7 @@ from numpy import random, timedelta64
 
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
-from virtual_rainforest.models.animals.constants import (
-    DECAY_FRACTION_CARCASSES,
-    DECAY_FRACTION_EXCREMENT,
-    FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD,
-)
+from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.protocols import Consumer, DecayPool, Resource
@@ -42,6 +38,7 @@ class AnimalCohort:
         mass: float,
         age: float,
         individuals: int,
+        constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
@@ -63,6 +60,8 @@ class AnimalCohort:
         """The age of the animal cohort [days]."""
         self.individuals = individuals
         """The number of individuals in this cohort."""
+        self.constants = constants
+        """Animal constants."""
         self.damuth_density: int = damuths_law(
             self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
@@ -92,9 +91,9 @@ class AnimalCohort:
 
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
-        self.decay_fraction_excrement: float = DECAY_FRACTION_EXCREMENT
+        self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
         """The fraction of excrement which decays before it gets consumed."""
-        self.decay_fraction_carcasses: float = DECAY_FRACTION_CARCASSES
+        self.decay_fraction_carcasses: float = self.constants.decay_fraction_carcasses
         """The fraction of carcass biomass which decays before it gets consumed."""
 
     def metabolize(self, temperature: float, dt: timedelta64) -> None:
@@ -326,7 +325,9 @@ class AnimalCohort:
         # get the per-individual energetic gain from the bulk value
         mass_consumed = food.get_eaten(self, pool) / self.individuals
 
-        if self.is_below_mass_threshold(FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD):
+        if self.is_below_mass_threshold(
+            self.constants.flow_to_reproductive_mass_threshold
+        ):
             # if current mass equals or exceeds standard adult mass, gains to repro mass
             self.mass_current += mass_consumed
         else:
