@@ -8,6 +8,8 @@ Soil temperature is interpolated between the surface layer and the soil temperat
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
+
+TODO change tenperatures to Kelvin
 """  # noqa: D205, D415
 
 import numpy as np
