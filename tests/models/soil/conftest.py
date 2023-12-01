@@ -21,7 +21,7 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
         ].to_numpy(),
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
-        moisture_response_curvature=SoilConsts.moisture_response_curvature,
+        response_curvature=SoilConsts.microbial_water_response_curvature,
     )
 
     pH_factors = calculate_pH_suitability(

@@ -57,7 +57,7 @@ def calculate_environmental_effect_factors(
         water_potential=soil_water_potential,
         water_potential_halt=constants.soil_microbe_water_potential_halt,
         water_potential_opt=constants.soil_microbe_water_potential_optimum,
-        moisture_response_curvature=constants.moisture_response_curvature,
+        response_curvature=constants.microbial_water_response_curvature,
     )
     pH_factor = calculate_pH_suitability(
         soil_pH=pH,
@@ -125,7 +125,7 @@ def calculate_water_potential_impact_on_microbes(
     water_potential: NDArray[np.float32],
     water_potential_halt: float,
     water_potential_opt: float,
-    moisture_response_curvature: float,
+    response_curvature: float,
 ) -> NDArray[np.float32]:
     """Calculate the effect that soil water potential has on microbial rates.
 
@@ -137,8 +137,8 @@ def calculate_water_potential_impact_on_microbes(
         water_potential_halt: Water potential at which all microbial activity stops
             [kPa]
         water_potential_opt: Optimal water potential for microbial activity [kPa]
-        moisture_response_curvature: Parameter controlling the curvature of the moisture
-            response function [unitless]
+        response_curvature: Parameter controlling the curvature of function that
+            captures the response of microbial rates to water potential [unitless]
 
     Returns:
         A multiplicative factor capturing the impact of moisture on soil microbe rates
@@ -156,7 +156,7 @@ def calculate_water_potential_impact_on_microbes(
     supression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
-    ) ** moisture_response_curvature
+    ) ** response_curvature
 
     return 1 - supression
 

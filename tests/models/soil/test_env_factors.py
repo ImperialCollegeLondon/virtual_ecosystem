@@ -93,7 +93,7 @@ def test_calculate_water_potential_impact_on_microbes(
         water_potential=dummy_carbon_data["matric_potential"][top_soil_layer_index],
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
-        moisture_response_curvature=SoilConsts.moisture_response_curvature,
+        response_curvature=SoilConsts.microbial_water_response_curvature,
     )
 
     assert np.allclose(actual_factor, expected_factor)
@@ -113,7 +113,7 @@ def test_soil_water_potential_too_high(dummy_carbon_data, top_soil_layer_index):
             water_potential=water_potentials,
             water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
             water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
-            moisture_response_curvature=SoilConsts.moisture_response_curvature,
+            response_curvature=SoilConsts.microbial_water_response_curvature,
         )
 
 

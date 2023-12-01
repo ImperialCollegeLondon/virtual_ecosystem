@@ -44,10 +44,10 @@ class SoilConsts(ConstantsDataclass):
     Value is taken from :cite:t`moyano_responses_2013`.
     """
 
-    moisture_response_curvature: float = 1.47
-    """Curvature of the soil microbial moisture response function [unitless].
+    microbial_water_response_curvature: float = 1.47
+    """Curvature of function for response of soil microbial rates to water potential.
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    [unitless]. Value is taken from :cite:t`moyano_responses_2013`.
     """
 
     arrhenius_reference_temp: float = 12.0
