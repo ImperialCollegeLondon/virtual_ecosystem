@@ -17,13 +17,9 @@ from virtual_rainforest.models.soil.soil_model import IntegrationError
 @pytest.fixture
 def soil_model_fixture(dummy_carbon_data):
     """Create a soil model fixture based on the dummy carbon data."""
-
     from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.registry import register_module
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
-    # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
     # Build the config object
     config = Config(
         cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
