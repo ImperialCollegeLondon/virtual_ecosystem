@@ -473,7 +473,7 @@ def dummy_climate_data(layer_roles_fixture):
         dims=("groundwater_layers", "cell_id"),
     )
     data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
-    data["sensible_heat_flux_toc"] = DataArray([100, 50, 10], dims=["cell_id"])
+    data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
     data["wind_speed_ref"] = DataArray([0, 5, 10], dims=["cell_id"])
     return data

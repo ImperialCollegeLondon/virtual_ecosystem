@@ -52,7 +52,15 @@ class AbioticModel(BaseModel):
     """Shortest time scale that abiotic model can sensibly capture."""
     upper_bound_on_time_scale = "1 day"
     """Longest time scale that abiotic model can sensibly capture."""
-    required_init_vars = (("air_temperature_ref", ("spatial",)),)
+    required_init_vars = (
+        ("air_temperature", ("spatial",)),
+        ("canopy_height", ("spatial",)),
+        ("layer_heights", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+        ("atmospheric_pressure_ref", ("spatial",)),
+        ("sensible_heat_flux_topofcanopy", ("spatial",)),
+        ("wind_speed_ref", ("spatial",)),
+    )
     """The required variables and axes for the abiotic model"""
     vars_updated = ()
     """Variables updated by the abiotic model"""

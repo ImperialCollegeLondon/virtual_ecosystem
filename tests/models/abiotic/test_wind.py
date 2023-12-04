@@ -69,7 +69,9 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
         molar_density_air=np.repeat(28.96, 3),
         specific_heat_air=np.repeat(1, 3),
         temperature=air_temperature.to_numpy(),
-        sensible_heat_flux=dummy_climate_data.data["sensible_heat_flux_toc"].to_numpy(),
+        sensible_heat_flux=(
+            dummy_climate_data.data["sensible_heat_flux_topofcanopy"].to_numpy()
+        ),
         friction_velocity=dummy_climate_data.data["friction_velocity"].to_numpy(),
         wind_heights=np.array([1, 15, 50]),
         zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
