@@ -15,7 +15,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data.data["canopy_height"].to_numpy(),
         leaf_area_index=np.array([0, 3, 7]),
-        zero_plane_scaling_parameter=AbioticConsts.zero_plane_scaling_parameter,
+        zero_plane_scaling_parameter=7.5,
     )
 
     np.testing.assert_allclose(result, np.array([0.0, 25.312559, 27.58673]))
@@ -32,19 +32,11 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
         canopy_height=dummy_climate_data.data["canopy_height"].to_numpy(),
         leaf_area_index=np.array([0, 3, 7]),
         zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        substrate_surface_drag_coefficient=(
-            AbioticConsts.substrate_surface_drag_coefficient
-        ),
-        roughness_element_drag_coefficient=(
-            AbioticConsts.roughness_element_drag_coefficient
-        ),
-        roughness_sublayer_depth_parameter=(
-            AbioticConsts.roughness_sublayer_depth_parameter
-        ),
-        max_ratio_wind_to_friction_velocity=(
-            AbioticConsts.max_ratio_wind_to_friction_velocity
-        ),
-        min_roughness_length=AbioticConsts.min_roughness_length,
+        substrate_surface_drag_coefficient=0.003,
+        roughness_element_drag_coefficient=0.3,
+        roughness_sublayer_depth_parameter=0.193,
+        max_ratio_wind_to_friction_velocity=0.3,
+        min_roughness_length=0.05,
         von_karman_constant=CoreConsts.von_karmans_constant,
     )
 
@@ -138,12 +130,8 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
     )
     result = generate_relative_turbulence_intensity(
         layer_heights=layer_heights.to_numpy(),
-        min_relative_turbulence_intensity=(
-            AbioticConsts.min_relative_turbulence_intensity
-        ),
-        max_relative_turbulence_intensity=(
-            AbioticConsts.max_relative_turbulence_intensity
-        ),
+        min_relative_turbulence_intensity=0.36,
+        max_relative_turbulence_intensity=0.9,
         increasing_with_height=True,
     )
 
@@ -263,7 +251,7 @@ def test_calculate_wind_above_canopy(dummy_climate_data):
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
         diabatic_correction_momentum=np.array([0.003, 0.026, 0.013]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
-        min_wind_speed_above_canopy=AbioticConsts.min_wind_speed_above_canopy,
+        min_wind_speed_above_canopy=0.55,
     )
 
     exp_result = np.array([0.55, 5.590124, 10.750233])
