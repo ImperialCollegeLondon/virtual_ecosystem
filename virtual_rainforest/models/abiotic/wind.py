@@ -591,7 +591,7 @@ def calculate_wind_profile(
         diabatic_correction_momentum=diabatic_correction_above["psi_m"],
         von_karmans_constant=core_constants.von_karmans_constant,
     )
-    output["friction_velocity"] = friction_velocity[0]
+    output["friction_velocity"] = friction_velocity
 
     mean_mixing_length = calculate_mean_mixing_length(
         canopy_height=canopy_height,

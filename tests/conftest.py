@@ -319,6 +319,9 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 30),
         dims=["cell_id", "time_index"],
     )
+    data["wind_speed_ref"] = DataArray(
+        [[0, 5, 10], [0, 5, 10], [0, 5, 10]], dims=["time_index", "cell_id"]
+    )
     data["mean_annual_temperature"] = DataArray(
         np.full((3), 20),
         dims=["cell_id"],
@@ -339,6 +342,18 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 400),
         dims=["cell_id", "time_index"],
     )
+    pressure = np.repeat(a=[96.0, np.nan], repeats=[13, 2])
+    data["atmospheric_pressure"] = DataArray(
+        np.broadcast_to(pressure, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": data.grid.cell_id,
+        },
+        name="atmospheric_pressure",
+    )
+
     evapotranspiration = np.repeat(a=[np.nan, 20.0, np.nan], repeats=[1, 3, 11])
     data["evapotranspiration"] = DataArray(
         np.broadcast_to(evapotranspiration, (3, 15)).T,
@@ -475,5 +490,5 @@ def dummy_climate_data(layer_roles_fixture):
     data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
     data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
-    data["wind_speed_ref"] = DataArray([0, 5, 10], dims=["cell_id"])
+
     return data

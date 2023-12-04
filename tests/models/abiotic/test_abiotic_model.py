@@ -3,8 +3,10 @@
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
+import numpy as np
 import pint
 import pytest
+from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -44,7 +46,7 @@ def test_abiotic_model_initialization(
             (DEBUG, "abiotic model: required var 'canopy_height' checked"),
             (DEBUG, "abiotic model: required var 'layer_heights' checked"),
             (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
-            (DEBUG, "abiotic model: required var 'atmospheric_pressure_ref' checked"),
+            (DEBUG, "abiotic model: required var 'atmospheric_pressure' checked"),
             (
                 DEBUG,
                 (
@@ -91,7 +93,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
                 ERROR,
                 (
                     "abiotic model: init data missing required var"
-                    " 'atmospheric_pressure_ref'"
+                    " 'atmospheric_pressure'"
                 ),
             ),
             (
@@ -128,7 +130,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
                 (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
                 (
                     DEBUG,
-                    "abiotic model: required var 'atmospheric_pressure_ref' checked",
+                    "abiotic model: required var 'atmospheric_pressure' checked",
                 ),
                 (
                     DEBUG,
@@ -160,7 +162,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
                 (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
                 (
                     DEBUG,
-                    "abiotic model: required var 'atmospheric_pressure_ref' checked",
+                    "abiotic model: required var 'atmospheric_pressure' checked",
                 ),
                 (
                     DEBUG,
@@ -278,3 +280,78 @@ def test_generate_abiotic_model_bounds_error(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    "cfg_string,time_interval",
+    [
+        pytest.param(
+            "[core]\n[core.timing]\nupdate_interval = '1 day'\n[abiotic]\n",
+            pint.Quantity("1 day"),
+            id="updates correctly",
+        ),
+    ],
+)
+def test_update_abiotic_model(
+    dummy_climate_data, layer_roles_fixture, cfg_string, time_interval
+):
+    """Test that update() returns expected output in data object."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.abiotic")
+
+    # Build the config object
+    config = Config(cfg_strings=cfg_string)
+
+    # initialise model
+    model = AbioticModel.from_config(
+        dummy_climate_data,
+        config,
+        pint.Quantity(config["core"]["timing"]["update_interval"]),
+    )
+
+    model.setup()
+    model.update(time_index=0)
+
+    friction_velocity_exp = np.array(
+        [
+            [0.0, 0.818637, 1.638679],
+            [0.0, 0.81887, 1.638726],
+            [0.0, 0.820036, 1.638959],
+            [0.0, 0.821194, 1.639192],
+            [0.0, 0.822174, 1.63939],
+            [0.0, 0.822336, 1.639422],
+        ]
+    )
+    wind_speed_exp = np.array(
+        [
+            [0.55, 5.536364, 11.07365],
+            [0.54557, 5.491774, 10.984462],
+            [0.523951, 5.274152, 10.549181],
+            [0.503188, 5.065153, 10.13115],
+            [0.486188, 4.89403, 9.788873],
+            [0.483444, 4.866404, 9.733618],
+        ]
+    )
+
+    wind_above_exp = np.array([0.55, 5.536364, 11.07365])
+
+    np.testing.assert_allclose(
+        model.data["wind_speed_above_canopy"], wind_above_exp, rtol=1e-3, atol=1e-3
+    )
+    np.testing.assert_allclose(
+        model.data["friction_velocity"],
+        DataArray(np.concatenate((friction_velocity_exp, np.full((9, 3), np.nan)))),
+        rtol=1e-3,
+        atol=1e-3,
+    )
+    np.testing.assert_allclose(
+        model.data["wind_speed_canopy"],
+        DataArray(np.concatenate((wind_speed_exp, np.full((9, 3), np.nan)))),
+        rtol=1e-3,
+        atol=1e-3,
+    )

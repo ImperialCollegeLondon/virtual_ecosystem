@@ -238,7 +238,9 @@ def test_calculate_friction_velocity(dummy_climate_data):
     from virtual_rainforest.models.abiotic.wind import calculate_fricition_velocity
 
     result = calculate_fricition_velocity(
-        wind_speed_ref=dummy_climate_data.data["wind_speed_ref"],
+        wind_speed_ref=(
+            dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
+        ),
         reference_height=(dummy_climate_data.data["canopy_height"] + 10).to_numpy(),
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
@@ -329,7 +331,9 @@ def test_calculate_wind_profile(dummy_climate_data):
         air_temperature=air_temperature.to_numpy(),
         atmospheric_pressure=np.array([96, 96, 96]),
         sensible_heat_flux_topofcanopy=np.array([100, 50, 10]),
-        wind_speed_ref=dummy_climate_data.data["wind_speed_ref"].to_numpy(),
+        wind_speed_ref=(
+            dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
+        ),
         wind_reference_height=(
             dummy_climate_data.data["canopy_height"] + 10
         ).to_numpy(),
@@ -338,7 +342,16 @@ def test_calculate_wind_profile(dummy_climate_data):
         core_constants=CoreConsts,
     )
 
-    friction_velocity_exp = np.array([0.0, 0.818637, 1.638679])
+    friction_velocity_exp = np.array(
+        [
+            [0.0, 0.818637, 1.638679],
+            [0.0, 0.81887, 1.638726],
+            [0.0, 0.820036, 1.638959],
+            [0.0, 0.821194, 1.639192],
+            [0.0, 0.822174, 1.63939],
+            [0.0, 0.822336, 1.639422],
+        ]
+    )
     wind_speed_exp = np.array(
         [
             [0.55, 5.536364, 11.07365],

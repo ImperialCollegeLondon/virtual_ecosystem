@@ -57,7 +57,7 @@ class AbioticModel(BaseModel):
         ("canopy_height", ("spatial",)),
         ("layer_heights", ("spatial",)),
         ("leaf_area_index", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
+        ("atmospheric_pressure", ("spatial",)),
         ("sensible_heat_flux_topofcanopy", ("spatial",)),
         ("wind_speed_ref", ("spatial",)),
     )
@@ -144,7 +144,7 @@ class AbioticModel(BaseModel):
                 .where(self.data[var].layer_roles != "soil")
                 .dropna(dim="layers")
             )
-            wind_update_inputs[var].append(selection[var])
+            wind_update_inputs[var] = selection
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["canopy_height"].to_numpy(),
@@ -152,11 +152,13 @@ class AbioticModel(BaseModel):
             wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
             leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
             air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
-            atmospheric_pressure=self.data["atmospheric_pressure_ref"].to_numpy(),
+            atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy()[0],
             sensible_heat_flux_topofcanopy=(
                 self.data["sensible_heat_flux_topofcanopy"].to_numpy()
             ),
-            wind_speed_ref=self.data["wind_speed_ref"].to_numpy(),
+            wind_speed_ref=(
+                self.data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+            ),
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
             turbulence_sign=True,
             abiotic_constants=AbioticConsts(),
@@ -178,7 +180,7 @@ class AbioticModel(BaseModel):
                         wind_update[var],
                         np.full(
                             (
-                                self.layer_roles.count("soil"),
+                                len(self.layer_roles) - len(wind_update[var]),
                                 self.data.grid.n_cells,
                             ),
                             np.nan,
@@ -188,7 +190,7 @@ class AbioticModel(BaseModel):
                 dims=self.data["layer_heights"].dims,
                 coords=self.data["layer_heights"].coords,
             )
-        wind_output[var] = var_out
+            wind_output[var] = var_out
 
         self.data.add_from_dict(output_dict=wind_output)
 
