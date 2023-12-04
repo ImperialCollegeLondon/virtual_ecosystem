@@ -196,7 +196,7 @@
                      "minItems": 1,
                      "uniqueItems": true,
                      "default": [
-                        -0.5,
+                        -0.25,
                         -1.0
                      ]
                   },
