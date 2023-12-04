@@ -27,7 +27,7 @@ def calculate_zero_plane_displacement(
     leaf_area_index: NDArray[np.float32],
     zero_plane_scaling_parameter: float,
 ) -> NDArray[np.float32]:
-    """Calculate zero plane displacement.
+    """Calculate zero plane displacement height, [m].
 
     The zero plane displacement height of a vegetated surface is the height at which the
     wind speed would go to zero if the logarithmic wind profile was maintained from the
@@ -38,7 +38,7 @@ def calculate_zero_plane_displacement(
     Args:
         canopy_height: Canopy height, [m]
         leaf_area_index: Total leaf area index, [m m-1]
-        zero_plane_scaling_parameter: Control parameter for scaling d/h
+        zero_plane_scaling_parameter: Control parameter for scaling d/h, dimensionless
             :cite:p:`raupach_simplified_1994`
 
     Returns:
@@ -69,7 +69,7 @@ def calculate_roughness_length_momentum(
     min_roughness_length: float,
     von_karman_constant: float,
 ) -> NDArray[np.float32]:
-    """Calculate roughness length governing momentum transfer.
+    """Calculate roughness length governing momentum transfer, [m].
 
     Roughness length is defined as the height at which the mean velocity is zero due to
     substrate roughness. Real surfaces such as the ground or vegetation are not smooth
@@ -81,15 +81,17 @@ def calculate_roughness_length_momentum(
         leaf_area_index: Total leaf area index, [m m-1]
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
-        substrate_surface_drag_coefficient: Substrate-surface drag coefficient
+        substrate_surface_drag_coefficient: Substrate-surface drag coefficient,
+            dimensionless
         roughness_element_drag_coefficient: Roughness-element drag coefficient
         roughness_sublayer_depth_parameter: Parameter that characterizes the roughness
-            sublayer depth
+            sublayer depth, dimensionless
         max_ratio_wind_to_friction_velocity: Maximum ratio of wind velocity to friction
-            velocity
+            velocity, dimensionless
         min_roughness_length: Minimum roughness length, [m]
-        von_karman_constant: Von Karman's constant, unitless constant describing the
-            logarithmic velocity profile of a turbulent fluid near a no-slip boundary.
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
 
     Returns:
         momentum roughness length, [m]
@@ -141,7 +143,7 @@ def calculate_diabatic_correction_above(
     yasuda_stability_parameter3: float,
     diabatic_heat_momentum_ratio: float,
 ) -> dict[str, NDArray[np.float32]]:
-    r"""Calculates the diabatic correction factors for momentum and heat above canopy.
+    r"""Calculate the diabatic correction factors for momentum and heat above canopy.
 
     Diabatic correction factor for heat and momentum are used to adjust wind profiles
     for surface heating and cooling :cite:p:`maclean_microclimc_2021`. When the surface
@@ -152,16 +154,18 @@ def calculate_diabatic_correction_above(
     Args:
         molar_density_air: molar density of air, [mol m-3]
         specific_heat_air: specific heat of air, [J mol-1 K-1]
-        temperature: 2m temperature
+        temperature: 2m temperature, [C]
         sensible_heat_flux: Sensible heat flux from canopy to atmosphere above,
             [W m-2], # TODO: could be the top entry of the general sensible heat flux
-        friction_velocity: Friction velocity
+        friction_velocity: Friction velocity, [m s-1]
         wind_heights: Vector of heights for which wind speed is calculated, [m]
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
-        von_karmans_constant
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
         yasuda_stability_parameter1: Parameter to approximate diabatic correction
             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
         yasuda_stability_parameter2: Parameter to approximate diabatic correction
@@ -211,7 +215,7 @@ def calculate_mean_mixing_length(
     roughness_length_momentum: NDArray[np.float32],
     mixing_length_factor: float,
 ) -> NDArray[np.float32]:
-    """Calculate mixing length for canopy air transport.
+    """Calculate mixing length for canopy air transport, [m].
 
     The mean mixing length is used to calculate turbulent air transport inside vegetated
     canopies. It is made equivalent to the above canopy value at the canopy surface. In
@@ -223,7 +227,7 @@ def calculate_mean_mixing_length(
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
-        mixing_length_factor: Factor in calculation of mean mixing length
+        mixing_length_factor: Factor in calculation of mean mixing length, dimensionless
 
     Returns:
         mixing length for canopy air transport, [m]
@@ -242,20 +246,22 @@ def generate_relative_turbulence_intensity(
     max_relative_turbulence_intensity: float,
     increasing_with_height: bool,
 ) -> NDArray[np.float32]:
-    """Generate relative turbulence intensity profile.
+    """Generate relative turbulence intensity profile, dimensionless.
 
     At the moment, default values are for a maize crop Shaw et al (1974)
-    Agricultural Meteorology, 13: 419-425. TODO adjust to environment
+    Agricultural Meteorology, 13: 419-425. TODO adjust default to environment
 
     Args:
-        layer_heights: heights of above ground layers, m
-        min_relative_turbulence_intensity: minimum relative turbulence intensity
-        max_relative_turbulence_intensity: maximum relative turbulence intensity
+        layer_heights: heights of above ground layers, [m]
+        min_relative_turbulence_intensity: minimum relative turbulence intensity,
+            dimensionless
+        max_relative_turbulence_intensity: maximum relative turbulence intensity,
+            dimensionless
         increasing_with_height: increasing logical indicating whether turbulence
             intensity increases (TRUE) or decreases (FALSE) with height
 
     Returns:
-        relative turbulence intensity for each node
+        relative turbulence intensity for each node, dimensionless
     """
 
     if increasing_with_height:
@@ -280,7 +286,7 @@ def calculate_wind_attenuation_coefficient(
     drag_coefficient: float,
     relative_turbulence_intensity: NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    """Calculate wind attenuation coefficient.
+    """Calculate wind attenuation coefficient, dimensionless.
 
     The wind attenuation coefficient describes how wind is slowed down by the presence
     of vegetation. In absence of vegetation, the coefficient is set to zero.
@@ -290,11 +296,11 @@ def calculate_wind_attenuation_coefficient(
         canopy_height: Canopy height, [m]
         leaf_area_index: Total leaf area index, [m m-1]
         mean_mixing_length: Mixing length for canopy air transport, [m]
-        drag_coefficient: Drag coefficient
-        relative_turbulence_intensity: Relative turbulence intensity
+        drag_coefficient: Drag coefficient, dimensionless
+        relative_turbulence_intensity: Relative turbulence intensity, dimensionless
 
     Returns:
-        wind attenuation coefficient
+        wind attenuation coefficient, dimensionless
     """
 
     intermediate_coefficient = (
@@ -325,7 +331,7 @@ def wind_log_profile(
         diabatic_correction_momentum: Diabatic correction factor for momentum
 
     Returns:
-        logarithmic wind profile, [m s-1]
+        logarithmic wind profile
     """
 
     wind_profile = (
@@ -344,7 +350,7 @@ def calculate_fricition_velocity(
     diabatic_correction_momentum: Union[float, NDArray[np.float32]],
     von_karmans_constant: float,
 ) -> NDArray[np.float32]:
-    """Calculate friction velocity from wind speed at reference height.
+    """Calculate friction velocity from wind speed at reference height, [m s-1].
 
     Args:
         wind_speed_ref: Wind speed at reference height, [m s-1]
@@ -355,8 +361,9 @@ def calculate_fricition_velocity(
         diabatic_correction_momentum: Diabatic correction factor for momentum as
             returned by
             :func:`~virtual_rainforest.models.abiotic.wind.calculate_diabatic_correction_above`
-        von_karmans_constant: Von Karman's constant, unitless, describes the logarithmic
-            velocity profile of a turbulent fluid near a no-slip boundary
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
 
     Returns:
         friction velocity
@@ -381,7 +388,7 @@ def calculate_wind_above_canopy(
     von_karmans_constant: float,
     min_wind_speed_above_canopy: float,
 ) -> NDArray[np.float32]:
-    """Calculate wind speed above canopy from wind speed at reference height.
+    """Calculate wind speed above canopy from wind speed at reference height, [m s-1].
 
     Wind speed above the canopy dictates heat and vapor exchange between the canopy
     and the air above it, and therefore ultimately determines temperature and vapor
@@ -402,8 +409,9 @@ def calculate_wind_above_canopy(
         diabatic_correction_momentum: Diabatic correction factor for momentum as
             returned by
             :func:`~virtual_rainforest.models.abiotic.wind.calculate_diabatic_correction_above`
-        von_karmans_constant: Von Karman's constant, unitless, describes the logarithmic
-            velocity profile of a turbulent fluid near a no-slip boundary
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
 
     Returns:
         wind speed at required heights above canopy, [m s-1]
@@ -431,12 +439,12 @@ def calculate_wind_canopy(
     attenuation_coefficient: NDArray[np.float32],
     min_windspeed_below_canopy: float,
 ) -> NDArray[np.float32]:
-    """Calculate wind profile for individual canopy layers with variable leaf area.
+    """Calculate wind speed in a multi-layer canopy, [m s-1].
 
     This function can be extended to account for edge distance effects.
 
     Args:
-        top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m /s]
+        top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m s-1]
         wind_layer_heights: Height of canopy layer node, [m]
         canopy_height: Height to top of canopy layer, [m]
         attenuation_coefficient: Mean attenuation coefficient based on the profile
@@ -446,7 +454,7 @@ def calculate_wind_canopy(
             vegetation, [m/s]. This value is set to avoid dividion by zero.
 
     Returns:
-        wind speed at height of canopy node, [m/s]
+        wind speed at height of canopy node, [m s-1]
     """
 
     return np.nan_to_num(
@@ -470,7 +478,7 @@ def calculate_wind_profile(
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
 ) -> dict[str, NDArray[np.float32]]:
-    r"""Calculate wind speed above and below the canoopy, [m s-1].
+    r"""Calculate wind speed above and below the canopy, [m s-1].
 
     The wind profile above the canopy is described as follows (based on
     :cite:p:`campbell_introduction_1998` as implemented in
