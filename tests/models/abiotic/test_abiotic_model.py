@@ -19,6 +19,7 @@ def test_abiotic_model_initialization(
 ):
     """Test `AbioticModel` initialization."""
     from virtual_rainforest.core.base_model import BaseModel
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
     from virtual_rainforest.models.abiotic.constants import AbioticConsts
 
@@ -29,6 +30,7 @@ def test_abiotic_model_initialization(
         soil_layers=[-0.5, -1.0],
         canopy_layers=10,
         constants=AbioticConsts(),
+        core_constants=CoreConsts(),
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -62,6 +64,7 @@ def test_abiotic_model_initialization(
 def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
     """Test `AbioticModel` initialization with no data."""
 
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
@@ -79,6 +82,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
             soil_layers=[-0.5, -1.0],
             canopy_layers=10,
             constants=AbioticConsts,
+            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -119,6 +123,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
             does_not_raise(),
             (
                 (INFO, "Initialised abiotic.AbioticConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model successfully "
@@ -151,6 +156,7 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
             does_not_raise(),
             (
                 (INFO, "Initialised abiotic.AbioticConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model successfully "
@@ -235,6 +241,7 @@ def test_generate_abiotic_model(
             pytest.raises(ConfigurationError),
             (
                 (INFO, "Initialised abiotic.AbioticConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the abiotic model "

@@ -72,6 +72,7 @@ class AbioticModel(BaseModel):
         soil_layers: list[float],
         canopy_layers: int,
         constants: AbioticConsts,
+        core_constants: CoreConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -86,7 +87,9 @@ class AbioticModel(BaseModel):
         self.update_interval
         """The time interval between model updates."""
         self.constants = constants
-        """Set of constants for the abiotic model"""
+        """Set of constants for the abiotic model."""
+        self.core_constants = core_constants
+        """Set of universal constants that are used across all models."""
 
     @classmethod
     def from_config(
@@ -110,6 +113,7 @@ class AbioticModel(BaseModel):
 
         # Load in the relevant constants
         constants = load_constants(config, "abiotic", "AbioticConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
@@ -121,6 +125,7 @@ class AbioticModel(BaseModel):
             soil_layers,
             canopy_layers,
             constants,
+            core_constants,
         )
 
     def setup(self) -> None:
@@ -160,8 +165,8 @@ class AbioticModel(BaseModel):
                 self.data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
             ),
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
-            abiotic_constants=AbioticConsts(),
-            core_constants=CoreConsts(),
+            abiotic_constants=self.constants,
+            core_constants=self.core_constants,
         )
 
         wind_output = {}
