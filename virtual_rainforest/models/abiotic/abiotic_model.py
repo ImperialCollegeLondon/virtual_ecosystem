@@ -160,7 +160,6 @@ class AbioticModel(BaseModel):
                 self.data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
             ),
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
-            turbulence_sign=True,
             abiotic_constants=AbioticConsts(),
             core_constants=CoreConsts(),
         )

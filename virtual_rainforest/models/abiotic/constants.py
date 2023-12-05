@@ -160,3 +160,6 @@ class AbioticConsts(ConstantsDataclass):
 
     Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
     values taken from :cite:t:`yasuda_turbulent_1988`."""
+
+    turbulence_sign: bool = True
+    """Flag indicating if turbulence increases or decreases with height."""

@@ -128,14 +128,14 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
         .where(dummy_climate_data.data["layer_heights"].layer_roles != "soil")
         .dropna(dim="layers")
     )
-    result = generate_relative_turbulence_intensity(
+    result_T = generate_relative_turbulence_intensity(
         layer_heights=layer_heights.to_numpy(),
         min_relative_turbulence_intensity=0.36,
         max_relative_turbulence_intensity=0.9,
         increasing_with_height=True,
     )
 
-    exp_result = np.array(
+    exp_result_T = np.array(
         [
             [17.64, 17.64, 17.64],
             [16.56, 16.56, 16.56],
@@ -145,7 +145,25 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
             [0.414, 0.414, 0.414],
         ]
     )
-    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
+    result_F = generate_relative_turbulence_intensity(
+        layer_heights=layer_heights.to_numpy(),
+        min_relative_turbulence_intensity=0.36,
+        max_relative_turbulence_intensity=0.9,
+        increasing_with_height=False,
+    )
+
+    exp_result_F = np.array(
+        [
+            [-16.38, -16.38, -16.38],
+            [-15.3, -15.3, -15.3],
+            [-9.9, -9.9, -9.9],
+            [-4.5 , -4.5, -4.5],
+            [0.09, 0.09,0.09],
+            [0.846, 0.846, 0.846],
+        ]
+    )
+    np.testing.assert_allclose(result_T, exp_result_T, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(result_F, exp_result_F, rtol=1e-3, atol=1e-3)
 
 
 def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
@@ -325,7 +343,6 @@ def test_calculate_wind_profile(dummy_climate_data):
         wind_reference_height=(
             dummy_climate_data.data["canopy_height"] + 10
         ).to_numpy(),
-        turbulence_sign=True,
         abiotic_constants=AbioticConsts,
         core_constants=CoreConsts,
     )

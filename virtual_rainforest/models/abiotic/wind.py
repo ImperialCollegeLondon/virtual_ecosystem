@@ -445,7 +445,7 @@ def calculate_wind_canopy(
 
     Args:
         top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m s-1]
-        wind_layer_heights: Height of canopy layer node, [m]
+        wind_layer_heights: Heights of canopy layer nodes, [m]
         canopy_height: Height to top of canopy layer, [m]
         attenuation_coefficient: Mean attenuation coefficient based on the profile
             calculated by
@@ -474,7 +474,6 @@ def calculate_wind_profile(
     sensible_heat_flux_topofcanopy: NDArray[np.float32],
     wind_speed_ref: NDArray[np.float32],
     wind_reference_height: Union[float, NDArray[np.float32]],
-    turbulence_sign: bool,
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
 ) -> dict[str, NDArray[np.float32]]:
@@ -505,6 +504,18 @@ def calculate_wind_profile(
     details, see :cite:t:`maclean_microclimc_2021`.
 
     Args:
+        canopy_height: Canopy height, [m]
+        wind_height_above: Height above canopy for which wind speed is required, [m]
+        wind_layer_heights: Heights of canopy layer nodes, [m]
+        leaf_area_index: Leaf area index, [m m-1]
+        air_temperature: Air temperature, [C]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        sensible_heat_flux_topofcanopy: Sensible heat flux from the top of the canopy to
+            the atmosphere, [W m-2],
+        wind_speed_ref: Wind speed at reference height, [m s-1]
+        wind_reference_height: Reference height for wind measurement, [m]
+        abiotic_constants: Specific constants for the abiotic model
+        core_constants: Universal constants shared across all models
 
     Returns:
         dictionnary that contains wind speed above the canopy, [m s-1], wind speed
@@ -608,7 +619,7 @@ def calculate_wind_profile(
         max_relative_turbulence_intensity=(
             abiotic_constants.max_relative_turbulence_intensity
         ),
-        increasing_with_height=turbulence_sign,
+        increasing_with_height=AbioticConsts.turbulence_sign,
     )
 
     attennuation_coefficient = calculate_wind_attenuation_coefficient(
