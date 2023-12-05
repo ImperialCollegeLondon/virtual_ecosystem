@@ -5,53 +5,59 @@ from numpy import isclose, timedelta64
 
 
 @pytest.fixture
-def predator_functional_group_instance(shared_datadir):
+def predator_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants_instance)
 
     return fg_list[2]
 
 
 @pytest.fixture
-def predator_cohort_instance(predator_functional_group_instance):
+def predator_cohort_instance(predator_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(predator_functional_group_instance, 10000.0, 1, 10)
+    return AnimalCohort(
+        predator_functional_group_instance, 10000.0, 1, 10, constants_instance
+    )
 
 
 @pytest.fixture
-def ectotherm_functional_group_instance(shared_datadir):
+def ectotherm_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants_instance)
 
     return fg_list[5]
 
 
 @pytest.fixture
-def ectotherm_cohort_instance(ectotherm_functional_group_instance):
+def ectotherm_cohort_instance(ectotherm_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(ectotherm_functional_group_instance, 100.0, 1, 10)
+    return AnimalCohort(
+        ectotherm_functional_group_instance, 100.0, 1, 10, constants_instance
+    )
 
 
 @pytest.fixture
-def prey_cohort_instance(herbivore_functional_group_instance):
+def prey_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
-    return AnimalCohort(herbivore_functional_group_instance, 100.0, 1, 10)
+    return AnimalCohort(
+        herbivore_functional_group_instance, 100.0, 1, 10, constants_instance
+    )
 
 
 @pytest.fixture
@@ -85,6 +91,7 @@ class TestAnimalCohort:
         age,
         individuals,
         error_type,
+        constants_instance,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
         from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
@@ -95,6 +102,7 @@ class TestAnimalCohort:
                 mass,
                 age,
                 individuals,
+                constants_instance,
             )
 
     @pytest.mark.parametrize(
@@ -346,38 +354,46 @@ class TestAnimalCohort:
         )
         assert herbivore_cohort_instance.mass_current == 0
 
-    def test_is_below_mass_threshold(self, herbivore_cohort_instance):
+    def test_is_below_mass_threshold(
+        self, herbivore_cohort_instance, constants_instance
+    ):
         """Test the can_reproduce method of AnimalCohort."""
-        from virtual_rainforest.models.animals.constants import BIRTH_MASS_THRESHOLD
 
         # TODO: test other mass thresholds
         # 1. Test when stored_energy is exactly equal to the threshold
         herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            herbivore_cohort_instance.functional_group.adult_mass
+            * constants_instance.birth_mass_threshold
         )
         assert not herbivore_cohort_instance.is_below_mass_threshold(
-            BIRTH_MASS_THRESHOLD
+            constants_instance.birth_mass_threshold
         )
 
         # 2. Test when stored_energy is just below the threshold
         herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            herbivore_cohort_instance.functional_group.adult_mass
+            * constants_instance.birth_mass_threshold
             - 0.01
         )
-        assert herbivore_cohort_instance.is_below_mass_threshold(BIRTH_MASS_THRESHOLD)
+        assert herbivore_cohort_instance.is_below_mass_threshold(
+            constants_instance.birth_mass_threshold
+        )
 
         # 3. Test when stored_energy is above the threshold
         herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            herbivore_cohort_instance.functional_group.adult_mass
+            * constants_instance.birth_mass_threshold
             + 0.01
         )
         assert not herbivore_cohort_instance.is_below_mass_threshold(
-            BIRTH_MASS_THRESHOLD
+            constants_instance.birth_mass_threshold
         )
 
         # 4. Test with stored_energy set to 0
         herbivore_cohort_instance.mass_current = 0.0
-        assert herbivore_cohort_instance.is_below_mass_threshold(BIRTH_MASS_THRESHOLD)
+        assert herbivore_cohort_instance.is_below_mass_threshold(
+            constants_instance.birth_mass_threshold
+        )
 
     @pytest.mark.parametrize(
         "initial_individuals, number_days, mortality_prob",

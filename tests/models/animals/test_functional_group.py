@@ -99,10 +99,17 @@ class TestFunctionalGroup:
             MetabolicType,
             TaxaType,
         )
+        from virtual_rainforest.models.animals.constants import AnimalConsts
         from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
         func_group = FunctionalGroup(
-            name, taxa, diet, metabolic_type, birth_mass, adult_mass
+            name,
+            taxa,
+            diet,
+            metabolic_type,
+            birth_mass,
+            adult_mass,
+            constants=AnimalConsts(),
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
@@ -133,13 +140,14 @@ def test_import_functional_groups(
         MetabolicType,
         TaxaType,
     )
+    from virtual_rainforest.models.animals.constants import AnimalConsts
     from virtual_rainforest.models.animals.functional_group import (
         FunctionalGroup,
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants=AnimalConsts())
     assert len(fg_list) == 6
     assert isinstance(fg_list[index], FunctionalGroup)
     assert fg_list[index].name == name
