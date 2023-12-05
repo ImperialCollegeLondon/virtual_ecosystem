@@ -25,7 +25,7 @@ def test_PlantsModel__init__(plants_data, flora):
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = [
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (30 + 20 + 10 - 0.5 - 1) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 1000 * 4),
@@ -52,7 +52,7 @@ def test_PlantsModel_from_config(plants_data, plants_config):
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = (
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (30 + 20 + 10 - 0.5 - 1.0) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 1000 * 4),
