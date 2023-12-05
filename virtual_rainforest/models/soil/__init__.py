@@ -8,6 +8,8 @@ Each of the soil sub-modules has its own API reference page:
   class, which the high level functions of the Virtual Rainforest can then make use of.
 * The :mod:`~virtual_rainforest.models.soil.carbon` provides a model for the soil carbon
   cycle.
+* The :mod:`~virtual_rainforest.models.soil.env_factors` provides functions that capture
+  the impact of environmental factors on microbial rates.
 * The :mod:`~virtual_rainforest.models.soil.constants` provides a set of dataclasses
   containing the constants required by the broader soil model.
 """  # noqa: D205, D415
