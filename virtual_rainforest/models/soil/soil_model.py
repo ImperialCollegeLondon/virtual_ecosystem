@@ -274,6 +274,7 @@ def construct_full_soil_model(
     t: float,
     pools: NDArray[np.float32],
     data: Data,
+    # TODO - Remove this as an argument once vertical flow is averaged per day
     vertical_flow_per_day: NDArray[np.float32],
     no_cells: int,
     top_soil_layer_index: int,

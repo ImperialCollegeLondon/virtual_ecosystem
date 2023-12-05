@@ -43,6 +43,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_water_potential=dummy_carbon_data["matric_potential"][
             top_soil_layer_index
         ].to_numpy(),
+        # TODO - Change this once average vertical flow is used
         vertical_flow_rate=dummy_carbon_data["vertical_flow"] / 30.0,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         clay_fraction=dummy_carbon_data["clay_fraction"],
