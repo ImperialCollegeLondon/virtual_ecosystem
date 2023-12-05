@@ -151,19 +151,6 @@ class LitterConsts(ConstantsDataclass):
     documentation for :attr:`cue_metabolic` for details.
     """
 
-    depth_of_active_layer: float = 0.25
-    """Depth of the biogeochemically active soil layer [m].
-
-    The soil model considered a homogenous layer in which all significant nutrient
-    processes take place. This is a major assumption of the model. The value is taken
-    from :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this
-    value.
-
-    This is really a core constant as it is shared across models. However, the core
-    constants are not yet setup, so this constant is being stored here for the time
-    being.
-    """
-
     lignin_inhibition_factor: float = -5.0
     """Exponential factor expressing the extent that lignin inhibits litter breakdown.
 

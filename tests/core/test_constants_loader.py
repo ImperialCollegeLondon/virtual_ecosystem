@@ -17,16 +17,16 @@ from virtual_rainforest.core.exceptions import ConfigurationError
             "core",
             "CoreConsts",
             does_not_raise(),
-            123.4,
+            0.25,
             ((INFO, "Initialised core.CoreConsts from config"),),
             id="default_values",
         ),
         pytest.param(
-            "[core.constants.CoreConsts]\nplaceholder=432.1",
+            "[core.constants.CoreConsts]\ndepth_of_active_soil_layer=1.5",
             "core",
             "CoreConsts",
             does_not_raise(),
-            432.1,
+            1.5,
             ((INFO, "Initialised core.CoreConsts from config"),),
             id="configured_value",
         ),
@@ -96,7 +96,7 @@ def test_load_constants(
             assert isinstance(constants_instance, CoreConsts)
             # The unconfigurable zero_Celsius should take the default value
             assert constants_instance.zero_Celsius == constants.zero_Celsius
-            # Check the placeholder constant has been configured
-            assert constants_instance.placeholder == exp_val
+            # Check the depth_of_active_soil_layer constant has been configured
+            assert constants_instance.depth_of_active_soil_layer == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)

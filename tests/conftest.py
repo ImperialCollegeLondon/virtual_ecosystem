@@ -172,12 +172,22 @@ def dummy_carbon_data(layer_roles_fixture):
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["soil_c_pool_pom"] = DataArray([0.1, 1.0, 0.7, 0.35], dims=["cell_id"])
     """Particulate organic matter pool (kg C m^-3)"""
+    data["soil_enzyme_pom"] = DataArray(
+        [0.022679, 0.009576, 0.050051, 0.003010], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down particulate organic matter (kg C m^-3)"""
+    data["soil_enzyme_maom"] = DataArray(
+        [0.0356, 0.0117, 0.02509, 0.00456], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down mineral associated organic matter (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
-    data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+    data["clay_fraction"] = DataArray([0.8, 0.3, 0.1, 0.9], dims=["cell_id"])
     data["litter_C_mineralisation_rate"] = DataArray(
         [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
     )
+    # Data for combined vertical flow (for entire timestep)
+    data["vertical_flow"] = DataArray([3.0, 15.0, 75.0, 47.7], dims=["cell_id"])
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(
@@ -186,7 +196,7 @@ def dummy_carbon_data(layer_roles_fixture):
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray(
-                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                [[0.9304620050, 0.787549327, 0.504263188, 0.302527807]],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
@@ -200,7 +210,6 @@ def dummy_carbon_data(layer_roles_fixture):
             "cell_id": data.grid.cell_id,
         }
     )
-    # TODO - Eventually this should replace the dummy soil moisture entirely
     data["matric_potential"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),

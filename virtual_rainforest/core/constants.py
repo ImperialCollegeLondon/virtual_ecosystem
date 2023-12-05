@@ -47,3 +47,11 @@ class CoreConsts(ConstantsDataclass):
 
     The von Karman's constant describes the logarithmic velocity profile of a turbulent
     fluid near a no-slip boundary."""
+    depth_of_active_soil_layer: float = 0.25
+    """Depth of the biogeochemically active soil layer [m].
+
+    The soil model considered a homogenous layer in which all significant nutrient
+    processes take place. This is a major assumption of the model. The value is taken
+    from :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this
+    value.
+    """

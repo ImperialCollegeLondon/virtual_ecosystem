@@ -131,6 +131,7 @@ def test_calculate_change_in_litter_variables(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Test that litter pool update calculation is correct."""
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_change_in_litter_variables,
     )
@@ -168,7 +169,8 @@ def test_calculate_change_in_litter_variables(
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         update_interval=1.0,
-        constants=LitterConsts,
+        model_constants=LitterConsts,
+        core_constants=CoreConsts,
     )
 
     for name in expected_pools.keys():
@@ -206,6 +208,7 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
 
 def test_calculate_total_C_mineralised(decay_rates):
     """Test that calculation of total C mineralised is as expected."""
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.litter.litter_pools import (
         calculate_total_C_mineralised,
     )
@@ -213,8 +216,7 @@ def test_calculate_total_C_mineralised(decay_rates):
     expected_mineralisation = [0.0212182, 0.0274272, 0.00617274]
 
     actual_mineralisation = calculate_total_C_mineralised(
-        decay_rates=decay_rates,
-        constants=LitterConsts,
+        decay_rates=decay_rates, model_constants=LitterConsts, core_constants=CoreConsts
     )
 
     assert np.allclose(actual_mineralisation, expected_mineralisation)
