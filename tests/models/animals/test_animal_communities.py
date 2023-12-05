@@ -5,7 +5,10 @@ import pytest
 
 @pytest.fixture
 def animal_community_destination_instance(
-    functional_group_list_instance, animal_model_instance, plant_data_instance
+    functional_group_list_instance,
+    animal_model_instance,
+    plant_data_instance,
+    constants_instance,
 ):
     """Fixture for an animal community used in tests."""
     from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
@@ -16,29 +19,34 @@ def animal_community_destination_instance(
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
         get_destination=animal_model_instance.get_community_by_key,
+        constants=constants_instance,
     )
 
 
 @pytest.fixture
-def functional_group_instance(shared_datadir):
+def functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_rainforest.models.animals.functional_group import (
         import_functional_groups,
     )
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file)
+    fg_list = import_functional_groups(file, constants_instance)
 
     return fg_list[3]
 
 
 @pytest.fixture
-def animal_cohort_instance(functional_group_instance):
+def animal_cohort_instance(functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
     from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
-        functional_group_instance, functional_group_instance.adult_mass, 1.0, 10
+        functional_group_instance,
+        functional_group_instance.adult_mass,
+        1.0,
+        10,
+        constants_instance,
     )
 
 
@@ -164,9 +172,10 @@ class TestAnimalCommunity:
             not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
 
-    def test_birth(self, animal_community_instance, animal_cohort_instance):
+    def test_birth(
+        self, animal_community_instance, animal_cohort_instance, constants_instance
+    ):
         """Test the birth method in AnimalCommunity."""
-        from virtual_rainforest.models.animals.constants import BIRTH_MASS_THRESHOLD
 
         # Setup initial conditions
         parent_cohort_name = animal_cohort_instance.name
@@ -179,7 +188,8 @@ class TestAnimalCommunity:
 
         # Set the reproductive mass of the parent cohort to ensure it can reproduce
         required_mass_for_birth = (
-            animal_cohort_instance.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            animal_cohort_instance.functional_group.adult_mass
+            * constants_instance.birth_mass_threshold
             - animal_cohort_instance.functional_group.adult_mass
         )
 
@@ -198,12 +208,10 @@ class TestAnimalCommunity:
         # 2. Check that the reproductive mass of the parent cohort is reduced to 0
         assert animal_cohort_instance.reproductive_mass == 0
 
-    def test_birth_community(self, animal_community_instance):
+    def test_birth_community(self, animal_community_instance, constants_instance):
         """Test the thresholding behavior of birth_community."""
 
         from itertools import chain
-
-        from virtual_rainforest.models.animals.constants import BIRTH_MASS_THRESHOLD
 
         # Preparation: populate the community
         animal_community_instance.populate_community()
@@ -216,7 +224,8 @@ class TestAnimalCommunity:
 
         # Set mass to just below the threshold
         threshold_mass = (
-            initial_cohort.functional_group.adult_mass * BIRTH_MASS_THRESHOLD
+            initial_cohort.functional_group.adult_mass
+            * constants_instance.birth_mass_threshold
             - initial_cohort.functional_group.adult_mass
         )
 

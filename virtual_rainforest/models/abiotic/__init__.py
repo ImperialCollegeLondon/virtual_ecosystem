@@ -15,6 +15,11 @@ Each of the abiotic sub-modules has its own API reference page:
 * The :mod:`~virtual_rainforest.models.abiotic.abiotic_tools` submodule contains a set
   of general functions that are shared across submodules in the
   :mod:`~virtual_rainforest.models.abiotic` model.
+
+* The :mod:`~virtual_rainforest.models.abiotic.wind` submodule calculates the
+  above- and within-canopy wind profiles for the Virtual Rainforest. These profiles will
+  determine the exchange of heat, water, and :math:`CO_{2}` between soil and atmosphere
+  below the canopy as well as the exchange with the atmsophere above the canopy.
 """  # noqa: D205, D415
 
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

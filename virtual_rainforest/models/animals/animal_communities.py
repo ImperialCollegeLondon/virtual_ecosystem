@@ -18,10 +18,7 @@ from numpy import timedelta64
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-from virtual_rainforest.models.animals.constants import (
-    BIRTH_MASS_THRESHOLD,
-    DISPERSAL_MASS_THRESHOLD,
-)
+from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.plant_resources import PlantResources
@@ -47,6 +44,7 @@ class AnimalCommunity:
         community_key: int,
         neighbouring_keys: list[int],
         get_destination: Callable[[int], "AnimalCommunity"],
+        constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         # The constructor of the AnimalCommunity class.
         self.data = data
@@ -59,6 +57,8 @@ class AnimalCommunity:
         """List of integer keys of neighbouring communities."""
         self.get_destination = get_destination
         """Callable get_destination from AnimalModel."""
+        self.constants = constants
+        """Animal constants."""
 
         self.animal_cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
@@ -96,7 +96,11 @@ class AnimalCommunity:
             )
 
             cohort = AnimalCohort(
-                functional_group, functional_group.adult_mass, 0.0, individuals
+                functional_group,
+                functional_group.adult_mass,
+                0.0,
+                individuals,
+                self.constants,
             )
             self.animal_cohorts[functional_group.name].append(cohort)
 
@@ -121,7 +125,7 @@ class AnimalCommunity:
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community."""
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_mass_threshold(DISPERSAL_MASS_THRESHOLD):
+            if cohort.is_below_mass_threshold(self.constants.dispersal_mass_threshold):
                 # Random walk destination from the neighbouring keys
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
@@ -177,6 +181,7 @@ class AnimalCommunity:
                 parent_cohort.functional_group.birth_mass,
                 0.0,
                 number_offspring,
+                self.constants,
             )
         )
 
@@ -185,7 +190,7 @@ class AnimalCommunity:
 
         # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if not cohort.is_below_mass_threshold(BIRTH_MASS_THRESHOLD):
+            if not cohort.is_below_mass_threshold(self.constants.birth_mass_threshold):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
@@ -203,7 +208,9 @@ class AnimalCommunity:
         """
         # Generate the plant resources for foraging.
         plant_community: PlantResources = PlantResources(
-            data=self.data, cell_id=self.community_key
+            data=self.data,
+            cell_id=self.community_key,
+            constants=self.constants,
         )
 
         plant_list = [plant_community]

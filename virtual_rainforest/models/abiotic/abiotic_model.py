@@ -12,20 +12,26 @@ generate a class instance. If errors crop here when converting the information f
 config dictionary to the required types they are caught and then logged, and at the end
 of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
+
+TODO temperatures in Kelvin
 """  # noqa: D205, D415
 
 from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from pint import Quantity
+from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.models.abiotic import wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 
 
@@ -46,7 +52,15 @@ class AbioticModel(BaseModel):
     """Shortest time scale that abiotic model can sensibly capture."""
     upper_bound_on_time_scale = "1 day"
     """Longest time scale that abiotic model can sensibly capture."""
-    required_init_vars = (("air_temperature_ref", ("spatial",)),)
+    required_init_vars = (
+        ("air_temperature", ("spatial",)),
+        ("canopy_height", ("spatial",)),
+        ("layer_heights", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+        ("atmospheric_pressure", ("spatial",)),
+        ("sensible_heat_flux_topofcanopy", ("spatial",)),
+        ("wind_speed_ref", ("spatial",)),
+    )
     """The required variables and axes for the abiotic model"""
     vars_updated = ()
     """Variables updated by the abiotic model"""
@@ -58,6 +72,7 @@ class AbioticModel(BaseModel):
         soil_layers: list[float],
         canopy_layers: int,
         constants: AbioticConsts,
+        core_constants: CoreConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -72,7 +87,9 @@ class AbioticModel(BaseModel):
         self.update_interval
         """The time interval between model updates."""
         self.constants = constants
-        """Set of constants for the abiotic model"""
+        """Set of constants for the abiotic model."""
+        self.core_constants = core_constants
+        """Set of universal constants that are used across all models."""
 
     @classmethod
     def from_config(
@@ -96,6 +113,7 @@ class AbioticModel(BaseModel):
 
         # Load in the relevant constants
         constants = load_constants(config, "abiotic", "AbioticConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
@@ -107,6 +125,7 @@ class AbioticModel(BaseModel):
             soil_layers,
             canopy_layers,
             constants,
+            core_constants,
         )
 
     def setup(self) -> None:
@@ -121,6 +140,63 @@ class AbioticModel(BaseModel):
         Args:
             time_index: The index of the current time step in the data object.
         """
+
+        wind_update_inputs: dict[str, DataArray] = {}
+
+        for var in ["layer_heights", "leaf_area_index", "air_temperature"]:
+            selection = (
+                self.data[var]
+                .where(self.data[var].layer_roles != "soil")
+                .dropna(dim="layers")
+            )
+            wind_update_inputs[var] = selection
+
+        wind_update = wind.calculate_wind_profile(
+            canopy_height=self.data["canopy_height"].to_numpy(),
+            wind_height_above=(self.data["canopy_height"] + 15).to_numpy(),  # TODO
+            wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
+            leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
+            air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
+            atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy()[0],
+            sensible_heat_flux_topofcanopy=(
+                self.data["sensible_heat_flux_topofcanopy"].to_numpy()
+            ),
+            wind_speed_ref=(
+                self.data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+            ),
+            wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
+            abiotic_constants=self.constants,
+            core_constants=self.core_constants,
+        )
+
+        wind_output = {}
+        wind_speed_above_canopy = DataArray(
+            wind_update["wind_speed_above_canopy"],
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
+        wind_output["wind_speed_above_canopy"] = wind_speed_above_canopy
+
+        for var in ["wind_speed_canopy", "friction_velocity"]:
+            var_out = DataArray(
+                np.concatenate(
+                    (
+                        wind_update[var],
+                        np.full(
+                            (
+                                len(self.layer_roles) - len(wind_update[var]),
+                                self.data.grid.n_cells,
+                            ),
+                            np.nan,
+                        ),
+                    ),
+                ),
+                dims=self.data["layer_heights"].dims,
+                coords=self.data["layer_heights"].coords,
+            )
+            wind_output[var] = var_out
+
+        self.data.add_from_dict(output_dict=wind_output)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

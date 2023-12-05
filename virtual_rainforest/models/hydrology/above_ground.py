@@ -2,6 +2,8 @@
 processes for the Virtual Rainforest. At the moment, this includes rain water
 interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
+
+TODO change temperatures to Kelvin
 """  # noqa: D205, D415
 
 from math import sqrt
@@ -30,7 +32,7 @@ def calculate_soil_evaporation(
     heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
 ) -> NDArray[np.float32]:
-    r"""Calculate soil evaporation based classical bulk aerodynamic formulation.
+    r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
     :cite:p:`mahfouf_comparative_1991`.
@@ -51,7 +53,7 @@ def calculate_soil_evaporation(
 
     :math:`E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)`
 
-    where :math:`kappa_{gb}` is the extinction coefficient for global radiation, and
+    where :math:`\kappa_{gb}` is the extinction coefficient for global radiation, and
     :math:`LAI` is the total leaf area index.
 
     Args:

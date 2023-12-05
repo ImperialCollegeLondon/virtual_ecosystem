@@ -31,6 +31,7 @@ from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
+from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
@@ -69,6 +70,7 @@ class AnimalModel(BaseModel):
         data: Data,
         update_interval: Quantity,
         functional_groups: list[FunctionalGroup],
+        constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -82,6 +84,8 @@ class AnimalModel(BaseModel):
 
         self.communities: dict[int, AnimalCommunity] = {}
         """Set empty dict for populating with communities."""
+        self.constants = constants
+        """Animal constants."""
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
@@ -126,6 +130,7 @@ class AnimalModel(BaseModel):
                 community_key=k,
                 neighbouring_keys=list(self.data.grid.neighbours[k]),
                 get_destination=self.get_community_by_key,
+                constants=self.constants,
             )
             for k in self.data.grid.cell_id
         }
@@ -155,7 +160,10 @@ class AnimalModel(BaseModel):
 
         functional_groups_raw = config["animals"]["functional_groups"]
 
-        animal_functional_groups = [FunctionalGroup(**k) for k in functional_groups_raw]
+        animal_functional_groups = [
+            FunctionalGroup(**k, constants=AnimalConsts())
+            for k in functional_groups_raw
+        ]
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "

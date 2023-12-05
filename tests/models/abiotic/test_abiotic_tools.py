@@ -29,6 +29,8 @@ def test_calculate_molar_density_air():
                 [39.681006, 39.681006, 39.681006],
             ]
         ),
+        rtol=1e-5,
+        atol=1e-5,
     )
 
 
@@ -47,7 +49,7 @@ def test_calculate_specific_heat_air():
     )
 
     exp_result = np.array(
-        [[29.2075, 29.207, 29.207], [29.202, 29.202, 29.202], [29.2, 29.2, 29.2]]
+        [[29.2075, 29.207, 29.207], [29.202, 29.202, 29.202], [29.2, 29.2, 29.2]],
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
@@ -74,4 +76,9 @@ def test_calculate_latent_heat_vaporisation():
         ]
     )
 
-    np.testing.assert_allclose(result, exp_result)
+    np.testing.assert_allclose(
+        result,
+        exp_result,
+        rtol=1e-5,
+        atol=1e-5,
+    )

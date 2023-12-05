@@ -13,6 +13,8 @@ generate a class instance. If errors crop here when converting the information f
 config dictionary to the required types they are caught and then logged, and at the end
 of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
+
+TODO change temperature to Kelvin
 """  # noqa: D205, D415
 
 from __future__ import annotations

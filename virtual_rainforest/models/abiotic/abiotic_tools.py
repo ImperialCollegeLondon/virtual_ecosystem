@@ -2,6 +2,7 @@
 are shared across submodules in the :mod:`~virtual_rainforest.models.abiotic` model.
 
 TODO cross-check with pyrealm for duplication/ different implementation
+TODO change temperatures to Kelvin
 """  # noqa: D205, D415
 
 import numpy as np

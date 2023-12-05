@@ -18,11 +18,11 @@ from virtual_rainforest.core.constants_class import ConstantsDataclass
 class CoreConsts(ConstantsDataclass):
     """Core constants for use across the Virtual Rainforest modules."""
 
-    zero_Celsius: ClassVar[float] = constants.zero_Celsius
-    """Conversion constant from Kelvin to Celsius (°)."""
-
     placeholder: float = 123.4
     """A placeholder configurable constant."""
+
+    zero_Celsius: ClassVar[float] = constants.zero_Celsius
+    """Conversion constant from Kelvin to Celsius (°)."""
 
     standard_pressure: float = constants.atmosphere / 1000
     """Standard atmospheric pressure, [kPa]"""
