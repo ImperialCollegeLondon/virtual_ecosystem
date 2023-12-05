@@ -99,6 +99,7 @@ team.
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
+  Soil Environmental Factors <api/soil/env_factors.md>
   Soil Constants <api/soil/constants.md>
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>

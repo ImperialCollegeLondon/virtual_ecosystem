@@ -478,14 +478,6 @@ updated_by = "soil"
 used_by = [ "abiotic", "soil"]
 
 [[variable]]
-name = "percent_clay"
-description = "Clay as a percentage of total soil"
-unit = "%"
-initialised_by = "external"
-updated_by = ""
-used_by = [ "abiotic", "soil"]
-
-[[variable]]
 name = "pH"
 description = "Soil pH"
 unit = "pH"

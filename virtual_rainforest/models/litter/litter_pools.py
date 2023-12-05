@@ -21,6 +21,7 @@ from typing import Union
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.litter.constants import LitterConsts
 
 
@@ -39,7 +40,8 @@ def calculate_change_in_litter_variables(
     decomposed_excrement: NDArray[np.float32],
     decomposed_carcasses: NDArray[np.float32],
     update_interval: float,
-    constants: LitterConsts,
+    model_constants: LitterConsts,
+    core_constants: CoreConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate changes for all the litter variables (pool sizes and chemistries).
 
@@ -64,7 +66,8 @@ def calculate_change_in_litter_variables(
         decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
             the animal model [kg C m^-2 day^-1]
         update_interval: Interval that the litter pools are being updated for [days]
-        constants: Set of constants for the litter model
+        model_constants: Set of constants for the litter model
+        core_constants: Set of core constants shared between all models
 
     Returns:
         The new value for each of the litter pools, and the total mineralisation rate.
@@ -76,7 +79,7 @@ def calculate_change_in_litter_variables(
         surface_temp=surface_temp,
         topsoil_temp=topsoil_temp,
         water_potential=water_potential,
-        constants=constants,
+        constants=model_constants,
     )
 
     # Calculate the litter pool decay rates
@@ -90,11 +93,13 @@ def calculate_change_in_litter_variables(
         lignin_woody=lignin_woody,
         lignin_below_structural=lignin_below_structural,
         environmental_factors=environmental_factors,
-        constants=constants,
+        constants=model_constants,
     )
 
     # Calculate the total mineralisation of carbon from the litter
-    total_C_mineralisation_rate = calculate_total_C_mineralised(decay_rates, constants)
+    total_C_mineralisation_rate = calculate_total_C_mineralised(
+        decay_rates, model_constants=model_constants, core_constants=core_constants
+    )
 
     # Calculate the updated pool masses
     updated_pools = calculate_updated_pools(
@@ -107,7 +112,7 @@ def calculate_change_in_litter_variables(
         decomposed_carcasses=decomposed_carcasses,
         decay_rates=decay_rates,
         update_interval=update_interval,
-        constants=constants,
+        constants=model_constants,
     )
 
     # Find the changes in the lignin concentrations of the 3 relevant pools
@@ -117,7 +122,7 @@ def calculate_change_in_litter_variables(
         lignin_below_structural=lignin_below_structural,
         updated_pools=updated_pools,
         update_interval=update_interval,
-        constants=constants,
+        constants=model_constants,
     )
 
     # Construct dictionary of data arrays to return
@@ -217,14 +222,17 @@ def calculate_decay_rates(
 
 
 def calculate_total_C_mineralised(
-    decay_rates: dict[str, NDArray[np.float32]], constants: LitterConsts
+    decay_rates: dict[str, NDArray[np.float32]],
+    model_constants: LitterConsts,
+    core_constants: CoreConsts,
 ) -> NDArray[np.float32]:
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
-        constants: Set of constants for the litter model
+        model_constants: Set of constants for the litter model
+        core_constants: Set of core constants shared between all models
 
     Returns:
         Rate of carbon mineralisation from litter into soil [kg C m^-3 day^-1].
@@ -232,22 +240,24 @@ def calculate_total_C_mineralised(
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_above"], carbon_use_efficiency=constants.cue_metabolic
+        decay_rates["metabolic_above"],
+        carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_above_mineral = calculate_carbon_mineralised(
         decay_rates["structural_above"],
-        carbon_use_efficiency=constants.cue_structural_above_ground,
+        carbon_use_efficiency=model_constants.cue_structural_above_ground,
     )
     woody_mineral = calculate_carbon_mineralised(
         decay_rates["woody"],
-        carbon_use_efficiency=constants.cue_woody,
+        carbon_use_efficiency=model_constants.cue_woody,
     )
     metabolic_below_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_below"], carbon_use_efficiency=constants.cue_metabolic
+        decay_rates["metabolic_below"],
+        carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_below_mineral = calculate_carbon_mineralised(
         decay_rates["structural_below"],
-        carbon_use_efficiency=constants.cue_structural_below_ground,
+        carbon_use_efficiency=model_constants.cue_structural_below_ground,
     )
 
     # Calculate mineralisation rate
@@ -260,7 +270,7 @@ def calculate_total_C_mineralised(
     )
 
     # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
-    return total_C_mineralisation_rate / constants.depth_of_active_layer
+    return total_C_mineralisation_rate / core_constants.depth_of_active_soil_layer
 
 
 def calculate_updated_pools(
