@@ -107,6 +107,7 @@ team.
   Abiotic Mechanistic Overview <api/abiotic.md>
   Abiotic Mechanistic Model <api/abiotic/abiotic_model.md>
   Abiotic Mechanistic Constants <api/abiotic/abiotic_constants.md>
+  Abiotic Mechanistic Tools <api/abiotic/abiotic_tools.md>
   Hydrology Overview <api/hydrology.md>
   Hydrology Model <api/hydrology/hydrology_model.md>
   Hydrology Above-ground <api/hydrology/above_ground.md>
