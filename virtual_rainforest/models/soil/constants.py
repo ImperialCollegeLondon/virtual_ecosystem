@@ -7,53 +7,12 @@ from dataclasses import dataclass
 
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 
-# TODO - Need to figure out a sensible area to volume conversion
+# TODO - Once lignin is tracked a large number of constants will have to be duplicated
 
 
 @dataclass(frozen=True)
 class SoilConsts(ConstantsDataclass):
-    """Dataclass to store all constants for the `soil` model.
-
-    All constants are taken from :cite:t:`abramoff_millennial_2018` unless otherwise
-    stated.
-    """
-
-    binding_with_ph_slope: float = -0.186
-    """Change in the binding affinity of soil mineral with pH.
-
-    Units of [pH^-1]. From linear regression :cite:p:`mayes_relation_2012`."""
-
-    binding_with_ph_intercept: float = -0.216 + 3.0
-    """Binding affinity of soil minerals at zero pH.
-
-    Unit of [log(m^3 kg^-1)]. n.b. +3 converts from mg^-1 to kg^-1 and L to m^3. From
-    linear regression :cite:p:`mayes_relation_2012`.
-    """
-
-    max_sorption_with_clay_slope: float = 0.483
-    """Change in the maximum size of the MAOM pool with increasing clay content.
-
-    Units of [(% clay)^-1]. From linear regression :cite:p:`mayes_relation_2012`.
-    """
-
-    max_sorption_with_clay_intercept: float = 2.328 - 6.0
-    """Maximum size of the MAOM pool at zero clay content.
-
-    Unit of [log(kg C kg soil ^-1)]. n.b. -6 converts from mg to kg. From linear
-    regression :cite:p:`mayes_relation_2012`.
-    """
-
-    moisture_scalar_coefficient: float = 30.0
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Value at zero relative water content (RWC) [unit less].
-    """
-
-    moisture_scalar_exponent: float = 9.0
-    """Used in :cite:t:`abramoff_millennial_2018`, can't find original source.
-
-    Units of [(RWC)^-1]
-    """
+    """Dataclass to store all constants for the `soil` model."""
 
     reference_cue: float = 0.6
     """Carbon use efficiency of community at the reference temperature [no units].
@@ -73,27 +32,6 @@ class SoilConsts(ConstantsDataclass):
     Default value taken from :cite:t:`abramoff_millennial_2018`.
     """
 
-    necromass_adsorption_rate: float = 0.025
-    """Rate at which necromass is adsorbed by soil minerals [day^-1].
-
-    Taken from :cite:t:`abramoff_millennial_2018`, where it was obtained by calibration.
-    """
-
-    half_sat_microbial_activity: float = 0.0072
-    """Half saturation constant for microbial activity (with increasing biomass).
-
-    Units of [kg C m^-2].
-    """
-
-    half_sat_microbial_pom_mineralisation: float = 0.012
-    """Half saturation constant for microbial POM mineralisation [kg C m^-2]."""
-
-    leaching_rate_labile_carbon: float = 1.5e-3
-    """Leaching rate for labile carbon (lmwc) [day^-1]."""
-
-    half_sat_pom_decomposition: float = 0.150
-    """Half saturation constant for POM decomposition to LMWC [kg C m^-2]."""
-
     soil_microbe_water_potential_optimum: float = -3.0
     """The water potential at which soil microbial rates are maximised [kPa].
 
@@ -106,10 +44,10 @@ class SoilConsts(ConstantsDataclass):
     Value is taken from :cite:t`moyano_responses_2013`.
     """
 
-    moisture_response_curvature: float = 1.47
-    """Curvature of the soil microbial moisture response function [unitless].
+    microbial_water_response_curvature: float = 1.47
+    """Curvature of function for response of soil microbial rates to water potential.
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    [unitless]. Value is taken from :cite:t`moyano_responses_2013`.
     """
 
     arrhenius_reference_temp: float = 12.0
@@ -131,7 +69,7 @@ class SoilConsts(ConstantsDataclass):
     once fungi are added.
     """
 
-    activation_energy_microbial_uptake = 47000
+    activation_energy_microbial_uptake: float = 47000
     """Activation energy for microbial uptake of low molecular weight carbon [J K^-1].
 
     Value taken from :cite:t:`wang_development_2013`. The maximum labile carbon uptake
@@ -139,24 +77,82 @@ class SoilConsts(ConstantsDataclass):
     :attr:`max_uptake_rate_labile_C`.
     """
 
-    # TODO - Add another set of constants once we start tracking lignin
-    max_decomp_rate_pom: float = 0.2
+    half_sat_labile_C_uptake: float = 0.364
+    """Half saturation constant for microbial uptake of labile carbon (LMWC).
+
+    [kg C m^-3]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_labile_C_saturation`.
+    """
+
+    activation_energy_labile_C_saturation: float = 30000
+    """Activation energy for labile C uptake saturation constant [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
+    half_sat_pom_decomposition: float = 70.0
+    """Half saturation constant for POM decomposition to LMWC [kg C m^-3].
+
+    This was calculated from the value provided in :cite:t:`wang_development_2013`
+    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
+    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
+    is given by :attr:`activation_energy_pom_decomp_saturation`.
+    """
+
+    activation_energy_pom_decomp_saturation: float = 30000
+    """Activation energy for POM decomposition saturation constant [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
+    max_decomp_rate_pom: float = 60.0
     """Maximum rate for particulate organic matter break down (at reference temp).
 
     Units of [day^-1]. The reference temperature is given by
     :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
-    by :attr:`activation_energy_pom_decomp`.
-
-    TODO - Once enzymes are included this should take the value of 200.0 [day^-1].
+    by :attr:`activation_energy_pom_decomp_rate`.
 
     TODO - Source of this constant is not completely clear, investigate this further
     once lignin chemistry is added.
     """
 
-    activation_energy_pom_decomp = 37000
+    activation_energy_pom_decomp_rate: float = 37000
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.
+    """
+
+    half_sat_maom_decomposition: float = 350.0
+    """Half saturation constant for MAOM decomposition to LMWC [kg C m^-3].
+
+    This was calculated from the value provided in :cite:t:`wang_development_2013`
+    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
+    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
+    is given by :attr:`activation_energy_maom_decomp_saturation`.
+    """
+
+    activation_energy_maom_decomp_saturation: float = 30000
+    """Activation energy for MAOM decomposition saturation constant [J K^-1].
+
+    Taken from :cite:t:`wang_development_2013`.
+    """
+
+    max_decomp_rate_maom: float = 24.0
+    """Maximum rate for mineral associated organic matter decomposition enzyme.
+
+    Units of [day^-1]. The rate is for a reference temperature which is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_maom_decomp_rate`. The value is taken from
+    :cite:t:`wang_development_2013`.
+    """
+
+    activation_energy_maom_decomp_rate: float = 47000
+    """Activation energy for decomposition of mineral associated organic matter.
+
+    Units of [J K^-1]. Taken from :cite:t:`wang_development_2013`.
     """
 
     # TODO - Split this and the following into 2 constants once fungi are introduced
@@ -176,4 +172,104 @@ class SoilConsts(ConstantsDataclass):
 
     Value taken from :cite:t:`wang_development_2013`. The microbial turnover rate that
     this activation energy corresponds to is given by :attr:`microbial_turnover_rate`.
+    """
+
+    # TODO - At some point I need to split these enzyme constants into fungi and
+    # bacteria specific constants
+    pom_enzyme_turnover_rate: float = 2.4e-2
+    """Turnover rate for POM degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maom_enzyme_turnover_rate: float = 2.4e-2
+    """Turnover rate for MAOM degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maintenance_pom_enzyme: float = 1e-2
+    """Fraction of maintenance synthesis used to produce POM degrading enzymes.
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maintenance_maom_enzyme: float = 1e-2
+    """Fraction of maintenance synthesis used to produce MAOM degrading enzymes.
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    necromass_to_lmwc: float = 0.25
+    """Proportion of necromass that flows to LMWC rather than POM [unitless].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    # TODO - The 4 constants below should take different values for fungi and bacteria,
+    # once that separation is implemented.
+    min_pH_microbes: float = 2.5
+    """Soil pH below which microbial activity is completely inhibited [unitless].
+
+    This value cannot be larger than :attr:`lowest_optimal_pH_microbes`. The default
+    value was obtained by averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`.
+    """
+
+    lowest_optimal_pH_microbes: float = 4.5
+    """Soil pH above which microbial activity is not inhibited at all [unitless].
+
+    This value cannot be smaller than :attr:`min_pH_microbes` or larger than
+    :attr:`highest_optimal_pH_microbes`. The default value was obtained by averaging the
+    fungi and bacteria specific values given in :cite:t:`orwin_organic_2011`.
+    """
+
+    highest_optimal_pH_microbes: float = 7.5
+    """Soil pH below which microbial activity is not inhibited at all [unitless].
+
+    This value cannot be smaller than :attr:`lowest_optimal_pH_microbes` or larger than
+    :attr:`max_pH_microbes`. The default value was obtained by averaging the fungi
+    and bacteria specific values given in :cite:t:`orwin_organic_2011`.
+    """
+
+    max_pH_microbes: float = 11.0
+    """Soil pH above which microbial activity is completely inhibited [unitless].
+
+    This value cannot be smaller than :attr:`highest_optimal_pH_microbes`. The default
+    value was obtained by averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`.
+    """
+
+    base_soil_protection: float = 0.694
+    """Basal change in saturation constants due to soil structure [unitless]
+
+    This value is multiplicative and is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    soil_protection_with_clay: float = 1.36
+    """Rate at which soil protection of carbon increases with clay content [unitless].
+
+    This protection contributes multiplicatively to the effective saturation constant.
+    The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    clay_necromass_decay_exponent: float = -0.8
+    """Change in proportion of necromass which decays with increasing soil clay content.
+
+    [unitless]. The function this is used in is an exponential, and the sign should be
+    negative so increases in clay leads to a lower proportion of necromass decaying to
+    LMWC. The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    pom_decomposition_fraction_lmwc: float = 0.5
+    """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    solubility_coefficient_lmwc: float = 0.05
+    """Solubility coefficient for low molecular weight organic carbon [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
     """

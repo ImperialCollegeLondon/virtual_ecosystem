@@ -40,7 +40,7 @@ file = "data/example_soil_data.nc"
 var_name = "bulk_density"
 [[core.data.variable]]
 file = "data/example_soil_data.nc"
-var_name = "percent_clay"
+var_name = "clay_fraction"
 [[core.data.variable]]
 file = "data/example_soil_data.nc"
 var_name = "soil_c_pool_lmwc"
@@ -53,6 +53,12 @@ var_name = "soil_c_pool_microbe"
 [[core.data.variable]]
 file = "data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
+[[core.data.variable]]
+file = "dummy_soil_data.nc"
+var_name = "soil_enzyme_pom"
+[[core.data.variable]]
+file = "dummy_soil_data.nc"
+var_name = "soil_enzyme_maom"
 
 # Litter 
 [[core.data.variable]]

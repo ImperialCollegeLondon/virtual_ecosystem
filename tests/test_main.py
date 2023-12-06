@@ -28,6 +28,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -39,7 +40,7 @@ from .conftest import log_check
                 (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
                 (DEBUG, "soil model: required var 'pH' checked"),
                 (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'percent_clay' checked"),
+                (DEBUG, "soil model: required var 'clay_fraction' checked"),
             ),
             id="valid config",
         ),
@@ -51,6 +52,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -69,6 +71,7 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
