@@ -26,6 +26,13 @@ def plants_config():
         out_initial_file_name = "model_at_start.nc"
         out_final_file_name = "model_at_end.nc"
 
+        [core.layers]
+        canopy_layers = 10
+        soil_layers = [-0.5, -1.0]
+        above_canopy_height_offset = 2.0
+        surface_layer_height = 0.1
+        subcanopy_layer_height = 1.5
+
         [plants]
         a_plant_integer = 12
         [[plants.ftypes]]
@@ -93,6 +100,16 @@ def flora(plants_config):
 
 
 @pytest.fixture
+def layer_structure(plants_config):
+    """Construct a minimal LayerStructure object."""
+    from virtual_rainforest.models.plants.plants_model import LayerStructure
+
+    layer_structure = LayerStructure.from_config(plants_config)
+
+    return layer_structure
+
+
+@pytest.fixture
 def plants_data():
     """Construct a minimal data object with plant cohort data."""
     from virtual_rainforest.core.data import Data
@@ -112,7 +129,8 @@ def plants_data():
         data=np.full((4, 12), fill_value=1000),
         coords={
             "cell_id": np.arange(4),
-            "time": np.arange("2000-01", "2001-01", dtype="datetime64[M]"),
+            # "time": np.arange("2000-01", "2001-01", dtype="datetime64[M]"),
+            "time_index": np.arange(12),
         },
     )
 
@@ -143,7 +161,7 @@ def plants_data():
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora):
+def fxt_plants_model(plants_data, flora, layer_structure):
     """Return a simple PlantsModel instance."""
     from pint import Quantity
 
@@ -153,6 +171,5 @@ def fxt_plants_model(plants_data, flora):
         data=plants_data,
         update_interval=Quantity("1 month"),
         flora=flora,
-        canopy_layers=10,
-        soil_layers=[-0.5, -1.0],
+        layer_structure=layer_structure,
     )
