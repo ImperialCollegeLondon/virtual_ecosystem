@@ -22,7 +22,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
-from numpy import timedelta64
+from numpy import array, timedelta64
 from pint import Quantity
 from xarray import DataArray
 
@@ -220,9 +220,11 @@ class AnimalModel(BaseModel):
 
         return {
             "decomposed_excrement": DataArray(
-                decomposed_excrement / self.update_interval.to("days"), dims="cell_id"
+                array(decomposed_excrement) / self.update_interval.to("days").magnitude,
+                dims="cell_id",
             ),
             "decomposed_carcasses": DataArray(
-                decomposed_carcasses / self.update_interval.to("days"), dims="cell_id"
+                array(decomposed_carcasses) / self.update_interval.to("days").magnitude,
+                dims="cell_id",
             ),
         }

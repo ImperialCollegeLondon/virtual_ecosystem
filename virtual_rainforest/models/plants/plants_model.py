@@ -94,9 +94,9 @@ class PlantsModel(BaseModel):
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "layer_absorbed_irradiation",
-        "herbivory",
-        "transpiration",
-        "canopy_evaporation",
+        # "herbivory",
+        # "transpiration",
+        # "canopy_evaporation",
     )
     """Variables updated by the plants model."""
 
