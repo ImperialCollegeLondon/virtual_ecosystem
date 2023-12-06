@@ -121,10 +121,21 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     # Check calculate quantities - this is currently very basic.
 
     # - Light use efficiency: currently asserted fixed value
-    exp_lue = np.full((15, 4), fill_value=0.3)
+    exp_lue = np.full((15, 4), fill_value=np.nan)
+    exp_lue[1:4, :] = 0.3
     assert np.allclose(
-        fxt_plants_model.data["layer_light_use_efficiency"].data,
+        fxt_plants_model.data["layer_light_use_efficiency"].to_numpy(),
         exp_lue,
+        equal_nan=True,
+    )
+
+    # Same for evapotranspiration
+    exp_evapo = np.full((15, 4), fill_value=np.nan)
+    exp_evapo[1:4, :] = 20
+    assert np.allclose(
+        fxt_plants_model.data["evapotranspiration"].to_numpy(),
+        exp_evapo,
+        equal_nan=True,
     )
 
     # - Canopy fapar to expected gpp per m2
