@@ -307,7 +307,7 @@ class HydrologyModel(BaseModel):
         * surface_runoff, [mm], equivalent to SPLASH runoff
         * surface_runoff_accumulated, [mm]
         * soil_evaporation, [mm]
-        * vertical_flow, [mm/timestep]
+        * vertical_flow, [mm d-1]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
@@ -348,7 +348,7 @@ class HydrologyModel(BaseModel):
 
         Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.below_ground.calculate_vertical_flow`
-        . That function returns total vertical flow in mm. Note that there are
+        . That function returns mean vertical flow in mm per day. Note that there are
         severe limitations to this approach on the temporal and spatial scale of this
         model and this can only be treated as a very rough approximation!
 
@@ -500,7 +500,7 @@ class HydrologyModel(BaseModel):
                 )
             )
 
-            # Calculate vertical flow between soil layers in mm per time step
+            # Calculate vertical flow between soil layers in mm per day
             # Note that there are severe limitations to this approach on the temporal
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
@@ -590,7 +590,7 @@ class HydrologyModel(BaseModel):
             )
 
         soil_hydrology["vertical_flow"] = DataArray(
-            np.sum(daily_lists["vertical_flow"], axis=(0, 1)),
+            np.mean(daily_lists["vertical_flow"], axis=(0, 1)),
             dims="cell_id",
             coords={"cell_id": self.data.grid.cell_id},
         )
