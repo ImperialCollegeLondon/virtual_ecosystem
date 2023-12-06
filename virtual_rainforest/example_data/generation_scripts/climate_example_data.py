@@ -41,9 +41,15 @@ import numpy as np
 import xarray as xr
 from xarray import DataArray
 
+from virtual_rainforest.example_data.generation_scripts.common import (
+    time_index,
+    x_cell_ids,
+    y_cell_ids,
+)
+
 # 1. Load ERA5_Land data in low resolution
 
-dataset = xr.open_dataset("./ERA5_land.nc")
+dataset = xr.open_dataset("../source/ERA5_land.nc")
 
 # 2. Convert temperatures units
 # The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
@@ -118,14 +124,13 @@ dataset_xy = (
 )
 
 # 9. Scale to 90 m resolution
-# The Virtual Rainforest is run on a 90 x 90 m grid. This means that some form of
-# spatial downscaling has to be applied to the dataset, for example by spatially
+# The Virtual Rainforest example data is run on a 90 x 90 m grid. This means that some
+# form of spatial downscaling has to be applied to the dataset, for example by spatially
 # interpolating coarser resolution climate data and including the effects of local
 # topography. This is not yet implemented!
 
-# For the purpose of a dummy simulation in the development stage, the coordinates can be
+# For the purpose of a example data in the development stage, the coordinates can be
 # overwritten to match the Virtual Rainforest grid and we can select a smaller area.
-# When setting up the grid, an offset of 45 m has to be added.
 # Note that the resulting dataset does no longer match a digital elevation model for the
 # area!
 
@@ -134,15 +139,15 @@ dataset_xy_100 = (
     .assign_coords({"x": np.arange(0, 1800, 90), "y": np.arange(0, 1800, 90)})
     .drop({"longitude", "latitude"})
 )
-dataset_xy_dummy = dataset_xy_100.isel(x=np.arange(9), y=np.arange(9))
+dataset_xy_example = dataset_xy_100.isel(x=x_cell_ids, y=y_cell_ids)
 
 # 10. Add time_index
-# At the moemnt, the dummy model iterates over time indices rather than real datetime.
+# At the moemnt, the example model iterates over time indices rather than real datetime.
 # Therefore, we add a `time_index` coordinate to the dataset:
 
 dataset_xy_timeindex = (
-    dataset_xy_dummy.rename_dims({"time": "time_index"})
-    .assign_coords({"time_index": np.arange(0, 24, 1)})
+    dataset_xy_example.rename_dims({"time": "time_index"})
+    .assign_coords({"time_index": time_index})
     .drop("time")
 )
 
@@ -151,4 +156,4 @@ dataset_xy_timeindex = (
 # save it as a new netcdf file. This can then be fed into the code data loading system
 # here {mod}`~virtual_rainforest.core.data`.
 
-dataset_xy_timeindex.to_netcdf("./ERA5_land_dummy.nc")
+dataset_xy_timeindex.to_netcdf("../data/example_climate_data.nc")
