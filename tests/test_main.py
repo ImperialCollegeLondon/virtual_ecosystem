@@ -298,7 +298,8 @@ def test_extract_timing_details(caplog, config, output, raises, expected_log_ent
     "cfg_strings,method,raises,model_keys,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n[abiotic_simple]",
+            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n"
+            "[abiotic_simple.depends]\ninit=[]\n",
             "init",
             does_not_raise(),
             ["abiotic_simple", "soil"],

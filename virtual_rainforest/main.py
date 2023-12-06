@@ -316,10 +316,13 @@ def vr_run(
     # Setup the timing loop
     time_index = 0
     while current_time < end_time:
+        LOGGER.info(f"Starting update {time_index}: {current_time}")
+
         current_time += update_interval
 
         # Run update() method for every model
         for model in models_update.values():
+            LOGGER.info(f"Updating model {model.model_name}")
             model.update(time_index)
 
         # With updates complete increment the time_index
