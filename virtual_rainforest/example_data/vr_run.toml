@@ -15,4 +15,6 @@ max_height = 50.0
 [abiotic_simple]
 [animals]
 [litter]
-[soil]
+[soil.depends]
+init = ['hydrology', 'abiotic_simple']
+update = ['hydrology', 'abiotic_simple']
