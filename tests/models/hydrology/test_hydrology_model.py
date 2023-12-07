@@ -41,10 +41,6 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
                 ),
-                # (
-                #     DEBUG,
-                #     "hydrology model: required var 'evapotranspiration' checked",
-                # ),
                 (
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
@@ -164,10 +160,6 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
                 ),
-                # (
-                #     DEBUG,
-                #     "hydrology model: required var 'evapotranspiration' checked",
-                # ),
                 (
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
@@ -210,10 +202,6 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'atmospheric_pressure_ref' checked",
                 ),
-                # (
-                #     DEBUG,
-                #     "hydrology model: required var 'evapotranspiration' checked",
-                # ),
                 (
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",

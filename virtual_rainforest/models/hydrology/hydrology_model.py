@@ -73,7 +73,6 @@ class HydrologyModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
-        # ("evapotranspiration", ("spatial",)),
         ("elevation", ("spatial",)),
     )
     """The required variables and axes for the hydrology model"""
