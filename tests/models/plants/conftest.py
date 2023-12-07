@@ -129,7 +129,6 @@ def plants_data():
         data=np.full((4, 12), fill_value=1000),
         coords={
             "cell_id": np.arange(4),
-            # "time": np.arange("2000-01", "2001-01", dtype="datetime64[M]"),
             "time_index": np.arange(12),
         },
     )
