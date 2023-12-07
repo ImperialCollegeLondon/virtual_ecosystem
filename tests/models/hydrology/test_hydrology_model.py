@@ -90,7 +90,7 @@ def test_hydrology_model_initialization(
     raises,
     expected_log_entries,
     layer_roles_fixture,
-    soil_layers=[-0.5, -1.0],
+    soil_layers=[-0.25, -1.0],
     canopy_layers=10,
 ):
     """Test `HydrologyModel` initialization."""

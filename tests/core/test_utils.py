@@ -64,7 +64,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
 @pytest.mark.parametrize(
     "soil_layers, canopy_layers, raises, exp_log",
     [
-        pytest.param([-0.5, -1.0], 10, does_not_raise(), (), id="valid"),
+        pytest.param([-0.25, -1.0], 10, does_not_raise(), (), id="valid"),
         pytest.param(
             "not a list",
             10,
@@ -90,7 +90,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             id="soil_layer_contains_str",
         ),
         pytest.param(
-            [-0.5, 1.0],
+            [-0.25, 1.0],
             10,
             pytest.raises(InitialisationError),
             (
@@ -114,7 +114,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             id="soil_layer_not_strictly_decreasing",
         ),
         pytest.param(
-            [-0.5, -1.0],
+            [-0.25, -1.0],
             3.4,
             pytest.raises(InitialisationError),
             (
@@ -126,7 +126,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
             id="canopy_layer_not_integer",
         ),
         pytest.param(
-            [-0.5, -1.0],
+            [-0.25, -1.0],
             -3,
             pytest.raises(InitialisationError),
             (
