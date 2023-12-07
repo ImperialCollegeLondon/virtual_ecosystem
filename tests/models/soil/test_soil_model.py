@@ -290,7 +290,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.04823845, 0.02119714, 0.0895863, 0.00528887], dims="cell_id"
+                        [0.04826774, 0.02126701, 0.09200601, 0.00544793], dims="cell_id"
                     ),
                     maom=DataArray(
                         [2.49936689, 1.70118553, 4.50085129, 0.50000614], dims="cell_id"
@@ -463,14 +463,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
     }
 
-    # Find rate of flow per day
-    vertical_flow_per_day = dummy_carbon_data["vertical_flow"].to_numpy() / 30.0
-
     rate_of_change = construct_full_soil_model(
         0.0,
         pools=pools,
         data=dummy_carbon_data,
-        vertical_flow_per_day=vertical_flow_per_day,
         no_cells=4,
         top_soil_layer_index=top_soil_layer_index,
         delta_pools_ordered=delta_pools_ordered,
