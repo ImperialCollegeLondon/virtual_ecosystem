@@ -1,4 +1,4 @@
-"""The `models.animals.constants` module contains a set of dictionaries containing
+"""The `models.animals.constants` module contains a set of dataclasses containing
 constants" (fitting relationships taken from the literature) required by the broader
 :mod:`~virtual_rainforest.models.animals` module
 
@@ -9,38 +9,143 @@ parameters required for determining the function of a specific AnimalCohort and 
 avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
+from dataclasses import dataclass, field
+
+from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.models.animals.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
 )
 
-ENDOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.MAMMAL: (0.75, 0.018),
-    # Mammalian metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-    TaxaType.BIRD: (0.75, 0.05),
-    # Toy values.
-}
 
-ECTOTHERMIC_METABOLIC_RATE_TERMS: dict[TaxaType, tuple[float, float]] = {
-    TaxaType.INSECT: (0.75, 0.08)
-    # Insect metabolic rate scaling from Metabolic Ecology p210. [assumes g mass]
-}
+@dataclass(frozen=True)
+class AnimalConsts(ConstantsDataclass):
+    """Dataclass to store all constants related to metabolic rates.
 
-METABOLIC_RATE_TERMS: dict[MetabolicType, dict[TaxaType, tuple[float, float]]] = {
+    TODO: The entire constants fille will be reworked in this style after the energy to
+    mass conversion.
+
+    """
+
+    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
+        default_factory=lambda: {
+            # Parameters from Madingley, mass-based metabolic rates
+            MetabolicType.ENDOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (9.08e11, 0.7),
+            },
+            MetabolicType.ECTOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (1.49e11, 0.88),
+            },
+        }
+    )
+
+    damuths_law_terms: dict[TaxaType, dict[DietType, tuple[float, float]]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {
+                DietType.HERBIVORE: (-0.75, 4.23),
+                DietType.CARNIVORE: (-0.75, 1.00),
+            },
+            TaxaType.BIRD: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+            },
+            TaxaType.INSECT: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+            },
+        }
+    )
+
+    fat_mass_terms: dict[TaxaType, tuple[float, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: (1.19, 0.02),  # Scaling of mammalian herbivore fat mass
+            TaxaType.BIRD: (1.19, 0.05),  # Toy Values
+            TaxaType.INSECT: (1.19, 0.05),  # Toy Values
+        }
+    )
+
+    muscle_mass_terms: dict[TaxaType, tuple[float, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: (1.0, 0.38),  # Scaling of mammalian herbivore muscle mass
+            TaxaType.BIRD: (1.0, 0.40),  # Toy Values
+            TaxaType.INSECT: (1.0, 0.40),  # Toy Values
+        }
+    )
+
+    intake_rate_terms: dict[TaxaType, tuple[float, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: (0.71, 0.63),  # Mammalian maximum intake rate
+            TaxaType.BIRD: (0.7, 0.50),  # Toy Values
+            TaxaType.INSECT: (0.7, 0.50),  # Toy Values
+        }
+    )
+
+    energy_density: dict[str, float] = field(
+        default_factory=lambda: {
+            "meat": 7000.0,  # Energy of mammal meat [J/g]
+            "plant": 18200000.0,  # Energy of plant food [J/g]
+        }
+    )
+
+    conversion_efficiency: dict[DietType, float] = field(
+        default_factory=lambda: {
+            DietType.HERBIVORE: 0.1,  # Toy value
+            DietType.CARNIVORE: 0.25,  # Toy value
+        }
+    )
+
+    mechanical_efficiency: dict[DietType, float] = field(
+        default_factory=lambda: {
+            DietType.HERBIVORE: 0.9,  # Toy value
+            DietType.CARNIVORE: 0.8,  # Toy value
+        }
+    )
+
+    prey_mass_scaling_terms: dict[
+        MetabolicType, dict[TaxaType, tuple[float, float]]
+    ] = field(
+        default_factory=lambda: {
+            MetabolicType.ENDOTHERMIC: {
+                TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
+                TaxaType.BIRD: (1.0, 1.0),  # Toy values
+            },
+            MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+        }
+    )
+
+    longevity_scaling_terms: dict[TaxaType, tuple[float, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: (0.25, 0.02),  # Toy values
+            TaxaType.BIRD: (0.25, 0.05),  # Toy values
+            TaxaType.INSECT: (0.25, 0.05),  # Toy values
+        }
+    )
+
+    birth_mass_threshold: float = 1.5  # Threshold for reproduction
+    flow_to_reproductive_mass_threshold: float = (
+        1.0  # Threshold of trophic flow to reproductive mass
+    )
+    dispersal_mass_threshold: float = 0.75  # Threshold for dispersal
+    energy_percentile_threshold: float = 0.5  # Threshold for initiating migration
+    decay_fraction_excrement: float = 0.5  # Decay fraction for excrement
+    decay_fraction_carcasses: float = 0.2  # Decay fraction for carcasses
+
+
+"""
+METABOLIC_RATE_TERMS: dict[MetabolicType, dict[str, tuple[float, float]]] = {
+    # Parameters from Madingley, mass based metabolic rates
     MetabolicType.ENDOTHERMIC: {
-        TaxaType.MAMMAL: (0.75, 0.018),
-        # Mammalian herbivore population density, observed allometry (Damuth 1987).
-        # [assumes kg mass]
-        TaxaType.BIRD: (0.75, 0.05),
-        # Toy values.
+        "basal": (4.19e10, 0.69),
+        "field": (9.08e11, 0.7),
     },
     MetabolicType.ECTOTHERMIC: {
-        TaxaType.INSECT: (0.75, 0.08)
-        # Toy values.
+        "basal": (4.19e10, 0.69),
+        "field": (1.49e11, 0.88),
     },
 }
-
 
 DAMUTHS_LAW_TERMS: dict[TaxaType, dict[DietType, tuple[float, float]]] = {
     TaxaType.MAMMAL: {
@@ -140,11 +245,16 @@ BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 
-REPRODUCTION_ENERGY_MULTIPLIER: float = 1.5  # Toy value for thresholding reproduction
-REPRODUCTION_ENERGY_COST_MULTIPLIER: float = 0.5  # Toy value for reproduction costs
+BIRTH_MASS_THRESHOLD: float = 1.5  # Toy value for thresholding reproduction.
+
+FLOW_TO_REPRODUCTIVE_MASS_THRESHOLD: float = (
+    1.0  # Toy value for threshold of trophic flow to reproductive mass.
+)
+
+DISPERSAL_MASS_THRESHOLD: float = 0.75  # Toy value for thesholding dispersal.
 
 ENERGY_PERCENTILE_THRESHOLD: float = 0.5  # Toy value for initiating migration
-
+"""
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
 
@@ -159,3 +269,6 @@ DECAY_FRACTION_CARCASSES: float = 0.2
 [unitless]. TODO - The number given here is very much made up, see
 :attr:`DECAY_FRACTION_EXCREMENT` for details of how this should be changed in future.
 """
+BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
+
+TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].

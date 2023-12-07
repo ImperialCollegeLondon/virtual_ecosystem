@@ -41,6 +41,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -106,7 +107,8 @@ class LitterModel(BaseModel):
         update_interval: Quantity,
         soil_layers: list[float],
         canopy_layers: int,
-        constants: LitterConsts,
+        model_constants: LitterConsts,
+        core_constants: CoreConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -150,8 +152,10 @@ class LitterModel(BaseModel):
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.constants = constants
-        """Set of constants for the litter model"""
+        self.model_constants = model_constants
+        """Set of constants for the litter model."""
+        self.core_constants = core_constants
+        """Set of constants shared across models."""
 
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -187,13 +191,21 @@ class LitterModel(BaseModel):
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
         # Load in the relevant constants
-        constants = load_constants(config, "litter", "LitterConsts")
+        model_constants = load_constants(config, "litter", "LitterConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, constants)
+        return cls(
+            data=data,
+            update_interval=update_interval,
+            soil_layers=soil_layers,
+            canopy_layers=canopy_layers,
+            model_constants=model_constants,
+            core_constants=core_constants,
+        )
 
     def setup(self) -> None:
         """Placeholder function to setup up the litter model."""
@@ -219,7 +231,8 @@ class LitterModel(BaseModel):
             water_potential=self.data["matric_potential"][
                 self.top_soil_layer_index
             ].to_numpy(),
-            constants=self.constants,
+            model_constants=self.model_constants,
+            core_constants=self.core_constants,
             update_interval=self.update_interval.to("day").magnitude,
             above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
             above_structural=self.data["litter_pool_above_structural"].to_numpy(),

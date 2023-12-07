@@ -10,17 +10,7 @@ from virtual_rainforest.models.animals.animal_traits import (
     MetabolicType,
     TaxaType,
 )
-from virtual_rainforest.models.animals.constants import (
-    CONVERSION_EFFICIENCY,
-    DAMUTHS_LAW_TERMS,
-    FAT_MASS_TERMS,
-    INTAKE_RATE_TERMS,
-    LONGEVITY_SCALING_TERMS,
-    MECHANICAL_EFFICIENCY,
-    METABOLIC_RATE_TERMS,
-    MUSCLE_MASS_TERMS,
-    PREY_MASS_SCALING_TERMS,
-)
+from virtual_rainforest.models.animals.constants import AnimalConsts
 
 
 class FunctionalGroup:
@@ -44,6 +34,7 @@ class FunctionalGroup:
         metabolic_type: str,
         birth_mass: float,
         adult_mass: float,
+        constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         """The constructor for the FunctionalGroup class."""
 
@@ -59,27 +50,35 @@ class FunctionalGroup:
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
-        self.metabolic_rate_terms = METABOLIC_RATE_TERMS[self.metabolic_type][self.taxa]
+        self.constants = constants
+        """Animal constants."""
+        self.metabolic_rate_terms = self.constants.metabolic_rate_terms[
+            self.metabolic_type
+        ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = DAMUTHS_LAW_TERMS[self.taxa][self.diet]
+        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
         """The coefficient and exponent of damuth's law for population density."""
-        self.muscle_mass_terms = MUSCLE_MASS_TERMS[self.taxa]
+        self.muscle_mass_terms = self.constants.muscle_mass_terms[self.taxa]
         """The coefficient and exponent of muscle mass allometry."""
-        self.fat_mass_terms = FAT_MASS_TERMS[self.taxa]
+        self.fat_mass_terms = self.constants.fat_mass_terms[self.taxa]
         """The coefficient and exponent of fat mass allometry."""
-        self.intake_rate_terms = INTAKE_RATE_TERMS[self.taxa]
+        self.intake_rate_terms = self.constants.intake_rate_terms[self.taxa]
         """The coefficient and exponent of intake allometry."""
-        self.conversion_efficiency = CONVERSION_EFFICIENCY[self.diet]
+        self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
         """The conversion efficiency of the functional group based on diet."""
-        self.mechanical_efficiency = MECHANICAL_EFFICIENCY[self.diet]
+        self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
         """The mechanical transfer efficiency of a functional group based on diet."""
-        self.prey_scaling = PREY_MASS_SCALING_TERMS[self.metabolic_type][self.taxa]
+        self.prey_scaling = self.constants.prey_mass_scaling_terms[self.metabolic_type][
+            self.taxa
+        ]
         """The predator-prey mass ratio scaling relationship."""
-        self.longevity_scaling = LONGEVITY_SCALING_TERMS[self.taxa]
+        self.longevity_scaling = self.constants.longevity_scaling_terms[self.taxa]
         """The coefficient and exponent for lifespan allometry."""
 
 
-def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:
+def import_functional_groups(
+    fg_csv_file: str, constants: AnimalConsts
+) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 
     This function is a first-pass of how we might import pre-defined functional groups.
@@ -117,6 +116,7 @@ def import_functional_groups(fg_csv_file: str) -> list[FunctionalGroup]:
             row.metabolic_type,
             row.birth_mass,
             row.adult_mass,
+            constants=constants,
         )
         for row in fg.itertuples()
     ]

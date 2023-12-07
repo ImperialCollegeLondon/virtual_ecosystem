@@ -5,7 +5,7 @@ required for setting up and testing the early stages of the animal module.
 from __future__ import annotations
 
 from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.animals.constants import ENERGY_DENSITY
+from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.protocols import Consumer, DecayPool
 
 
@@ -26,19 +26,22 @@ class PlantResources:
         cell_id: The cell id for the plant community to expose.
     """
 
-    def __init__(self, data: Data, cell_id: int) -> None:
+    def __init__(self, data: Data, cell_id: int, constants: AnimalConsts) -> None:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""
-        self.mass: float = data["layer_leaf_mass"].sum(dim="layers").to_numpy()[cell_id]
+        self.mass_current: float = (
+            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
+        )
         """The mass of the plant leaf mass [kg]."""
-
+        self.constants = constants
+        """The animals constants."""
         # Calculate energy availability
         # TODO - this needs to be handed back to the plants model, which will define PFT
         #        specific conversions to different resources.
-        self.energy_density: float = ENERGY_DENSITY["plant"]
+        self.energy_density: float = self.constants.energy_density["plant"]
         """The energy (J) in a kg of plant [currently set to toy value of Alfalfa]."""
-        self.energy_max: float = self.mass * self.energy_density
+        self.energy_max: float = self.mass_current * self.energy_density
         """The maximum amount of energy that the cohort can have [J] [Alfalfa]."""
         self.stored_energy = self.energy_max
         """The amount of energy in the plant cohort [J] [toy]."""
@@ -61,26 +64,26 @@ class PlantResources:
 
         # Minimum of the energy available and amount that can be consumed in an 8 hour
         # foraging window .
-        consumed_energy = min(
-            self.stored_energy,
-            herbivore.intake_rate * self.energy_density * herbivore.individuals,
+        mass_consumed = min(
+            self.mass_current,
+            herbivore.intake_rate * herbivore.individuals,
         )
 
         # TODO - this needs to feedback herbivory to into the data object and hence back
         # into the plant model, but for now, the energy is consumed and not lost from
         # plants.
-        self.stored_energy -= consumed_energy
+        self.mass_current -= mass_consumed
 
         # TODO - All plant matter that animals fail to eat currently goes into the
         # excrement pool. This isn't ideal, but will do for now. This herbivore
         # contribution to litter fall should be handled by the plant model in future.
-        excrement_pool.decomposed_energy += consumed_energy * (
+        excrement_pool.decomposed_energy += mass_consumed * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
 
-        # Return the net energetic gain of herbivory
+        # Return the net mass gain of herbivory
         return (
-            consumed_energy
+            mass_consumed
             * herbivore.functional_group.conversion_efficiency
             * herbivore.functional_group.mechanical_efficiency
         )

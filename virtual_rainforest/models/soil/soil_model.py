@@ -28,6 +28,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -70,7 +71,7 @@ class SoilModel(BaseModel):
         ("soil_c_pool_pom", ("spatial",)),
         ("pH", ("spatial",)),
         ("bulk_density", ("spatial",)),
-        ("percent_clay", ("spatial",)),
+        ("clay_fraction", ("spatial",)),
     )
     """Required initialisation variables for the soil model.
 
@@ -82,6 +83,8 @@ class SoilModel(BaseModel):
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
         "soil_c_pool_pom",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
     )
     """Variables updated by the soil model."""
 
@@ -91,7 +94,8 @@ class SoilModel(BaseModel):
         update_interval: Quantity,
         soil_layers: list[float],
         canopy_layers: int,
-        constants: SoilConsts,
+        model_constants: SoilConsts,
+        core_constants: CoreConsts,
         **kwargs: Any,
     ):
         super().__init__(data, update_interval, **kwargs)
@@ -118,8 +122,10 @@ class SoilModel(BaseModel):
         """The layer in the data object representing the first soil layer."""
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
-        self.constants = constants
-        """Set of constants for the soil model"""
+        self.model_constants = model_constants
+        """Set of constants for the soil model."""
+        self.core_constants = core_constants
+        """Set of constants shared between models."""
 
     @classmethod
     def from_config(
@@ -142,13 +148,21 @@ class SoilModel(BaseModel):
         canopy_layers = config["core"]["layers"]["canopy_layers"]
 
         # Load in the relevant constants
-        constants = load_constants(config, "soil", "SoilConsts")
+        soil_constants = load_constants(config, "soil", "SoilConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, constants)
+        return cls(
+            data=data,
+            update_interval=update_interval,
+            soil_layers=soil_layers,
+            canopy_layers=canopy_layers,
+            model_constants=soil_constants,
+            core_constants=core_constants,
+        )
 
     def setup(self) -> None:
         """Placeholder function to setup up the soil model."""
@@ -201,18 +215,24 @@ class SoilModel(BaseModel):
         # Construct vector of initial values y0
         y0 = np.concatenate(
             [
-                self.data[str(name)].to_numpy()
-                for name in self.data.data.keys()
-                if str(name).startswith("soil_c_pool_")
+                self.data[name].to_numpy()
+                for name in map(str, self.data.data.keys())
+                if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
             ]
         )
 
         # Find and store order of pools
         delta_pools_ordered = {
-            str(name): np.array([])
-            for name in self.data.data.keys()
-            if str(name).startswith("soil_c_pool_")
+            name: np.array([])
+            for name in map(str, self.data.data.keys())
+            if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
         }
+
+        # TODO - This is a work around as (to the best of my knowledge) the hydrology
+        # model only currently gives total flow (over the entire time step) rather than
+        # flow rates
+        # Convert vertical flow into per day units
+        vertical_flow_per_day = self.data["vertical_flow"].to_numpy() / update_time
 
         # Carry out simulation
         output = solve_ivp(
@@ -221,10 +241,12 @@ class SoilModel(BaseModel):
             y0,
             args=(
                 self.data,
+                vertical_flow_per_day,
                 no_cells,
                 self.top_soil_layer_index,
                 delta_pools_ordered,
-                self.constants,
+                self.model_constants,
+                self.core_constants,
             ),
         )
 
@@ -252,10 +274,13 @@ def construct_full_soil_model(
     t: float,
     pools: NDArray[np.float32],
     data: Data,
+    # TODO - Remove this as an argument once vertical flow is averaged per day
+    vertical_flow_per_day: NDArray[np.float32],
     no_cells: int,
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
-    constants: SoilConsts,
+    model_constants: SoilConsts,
+    core_constants: CoreConsts,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -265,11 +290,13 @@ def construct_full_soil_model(
             integrated.
         pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
+        vertical_flow_per_day: Rate of vertical water flow through soil [mm day^-1]
         no_cells: Number of grid cells the integration is being performed over
         top_soil_layer_index: Index for layer in data object representing top soil layer
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
-        constants: Set of constants for the soil model.
+        model_constants: Set of constants for the soil model.
+        core_constants: Set of constants shared between models.
 
     Returns:
         The rate of change for each soil pool
@@ -289,11 +316,13 @@ def construct_full_soil_model(
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
         soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
+        vertical_flow_rate=vertical_flow_per_day,
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
-        percent_clay=data["percent_clay"].to_numpy(),
+        clay_fraction=data["clay_fraction"].to_numpy(),
         mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,
-        constants=constants,
+        model_constants=model_constants,
+        core_constants=core_constants,
         **soil_pools,
     )
 
