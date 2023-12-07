@@ -348,7 +348,8 @@ class HydrologyModel(BaseModel):
 
         Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_rainforest.models.hydrology.below_ground.calculate_vertical_flow`
-        . That function returns mean vertical flow in mm per day. Note that there are
+        . Here, the mean vertical flow in mm per day that goes though the top soil layer
+        is returned to the data object. Note that there are
         severe limitations to this approach on the temporal and spatial scale of this
         model and this can only be treated as a very rough approximation!
 
