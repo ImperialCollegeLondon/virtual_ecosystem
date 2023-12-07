@@ -575,7 +575,7 @@ class HydrologyModel(BaseModel):
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Calculate monthly accumulated values
+        # Calculate monthly accumulated/mean values with 'cell_id' dimension only
         for var in [
             "precipitation_surface",
             "surface_runoff",
@@ -589,8 +589,8 @@ class HydrologyModel(BaseModel):
                 coords={"cell_id": self.data.grid.cell_id},
             )
 
-        soil_hydrology["vertical_flow"] = DataArray(
-            np.mean(daily_lists["vertical_flow"], axis=(0, 1)),
+        soil_hydrology["vertical_flow"] = DataArray(  # vertical flow thought top soil
+            np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
             dims="cell_id",
             coords={"cell_id": self.data.grid.cell_id},
         )
