@@ -11,10 +11,12 @@ max_height = 1.0
 pft_name = "broadleaf"
 max_height = 50.0
 
-[hydrology]
+[hydrology.depends]
+update = ['plants', 'abiotic_simple']
 [abiotic_simple]
 [animals]
-[litter]
+[litter.depends]
+update = ['hydrology', 'abiotic_simple']
 [soil.depends]
 init = ['hydrology', 'abiotic_simple']
 update = ['hydrology', 'abiotic_simple']

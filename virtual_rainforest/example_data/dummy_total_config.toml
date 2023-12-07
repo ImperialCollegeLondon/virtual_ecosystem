@@ -25,9 +25,9 @@ var_name = "mean_annual_temperature"
 # [[core.data.variable]]
 # file = "plants_dummy.nc"
 # var_name = "leaf_area_index"
-[[core.data.variable]]
-file = "plants_dummy.nc"
-var_name = "evapotranspiration"
+# [[core.data.variable]]
+# file = "plants_dummy.nc"
+# var_name = "evapotranspiration"
 # [[core.data.variable]]
 # file = "plants_dummy.nc"
 # var_name = "layer_leaf_mass"
