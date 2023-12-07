@@ -186,8 +186,8 @@ def dummy_carbon_data(layer_roles_fixture):
     data["litter_C_mineralisation_rate"] = DataArray(
         [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
     )
-    # Data for combined vertical flow (for entire timestep)
-    data["vertical_flow"] = DataArray([3.0, 15.0, 75.0, 47.7], dims=["cell_id"])
+    # Data for average vertical flow
+    data["vertical_flow"] = DataArray([0.1, 0.5, 2.5, 1.59], dims=["cell_id"])
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(
