@@ -109,7 +109,7 @@ def _fix_up_variable_entry_paths(config_dir: Path, params: dict[str, Any]) -> No
         if "file" in entry:
             file_path = Path(entry["file"])
             if not file_path.is_absolute():
-                entry["file"] = str(config_dir / file_path)
+                entry["file"] = str((config_dir / file_path).resolve())
 
 
 class Config(dict):
