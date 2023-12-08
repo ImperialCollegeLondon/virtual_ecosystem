@@ -64,7 +64,7 @@ dem_data = np.array(
         [0.0, 820.222, 1154.889, 850.333, 299.222, 183.556, 7.333, 8.111, 17.889],
     ]
 )
-dem_cleaned = DataArray(data=dem_data, dims=("x", "y"))
+dem_cleaned = DataArray(name="elevation", data=dem_data, dims=("x", "y"))
 
 # Change coordinates to match exmple data grid
 dem_placed = dem_cleaned.assign_coords(
