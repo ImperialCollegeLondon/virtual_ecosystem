@@ -30,11 +30,13 @@ the data is described [here](./example_data.md) and provided in the `vr_example`
 directory.
 
 ```shell
-vr_run --install-example /path/to/install/data
+vr_run --install-example /path/
 ```
 
 You can then investigate the files needed to run the model and run the model itself:
 
 ```shell
-vr_run /path/to/install/data/vr_example
+vr_run /path/vr_example/config \
+    --outpath /path/vr_example/config/out \
+    --logfile /path/vr_example/out/vr_example.log
 ```

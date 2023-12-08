@@ -1,0 +1,10 @@
+[plants]
+a_plant_integer = 12
+
+[[plants.ftypes]]
+pft_name = "shrub"
+max_height = 1.0
+
+[[plants.ftypes]]
+pft_name = "broadleaf"
+max_height = 50.0

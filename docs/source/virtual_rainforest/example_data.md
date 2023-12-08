@@ -8,7 +8,7 @@ first need to install the data to a location of your choice as described
 The following provides a brief overview over how the example data were created and links
 to the code. All data were saved as new NetCDF files or toml files which can be fed into
 the code data loading system {mod}`~virtual_rainforest.core.data` via a
-[configuration file](../../../virtual_rainforest/example_data/dummy_total_config.toml).
+[configuration file](../../../virtual_rainforest/example_data/data_config.toml).
 
 ## Elevation data
 
