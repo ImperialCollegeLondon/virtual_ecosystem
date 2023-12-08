@@ -28,7 +28,7 @@ def plants_config():
 
         [core.layers]
         canopy_layers = 10
-        soil_layers = [-0.5, -1.0]
+        soil_layers = [-0.25, -1.0]
         above_canopy_height_offset = 2.0
         surface_layer_height = 0.1
         subcanopy_layer_height = 1.5
@@ -129,13 +129,12 @@ def plants_data():
         data=np.full((4, 12), fill_value=1000),
         coords={
             "cell_id": np.arange(4),
-            # "time": np.arange("2000-01", "2001-01", dtype="datetime64[M]"),
             "time_index": np.arange(12),
         },
     )
 
     # Canopy layer specific forcing variables from abiotic model
-    layer_roles = set_layer_roles(10, [-0.5, -1.0])
+    layer_roles = set_layer_roles(10, [-0.25, -1.0])
     layer_shape = (len(layer_roles), data.grid.n_cells)
 
     # Setup the layers

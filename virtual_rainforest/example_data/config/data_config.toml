@@ -102,8 +102,3 @@ var_name = "plant_cohorts_dbh"
 [[core.data.variable]]
 file = "data/example_plant_data.nc"
 var_name = "photosynthetic_photon_flux_density"
-
-
-# [[core.data.variable]]
-# file = "plants_dummy.nc"
-# var_name = "evapotranspiration"

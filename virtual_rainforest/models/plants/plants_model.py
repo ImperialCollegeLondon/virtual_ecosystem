@@ -94,9 +94,7 @@ class PlantsModel(BaseModel):
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "layer_absorbed_irradiation",
-        # "herbivory",
-        # "transpiration",
-        # "canopy_evaporation",
+        "evapotranspiration",
     )
     """Variables updated by the plants model."""
 
@@ -329,12 +327,14 @@ class PlantsModel(BaseModel):
         #
         # This will give an array of the light use efficiency per layer per cell,
 
-        # Set a representative place holder LUE in gC mol-1 for now
-        self.data["layer_light_use_efficiency"] = xarray.full_like(
-            self.data["air_temperature"],
-            fill_value=0.3,
-            dtype=float,
+        # Get an array where populated canopy layers are one otherwise nan
+        canopy_heights = self.data["layer_heights"].where(
+            self.data["layers"].isin(self._canopy_layer_indices)
         )
+        is_canopy = xarray.ones_like(canopy_heights).where(canopy_heights > 0)
+
+        # Set a representative place holder LUE in gC mol-1 for now
+        self.data["layer_light_use_efficiency"] = is_canopy * 0.3
 
         # The LUE can then be scaled by the calculated absorbed irradiance, which is
         # the product of the layer specific fapar and the downwelling PPFD. In practice,
@@ -375,6 +375,10 @@ class PlantsModel(BaseModel):
                 cohort.gpp = np.nansum(
                     cohort.canopy_area * cell_gpp_per_m2 * seconds_since_last_update
                 )
+
+        # Estimate evapotranspiration
+        #  - currently just a placeholder for something more involved
+        self.data["evapotranspiration"] = is_canopy * 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

@@ -132,6 +132,6 @@ def test_initialise_canopy_layers(plants_data, layer_structure):
     # Specifically for layer heights, check that the fixed layer heights are as expected
     assert np.allclose(
         data["layer_heights"].mean(dim="cell_id").to_numpy(),
-        np.array([np.nan] * 11 + [1.5, 0.1, -0.5, -1.0]),
+        np.array([np.nan] * 11 + [1.5, 0.1, -0.25, -1.0]),
         equal_nan=True,
     )

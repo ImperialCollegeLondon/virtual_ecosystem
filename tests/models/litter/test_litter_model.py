@@ -41,7 +41,7 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
     model = LitterModel(
         data=dummy_litter_data,
         update_interval=pint.Quantity("1 week"),
-        soil_layers=[-0.5, -1.0],
+        soil_layers=[-0.25, -1.0],
         canopy_layers=10,
         model_constants=LitterConsts,
         core_constants=CoreConsts,
