@@ -81,17 +81,20 @@ def config_merge(
     return dest, conflicts
 
 
-def _fix_up_variable_entry_paths(config_dir: Path, params: dict[str, Any]) -> None:
-    """Find paths in a dict and make them relative to config_dir.
+def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
+    """Resolve paths in a configuration file.
 
-    Check for file paths in variable entries (i.e. core.data.variable) and make them
-    relative to config_dir.
+    Takes the path of a directory containing a given configuration file and resolves any
+    file paths in the configuration file contents, relative to that file location.
+
+    Todo:
+        At present, this only targets `core.data.variable` configuration entries and may
+        want to resolve additional paths in the future.
 
     Args:
-        config_dir: The new folder to use as the root for relative paths
-        params: The dict to examine
-    Todo:
-        We may want to fix up other potential paths in config files in future.
+        config_dir: A folder containing a configuration file.
+        params: A dictionary of contents of the configuration file, which may contain
+            file paths to resolve.
     """
     try:
         var_entries = params["core"]["data"]["variable"]
@@ -109,7 +112,17 @@ def _fix_up_variable_entry_paths(config_dir: Path, params: dict[str, Any]) -> No
         if "file" in entry:
             file_path = Path(entry["file"])
             if not file_path.is_absolute():
-                entry["file"] = str((config_dir / file_path).resolve())
+                # The resolve method is used here because it is the only method to
+                # resolve ../ entries from relative file paths. However, it also makes
+                # all paths absolute, which lengthens paths if the config directory
+                # itself is relative. The approach here converts `path/to/config` and
+                # `../data/file1.nc` to `path/to/data/file1.nc`.
+                file_resolved = (config_dir / file_path).resolve()
+                if not config_dir.is_absolute():
+                    config_absolute = Path(config_dir.root).absolute()
+                    file_resolved = file_resolved.relative_to(config_absolute)
+
+                entry["file"] = str(file_resolved)
 
 
 class Config(dict):
@@ -121,9 +134,9 @@ class Config(dict):
     paths are then run through the follow steps to resolve and load the configuration
     data.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.resolve_config_paths` method is
-      used to resolve the provided paths into the set of actual TOML files to be used to
-      build the configuration.
+    * The :meth:`~virtual_rainforest.core.config.Config.collect_config_paths` method is
+      used to collect the actual TOML files to be used to build the configuration from
+      the provided paths.
 
     * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is then
       used to load the parsed contents of each resolved file into the
@@ -232,10 +245,11 @@ class Config(dict):
                 # Load the TOML content
                 self.load_config_toml_string()
             if cfg_paths:
-                # Load the TOML content from resolved paths and fix relative file paths
-                self.resolve_config_paths()
+                # Load the TOML content from resolved paths and resolve file paths
+                # within configuration files.
+                self.collect_config_paths()
                 self.load_config_toml()
-                self.fix_up_file_paths()
+                self.resolve_config_file_paths()
 
         if auto:
             # Now build the merged configuration and validate it.
@@ -244,14 +258,14 @@ class Config(dict):
             self.build_schema()
             self.validate_config()
 
-    def resolve_config_paths(self) -> None:
-        """Resolve config file paths into a set of TOML config files.
+    def collect_config_paths(self) -> None:
+        """Collect TOML config files from provided paths.
 
         The :class:`~virtual_rainforest.core.config.Config` class is initialised with a
-        set of paths to TOML config files or directories containing sets of files. This
-        method resolves those paths to a set of individual TOML config files and then
-        populates the  :attr:`~virtual_rainforest.core.config.Config.toml_files`
-        attribute.
+        list of paths to either individual TOML config files or directories containing
+        possibly multiple config files. This method examines that list to collect all
+        the individual TOML config files in the provided locations and then populates
+        the :attr:`~virtual_rainforest.core.config.Config.toml_files` attribute.
 
         Raises:
             ConfigurationError: this is raised if any of the paths: do not exist, are
@@ -306,7 +320,7 @@ class Config(dict):
         :attr:`~virtual_rainforest.core.config.Config.toml_files`. That attribute is
         normally populated by providing a set of paths to
         :class:`~virtual_rainforest.core.config.Config` and running the
-        :meth:`~virtual_rainforest.core.config.Config.resolve_config_paths` method, but
+        :meth:`~virtual_rainforest.core.config.Config.collect_config_paths` method, but
         it can also be set directly.
 
         Raises:
@@ -355,8 +369,15 @@ class Config(dict):
 
         LOGGER.info("Config TOML loaded from config strings")
 
-    def fix_up_file_paths(self) -> None:
-        """Make any file paths in the configs relative to location of config files."""
+    def resolve_config_file_paths(self) -> None:
+        """Resolve the locations of configured file paths.
+
+        Configuration files can contain paths to other resources, such as the paths to
+        files containing input data variables. These paths can be absolute, but may also
+        be relative to the location of the configuration file itself. This method is
+        used to resolve the location of files to the common root of the provided set of
+        configuration files, typically the path where a simulation is started.
+        """
 
         # Safeguard against running this when the toml_contents is from a cfg_string
         if self.from_cfg_strings:
@@ -366,7 +387,7 @@ class Config(dict):
 
         for config_file, contents in self.toml_contents.items():
             if isinstance(config_file, Path):
-                _fix_up_variable_entry_paths(config_file.parent, contents)
+                _resolve_config_paths(config_file.parent, contents)
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
