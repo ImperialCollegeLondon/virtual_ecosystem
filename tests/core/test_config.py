@@ -806,6 +806,6 @@ def test__resolve_config_paths(
 
     for result, expected in zip(params_dict["core"]["data"]["variable"], expected):
         if cfg_is_relative and filepath_is_relative:
-            assert result["file"] == expected
+            assert Path(result["file"]) == Path(expected)
         else:
-            assert result["file"] == str(execution_root / expected)
+            assert Path(result["file"]) == execution_root / expected
