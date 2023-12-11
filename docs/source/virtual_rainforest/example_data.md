@@ -3,8 +3,11 @@
 Example data is included with Virtual Rainforest to provide an introduction to the file
 formats and configuration. Using this data is described in the [usage](./usage.md)
 documentation and this page describes the structure and contents of the example data
-folder. It is probably useful to install the `vr_example` directory to a location of
-your choice when reading these notes:
+folder.
+
+It might be useful to install the `vr_example` directory to a location of your choice
+when reading these notes, using the command shown below, but the contents of the key
+files are also linked on this page.
 
 ```shell
 vr_run --install-example /location/path/
@@ -32,14 +35,17 @@ The `vr_example` directory contains the following sub-directories:
 
 The example configuration files are:
 
+* The **`vr_run.toml`** configures the models to be used in the simulation and the order
+  in which they are initialised and updated.
+
 ````{admonition} config/vr_run.toml
 :class: dropdown
 ```{literalinclude} ../../../virtual_rainforest/example_data/config/vr_run.toml
 ```
 ````
 
-This file configures the models to be used in the simulation and the order in which they
-are initialised and updated.
+* The **`data_config.toml`** file configures the initial variables to be loaded and sets
+  the paths to the source files providing those variables.
 
 ````{admonition} config/data_config.toml
 :class: dropdown
@@ -47,8 +53,8 @@ are initialised and updated.
 ```
 ````
 
-This file configures the initial variables to be loaded and sets the paths to the source
-files providing those variables.
+* The **`animal_functional_groups.toml`** file provides basic configuration for the
+  `animals` model to set functional group definitions.
 
 ````{admonition} config/animal_functional_groups.toml
 :class: dropdown
@@ -56,16 +62,14 @@ files providing those variables.
 ```
 ````
 
-This provides basic configuration for the `animals` model to set functional group
-definitions .
+* The **`plant_config.toml`** file provides basic configuration for the
+  `plants` model to set functional group definitions.
 
 ````{admonition} config/plant_config.toml
 :class: dropdown
 ```{literalinclude} ../../../virtual_rainforest/example_data/config/plant_config.toml
 ```
 ````
-
-A similar set of configuration options for the `plants` model.
 
 ## Example data files
 
@@ -82,7 +86,30 @@ data handling of the Virtual Rainforest simulation. Although some values are tak
 real source data, this is **not yet a meaningful real world example dataset**.
 ```
 
+The **`common.py`** script file defines some common elements that are used across the
+data generation scripts, primarily the spatial grid to be used and the dates for time
+series data.
+
+````{admonition} common.py
+:class: dropdown
+```{literalinclude} ../../../virtual_rainforest/example_data/generation_scripts/common.py
+```
+````
+
 ### Elevation data
+
+The `data/example_elevation_data.nc` file provides:
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - elevation
+  - `elevation`
+  - m
+  - XY
+```
 
 ````{admonition} elevation_example_data.py
 :class: dropdown
@@ -90,16 +117,48 @@ real source data, this is **not yet a meaningful real world example dataset**.
 ```
 ````
 
-This code creates
-a dummy elevation map from a digital elevation model ([SRTM](https://www2.jpl.nasa.gov/srtm/))
-which is required to run, amongst others, the
+This code creates a dummy elevation map from a digital elevation model
+([SRTM](https://www2.jpl.nasa.gov/srtm/)) which is required to run, amongst others, the
 {mod}`~virtual_rainforest.models.hydrology.hydrology_model`. The initial data covers the
-region 4°N 116°E to 5°N 117°E, see
-[SAFE wiki](https://safeproject.net/dokuwiki/safe_gis/srtm) for reference and download.
-We reduce the initial 30m spatial resolution to match the 9 x 9 grid of the example
+region 4°N 116°E to 5°N 117°E, see [SAFE
+wiki](https://safeproject.net/dokuwiki/safe_gis/srtm) for reference and download. We
+reduce the initial 30m spatial resolution to match the 9 x 9 grid of the example
 simulation while covering an area similar to the climate dummy data.
 
 ### Climate data
+
+The `example_climate_data.nc` file provides:
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - air temperature
+  - `air_temperature_ref`
+  - °C
+  - XYT
+* - relative humidity
+  - `relative_humidity_ref`
+  - unitless
+  - XYT
+* - atmospheric pressure
+  - `precipitation`
+  - kPa
+  - XYT
+* - precipitation
+  - `atmospheric_pressure_ref`
+  - mm $\textrm{month}^{-1}$
+  - XYT
+* - atmospheric $\ce{CO_{2}}$ concentration
+  - `atmospheric_co2_ref`
+  - ppm
+  - XYT
+* - mean annual temperature
+  - `mean_annual_temperature`
+  - °C
+  - XY
+```
 
 ````{admonition} climate_example_data.py
 :class: dropdown
@@ -109,83 +168,23 @@ simulation while covering an area similar to the climate dummy data.
 
 The dummy climate data for the example simulation is based on monthly ERA5-Land data
 which can be downloaded from the [Copernicus climate data store](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview).
-
-Metadata:
-
-* Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
-  land applications, Earth Syst. Sci. Data,13, 4349-4383, 2021.
-  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
-* Product type: Monthly averaged reanalysis
-* Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
-  precipitation
-* Year: 2013, 2014
-* Month: January, February, March, April, May, June, July, August, September, October,
-  November, December
-* Time: 00:00
-* Sub-region extraction: North 6°, West 116°, South 4°, East 118°
-* Format: NetCDF3
-
-The following section describes the main steps perfomed to create the following input
-variables for the Virtual Rainforest:
-
-* air temperature, [C]
-* relative humidity, [-]
-* atmospheric pressure, [kPa]
-* precipitation, [mm month^-1]
-* atmospheric $\ce{CO_{2}}$ concentration, [ppm]
-* mean annual temperature, [C]
-
-#### Adjustment of units
-
-The standard output unit of ERA5-Land temperatures is Kelvin which needs to be converted
-to degree Celsius for the Virtual Rainforest. This includes 2m air temperature and
-2m dewpoint temperature which are used to calculate relative humidity later.
-The standard output unit for total precipitation in ERA5-Land is meters which we need
-to convert to millimeters. Further, the data represents mean daily accumulated
-precipitation for the 9x9km grid box, so the value has to be scaled to monthly (here
-30 days).
-The standard output unit for surface pressure in ERA5-Land is Pascal (Pa) which we
-need to convert to Kilopascal (kPa).
-
-#### Addition of missing variables
-
-In addition to the variables from the ERA5-Land data, a time series of atmospheric
-$\ce{CO_{2}}$ is needed. We add this here as a constant field across all grid cells and
-vertical layers. Mean annual temperature is calculated from the full time series of air
-temperatures; in the future, this should be done for each year.
-
-Relative humidity (RH) is also not a standard output from ERA5-Land but can be
-calculated from 2m dewpoint temperature (DPT) and 2m air temperature (T) as follows:
-
-$$ RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
-                 {\exp(17.625 \cdot T)/(243.04+T)}
-$$
-
-#### Matching Virtual Rainforest grid and naming conventions
-
-Once all input units are adjusted, the variables are re-named according to the Virtual
-Rainforest naming convention. The coordinate names have to be changed from
-`longitude/latitude` to `x/y` and the units from `minutes` to `meters`. The ERA5-Land
-coordinates are treated as the centre points of the grid cells which means that when
-setting up the grid, an offset of 4.5 km has to be added.
-
-```{note}
-The Virtual Rainforest is run on a 90 x 90 m grid. This means that some form of
-spatial downscaling has to be applied to the dataset, for example by spatially
-interpolating coarser resolution climate data and including the effects of local
-topography. This is not yet implemented!
-```
-
-For the purpose of a dummy simulation in the development stage, the coordinates can be
-overwritten to match the Virtual Rainforest grid and we can select a smaller area.
-When setting up the grid, an offset of 45 m has to be added.
-Note that the resulting dataset does no longer match a digital elevation model for the
-area!
-
-At the moment, the dummy model iterates over time indices rather than real datetime.
-Therefore, we add a `time_index` dimension and coordinate to the dataset.
+See the [climate data recipes page](../data_recipes/climate_data_recipes.md) for more
+details.
 
 ### Hydrology data
+
+The `example_surface_runoff_data.nc` file provides:
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - surface runoff
+  - `surface_runoff`
+  - mm
+  - XY
+```
 
 ````{admonition} runoff_example_data.py
 :class: dropdown
@@ -194,10 +193,60 @@ Therefore, we add a `time_index` dimension and coordinate to the dataset.
 ````
 
 The hydrology model requires an initial surface runoff field to calculate accumulated
-surface runoff. If this variable is not provided by the SPLASH model, it can be created,
-for example as a normal distribution, and adjusted to Virtual Rainforest conventions.
+surface runoff. This value is currently created using a normal distribution, and
+adjusted to Virtual Rainforest conventions, but will in the future be estimated from
+rainfall data using the SPLASH model.
 
 ### Soil data
+
+The `example_soil_data.nc` file provides:
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - pH
+  - `pH` 
+  - unitless
+  - XY
+* - Bulk soul density
+  - `bulk_density` 
+  - kg $\textrm{m}^{-3}$
+  - XY
+* - Soil clay fraction
+  - `clay_fraction` 
+  - unitless
+  - XY
+* - Soil low molecular weight carbon pool
+  - `soil_c_pool_lmwc` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+* - Soil mineral associated organic matter carbon pool
+  - `soil_c_pool_maom` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+* - Soil microbial carbon pool
+  - `soil_c_pool_microbe` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+* - Soil particulate organic matter carbon pool
+  - `soil_c_pool_pom` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+* - Soil particulate organic matter enzyme pool
+  - `soil_enzyme_pom` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+* - Soil mineral associated organic matter enzyme pool
+  - `soil_enzyme_maom` 
+  - kg C $\textrm{m}^{-3}$
+  - XY
+```
+
+This code creates a set of plausible values for which the
+{mod}`~virtual_rainforest.models.soil.soil_model` absolutely has to function sensibly
+for.Descriptions of the soil pools can be found [here](./soil/soil_details.md).
 
 ````{admonition} soil_example_data.py
 :class: dropdown
@@ -205,26 +254,52 @@ for example as a normal distribution, and adjusted to Virtual Rainforest convent
 ```
 ````
 
-This code creates a set of
-plausible values for which the {mod}`~virtual_rainforest.models.soil.soil_model`
-absolutely has to function sensibly for.
-**It is important to note that none of this data is real data**.
-Descriptions of the soil pools can be found [here](./soil/soil_details.md).
-
-* pH; we're looking at acidic soils so a range of 3.5-4.5 seems plausible.
-* Bulk density can vary quite a lot so a range of 1200-1800 kg m^-3 seems sensible.
-* Percent clay; we're considering fairly clayey soils, so look at a range of
-  27.0-40.0 % clay
-* Low molecular weight carbon (LMWC); generally a very small carbon pool, so a range of
-  0.005-0.01 kg C m^-3 is used.
-* Mineral associated organic matter (MAOM); a huge amount of carbon can be locked away
-  as MAOM, so a range of 1.0-3.0 kg C m^-3 is used.
-* Microbial Carbon; the carbon locked up as microbial biomass is tiny, so a range of
-  0.0015-0.005 kg C m^-3 is used.
-* Particulate organic matter (POM); a reasonable amount of carbon is stored as
-  particulate organic matter (POM), so a range of 0.1-1.0 kg C m^-3 is used.
-
 ### Litter data
+
+The `example_litter_data.nc` file provides:
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - above ground metabolic litter pools
+  - `litter_pool_above_metabolic`
+  - kg C $\textrm{m}^{-2}$ 
+  - XY
+* - above ground structural litter pools
+  - `litter_pool_above_structural`
+  - kg C $\textrm{m}^{-2}$ 
+  - XY
+* - woody litter pools
+  - `litter_pool_woody`
+  - kg C $\textrm{m}^{-2}$ 
+  - XY
+* - below ground metabolic litter pools
+  - `litter_pool_below_metabolic`
+  - kg C $\textrm{m}^{-2}$ 
+  - XY
+* - below ground structural litter pools
+  - `litter_pool_below_structural`
+  - kg C $\textrm{m}^{-2}$ 
+  - XY
+* - lignin proportion of above ground structural litter
+  - `lignin_above_structural`
+  - unitless
+  - XY
+* - lignin proportion of woody litter
+  - `lignin_woody`
+  - unitless
+  - XY
+* - lignin proportion of below ground structural litter
+  - `lignin_below_structural`
+  - unitless
+  - XY
+```
+
+The generation script creates a set of plausible values for which the {mod}`~virtual_rainforest.models.litter.litter_model`
+absolutely has to function sensibly for.
+Descriptions of the litter pools can be found [here](./soil/soil_details.md).
 
 ````{admonition} litter_example_data.py
 :class: dropdown
@@ -232,28 +307,34 @@ Descriptions of the soil pools can be found [here](./soil/soil_details.md).
 ```
 ````
 
- creates a set of
-plausible values for which the {mod}`~virtual_rainforest.models.litter.litter_model`
-absolutely has to function sensibly for.
-**It is important to note that none of this data is real data**.
-Descriptions of the litter pools can be found [here](./soil/soil_details.md).
-
-* above ground metabolic litter pools, [kg C m^-2].
-* above ground structural litter pools, [kg C m^-2].
-* woody litter pools, [kg C m^-2].
-* below ground metabolic litter pools, [kg C m^-2].
-* below ground structural litter pools, [kg C m^-2].
-* lignin proportions of the pools
-
 ### Plant data
+
+The `example_plant_data.nc` file provides the following variables. Note that the plant
+data introduces a new axis dimension for the cohorts of plant functional groups (C). In
+this example data, a single cohort of each of the two configured functional groups is
+added for each of the 81 grid cells, giving 162 entries along the cohort axis.
+
+```{list-table}
+* - Variable
+  - Name
+  - Unit
+  - Dims
+* - Cohort plant functional type
+  - `plant_cohorts_pft`
+  - string
+  - C
+* - Cohort diameter at breast height
+  - `plant_cohorts_dbh`
+  - m
+  - C
+* - Photosynthetic photon flux density
+  - photosynthetic_photon_flux_density
+  - µ mol m$^{-2}$ s$^{-1}$
+  - XYT
+```
 
 ````{admonition} plant_example_data.py
 :class: dropdown
 ```{literalinclude} ../../../virtual_rainforest/example_data/generation_scripts/plant_example_data.py
 ```
 ````
-
-### Animal data
-
-A set of functional groups for the {mod}`~virtual_rainforest.models.animals.animal_model`
-is provided [here](../../../virtual_rainforest/example_data/config/animal_functional_groups.toml).

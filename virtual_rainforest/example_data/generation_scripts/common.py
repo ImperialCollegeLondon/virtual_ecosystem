@@ -22,7 +22,7 @@ cell_displacements = np.arange(0, 721, 90)
 n_cells = nx * ny
 cell_id = np.arange(n_cells)
 
-# Time dimension
+# Time dimension - a time series of 24 months.
 time = np.arange(np.datetime64("2013-01"), np.datetime64("2015-01")).astype(
     "datetime64[D]"
 )
