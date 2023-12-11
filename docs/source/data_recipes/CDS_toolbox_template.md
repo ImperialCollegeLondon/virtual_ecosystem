@@ -72,7 +72,7 @@ simulations:
   and [here for monthly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview)
 
   Example code to manipulate downloaded ERA5-Land data as used in the `vr_run` example
-  is available [here](../../../virtual_rainforest/example_data/climate_dummy.py).
+  is available [here](../../../virtual_rainforest/example_data/generation_scripts/climate_example_data.py).
 
 * WFDE5
   
@@ -133,7 +133,7 @@ or click on 'show Toolbox request' at the bottom of the page, copy the code, and
 the CDS toolbox editor.
 
 The code to manipulate climate data as used in the `vr_run` example is available
-[here](../../../virtual_rainforest/example_data/climate_dummy.py).
+[here](../../../virtual_rainforest/example_data/generation_scripts/climate_example_data.py).
 
 ### Toolbox template CORDEX-SEA
 
