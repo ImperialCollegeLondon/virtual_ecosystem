@@ -20,7 +20,7 @@ def calculate_vertical_flow(
     groundwater_capacity: Union[float, NDArray[np.float32]],
     seconds_to_day: float,
 ) -> NDArray[np.float32]:
-    r"""Calculate vertical water flow through soil column.
+    r"""Calculate vertical water flow through soil column, [mm d-1].
 
     To calculate the flow of water through unsaturated soil, this function uses the
     Richards equation. First, the function calculates the effective saturation :math:`S`
@@ -65,7 +65,7 @@ def calculate_vertical_flow(
         seconds_to_day: factor to convert between second and day
 
     Returns:
-        volumetric flow rate of water, [mm/timestep]
+        volumetric flow rate of water, [mm d-1]
     """
     shape_parameter = 1 - 1 / nonlinearily_parameter
 
