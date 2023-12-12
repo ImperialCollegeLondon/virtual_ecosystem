@@ -116,7 +116,8 @@ def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
                 # resolve ../ entries from relative file paths. However, it also makes
                 # all paths absolute, which lengthens paths if the config directory
                 # itself is relative. The approach here converts `path/to/config` and
-                # `../data/file1.nc` to `path/to/data/file1.nc`.
+                # `../data/file1.nc` to `path/to/data/file1.nc` when both paths are
+                # relative
                 file_resolved = (config_dir / file_path).resolve()
                 if not config_dir.is_absolute():
                     config_absolute = Path(config_dir.root).absolute()
