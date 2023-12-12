@@ -73,7 +73,6 @@ class HydrologyModel(BaseModel):
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
-        ("evapotranspiration", ("spatial",)),
         ("elevation", ("spatial",)),
     )
     """The required variables and axes for the hydrology model"""
@@ -685,14 +684,8 @@ def calculate_layer_thickness(
     Returns:
         soil layer thickness, mm
     """
-    return np.array(
-        [
-            (soil_layer_heights[i] - soil_layer_heights[i - 1]) * (-meters_to_mm)
-            if i > 0
-            else soil_layer_heights[0] * (-meters_to_mm)
-            for i in range(len(soil_layer_heights))
-        ],
-    )
+
+    return np.diff(soil_layer_heights, axis=0, prepend=0) * (-meters_to_mm)
 
 
 def setup_hydrology_input_current_timestep(
@@ -765,10 +758,12 @@ def setup_hydrology_input_current_timestep(
 
     # Select soil variables
     output["soil_layer_heights"] = (
-        data["layer_heights"]
-        .where(data["layer_heights"].layer_roles == "soil")
-        .dropna(dim="layers")
-    ).to_numpy()
+        data["layer_heights"].isel(layers=data["layer_roles"] == "soil").to_numpy()
+    )
+
+    # FIXME - there's an implicit axis order built into these calculations (vertical
+    #         profile is axis 0) that needs fixing.
+
     output["soil_layer_thickness"] = calculate_layer_thickness(  # [mm]
         soil_layer_heights=output["soil_layer_heights"],
         meters_to_mm=meters_to_mm,
@@ -784,9 +779,7 @@ def setup_hydrology_input_current_timestep(
     # water content in mm = relative water content / 100 * depth in mm
     # Example: for 20% water at 40 cm this would be: 20/100 * 400mm = 80 mm
     output["soil_moisture_mm"] = (
-        data["soil_moisture"]
-        .where(data["soil_moisture"].layer_roles == "soil")
-        .dropna(dim="layers")
+        data["soil_moisture"].isel(layers=data["layer_roles"] == "soil")
         * output["soil_layer_thickness"]
     ).to_numpy()
 

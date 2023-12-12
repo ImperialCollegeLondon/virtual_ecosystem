@@ -28,7 +28,7 @@ from xarray import DataArray, Dataset
 
 from virtual_rainforest.core.utils import set_layer_roles
 
-layer_roles = set_layer_roles(10, [-0.5, -1.0])
+layer_roles = set_layer_roles(10, [-0.25, -1.0])
 
 # Compile a dataset
 

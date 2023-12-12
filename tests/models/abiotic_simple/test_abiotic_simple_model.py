@@ -73,7 +73,7 @@ def test_abiotic_simple_model_initialization(
         model = AbioticSimpleModel(
             dummy_climate_data,
             pint.Quantity("1 week"),
-            soil_layers=[-0.5, -1.0],
+            soil_layers=[-0.25, -1.0],
             canopy_layers=10,
             constants=AbioticSimpleConsts(),
         )

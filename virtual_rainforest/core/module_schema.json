@@ -205,12 +205,33 @@
                      "type": "integer",
                      "exclusiveMinimum": 0,
                      "default": 10
+                  },
+                  "above_canopy_height_offset": {
+                     "description": "The height offset relative to the canopy top for climatic reference variables.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 2.0
+                  },
+                  "surface_layer_height": {
+                     "description": "The height used to calculate ground surface microclimate conditions.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 0.1
+                  },
+                  "subcanopy_layer_height": {
+                     "description": "The height used to calculate subcanopy microclimate conditions.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 1.5
                   }
                },
                "default": {},
                "required": [
                   "soil_layers",
-                  "canopy_layers"
+                  "canopy_layers",
+                  "above_canopy_height_offset",
+                  "surface_layer_height",
+                  "subcanopy_layer_height"
                ]
             }
          },
