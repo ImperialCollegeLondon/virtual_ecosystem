@@ -147,7 +147,7 @@ The `example_climate_data.nc` file provides:
   - kPa
   - XYT
 * - precipitation
-  - `atmospheric_pressure_ref`
+  - `precipitation`
   - mm $\textrm{month}^{-1}$
   - XYT
 * - atmospheric $\ce{CO_{2}}$ concentration
