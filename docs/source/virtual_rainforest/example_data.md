@@ -210,7 +210,7 @@ The `example_soil_data.nc` file provides:
   - `pH` 
   - unitless
   - XY
-* - Bulk soul density
+* - Bulk soil density
   - `bulk_density` 
   - kg $\textrm{m}^{-3}$
   - XY
