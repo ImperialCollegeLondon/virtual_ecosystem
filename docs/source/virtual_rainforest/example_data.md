@@ -143,7 +143,7 @@ The `example_climate_data.nc` file provides:
   - unitless
   - XYT
 * - atmospheric pressure
-  - `precipitation`
+  - `atmospheric_pressure_ref`
   - kPa
   - XYT
 * - precipitation
