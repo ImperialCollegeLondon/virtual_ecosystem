@@ -497,7 +497,7 @@ def merge_continuous_data_files(
     check_outfile(out_path)
 
     # Open all files as a single dataset
-    with open_mfdataset(continuous_data_files) as all_data:
+    with open_mfdataset(continuous_data_files, lock=False) as all_data:
         # Specify type of the layer roles object to allow for quicker saving by dask
         all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
 
