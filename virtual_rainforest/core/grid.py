@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -33,8 +33,8 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG = tuple[list[int], list[Polygon]]
-"""Signature of the data structure to be returned from grid creator functions.
+GRID_STRUCTURE_SIG: TypeAlias = tuple[list[int], list[Any]]
+"""Type signature of the data structure to be returned from grid creator functions.
 
 The first value is a list of integer cell ids, the second is a matching list of the
 polygons for each cell id. Although cell ids could be a numpy array, the numpy int types
@@ -106,12 +106,15 @@ def make_square_grid(
     cell_y = np.flipud(idx_y) * scale_factor
 
     # Get the list of polygons
-    cell_list = [
+    cell_polygon_list: list[Polygon] = [
         translate(prototype, xoff=xf, yoff=yf)
         for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
     ]
 
-    return cell_ids.flatten().tolist(), cell_list
+    # Get list of ids
+    cell_ids_list: list[int] = cell_ids.flatten().tolist()
+
+    return cell_ids_list, cell_polygon_list
 
 
 @register_grid(grid_type="hexagon")
@@ -169,12 +172,15 @@ def make_hex_grid(
     cell_y = 1.5 * side_length * np.flipud(idx_y)
 
     # Get the list of polygons
-    cell_list = [
+    cell_polygon_list: list[Polygon] = [
         translate(prototype, xoff=xf, yoff=yf)
         for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
     ]
 
-    return cell_ids.flatten().tolist(), cell_list
+    # Get list of ids
+    cell_ids_list: list[int] = cell_ids.flatten().tolist()
+
+    return cell_ids_list, cell_polygon_list
 
 
 class Grid:
