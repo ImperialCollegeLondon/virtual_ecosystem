@@ -9,7 +9,7 @@ import textwrap
 from collections.abc import Sequence
 from pathlib import Path
 from shutil import copytree, ignore_patterns
-from typing import Any, Optional
+from typing import Any
 
 import virtual_rainforest as vr
 from virtual_rainforest import example_data_path
@@ -103,7 +103,7 @@ def install_example_directory(install_dir: Path) -> int:
     return 0
 
 
-def vr_run_cli(args_list: Optional[list[str]] = None) -> int:
+def vr_run_cli(args_list: list[str] | None = None) -> int:
     """Configure and run a Virtual Rainforest simulation.
 
     This program sets up and runs a Virtual Rainforest simulation. The program expects
@@ -159,7 +159,7 @@ def vr_run_cli(args_list: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s {version}".format(version=vr.__version__),
+        version=f"%(prog)s {vr.__version__}",
     )
 
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")

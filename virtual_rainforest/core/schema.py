@@ -24,8 +24,9 @@ The JSONSchema documents for a module should be loaded when a model is imported 
 
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import dpath
 from jsonschema import Draft202012Validator, exceptions, validators
@@ -60,13 +61,12 @@ def set_defaults(
         if "default" in subschema:
             instance.setdefault(property, subschema["default"])
 
-    for error in Draft202012Validator.VALIDATORS["properties"](
+    yield from Draft202012Validator.VALIDATORS["properties"](
         validator,
         properties,
         instance,
         schema,
-    ):
-        yield error
+    )
 
 
 ValidatorWithDefaults = validators.extend(

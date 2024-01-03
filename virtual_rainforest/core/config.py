@@ -11,7 +11,7 @@ import sys
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import tomli_w
 from jsonschema import FormatChecker
@@ -169,20 +169,20 @@ class Config(dict):
 
     def __init__(
         self,
-        cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
-        cfg_strings: Union[str, list[str]] = [],
+        cfg_paths: str | Path | Sequence[str | Path] = [],
+        cfg_strings: str | list[str] = [],
         override_params: dict[str, Any] = {},
         auto: bool = True,
     ) -> None:
         # Define custom attributes
         self.cfg_paths: list[Path] = []
         """The configuration file paths, normalised from the cfg_paths argument."""
-        self.toml_files: list[Union[str, Path]] = []
+        self.toml_files: list[str | Path] = []
         """A list of TOML file paths resolved from the initial config paths."""
         self.cfg_strings: list[str] = []
         """A list of strings containing TOML content, provided by the ``cfg_strings``
         argument."""
-        self.toml_contents: dict[Union[str, Path], dict] = {}
+        self.toml_contents: dict[str | Path, dict] = {}
         """A dictionary of the parsed TOML contents of config files or strings, keyed by
         file path or string index."""
         self.merge_conflicts: list = []
@@ -282,9 +282,9 @@ class Config(dict):
                 self.toml_files.append(path)
 
         # Check that no files are resolved twice
-        dupl_files = set(
-            [str(md) for md in self.toml_files if self.toml_files.count(md) > 1]
-        )
+        dupl_files = {
+            str(md) for md in self.toml_files if self.toml_files.count(md) > 1
+        }
         if dupl_files:
             all_valid = False
             LOGGER.error(f"Repeated files in config paths: {','.join(dupl_files)}")

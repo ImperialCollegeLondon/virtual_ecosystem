@@ -8,9 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from math import ceil
 from random import choice
-from typing import Optional, Sequence
 
 from numpy import random, timedelta64
 
@@ -121,7 +121,7 @@ class AnimalCohort:
             temperature,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
-        ) * float((dt / timedelta64(1, "D")))
+        ) * float(dt / timedelta64(1, "D"))
 
         self.mass_current -= min(self.mass_current, mass_metabolized)
 
@@ -256,7 +256,7 @@ class AnimalCohort:
         animal_list: Sequence[Resource],
         carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> Optional[Resource]:  # Note the optional here, temporary
+    ) -> Resource | None:  # Note the optional here, temporary
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
