@@ -40,7 +40,7 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
     model = SoilModel(
         dummy_carbon_data,
         pint.Quantity("1 week"),
-        [-0.5, -1.0],
+        [-0.25, -1.0],
         10,
         model_constants=SoilConsts,
         core_constants=CoreConsts,
@@ -86,7 +86,7 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
         _ = SoilModel(
             empty_data,
             pint.Quantity("1 week"),
-            [-0.5, -1.0],
+            [-0.25, -1.0],
             10,
             model_constants=SoilConsts,
             core_constants=CoreConsts,
@@ -125,7 +125,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
         _ = SoilModel(
             dummy_carbon_data,
             pint.Quantity("1 week"),
-            [-0.5, -1.0],
+            [-0.25, -1.0],
             10,
             model_constants=SoilConsts,
             core_constants=CoreConsts,

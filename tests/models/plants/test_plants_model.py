@@ -5,7 +5,7 @@ import numpy as np
 # TODO: A lot of duplication in these tests, work out how to share code to make it DRYer
 
 
-def test_PlantsModel__init__(plants_data, flora):
+def test_PlantsModel__init__(plants_data, flora, layer_structure):
     """Test the PlantsModel.__init__ method."""
     from pint import Quantity
 
@@ -15,8 +15,7 @@ def test_PlantsModel__init__(plants_data, flora):
         data=plants_data,
         update_interval=Quantity("1 month"),
         flora=flora,
-        canopy_layers=10,
-        soil_layers=[-0.5, -1.0],
+        layer_structure=layer_structure,
     )
 
     # Test the flora and community are as expected
@@ -25,7 +24,7 @@ def test_PlantsModel__init__(plants_data, flora):
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = [
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 1000 * 4),
@@ -52,7 +51,7 @@ def test_PlantsModel_from_config(plants_data, plants_config):
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = (
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 1000 * 4),
@@ -67,7 +66,7 @@ def test_PlantsModel_update_canopy_layers(fxt_plants_model):
     """Simple test that update canopy layers restores overwritten data."""
 
     expected_layers = (
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 0),  # Note that this layer should not be updated
@@ -90,7 +89,7 @@ def test_PlantsModel_set_absorbed_irradiance(fxt_plants_model):
     """Simple test that update canopy layers restores overwritten data."""
 
     expected_layers = (
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_absorbed_irradiation", 1000 * 4),  # Is restored by additional call.
@@ -122,10 +121,21 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     # Check calculate quantities - this is currently very basic.
 
     # - Light use efficiency: currently asserted fixed value
-    exp_lue = np.full((15, 4), fill_value=0.3)
+    exp_lue = np.full((15, 4), fill_value=np.nan)
+    exp_lue[1:4, :] = 0.3
     assert np.allclose(
-        fxt_plants_model.data["layer_light_use_efficiency"].data,
+        fxt_plants_model.data["layer_light_use_efficiency"].to_numpy(),
         exp_lue,
+        equal_nan=True,
+    )
+
+    # Same for evapotranspiration
+    exp_evapo = np.full((15, 4), fill_value=np.nan)
+    exp_evapo[1:4, :] = 20
+    assert np.allclose(
+        fxt_plants_model.data["evapotranspiration"].to_numpy(),
+        exp_evapo,
+        equal_nan=True,
     )
 
     # - Canopy fapar to expected gpp per m2
@@ -153,7 +163,7 @@ def test_PlantsModel_update(fxt_plants_model):
     # The update method runs both update_canopy_layers and set_absorbed_irradiance so
     # should restore all of the layers below.
     expected_layers = (
-        ("layer_heights", (30 + 20 + 10) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_leaf_mass", 30000 * 4),

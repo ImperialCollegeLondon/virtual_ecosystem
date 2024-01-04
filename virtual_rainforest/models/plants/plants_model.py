@@ -17,6 +17,7 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.plants.canopy import (
+    LayerStructure,
     build_canopy_arrays,
     initialise_canopy_layers,
 )
@@ -93,9 +94,7 @@ class PlantsModel(BaseModel):
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "layer_absorbed_irradiation",
-        "herbivory",
-        "transpiration",
-        "canopy_evaporation",
+        "evapotranspiration",
     )
     """Variables updated by the plants model."""
 
@@ -104,8 +103,7 @@ class PlantsModel(BaseModel):
         data: Data,
         update_interval: Quantity,
         flora: Flora,
-        canopy_layers: int,
-        soil_layers: list[float],
+        layer_structure: LayerStructure,
         constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ):
@@ -118,21 +116,20 @@ class PlantsModel(BaseModel):
         """Set of constants for the plants model"""
         self.communities = PlantCommunities(data, self.flora)
         """Initialise the plant communities from the data object."""
-        self.canopy_layers = canopy_layers
-        """The maximum number of canopy layers."""
-        self.soil_layers = soil_layers
-        """A list giving the depths of soil layers."""
+        self.layer_structure = layer_structure
+        """The vertical layer structure of the model."""
 
         # Initialise and then update the canopy layers.
         # TODO - this initialisation step may move somewhere else at some point.
         self.data = initialise_canopy_layers(
             data=data,
-            n_canopy_layers=self.canopy_layers,
-            soil_layers=self.soil_layers,
+            layer_structure=self.layer_structure,
         )
         """A reference to the global data object."""
 
-        self._canopy_layer_indices = np.arange(1, self.canopy_layers + 1)
+        self._canopy_layer_indices = np.arange(
+            1, self.layer_structure.canopy_layers + 1
+        )
         """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
@@ -154,18 +151,16 @@ class PlantsModel(BaseModel):
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
-
         """
-
-        # Get required init arguments from config
-        soil_layers = config["core"]["layers"]["soil_layers"]
-        canopy_layers = config["core"]["layers"]["canopy_layers"]
 
         # Load in the relevant constants
         constants = load_constants(config, "plants", "PlantsConsts")
 
         # Generate the flora
         flora = Flora.from_config(config=config)
+
+        # Get the LayerStructure
+        layer_structure = LayerStructure.from_config(config=config)
 
         # Try and create the instance - safeguard against exceptions from __init__
         try:
@@ -174,8 +169,7 @@ class PlantsModel(BaseModel):
                 update_interval=update_interval,
                 flora=flora,
                 constants=constants,
-                canopy_layers=canopy_layers,
-                soil_layers=soil_layers,
+                layer_structure=layer_structure,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -236,7 +230,7 @@ class PlantsModel(BaseModel):
         # Retrive the canopy model arrays and insert into the data object.
         canopy_data = build_canopy_arrays(
             self.communities,
-            n_canopy_layers=self.canopy_layers,
+            n_canopy_layers=self.layer_structure.canopy_layers,
         )
 
         # Insert the canopy layers into the data objects
@@ -244,6 +238,12 @@ class PlantsModel(BaseModel):
         self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
         self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
+
+        # Update the above canopy heights
+        self.data["layer_heights"][0, :] = (
+            self.data["layer_heights"][1, :]
+            + self.layer_structure.above_canopy_height_offset
+        )
 
     def set_absorbed_irradiance(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
@@ -259,7 +259,9 @@ class PlantsModel(BaseModel):
 
         # Extract a PPFD time slice
         canopy_top_ppfd = (
-            self.data["photosynthetic_photon_flux_density"].isel(time=time_index).data
+            self.data["photosynthetic_photon_flux_density"]
+            .isel(time_index=time_index)
+            .data
         )
 
         # Calculate the fate of PPFD through the layers
@@ -325,12 +327,14 @@ class PlantsModel(BaseModel):
         #
         # This will give an array of the light use efficiency per layer per cell,
 
-        # Set a representative place holder LUE in gC mol-1 for now
-        self.data["layer_light_use_efficiency"] = xarray.full_like(
-            self.data["air_temperature"],
-            fill_value=0.3,
-            dtype=float,
+        # Get an array where populated canopy layers are one otherwise nan
+        canopy_heights = self.data["layer_heights"].where(
+            self.data["layers"].isin(self._canopy_layer_indices)
         )
+        is_canopy = xarray.ones_like(canopy_heights).where(canopy_heights > 0)
+
+        # Set a representative place holder LUE in gC mol-1 for now
+        self.data["layer_light_use_efficiency"] = is_canopy * 0.3
 
         # The LUE can then be scaled by the calculated absorbed irradiance, which is
         # the product of the layer specific fapar and the downwelling PPFD. In practice,
@@ -371,6 +375,10 @@ class PlantsModel(BaseModel):
                 cohort.gpp = np.nansum(
                     cohort.canopy_area * cell_gpp_per_m2 * seconds_since_last_update
                 )
+
+        # Estimate evapotranspiration
+        #  - currently just a placeholder for something more involved
+        self.data["evapotranspiration"] = is_canopy * 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

@@ -23,7 +23,9 @@
                     "properties": {
                         "init": {
                             "type": "array",
-                            "default": [],
+                            "default": [
+                                "plants"
+                            ],
                             "items": {
                                 "type": "string"
                             }
