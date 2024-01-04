@@ -3,7 +3,6 @@ processes for the Virtual Rainforest. This includes vertical flow, soil moisture
 matric potential, groundwater storage, and subsurface horizontal flow.
 """  # noqa: D205, D415
 
-from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,12 +11,12 @@ from numpy.typing import NDArray
 def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
     soil_layer_thickness: NDArray[np.float32],
-    soil_moisture_capacity: Union[float, NDArray[np.float32]],
-    soil_moisture_residual: Union[float, NDArray[np.float32]],
-    hydraulic_conductivity: Union[float, NDArray[np.float32]],
-    hydraulic_gradient: Union[float, NDArray[np.float32]],
-    nonlinearily_parameter: Union[float, NDArray[np.float32]],
-    groundwater_capacity: Union[float, NDArray[np.float32]],
+    soil_moisture_capacity: float | NDArray[np.float32],
+    soil_moisture_residual: float | NDArray[np.float32],
+    hydraulic_conductivity: float | NDArray[np.float32],
+    hydraulic_gradient: float | NDArray[np.float32],
+    nonlinearily_parameter: float | NDArray[np.float32],
+    groundwater_capacity: float | NDArray[np.float32],
     seconds_to_day: float,
 ) -> NDArray[np.float32]:
     r"""Calculate vertical water flow through soil column, [mm d-1].
@@ -205,10 +204,10 @@ def update_groundwater_storge(
     groundwater_storage: NDArray[np.float32],
     vertical_flow_to_groundwater: NDArray[np.float32],
     bypass_flow: NDArray[np.float32],
-    max_percolation_rate_uzlz: Union[float, NDArray[np.float32]],
-    groundwater_loss: Union[float, NDArray[np.float32]],
-    reservoir_const_upper_groundwater: Union[float, NDArray[np.float32]],
-    reservoir_const_lower_groundwater: Union[float, NDArray[np.float32]],
+    max_percolation_rate_uzlz: float | NDArray[np.float32],
+    groundwater_loss: float | NDArray[np.float32],
+    reservoir_const_upper_groundwater: float | NDArray[np.float32],
+    reservoir_const_lower_groundwater: float | NDArray[np.float32],
 ) -> dict[str, NDArray[np.float32]]:
     r"""Update groundwater storage and calculate below ground horizontal flow.
 

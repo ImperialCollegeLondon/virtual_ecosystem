@@ -110,6 +110,10 @@ nitpick_ignore = [
     ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
     # Something off about JSONSchema intersphinx mapping?
     ("py:obj", "virtual_rainforest.core.schema.ValidatorWithDefaults.ID_OF"),
+    # HACK - sphinx seems to thing GRID_STRUCTURE_SIG is a tuple not a type alias
+    ("py:obj", "virtual_rainforest.core.grid.GRID_STRUCTURE_SIG.__repr__"),
+    ("py:obj", "virtual_rainforest.core.grid.GRID_STRUCTURE_SIG.count"),
+    ("py:obj", "virtual_rainforest.core.grid.GRID_STRUCTURE_SIG.index"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),

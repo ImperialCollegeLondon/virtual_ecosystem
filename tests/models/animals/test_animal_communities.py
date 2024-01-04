@@ -68,7 +68,7 @@ class TestAnimalCommunity:
         self, animal_community_instance, animal_cohort_instance
     ):
         """Test the all_animal_cohorts property."""
-        from typing import Iterable
+        from collections.abc import Iterable
 
         # Add an animal cohort to the community
         animal_community_instance.animal_cohorts["herbivorous_mammal"].append(

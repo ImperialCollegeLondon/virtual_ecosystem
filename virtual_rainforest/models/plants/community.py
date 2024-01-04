@@ -7,8 +7,8 @@ NOTE - much of this will be outsourced to pyrealm.
 
 """  # noqa: D205, D415
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping
 
 import numpy as np
 from numpy.typing import NDArray
