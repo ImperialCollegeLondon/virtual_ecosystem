@@ -228,12 +228,6 @@ class SoilModel(BaseModel):
             if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
         }
 
-        # TODO - This is a work around as (to the best of my knowledge) the hydrology
-        # model only currently gives total flow (over the entire time step) rather than
-        # flow rates
-        # Convert vertical flow into per day units
-        vertical_flow_per_day = self.data["vertical_flow"].to_numpy() / update_time
-
         # Carry out simulation
         output = solve_ivp(
             construct_full_soil_model,
@@ -241,7 +235,6 @@ class SoilModel(BaseModel):
             y0,
             args=(
                 self.data,
-                vertical_flow_per_day,
                 no_cells,
                 self.top_soil_layer_index,
                 delta_pools_ordered,
@@ -274,8 +267,6 @@ def construct_full_soil_model(
     t: float,
     pools: NDArray[np.float32],
     data: Data,
-    # TODO - Remove this as an argument once vertical flow is averaged per day
-    vertical_flow_per_day: NDArray[np.float32],
     no_cells: int,
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
@@ -290,7 +281,6 @@ def construct_full_soil_model(
             integrated.
         pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
-        vertical_flow_per_day: Rate of vertical water flow through soil [mm day^-1]
         no_cells: Number of grid cells the integration is being performed over
         top_soil_layer_index: Index for layer in data object representing top soil layer
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
@@ -316,7 +306,7 @@ def construct_full_soil_model(
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
         soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
-        vertical_flow_rate=vertical_flow_per_day,
+        vertical_flow_rate=data["vertical_flow"].to_numpy(),
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         clay_fraction=data["clay_fraction"].to_numpy(),
         mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),

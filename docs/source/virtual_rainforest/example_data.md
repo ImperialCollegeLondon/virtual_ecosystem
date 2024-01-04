@@ -143,11 +143,11 @@ The `example_climate_data.nc` file provides:
   - unitless
   - XYT
 * - atmospheric pressure
-  - `precipitation`
+  - `atmospheric_pressure_ref`
   - kPa
   - XYT
 * - precipitation
-  - `atmospheric_pressure_ref`
+  - `precipitation`
   - mm $\textrm{month}^{-1}$
   - XYT
 * - atmospheric $\ce{CO_{2}}$ concentration
@@ -210,7 +210,7 @@ The `example_soil_data.nc` file provides:
   - `pH` 
   - unitless
   - XY
-* - Bulk soul density
+* - Bulk soil density
   - `bulk_density` 
   - kg $\textrm{m}^{-3}$
   - XY
@@ -328,7 +328,7 @@ added for each of the 81 grid cells, giving 162 entries along the cohort axis.
   - m
   - C
 * - Photosynthetic photon flux density
-  - photosynthetic_photon_flux_density
+  - `photosynthetic_photon_flux_density`
   - µ mol m$^{-2}$ s$^{-1}$
   - XYT
 ```
