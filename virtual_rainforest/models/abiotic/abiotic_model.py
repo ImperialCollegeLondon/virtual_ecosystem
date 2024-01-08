@@ -34,6 +34,8 @@ from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic import wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 
+# from virtual_rainforest.models.abiotic_simple import microclimate
+
 
 class AbioticModel(BaseModel):
     """A class describing the abiotic model.
@@ -125,7 +127,44 @@ class AbioticModel(BaseModel):
         )
 
     def setup(self) -> None:
-        """Function to set up the abiotic model."""
+        """Function to set up the abiotic model.
+
+        This function initializes soil temperature and canopy temperature for all
+        corresponding layers and calculates the reference vapour pressure deficit for
+        all time steps of the simulation. All variables are added directly to the
+        self.data object.
+        """
+
+        # Initialise soil temperature
+        self.data["soil_temperature"] = DataArray(
+            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, len(self.layer_roles)),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_temperature",
+        )
+
+        # Calculate vapour pressure deficit at reference height for all time steps
+        # self.data[
+        #     "vapour_pressure_deficit_ref"
+        # ] = microclimate.calculate_vapour_pressure_deficit(
+        #     temperature=self.data["air_temperature_ref"],
+        #     relative_humidity=self.data["relative_humidity_ref"],
+        #     saturation_vapour_pressure_factor1=(
+        #         self.constants.saturation_vapour_pressure_factor1
+        #     ),
+        #     saturation_vapour_pressure_factor2=(
+        #         self.constants.saturation_vapour_pressure_factor2
+        #     ),
+        #     saturation_vapour_pressure_factor3=(
+        #         self.constants.saturation_vapour_pressure_factor3
+        #     ),
+        # ).rename(
+        #     "vapour_pressure_deficit_ref"
+        # )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
