@@ -322,6 +322,33 @@ def test_update_abiotic_model(
     )
 
     model.setup()
+
+    np.testing.assert_allclose(
+        model.data["soil_temperature"],
+        DataArray(
+            np.full((15, 3), np.nan),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, 15),
+                "layer_roles": (
+                    "layers",
+                    model.layer_roles,
+                ),
+                "cell_id": [0, 1, 2],
+            },
+        ),
+    )
+    np.testing.assert_allclose(
+        model.data["vapour_pressure_deficit_ref"],
+        DataArray(
+            np.full((3, 3), 0.141727),
+            dims=["cell_id", "time_index"],
+            coords={
+                "cell_id": [0, 1, 2],
+            },
+        ),
+    )
+
     model.update(time_index=0)
 
     friction_velocity_exp = np.array(

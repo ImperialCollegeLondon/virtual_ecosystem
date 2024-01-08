@@ -33,8 +33,8 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic import wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
-
-# from virtual_rainforest.models.abiotic_simple import microclimate
+from virtual_rainforest.models.abiotic_simple import microclimate
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 class AbioticModel(BaseModel):
@@ -148,23 +148,15 @@ class AbioticModel(BaseModel):
         )
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        # self.data[
-        #     "vapour_pressure_deficit_ref"
-        # ] = microclimate.calculate_vapour_pressure_deficit(
-        #     temperature=self.data["air_temperature_ref"],
-        #     relative_humidity=self.data["relative_humidity_ref"],
-        #     saturation_vapour_pressure_factor1=(
-        #         self.constants.saturation_vapour_pressure_factor1
-        #     ),
-        #     saturation_vapour_pressure_factor2=(
-        #         self.constants.saturation_vapour_pressure_factor2
-        #     ),
-        #     saturation_vapour_pressure_factor3=(
-        #         self.constants.saturation_vapour_pressure_factor3
-        #     ),
-        # ).rename(
-        #     "vapour_pressure_deficit_ref"
-        # )
+        self.data[
+            "vapour_pressure_deficit_ref"
+        ] = microclimate.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            constants=AbioticSimpleConsts(),
+        ).rename(
+            "vapour_pressure_deficit_ref"
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
