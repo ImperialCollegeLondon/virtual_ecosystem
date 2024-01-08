@@ -143,6 +143,7 @@ class AbioticModel(BaseModel):
         )
 
         # Calculate vapour pressure deficit at reference height for all time steps
+        # TODO sort out constants argument in simple abiotic model
         self.data[
             "vapour_pressure_deficit_ref"
         ] = microclimate.calculate_vapour_pressure_deficit(
