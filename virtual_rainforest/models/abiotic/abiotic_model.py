@@ -80,12 +80,8 @@ class AbioticModel(BaseModel):
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
         self.layer_roles = layer_roles
         """A list of vertical layer roles."""
-        self.update_interval
-        """The time interval between model updates."""
         self.constants = constants
         """Set of constants for the abiotic model."""
         self.core_constants = core_constants
