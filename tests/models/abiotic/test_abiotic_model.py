@@ -44,19 +44,8 @@ def test_abiotic_model_initialization(
     log_check(
         caplog,
         expected_log=(
-            (DEBUG, "abiotic model: required var 'air_temperature' checked"),
-            (DEBUG, "abiotic model: required var 'canopy_height' checked"),
-            (DEBUG, "abiotic model: required var 'layer_heights' checked"),
-            (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
-            (DEBUG, "abiotic model: required var 'atmospheric_pressure' checked"),
-            (
-                DEBUG,
-                (
-                    "abiotic model: required var 'sensible_heat_flux_topofcanopy'"
-                    " checked"
-                ),
-            ),
-            (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
+            (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
+            (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
         ),
     )
 
@@ -89,25 +78,14 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
     log_check(
         caplog,
         expected_log=(
-            (ERROR, "abiotic model: init data missing required var 'air_temperature'"),
-            (ERROR, "abiotic model: init data missing required var 'canopy_height'"),
-            (ERROR, "abiotic model: init data missing required var 'layer_heights'"),
-            (ERROR, "abiotic model: init data missing required var 'leaf_area_index'"),
             (
                 ERROR,
-                (
-                    "abiotic model: init data missing required var"
-                    " 'atmospheric_pressure'"
-                ),
+                "abiotic model: init data missing required var 'air_temperature_ref'",
             ),
             (
                 ERROR,
-                (
-                    "abiotic model: init data missing required var"
-                    " 'sensible_heat_flux_topofcanopy'"
-                ),
+                "abiotic model: init data missing required var 'relative_humidity_ref'",
             ),
-            (ERROR, "abiotic model: init data missing required var 'wind_speed_ref'"),
             (ERROR, "abiotic model: error checking required_init_vars, see log."),
         ),
     )
@@ -129,22 +107,8 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
                     "Information required to initialise the abiotic model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "abiotic model: required var 'air_temperature' checked"),
-                (DEBUG, "abiotic model: required var 'canopy_height' checked"),
-                (DEBUG, "abiotic model: required var 'layer_heights' checked"),
-                (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
-                (
-                    DEBUG,
-                    "abiotic model: required var 'atmospheric_pressure' checked",
-                ),
-                (
-                    DEBUG,
-                    (
-                        "abiotic model: required var 'sensible_heat_flux_topofcanopy'"
-                        " checked"
-                    ),
-                ),
-                (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
+                (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
+                (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
             ),
             id="default_config",
         ),
@@ -162,22 +126,8 @@ def test_abiotic_model_initialization_no_data(caplog, dummy_climate_data):
                     "Information required to initialise the abiotic model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "abiotic model: required var 'air_temperature' checked"),
-                (DEBUG, "abiotic model: required var 'canopy_height' checked"),
-                (DEBUG, "abiotic model: required var 'layer_heights' checked"),
-                (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
-                (
-                    DEBUG,
-                    "abiotic model: required var 'atmospheric_pressure' checked",
-                ),
-                (
-                    DEBUG,
-                    (
-                        "abiotic model: required var 'sensible_heat_flux_topofcanopy'"
-                        " checked"
-                    ),
-                ),
-                (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
+                (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
+                (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
             ),
             id="modified_config_correct",
         ),
