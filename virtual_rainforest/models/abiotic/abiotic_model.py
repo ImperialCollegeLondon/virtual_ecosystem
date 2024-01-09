@@ -33,6 +33,8 @@ from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic import wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_rainforest.models.abiotic_simple import microclimate
+from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 class AbioticModel(BaseModel):
@@ -53,17 +55,12 @@ class AbioticModel(BaseModel):
     upper_bound_on_time_scale = "1 day"
     """Longest time scale that abiotic model can sensibly capture."""
     required_init_vars = (
-        ("air_temperature", ("spatial",)),
-        ("canopy_height", ("spatial",)),
-        ("layer_heights", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("atmospheric_pressure", ("spatial",)),
-        ("sensible_heat_flux_topofcanopy", ("spatial",)),
-        ("wind_speed_ref", ("spatial",)),
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
     )
-    """The required variables and axes for the abiotic model"""
+    """The required variables and axes for the abiotic model."""
     vars_updated = ()
-    """Variables updated by the abiotic model"""
+    """Variables updated by the abiotic model."""
 
     def __init__(
         self,
@@ -80,12 +77,8 @@ class AbioticModel(BaseModel):
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
         self.layer_roles = layer_roles
         """A list of vertical layer roles."""
-        self.update_interval
-        """The time interval between model updates."""
         self.constants = constants
         """Set of constants for the abiotic model."""
         self.core_constants = core_constants
@@ -129,7 +122,37 @@ class AbioticModel(BaseModel):
         )
 
     def setup(self) -> None:
-        """Function to set up the abiotic model."""
+        """Function to set up the abiotic model.
+
+        This function initializes soil temperature and canopy temperature for all
+        corresponding layers and calculates the reference vapour pressure deficit for
+        all time steps of the simulation. All variables are added directly to the
+        self.data object.
+        """
+
+        # Initialise soil temperature
+        self.data["soil_temperature"] = DataArray(
+            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, len(self.layer_roles)),
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_temperature",
+        )
+
+        # Calculate vapour pressure deficit at reference height for all time steps
+        # TODO sort out constants argument in simple abiotic model
+        self.data[
+            "vapour_pressure_deficit_ref"
+        ] = microclimate.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            constants=AbioticSimpleConsts(),
+        ).rename(
+            "vapour_pressure_deficit_ref"
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
