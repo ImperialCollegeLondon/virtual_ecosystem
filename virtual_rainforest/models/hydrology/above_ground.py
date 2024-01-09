@@ -5,7 +5,6 @@ runoff, bypass flow, and river discharge.
 """  # noqa: D205, D415
 
 from math import sqrt
-from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -19,13 +18,13 @@ def calculate_soil_evaporation(
     relative_humidity: NDArray[np.float32],
     atmospheric_pressure: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
-    soil_moisture_residual: Union[float, NDArray[np.float32]],
-    soil_moisture_capacity: Union[float, NDArray[np.float32]],
+    soil_moisture_residual: float | NDArray[np.float32],
+    soil_moisture_capacity: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
-    wind_speed: Union[float, NDArray[np.float32]],
+    wind_speed: float | NDArray[np.float32],
     celsius_to_kelvin: float,
-    density_air: Union[float, NDArray[np.float32]],
-    latent_heat_vapourisation: Union[float, NDArray[np.float32]],
+    density_air: float | NDArray[np.float32],
+    latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
     heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
@@ -291,7 +290,7 @@ def calculate_interception(
 def distribute_monthly_rainfall(
     total_monthly_rainfall: NDArray[np.float32],
     num_days: int,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> NDArray[np.float32]:
     """Distributes total monthly rainfall over the specified number of days.
 
@@ -367,7 +366,7 @@ def calculate_bypass_flow(
 
 def convert_mm_flow_to_m3_per_second(
     river_discharge_mm: NDArray[np.float32],
-    area: Union[int, float],
+    area: int | float,
     days: int,
     seconds_to_day: float,
     meters_to_millimeters: float,

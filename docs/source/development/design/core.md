@@ -101,9 +101,7 @@ concept that matters!
 
 ```toml
 [core.data.soil_depth]
-values = {forest_cover.M=0.1, 
-          forest_cover.L=0.5, 
-          forest_cover.F=1.0}
+values = {forest_cover.M=0.1, forest_cover.L=0.5, forest_cover.F=1.0}
 ```
 
 These use one of the first three approaches above, which index _individual_

@@ -45,7 +45,7 @@ The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for 
 """  # noqa: D205, D415
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Type
+from typing import Any
 
 import numpy as np
 from xarray import DataArray
@@ -163,7 +163,7 @@ class AxisValidator(ABC):
         """
 
 
-AXIS_VALIDATORS: dict[str, list[Type[AxisValidator]]] = {}
+AXIS_VALIDATORS: dict[str, list[type[AxisValidator]]] = {}
 """A registry for different axis validators subclasses
 
 This registry contains a dictionary of lists of AxisValidator subclasses. Each list
@@ -206,12 +206,12 @@ def validate_dataarray(
         RuntimeError: If more than one validator reports that it can validate an input.
     """
 
-    validation_dict: dict[str, Optional[str]] = {}
+    validation_dict: dict[str, str | None] = {}
     to_raise: Exception
 
     # Get the validators applying to each axis
     for axis in AXIS_VALIDATORS:
-        validators: list[Type[AxisValidator]] = AXIS_VALIDATORS[axis]
+        validators: list[type[AxisValidator]] = AXIS_VALIDATORS[axis]
 
         # Get the set of dim names across all of the validators for this axis
         validator_dims = set.union(*[v.dim_names for v in validators])

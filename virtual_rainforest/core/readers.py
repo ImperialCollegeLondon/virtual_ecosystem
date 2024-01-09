@@ -31,8 +31,8 @@ using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
         # code to turn tif file into a data array
 """  # noqa: D205, D415
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from xarray import DataArray, load_dataset
 

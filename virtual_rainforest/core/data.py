@@ -121,7 +121,7 @@ file.
 """  # noqa: D205, D415
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
@@ -160,7 +160,7 @@ class Data:
         """The configured Grid to be used in a simulation."""
         self.data = Dataset()
         """The :class:`~xarray.Dataset` used to store data."""
-        self.variable_validation: dict[str, dict[str, Optional[str]]] = {}
+        self.variable_validation: dict[str, dict[str, str | None]] = {}
         """Records validation details for loaded variables.
 
         The validation details for each variable is stored in this dictionary using the
@@ -318,9 +318,9 @@ class Data:
             # for other loading problems
             data_var_names = [v["var_name"] for v in data_config["variable"]]
 
-            dupl_names = set(
-                [str(md) for md in data_var_names if data_var_names.count(md) > 1]
-            )
+            dupl_names = {
+                str(md) for md in data_var_names if data_var_names.count(md) > 1
+            }
             if dupl_names:
                 LOGGER.error("Duplicate variable names in data configuration.")
                 clean_load = False
@@ -355,7 +355,7 @@ class Data:
             raise ConfigurationError(msg)
 
     def save_to_netcdf(
-        self, output_file_path: Path, variables_to_save: Optional[list[str]] = None
+        self, output_file_path: Path, variables_to_save: list[str] | None = None
     ) -> None:
         """Save the contents of the data object as a NetCDF file.
 
@@ -521,7 +521,7 @@ class DataGenerator:
         spatial_axis: str,
         temporal_axis: str,
         temporal_interpolation: np.timedelta64,
-        seed: Optional[int],
+        seed: int | None,
         method: str,  # one of the numpy.random.Generator methods
         **kwargs: Any,
     ) -> None:

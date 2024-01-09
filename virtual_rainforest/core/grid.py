@@ -13,7 +13,8 @@ underlying the simulation and to identify the neighbourhood connections of cells
 from __future__ import annotations
 
 import json
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
+from typing import Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -32,8 +33,8 @@ grid of that type. Users can register their own grid types using the `register_g
 decorator.
 """
 
-GRID_STRUCTURE_SIG = Tuple[list[int], list[Polygon]]
-"""Signature of the data structure to be returned from grid creator functions.
+GRID_STRUCTURE_SIG: TypeAlias = tuple[list[int], list[Polygon]]
+"""Type signature of the data structure to be returned from grid creator functions.
 
 The first value is a list of integer cell ids, the second is a matching list of the
 polygons for each cell id. Although cell ids could be a numpy array, the numpy int types
@@ -105,12 +106,15 @@ def make_square_grid(
     cell_y = np.flipud(idx_y) * scale_factor
 
     # Get the list of polygons
-    cell_list = [
+    cell_polygon_list: list[Polygon] = [
         translate(prototype, xoff=xf, yoff=yf)
         for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
     ]
 
-    return cell_ids.flatten().tolist(), cell_list
+    # Get list of ids
+    cell_ids_list: list[int] = cell_ids.flatten().tolist()
+
+    return cell_ids_list, cell_polygon_list
 
 
 @register_grid(grid_type="hexagon")
@@ -168,12 +172,15 @@ def make_hex_grid(
     cell_y = 1.5 * side_length * np.flipud(idx_y)
 
     # Get the list of polygons
-    cell_list = [
+    cell_polygon_list: list[Polygon] = [
         translate(prototype, xoff=xf, yoff=yf)
         for xf, yf in zip(cell_x.flatten(), cell_y.flatten())
     ]
 
-    return cell_ids.flatten().tolist(), cell_list
+    # Get list of ids
+    cell_ids_list: list[int] = cell_ids.flatten().tolist()
+
+    return cell_ids_list, cell_polygon_list
 
 
 class Grid:
@@ -263,10 +270,10 @@ class Grid:
 
         # Define other attributes set by methods
         # TODO - this might become a networkx graph
-        self._neighbours: Optional[list[NDArray[np.int_]]] = None
+        self._neighbours: list[NDArray[np.int_]] | None = None
 
         # Do not by default store the full distance matrix
-        self._distances: Optional[NDArray] = None
+        self._distances: NDArray | None = None
 
     @property
     def neighbours(self) -> list[NDArray[np.int_]]:
@@ -381,7 +388,7 @@ class Grid:
         self,
         edges: bool = True,
         vertices: bool = False,
-        distance: Optional[float] = None,
+        distance: float | None = None,
     ) -> None:
         """Populate the neighbour list for a Grid object.
 
@@ -409,8 +416,8 @@ class Grid:
 
     def get_distances(
         self,
-        cell_from: Optional[Union[int, Sequence[int]]],
-        cell_to: Optional[Union[int, Sequence[int]]],
+        cell_from: int | Sequence[int] | None,
+        cell_to: int | Sequence[int] | None,
     ) -> np.ndarray:
         """Calculate euclidean distances between cell centroids.
 
@@ -459,7 +466,7 @@ class Grid:
         self,
         x_coords: np.ndarray,
         y_coords: np.ndarray,
-    ) -> list[list[Optional[int]]]:
+    ) -> list[list[int | None]]:
         """Map a set of coordinates onto grid cells.
 
         This function loops over points defined by pairs of x and y coordinates and maps
@@ -502,8 +509,8 @@ class Grid:
         self,
         x_coords: np.ndarray,
         y_coords: np.ndarray,
-        x_idx: Optional[np.ndarray],
-        y_idx: Optional[np.ndarray],
+        x_idx: np.ndarray | None,
+        y_idx: np.ndarray | None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Returns indexing to map xy coordinates a single cell_id axis.
 
@@ -549,7 +556,7 @@ class Grid:
             raise ValueError("Dimensions of x/y indices do not match coordinates")
 
         # Find the set of total number of cell mappings per point
-        cell_counts = set([len(mp) for mp in cell_map])
+        cell_counts = {len(mp) for mp in cell_map}
 
         # Raise an exception where not all coords fall in a grid cell
         if 0 in cell_counts:
