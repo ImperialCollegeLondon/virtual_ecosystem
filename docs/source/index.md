@@ -65,6 +65,7 @@ team.
 
   virtual_rainforest/module_overview.md
   virtual_rainforest/usage.md
+  virtual_rainforest/example_data.md
   virtual_rainforest/main_simulation.md
   virtual_rainforest/constants.md
   virtual_rainforest/soil/soil_details.md
@@ -155,16 +156,10 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: Data recipes
+  :caption: Climate data resources
 
   Overview climate data <data_recipes/climate_data_recipes.md>
   Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
-  Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
-  Create dummy soil data <data_recipes/soil_dummy.md>
-  Create dummy litter data <data_recipes/litter_dummy.md>
-  Create dummy plant data <data_recipes/plant_dummy.md>
-  Create dummy elevation data <data_recipes/create_dummy_elevation.md>
-  Create dummy surface runoff data <data_recipes/runoff_dummy.md>
 ```
 
 ```{eval-rst}
