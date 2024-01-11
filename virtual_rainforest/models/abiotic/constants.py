@@ -163,3 +163,48 @@ class AbioticConsts(ConstantsDataclass):
 
     turbulence_sign: bool = True
     """Flag indicating if turbulence increases or decreases with height."""
+
+    leaf_temperature_ini_factor: float = 0.01
+    """Factor used to initialise leaf temperature, default = 0.01."""
+
+    light_extinction_coefficient: float = 0.01
+    """Light extinction coefficient for canopy, default = 0.01."""
+
+    latent_heat_flux_fraction: float = 0.5
+    """Fraction of incoming energy that is turned into latent heat flux, default = 0.5.
+    """
+
+    ground_heat_flux_fraction: float = 0.05
+    """Fraction of incoming energy that is turned into ground heat flux, default = 0.05.
+    """
+
+    gas_constant_water_vapor: float = 461.51
+    """Gas constant for water vapor, [J kg -1 K-1]."""
+
+    specific_heat_capacity_leaf: float = 2760
+    """Specific heat capacity of leaf, [J kg-1 K-1], default = 2760
+    :cite:p:`aston_heat_1985`.
+    """
+
+    leaf_heat_transfer_coefficient: float = 50
+    """Leaf heat transfer coefficient, [s^1/2 m^-1/2],
+    :cite:p:`linacre_determinations_1964`, default = 50.
+    """
+
+    stomatal_resistance: float = 200
+    """Stomatal resistance, default = 200."""
+
+    soil_surface_heat_transfer_coefficient: float = 12.5
+    """Soil surface heat transfer coefficient, default = 12.5
+    :cite:p:`van_de_griend_bare_1994`.
+    """
+
+    soil_thermal_conductivity: float = 0.7
+    """Soil thermal conductivity, [W m-1 K-1], default = 0.7
+    :cite:p:`monteith_principles_1990`.
+    """
+
+    specific_heat_capacity_soil: float = 2.7e6
+    """Specific heat capacity of soil, [J kg-1 K-1], default = 2.7e6
+    :cite:p:`monteith_principles_1990`.
+    """
