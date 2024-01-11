@@ -130,18 +130,6 @@ class AbioticModel(BaseModel):
         self.data object.
         """
 
-        # Initialise soil temperature
-        self.data["soil_temperature"] = DataArray(
-            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, len(self.layer_roles)),
-                "layer_roles": ("layers", self.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
-
         # Calculate vapour pressure deficit at reference height for all time steps
         # TODO sort out constants argument in simple abiotic model
         self.data[
@@ -153,6 +141,18 @@ class AbioticModel(BaseModel):
         ).rename(
             "vapour_pressure_deficit_ref"
         )
+
+        # Generate initial profiles of air temperature [C], relative humidity [-],
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
+        output_variables = microclimate.run_microclimate(
+            data=self.data,
+            layer_roles=self.layer_roles,
+            time_index=0,
+            constants=AbioticSimpleConsts(),
+            Bounds=microclimate.Bounds,
+        )
+        self.data.add_from_dict(output_dict=output_variables)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

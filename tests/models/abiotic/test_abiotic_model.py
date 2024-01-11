@@ -6,6 +6,7 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 import numpy as np
 import pint
 import pytest
+import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -249,6 +250,116 @@ def test_generate_abiotic_model_bounds_error(
         ),
     ],
 )
+def test_setup_abiotic_model(
+    dummy_climate_data, layer_roles_fixture, cfg_string, time_interval
+):
+    """Test that setup() returns expected output in data object."""
+
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.registry import register_module
+    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+
+    # Register the module components to access constants classes
+    register_module("virtual_rainforest.models.abiotic")
+
+    # Build the config object
+    config = Config(cfg_strings=cfg_string)
+
+    # initialise model
+    model = AbioticModel.from_config(
+        dummy_climate_data,
+        config,
+        pint.Quantity(config["core"]["timing"]["update_interval"]),
+    )
+
+    model.setup()
+
+    # check all variables are in data object
+    for var in [
+        "air_temperature",
+        "soil_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ]:
+        assert var in model.data
+
+    # Test that VPD was calculated for all time steps
+    np.testing.assert_allclose(
+        model.data["vapour_pressure_deficit_ref"],
+        DataArray(
+            np.full((3, 3), 0.141727),
+            dims=["cell_id", "time_index"],
+            coords={
+                "cell_id": [0, 1, 2],
+            },
+        ),
+    )
+
+    # Test that soil temperature was created correctly
+    np.testing.assert_allclose(
+        model.data["soil_temperature"][12:15],
+        DataArray(
+            [[np.nan, np.nan, np.nan], [20.712458, 20.712458, 20.712458], [20, 20, 20]],
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": [12, 13, 14],
+                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                "cell_id": [0, 1, 2],
+            },
+        ),
+    )
+
+    # Test that air temperature was interpolated correctly
+    exp_temperature = xr.concat(
+        [
+            DataArray(
+                [
+                    [30.0, 30.0, 30.0],
+                    [29.91965, 29.91965, 29.91965],
+                    [29.414851, 29.414851, 29.414851],
+                    [28.551891, 28.551891, 28.551891],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(
+                [
+                    [26.19, 26.19, 26.19],
+                    [22.81851, 22.81851, 22.81851],
+                ],
+                dims=["layers", "cell_id"],
+            ),
+            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    ).assign_coords(
+        {
+            "layers": np.arange(0, 15),
+            "layer_roles": (
+                "layers",
+                model.layer_roles,
+            ),
+            "cell_id": [0, 1, 2],
+        },
+    )
+
+    np.testing.assert_allclose(
+        model.data["air_temperature"], exp_temperature, rtol=1e-3, atol=1e-3
+    )
+
+
+@pytest.mark.parametrize(
+    "cfg_string,time_interval",
+    [
+        pytest.param(
+            "[core]\n[core.timing]\nupdate_interval = '1 day'\n[abiotic]\n",
+            pint.Quantity("1 day"),
+            id="updates correctly",
+        ),
+    ],
+)
 def test_update_abiotic_model(
     dummy_climate_data, layer_roles_fixture, cfg_string, time_interval
 ):
@@ -272,32 +383,6 @@ def test_update_abiotic_model(
     )
 
     model.setup()
-
-    np.testing.assert_allclose(
-        model.data["soil_temperature"],
-        DataArray(
-            np.full((15, 3), np.nan),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    model.layer_roles,
-                ),
-                "cell_id": [0, 1, 2],
-            },
-        ),
-    )
-    np.testing.assert_allclose(
-        model.data["vapour_pressure_deficit_ref"],
-        DataArray(
-            np.full((3, 3), 0.141727),
-            dims=["cell_id", "time_index"],
-            coords={
-                "cell_id": [0, 1, 2],
-            },
-        ),
-    )
 
     model.update(time_index=0)
 
