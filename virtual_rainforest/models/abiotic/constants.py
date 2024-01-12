@@ -164,8 +164,9 @@ class AbioticConsts(ConstantsDataclass):
     turbulence_sign: bool = True
     """Flag indicating if turbulence increases or decreases with height."""
 
-    leaf_temperature_ini_factor: float = 0.01
-    """Factor used to initialise leaf temperature, default = 0.01."""
+    canopy_temperature_ini_factor: float = 0.01
+    """Factor used to initialise canopy temperature as a function of air temperature and
+    absorbed shortwave radiation."""
 
     light_extinction_coefficient: float = 0.01
     """Light extinction coefficient for canopy, default = 0.01."""
