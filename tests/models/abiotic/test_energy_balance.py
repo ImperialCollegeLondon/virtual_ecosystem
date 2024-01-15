@@ -1,6 +1,7 @@
 """Test module for abiotic.abiotic_model.energy_balance.py."""
 
 import numpy as np
+from xarray import DataArray
 
 
 def test_initialise_absorbed_radiation(dummy_climate_data):
@@ -100,14 +101,39 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
 
     np.testing.assert_allclose(
         result["canopy_absorption"][1:4].to_numpy(),
-        np.array(
-            [
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
-            ]
-        ),
+        np.array([[9.516258, 8.610666, 7.791253]] * 3),
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))
         np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros((3)))
+
+
+def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
+    """Test conductivities are initialised correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        initialise_conductivities,
+    )
+
+    result = initialise_conductivities(
+        layer_heights=dummy_climate_data["layer_heights"],
+        atmosphere_layers=13,
+        soil_layers=2,
+        initial_air_conductivity=50.0,
+    )
+
+    air_cond_values = np.repeat(
+        a=[3.84615385, 3.33333333, 6.66666667, np.nan], repeats=[1, 11, 1, 2]
+    )
+    exp_air_cond = DataArray(
+        np.broadcast_to(air_cond_values, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": [0, 1, 2],
+        },
+        name="air_conductivity",
+    )
+
+    np.testing.assert_allclose(result["air_conductivity"], exp_air_cond)

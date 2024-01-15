@@ -228,3 +228,58 @@ def initialise_canopy_and_soil_fluxes(
     output["ground_heat_flux"] = ground_heat_flux
 
     return output
+
+
+def initialise_conductivities(
+    layer_heights: DataArray,
+    atmosphere_layers: int,
+    soil_layers: int,
+    initial_air_conductivity: float,
+) -> dict[str, DataArray]:
+    """Initialise conductivities for first model time step.
+
+    The initial values for all conductivities are typical for decidious woodland with
+    wind above canopy at 2 m/s.
+    Air conductivity is scaled by canopy height and `m` (and hence distance
+    between nodes). leaf vapor conductivity and leaf air conductivity are linearly
+    interpolated between intial values.
+    The first value in each output represents conductivity between the air at 2 m above
+    canopy and the highest canopy layer. The last value represents conductivity between
+    the ground and the lowest canopy node.
+
+    Args:
+        layer_height: layer heights, [m]
+        atmosphere_layers:
+        initial_air_conductivity:
+
+    Returns:
+        gt: Conductivity in air of each canopy layer node (mol/m^2/sec)
+        gv: Leaf conductivity to vapour loss for each canopy layer node  (mol/m^2/sec)
+        gha: Conductivity between air and leaf for each canopy layer node (mol/m^2/sec)
+    """
+
+    canopy_height = layer_heights[1].to_numpy()
+
+    output = {}
+    air_conductivity = (
+        np.full((atmosphere_layers, len(canopy_height)), initial_air_conductivity)
+        * (atmosphere_layers / canopy_height)
+        * 2
+        / atmosphere_layers
+    )
+    air_conductivity[-1] *= 2
+    air_conductivity[0] *= (canopy_height / atmosphere_layers) * 0.5
+    output["air_conductivity"] = DataArray(
+        np.concatenate(
+            [air_conductivity, np.full((soil_layers, len(canopy_height)), np.nan)],
+            axis=0,
+        ),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="air_conductivity",
+    )
+    return output
+
+
+#   gv <- spline(c(1, 2), c(0.25, 0.32), n = m)$y
+#   gha <- spline(c(1, 2), c(0.13, 0.19), n = m)$y

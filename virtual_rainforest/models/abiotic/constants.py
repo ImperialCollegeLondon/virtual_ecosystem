@@ -182,17 +182,17 @@ class AbioticConsts(ConstantsDataclass):
     gas_constant_water_vapor: float = 461.51
     """Gas constant for water vapor, [J kg -1 K-1]."""
 
-    specific_heat_capacity_leaf: float = 2760
+    specific_heat_capacity_leaf: float = 2760.0
     """Specific heat capacity of leaf, [J kg-1 K-1], default = 2760
     :cite:p:`aston_heat_1985`.
     """
 
-    leaf_heat_transfer_coefficient: float = 50
+    leaf_heat_transfer_coefficient: float = 50.0
     """Leaf heat transfer coefficient, [s^1/2 m^-1/2],
     :cite:p:`linacre_determinations_1964`, default = 50.
     """
 
-    stomatal_resistance: float = 200
+    stomatal_resistance: float = 200.0
     """Stomatal resistance, default = 200."""
 
     soil_surface_heat_transfer_coefficient: float = 12.5
