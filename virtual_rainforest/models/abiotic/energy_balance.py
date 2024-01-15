@@ -232,8 +232,6 @@ def initialise_canopy_and_soil_fluxes(
 
 def initialise_conductivities(
     layer_heights: DataArray,
-    atmosphere_layers: int,
-    soil_layers: int,
     initial_air_conductivity: float,
 ) -> dict[str, DataArray]:
     """Initialise conductivities for first model time step.
@@ -249,7 +247,6 @@ def initialise_conductivities(
 
     Args:
         layer_height: layer heights, [m]
-        atmosphere_layers:
         initial_air_conductivity:
 
     Returns:
@@ -259,6 +256,8 @@ def initialise_conductivities(
     """
 
     canopy_height = layer_heights[1].to_numpy()
+    atmosphere_layers = len(layer_heights[layer_heights["layer_roles"] != "soil"])
+    soil_layers = len(layer_heights[layer_heights["layer_roles"] == "soil"])
 
     output = {}
     air_conductivity = (
@@ -278,8 +277,44 @@ def initialise_conductivities(
         coords=layer_heights.coords,
         name="air_conductivity",
     )
+
+    # output['leaf_vapor_conductivity'] = linear_interpolation_along_heights(
+    #         layer_heights: DataArray,
+    #         top_value: 0.25,
+    #         bottom_value: 0.32,
+    # )
+
+    # output['leaf_vapor_conductivity'] = linear_interpolation_along_heights(
+    #         layer_heights: DataArray,
+    #         top_value: 0.19,
+    #         bottom_value: 0.13,
+    # )
+
     return output
 
 
-#   gv <- spline(c(1, 2), c(0.25, 0.32), n = m)$y
-#   gha <- spline(c(1, 2), c(0.13, 0.19), n = m)$y
+# def linear_interpolation_along_heights(
+#         layer_heights: DataArray,
+#         top_value: float,
+#         bottom_value: float,
+# ) -> DataArray:
+#     """Linear interpolation between two values along heights.
+
+#     Args:
+#         layer_heights: interpolation heights, [m]
+#         top_values: top values of interpolation
+#         bottom_values: bottom values of interpolation
+
+#     Returns:
+#         interpolated values
+#     """
+# num_cells = len(layer_heights)
+# interpolated_values = np.zeros((num_cells, atmosphere_layers))
+
+# for cell in range(num_cells):
+#     interpolated_values[cell, :] = np.interp(
+#         layer_heights, [0, 1], [top_value, bottom_value]
+#     )
+# return DataArray(np.concatenate(
+#         [interpolated_values.T, np.full((soil_layers, num_cells), np.nan)], axis=0)
+# )

@@ -162,8 +162,14 @@ class AbioticModel(BaseModel):
             canopy_temperature_ini_factor=self.constants.canopy_temperature_ini_factor,
         )
 
+        initial_conductivities = energy_balance.initialise_conductivities(
+            layer_heights=self.data["layer_heights"],
+            initial_air_conductivity=self.constants.initial_air_conductivity,
+        )
+
         self.data.add_from_dict(output_dict=initial_atmosphere)
         self.data.add_from_dict(output_dict=initial_canopy_and_soil)
+        self.data.add_from_dict(output_dict=initial_conductivities)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

@@ -209,3 +209,6 @@ class AbioticConsts(ConstantsDataclass):
     """Specific heat capacity of soil, [J kg-1 K-1], default = 2.7e6
     :cite:p:`monteith_principles_1990`.
     """
+
+    initial_air_conductivity: float = 50.0
+    """Initial air conductivity, (mol m-2 s-1)"""

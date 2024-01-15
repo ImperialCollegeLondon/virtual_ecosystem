@@ -117,8 +117,6 @@ def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
 
     result = initialise_conductivities(
         layer_heights=dummy_climate_data["layer_heights"],
-        atmosphere_layers=13,
-        soil_layers=2,
         initial_air_conductivity=50.0,
     )
 
@@ -137,3 +135,23 @@ def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
     )
 
     np.testing.assert_allclose(result["air_conductivity"], exp_air_cond)
+
+
+# def test_linear_interpolation_along_heights(dummy_climate_data):
+#     """Test linear interpolation along heights."""
+
+#     from virtual_rainforest.models.abiotic.energy_balance import (
+#         linear_interpolation_along_heights
+#     )
+
+#     layer_heights = dummy_climate_data['layer_heights']
+#     interpolated_values = linear_interpolation_along_heights(
+#         layer_heights=layer_heights[layer_heights["layer_roles"] != "soil"],
+#         atmosphere_layers=13,
+#         soil_layers=2,
+#         top_value=2.,
+#         bottom_value=5.,
+#         )
+
+#     expected_values = DataArray([[2.0, 4.0], [6.0, 8.0]])
+#     np.testing.assert_allclose(interpolated_values, expected_values)
