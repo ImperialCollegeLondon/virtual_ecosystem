@@ -9,7 +9,7 @@ from graphlib import CycleError, TopologicalSorter
 from itertools import chain
 from math import ceil
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import pint
 from numpy import datetime64, timedelta64
@@ -215,10 +215,10 @@ def _get_model_sequence(
 
 
 def vr_run(
-    cfg_paths: Union[str, Path, Sequence[Union[str, Path]]] = [],
-    cfg_strings: Union[str, list[str]] = [],
+    cfg_paths: str | Path | Sequence[str | Path] = [],
+    cfg_strings: str | list[str] = [],
     override_params: dict[str, Any] = {},
-    logfile: Optional[Path] = None,
+    logfile: Path | None = None,
 ) -> None:
     """Perform a virtual rainforest simulation.
 

@@ -9,9 +9,9 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from itertools import chain
 from random import choice
-from typing import Callable, Iterable
 
 from numpy import timedelta64
 
@@ -43,7 +43,7 @@ class AnimalCommunity:
         data: Data,
         community_key: int,
         neighbouring_keys: list[int],
-        get_destination: Callable[[int], "AnimalCommunity"],
+        get_destination: Callable[[int], AnimalCommunity],
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         # The constructor of the AnimalCommunity class.

@@ -16,8 +16,6 @@ The amount of lignin in both the structural pools and the dead wood pool is trac
 This is tracked because litter chemistry is a major determinant of litter decay rates.
 """  # noqa: D205, D415
 
-from typing import Union
-
 import numpy as np
 from numpy.typing import NDArray
 
@@ -735,9 +733,9 @@ def calculate_carbon_mineralised(
 
 
 def calculate_change_in_lignin(
-    input_carbon: Union[float, NDArray[np.float32]],
+    input_carbon: float | NDArray[np.float32],
     updated_pool_carbon: NDArray[np.float32],
-    input_lignin: Union[float, NDArray[np.float32]],
+    input_lignin: float | NDArray[np.float32],
     old_pool_lignin: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate the change in the lignin concentration of a particular litter pool.

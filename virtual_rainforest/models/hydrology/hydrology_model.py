@@ -20,7 +20,7 @@ TODO change temperature to Kelvin
 from __future__ import annotations
 
 from math import sqrt
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -397,7 +397,7 @@ class HydrologyModel(BaseModel):
         days: int = 30
 
         # Set seed for random rainfall generator
-        seed: Union[None, int] = kwargs.pop("seed", None)
+        seed: None | int = kwargs.pop("seed", None)
 
         # Select variables at relevant heights for current time step
         hydro_input = setup_hydrology_input_current_timestep(
@@ -694,7 +694,7 @@ def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
     days: int,
-    seed: Union[None, int],
+    seed: None | int,
     layer_roles: list[str],
     soil_moisture_capacity: float,
     soil_moisture_residual: float,

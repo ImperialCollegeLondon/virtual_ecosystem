@@ -1,111 +1,104 @@
 [core.data_output_options]
-save_initial_state = true
+save_initial_state = false
 
+# Climate data
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "air_temperature_ref"
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "relative_humidity_ref"
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "atmospheric_pressure_ref"
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "precipitation"
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "atmospheric_co2_ref"
 [[core.data.variable]]
-file = "ERA5_land_dummy.nc"
+file = "../data/example_climate_data.nc"
 var_name = "mean_annual_temperature"
-# [[core.data.variable]]
-# file = "plants_dummy.nc"
-# var_name = "layer_heights"
-# [[core.data.variable]]
-# file = "plants_dummy.nc"
-# var_name = "leaf_area_index"
-# [[core.data.variable]]
-# file = "plants_dummy.nc"
-# var_name = "evapotranspiration"
-# [[core.data.variable]]
-# file = "plants_dummy.nc"
-# var_name = "layer_leaf_mass"
 
-
+# Elevation
 [[core.data.variable]]
-file = "elevation_dummy.nc"
+file = "../data/example_elevation_data.nc"
 var_name = "elevation"
+
+# Hydrology
 [[core.data.variable]]
-file = "surface_runoff_dummy.nc"
+file = "../data/example_surface_runoff_data.nc"
 var_name = "surface_runoff"
 
+# Soil
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "pH"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "bulk_density"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "clay_fraction"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_lmwc"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_maom"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_microbe"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_pom"
 [[core.data.variable]]
-file = "dummy_soil_data.nc"
+file = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_maom"
 
+# Litter 
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "litter_pool_above_metabolic"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "litter_pool_above_structural"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "litter_pool_woody"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "litter_pool_below_metabolic"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "litter_pool_below_structural"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "lignin_above_structural"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "lignin_woody"
 [[core.data.variable]]
-file = "dummy_litter_data.nc"
+file = "../data/example_litter_data.nc"
 var_name = "lignin_below_structural"
 
-
+# Plants
 [[core.data.variable]]
-file = "example_plant_data.nc"
+file = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_n"
 [[core.data.variable]]
-file = "example_plant_data.nc"
+file = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_pft"
 [[core.data.variable]]
-file = "example_plant_data.nc"
+file = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_cell_id"
 [[core.data.variable]]
-file = "example_plant_data.nc"
+file = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_dbh"
 [[core.data.variable]]
-file = "example_plant_data.nc"
+file = "../data/example_plant_data.nc"
 var_name = "photosynthetic_photon_flux_density"
