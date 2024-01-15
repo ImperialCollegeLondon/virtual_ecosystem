@@ -9,17 +9,18 @@ functional types.
 import numpy as np
 from xarray import DataArray, Dataset
 
+from virtual_rainforest.example_data.generation_scripts.common import (
+    cell_id,
+    n_cells,
+    n_dates,
+    time,
+    time_index,
+)
+
 data = Dataset()
 
-# Dimensions
-n_cells = 81
-cell_id = np.arange(n_cells)
-time = np.arange(np.datetime64("2013-01"), np.datetime64("2015-01")).astype(
-    "datetime64[D]"
-)
-n_dates = len(time)
+# Plant cohort dimensions
 n_cohorts = n_cells * 2
-time_index = np.arange(n_dates)
 cohort_index = np.arange(n_cohorts)
 
 
@@ -46,4 +47,4 @@ data["photosynthetic_photon_flux_density"] = DataArray(
 
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
-data.to_netcdf("../example_plant_data.nc", format="NETCDF3_64BIT")
+data.to_netcdf("../data/example_plant_data.nc", format="NETCDF3_64BIT")

@@ -879,8 +879,7 @@ def test_save_timeslice_to_netcdf(
 
         # Check that only expected variables were added
         assert (
-            set(saved_data.keys()) - set(["soil_c_pool_lmwc", "soil_temperature"])
-            == set()
+            set(saved_data.keys()) - {"soil_c_pool_lmwc", "soil_temperature"} == set()
         )
         # Finally, close the dataset
         saved_data.close()

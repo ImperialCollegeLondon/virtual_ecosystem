@@ -100,9 +100,13 @@ def test_merge_schemas():
         }
     )
 
-    assert set(merged_schemas["required"]) == set(
-        ["abiotic_simple", "animals", "plants", "soil", "core"]
-    )
+    assert set(merged_schemas["required"]) == {
+        "abiotic_simple",
+        "animals",
+        "plants",
+        "soil",
+        "core",
+    }
 
 
 def test_extend_with_default():

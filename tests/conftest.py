@@ -1,6 +1,6 @@
 """Collection of fixtures to assist the testing scripts."""
 from logging import DEBUG
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pytest
@@ -18,7 +18,7 @@ LOGGER.setLevel(DEBUG)
 def log_check(
     caplog: pytest.LogCaptureFixture,
     expected_log: tuple[tuple],
-    subset: Optional[slice] = None,
+    subset: slice | None = None,
 ) -> None:
     """Helper function to check that the captured log is as expected.
 

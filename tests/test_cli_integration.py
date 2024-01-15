@@ -32,12 +32,14 @@ def test_vr_run(capsys):
             _ = capsys.readouterr()
 
             example_dir = Path(tempdir) / "vr_example"
-            logfile = example_dir / "vr_example.log"
+            configs = example_dir / "config"
+            outdir = example_dir / "out"
+            logfile = outdir / "vr_example.log"
             vr_run_cli(
                 args_list=[
-                    str(example_dir),
+                    str(configs),
                     "--outpath",
-                    str(example_dir),
+                    str(outdir),
                     "--logfile",
                     str(logfile),
                 ]

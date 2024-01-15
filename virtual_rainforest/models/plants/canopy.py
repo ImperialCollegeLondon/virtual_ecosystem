@@ -34,7 +34,7 @@ class LayerStructure:
     soil_layers: list[float]
     """A list of the depths of soil layer boundaries."""
     above_canopy_height_offset: float
-    """The height above the canopy at which reference climate variables are measured."""
+    """The height above the canopy of the provided reference climate variables."""
     surface_layer_height: float
     """The height above ground used to represent surface conditions."""
     subcanopy_layer_height: float

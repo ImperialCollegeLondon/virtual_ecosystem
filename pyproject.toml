@@ -15,7 +15,7 @@ authors = [
 vr_run = "virtual_rainforest.entry_points:vr_run_cli"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.10,<3.12"
 numpy = "^1.23.0"
 tomli = { version = "^2.0.1", python = "<3.11" }
 dpath = "^2.0.6"
@@ -56,9 +56,9 @@ ipykernel = "^6.15.0"
 matplotlib = "^3.5.2"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^5.0.0"
+sphinx = "^7.0.0"
 sphinxcontrib-bibtex = "^2.4.2"
-myst-nb = "^0.16.0"
+myst-nb = "^1.0.0"
 sphinx-rtd-theme = "^1.0.0"
 autodocsumm = "^0.2.8"
 pydocstyle = "^6.1.1"

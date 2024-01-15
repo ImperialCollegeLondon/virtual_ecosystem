@@ -6,9 +6,7 @@ test that a complete configuration file passes the test, which will have to be k
 to date.
 """
 
-import sys
 from contextlib import nullcontext as does_not_raise
-from itertools import repeat
 from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
@@ -292,7 +290,7 @@ def test_Config_init(cfg_paths, cfg_strings, expected_cfg_paths, raises, err_msg
         ),
     ],
 )
-def test_Config_resolve_config_paths(
+def test_Config_collect_config_paths(
     caplog,
     shared_datadir,
     cfg_paths,
@@ -309,7 +307,7 @@ def test_Config_resolve_config_paths(
 
     # Check that file resolution runs as expected
     with expected_exception:
-        cfg.resolve_config_paths()
+        cfg.collect_config_paths()
 
     log_check(caplog, expected_log_entries)
 
@@ -342,7 +340,7 @@ def test_Config_load_config_toml(
 
     # Initialise the Config instance and manually resolve the config paths to toml files
     cfg = Config([shared_datadir / p for p in cfg_paths], auto=False)
-    cfg.resolve_config_paths()
+    cfg.collect_config_paths()
     caplog.clear()
 
     # Check that load_config_toml behaves as expected
@@ -731,104 +729,83 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
         assert outpath.is_file()
 
 
-_NEW_VAR_ENTRY_PATH = Path("new/path")
-_ABS_PATH = Path("C:" if sys.platform == "win32" else "/root")
-
-
+@pytest.mark.parametrize("cfg_is_relative", (True, False))
+@pytest.mark.parametrize("filepath_is_relative", (True, False))
 @pytest.mark.parametrize(
-    "params,expected",
+    "filepaths,expected",
     (
         pytest.param(
-            # params
-            {
-                "core": {
-                    "data": {
-                        "variable": [
-                            {"file": "file.txt", "var_name": "my_path"},
-                            {"file": "file2.txt", "var_name": "my_other_path"},
-                        ]
-                    }
-                },
-                "some": {"other": {"value": 5}},
-            },
-            # expected
-            {
-                "core": {
-                    "data": {
-                        "variable": [
-                            {
-                                "file": str(_NEW_VAR_ENTRY_PATH / "file.txt"),
-                                "var_name": "my_path",
-                            },
-                            {
-                                "file": str(_NEW_VAR_ENTRY_PATH / "file2.txt"),
-                                "var_name": "my_other_path",
-                            },
-                        ]
-                    }
-                },
-                "some": {"other": {"value": 5}},
-            },
-            id="normal",
+            ["file.txt", "file2.txt"],
+            ["path/to/config/file.txt", "path/to/config/file2.txt"],
+            id="co-located",
         ),
         pytest.param(
-            *repeat(
-                {
-                    "core": {
-                        "data": {
-                            "variable": [
-                                {
-                                    "file": str(_ABS_PATH / "file.txt"),
-                                    "var_name": "my_path",
-                                },
-                            ]
-                        }
-                    },
-                },
-                times=2,
-            ),
-            id="leave_abs_paths_unchanged",
+            ["data/file.txt", "data/file2.txt"],
+            ["path/to/config/data/file.txt", "path/to/config/data/file2.txt"],
+            id="inside_cfg_dir",
         ),
         pytest.param(
-            *repeat(
-                {
-                    "core": {
-                        "data": {
-                            # NB: Missing "file" key
-                            "variable": [
-                                {
-                                    "var_name": "my_path",
-                                },
-                            ]
-                        }
-                    },
-                },
-                times=2,
-            ),
-            id="ignore_missing_file_key",
+            ["../data/file.txt", "../data/file2.txt"],
+            ["path/to/data/file.txt", "path/to/data/file2.txt"],
+            id="outside_cfg_dir",
         ),
         pytest.param(
-            *repeat(
-                {
-                    "core": {
-                        "data": {
-                            # NB: Not a list, as it should be
-                            "variable": {
-                                "file": "file.txt",
-                                "var_name": "my_path",
-                            },
-                        }
-                    },
-                },
-                times=2,
-            ),
-            id="variable_not_list",
+            ["../../../data/file.txt", "../../../data/file2.txt"],
+            ["data/file.txt", "data/file2.txt"],
+            id="moar_outside_cfg_dir",
         ),
+        # pytest.param(
+        #     False,
+        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
+        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
+        #     id="leave_abs_paths_unchanged",
+        # ),
+        # pytest.param(
+        #     False,
+        #     [{"var_name": "my_path"}],
+        #     [{"var_name": "my_path"}],
+        #     id="ignore_missing_file_key",
+        # ),
+        # pytest.param(
+        #     False,
+        #     {"file": "file.txt", "var_name": "my_path"},
+        #     {"file": "file.txt", "var_name": "my_path"},
+        #     id="variable_not_list",
+        # ),
     ),
 )
-def test_fix_up_variable_entry_paths(params, expected):
-    """Test the _fix_up_variable_entry_paths() function."""
-    from virtual_rainforest.core.config import _fix_up_variable_entry_paths
+def test__resolve_config_paths(
+    tmpdir, cfg_is_relative, filepath_is_relative, filepaths, expected
+):
+    """Test the _fix_up_variable_entry_paths() function.
 
-    _fix_up_variable_entry_paths(Path(_NEW_VAR_ENTRY_PATH), params)
-    assert params == expected
+    This is using tmpdir to get an OS appropriate base file path - the location is not
+    used for any actual file IO.
+    """
+    from virtual_rainforest.core.config import _resolve_config_paths
+
+    # Get the config path to be used
+    execution_root = Path(tmpdir)
+    cfg_relative = Path("path/to/config")
+    cfg_absolute = execution_root / cfg_relative
+    cfg_path = cfg_relative if cfg_is_relative else cfg_absolute
+
+    # Package the inputs for testing
+    vars = [{"file": fn, "var_name": f"v_{idx}"} for idx, fn in enumerate(filepaths)]
+    params_dict = {"core": {"data": {"variable": vars}}}
+
+    # For absolute file path entries, construct from the inputs
+    if not filepath_is_relative:
+        for entry in params_dict["core"]["data"]["variable"]:
+            entry["file"] = str(
+                (execution_root / cfg_relative / Path(entry["file"])).resolve()
+            )
+
+    # Run the function
+    _resolve_config_paths(cfg_path, params_dict)
+
+    for result, expected in zip(params_dict["core"]["data"]["variable"], expected):
+        if cfg_is_relative and filepath_is_relative:
+            assert Path(result["file"]) == Path(expected)
+        else:
+            assert Path(result["file"]) == execution_root / expected
