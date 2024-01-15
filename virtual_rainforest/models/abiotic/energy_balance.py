@@ -62,24 +62,13 @@ time at which temperature is determined. This equation can be re-arranged and so
 
 import numpy as np
 from numpy.typing import NDArray
-
-# initialise_energy_fluxes
-# initial absorbed radiation
-# leaf temperature
-# latent heat flux
-# sensible heat flux
-# ground heat flux
-
-# conductivities
-# gha
-# gv
-# gt
+from xarray import DataArray
 
 
 def initialise_absorbed_radiation(
     topofcanopy_radiation: NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
-    canopy_layer_heights: NDArray[np.float32],
+    layer_heights: NDArray[np.float32],
     light_extinction_coefficient: float,
 ) -> NDArray[np.float32]:
     r"""Calculate initial light absorption profile.
@@ -95,7 +84,7 @@ def initialise_absorbed_radiation(
     Args:
         topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
         leaf_area_index: leaf area index of each canopy layer, [m m-1]
-        canopy_layer_heights: canopy layer heights, [m]
+        layer_heights: layer heights, [m]
         light_extinction_coefficient: light extinction coefficient, [m-1]
 
     Returns:
@@ -104,8 +93,8 @@ def initialise_absorbed_radiation(
 
     absorbed_radiation = np.zeros_like(leaf_area_index)
     penetrating_radiation = np.zeros_like(leaf_area_index)
-    layer_depths = np.abs(np.diff(canopy_layer_heights, axis=1, append=0))
-    for i in range(len(canopy_layer_heights[0])):
+    layer_depths = np.abs(np.diff(layer_heights, axis=1, append=0))
+    for i in range(len(layer_heights[0])):
         penetrating_radiation[:, i] = topofcanopy_radiation * (
             np.exp(
                 -light_extinction_coefficient
@@ -117,3 +106,125 @@ def initialise_absorbed_radiation(
         topofcanopy_radiation -= topofcanopy_radiation - penetrating_radiation[:, i]
 
     return absorbed_radiation
+
+
+def initialise_canopy_temperature(
+    air_temperature: NDArray,
+    absorbed_radiation: NDArray,
+    canopy_temperature_ini_factor: float,
+) -> NDArray:
+    """Initialise canopy temperature.
+
+    Args:
+        air_temperature: air temperature, [C]
+        canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
+            function of air temperature and absorbed shortwave radiation
+        absorbed_radiation: shortwave radiation absorbed by canopy
+    Returns:
+        initial canopy temperature, [C]
+    """
+    return air_temperature + canopy_temperature_ini_factor * absorbed_radiation
+
+
+def initialise_canopy_and_soil_fluxes(
+    air_temperature: DataArray,
+    topofcanopy_radiation: DataArray,
+    leaf_area_index: DataArray,
+    layer_heights: DataArray,
+    light_extinction_coefficient: float,
+    canopy_temperature_ini_factor: float,
+) -> dict[str, DataArray]:
+    """Initialise canopy temperature and energy fluxes.
+
+    This function initializes the following variables to run the first step of the
+    energy balance routine: absorbed radiation (canopy), canopy temperature, sensible
+    and latent heat flux (canopy and soil), and ground heat flux.
+
+    Args:
+        air_temperature: air temperature, [C]
+        topofcanopy_radiation: top of canopy radiation, [W m-2]
+        leaf_area_index: Leaf area index, [m m-2]
+        layer_heights: Layer heights, [m]
+        light_extinction_coefficient: Light extinction coefficient for canopy
+        canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
+            function of air temperature and absorbed shortwave radiation
+
+    Returns:
+        dictionnary with absorbed radiation (canopy), canopy temperature, sensible
+            and latent heat flux (canopy and soil), and ground heat flux.
+    """
+
+    output = {}
+    # select canopy layers with leaf area index != nan
+    leaf_area_index_true = leaf_area_index[
+        leaf_area_index["layer_roles"] == "canopy"
+    ].dropna(dim="layers", how="all")
+    layer_heights_canopy = layer_heights[
+        leaf_area_index["layer_roles"] == "canopy"
+    ].dropna(dim="layers", how="all")
+    air_temperature_canopy = air_temperature[
+        leaf_area_index["layer_roles"] == "canopy"
+    ].dropna(dim="layers", how="all")
+
+    # Initialize absorbed radiation DataArray
+    absorbed_radiation = DataArray(
+        np.full_like(layer_heights, np.nan),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="canopy_absorption",
+    )
+
+    # calculate absorbed radiation
+    initial_absorbed_radiation = initialise_absorbed_radiation(
+        topofcanopy_radiation=topofcanopy_radiation.to_numpy(),
+        leaf_area_index=leaf_area_index_true.to_numpy(),
+        layer_heights=layer_heights_canopy.T.to_numpy(),  # TODO check if .T is needed
+        light_extinction_coefficient=light_extinction_coefficient,
+    )
+
+    # Replace np.nan with new values and write in output dict
+    absorbed_radiation[layer_heights_canopy.indexes] = initial_absorbed_radiation
+    output["canopy_absorption"] = absorbed_radiation
+
+    # Initialize canopy temperature
+    canopy_temperature = DataArray(
+        np.full_like(layer_heights, np.nan),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="canopy_temperature",
+    )
+
+    # Calculate initial temperature and write in output dict
+    initial_canopy_temperature = initialise_canopy_temperature(
+        air_temperature=air_temperature_canopy.to_numpy(),
+        absorbed_radiation=initial_absorbed_radiation,
+        canopy_temperature_ini_factor=canopy_temperature_ini_factor,
+    )
+    canopy_temperature[layer_heights_canopy.indexes] = initial_canopy_temperature
+    output["canopy_temperature"] = canopy_temperature
+
+    # Initialise sensible heat flux with zeros and write in output dict
+    sensible_heat_flux = DataArray(
+        np.full_like(layer_heights, np.nan),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="canopy_temperature",
+    )
+    sensible_heat_flux[layer_heights_canopy.indexes] = 0
+    sensible_heat_flux[layer_heights["layer_roles"] == "surface"] = 0
+    output["sensible_heat_flux"] = sensible_heat_flux
+
+    # Initialise latent heat flux with zeros and write in output dict
+    output["latent_heat_flux"] = sensible_heat_flux.copy().rename("latent_heat_flux")
+
+    # Initialise latent heat flux with zeros and write in output dict
+    ground_heat_flux = DataArray(
+        np.full_like(layer_heights, np.nan),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="ground_heat_flux",
+    )
+    ground_heat_flux[layer_heights["layer_roles"] == "surface"] = 0
+    output["ground_heat_flux"] = ground_heat_flux
+
+    return output

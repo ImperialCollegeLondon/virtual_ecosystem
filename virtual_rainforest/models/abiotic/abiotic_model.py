@@ -31,7 +31,7 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.abiotic import wind
+from virtual_rainforest.models.abiotic import energy_balance, wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
@@ -145,14 +145,25 @@ class AbioticModel(BaseModel):
         # Generate initial profiles of air temperature [C], relative humidity [-],
         # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
-        output_variables = microclimate.run_microclimate(
+        initial_atmosphere = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=0,
             constants=AbioticSimpleConsts(),
             Bounds=microclimate.Bounds,
         )
-        self.data.add_from_dict(output_dict=output_variables)
+
+        initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
+            air_temperature=initial_atmosphere["air_temperature"],
+            topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
+            leaf_area_index=self.data["leaf_area_index"],
+            layer_heights=self.data["layer_heights"],
+            light_extinction_coefficient=self.constants.light_extinction_coefficient,
+            canopy_temperature_ini_factor=self.constants.canopy_temperature_ini_factor,
+        )
+
+        self.data.add_from_dict(output_dict=initial_atmosphere)
+        self.data.add_from_dict(output_dict=initial_canopy_and_soil)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

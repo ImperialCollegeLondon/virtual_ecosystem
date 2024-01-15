@@ -386,6 +386,29 @@ def test_update_abiotic_model(
 
     model.update(time_index=0)
 
+    for var in [
+        "canopy_temperature",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "canopy_absorption",
+    ]:
+        assert var in model.data
+
+    np.testing.assert_allclose(
+        model.data["canopy_absorption"][1:4].to_numpy(),
+        np.array(
+            [
+                [9.516258, 8.610666, 7.791253],
+                [9.516258, 8.610666, 7.791253],
+                [9.516258, 8.610666, 7.791253],
+            ]
+        ),
+    )
+    for var in ["sensible_heat_flux", "latent_heat_flux"]:
+        np.testing.assert_allclose(model.data[var][1:4].to_numpy(), np.zeros((3, 3)))
+        np.testing.assert_allclose(model.data[var][12].to_numpy(), np.zeros((3)))
+
     friction_velocity_exp = np.array(
         [
             [0.0, 0.818637, 1.638679],

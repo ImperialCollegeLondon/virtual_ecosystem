@@ -498,6 +498,9 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
     data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
+    data["topofcanopy_radiation"] = DataArray(
+        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
+    )
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
 
     return data
