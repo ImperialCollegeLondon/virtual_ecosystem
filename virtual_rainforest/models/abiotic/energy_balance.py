@@ -233,6 +233,10 @@ def initialise_canopy_and_soil_fluxes(
 def initialise_conductivities(
     layer_heights: DataArray,
     initial_air_conductivity: float,
+    top_leaf_vapor_conductivity: float,
+    bottom_leaf_vapor_conductivity: float,
+    top_leaf_air_conductivity: float,
+    bottom_leaf_air_conductivity: float,
 ) -> dict[str, DataArray]:
     """Initialise conductivities for first model time step.
 
@@ -247,30 +251,40 @@ def initialise_conductivities(
 
     Args:
         layer_height: layer heights, [m]
-        initial_air_conductivity:
+        initial_air_conductivity: Initial value for conductivity in air, [mol m-2 s-1]
+        top_leaf_vapor_conductivity: Initial leaf vapor conductivity at the top of the
+            canopy, (mol m-2 s-1)
+        bottom_leaf_vapor_conductivity: Initial leaf vapor conductivity at the bottom of
+            the canopy, (mol m-2 s-1)
+        top_leaf_air_conductivity: Initial leaf air heat conductivity at the top of the
+            canopy, (mol m-2 s-1)
+        bottom_leaf_air_conductivity: Initial leaf air heat conductivity at the surface,
+            (mol m-2 s-1)
 
     Returns:
-        gt: Conductivity in air of each canopy layer node (mol/m^2/sec)
-        gv: Leaf conductivity to vapour loss for each canopy layer node  (mol/m^2/sec)
-        gha: Conductivity between air and leaf for each canopy layer node (mol/m^2/sec)
+        Conductivity in air of each canopy layer node, [mol m-2 s-1]
+        Leaf conductivity to vapour loss for each canopy layer node, [mol m-2 s-1]
+        Conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
     canopy_height = layer_heights[1].to_numpy()
-    atmosphere_layers = len(layer_heights[layer_heights["layer_roles"] != "soil"])
-    soil_layers = len(layer_heights[layer_heights["layer_roles"] == "soil"])
+    atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
+    soil_layers = layer_heights[layer_heights["layer_roles"] == "soil"]
 
     output = {}
+
+    # Initialise conductivity between air layers
     air_conductivity = (
-        np.full((atmosphere_layers, len(canopy_height)), initial_air_conductivity)
-        * (atmosphere_layers / canopy_height)
+        np.full((len(atmosphere_layers), len(canopy_height)), initial_air_conductivity)
+        * (len(atmosphere_layers) / canopy_height)
         * 2
-        / atmosphere_layers
+        / len(atmosphere_layers)
     )
     air_conductivity[-1] *= 2
-    air_conductivity[0] *= (canopy_height / atmosphere_layers) * 0.5
+    air_conductivity[0] *= (canopy_height / len(atmosphere_layers)) * 0.5
     output["air_conductivity"] = DataArray(
         np.concatenate(
-            [air_conductivity, np.full((soil_layers, len(canopy_height)), np.nan)],
+            [air_conductivity, np.full((len(soil_layers), len(canopy_height)), np.nan)],
             axis=0,
         ),
         dims=layer_heights.dims,
@@ -278,43 +292,66 @@ def initialise_conductivities(
         name="air_conductivity",
     )
 
-    # output['leaf_vapor_conductivity'] = linear_interpolation_along_heights(
-    #         layer_heights: DataArray,
-    #         top_value: 0.25,
-    #         bottom_value: 0.32,
-    # )
+    # Initialise leaf vapour conductivity
+    leaf_vapor_conductivity = (
+        output["air_conductivity"].copy().rename("leaf_vapor_conductivity")
+    )
+    leaf_vapor_cond_interpolation = interpolate_along_heights(
+        start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
+        end_height=layer_heights[0].to_numpy(),
+        target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
+        start_value=top_leaf_vapor_conductivity,
+        end_value=bottom_leaf_vapor_conductivity,
+    )
+    leaf_vapor_conductivity[atmosphere_layers.indexes] = leaf_vapor_cond_interpolation
+    output["leaf_vapor_conductivity"] = leaf_vapor_conductivity
 
-    # output['leaf_vapor_conductivity'] = linear_interpolation_along_heights(
-    #         layer_heights: DataArray,
-    #         top_value: 0.19,
-    #         bottom_value: 0.13,
-    # )
+    # Initialise leaf air heat conductivity
+    leaf_air_conductivity = (
+        output["air_conductivity"].copy().rename("leaf_air_conductivity")
+    )
+    leaf_air_cond_interpolation = interpolate_along_heights(
+        start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
+        end_height=layer_heights[0].to_numpy(),
+        target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
+        start_value=top_leaf_air_conductivity,
+        end_value=bottom_leaf_air_conductivity,
+    )
+    leaf_air_conductivity[atmosphere_layers.indexes] = leaf_air_cond_interpolation
+    output["leaf_air_conductivity"] = leaf_air_conductivity
 
     return output
 
 
-# def linear_interpolation_along_heights(
-#         layer_heights: DataArray,
-#         top_value: float,
-#         bottom_value: float,
-# ) -> DataArray:
-#     """Linear interpolation between two values along heights.
+def interpolate_along_heights(
+    start_height: NDArray[np.float32],
+    end_height: NDArray[np.float32],
+    target_heights: NDArray[np.float32],
+    start_value: float,
+    end_value: float,
+) -> NDArray[np.float32]:
+    """Vertical interpolation for given start and end values along a height axis.
 
-#     Args:
-#         layer_heights: interpolation heights, [m]
-#         top_values: top values of interpolation
-#         bottom_values: bottom values of interpolation
+    Args:
+        start_height: The starting heights of the interpolation range, [m]
+        end_height: The ending heights of the interpolation range, [m]
+        target_heights: array of target heights with the first column representing
+            heights and subsequent columns representing additional dimensions, here
+            `cell_id`.
+        start_value: The value at the starting height.
+        end_value: The value at the ending height.
 
-#     Returns:
-#         interpolated values
-#     """
-# num_cells = len(layer_heights)
-# interpolated_values = np.zeros((num_cells, atmosphere_layers))
+    Returns:
+        interpolated values corresponding to the target heights
+    """
+    # Ensure the target heights are within the range [start_height, end_height]
+    target_heights = np.clip(target_heights, start_height, end_height)
 
-# for cell in range(num_cells):
-#     interpolated_values[cell, :] = np.interp(
-#         layer_heights, [0, 1], [top_value, bottom_value]
-#     )
-# return DataArray(np.concatenate(
-#         [interpolated_values.T, np.full((soil_layers, num_cells), np.nan)], axis=0)
-# )
+    # Calculate the interpolation slope and intercept
+    slope = (end_value - start_value) / (end_height - start_height)
+    intercept = start_value - slope * start_height
+
+    # Interpolate values at the target heights
+    interpolated_values = slope * target_heights + intercept
+
+    return interpolated_values

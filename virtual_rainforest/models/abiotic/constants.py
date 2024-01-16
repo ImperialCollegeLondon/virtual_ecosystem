@@ -212,3 +212,15 @@ class AbioticConsts(ConstantsDataclass):
 
     initial_air_conductivity: float = 50.0
     """Initial air conductivity, (mol m-2 s-1)"""
+
+    top_leaf_vapor_conductivity: float = 0.32
+    """Initial leaf vapor conductivity at the top of the canopy, (mol m-2 s-1)"""
+
+    bottom_leaf_vapor_conductivity: float = 0.25
+    """Initial leaf vapor conductivity at the bottom of the canopy, (mol m-2 s-1)"""
+
+    top_leaf_air_conductivity: float = 0.19
+    """Initial leaf air heat conductivity at the top of the canopy, (mol m-2 s-1)"""
+
+    bottom_leaf_air_conductivity: float = 0.13
+    """Initial leaf air heat conductivity at the bottom of the canopy, (mol m-2 s-1)"""

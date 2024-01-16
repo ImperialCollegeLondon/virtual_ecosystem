@@ -165,6 +165,12 @@ class AbioticModel(BaseModel):
         initial_conductivities = energy_balance.initialise_conductivities(
             layer_heights=self.data["layer_heights"],
             initial_air_conductivity=self.constants.initial_air_conductivity,
+            top_leaf_vapor_conductivity=self.constants.top_leaf_vapor_conductivity,
+            bottom_leaf_vapor_conductivity=(
+                self.constants.bottom_leaf_vapor_conductivity
+            ),
+            top_leaf_air_conductivity=self.constants.top_leaf_air_conductivity,
+            bottom_leaf_air_conductivity=self.constants.bottom_leaf_air_conductivity,
         )
 
         self.data.add_from_dict(output_dict=initial_atmosphere)

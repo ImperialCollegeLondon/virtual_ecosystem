@@ -49,13 +49,7 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     air_temperature = d["air_temperature"][
         d["leaf_area_index"]["layer_roles"] == "canopy"
     ].dropna(dim="layers", how="all")
-    absorbed_radiation = np.array(
-        [
-            [9.516258, 8.610666, 7.791253],
-            [9.516258, 8.610666, 7.791253],
-            [9.516258, 8.610666, 7.791253],
-        ]
-    )
+    absorbed_radiation = np.array([[9.516258, 8.610666, 7.791253]] * 3)
 
     exp_result = np.array(
         [
@@ -105,7 +99,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))
-        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros((3)))
+        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros(3))
 
 
 def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
@@ -118,6 +112,10 @@ def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
     result = initialise_conductivities(
         layer_heights=dummy_climate_data["layer_heights"],
         initial_air_conductivity=50.0,
+        top_leaf_vapor_conductivity=0.32,
+        bottom_leaf_vapor_conductivity=0.25,
+        top_leaf_air_conductivity=0.19,
+        bottom_leaf_air_conductivity=0.13,
     )
 
     air_cond_values = np.repeat(
@@ -134,24 +132,74 @@ def test_initialise_conductivities(dummy_climate_data, layer_roles_fixture):
         name="air_conductivity",
     )
 
-    np.testing.assert_allclose(result["air_conductivity"], exp_air_cond)
+    leaf_vap_values = np.repeat(
+        a=[0.25, 0.254389, 0.276332, 0.298276, np.nan, 0.316928, 0.32, np.nan],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 2],
+    )
+    exp_leaf_vap_cond = DataArray(
+        np.broadcast_to(leaf_vap_values, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": [0, 1, 2],
+        },
+        name="leaf_vapor_conductivity",
+    )
+
+    leaf_air_values = np.repeat(
+        a=[0.13, 0.133762, 0.152571, 0.171379, np.nan, 0.187367, 0.19, np.nan],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 2],
+    )
+    exp_leaf_air_cond = DataArray(
+        np.broadcast_to(leaf_air_values, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(15),
+            "layer_roles": ("layers", layer_roles_fixture),
+            "cell_id": [0, 1, 2],
+        },
+        name="leaf_air_conductivity",
+    )
+
+    np.testing.assert_allclose(
+        result["air_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["leaf_vapor_conductivity"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["leaf_air_conductivity"], exp_leaf_air_cond, rtol=1e-04, atol=1e-04
+    )
 
 
-# def test_linear_interpolation_along_heights(dummy_climate_data):
-#     """Test linear interpolation along heights."""
+def test_interpolate_along_heights(dummy_climate_data):
+    """Test linear interpolation along heights."""
 
-#     from virtual_rainforest.models.abiotic.energy_balance import (
-#         linear_interpolation_along_heights
-#     )
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        interpolate_along_heights,
+    )
 
-#     layer_heights = dummy_climate_data['layer_heights']
-#     interpolated_values = linear_interpolation_along_heights(
-#         layer_heights=layer_heights[layer_heights["layer_roles"] != "soil"],
-#         atmosphere_layers=13,
-#         soil_layers=2,
-#         top_value=2.,
-#         bottom_value=5.,
-#         )
-
-#     expected_values = DataArray([[2.0, 4.0], [6.0, 8.0]])
-#     np.testing.assert_allclose(interpolated_values, expected_values)
+    layer_heights = dummy_climate_data["layer_heights"]
+    atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
+    result = interpolate_along_heights(
+        start_height=layer_heights[-3].to_numpy(),
+        end_height=layer_heights[-0].to_numpy(),
+        target_heights=(layer_heights[atmosphere_layers.indexes].to_numpy()),
+        start_value=50.0,
+        end_value=20.0,
+    )
+    exp_result = np.concatenate(
+        [
+            [
+                [20.0, 20.0, 20.0],
+                [21.88087774, 21.88087774, 21.88087774],
+                [31.28526646, 31.28526646, 31.28526646],
+                [40.68965517, 40.68965517, 40.68965517],
+            ],
+            [[np.nan, np.nan, np.nan]] * 7,
+            [[48.68338558, 48.68338558, 48.68338558], [50.0, 50.0, 50.0]],
+        ],
+        axis=0,
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
