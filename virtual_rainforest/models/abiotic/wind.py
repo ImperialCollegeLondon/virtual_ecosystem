@@ -9,7 +9,6 @@ distribution of leaf and woody parts
 TODO change temperatures to Kelvin
 """  # noqa: D205, D415
 
-from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -129,8 +128,8 @@ def calculate_roughness_length_momentum(
 
 
 def calculate_diabatic_correction_above(
-    molar_density_air: Union[float, NDArray[np.float32]],
-    specific_heat_air: Union[float, NDArray[np.float32]],
+    molar_density_air: float | NDArray[np.float32],
+    specific_heat_air: float | NDArray[np.float32],
     temperature: NDArray[np.float32],
     sensible_heat_flux: NDArray[np.float32],
     friction_velocity: NDArray[np.float32],
@@ -316,10 +315,10 @@ def calculate_wind_attenuation_coefficient(
 
 
 def wind_log_profile(
-    height: Union[float, NDArray[np.float32]],
-    zeroplane_displacement: Union[float, NDArray[np.float32]],
-    roughness_length_momentum: Union[float, NDArray[np.float32]],
-    diabatic_correction_momentum: Union[float, NDArray[np.float32]],
+    height: float | NDArray[np.float32],
+    zeroplane_displacement: float | NDArray[np.float32],
+    roughness_length_momentum: float | NDArray[np.float32],
+    diabatic_correction_momentum: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate logarithmic wind profile.
 
@@ -344,10 +343,10 @@ def wind_log_profile(
 
 def calculate_fricition_velocity(
     wind_speed_ref: NDArray[np.float32],
-    reference_height: Union[float, NDArray[np.float32]],
+    reference_height: float | NDArray[np.float32],
     zeroplane_displacement: NDArray[np.float32],
     roughness_length_momentum: NDArray[np.float32],
-    diabatic_correction_momentum: Union[float, NDArray[np.float32]],
+    diabatic_correction_momentum: float | NDArray[np.float32],
     von_karmans_constant: float,
 ) -> NDArray[np.float32]:
     """Calculate friction velocity from wind speed at reference height, [m s-1].
@@ -473,7 +472,7 @@ def calculate_wind_profile(
     atmospheric_pressure: NDArray[np.float32],
     sensible_heat_flux_topofcanopy: NDArray[np.float32],
     wind_speed_ref: NDArray[np.float32],
-    wind_reference_height: Union[float, NDArray[np.float32]],
+    wind_reference_height: float | NDArray[np.float32],
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
 ) -> dict[str, NDArray[np.float32]]:
