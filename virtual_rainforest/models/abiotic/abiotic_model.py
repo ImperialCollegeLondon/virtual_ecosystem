@@ -145,7 +145,7 @@ class AbioticModel(BaseModel):
         # Generate initial profiles of air temperature [C], relative humidity [-],
         # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
-        initial_atmosphere = microclimate.run_microclimate(
+        initial_microclimate = microclimate.run_microclimate(
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=0,
@@ -154,7 +154,7 @@ class AbioticModel(BaseModel):
         )
 
         initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
-            air_temperature=initial_atmosphere["air_temperature"],
+            air_temperature=initial_microclimate["air_temperature"],
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
             layer_heights=self.data["layer_heights"],
@@ -173,7 +173,7 @@ class AbioticModel(BaseModel):
             bottom_leaf_air_conductivity=self.constants.bottom_leaf_air_conductivity,
         )
 
-        self.data.add_from_dict(output_dict=initial_atmosphere)
+        self.data.add_from_dict(output_dict=initial_microclimate)
         self.data.add_from_dict(output_dict=initial_canopy_and_soil)
         self.data.add_from_dict(output_dict=initial_conductivities)
 
