@@ -109,10 +109,10 @@ def initialise_absorbed_radiation(
 
 
 def initialise_canopy_temperature(
-    air_temperature: NDArray,
-    absorbed_radiation: NDArray,
+    air_temperature: NDArray[np.float32],
+    absorbed_radiation: NDArray[np.float32],
     canopy_temperature_ini_factor: float,
-) -> NDArray:
+) -> NDArray[np.float32]:
     """Initialise canopy temperature.
 
     Args:
@@ -120,6 +120,7 @@ def initialise_canopy_temperature(
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
         absorbed_radiation: shortwave radiation absorbed by canopy
+
     Returns:
         initial canopy temperature, [C]
     """
