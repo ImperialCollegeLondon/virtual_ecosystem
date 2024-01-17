@@ -131,13 +131,12 @@ class AbioticModel(BaseModel):
         """
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        # TODO sort out constants argument in simple abiotic model
         self.data[
             "vapour_pressure_deficit_ref"
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            constants=AbioticSimpleConsts(),
+            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
         ).rename(
             "vapour_pressure_deficit_ref"
         )
@@ -149,7 +148,7 @@ class AbioticModel(BaseModel):
             data=self.data,
             layer_roles=self.layer_roles,
             time_index=0,
-            constants=AbioticSimpleConsts(),
+            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
             Bounds=microclimate.Bounds,
         )
 
@@ -199,7 +198,7 @@ class AbioticModel(BaseModel):
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["canopy_height"].to_numpy(),
-            wind_height_above=(self.data["canopy_height"] + 15).to_numpy(),  # TODO
+            wind_height_above=(self.data["canopy_height"] + 15).to_numpy(),
             wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
             leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
             air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
@@ -213,7 +212,7 @@ class AbioticModel(BaseModel):
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
             abiotic_constants=self.constants,
             core_constants=self.core_constants,
-        )
+        )  # TODO wind height above in constants, cross-check with reference heights
 
         wind_output = {}
         wind_speed_above_canopy = DataArray(
