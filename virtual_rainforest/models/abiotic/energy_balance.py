@@ -27,9 +27,9 @@ leaf temperature and air temperature simultaneously, see
 
 For soils, the sensible and latent heat fluxes are given by:
 
-:math:`H^{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}`
+:math:`H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}`
 
-:math:`Q^{S} = \frac {\rho_{air} \lambda (q_{*}(T_{b}^{A}) - q_{b}^{A})}{r_{A}}`
+:math:`Q_{S} = \frac {\rho_{air} \lambda (q_{*}(T_{b}^{A}) - q_{b}^{A})}{r_{A}}`
 
 Where :math:`T_{S}` is the soil surface temperature, :math:`T_{b}^{A}` and
 :math:`q_{b}^{A}` are the temperature and specific humidity of the bottom air layer and
@@ -79,16 +79,16 @@ def initialise_absorbed_radiation(
     incoming light intensity at the top of the canopy (:math:`I_{0}`). The
     implementation based on Beer's law:
 
-    :math:`I(z) = I_{0} * exp(-k * LAI * z)`
+    :math:`I(z) = I_{0} * e^{(-k * LAI * z)}`
 
     Args:
-        topofcanopy_radiation: top of canopy radiation shortwave radiation, [J m-2]
+        topofcanopy_radiation: top of canopy radiation shortwave radiation, [W m-2]
         leaf_area_index: leaf area index of each canopy layer, [m m-1]
         layer_heights: layer heights, [m]
         light_extinction_coefficient: light extinction coefficient, [m-1]
 
     Returns:
-        shortwave radiation absorbed by canopy layers, [J m-2]
+        shortwave radiation absorbed by canopy layers, [W m-2]
     """
 
     absorbed_radiation = np.zeros_like(leaf_area_index)
@@ -254,13 +254,13 @@ def initialise_conductivities(
         layer_height: layer heights, [m]
         initial_air_conductivity: Initial value for conductivity in air, [mol m-2 s-1]
         top_leaf_vapor_conductivity: Initial leaf vapor conductivity at the top of the
-            canopy, (mol m-2 s-1)
+            canopy, [mol m-2 s-1]
         bottom_leaf_vapor_conductivity: Initial leaf vapor conductivity at the bottom of
-            the canopy, (mol m-2 s-1)
+            the canopy, [mol m-2 s-1]
         top_leaf_air_conductivity: Initial leaf air heat conductivity at the top of the
-            canopy, (mol m-2 s-1)
+            canopy, [mol m-2 s-1]
         bottom_leaf_air_conductivity: Initial leaf air heat conductivity at the surface,
-            (mol m-2 s-1)
+            [mol m-2 s-1]
 
     Returns:
         Conductivity in air of each canopy layer node, [mol m-2 s-1]
