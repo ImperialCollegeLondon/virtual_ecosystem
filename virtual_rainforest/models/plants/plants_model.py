@@ -26,7 +26,27 @@ from virtual_rainforest.models.plants.constants import PlantsConsts
 from virtual_rainforest.models.plants.functional_types import Flora
 
 
-class PlantsModel(BaseModel):
+class PlantsModel(
+    BaseModel,
+    model_name="plants",
+    lower_bound_on_time_scale="1 day",
+    upper_bound_on_time_scale="1 year",
+    required_init_vars=(
+        ("plant_cohorts_cell_id", tuple()),
+        ("plant_cohorts_pft", tuple()),
+        ("plant_cohorts_n", tuple()),
+        ("plant_cohorts_dbh", tuple()),
+        ("photosynthetic_photon_flux_density", ("spatial",)),
+    ),
+    vars_updated=(
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "layer_absorbed_irradiation",
+        "evapotranspiration",
+    ),
+):
     """A class defining the plants model.
 
     This is currently a basic placeholder to define the main interfaces between the
@@ -46,6 +66,19 @@ class PlantsModel(BaseModel):
     productivity across plant cohorts. An allocation model is then used to estimate
     growth and then update the canopy model.
 
+    Required Variables:
+
+        The following variables must be provided in the ``data`` instance to initialise
+        an instance of this model:
+
+        * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
+        * ``plant_cohorts_pft``: The plant functional type of the cohort
+        * ``plant_cohorts_n``: The number of individuals in the cohort
+        * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in
+          metres.
+        * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
+          flux density in µmol m-2 s-1.
+
     Warning:
         The current implementation defines the main interfaces between the plants model
         and other models and accesses and updates the expected data to be used in the
@@ -58,45 +91,9 @@ class PlantsModel(BaseModel):
         constants: Set of constants for the plants model.
     """
 
-    model_name = "plants"
-    """An internal name used to register the model and schema"""
-    lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that plants model can sensibly capture."""
-    upper_bound_on_time_scale = "1 year"
-    """Longest time scale that plants model can sensibly capture."""
-    required_init_vars = (
-        ("plant_cohorts_cell_id", tuple()),
-        ("plant_cohorts_pft", tuple()),
-        ("plant_cohorts_n", tuple()),
-        ("plant_cohorts_dbh", tuple()),
-        ("photosynthetic_photon_flux_density", ("spatial",)),
-    )
-    """Required initialisation variables for the plants model.
-
-    This is the set of variables and their core axes that are required in the data
-    object to create a PlantsModel instance. Four variables are used to set the initial
-    plant cohorts used in the model:
-
-    * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
-    * ``plant_cohorts_pft``: The plant functional type of the cohort
-    * ``plant_cohorts_n``: The number of individuals in the cohort
-    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
-    * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
-            flux density in µmol m-2 s-1.
-    """
-
-    # TODO - think about a shared "plant cohort" core axis that defines these, but the
-    #        issue here is that the length of this is variable.
-
-    vars_updated = (
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_fapar",
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "layer_absorbed_irradiation",
-        "evapotranspiration",
-    )
-    """Variables updated by the plants model."""
+    # TODO - think about a shared "plant cohort" core axis that defines the cohort
+    #        initialisation  data, but the issue here is that the length of this is
+    #        variable.
 
     def __init__(
         self,

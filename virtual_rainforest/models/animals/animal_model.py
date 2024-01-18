@@ -35,7 +35,17 @@ from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
-class AnimalModel(BaseModel):
+class AnimalModel(
+    BaseModel,
+    model_name="animals",
+    lower_bound_on_time_scale="1 day",
+    upper_bound_on_time_scale="1 month",
+    required_init_vars=(),
+    vars_updated=(
+        "decomposed_excrement",
+        "decomposed_carcasses",
+    ),
+):
     """A class describing the animal model.
 
     Describes the specific functions and attributes that the animal module should
@@ -46,23 +56,6 @@ class AnimalModel(BaseModel):
         update_interval: Time to wait between updates of the model state.
         functional_groups: The list of animal functional groups present in the
             simulation
-    """
-
-    model_name = "animals"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that animal model can sensibly capture."""
-    upper_bound_on_time_scale = "1 month"
-    """Longest time scale that animal model can sensibly capture."""
-    required_init_vars = ()
-    """Required initialisation variables for the animal model."""
-    vars_updated = (
-        "decomposed_excrement",
-        "decomposed_carcasses",
-    )
-    """Variables updated by the animal model.
-
-    At the moment these are only inputs to the litter model.
     """
 
     def __init__(

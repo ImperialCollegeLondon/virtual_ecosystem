@@ -33,7 +33,29 @@ from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
-class AbioticSimpleModel(BaseModel):
+class AbioticSimpleModel(
+    BaseModel,
+    model_name="abiotic_simple",
+    lower_bound_on_time_scale="1 day",
+    upper_bound_on_time_scale="1 month",
+    required_init_vars=(  # TODO add temporal axis
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
+        ("atmospheric_pressure_ref", ("spatial",)),
+        ("atmospheric_co2_ref", ("spatial",)),
+        ("mean_annual_temperature", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+        ("layer_heights", ("spatial",)),
+    ),
+    vars_updated=(
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ),
+):
     """A class describing the abiotic simple model.
 
     Args:
@@ -43,32 +65,6 @@ class AbioticSimpleModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         constants: Set of constants for the abiotic simple model.
     """
-
-    model_name = "abiotic_simple"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that abiotic simple model can sensibly capture."""
-    upper_bound_on_time_scale = "1 month"
-    """Longest time scale that abiotic simple model can sensibly capture."""
-    required_init_vars = (  # TODO add temporal axis
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
-        ("atmospheric_co2_ref", ("spatial",)),
-        ("mean_annual_temperature", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("layer_heights", ("spatial",)),
-    )
-    """The required variables and axes for the abiotic simple model"""
-    vars_updated = (
-        "air_temperature",
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "soil_temperature",
-        "atmospheric_pressure",
-        "atmospheric_co2",
-    )
-    """Variables updated by the abiotic_simple model"""
 
     def __init__(
         self,

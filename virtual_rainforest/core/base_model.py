@@ -422,8 +422,15 @@ class BaseModel(ABC):
         attributes. For example:
 
         .. code-block:: python
-            class ExampleModel(BaseModel, model_name='example', ...)
-                pass
+            class ExampleModel(
+                BaseModel,
+                model_name='example',
+                lower_bound_on_time_scale="30 minutes",
+                upper_bound_on_time_scale="3 months",
+                required_init_vars=(("required_variable", ("spatial",)),),
+                vars_updated=("updated_variable"),
+            ):
+                ...
 
         Args:
             model_name: The model name to be used

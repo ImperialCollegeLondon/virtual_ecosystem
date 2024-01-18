@@ -42,7 +42,29 @@ class IntegrationError(Exception):
     """Custom exception class for cases when model integration cannot be completed."""
 
 
-class SoilModel(BaseModel):
+class SoilModel(
+    BaseModel,
+    model_name="soil",
+    lower_bound_on_time_scale="30 minutes",
+    upper_bound_on_time_scale="3 months",
+    required_init_vars=(
+        ("soil_c_pool_maom", ("spatial",)),
+        ("soil_c_pool_lmwc", ("spatial",)),
+        ("soil_c_pool_microbe", ("spatial",)),
+        ("soil_c_pool_pom", ("spatial",)),
+        ("pH", ("spatial",)),
+        ("bulk_density", ("spatial",)),
+        ("clay_fraction", ("spatial",)),
+    ),
+    vars_updated=(
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
+    ),
+):
     """A class defining the soil model.
 
     This model can be configured based on the data object and a config dictionary. It
@@ -57,36 +79,6 @@ class SoilModel(BaseModel):
         canopy_layers: The number of canopy layers to be modelled.
         constants: Set of constants for the soil model.
     """
-
-    model_name = "soil"
-    """An internal name used to register the model and schema"""
-    lower_bound_on_time_scale = "30 minutes"
-    """Shortest time scale that soil model can sensibly capture."""
-    upper_bound_on_time_scale = "3 months"
-    """Longest time scale that soil model can sensibly capture."""
-    required_init_vars = (
-        ("soil_c_pool_maom", ("spatial",)),
-        ("soil_c_pool_lmwc", ("spatial",)),
-        ("soil_c_pool_microbe", ("spatial",)),
-        ("soil_c_pool_pom", ("spatial",)),
-        ("pH", ("spatial",)),
-        ("bulk_density", ("spatial",)),
-        ("clay_fraction", ("spatial",)),
-    )
-    """Required initialisation variables for the soil model.
-
-    This is a set of variables that must be present in the data object used to create a
-    SoilModel , along with any core axes that those variables must map on
-    to."""
-    vars_updated = (
-        "soil_c_pool_maom",
-        "soil_c_pool_lmwc",
-        "soil_c_pool_microbe",
-        "soil_c_pool_pom",
-        "soil_enzyme_pom",
-        "soil_enzyme_maom",
-    )
-    """Variables updated by the soil model."""
 
     def __init__(
         self,
