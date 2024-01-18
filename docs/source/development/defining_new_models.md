@@ -162,7 +162,7 @@ from virtual_rainforest.models.freshwater.streamflow import calculate_streamflow
 
 Now create a new class, that derives from the
 {mod}`~virtual_rainforest.core.base_model.BaseModel`. To begin with, choose a class name
-for the model and define the following four class attributes.
+for the model and define the following class attributes.
 
 The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
 : This is a string providing the name that is used to refer to this model class in
@@ -196,26 +196,23 @@ attribute: This is the longest time scale for which the model is a realistic sim
 Again this attribute is a string, which should include units that can be parsed using
 `pint`.
 
-You will end up with something like the following:
+These values are set as class attributes by providing them as arguments to the class
+signature. You will end up with something like the following:
 
 ```python
-class FreshWaterModel(BaseModel):
+class FreshWaterModel(
+    BaseModel, 
+    model_name = "freshwater",
+    lower_bound_on_time_scale = "1 day",
+    upper_bound_on_time_scale = "1 month",
+    required_init_vars = (('temperature', ('spatial', )), ),
+    vars_updated = ("average_P_concentration",),
+):
     """Docstring describing model.
 
     Args:
         Describe arguments here
     """
-
-    model_name = "freshwater"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that freshwater model can sensibly capture."""
-    upper_bound_on_time_scale = "1 month"
-    """Longest time scale that freshwater model can sensibly capture."""
-    required_init_vars = (('temperature', ('spatial', )), )
-    """The required variables and axes for the Freshwater Model"""
-    vars_updated = ("average_P_concentration",)
-    """Variables updated by the freshwater model."""
 ```
 
 ### Defining the model `__init__` method
@@ -223,10 +220,10 @@ class FreshWaterModel(BaseModel):
 The next step is to define the `__init__` method for the class. This needs to do a few
 things.
 
-1. It should define any specific attributes of the new model class. For example, the
-  class might require that the user set a number of ponds. These should be added to the
-  signature of the `__init__` method, alongside the required parameters of the base
-  class, and then stored as attributes of the class.
+1. It should define any specific instance attributes of the new model class. For
+  example, the class might require that the user set a number of ponds. These should be
+  added to the signature of the `__init__` method, alongside the required parameters of
+  the base class, and then stored as attributes of the instance.
 
 1. It _must_ call the {meth}`~virtual_rainforest.core.base_model.BaseModel.__init__`
    method of the {meth}`~virtual_rainforest.core.base_model.BaseModel` parent class,
