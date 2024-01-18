@@ -203,3 +203,18 @@ def test_interpolate_along_heights(dummy_climate_data):
         axis=0,
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
+
+
+def test_calculate_soil_absorption():
+    """Test that soil absorption is calculated correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_soil_absorption,
+    )
+
+    result = calculate_soil_absorption(
+        shortwave_radiation_surface=np.array([100, 10, 0]),
+        surface_albedo=np.array([0.2, 0.2, 0.2]),
+    )
+
+    np.testing.assert_allclose(result, np.array([80, 8, 0]))

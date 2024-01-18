@@ -356,3 +356,27 @@ def interpolate_along_heights(
     interpolated_values = slope * target_heights + intercept
 
     return interpolated_values
+
+
+def calculate_soil_absorption(
+    shortwave_radiation_surface: NDArray[np.float32],
+    surface_albedo: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate soil absorption of shortwave radiation.
+
+    The amount of shortwave radiation that is absorbed by the surface layer is a
+    function of incoming radiation and  surface albedo. In reality, surface albedo is
+    modulated by soil moisture. The current implementation of soil absorption assumes a
+    constant albedo within each grid cell because the radiation that reaches the surface
+    below the canopy is typically quite small (<5%).
+
+    Args:
+        shortwave_radiation_surface: Shortwave radiation that reaches the surface,
+            [W m-2]
+        surface_albedo: Surface albedo, dimensionless.
+
+    Returns:
+        shortwave radiation absorbed by soil surface, [W m-2]
+    """
+
+    return shortwave_radiation_surface * (1 - surface_albedo)

@@ -224,3 +224,9 @@ class AbioticConsts(ConstantsDataclass):
 
     bottom_leaf_air_conductivity: float = 0.13
     """Initial leaf air heat conductivity at the bottom of the canopy, (mol m-2 s-1)"""
+
+    surface_albedo: float = 0.125
+    """Mean surface albedo of a tropical rainforest in South East Asia.
+
+    The value is takes from a study that compares changes in surface albedo before and
+    after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
