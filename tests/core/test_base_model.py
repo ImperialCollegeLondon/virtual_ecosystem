@@ -353,7 +353,7 @@ def test_check_failure_on_missing_methods(data_instance):
     ],
 )
 def test_check_required_init_vars(
-    caplog, data_instance, req_init_vars, raises, exp_err_msg, exp_log
+    caplog, core_constants, data_instance, req_init_vars, raises, exp_err_msg, exp_log
 ):
     """Tests the validation of the required_init_vars property on init."""
 
@@ -363,6 +363,7 @@ def test_check_required_init_vars(
 
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
 
     class TestCaseModel(
@@ -386,9 +387,13 @@ def test_check_required_init_vars(
 
         @classmethod
         def from_config(
-            cls, data: Data, config: Config, update_interval: pint.Quantity
+            cls,
+            data: Data,
+            config: Config,
+            core_constants: CoreConsts,
+            update_interval: pint.Quantity,
         ) -> Any:
-            return super().from_config(data, config, update_interval)
+            return super().from_config(data, config, core_constants, update_interval)
 
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
@@ -400,6 +405,7 @@ def test_check_required_init_vars(
     with raises as err:
         inst = TestCaseModel(  # noqa: F841
             data=data_instance,
+            core_constants=core_constants,
             update_interval=pint.Quantity("1 week"),
             start_time=datetime64("2022-11-01"),
         )
@@ -472,11 +478,14 @@ def test_check_required_init_vars(
         ),
     ],
 )
-def test_check_update_speed(caplog, config, raises, timestep, expected_log):
+def test_check_update_speed(
+    caplog, core_constants, config, raises, timestep, expected_log
+):
     """Tests check on update speed."""
 
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
 
     class TimingTestModel(
@@ -500,9 +509,18 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
 
         @classmethod
         def from_config(
-            cls, data: Data, config: Config, update_interval: pint.Quantity
+            cls,
+            data: Data,
+            config: Config,
+            core_constants: CoreConsts,
+            update_interval: pint.Quantity,
         ) -> Any:
-            return super().from_config(data, config, update_interval)
+            return super().from_config(
+                data=data,
+                config=config,
+                core_constants=core_constants,
+                update_interval=update_interval,
+            )
 
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
@@ -510,6 +528,7 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
     with raises:
         inst = TimingTestModel(
             data=data_instance,
+            core_constants=core_constants,
             update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
             start_time=datetime64(config["core"]["timing"]["start_date"]),
         )

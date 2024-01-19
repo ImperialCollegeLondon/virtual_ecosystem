@@ -21,14 +21,13 @@ from .conftest import log_check
     "cfg_strings,update_interval,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil]\n",
+            "[soil]\n",
             pint.Quantity("7 days"),
             "SoilModel(update_interval = 7 day)",
             does_not_raise(),
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -52,7 +51,6 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -71,7 +69,6 @@ from .conftest import log_check
             (
                 (INFO, "Initialising models: soil"),
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -86,6 +83,7 @@ from .conftest import log_check
 )
 def test_initialise_models(
     caplog,
+    core_constants,
     dummy_carbon_data,
     cfg_strings,
     update_interval,
@@ -107,6 +105,7 @@ def test_initialise_models(
         models = initialise_models(
             config=config,
             data=dummy_carbon_data,
+            core_constants=core_constants,
             models=config.model_classes,
             update_interval=update_interval,
         )
@@ -274,7 +273,7 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
                     "Units for core.timing.update_interval are not valid time units: 7",
                 ),
             ),
-            id="model_time_step missing units",
+            id="update_interval missing units",
         ),
     ],
 )

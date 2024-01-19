@@ -15,7 +15,7 @@ from virtual_rainforest.models.soil.soil_model import IntegrationError
 
 
 @pytest.fixture
-def soil_model_fixture(dummy_carbon_data):
+def soil_model_fixture(dummy_carbon_data, core_constants):
     """Create a soil model fixture based on the dummy carbon data."""
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.models.soil.soil_model import SoilModel
@@ -26,24 +26,26 @@ def soil_model_fixture(dummy_carbon_data):
     )
 
     return SoilModel.from_config(
-        data=dummy_carbon_data, config=config, update_interval=pint.Quantity("12 hours")
+        data=dummy_carbon_data,
+        config=config,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("12 hours"),
     )
 
 
-def test_soil_model_initialization(caplog, dummy_carbon_data):
+def test_soil_model_initialization(caplog, dummy_carbon_data, core_constants):
     """Test `SoilModel` initialization with good data."""
     from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     model = SoilModel(
-        dummy_carbon_data,
-        pint.Quantity("1 week"),
-        [-0.25, -1.0],
-        10,
+        data=dummy_carbon_data,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("1 week"),
+        soil_layers=[-0.25, -1.0],
+        canopy_layers=10,
         model_constants=SoilConsts,
-        core_constants=CoreConsts,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -68,10 +70,9 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
     )
 
 
-def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
+def test_soil_model_initialization_no_data(caplog, core_constants):
     """Test `SoilModel` initialization with no data."""
 
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.soil.constants import SoilConsts
@@ -84,12 +85,12 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
 
         # Try and initialise model with empty data object
         _ = SoilModel(
-            empty_data,
-            pint.Quantity("1 week"),
-            [-0.25, -1.0],
-            10,
+            data=empty_data,
+            core_constants=core_constants,
+            update_interval=pint.Quantity("1 week"),
+            soil_layers=[-0.25, -1.0],
+            canopy_layers=10,
             model_constants=SoilConsts,
-            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -108,10 +109,11 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
     )
 
 
-def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
+def test_soil_model_initialization_bounds_error(
+    caplog, dummy_carbon_data, core_constants
+):
     """Test `SoilModel` initialization."""
 
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
@@ -123,12 +125,12 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
 
         # Initialise model with bad data object
         _ = SoilModel(
-            dummy_carbon_data,
-            pint.Quantity("1 week"),
-            [-0.25, -1.0],
-            10,
+            data=dummy_carbon_data,
+            core_constants=core_constants,
+            update_interval=pint.Quantity("1 week"),
+            soil_layers=[-0.25, -1.0],
+            canopy_layers=10,
             model_constants=SoilConsts,
-            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -158,7 +160,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -182,7 +183,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -216,6 +216,7 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
 def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
+    core_constants,
     cfg_string,
     time_interval,
     max_decomp,
@@ -238,9 +239,10 @@ def test_generate_soil_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = SoilModel.from_config(
-            dummy_carbon_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_carbon_data,
+            config=config,
+            core_constants=core_constants,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.update_interval == time_interval
         assert model.model_constants.max_decomp_rate_pom == max_decomp
@@ -355,7 +357,7 @@ def test_integrate_soil_model(
     log_check(caplog, expected_log)
 
 
-def test_order_independance(dummy_carbon_data, soil_model_fixture):
+def test_order_independance(dummy_carbon_data, soil_model_fixture, core_constants):
     """Check that pool order in the data object doesn't change integration result."""
 
     from virtual_rainforest.core.config import Config
@@ -402,7 +404,12 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
     config = Config(
         cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
     )
-    new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
+    new_soil_model = SoilModel.from_config(
+        data=new_data,
+        config=config,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("12 hours"),
+    )
 
     # Integrate using both data objects
     output = soil_model_fixture.integrate()

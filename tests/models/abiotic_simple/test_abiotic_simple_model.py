@@ -57,6 +57,7 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 def test_abiotic_simple_model_initialization(
     caplog,
     dummy_climate_data,
+    core_constants,
     raises,
     expected_log_entries,
     layer_roles_fixture,
@@ -71,8 +72,9 @@ def test_abiotic_simple_model_initialization(
     with raises:
         # Initialize model
         model = AbioticSimpleModel(
-            dummy_climate_data,
-            pint.Quantity("1 week"),
+            data=dummy_climate_data,
+            core_constants=core_constants,
+            update_interval=pint.Quantity("1 week"),
             soil_layers=[-0.25, -1.0],
             canopy_layers=10,
             constants=AbioticSimpleConsts(),
@@ -212,6 +214,7 @@ def test_abiotic_simple_model_initialization(
 def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
+    core_constants,
     cfg_string,
     time_interval,
     relative_humid,
@@ -235,9 +238,10 @@ def test_generate_abiotic_simple_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AbioticSimpleModel.from_config(
-            dummy_climate_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_climate_data,
+            config=config,
+            core_constants=core_constants,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
@@ -249,6 +253,7 @@ def test_generate_abiotic_simple_model(
 
 def test_setup(
     dummy_climate_data,
+    core_constants,
     layer_roles_fixture,
 ):
     """Test set up and update."""
@@ -268,9 +273,10 @@ def test_setup(
 
     # initialise model
     model = AbioticSimpleModel.from_config(
-        dummy_climate_data,
-        config,
-        pint.Quantity(config["core"]["timing"]["update_interval"]),
+        data=dummy_climate_data,
+        core_constants=core_constants,
+        config=config,
+        update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
     )
     assert model.layer_roles == layer_roles_fixture
     assert model.update_interval == pint.Quantity("1 week")

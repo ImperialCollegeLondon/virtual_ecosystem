@@ -14,48 +14,21 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 
 
 @pytest.mark.parametrize(
-    "ini_soil_moisture, ini_groundwater_sat, raises, expected_log_entries",
+    "ini_soil_moisture, ini_groundwater_sat, raises, last_log_entry",
     [
         (
             0.5,
             0.9,
             does_not_raise(),
-            (
-                (
-                    DEBUG,
-                    "hydrology model: required var 'precipitation' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'leaf_area_index' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'air_temperature_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'relative_humidity_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'atmospheric_pressure_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "hydrology model: required var 'elevation' checked",
-                ),
-            ),
+            None,
         ),
         (
             -0.5,
             0.9,
             pytest.raises(InitialisationError),
             (
-                (
-                    ERROR,
-                    "The initial soil moisture has to be between 0 and 1!",
-                ),
+                ERROR,
+                "The initial soil moisture has to be between 0 and 1!",
             ),
         ),
         (
@@ -63,10 +36,8 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
             0.9,
             pytest.raises(InitialisationError),
             (
-                (
-                    ERROR,
-                    "The initial soil moisture must be a float!",
-                ),
+                ERROR,
+                "The initial soil moisture must be a float!",
             ),
         ),
         (
@@ -74,10 +45,8 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
             1.9,
             pytest.raises(InitialisationError),
             (
-                (
-                    ERROR,
-                    "The initial groundwater saturation has to be between 0 and 1!",
-                ),
+                ERROR,
+                "The initial groundwater saturation has to be between 0 and 1!",
             ),
         ),
     ],
@@ -85,29 +54,31 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 def test_hydrology_model_initialization(
     caplog,
     dummy_climate_data,
+    core_constants,
     ini_soil_moisture,
     ini_groundwater_sat,
     raises,
-    expected_log_entries,
+    last_log_entry,
     layer_roles_fixture,
-    soil_layers=[-0.25, -1.0],
-    canopy_layers=10,
 ):
     """Test `HydrologyModel` initialization."""
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.models.hydrology.constants import HydroConsts
     from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
 
+    caplog.clear()
+
     with raises:
         # Initialize model
         model = HydrologyModel(
-            dummy_climate_data,
-            pint.Quantity("1 month"),
-            soil_layers,
-            canopy_layers,
-            ini_soil_moisture,
-            ini_groundwater_sat,
-            constants=HydroConsts,
+            data=dummy_climate_data,
+            core_constants=core_constants,
+            update_interval=pint.Quantity("1 month"),
+            soil_layers=[-0.25, -1.0],
+            canopy_layers=10,
+            initial_soil_moisture=ini_soil_moisture,
+            initial_groundwater_saturation=ini_groundwater_sat,
+            constants=HydroConsts(),
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -119,8 +90,38 @@ def test_hydrology_model_initialization(
         assert model.initial_groundwater_saturation == ini_groundwater_sat
         assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    # Final check that logging entries are as expected - all of them should share the
+    # required var checking but some will add errors
+    shared_log = [
+        (
+            DEBUG,
+            "hydrology model: required var 'precipitation' checked",
+        ),
+        (
+            DEBUG,
+            "hydrology model: required var 'leaf_area_index' checked",
+        ),
+        (
+            DEBUG,
+            "hydrology model: required var 'air_temperature_ref' checked",
+        ),
+        (
+            DEBUG,
+            "hydrology model: required var 'relative_humidity_ref' checked",
+        ),
+        (
+            DEBUG,
+            "hydrology model: required var 'atmospheric_pressure_ref' checked",
+        ),
+        (
+            DEBUG,
+            "hydrology model: required var 'elevation' checked",
+        ),
+    ]
+    if last_log_entry is not None:
+        shared_log.append(last_log_entry)
+
+    log_check(caplog, shared_log)
 
 
 @pytest.mark.parametrize(
@@ -229,6 +230,7 @@ def test_hydrology_model_initialization(
 def test_generate_hydrology_model(
     caplog,
     dummy_climate_data,
+    core_constants,
     cfg_string,
     time_interval,
     sm_capacity,
@@ -252,9 +254,10 @@ def test_generate_hydrology_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = HydrologyModel.from_config(
-            dummy_climate_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_climate_data,
+            config=config,
+            core_constants=core_constants,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval
@@ -289,6 +292,7 @@ def test_generate_hydrology_model(
 )
 def test_setup(
     dummy_climate_data,
+    core_constants,
     cfg_string,
     layer_roles_fixture,
     time_interval,
@@ -308,9 +312,10 @@ def test_setup(
     with raises:
         # initialise model
         model = HydrologyModel.from_config(
-            dummy_climate_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_climate_data,
+            config=config,
+            core_constants=core_constants,
+            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.layer_roles == layer_roles_fixture
         assert model.update_interval == time_interval

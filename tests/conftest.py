@@ -83,6 +83,15 @@ def reset_module_registry():
 
 
 @pytest.fixture
+def core_constants():
+    """A basic core constants instance."""
+
+    from virtual_rainforest.core.constants import CoreConsts
+
+    return CoreConsts()
+
+
+@pytest.fixture
 def fixture_square_grid():
     """Create a square grid fixture.
 

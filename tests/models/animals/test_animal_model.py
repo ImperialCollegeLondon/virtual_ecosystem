@@ -1,7 +1,7 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import INFO
+from logging import CRITICAL, INFO
 
 import numpy as np
 import pint
@@ -11,8 +11,8 @@ from tests.conftest import log_check
 
 
 def test_animal_model_initialization(
-    caplog,
     plant_climate_data_instance,
+    core_constants,
     functional_group_list_instance,
     constants_instance,
 ):
@@ -22,9 +22,10 @@ def test_animal_model_initialization(
 
     # Initialize model
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
+        data=plant_climate_data_instance,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("1 week"),
+        functional_groups=functional_group_list_instance,
         constants=constants_instance,
     )
 
@@ -39,61 +40,52 @@ def test_animal_model_initialization(
 @pytest.mark.parametrize(
     "config,time_interval,raises,expected_log_entries",
     [
-        (
-            {},
+        pytest.param(
+            "[core]",
             None,
             pytest.raises(KeyError),
-            (),  # This error isn't handled so doesn't generate logging
+            ((CRITICAL, "Unknown or unregistered module in: animals.AnimalConsts"),),
+            id="misconfigured",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "7 days",
-                    }
-                },
-                "animals": {
-                    "model_time_step": "12 hours",
-                    "functional_groups": [
-                        {
-                            "name": "carnivorous_bird",
-                            "taxa": "bird",
-                            "diet": "carnivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 0.1,
-                            "adult_mass": 1.0,
-                        },
-                        {
-                            "name": "herbivorous_bird",
-                            "taxa": "bird",
-                            "diet": "herbivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 0.05,
-                            "adult_mass": 0.5,
-                        },
-                        {
-                            "name": "carnivorous_mammal",
-                            "taxa": "mammal",
-                            "diet": "carnivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 4.0,
-                            "adult_mass": 40.0,
-                        },
-                        {
-                            "name": "herbivorous_mammal",
-                            "taxa": "mammal",
-                            "diet": "herbivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 1.0,
-                            "adult_mass": 10.0,
-                        },
-                    ],
-                },
-            },
+        pytest.param(
+            """
+            [core.timing]
+            start_date = "2020-01-01"
+            update_interval =  "7 days"
+            [animals]
+            [[animals.functional_groups]]
+            name = "carnivorous_bird"
+            taxa = "bird"
+            diet = "carnivore"
+            metabolic_type = "endothermic"
+            birth_mass = 0.1
+            adult_mass = 1.0
+            [[animals.functional_groups]]
+            name =  "herbivorous_bird"
+            taxa =  "bird"
+            diet =  "herbivore"
+            metabolic_type =  "endothermic"
+            birth_mass =  0.05
+            adult_mass =  0.5
+            [[animals.functional_groups]]
+            name =  "carnivorous_mammal"
+            taxa =  "mammal"
+            diet =  "carnivore"
+            metabolic_type =  "endothermic"
+            birth_mass =  4.0
+            adult_mass =  40.0
+            [[animals.functional_groups]]
+            name =  "herbivorous_mammal"
+            taxa =  "mammal"
+            diet =  "herbivore"
+            metabolic_type =  "endothermic"
+            birth_mass =  1.0
+            adult_mass =  10.0
+            """,
             pint.Quantity("7 days"),
             does_not_raise(),
             (
+                (INFO, "Initialised animals.AnimalConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the animal model successfully "
@@ -102,26 +94,33 @@ def test_animal_model_initialization(
                 (INFO, "Adding data array for 'decomposed_excrement'"),
                 (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
+            id="valid",
         ),
     ],
 )
 def test_generate_animal_model(
     caplog,
     plant_climate_data_instance,
+    core_constants,
     config,
     time_interval,
     raises,
     expected_log_entries,
-    constants_instance,
 ):
     """Test that the function to initialise the animal model behaves as expected."""
+    from virtual_rainforest.core.config import Config
     from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    # Create a config instance to load required modules and clear the log
+    config = Config(cfg_strings=config)
+    caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AnimalModel.from_config(
             data=plant_climate_data_instance,
             config=config,
+            core_constants=core_constants,
             update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
         assert model.update_interval == time_interval
@@ -157,7 +156,10 @@ def test_get_community_by_key(animal_model_instance):
 
 
 def test_update_method_sequence(
-    plant_climate_data_instance, functional_group_list_instance, constants_instance
+    plant_climate_data_instance,
+    core_constants,
+    functional_group_list_instance,
+    constants_instance,
 ):
     """Test update to ensure it runs the community methods in order.
 
@@ -168,9 +170,10 @@ def test_update_method_sequence(
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
+        data=plant_climate_data_instance,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("1 week"),
+        functional_groups=functional_group_list_instance,
         constants=constants_instance,
     )
 
@@ -209,15 +212,16 @@ def test_update_method_sequence(
 
 
 def test_update_method_time_index_argument(
-    plant_climate_data_instance, functional_group_list_instance
+    plant_climate_data_instance, core_constants, functional_group_list_instance
 ):
     """Test update to ensure the time index argument does not create an error."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
+        data=plant_climate_data_instance,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("1 week"),
+        functional_groups=functional_group_list_instance,
     )
 
     time_index = 5
@@ -226,7 +230,7 @@ def test_update_method_time_index_argument(
     assert True
 
 
-def test_calculate_litter_additions(functional_group_list_instance):
+def test_calculate_litter_additions(core_constants, functional_group_list_instance):
     """Test that litter additions from animal model are calculated correctly."""
 
     from virtual_rainforest.core.data import Data
@@ -238,7 +242,12 @@ def test_calculate_litter_additions(functional_group_list_instance):
     data = Data(grid)
 
     # Use it to initialise the model
-    model = AnimalModel(data, pint.Quantity("1 week"), functional_group_list_instance)
+    model = AnimalModel(
+        data=data,
+        core_constants=core_constants,
+        update_interval=pint.Quantity("1 week"),
+        functional_groups=functional_group_list_instance,
+    )
 
     # Update the waste pools
     decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]

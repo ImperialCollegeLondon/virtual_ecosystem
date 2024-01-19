@@ -160,7 +160,7 @@ def plants_data():
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora, layer_structure):
+def fxt_plants_model(plants_data, core_constants, flora, layer_structure):
     """Return a simple PlantsModel instance."""
     from pint import Quantity
 
@@ -168,6 +168,7 @@ def fxt_plants_model(plants_data, flora, layer_structure):
 
     return PlantsModel(
         data=plants_data,
+        core_constants=core_constants,
         update_interval=Quantity("1 month"),
         flora=flora,
         layer_structure=layer_structure,

@@ -99,7 +99,7 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def animal_model_instance(
-    data_instance, functional_group_list_instance, constants_instance
+    data_instance, core_constants, functional_group_list_instance, constants_instance
 ):
     """Fixture for an animal model object used in tests."""
     from pint import Quantity
@@ -107,10 +107,11 @@ def animal_model_instance(
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     return AnimalModel(
-        data_instance,
-        Quantity("1 day"),
-        functional_group_list_instance,
-        constants_instance,
+        data=data_instance,
+        core_constants=core_constants,
+        update_interval=Quantity("1 day"),
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
     )
 
 

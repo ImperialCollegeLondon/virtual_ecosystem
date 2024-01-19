@@ -114,7 +114,7 @@ class BaseModel(ABC):
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance containing
             variables to be used in the model.
-        core_constants: The core constants instance to be used for the model
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
     """
 

@@ -5,7 +5,7 @@ import numpy as np
 # TODO: A lot of duplication in these tests, work out how to share code to make it DRYer
 
 
-def test_PlantsModel__init__(plants_data, flora, layer_structure):
+def test_PlantsModel__init__(plants_data, core_constants, flora, layer_structure):
     """Test the PlantsModel.__init__ method."""
     from pint import Quantity
 
@@ -13,6 +13,7 @@ def test_PlantsModel__init__(plants_data, flora, layer_structure):
 
     plants_model = PlantsModel(
         data=plants_data,
+        core_constants=core_constants,
         update_interval=Quantity("1 month"),
         flora=flora,
         layer_structure=layer_structure,
@@ -35,14 +36,17 @@ def test_PlantsModel__init__(plants_data, flora, layer_structure):
         assert np.allclose(plants_data[layer_name].sum(), layer_sum)
 
 
-def test_PlantsModel_from_config(plants_data, plants_config):
+def test_PlantsModel_from_config(plants_data, core_constants, plants_config):
     """Test the PlantsModel.from_config factory method."""
     from pint import Quantity
 
     from virtual_rainforest.models.plants.plants_model import PlantsModel
 
     plants_model = PlantsModel.from_config(
-        data=plants_data, config=plants_config, update_interval=Quantity("1 month")
+        data=plants_data,
+        config=plants_config,
+        core_constants=core_constants,
+        update_interval=Quantity("1 month"),
     )
 
     # Currently trivial test.
