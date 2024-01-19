@@ -26,24 +26,27 @@ that must be defined in subclasses:
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute and
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
   attribute.
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`
   attribute
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`
   attribute
 
-The usage of these four attributes is described in their docstrings and three private
-methods are provided to validate that the properties are set and valid in subclasses
-(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
+
+The usage of these four attributes is described in their docstrings and each is
+validated when a new subclass is create using the following private
+methods of the class:
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units` and
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_vars_updated`.
 
 Model checking
 --------------
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
 the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
-method. This method is called automatically whenever a subclass of the ABC is imported:
-it validates the class attributes for the new model class.
+method. This method is called automatically whenever a subclass of the ABC is imported
+and validates the class attributes for the new model class.
 
 The ``BaseModel.__init__`` method
 ----------------------------------
@@ -121,25 +124,14 @@ class BaseModel(ABC):
     configuration settings and in logging messages.
     """
 
-    lower_bound_on_time_scale: str
-    """The shortest time scale for which the model is reasonable to use.
+    model_update_bounds: tuple[pint.Quantity, pint.Quantity]
+    """Bounds on model update frequencies.
 
-    Whether or not a model is an acceptable representation of reality depends on the
-    time scale of interest. At large time scales some processes can be treated as
-    transient (and therefore ignored), but at shorter time scales these processes
-    can be vital to capture. We thus require each model to define a lower bound on
-    the time scale for which it is thought to be a reasonable approximation.
-    """
-
-    upper_bound_on_time_scale: str
-    """The longest time scale for which the model is reasonable to use.
-
-    Whether or not a model is an acceptable representation of reality depends on the
-    time scale of interest. Processes that can be sensibly simulated in detail at
-    shorter time scales often need to approximated as time scales get longer (e.g.
-    impacts of diurnal or seasonal cycles). We thus require each model to define an
-    upper bound on the time scale for which it is thought to be a reasonable
-    approximation.
+    This class attribute defines two time intervals that define a lower and upper bound
+    on the update frequency that can reasonably be used with a model. Models updated
+    more often than the lower bound may fail to capture transient dynamics and models
+    updated more slowly than the upper bound may fail to capture important temporal
+    patterns.
     """
 
     required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
@@ -309,55 +301,64 @@ class BaseModel(ABC):
         return required_init_vars
 
     @classmethod
-    def _check_time_bounds_units(
-        cls, time_bound: str, bound_name: str
-    ) -> pint.Quantity:
-        """Check that the time bounds attributes for models are valid.
+    def _check_model_update_bounds(
+        cls, model_update_bounds: tuple[str, str]
+    ) -> tuple[pint.util.Quantity, pint.util.Quantity]:
+        """Check that the model_update_bounds attribute is valid.
 
-        This is used to validate values provided for the subclass attributes
-        :attr:`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
-        and
-        :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+        This is used to validate the class attribute
+        :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`, which
+        describes the lower and upper bounds on model update frequency. The lower bound
+        must be less than the upper bound.
 
         Args:
-            time_bound: A string providing a lower or upper time bound that will be
-                validated using :class:`pint.Quantity`.
-            bound_name: The name of the attribute being validated.
+            model_update_bounds: A tuple of two strings representing time periods that
+                can be parsed using :class:`pint.Quantity`.
+
 
         Raises:
-            ValueError: If model time bounds either don't have units or have non-time
-                units
+            ValueError: If the provided model_update_bounds cannot be parsed as
+                :class:`pint.Quantity` with time units or if the lower bound is not less
+                than the upper bound.
 
         Returns:
-            The validated time bound.
+            The validated model_update_bounds, converted to a tuple of
+            :class:`pint.Quantity` values.
         """
 
-        # Assume time bound has valid units until we learn otherwise
-        valid_bound = True
-
+        # Check the conversion
         try:
-            time_bound_pint = pint.Quantity(time_bound)
-            if not time_bound_pint.check("[time]"):
-                LOGGER.error(
-                    f"Class attribute {bound_name} for {cls.__name__} "
-                    "given a non-time unit."
-                )
-                valid_bound = False
-        except pint.errors.UndefinedUnitError:
-            LOGGER.error(
-                f"Class attribute {bound_name} for {cls.__name__} "
-                "not given a valid unit."
+            model_update_bounds_pint: tuple[pint.util.Quantity, pint.util.Quantity] = (
+                pint.Quantity(model_update_bounds[0]),
+                pint.Quantity(model_update_bounds[1]),
             )
-            valid_bound = False
-
-        if not valid_bound:
+        except pint.errors.UndefinedUnitError:
             to_raise = ValueError(
-                "Invalid units for model time bound, see above errors."
+                f"Class attribute model_update_bounds for {cls.__name__} "
+                "contains undefined units."
             )
             LOGGER.error(to_raise)
             raise to_raise
-        else:
-            return time_bound_pint
+
+        # Check time units
+        if not all(val.check("[time]") for val in model_update_bounds_pint):
+            to_raise = ValueError(
+                f"Class attribute model_update_bounds for {cls.__name__} "
+                "contains non-time units."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check lower less than upper bound
+        if model_update_bounds_pint[0] > model_update_bounds_pint[1]:
+            to_raise = ValueError(
+                f"Lower time bound for {cls.__name__} is greater than the upper "
+                f"bound."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        return model_update_bounds_pint
 
     def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
         """Function to check that the update speed of a specific model is within bounds.
@@ -375,15 +376,17 @@ class BaseModel(ABC):
         """
 
         # Check if either bound is violated
-        if update_interval < pint.Quantity(self.lower_bound_on_time_scale):
+        if update_interval < pint.Quantity(self.model_update_bounds[0]):
             to_raise = ConfigurationError(
-                "The update interval is shorter than the model's lower bound"
+                "The update interval is less than the lower bound on update frequency."
             )
             LOGGER.error(to_raise)
             raise to_raise
-        elif update_interval > pint.Quantity(self.upper_bound_on_time_scale):
+
+        if update_interval > pint.Quantity(self.model_update_bounds[1]):
             to_raise = ConfigurationError(
-                "The update interval is longer than the model's upper bound"
+                "The update interval is greater than the upper bound on update "
+                "frequency."
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -404,8 +407,7 @@ class BaseModel(ABC):
     def __init_subclass__(
         cls,
         model_name: str,
-        lower_bound_on_time_scale: str,
-        upper_bound_on_time_scale: str,
+        model_update_bounds: tuple[str, str],
         required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
         vars_updated: tuple[str, ...],
     ) -> None:
@@ -425,8 +427,7 @@ class BaseModel(ABC):
             class ExampleModel(
                 BaseModel,
                 model_name='example',
-                lower_bound_on_time_scale="30 minutes",
-                upper_bound_on_time_scale="3 months",
+                model_update_bounds= ("30 minutes", "3 months"),
                 required_init_vars=(("required_variable", ("spatial",)),),
                 vars_updated=("updated_variable"),
             ):
@@ -434,12 +435,10 @@ class BaseModel(ABC):
 
         Args:
             model_name: The model name to be used
-            lower_bound_on_time_scale: The shortest update interval handled by the model
-            upper_bound_on_time_scale: The longest update interval handled by the model
+            model_update_bounds: Bounds on update intervals handled by the model
             required_init_vars: A tuple of the variables required to create a model
                 instance.
             vars_updated: A tuple of the variable names updated by the model.
-
 
         Raises:
             ValueError: If the model_name or required_init_vars properties are not
@@ -453,23 +452,9 @@ class BaseModel(ABC):
                 required_init_vars=required_init_vars
             )
             cls.vars_updated = cls._check_vars_updated(vars_updated=vars_updated)
-            cls.lower_bound_on_time_scale = cls._check_time_bounds_units(
-                time_bound=lower_bound_on_time_scale,
-                bound_name="lower_bound_on_time_scale",
+            cls.model_update_bounds = cls._check_model_update_bounds(
+                model_update_bounds=model_update_bounds
             )
-            cls.upper_bound_on_time_scale = cls._check_time_bounds_units(
-                time_bound=upper_bound_on_time_scale,
-                bound_name="upper_bound_on_time_scale",
-            )
-
-            # Once bounds units are checked their relative values can be validated
-            if cls.lower_bound_on_time_scale > cls.upper_bound_on_time_scale:
-                to_raise = ValueError(
-                    f"Lower time bound for {cls.__name__} is greater than the upper "
-                    f"bound."
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
 
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(

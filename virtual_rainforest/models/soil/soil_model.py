@@ -45,8 +45,7 @@ class IntegrationError(Exception):
 class SoilModel(
     BaseModel,
     model_name="soil",
-    lower_bound_on_time_scale="30 minutes",
-    upper_bound_on_time_scale="3 months",
+    model_update_bounds=("30 minutes", "3 months"),
     required_init_vars=(
         ("soil_c_pool_maom", ("spatial",)),
         ("soil_c_pool_lmwc", ("spatial",)),

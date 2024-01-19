@@ -29,8 +29,7 @@ from virtual_rainforest.models.plants.functional_types import Flora
 class PlantsModel(
     BaseModel,
     model_name="plants",
-    lower_bound_on_time_scale="1 day",
-    upper_bound_on_time_scale="1 year",
+    model_update_bounds=("1 day", "1 year"),
     required_init_vars=(
         ("plant_cohorts_cell_id", tuple()),
         ("plant_cohorts_pft", tuple()),

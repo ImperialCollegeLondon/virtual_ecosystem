@@ -39,8 +39,7 @@ from virtual_rainforest.models.hydrology.constants import HydroConsts
 class HydrologyModel(
     BaseModel,
     model_name="hydrology",
-    lower_bound_on_time_scale="1 day",
-    upper_bound_on_time_scale="1 month",
+    model_update_bounds=("1 day", "1 month"),
     required_init_vars=(
         ("precipitation", ("spatial",)),
         ("leaf_area_index", ("spatial",)),

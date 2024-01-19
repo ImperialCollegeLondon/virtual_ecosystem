@@ -186,15 +186,15 @@ this model. Entries should simply be variable names. The information contained h
 used to determine which variables to include in the continuous output. So, it is
 important to ensure that this information is up to date.
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
-attribute: This is the shortest time scale for which the model is a realistic
-simulation. This attribute is a string, which should include units that can be parsed
-using `pint`.
+The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`
+attribute :
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
-attribute: This is the longest time scale for which the model is a realistic simulation.
-Again this attribute is a string, which should include units that can be parsed using
-`pint`.
+This class attribute defines two time intervals that define a lower and upper bound
+on the update frequency that can reasonably be used with a model. Models updated
+more often than the lower bound may fail to capture transient dynamics and models
+updated more slowly than the upper bound may fail to capture important temporal
+patterns. Each attribute is a string that can be parsed by {class}`pint.Quantity`
+into a time period
 
 These values are set as class attributes by providing them as arguments to the class
 signature. You will end up with something like the following:
@@ -203,8 +203,7 @@ signature. You will end up with something like the following:
 class FreshWaterModel(
     BaseModel, 
     model_name = "freshwater",
-    lower_bound_on_time_scale = "1 day",
-    upper_bound_on_time_scale = "1 month",
+    model_update_bounds = ("1 day", "1 month"),
     required_init_vars = (('temperature', ('spatial', )), ),
     vars_updated = ("average_P_concentration",),
 ):

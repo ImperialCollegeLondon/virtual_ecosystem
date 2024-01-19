@@ -56,8 +56,7 @@ from virtual_rainforest.models.litter.litter_pools import (
 class LitterModel(
     BaseModel,
     model_name="litter",
-    lower_bound_on_time_scale="30 minutes",
-    upper_bound_on_time_scale="3 months",
+    model_update_bounds=("30 minutes", "3 months"),
     required_init_vars=(
         ("litter_pool_above_metabolic", ("spatial",)),
         ("litter_pool_above_structural", ("spatial",)),

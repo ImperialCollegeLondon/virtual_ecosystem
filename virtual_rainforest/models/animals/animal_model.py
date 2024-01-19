@@ -38,8 +38,7 @@ from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 class AnimalModel(
     BaseModel,
     model_name="animals",
-    lower_bound_on_time_scale="1 day",
-    upper_bound_on_time_scale="1 month",
+    model_update_bounds=("1 day", "1 month"),
     required_init_vars=(),
     vars_updated=(
         "decomposed_excrement",

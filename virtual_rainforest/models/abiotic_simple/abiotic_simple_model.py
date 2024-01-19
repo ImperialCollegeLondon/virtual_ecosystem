@@ -36,8 +36,7 @@ from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleCons
 class AbioticSimpleModel(
     BaseModel,
     model_name="abiotic_simple",
-    lower_bound_on_time_scale="1 day",
-    upper_bound_on_time_scale="1 month",
+    model_update_bounds=("1 day", "1 month"),
     required_init_vars=(  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
