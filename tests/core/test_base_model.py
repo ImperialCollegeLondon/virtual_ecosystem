@@ -255,11 +255,7 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
     ],
 )
 def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
-    """Test that  __init_subclass__ traps different bad values for required_init_vars.
-
-    This test uses exec() to concisely pass in a bunch of different model definitions.
-    Although exec() can be harmful, should be ok here.
-    """
+    """Test that  __init_subclass__ traps bad values for required_init_vars."""
 
     # BaseModel is required here in the code being exec'd from the params.
     from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
