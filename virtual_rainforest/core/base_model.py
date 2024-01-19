@@ -26,24 +26,27 @@ that must be defined in subclasses:
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute and
 * The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
   attribute.
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.lower_bound_on_time_scale`
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`
   attribute
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.upper_bound_on_time_scale`
+* The :attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`
   attribute
 
-The usage of these four attributes is described in their docstrings and three private
-methods are provided to validate that the properties are set and valid in subclasses
-(:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
+
+The usage of these four attributes is described in their docstrings and each is
+validated when a new subclass is create using the following private
+methods of the class:
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units`).
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_update_bounds` and
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_vars_updated`.
 
 Model checking
 --------------
 
 The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
 the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
-method. This method is called automatically whenever a subclass of the ABC is imported:
-it validates the class attributes for the new model class.
+method. This method is called automatically whenever a subclass of the ABC is imported
+and validates the class attributes for the new model class.
 
 The ``BaseModel.__init__`` method
 ----------------------------------
@@ -113,65 +116,44 @@ class BaseModel(ABC):
         update_interval: Time to wait between updates of the model state.
     """
 
-    @property
-    @abstractmethod
-    def model_name(cls) -> str:
-        """The model name.
+    model_name: str
+    """The model name.
 
-        This class property sets the name used to refer to identify the model class in
-        the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`, within the
-        configuration settings and in logging messages.
-        """
+    This class attribute sets the name used to refer to identify the model class in
+    the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`, within the
+    configuration settings and in logging messages.
+    """
 
-    @property
-    @abstractmethod
-    def lower_bound_on_time_scale(cls) -> str:
-        """The shortest time scale for which the model is reasonable to use.
+    model_update_bounds: tuple[pint.Quantity, pint.Quantity]
+    """Bounds on model update frequencies.
 
-        Whether or not a model is an acceptable representation of reality depends on the
-        time scale of interest. At large time scales some processes can be treated as
-        transient (and therefore ignored), but at shorter time scales these processes
-        can be vital to capture. We thus require each model to define a lower bound on
-        the time scale for which it is thought to be a reasonable approximation.
-        """
+    This class attribute defines two time intervals that define a lower and upper bound
+    on the update frequency that can reasonably be used with a model. Models updated
+    more often than the lower bound may fail to capture transient dynamics and models
+    updated more slowly than the upper bound may fail to capture important temporal
+    patterns.
+    """
 
-    @property
-    @abstractmethod
-    def upper_bound_on_time_scale(cls) -> str:
-        """The longest time scale for which the model is reasonable to use.
+    required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
+    """Required variables for model initialisation.
 
-        Whether or not a model is an acceptable representation of reality depends on the
-        time scale of interest. Processes that can be sensibly simulated in detail at
-        shorter time scales often need to approximated as time scales get longer (e.g.
-        impacts of diurnal or seasonal cycles). We thus require each model to define an
-        upper bound on the time scale for which it is thought to be a reasonable
-        approximation.
-        """
+    This class property defines a set of variable names that must be present in the
+    :class:`~virtual_rainforest.core.data.Data` instance used to initialise an
+    instance of this class. It is a tuple containing zero or more tuples, each
+    providing a variable name and then a tuple of zero or more core axes that the
+    variable must map onto.
 
-    @property
-    @abstractmethod
-    def required_init_vars(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
-        """Required variables for model initialisation.
+    For example: ``(('temperature', ('spatial', 'temporal')),)``
+    """
 
-        This class property defines a set of variable names that must be present in the
-        :class:`~virtual_rainforest.core.data.Data` instance used to initialise an
-        instance of this class. It is a tuple containing zero or more tuples, each
-        providing a variable name and then a tuple of zero or more core axes that the
-        variable must map onto.
+    vars_updated: tuple[str, ...]
+    """Variables that are updated by the model.
 
-        For example: ``(('temperature', ('spatial', 'temporal')),)``
-        """
-
-    @property
-    @abstractmethod
-    def vars_updated(cls) -> tuple[str, ...]:
-        """Variables that are updated by the model.
-
-        At the moment, this tuple is used to decide which variables to output from the
-        :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
-        by a model used in the specific simulation. In future, this could also be used
-        to prevent multiple models from updating the same variable and similar problems.
-        """
+    At the moment, this tuple is used to decide which variables to output from the
+    :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
+    by a model used in the specific simulation. In future, this could also be used
+    to prevent multiple models from updating the same variable and similar problems.
+    """
 
     def __init__(
         self,
@@ -230,56 +212,59 @@ class BaseModel(ABC):
         """Factory function to unpack config and initialise a model instance."""
 
     @classmethod
-    def _check_model_name(cls) -> None:
-        """Check the model_name property is set and valid.
+    def _check_model_name(cls, model_name: str) -> str:
+        """Check the model_name attribute is valid.
+
+        Args:
+            model_name: The
+                :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name`
+                attribute to be used for a subclass.
 
         Raises:
-            NotImplementedError: model_name has not been set in a subclass
             ValueError: the model_name is not a string.
+
+        Returns:
+            The provided ``model_name`` if valid
         """
 
-        # Check that model_name exists and is a string - if it is not implemented in the
-        # subclass then the object will be of type property
-        if isinstance(cls.model_name, property):
-            excep = NotImplementedError(
-                f"Property model_name is not implemented in {cls.__name__}"
+        if not isinstance(model_name, str):
+            excep = TypeError(
+                f"Class attribute model_name in {cls.__name__} is not a string"
             )
             LOGGER.error(excep)
             raise excep
 
-        if not isinstance(cls.model_name, str):
-            excep = TypeError(f"Property model_name in {cls.__name__} is not a string")
-            LOGGER.error(excep)
-            raise excep
+        return model_name
 
     @classmethod
-    def _check_required_init_vars(cls) -> None:
-        """Check the required_init_vars property is set and valid.
+    def _check_required_init_vars(
+        cls, required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
+    ) -> tuple[tuple[str, tuple[str, ...]], ...]:
+        """Check the required_init_vars property is valid.
+
+        Args:
+            required_init_vars: The
+                :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
+                attribute to be used for a subclass.
 
         Raises:
-            NotImplementedError: required_init_vars has not been set in a subclass.
             TypeError: the value of required_init_vars has the wrong type structure.
             ValueError: required_init_vars uses unknown core axis names.
+
+        Returns:
+            The provided ``required_init_vars`` if valid
         """
 
         to_raise: Exception
-
-        # Check that required_init_vars is set
-        if isinstance(cls.required_init_vars, property):
-            to_raise = NotImplementedError(
-                f"Property required_init_vars is not implemented in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
 
         # Check the structure
         required_init_vars_ok = True
         unknown_axes: list[str] = []
 
-        if not isinstance(cls.required_init_vars, tuple):
+        if not isinstance(required_init_vars, tuple):
             required_init_vars_ok = False
         else:
-            for entry in cls.required_init_vars:
+            for entry in required_init_vars:
                 # entry is a 2 tuple
                 if not (isinstance(entry, tuple) and len(entry) == 2):
                     required_init_vars_ok = False
@@ -299,78 +284,88 @@ class BaseModel(ABC):
 
         if not required_init_vars_ok:
             to_raise = TypeError(
-                f"Property required_init_vars has the wrong structure in {cls.__name__}"
+                f"Class attribute required_init_vars has the wrong "
+                f"structure in {cls.__name__}"
             )
             LOGGER.error(to_raise)
             raise to_raise
 
         if unknown_axes:
             to_raise = ValueError(
-                f"Property required_init_vars uses unknown core "
+                f"Class attribute required_init_vars uses unknown core "
                 f"axes in {cls.__name__}: {','.join(unknown_axes)}"
             )
             LOGGER.error(to_raise)
             raise to_raise
 
+        return required_init_vars
+
     @classmethod
-    def _check_time_bounds_units(
-        cls, which: str = "lower_bound_on_time_scale"
-    ) -> pint.Quantity:
-        """Check that the time bounds defined by each model have time units.
+    def _check_model_update_bounds(
+        cls, model_update_bounds: tuple[str, str]
+    ) -> tuple[pint.util.Quantity, pint.util.Quantity]:
+        """Check that the model_update_bounds attribute is valid.
+
+        This is used to validate the class attribute
+        :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`, which
+        describes the lower and upper bounds on model update frequency. The lower bound
+        must be less than the upper bound.
 
         Args:
-            which: Which bound should be checked (i.e. lower or upper)
+            model_update_bounds: A tuple of two strings representing time periods that
+                can be parsed using :class:`pint.Quantity`.
+
 
         Raises:
-            NotImplementedError: If either of the bounds is not defined
-            ValueError: If model time bounds either don't have units or have non-time
-                units
+            ValueError: If the provided model_update_bounds cannot be parsed as
+                :class:`pint.Quantity` with time units or if the lower bound is not less
+                than the upper bound.
 
         Returns:
-            The requested time scale bound
+            The validated model_update_bounds, converted to a tuple of
+            :class:`pint.Quantity` values.
         """
 
-        # First check that upper and lower bounds are set
-        if isinstance(getattr(cls, which), property):
-            to_raise: Exception = NotImplementedError(
-                f"Property {which} is not implemented in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Assume time bound has valid units until we learn otherwise
-        valid_bound = True
-
-        # Making bound naming nicer so that it can be printed
-        if which == "lower_bound_on_time_scale":
-            bound_name = "Lower bound"
-        elif which == "upper_bound_on_time_scale":
-            bound_name = "Upper bound"
-
-        # Check unit for lower bound first
+        # Check the conversion
         try:
-            bound = pint.Quantity(getattr(cls, which))
-            if not bound.check("[time]"):
-                LOGGER.error(f"{bound_name} for {cls.__name__} given a non-time unit.")
-                valid_bound = False
+            model_update_bounds_pint: tuple[pint.util.Quantity, pint.util.Quantity] = (
+                pint.Quantity(model_update_bounds[0]),
+                pint.Quantity(model_update_bounds[1]),
+            )
         except pint.errors.UndefinedUnitError:
-            LOGGER.error(f"{bound_name} for {cls.__name__} not given a valid unit.")
-            valid_bound = False
-
-        if not valid_bound:
             to_raise = ValueError(
-                "Invalid units for model time bound, see above errors."
+                f"Class attribute model_update_bounds for {cls.__name__} "
+                "contains undefined units."
             )
             LOGGER.error(to_raise)
             raise to_raise
-        else:
-            return bound
+
+        # Check time units
+        if not all(val.check("[time]") for val in model_update_bounds_pint):
+            to_raise = ValueError(
+                f"Class attribute model_update_bounds for {cls.__name__} "
+                "contains non-time units."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check lower less than upper bound
+        if model_update_bounds_pint[0] >= model_update_bounds_pint[1]:
+            to_raise = ValueError(
+                f"Lower time bound for {cls.__name__} is not less than the upper "
+                f"bound."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        return model_update_bounds_pint
 
     def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
         """Function to check that the update speed of a specific model is within bounds.
 
         Args:
-            update_interval: Simulation update interval
+            update_interval: A :class:`pint.Quantity` giving the update interval for the
+                model.
 
         Returns:
             The update interval for the overall model
@@ -381,15 +376,16 @@ class BaseModel(ABC):
         """
 
         # Check if either bound is violated
-        if update_interval < pint.Quantity(self.lower_bound_on_time_scale):
+        if update_interval < pint.Quantity(self.model_update_bounds[0]):
             to_raise = ConfigurationError(
-                "The update interval is shorter than the model's lower bound"
+                "The update interval is faster than the model update bounds."
             )
             LOGGER.error(to_raise)
             raise to_raise
-        elif update_interval > pint.Quantity(self.upper_bound_on_time_scale):
+
+        if update_interval > pint.Quantity(self.model_update_bounds[1]):
             to_raise = ConfigurationError(
-                "The update interval is longer than the model's upper bound"
+                "The update interval is slower than the model update bounds."
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -397,28 +393,52 @@ class BaseModel(ABC):
         return update_interval
 
     @classmethod
-    def _check_vars_updated(cls) -> None:
-        """Check that vars_updated has been set properly.
+    def _check_vars_updated(cls, vars_updated: tuple[str, ...]) -> tuple[str, ...]:
+        """Check that vars_updated is valid.
 
-        Raises:
-            NotImplementedError: vars_updated has not been set in a subclass
+        Returns:
+            The provided value if valid.
         """
-
-        # Check that vars_updated is set
-        if isinstance(cls.vars_updated, property):
-            to_raise = NotImplementedError(
-                f"Property vars_updated is not implemented in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # TODO - currently no validation.
+        return vars_updated
 
     @classmethod
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(
+        cls,
+        model_name: str,
+        model_update_bounds: tuple[str, str],
+        required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
+        vars_updated: tuple[str, ...],
+    ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
         This method runs when a new BaseModel subclass is imported. It adds the new
-        subclasses to the model registry and validates the values of the class
-        properties.
+        subclasses to the model registry and populates the values of the class
+        attributes.
+
+        Subclasses of the BaseModel need to provide the values for class attributes in
+        their signatures. Those values are defined by the arguments to this method,
+        which validates and sets the class attributes for the subclass. See
+        :class:`~virtual_rainforest.core.base_model.BaseModel` for details on the class
+        attributes. For example:
+
+        .. code-block:: python
+
+            class ExampleModel(
+                BaseModel,
+                model_name='example',
+                model_update_bounds= ("30 minutes", "3 months"),
+                required_init_vars=(("required_variable", ("spatial",)),),
+                vars_updated=("updated_variable"),
+            ):
+                ...
+
+        Args:
+            model_name: The model name to be used
+            model_update_bounds: Bounds on update intervals handled by the model
+            required_init_vars: A tuple of the variables required to create a model
+                instance.
+            vars_updated: A tuple of the variable names updated by the model.
 
         Raises:
             ValueError: If the model_name or required_init_vars properties are not
@@ -427,21 +447,19 @@ class BaseModel(ABC):
         """
 
         try:
-            cls._check_model_name()
-            cls._check_required_init_vars()
-            cls._check_vars_updated()
-            lower_bound = cls._check_time_bounds_units("lower_bound_on_time_scale")
-            upper_bound = cls._check_time_bounds_units("upper_bound_on_time_scale")
-            # Once bounds units are checked their relative values can be validated
-            if upper_bound <= lower_bound:
-                to_raise = ValueError(
-                    f"Lower time bound for {cls.__name__} is not less than the upper "
-                    f"bound."
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
+            cls.model_name = cls._check_model_name(model_name=model_name)
+            cls.required_init_vars = cls._check_required_init_vars(
+                required_init_vars=required_init_vars
+            )
+            cls.vars_updated = cls._check_vars_updated(vars_updated=vars_updated)
+            cls.model_update_bounds = cls._check_model_update_bounds(
+                model_update_bounds=model_update_bounds
+            )
+
         except (NotImplementedError, TypeError, ValueError) as excep:
-            LOGGER.critical(f"Errors in {cls.__name__} class properties: see log")
+            LOGGER.critical(
+                f"Errors in defining {cls.__name__} class attributes: see log"
+            )
             raise excep
 
     def __repr__(self) -> str:
