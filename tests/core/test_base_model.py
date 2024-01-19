@@ -48,7 +48,7 @@ def data_instance():
             {"model_name": 9},
             pytest.raises(TypeError),
             "BaseModel.__init_subclass__() missing 3 required positional arguments: "
-            "''model_update_bounds' 'required_init_vars', and 'vars_updated'",
+            "'model_update_bounds', 'required_init_vars', and 'vars_updated'",
             [],
             id="missing_3_args",
         ),
@@ -92,12 +92,13 @@ def data_instance():
                 "vars_updated": [],
             },
             pytest.raises(ValueError),
-            "Invalid definition of time bound for UnnamedModel: see log",
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains undefined units.",
             [
-                (ERROR, "Upper bound for UnnamedModel not given a valid unit."),
                 (
                     ERROR,
-                    "Invalid units for model time bound, see above errors.",
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains undefined units.",
                 ),
                 (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
@@ -149,12 +150,33 @@ def data_instance():
                 "vars_updated": [],
             },
             pytest.raises(ValueError),
-            "Invalid units for model time bound, see above errors.",
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains non-time units.",
             [
-                (ERROR, "Lower bound for UnnamedModel given a non-time unit."),
                 (
                     ERROR,
-                    "Invalid units for model time bound, see above errors.",
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains non-time units.",
+                ),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
+            ],
+            id="Distance unit for model_update_bounds",
+        ),
+        pytest.param(
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 spongebob", "1 day"),
+                "vars_updated": [],
+            },
+            pytest.raises(ValueError),
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains undefined units.",
+            [
+                (
+                    ERROR,
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains undefined units.",
                 ),
                 (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
@@ -165,8 +187,8 @@ def data_instance():
 def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
     """Test that  __init_subclass__ gives expected behaviours.
 
-    This test uses exec() to concisely pass in a bunch of different model definitions.
-    Although exec() can be harmful, should be ok here.
+    TODO - this could broken down into tests of the individual private checking methods,
+    but this tests the ensemble behaviour of the __init_subclass__ method.
     """
 
     from virtual_rainforest.core.base_model import BaseModel
@@ -232,7 +254,7 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
         ),
     ],
 )
-def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg):
+def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
     """Test that  __init_subclass__ traps different bad values for required_init_vars.
 
     This test uses exec() to concisely pass in a bunch of different model definitions.
@@ -437,12 +459,7 @@ def test_check_required_init_vars(
             },
             pytest.raises(ConfigurationError),
             None,
-            (
-                (
-                    ERROR,
-                    "The update interval is shorter than the model's lower bound",
-                ),
-            ),
+            ((ERROR, "The update interval is faster than the model update bounds."),),
         ),
         (
             {
@@ -455,12 +472,7 @@ def test_check_required_init_vars(
             },
             pytest.raises(ConfigurationError),
             None,
-            (
-                (
-                    ERROR,
-                    "The update interval is longer than the model's upper bound",
-                ),
-            ),
+            ((ERROR, "The update interval is slower than the model update bounds."),),
         ),
     ],
 )

@@ -350,9 +350,9 @@ class BaseModel(ABC):
             raise to_raise
 
         # Check lower less than upper bound
-        if model_update_bounds_pint[0] > model_update_bounds_pint[1]:
+        if model_update_bounds_pint[0] >= model_update_bounds_pint[1]:
             to_raise = ValueError(
-                f"Lower time bound for {cls.__name__} is greater than the upper "
+                f"Lower time bound for {cls.__name__} is not less than the upper "
                 f"bound."
             )
             LOGGER.error(to_raise)
@@ -378,15 +378,14 @@ class BaseModel(ABC):
         # Check if either bound is violated
         if update_interval < pint.Quantity(self.model_update_bounds[0]):
             to_raise = ConfigurationError(
-                "The update interval is less than the lower bound on update frequency."
+                "The update interval is faster than the model update bounds."
             )
             LOGGER.error(to_raise)
             raise to_raise
 
         if update_interval > pint.Quantity(self.model_update_bounds[1]):
             to_raise = ConfigurationError(
-                "The update interval is greater than the upper bound on update "
-                "frequency."
+                "The update interval is slower than the model update bounds."
             )
             LOGGER.error(to_raise)
             raise to_raise
