@@ -15,6 +15,8 @@ import pint
 from numpy import datetime64, timedelta64
 
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
+from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
@@ -23,6 +25,7 @@ from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_
 
 def initialise_models(
     config: Config,
+    core_constants: CoreConsts,
     data: Data,
     models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
     update_interval: pint.Quantity,
@@ -31,6 +34,7 @@ def initialise_models(
 
     Args:
         config: A validated Virtual Rainforest model configuration object.
+        core_constants: An constants instance for the core constants.
         data: A Data instance.
         modules: A dictionary of models to be configured.
         update_interval: The interval with which each model is updated
@@ -46,7 +50,12 @@ def initialise_models(
     models_cfd = {}
     for model_name, model_class in models.items():
         try:
-            this_model = model_class.from_config(data, config, update_interval)
+            this_model = model_class.from_config(
+                data=data,
+                config=config,
+                core_constants=core_constants,
+                update_interval=update_interval,
+            )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
@@ -253,6 +262,7 @@ def vr_run(
     grid = Grid.from_config(config)
     data = Data(grid)
     data.load_data_config(config)
+    core_constants = load_constants(config, "core", "CoreConsts")
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
@@ -270,6 +280,7 @@ def vr_run(
     )
     models_init = initialise_models(
         config=config,
+        core_constants=core_constants,
         data=data,
         models=init_sequence,
         update_interval=update_interval_as_quantity,

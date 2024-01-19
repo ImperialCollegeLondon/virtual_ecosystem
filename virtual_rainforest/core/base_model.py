@@ -68,9 +68,10 @@ The ABC also defines the abstract class method
 :func:`~virtual_rainforest.core.base_model.BaseModel.from_config`. This method must be
 defined by subclasses and must be a factory method that takes a
 :class:`~virtual_rainforest.core.data.Data` instance and  a model specific configuration
-dictionary and returns an instance of the subclass. For any given model, the method
-should provide any code to validate the configuration and then use the configuration to
-initialise and return a new instance of the class.
+dictionary and an instance of the :class:`~virtual_rainforest.core.constants.CoreConsts`
+returns an instance of the subclass. For any given model, the method should provide any
+code to validate the configuration and then use the configuration to initialise and
+return a new instance of the class.
 
 Model registration
 ------------------
@@ -93,6 +94,7 @@ import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -112,7 +114,7 @@ class BaseModel(ABC):
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance containing
             variables to be used in the model.
-        start_time: Point in time that the model simulation should be started.
+        core_constants: The core constants instance to be used for the model
         update_interval: Time to wait between updates of the model state.
     """
 
@@ -158,6 +160,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: pint.Quantity,
         **kwargs: Any,
     ):
@@ -176,6 +179,8 @@ class BaseModel(ABC):
         """
         self.data = data
         """A Data instance providing access to the shared simulation data."""
+        self.core_constants = core_constants
+        """The core constants instance to be used for the model."""
         self.update_interval = self._check_update_speed(update_interval)
         """The time interval between model updates."""
         self._repr = ["update_interval"]
@@ -207,7 +212,11 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: pint.Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: pint.Quantity,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
