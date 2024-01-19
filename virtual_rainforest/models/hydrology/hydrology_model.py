@@ -27,6 +27,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
@@ -67,6 +68,7 @@ class HydrologyModel(
 
     Args:
         data: The data object to be used in the model.
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: A list giving the number and depth of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
@@ -90,6 +92,7 @@ class HydrologyModel(
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: Quantity,
         soil_layers: list[float],
         canopy_layers: int,
@@ -98,6 +101,13 @@ class HydrologyModel(
         constants: HydroConsts,
         **kwargs: Any,
     ):
+        super().__init__(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            **kwargs,
+        )
+
         # Sanity checks for initial soil moisture
         if type(initial_soil_moisture) is not float:
             to_raise = InitialisationError("The initial soil moisture must be a float!")
@@ -117,8 +127,6 @@ class HydrologyModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        super().__init__(data, update_interval, **kwargs)
 
         # Create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -148,7 +156,11 @@ class HydrologyModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: Quantity,
     ) -> HydrologyModel:
         """Factory function to initialise the hydrology model from configuration.
 
@@ -159,6 +171,7 @@ class HydrologyModel(
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: A validated Virtual Rainforest model configuration object.
+            core_constants: The core constants instance to be used for the model.
             update_interval: Frequency with which all models are updated.
         """
 
@@ -178,13 +191,14 @@ class HydrologyModel(
             "extracted."
         )
         return cls(
-            data,
-            update_interval,
-            soil_layers,
-            canopy_layers,
-            initial_soil_moisture,
-            initial_groundwater_saturation,
-            constants,
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            soil_layers=soil_layers,
+            canopy_layers=canopy_layers,
+            initial_soil_moisture=initial_soil_moisture,
+            initial_groundwater_saturation=initial_groundwater_saturation,
+            constants=constants,
         )
 
     def setup(self) -> None:

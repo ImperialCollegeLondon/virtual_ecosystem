@@ -73,23 +73,29 @@ class SoilModel(
 
     Args:
         data: The data object to be used in the model.
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: A list giving the number and depth of soil layers to be modelled.
         canopy_layers: The number of canopy layers to be modelled.
-        constants: Set of constants for the soil model.
+        model_constants: Set of constants for the soil model.
     """
 
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: Quantity,
         soil_layers: list[float],
         canopy_layers: int,
         model_constants: SoilConsts,
-        core_constants: CoreConsts,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            **kwargs,
+        )
 
         # Check that soil pool data is appropriately bounded
         if (
@@ -115,12 +121,14 @@ class SoilModel(
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants = model_constants
         """Set of constants for the soil model."""
-        self.core_constants = core_constants
-        """Set of constants shared between models."""
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: Quantity,
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
@@ -130,6 +138,7 @@ class SoilModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_constants: The core constants instance to be used for the model.
             config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated
         """
@@ -140,7 +149,6 @@ class SoilModel(
 
         # Load in the relevant constants
         soil_constants = load_constants(config, "soil", "SoilConsts")
-        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
@@ -148,11 +156,11 @@ class SoilModel(
         )
         return cls(
             data=data,
+            core_constants=core_constants,
             update_interval=update_interval,
+            model_constants=soil_constants,
             soil_layers=soil_layers,
             canopy_layers=canopy_layers,
-            model_constants=soil_constants,
-            core_constants=core_constants,
         )
 
     def setup(self) -> None:

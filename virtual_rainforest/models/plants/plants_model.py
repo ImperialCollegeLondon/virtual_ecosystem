@@ -13,6 +13,7 @@ from pint import Quantity
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -85,9 +86,10 @@ class PlantsModel(
 
     Args:
         data: The data object to be used in the model.
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
         plant_functional_types: A set of plant functional types to be used in the model.
-        constants: Set of constants for the plants model.
+        model_constants: Set of constants for the plants model.
     """
 
     # TODO - think about a shared "plant cohort" core axis that defines the cohort
@@ -97,18 +99,24 @@ class PlantsModel(
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: Quantity,
         flora: Flora,
         layer_structure: LayerStructure,
-        constants: PlantsConsts = PlantsConsts(),
+        model_constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            **kwargs,
+        )
 
         # Save the class attributes
         self.flora = flora
         """A flora containing the plant functional types used in the plants model."""
-        self.constants = constants
+        self.model_constants = model_constants
         """Set of constants for the plants model"""
         self.communities = PlantCommunities(data, self.flora)
         """Initialise the plant communities from the data object."""
@@ -136,7 +144,11 @@ class PlantsModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: Quantity,
     ) -> PlantsModel:
         """Factory function to initialise a plants model from configuration.
 
@@ -146,11 +158,12 @@ class PlantsModel(
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: A validated Virtual Rainforest model configuration object.
+            core_constants: The core constants instance to be used for the model.
             update_interval: Frequency with which all models are updated
         """
 
         # Load in the relevant constants
-        constants = load_constants(config, "plants", "PlantsConsts")
+        model_constants = load_constants(config, "plants", "PlantsConsts")
 
         # Generate the flora
         flora = Flora.from_config(config=config)
@@ -162,9 +175,10 @@ class PlantsModel(
         try:
             inst = cls(
                 data=data,
+                core_constants=core_constants,
                 update_interval=update_interval,
                 flora=flora,
-                constants=constants,
+                model_constants=model_constants,
                 layer_structure=layer_structure,
             )
         except Exception as excep:

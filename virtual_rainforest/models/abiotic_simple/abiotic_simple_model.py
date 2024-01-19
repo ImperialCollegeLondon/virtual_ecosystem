@@ -25,6 +25,7 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
@@ -59,6 +60,7 @@ class AbioticSimpleModel(
 
     Args:
         data: The data object to be used in the model.
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
         soil_layers: A list setting the number and depths of soil layers to be modelled.
         canopy_layers: The initial number of canopy layers to be modelled.
@@ -68,13 +70,19 @@ class AbioticSimpleModel(
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: Quantity,
         soil_layers: list[float],
         canopy_layers: int,
         constants: AbioticSimpleConsts,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            **kwargs,
+        )
 
         # create a list of layer roles
         layer_roles = set_layer_roles(canopy_layers, soil_layers)
@@ -90,7 +98,11 @@ class AbioticSimpleModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: Quantity,
     ) -> AbioticSimpleModel:
         """Factory function to initialise the abiotic simple model from configuration.
 
@@ -100,6 +112,7 @@ class AbioticSimpleModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_constants: The core constants instance to be used for the model.
             config: A validated Virtual Rainforest model configuration object.
             update_interval: Frequency with which all models are updated.
         """
@@ -115,7 +128,14 @@ class AbioticSimpleModel(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, constants)
+        return cls(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            soil_layers=soil_layers,
+            canopy_layers=canopy_layers,
+            constants=constants,
+        )
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.

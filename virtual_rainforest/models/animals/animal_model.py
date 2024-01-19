@@ -28,6 +28,8 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
+from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
@@ -52,20 +54,28 @@ class AnimalModel(
 
     Args:
         data: The data object to be used in the model.
+        core_constants: The core constants instance to be used for the model.
         update_interval: Time to wait between updates of the model state.
         functional_groups: The list of animal functional groups present in the
             simulation
+        model_constants: A set of constants for the animal model.
     """
 
     def __init__(
         self,
         data: Data,
+        core_constants: CoreConsts,
         update_interval: Quantity,
         functional_groups: list[FunctionalGroup],
-        constants: AnimalConsts = AnimalConsts(),
+        model_constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            **kwargs,
+        )
 
         days_as_float = self.update_interval.to("days").magnitude
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
@@ -76,7 +86,7 @@ class AnimalModel(
 
         self.communities: dict[int, AnimalCommunity] = {}
         """Set empty dict for populating with communities."""
-        self.constants = constants
+        self.constants = model_constants
         """Animal constants."""
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -134,7 +144,11 @@ class AnimalModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls,
+        data: Data,
+        config: Config,
+        core_constants: CoreConsts,
+        update_interval: Quantity,
     ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
@@ -145,14 +159,17 @@ class AnimalModel(
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
             config: A validated Virtual Rainforest model configuration object.
+            core_constants: The core constants instance to be used for the model.
             update_interval: Frequency with which all models are updated
         """
 
-        # Find timing details
+        # Load in the relevant constants
+        model_constants = load_constants(config, "animals", "AnimalConsts")
 
+        # Load functional groups
         functional_groups_raw = config["animals"]["functional_groups"]
 
-        animal_functional_groups = [
+        functional_groups = [
             FunctionalGroup(**k, constants=AnimalConsts())
             for k in functional_groups_raw
         ]
@@ -161,7 +178,14 @@ class AnimalModel(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, animal_functional_groups)
+
+        return cls(
+            data=data,
+            core_constants=core_constants,
+            update_interval=update_interval,
+            functional_groups=functional_groups,
+            model_constants=model_constants,
+        )
 
     def setup(self) -> None:
         """Function to set up the animal model."""
