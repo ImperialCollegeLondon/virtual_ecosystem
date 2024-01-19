@@ -37,7 +37,7 @@ validated when a new subclass is create using the following private
 methods of the class:
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_time_bounds_units` and
+:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_update_bounds` and
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_vars_updated`.
 
 Model checking
@@ -423,6 +423,7 @@ class BaseModel(ABC):
         attributes. For example:
 
         .. code-block:: python
+
             class ExampleModel(
                 BaseModel,
                 model_name='example',
