@@ -53,7 +53,32 @@ from virtual_rainforest.models.litter.litter_pools import (
 )
 
 
-class LitterModel(BaseModel):
+class LitterModel(
+    BaseModel,
+    model_name="litter",
+    model_update_bounds=("30 minutes", "3 months"),
+    required_init_vars=(
+        ("litter_pool_above_metabolic", ("spatial",)),
+        ("litter_pool_above_structural", ("spatial",)),
+        ("litter_pool_woody", ("spatial",)),
+        ("litter_pool_below_metabolic", ("spatial",)),
+        ("litter_pool_below_structural", ("spatial",)),
+        ("lignin_above_structural", ("spatial",)),
+        ("lignin_woody", ("spatial",)),
+        ("lignin_below_structural", ("spatial",)),
+    ),
+    vars_updated=(
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
+        "lignin_above_structural",
+        "lignin_woody",
+        "lignin_below_structural",
+        "litter_C_mineralisation_rate",
+    ),
+):
     """A class defining the litter model.
 
     This model can be configured based on the data object and a config dictionary. At
@@ -67,39 +92,6 @@ class LitterModel(BaseModel):
         canopy_layers: The number of canopy layers to be modelled.
         constants: Set of constants for the litter model.
     """
-
-    model_name = "litter"
-    """An internal name used to register the model and schema"""
-    lower_bound_on_time_scale = "30 minutes"
-    """Shortest time scale that the litter model can sensibly capture."""
-    upper_bound_on_time_scale = "3 months"
-    """Longest time scale that the litter model can sensibly capture."""
-    required_init_vars = (
-        ("litter_pool_above_metabolic", ("spatial",)),
-        ("litter_pool_above_structural", ("spatial",)),
-        ("litter_pool_woody", ("spatial",)),
-        ("litter_pool_below_metabolic", ("spatial",)),
-        ("litter_pool_below_structural", ("spatial",)),
-        ("lignin_above_structural", ("spatial",)),
-        ("lignin_woody", ("spatial",)),
-        ("lignin_below_structural", ("spatial",)),
-    )
-    """Required initialisation variables for the litter model.
-
-    This is a set of variables that must be present in the data object used to create a
-    LitterModel , along with any core axes that those variables must map on to."""
-    vars_updated = (
-        "litter_pool_above_metabolic",
-        "litter_pool_above_structural",
-        "litter_pool_woody",
-        "litter_pool_below_metabolic",
-        "litter_pool_below_structural",
-        "lignin_above_structural",
-        "lignin_woody",
-        "lignin_below_structural",
-        "litter_C_mineralisation_rate",
-    )
-    """Variables updated by the litter model."""
 
     def __init__(
         self,
