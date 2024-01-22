@@ -380,3 +380,41 @@ def calculate_soil_absorption(
     """
 
     return shortwave_radiation_surface * (1 - surface_albedo)
+
+
+def calculate_soil_longwave_emission(
+    soil_absorbed_radiation: NDArray[np.float32],
+    soil_temperature: DataArray,
+    soil_emissivity: float | NDArray[np.float32],
+    stefan_boltzmann: float,
+    radiation_to_soil_temperature: float,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate change in topsoil temperature and longwave emission.
+
+    Args:
+        soil_absorbed_radiation: shortwave radiation absorbed by top toil layer, [W m-2]
+        topsoil_temperature: temperature of top soil layer, [K]
+        soil_emissivity: soil emissivity, dimensionless
+        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
+        radiation_to_soil_temperature: TODO how is radiation converted to temperature?
+
+    Returns:
+        dict with updated soil temperature, [C], and longwave emission, [W m-2]
+    """
+    output = {}
+    top_soil_layer_index = next(
+        i for i, v in enumerate(soil_temperature.layer_roles) if v == "soil"
+    )
+
+    new_topsoil_temperature = soil_temperature[top_soil_layer_index].to_numpy() + (
+        soil_absorbed_radiation * radiation_to_soil_temperature
+    )
+    output["longwave_emission_soil"] = (
+        soil_emissivity * stefan_boltzmann * new_topsoil_temperature**4
+    )
+
+    # replace top soil temperature
+    soil_temperature[top_soil_layer_index] = new_topsoil_temperature
+    output["soil_temperature"] = soil_temperature - 273.15
+
+    return output

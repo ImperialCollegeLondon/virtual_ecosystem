@@ -230,3 +230,12 @@ class AbioticConsts(ConstantsDataclass):
 
     The value is takes from a study that compares changes in surface albedo before and
     after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
+
+    radiation_to_soil_temperature: float = 0.01
+    """Factor to convert absorbed shortwave radiation to change soil temperature change.
+
+    TODO need to find value for this.
+    """
+
+    soil_emissivity: float = 0.8
+    """Soil emissivity, dimensionless."""

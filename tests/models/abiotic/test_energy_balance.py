@@ -3,6 +3,8 @@
 import numpy as np
 from xarray import DataArray
 
+from virtual_rainforest.core.constants import CoreConsts
+
 
 def test_initialise_absorbed_radiation(dummy_climate_data):
     """Test initial absorbed radiation has correct dimensions."""
@@ -218,3 +220,37 @@ def test_calculate_soil_absorption():
     )
 
     np.testing.assert_allclose(result, np.array([80, 8, 0]))
+
+
+def test_calculate_soil_longwave_emission(dummy_climate_data):
+    """Test that soil temperature and longwave radiation are calculated correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_soil_longwave_emission,
+    )
+
+    result = calculate_soil_longwave_emission(
+        soil_absorbed_radiation=np.array([80, 8, 0]),
+        soil_temperature=dummy_climate_data["soil_temperature"]
+        + CoreConsts.zero_Celsius,
+        soil_emissivity=0.8,
+        stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
+        radiation_to_soil_temperature=0.01,
+    )
+
+    exp_soil_temp = np.concatenate(
+        [[[np.nan, np.nan, np.nan]] * 13, [[20.8, 20.08, 20.0], [20.0, 20.0, 20.0]]],
+        axis=0,
+    )
+    np.testing.assert_allclose(
+        result["longwave_emission_soil"],
+        np.array([338.6847, 335.3785, 335.0127]),
+        rtol=1e-04,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        result["soil_temperature"][13:15],
+        exp_soil_temp[13:15],
+        rtol=1e-04,
+        atol=1e-4,
+    )
