@@ -38,7 +38,33 @@ from virtual_rainforest.models.hydrology import above_ground, below_ground
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
-class HydrologyModel(BaseModel):
+class HydrologyModel(
+    BaseModel,
+    model_name="hydrology",
+    model_update_bounds=("1 day", "1 month"),
+    required_init_vars=(
+        ("precipitation", ("spatial",)),
+        ("leaf_area_index", ("spatial",)),
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
+        ("atmospheric_pressure_ref", ("spatial",)),
+        ("elevation", ("spatial",)),
+    ),
+    vars_updated=(
+        "precipitation_surface",  # precipitation-interception loss, input to `plants`
+        "soil_moisture",
+        "surface_runoff",  # equivalent to SPLASH runoff
+        "vertical_flow",
+        "soil_evaporation",
+        "surface_runoff_accumulated",
+        "matric_potential",
+        "groundwater_storage",
+        "river_discharge_rate",
+        "total_river_discharge",
+        "subsurface_flow",
+        "baseflow",
+    ),
+):
     """A class describing the hydrology model.
 
     Args:
@@ -62,38 +88,6 @@ class HydrologyModel(BaseModel):
     * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
     """
-
-    model_name = "hydrology"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 day"
-    """Shortest time scale that hydrology model can sensibly capture."""
-    upper_bound_on_time_scale = "1 month"
-    """Longest time scale that hydrology model can sensibly capture."""
-    required_init_vars = (
-        ("precipitation", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
-        ("elevation", ("spatial",)),
-    )
-    """The required variables and axes for the hydrology model"""
-
-    vars_updated = (
-        "precipitation_surface",  # precipitation-interception loss, input to `plants`
-        "soil_moisture",
-        "surface_runoff",  # equivalent to SPLASH runoff
-        "vertical_flow",
-        "soil_evaporation",
-        "surface_runoff_accumulated",
-        "matric_potential",
-        "groundwater_storage",
-        "river_discharge_rate",
-        "total_river_discharge",
-        "subsurface_flow",
-        "baseflow",
-    )
-    """Variables updated by the hydrology model."""
 
     def __init__(
         self,

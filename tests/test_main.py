@@ -58,7 +58,7 @@ from .conftest import log_check
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (ERROR, "The update interval is shorter than the model's lower bound"),
+                (ERROR, "The update interval is faster than the model update bounds."),
                 (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too short",
@@ -77,7 +77,7 @@ from .conftest import log_check
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (ERROR, "The update interval is longer than the model's upper bound"),
+                (ERROR, "The update interval is slower than the model update bounds."),
                 (CRITICAL, "Configuration failed for models: soil"),
             ),
             id="update interval too long",
