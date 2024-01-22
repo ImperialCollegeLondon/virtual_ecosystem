@@ -33,144 +33,84 @@ def data_instance():
 
 
 @pytest.mark.parametrize(
-    argnames="code, reg_name, cls_name, exp_raise, exp_msg, exp_log",
+    argnames="init_args,  exp_raise, exp_msg, exp_log",
     argvalues=[
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                pass
-            """,
-            None,
-            "UnnamedModel",
-            pytest.raises(NotImplementedError),
-            "Property model_name is not implemented in UnnamedModel",
-            [
-                (ERROR, "Property model_name is not implemented in UnnamedModel"),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
-            ],
-            id="undefined model_name",
+            {},
+            pytest.raises(TypeError),
+            "BaseModel.__init_subclass__() missing 4 required positional arguments: "
+            "'model_name', 'model_update_bounds', 'required_init_vars', "
+            "and 'vars_updated'",
+            [],
+            id="missing_all_args",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 9
-            """,
-            None,
-            "UnnamedModel",
+            {"model_name": 9},
             pytest.raises(TypeError),
-            "Property model_name in UnnamedModel is not a string",
+            "BaseModel.__init_subclass__() missing 3 required positional arguments: "
+            "'model_update_bounds', 'required_init_vars', and 'vars_updated'",
+            [],
+            id="missing_3_args",
+        ),
+        pytest.param(
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (
+                    (
+                        "temperature",
+                        ("spatial",),
+                    ),
+                ),
+                "model_update_bounds": ("1 day", "1 month"),
+                "vars_updated": [],
+            },
+            does_not_raise(),
+            None,
+            [],
+            id="all_vars",
+        ),
+        pytest.param(
+            {
+                "model_name": 9,
+                "required_init_vars": (),
+                "model_update_bounds": ("1 day", "1 month"),
+                "vars_updated": [],
+            },
+            pytest.raises(TypeError),
+            "Class attribute model_name in UnnamedModel is not a string",
             [
-                (ERROR, "Property model_name in UnnamedModel is not a string"),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+                (ERROR, "Class attribute model_name in UnnamedModel is not a string"),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
             id="nonstring model_name",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-            """,
-            None,
-            "UnnamedModel",
-            pytest.raises(NotImplementedError),
-            "Property required_init_vars is not implemented in UnnamedModel",
-            [
-                (
-                    ERROR,
-                    "Property required_init_vars is not implemented in UnnamedModel",
-                ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
-            ],
-            id="Undefined required_init_vars",
-        ),
-        pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'shouldnt_pass'
-                required_init_vars = tuple()
-            """,
-            None,
-            "UnnamedModel",
-            pytest.raises(NotImplementedError),
-            "Property vars_updated is not implemented in UnnamedModel",
-            [
-                (
-                    ERROR,
-                    "Property vars_updated is not implemented in UnnamedModel",
-                ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
-            ],
-            id="Undefined vars_updated",
-        ),
-        pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
-            pytest.raises(NotImplementedError),
-            "Property lower_bound_on_time_scale is not implemented in UnnamedModel",
-            [
-                (
-                    ERROR,
-                    "Property lower_bound_on_time_scale is not implemented in "
-                    "UnnamedModel",
-                ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
-            ],
-            id="No lower_bound_on_time_scale",
-        ),
-        pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 day"
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
-            pytest.raises(NotImplementedError),
-            "Property upper_bound_on_time_scale is not implemented in UnnamedModel",
-            [
-                (
-                    ERROR,
-                    "Property upper_bound_on_time_scale is not implemented in "
-                    "UnnamedModel",
-                ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
-            ],
-            id="No upper_bound_on_time_scale",
-        ),
-        pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 day"
-                upper_bound_on_time_scale = "1 time"
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 day", "1 time"),
+                "vars_updated": [],
+            },
             pytest.raises(ValueError),
-            "Invalid units for model time bound, see above errors.",
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains undefined units.",
             [
-                (ERROR, "Upper bound for UnnamedModel not given a valid unit."),
                 (
                     ERROR,
-                    "Invalid units for model time bound, see above errors.",
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains undefined units.",
                 ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
             id="Bad unit for upper_bound_on_time_scale",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 day"
-                upper_bound_on_time_scale = "1 day"
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 day", "1 day"),
+                "vars_updated": [],
+            },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
             [
@@ -179,20 +119,17 @@ def data_instance():
                     "Lower time bound for UnnamedModel is not less than the upper "
                     "bound.",
                 ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
             id="Lower and upper bound equal",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 month"
-                upper_bound_on_time_scale = "1 day"
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 day", "1 second"),
+                "vars_updated": [],
+            },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
             [
@@ -201,94 +138,67 @@ def data_instance():
                     "Lower time bound for UnnamedModel is not less than the upper "
                     "bound.",
                 ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
             id="Lower bound greater",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 meter"
-                upper_bound_on_time_scale = "1 month"
-                vars_updated = []
-            """,
-            None,
-            "UnnamedModel",
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 meter", "1 day"),
+                "vars_updated": [],
+            },
             pytest.raises(ValueError),
-            "Invalid units for model time bound, see above errors.",
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains non-time units.",
             [
-                (ERROR, "Lower bound for UnnamedModel given a non-time unit."),
                 (
                     ERROR,
-                    "Invalid units for model time bound, see above errors.",
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains non-time units.",
                 ),
-                (CRITICAL, "Errors in UnnamedModel class properties: see log"),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
             ],
-            id="Distance unit for lower_bound_on_time_scale",
+            id="Distance unit for model_update_bounds",
         ),
         pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 day"
-                upper_bound_on_time_scale = "1 month"
-                vars_updated = []
-            """,
-            "should_pass",
-            "UnnamedModel",
-            does_not_raise(),
-            None,
-            [],
-            id="should pass",
-        ),
-        pytest.param(
-            """class UnnamedModel2(BaseModel):
-                model_name = 'should_pass'
-                required_init_vars = tuple()
-                lower_bound_on_time_scale = "1 day"
-                upper_bound_on_time_scale = "1 month"
-                vars_updated = []
-            """,
-            "should_pass",
-            "UnnamedModel2",
-            does_not_raise(),
-            None,
-            [],
-            id="should pass - replaces",
-        ),
-        pytest.param(
-            """class UnnamedModel(BaseModel):
-                model_name = 'should_also_pass'
-                required_init_vars = (('temperature', ('spatial',),),)
-                lower_bound_on_time_scale = "1 day"
-                upper_bound_on_time_scale = "1 month"
-                vars_updated = []
-            """,
-            "should_also_pass",
-            "UnnamedModel",
-            does_not_raise(),
-            None,
-            [],
-            id="should pass - RIV not empty",
+            {
+                "model_name": "should_pass",
+                "required_init_vars": (),
+                "model_update_bounds": ("1 spongebob", "1 day"),
+                "vars_updated": [],
+            },
+            pytest.raises(ValueError),
+            "Class attribute model_update_bounds for UnnamedModel "
+            "contains undefined units.",
+            [
+                (
+                    ERROR,
+                    "Class attribute model_update_bounds for UnnamedModel "
+                    "contains undefined units.",
+                ),
+                (CRITICAL, "Errors in defining UnnamedModel class attributes: see log"),
+            ],
+            id="Distance unit for model_update_bounds",
         ),
     ],
 )
-def test_init_subclass(caplog, code, reg_name, cls_name, exp_raise, exp_msg, exp_log):
+def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
     """Test that  __init_subclass__ gives expected behaviours.
 
-    This test uses exec() to concisely pass in a bunch of different model definitions.
-    Although exec() can be harmful, should be ok here.
+    TODO - this could broken down into tests of the individual private checking methods,
+    but this tests the ensemble behaviour of the __init_subclass__ method.
     """
 
-    # BaseModel is required here in the code being exec'd from the params.
-    from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
+    from virtual_rainforest.core.base_model import BaseModel
 
     caplog.clear()
 
     with exp_raise as err:
-        # Run the code to define the model
-        exec(code)
+
+        class UnnamedModel(BaseModel, **init_args):
+            pass
 
     if err:
         # Check any error message
@@ -301,70 +211,65 @@ def test_init_subclass(caplog, code, reg_name, cls_name, exp_raise, exp_msg, exp
     argnames="riv_value, exp_raise, exp_msg",
     argvalues=[
         pytest.param(
-            "1",
+            1,
             pytest.raises(TypeError),
-            "Property required_init_vars has the wrong structure in UM",
+            "Class attribute required_init_vars has the wrong structure in UM",
             id="RIV is integer",
         ),
         pytest.param(
-            "['temperature', (1, 2)]",
+            ["temperature", (1, 2)],
             pytest.raises(TypeError),
-            "Property required_init_vars has the wrong structure in UM",
+            "Class attribute required_init_vars has the wrong structure in UM",
             id="RIV is list",
         ),
         pytest.param(
-            "('temperature', ('spatial',))",
+            ("temperature", ("spatial",)),
             pytest.raises(TypeError),
-            "Property required_init_vars has the wrong structure in UM",
+            "Class attribute required_init_vars has the wrong structure in UM",
             id="RIV is not nested enough",
         ),
         pytest.param(
-            "(('temperature', (1,)),)",
+            (("temperature", (1,)),),
             pytest.raises(TypeError),
-            "Property required_init_vars has the wrong structure in UM",
+            "Class attribute required_init_vars has the wrong structure in UM",
             id="RIV axis is not string",
         ),
         pytest.param(
-            "(('temperature', (1,), (2,)),)",
+            (("temperature", (1,), (2,)),),
             pytest.raises(TypeError),
-            "Property required_init_vars has the wrong structure in UM",
+            "Class attribute required_init_vars has the wrong structure in UM",
             id="RIV entry is too long",
         ),
         pytest.param(
-            "(('temperature', ('special',)),)",
+            (("temperature", ("special",)),),
             pytest.raises(ValueError),
-            "Property required_init_vars uses unknown core axes in UM: special",
+            "Class attribute required_init_vars uses unknown core axes in UM: special",
             id="RIV entry has bad axis name",
         ),
         pytest.param(
-            "(('temperature', ('spatial',)),)",
+            (("temperature", ("spatial",)),),
             does_not_raise(),
             None,
             id="RIV ok",
         ),
     ],
 )
-def test_check_required_init_var_structure(caplog, riv_value, exp_raise, exp_msg):
-    """Test that  __init_subclass__ traps different bad values for required_init_vars.
-
-    This test uses exec() to concisely pass in a bunch of different model definitions.
-    Although exec() can be harmful, should be ok here.
-    """
+def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
+    """Test that  __init_subclass__ traps bad values for required_init_vars."""
 
     # BaseModel is required here in the code being exec'd from the params.
     from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
 
-    code = f"""class UM(BaseModel):
-        model_name = 'should_also_pass'
-        required_init_vars = {riv_value}
-        lower_bound_on_time_scale = "1 day"
-        upper_bound_on_time_scale = "1 month"
-        vars_updated = []
-    """
-
     with exp_raise as err:
         # Run the code to define the model
-        exec(code)
+        class UM(
+            BaseModel,
+            model_name="should_also_pass",
+            required_init_vars=riv_value,
+            model_update_bounds=("1 day", "1 month"),
+            vars_updated=[],
+        ):
+            pass
 
     if err:
         # Check any error message
@@ -379,12 +284,14 @@ def test_check_failure_on_missing_methods(data_instance):
     """
     from virtual_rainforest.core.base_model import BaseModel
 
-    class InitVarModel(BaseModel):
-        model_name = "init_var"
-        lower_bound_on_time_scale = "1 second"
-        upper_bound_on_time_scale = "1 year"
-        required_init_vars = ()
-        vars_updated = []
+    class InitVarModel(
+        BaseModel,
+        model_name="init_var",
+        model_update_bounds=("1 second", "1 year"),
+        required_init_vars=(),
+        vars_updated=[],
+    ):
+        pass
 
     with pytest.raises(TypeError) as err:
         inst = InitVarModel(  # noqa: F841
@@ -458,13 +365,13 @@ def test_check_required_init_vars(
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
-    class TestCaseModel(BaseModel):
-        model_name = "init_var"
-        lower_bound_on_time_scale = "1 second"
-        upper_bound_on_time_scale = "1 year"
-        required_init_vars = ()
-        vars_updated = []
-
+    class TestCaseModel(
+        BaseModel,
+        model_name="init_var",
+        model_update_bounds=("1 second", "1 year"),
+        required_init_vars=(),
+        vars_updated=[],
+    ):
         def setup(self) -> None:
             return super().setup()
 
@@ -548,12 +455,7 @@ def test_check_required_init_vars(
             },
             pytest.raises(ConfigurationError),
             None,
-            (
-                (
-                    ERROR,
-                    "The update interval is shorter than the model's lower bound",
-                ),
-            ),
+            ((ERROR, "The update interval is faster than the model update bounds."),),
         ),
         (
             {
@@ -566,12 +468,7 @@ def test_check_required_init_vars(
             },
             pytest.raises(ConfigurationError),
             None,
-            (
-                (
-                    ERROR,
-                    "The update interval is longer than the model's upper bound",
-                ),
-            ),
+            ((ERROR, "The update interval is slower than the model update bounds."),),
         ),
     ],
 )
@@ -582,13 +479,13 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
 
-    class TimingTestModel(BaseModel):
-        model_name = "timing_test"
-        lower_bound_on_time_scale = "1 day"
-        upper_bound_on_time_scale = "1 month"
-        required_init_vars = ()
-        vars_updated = []
-
+    class TimingTestModel(
+        BaseModel,
+        model_name="timing_test",
+        model_update_bounds=("1 day", "1 month"),
+        required_init_vars=(),
+        vars_updated=[],
+    ):
         def setup(self) -> None:
             return super().setup()
 
