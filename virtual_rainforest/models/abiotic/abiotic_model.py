@@ -37,7 +37,16 @@ from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
-class AbioticModel(BaseModel):
+class AbioticModel(
+    BaseModel,
+    model_name="abiotic",
+    model_update_bounds=("1 hour", "1 month"),
+    required_init_vars=(
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
+    ),
+    vars_updated=(),
+):
     """A class describing the abiotic model.
 
     Args:
@@ -47,20 +56,6 @@ class AbioticModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         constants: Set of constants for the abiotic model.
     """
-
-    model_name = "abiotic"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 minute"
-    """Shortest time scale that abiotic model can sensibly capture."""
-    upper_bound_on_time_scale = "1 day"
-    """Longest time scale that abiotic model can sensibly capture."""
-    required_init_vars = (
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-    )
-    """The required variables and axes for the abiotic model."""
-    vars_updated = ()
-    """Variables updated by the abiotic model."""
 
     def __init__(
         self,

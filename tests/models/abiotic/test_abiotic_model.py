@@ -187,8 +187,8 @@ def test_generate_abiotic_model(
     "cfg_string, time_interval, raises, expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '1 month'\n[abiotic]\n",
-            pint.Quantity("1 month"),
+            "[core]\n[core.timing]\nupdate_interval = '1 year'\n[abiotic]\n",
+            pint.Quantity("1 year"),
             pytest.raises(ConfigurationError),
             (
                 (INFO, "Initialised abiotic.AbioticConsts from config"),
@@ -198,7 +198,7 @@ def test_generate_abiotic_model(
                     "Information required to initialise the abiotic model "
                     "successfully extracted.",
                 ),
-                (ERROR, "The update interval is longer than the model's upper bound"),
+                (ERROR, "The update interval is slower than the model update bounds."),
             ),
             id="time interval out of bounds",
         ),
