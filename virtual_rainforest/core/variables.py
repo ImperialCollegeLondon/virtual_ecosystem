@@ -41,15 +41,15 @@ class Variable:
         Returns:
             Variable: The new or existing variable of this type.
         """
-        if cls.name not in VARABLES_REGISTRY:
-            VARABLES_REGISTRY[cls.name] = super().__new__(cls)
+        if cls.name not in VARIABLES_REGISTRY:
+            VARIABLES_REGISTRY[cls.name] = super().__new__(cls)
 
-        return VARABLES_REGISTRY[cls.name]
+        return VARIABLES_REGISTRY[cls.name]
 
 
 _UNIQUE_VARIABLES_CLASSES: list[str] = []
 _UNIQUE_VARIABLES_NAMES: list[str] = []
-VARABLES_REGISTRY: dict[str, Variable] = {}
+VARIABLES_REGISTRY: dict[str, Variable] = {}
 
 
 class Temperature(Variable, name="temperature", descritpion="Temperature", units="K"):
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     T2 = Temperature()
     P2 = Pressure()
 
-    print(VARABLES_REGISTRY)
+    print(VARIABLES_REGISTRY)
 
     assert T is T2
     assert P is P2
