@@ -1,14 +1,14 @@
 """Module for all variables."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
 class Variable:
     """Base class for all variables."""
 
-    name: str = ""
-    descritpion: str = ""
-    units: str = ""
+    name: str = field(init=False)
+    descritpion: str = field(init=False)
+    units: str = field(init=False)
 
     def __init_subclass__(cls, name: str, descritpion: str, units: str) -> None:
         """Checks if the variable class is unique and registers it.
