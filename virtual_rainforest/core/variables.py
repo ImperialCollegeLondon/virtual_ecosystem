@@ -1,8 +1,9 @@
 """Module for all variables."""
 from dataclasses import dataclass, field
+from typing import Any
 
 
-@dataclass(frozen=True)
+@dataclass
 class Variable:
     """Base class for all variables."""
 
@@ -46,6 +47,16 @@ class Variable:
 
         return VARIABLES_REGISTRY[cls.name]
 
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        """Raises an error if a variable is changed.
+
+        While we could use `frozen=True` in the dataclass, that will only prevent
+        modifying the existing attributes, but will not prevent adding new ones.
+        Overwritting __setattr__ is the way to prevent that both. Using `slots=True`
+        does not play well with `__init_subclass__`.
+        """
+        raise TypeError("Variables are immutable.")
+
 
 _UNIQUE_VARIABLES_CLASSES: list[str] = []
 _UNIQUE_VARIABLES_NAMES: list[str] = []
@@ -77,5 +88,6 @@ if __name__ == "__main__":
     assert T == T2
     assert P == P2
 
-    # This should raise an error
+    # These should raise an error
     # T.name = "T2"
+    # T.somehting = 42
