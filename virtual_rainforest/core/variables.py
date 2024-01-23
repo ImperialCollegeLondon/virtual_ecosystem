@@ -70,6 +70,8 @@ if __name__ == "__main__":
     T2 = Temperature()
     P2 = Pressure()
 
+    print(VARABLES_REGISTRY)
+
     assert T is T2
     assert P is P2
     assert T == T2
