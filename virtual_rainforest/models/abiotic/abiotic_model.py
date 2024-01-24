@@ -31,13 +31,22 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
-from virtual_rainforest.models.abiotic import wind
+from virtual_rainforest.models.abiotic import energy_balance, wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
-class AbioticModel(BaseModel):
+class AbioticModel(
+    BaseModel,
+    model_name="abiotic",
+    model_update_bounds=("1 hour", "1 month"),
+    required_init_vars=(
+        ("air_temperature_ref", ("spatial",)),
+        ("relative_humidity_ref", ("spatial",)),
+    ),
+    vars_updated=(),
+):
     """A class describing the abiotic model.
 
     Args:
@@ -47,20 +56,6 @@ class AbioticModel(BaseModel):
         canopy_layers: The initial number of canopy layers to be modelled.
         constants: Set of constants for the abiotic model.
     """
-
-    model_name = "abiotic"
-    """The model name for use in registering the model and logging."""
-    lower_bound_on_time_scale = "1 minute"
-    """Shortest time scale that abiotic model can sensibly capture."""
-    upper_bound_on_time_scale = "1 day"
-    """Longest time scale that abiotic model can sensibly capture."""
-    required_init_vars = (
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-    )
-    """The required variables and axes for the abiotic model."""
-    vars_updated = ()
-    """Variables updated by the abiotic model."""
 
     def __init__(
         self,
@@ -130,29 +125,51 @@ class AbioticModel(BaseModel):
         self.data object.
         """
 
-        # Initialise soil temperature
-        self.data["soil_temperature"] = DataArray(
-            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, len(self.layer_roles)),
-                "layer_roles": ("layers", self.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
-
         # Calculate vapour pressure deficit at reference height for all time steps
-        # TODO sort out constants argument in simple abiotic model
         self.data[
             "vapour_pressure_deficit_ref"
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            constants=AbioticSimpleConsts(),
+            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
         ).rename(
             "vapour_pressure_deficit_ref"
         )
+
+        # Generate initial profiles of air temperature [C], relative humidity [-],
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
+        initial_microclimate = microclimate.run_microclimate(
+            data=self.data,
+            layer_roles=self.layer_roles,
+            time_index=0,
+            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
+            Bounds=microclimate.Bounds,
+        )
+
+        initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
+            air_temperature=initial_microclimate["air_temperature"],
+            topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
+            leaf_area_index=self.data["leaf_area_index"],
+            layer_heights=self.data["layer_heights"],
+            light_extinction_coefficient=self.constants.light_extinction_coefficient,
+            canopy_temperature_ini_factor=self.constants.canopy_temperature_ini_factor,
+        )
+
+        initial_conductivities = energy_balance.initialise_conductivities(
+            layer_heights=self.data["layer_heights"],
+            initial_air_conductivity=self.constants.initial_air_conductivity,
+            top_leaf_vapor_conductivity=self.constants.top_leaf_vapor_conductivity,
+            bottom_leaf_vapor_conductivity=(
+                self.constants.bottom_leaf_vapor_conductivity
+            ),
+            top_leaf_air_conductivity=self.constants.top_leaf_air_conductivity,
+            bottom_leaf_air_conductivity=self.constants.bottom_leaf_air_conductivity,
+        )
+
+        self.data.add_from_dict(output_dict=initial_microclimate)
+        self.data.add_from_dict(output_dict=initial_canopy_and_soil)
+        self.data.add_from_dict(output_dict=initial_conductivities)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
@@ -176,7 +193,7 @@ class AbioticModel(BaseModel):
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["canopy_height"].to_numpy(),
-            wind_height_above=(self.data["canopy_height"] + 15).to_numpy(),  # TODO
+            wind_height_above=(self.data["canopy_height"] + 15).to_numpy(),
             wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
             leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
             air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
@@ -190,7 +207,7 @@ class AbioticModel(BaseModel):
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
             abiotic_constants=self.constants,
             core_constants=self.core_constants,
-        )
+        )  # TODO wind height above in constants, cross-check with reference heights
 
         wind_output = {}
         wind_speed_above_canopy = DataArray(
