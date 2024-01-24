@@ -3,23 +3,116 @@
 from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
+import numpy as np
 import pytest
+from pint import Quantity
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
 
+DEFAULT_CANOPY = (
+    "above",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "canopy",
+    "subcanopy",
+    "surface",
+    "soil",
+    "soil",
+)
 
-def test_core_components():
+ALTERNATE_CANOPY = (
+    "above",
+    "canopy",
+    "canopy",
+    "canopy",
+    "subcanopy",
+    "surface",
+    "soil",
+    "soil",
+    "soil",
+)
+
+
+@pytest.mark.parametrize(
+    argnames="config, expected_layers, expected_timing, expected_constants",
+    argvalues=[
+        pytest.param(
+            "[core]",
+            {
+                "canopy_layers": 10,
+                "soil_layers": [-0.25, -1.0],
+                "above_canopy_height_offset": 2.0,
+                "surface_layer_height": 0.1,
+                "subcanopy_layer_height": 1.5,
+                "layer_roles": DEFAULT_CANOPY,
+            },
+            {
+                "start_time": np.datetime64("2013-01-01"),
+                "run_length": np.timedelta64(63115200, "s"),
+                "run_length_quantity": Quantity(63115200.0, "second"),
+                "update_interval": np.timedelta64(2629800, "s"),
+                "update_interval_quantity": Quantity(2629800.0, "second"),
+                "end_time": np.datetime64("2015-01-01T12:00:00"),
+                "reconciled_run_length": np.timedelta64(63115200, "s"),
+            },
+            {"depth_of_active_soil_layer": 0.25},
+            id="defaults",
+        ),
+        pytest.param(
+            """[core.layers]
+            soil_layers=[-0.1, -0.5, -0.9]
+            canopy_layers=3
+            above_canopy_height_offset=1.5
+            surface_layer_height=0.2
+            subcanopy_layer_height=1.2
+            [core.timing]
+            start_date = "2020-01-01"
+            update_interval = "10 minutes"
+            run_length = "30 years"
+            [core.constants.CoreConsts]
+            depth_of_active_soil_layer = 2
+            """,
+            {
+                "canopy_layers": 3,
+                "soil_layers": [-0.1, -0.5, -0.9],
+                "above_canopy_height_offset": 1.5,
+                "surface_layer_height": 0.2,
+                "subcanopy_layer_height": 1.2,
+                "layer_roles": ALTERNATE_CANOPY,
+            },
+            {
+                "start_time": np.datetime64("2020-01-01"),
+                "run_length": np.timedelta64(946728000, "s"),
+                "run_length_quantity": Quantity(946728000.0, "second"),
+                "update_interval": np.timedelta64(10 * 60, "s"),
+                "update_interval_quantity": Quantity(10 * 60, "second"),
+                "end_time": np.datetime64("2049-12-31T12:00:00"),
+                "reconciled_run_length": np.timedelta64(946728000, "s"),
+            },
+            {"depth_of_active_soil_layer": 2},
+            id="defaults",
+        ),
+    ],
+)
+def test_CoreComponents(config, expected_layers, expected_timing, expected_constants):
     """Simple test of core component generation."""
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.core_components import CoreComponents
 
-    cfg = Config(cfg_strings="[core]")
-
+    cfg = Config(cfg_strings=config)
     core_components = CoreComponents(cfg)
 
-    assert core_components.update_interval == 1
-    core_components.layer_structure
+    assert core_components.layer_structure.__dict__ == expected_layers
+    assert core_components.model_timing.__dict__ == expected_timing
+    assert core_components.core_constants.__dict__ == expected_constants
 
 
 @pytest.mark.parametrize(
@@ -34,23 +127,7 @@ def test_core_components():
                 2.0,
                 0.1,
                 1.5,
-                (
-                    "above",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "subcanopy",
-                    "surface",
-                    "soil",
-                    "soil",
-                ),
+                DEFAULT_CANOPY,
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="defaults",
@@ -70,17 +147,7 @@ def test_core_components():
                 1.5,
                 0.2,
                 1.2,
-                (
-                    "above",
-                    "canopy",
-                    "canopy",
-                    "canopy",
-                    "subcanopy",
-                    "surface",
-                    "soil",
-                    "soil",
-                    "soil",
-                ),
+                ALTERNATE_CANOPY,
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="alternative",
@@ -100,7 +167,7 @@ def test_core_components():
         ),
     ],
 )
-def test_layer_structure(caplog, config_string, raises, expected_values, expected_log):
+def test_LayerStructure(caplog, config_string, raises, expected_values, expected_log):
     """Test the creation and error handling of LayerStructure."""
     from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.core_components import LayerStructure
@@ -119,3 +186,92 @@ def test_layer_structure(caplog, config_string, raises, expected_values, expecte
         assert layer_structure.surface_layer_height == expected_values[3]
         assert layer_structure.subcanopy_layer_height == expected_values[4]
         assert layer_structure.layer_roles == expected_values[5]
+
+
+@pytest.mark.parametrize(
+    "config,output,raises,expected_log_entries",
+    [
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "10 minutes"
+            run_length = "30 years"
+            """,
+            {
+                "start_time": np.datetime64("2020-01-01"),
+                "update_interval": np.timedelta64(10, "m"),
+                "update_interval_as_quantity": Quantity("10 minutes"),
+                "end_time": np.datetime64("2049-12-31T12:00"),
+            },
+            does_not_raise(),
+            (
+                (
+                    INFO,
+                    "Timing details built from model configuration: "
+                    "start - 2020-01-01, end - 2049-12-31T12:00:00, "
+                    "run length - 946728000 seconds",
+                ),
+            ),
+            id="timing correct",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "10 metres"
+            run_length = "30 years"
+            """,
+            None,
+            pytest.raises(ConfigurationError),
+            ((ERROR, "Invalid units for core.timing.update_interval: "),),
+            id="bad update dimension",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "10 epochs"
+            run_length = "30 years"
+            """,
+            None,
+            pytest.raises(ConfigurationError),
+            ((ERROR, "Invalid units for core.timing.update_interval: "),),
+            id="unknown update unit",
+        ),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "10 minutes"
+            run_length = "1 minute"
+            """,
+            {},  # Fails so no output to check
+            pytest.raises(ConfigurationError),
+            (
+                (
+                    ERROR,
+                    "Model run length (1 minute) expires before first "
+                    "update (10 minutes)",
+                ),
+            ),
+            id="run length too short",
+        ),
+    ],
+)
+def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
+    """Test that function to extract main loop timing works as intended."""
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import ModelTiming
+
+    config_obj = Config(cfg_strings=config)
+    caplog.clear()
+
+    with raises:
+        model_timing = ModelTiming(config=config_obj)
+
+        assert model_timing.end_time == output["end_time"]
+        assert model_timing.update_interval == output["update_interval"]
+        assert model_timing.start_time == output["start_time"]
+        assert (
+            model_timing.update_interval_quantity
+            == output["update_interval_as_quantity"]
+        )
+
+    log_check(caplog=caplog, expected_log=expected_log_entries)

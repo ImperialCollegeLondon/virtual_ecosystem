@@ -31,9 +31,13 @@ class CoreComponents:
     """
 
     layer_structure: LayerStructure = field(init=False)
-    update_interval: Quantity = field(init=False)
+    """The vertical layer structure for the simulation."""
+    model_timing: ModelTiming = field(init=False)
+    """The model timing details for the simulation."""
     core_constants: ConstantsDataclass = field(init=False)
+    """The core constants definitions for the simulation"""
     config: InitVar[Config]
+    """A validated model configuration."""
 
     def __post_init__(self, config: Config) -> None:
         """Populate the core components from the config."""
@@ -89,14 +93,15 @@ class ModelTiming:
         timing = config["core"]["timing"]
 
         # Validate and convert configuration
+        # NOTE: some of this is also trapped by validation against the core schema.
         # Start date from string to np.datetime64
         try:
             start_time = np.datetime64(timing["start_date"])
         except ValueError:
             to_raise = ConfigurationError(
-                "Cannot parse start_date : %s" % timing["start_date"]
+                f"Cannot parse start_date: {timing['start_date']}"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         self.start_time = start_time
@@ -108,9 +113,9 @@ class ModelTiming:
                 value_pint = Quantity(value).to("seconds")
             except (DimensionalityError, UndefinedUnitError):
                 to_raise = ConfigurationError(
-                    f"Units for core.timing.{attr} are not valid time units: {value}"
+                    f"Invalid units for core.timing.{attr}: {value}"
                 )
-                LOGGER.critical(to_raise)
+                LOGGER.error(to_raise)
                 raise to_raise
 
             # Set values as timedelta64 values with second precision and store quantity
@@ -122,7 +127,7 @@ class ModelTiming:
                 f"Model run length ({timing['run_length']}) expires before "
                 f"first update ({timing['update_interval']})"
             )
-            LOGGER.critical(to_raise)
+            LOGGER.error(to_raise)
             raise to_raise
 
         # Calculate when the simulation should stop as the first number of update
@@ -206,7 +211,7 @@ class LayerStructure:
         lyr_config = config["core"]["layers"]
 
         # Validate contents
-        # NOTE: a lot of this is also trapped by validation against the core schema.
+        # NOTE: some of this is also trapped by validation against the core schema.
         # Canopy layers
         canopy_layers = lyr_config["canopy_layers"]
         if (
