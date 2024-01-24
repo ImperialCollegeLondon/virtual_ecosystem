@@ -229,7 +229,12 @@ things.
    also known as the superclass:
 
    ```python
-   super().__init__(data, update_interval, **kwargs)
+   super().__init__(
+        data=data, 
+        update_interval=update_interval, 
+        core_constants=core_constants, 
+        **kwargs
+    )
    ```
 
    Calling this method runs all of the shared functionality across models, such as
@@ -249,6 +254,7 @@ You should end up with something like this:
 def __init__(
     self,
     data: Data,
+    core_constants: CoreConsts,
     update_interval: pint.Quantity,
     no_of_ponds: int,
     constants: FreshwaterConsts,
@@ -264,7 +270,12 @@ def __init__(
         raise to_raise
         
     # Call the __init__() method of the base class
-    super().__init__(data, update_interval, **kwargs)
+    super().__init__(
+        data=data, 
+        core_constants=core_constants,
+        update_interval=update_interval,
+        **kwargs
+    )
 
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
@@ -434,7 +445,11 @@ As an example:
 ```python
 @classmethod
 def from_config(
-    cls, data: Data, config: Config, update_interval: Quantity
+    cls, 
+    data: Data, 
+    config: Config, 
+    core_constants: CoreConsts, 
+    update_interval: Quantity
 ) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
@@ -445,6 +460,7 @@ def from_config(
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance.
         config: A validated Virtual Rainforest model configuration object.
+        core_constants: The core constants shared across models.
         update_interval: Frequency with which all models are updated
     """
     
@@ -457,7 +473,13 @@ def from_config(
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
     )
-    return cls(data, update_interval, no_pools, constants)
+    return cls(
+        data=data, 
+        update_interval=update_interval,
+        core_constants=core_constants,
+        no_pools=no_pools, 
+        constants=constants
+    )
 
 ```
 
