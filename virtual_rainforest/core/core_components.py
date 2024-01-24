@@ -11,11 +11,12 @@ from dataclasses import InitVar, dataclass, field
 
 import numpy as np
 from pint import Quantity
+from pint.errors import DimensionalityError, UndefinedUnitError
 
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.exceptions import InitialisationError
+from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -37,17 +38,144 @@ class CoreComponents:
     def __post_init__(self, config: Config) -> None:
         """Populate the core components from the config."""
         self.layer_structure = LayerStructure(config=config)
-        self.update_interval = "1 cneturion"
+        self.model_timing = ModelTiming(config=config)
         self.core_constants = load_constants(config, "core", "CoreConsts")
+
+
+@dataclass
+class ModelTiming:
+    """Model timing details.
+
+    This data class defines the timing of a Virtual Rainforest simulation from the
+    ``core.timing`` section of a validated model configuration. The start time, run
+    length and update interval are all extracted from the configuration and validated.
+
+    The end time is calculated from the previously extracted timing information. This
+    end time will always be the largest whole multiple of the update interval that
+    exceeds or equal the configured ``run_length``.
+
+
+    Raises:
+        ConfigurationError: If the timing configuration details are incorrect.
+    """
+
+    start_time: np.datetime64 = field(init=False)
+    """The start time of the simulation."""
+    end_time: np.datetime64 = field(init=False)
+    """The calculated end time of the simulation."""
+    reconciled_run_length: np.timedelta64 = field(init=False)
+    """The difference between start and calculated end time."""
+    run_length: np.timedelta64 = field(init=False)
+    """The configured run length."""
+    run_length_quantity: Quantity = field(init=False)
+    """The configured run length as a pint Quantity."""
+    update_interval: np.timedelta64 = field(init=False)
+    """The configured update interval."""
+    update_interval_quantity: Quantity = field(init=False)
+    """The configured update interval as a pint Quantity."""
+    config: InitVar[Config]
+    """A validated model configuration."""
+
+    def __post_init__(self, config: Config) -> None:
+        """Populate the ``ModelTiming`` instance.
+
+        This method populates the ``ModelTiming`` attributes from the provided
+        :class:`~virtual_rainforest.core.config.Config` instance.
+
+        Args:
+            config: A Config instance.
+        """
+
+        timing = config["core"]["timing"]
+
+        # Validate and convert configuration
+        # Start date from string to np.datetime64
+        try:
+            start_time = np.datetime64(timing["start_date"])
+        except ValueError:
+            to_raise = ConfigurationError(
+                "Cannot parse start_date : %s" % timing["start_date"]
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        self.start_time = start_time
+
+        # Handle conversion of strings to time quantities
+        for attr in ("run_length", "update_interval"):
+            try:
+                value = timing[attr]
+                value_pint = Quantity(value).to("seconds")
+            except (DimensionalityError, UndefinedUnitError):
+                to_raise = ConfigurationError(
+                    f"Units for core.timing.{attr} are not valid time units: {value}"
+                )
+                LOGGER.critical(to_raise)
+                raise to_raise
+
+            # Set values as timedelta64 values with second precision and store quantity
+            setattr(self, attr, np.timedelta64(round(value_pint.magnitude), "s"))
+            setattr(self, attr + "_quantity", value_pint)
+
+        if self.run_length < self.update_interval:
+            to_raise = ConfigurationError(
+                f"Model run length ({timing['run_length']}) expires before "
+                f"first update ({timing['update_interval']})"
+            )
+            LOGGER.critical(to_raise)
+            raise to_raise
+
+        # Calculate when the simulation should stop as the first number of update
+        # intervals to exceed the requested run length and calculate the actual run
+        # length
+        self.end_time = (
+            start_time
+            + np.ceil(self.run_length / self.update_interval) * self.update_interval
+        )
+        self.reconciled_run_length = self.end_time - self.start_time
+
+        # Log the completed timing creation.
+        LOGGER.info(
+            "Timing details built from model configuration: "
+            "start - %s, end - %s, run length - %s"
+            % (self.start_time, self.end_time, self.reconciled_run_length)
+        )
 
 
 @dataclass
 class LayerStructure:
     """Simulation vertical layer structure.
 
-    This data class is a container for five configurable elements used to define the
-    vertical layer structure of the simulation. All are configured via the
-    ``core.layers`` configuration section.
+    This class defines the structure of the vertical dimension of the Virtual Rainforest
+    from a model configuration. Five values from the ``core.layers`` configuration
+    section are used to define a set of vertical layers and their heights (or relative
+    heights): ``canopy_layers``, ``soil_layers``, ``above_canopy_height_offset``,
+    ``surface_layer_height`` and``subcanopy_layer_height``. These values are validatated
+    and then assigned to attributes of this class. The ``n_layers`` and ``layer_roles``
+    attributes report the total number of layers in the vertical dimension and a tuple
+    of the role of each layer within that dimension.
+
+    The layer structure is shown below, along with values from the default
+    configuration. All heights are in metres relative to ground level and the canopy
+    layer heights are defined dynamically by the
+    :class:`~virtual_rainforest.models.plants.PlantsModel`.
+
+    .. csv-table::
+        :header: "Index", "Role", "Description", "Set by", "Default"
+        :widths: 5, 10, 30, 30, 10
+
+        0, "above", "Above canopy conditions", "``above_ground_canopy_offset``", "+2 m"
+        1, "canopy", "Height of first canopy layer",  "``PlantsModel``", "--"
+        "...", "canopy", "Height of other canopy layers",  "``PlantsModel``", "--"
+        10, "canopy", "Height of the last canopy layer ", "``PlantsModel``", "--"
+        11, "subcanopy", "Subcanopy height", ``subcanopy_layer_height``, "1.5 m"
+        12, "surface", "Near surface conditions", ``surface_layer_height``, "0.1 m"
+        13, "soil", "Upper soil layer depth",  ``soil_layers``, "-0.25 m"
+        14, "soil", "Lower soil layer depth",  ``soil_layers``, "-1.25 m"
+
+    Raises:
+        ConfigurationError: If the configuration elements are incorrect for defining
+            the model timing.
     """
 
     canopy_layers: int = field(init=False)
@@ -66,9 +194,9 @@ class LayerStructure:
     """A validated model configuration."""
 
     def __post_init__(self, config: Config) -> None:
-        """Configure a LayerStructure object.
+        """Populate the ``LayerStructure`` instance.
 
-        This is a factory method to generate a LayerStructure instance from an existing
+        This method populates the ``LayerStructure`` attributes from the provided
         :class:`~virtual_rainforest.core.config.Config` instance.
 
         Args:
@@ -77,119 +205,69 @@ class LayerStructure:
 
         lyr_config = config["core"]["layers"]
 
-        self.canopy_layers = lyr_config["canopy_layers"]
-        self.soil_layers = lyr_config["soil_layers"]
-        self.above_canopy_height_offset = lyr_config["above_canopy_height_offset"]
-        self.surface_layer_height = lyr_config["surface_layer_height"]
-        self.subcanopy_layer_height = lyr_config["subcanopy_layer_height"]
-        self.layer_roles = set_layer_roles(
-            canopy_layers=lyr_config["canopy_layers"],
-            soil_layers=lyr_config["soil_layers"],
+        # Validate contents
+        # NOTE: a lot of this is also trapped by validation against the core schema.
+        # Canopy layers
+        canopy_layers = lyr_config["canopy_layers"]
+        if (
+            not isinstance(canopy_layers, int)
+            and not (isinstance(canopy_layers, float) and canopy_layers.is_integer())
+            and canopy_layers < 1
+        ):
+            to_raise = ConfigurationError(
+                "The number of canopy layers is not a positive integer."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        self.canopy_layers = canopy_layers
+
+        # Soil layers
+        soil_layers = lyr_config["soil_layers"]
+
+        if not isinstance(soil_layers, list) or len(soil_layers) < 1:
+            to_raise = ConfigurationError(
+                "The soil layers must be a non-empty list of layer depths."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        if not all([isinstance(v, (float, int)) for v in soil_layers]):
+            to_raise = ConfigurationError("The soil layer depths are not all numeric.")
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        np_soil_layer = np.array(soil_layers)
+        if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
+            to_raise = ConfigurationError(
+                "Soil layer depths must be strictly decreasing and negative."
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        self.soil_layers = soil_layers
+
+        # Other heights should all be positive floats
+        for attr, value in (
+            ("above_canopy_height_offset", lyr_config["above_canopy_height_offset"]),
+            ("surface_layer_height", lyr_config["surface_layer_height"]),
+            ("subcanopy_layer_height", lyr_config["subcanopy_layer_height"]),
+        ):
+            if not isinstance(value, (float, int)) or value < 0:
+                to_raise = ConfigurationError(
+                    f"The {attr} value must be a positive float."
+                )
+                LOGGER.error(to_raise)
+                raise to_raise
+            else:
+                setattr(self, attr, value)
+
+        self.layer_roles = tuple(
+            ["above"]
+            + ["canopy"] * int(canopy_layers)
+            + ["subcanopy"]
+            + ["surface"]
+            + ["soil"] * len(soil_layers)
         )
 
-
-def set_layer_roles(
-    canopy_layers: int = 10, soil_layers: list[float] = [-0.5, -1.0]
-) -> tuple[str, ...]:
-    """Create a list of layer roles.
-
-    This function creates a list of strings describing the layer roles for the vertical
-    dimension of the Virtual Rainforest. These roles are used with data arrays that have
-    that vertical dimension: the roles then show what information is being captured at
-    different heights through that vertical dimension. Within the model, ground level is
-    at height 0 metres: above ground heights are positive and below ground heights are
-    negative. At present, models are expecting two soil layers: the top layer being
-    where microbial activity happens (usually around 0.5 metres below ground) and the
-    second layer where soil temperature equals annual mean air temperature (usually
-    around 1 metre below ground).
-
-    There are five layer roles capture data:
-
-    * ``above``:  at ~2 metres above the top of the canopy.
-    * ``canopy``: within each canopy layer. The maximum number of canopy layers is set
-      by the ``canopy_layers`` argument and is a configurable part of the model. The
-      heights of these layers are modelled from the plant community data.
-    * ``subcanopy``: at ~1.5 metres above ground level.
-    * ``surface``: at ~0.1 metres above ground level.
-    * ``soil``: at fixed depths within the soil. These depths are set in the
-      ``soil_layers`` argument and are a configurable part of the model.
-
-    With the default values, this function gives the following layer roles.
-
-    .. csv-table::
-        :header: "Index", "Role", "Description"
-        :widths: 5, 10, 30
-
-        0, "above", "Canopy top height + 2 metres"
-        1, "canopy", "Height of top of the canopy (1)"
-        "...", "canopy", "Height of canopy layer ``i``"
-        10, "canopy", "Height of the bottom canopy layer (10)"
-        11, "subcanopy", "1.5 metres above ground level"
-        12, "surface", "0.1 metres above ground level"
-        13, "soil", "First soil layer at -0.5 metres"
-        14, "soil", "First soil layer at -1.0 metres"
-
-    Args:
-        canopy_layers: the number of canopy layers
-        soil_layers: a list giving the depth of each soil layer as a sequence of
-            negative and strictly decreasing values.
-
-    Raises:
-        InitialisationError: If the number of canopy layers is not a positive
-            integer or the soil depths are not a list of strictly decreasing, negative
-            float values.
-
-    Returns:
-        A tuple of vertical layer role names
-    """
-
-    # sanity checks for soil and canopy layers
-    if not isinstance(soil_layers, list):
-        to_raise = InitialisationError(
-            "The soil layers must be a list of layer depths."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if len(soil_layers) < 1:
-        to_raise = InitialisationError(
-            "The number of soil layers must be greater than zero."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if not all([isinstance(v, (float, int)) for v in soil_layers]):
-        to_raise = InitialisationError("The soil layer depths are not all numeric.")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    np_soil_layer = np.array(soil_layers)
-    if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
-        to_raise = InitialisationError(
-            "Soil layer depths must be strictly decreasing and negative."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if not isinstance(canopy_layers, int) and not (
-        isinstance(canopy_layers, float) and canopy_layers.is_integer()
-    ):
-        to_raise = InitialisationError("The number of canopy layers is not an integer.")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if canopy_layers < 1:
-        to_raise = InitialisationError(
-            "The number of canopy layer must be greater than zero."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    layer_roles = tuple(
-        ["above"]
-        + ["canopy"] * int(canopy_layers)
-        + ["subcanopy"]
-        + ["surface"]
-        + ["soil"] * len(soil_layers)
-    )
-    return layer_roles
+        LOGGER.info("Layer structure built from model configuration")
