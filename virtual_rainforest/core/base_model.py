@@ -208,7 +208,7 @@ class BaseModel(ABC):
         """The LayerStructure details used in the model."""
         self.core_constants: CoreConsts = core_components.core_constants
         """The core constants used in the model."""
-        self._repr = ["update_interval"]
+        self._repr: list[tuple[str, ...]] = [("model_timing", "update_interval")]
         """A list of attributes to be included in the class __repr__ output"""
 
         # Check the required init variables
@@ -493,12 +493,24 @@ class BaseModel(ABC):
             raise excep
 
     def __repr__(self) -> str:
-        """Represent a Model as a string."""
+        """Represent a Model as a string from the attributes listed in _repr.
+
+        Each entry in self._repr is a tuple of strings providing a path through the
+        model hierarchy. The method assembles the tips of each path into a repr string.
+        """
+
+        repr_elements: list[str] = []
+
+        for repr_entry in self._repr:
+            obj = self
+            for attr in repr_entry:
+                obj = getattr(obj, attr)
+            repr_elements.append(f"{attr}={obj}")
 
         # Add all args to the function signature
-        func_sig = ", ".join([f"{k} = {getattr(self, k)}" for k in self._repr])
+        repr_string = ", ".join(repr_elements)
 
-        return f"{self.__class__.__name__}({func_sig})"
+        return f"{self.__class__.__name__}({repr_string})"
 
     def __str__(self) -> str:
         """Inform user what the model type is."""
