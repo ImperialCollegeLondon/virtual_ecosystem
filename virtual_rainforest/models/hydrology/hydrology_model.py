@@ -28,10 +28,10 @@ from xarray import DataArray
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.hydrology import above_ground, below_ground
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
@@ -67,17 +67,16 @@ class HydrologyModel(
 
     Args:
         data: The data object to be used in the model.
-        update_interval: Time to wait between updates of the model state.
-        soil_layers: A list giving the number and depth of soil layers to be modelled.
-        canopy_layers: The initial number of canopy layers to be modelled.
+        core_components: The core components used across models.
         initial_soil_moisture: The initial volumetric relative water content [unitless]
             for all layers.
         initial_groundwater_saturation: Initial level of groundwater saturation (between
             0 and 1) for all layers and grid cells identical.
-        constants: Set of constants for the hydrology model.
+        model_constants: Set of constants for the hydrology model.
 
     Raises:
-        InitialisationError: when initial soil moisture is out of bounds.
+        InitialisationError: when soil moisture or saturation parameters are not numeric
+        or out of [0,1] bounds.
 
     TODOs:
 
@@ -90,53 +89,35 @@ class HydrologyModel(
     def __init__(
         self,
         data: Data,
-        update_interval: Quantity,
-        soil_layers: list[float],
-        canopy_layers: int,
+        core_components: CoreComponents,
         initial_soil_moisture: float,
         initial_groundwater_saturation: float,
-        constants: HydroConsts,
+        model_constants: HydroConsts = HydroConsts(),
         **kwargs: Any,
     ):
-        # Sanity checks for initial soil moisture
-        if type(initial_soil_moisture) is not float:
-            to_raise = InitialisationError("The initial soil moisture must be a float!")
-            LOGGER.error(to_raise)
-            raise to_raise
+        super().__init__(data=data, core_components=core_components, **kwargs)
 
-        if initial_soil_moisture < 0 or initial_soil_moisture > 1:
-            to_raise = InitialisationError(
-                "The initial soil moisture has to be between 0 and 1!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # Sanity checks for initial soil moisture and initial_groundwater_saturation
+        for attr, value in (
+            ("initial_soil_moisture", initial_soil_moisture),
+            ("'initial_groundwater_saturation", initial_groundwater_saturation),
+        ):
+            if not isinstance(value, (float, int)):
+                to_raise = InitialisationError(f"The {attr} must be numeric!")
+                LOGGER.error(to_raise)
+                raise to_raise
 
-        if initial_groundwater_saturation < 0 or initial_groundwater_saturation > 1:
-            to_raise = InitialisationError(
-                "The initial groundwater saturation has to be between 0 and 1!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+            if value < 0 or value > 1:
+                to_raise = InitialisationError(f"The {attr} has to be between 0 and 1!")
+                LOGGER.error(to_raise)
+                raise to_raise
 
-        super().__init__(data, update_interval, **kwargs)
-
-        # Create a list of layer roles
-        layer_roles = set_layer_roles(canopy_layers, soil_layers)
-
-        self.data
-        """A Data instance providing access to the shared simulation data."""
-        self.layer_roles = layer_roles
-        """A list of vertical layer roles."""
-        self.soil_layers = soil_layers
-        """The number of soil layers."""
-        self.update_interval
-        """The time interval between model updates."""
-        self.initial_soil_moisture = initial_soil_moisture
+        self.initial_soil_moisture: float = initial_soil_moisture
         """Initial volumetric relative water content [unitless] for all layers and grid
         cells identical."""
-        self.initial_groundwater_saturation = initial_groundwater_saturation
+        self.initial_groundwater_saturation: float = initial_groundwater_saturation
         """Initial level of groundwater saturation for all layers identical."""
-        self.constants = constants
+        self.model_constants: HydroConsts = model_constants
         """Set of constants for the hydrology model"""
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
         """Set neighbours."""
@@ -148,7 +129,7 @@ class HydrologyModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> HydrologyModel:
         """Factory function to initialise the hydrology model from configuration.
 
@@ -158,33 +139,29 @@ class HydrologyModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_components: The core components used across models.
             config: A validated Virtual Rainforest model configuration object.
-            update_interval: Frequency with which all models are updated.
         """
 
-        # Find number of soil and canopy layers
-        soil_layers = config["core"]["layers"]["soil_layers"]
-        canopy_layers = config["core"]["layers"]["canopy_layers"]
+        # Load model parameters
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
         initial_groundwater_saturation = config["hydrology"][
             "initial_groundwater_saturation"
         ]
 
         # Load in the relevant constants
-        constants = load_constants(config, "hydrology", "HydroConsts")
+        model_constants = load_constants(config, "hydrology", "HydroConsts")
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
             "extracted."
         )
         return cls(
-            data,
-            update_interval,
-            soil_layers,
-            canopy_layers,
-            initial_soil_moisture,
-            initial_groundwater_saturation,
-            constants,
+            data=data,
+            core_components=core_components,
+            initial_soil_moisture=initial_soil_moisture,
+            initial_groundwater_saturation=initial_groundwater_saturation,
+            model_constants=model_constants,
         )
 
     def setup(self) -> None:
@@ -210,20 +187,21 @@ class HydrologyModel(
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
             repeats=[
-                len(self.layer_roles) - len(self.soil_layers),
-                len(self.soil_layers),
+                len(self.layer_structure.layer_roles)
+                - len(self.layer_structure.soil_layers),
+                len(self.layer_structure.soil_layers),
             ],
         )
         # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
         self.data["soil_moisture"] = DataArray(
             np.broadcast_to(
                 soil_moisture_values,
-                (self.data.grid.n_cells, len(self.layer_roles)),
+                (self.data.grid.n_cells, len(self.layer_structure.layer_roles)),
             ).T,
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(len(self.layer_roles)),
-                "layer_roles": ("layers", self.layer_roles),
+                "layers": np.arange(len(self.layer_structure.layer_roles)),
+                "layer_roles": ("layers", self.layer_structure.layer_roles),
                 "cell_id": self.data.grid.cell_id,
             },
             name="soil_moisture",
@@ -237,7 +215,7 @@ class HydrologyModel(
             .rename("air_temperature")
             .assign_coords(
                 coords={
-                    "layers": [self.layer_roles.index("subcanopy")],
+                    "layers": [self.layer_structure.layer_roles.index("subcanopy")],
                     "layer_roles": ("layers", ["subcanopy"]),
                     "cell_id": self.data.grid.cell_id,
                 },
@@ -252,7 +230,7 @@ class HydrologyModel(
             .rename("relative_humidity")
             .assign_coords(
                 coords={
-                    "layers": [self.layer_roles.index("subcanopy")],
+                    "layers": [self.layer_structure.layer_roles.index("subcanopy")],
                     "layer_roles": ("layers", ["subcanopy"]),
                     "cell_id": self.data.grid.cell_id,
                 },
@@ -261,7 +239,8 @@ class HydrologyModel(
 
         # Create initial groundwater storage variable with two layers
         initial_groundwater_storage = (
-            self.initial_groundwater_saturation * self.constants.groundwater_capacity
+            self.initial_groundwater_saturation
+            * self.model_constants.groundwater_capacity
         )
         self.data["groundwater_storage"] = DataArray(
             np.full((2, self.data.grid.n_cells), initial_groundwater_storage),
@@ -381,7 +360,7 @@ class HydrologyModel(
         :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`.
         """
         # Determine number of days, currently only 30 days (=1 month)
-        if self.update_interval != Quantity("1 month"):
+        if self.model_timing.update_interval_quantity != Quantity("1 month"):
             to_raise = NotImplementedError("This time step is currently not supported.")
             LOGGER.error(to_raise)
             raise to_raise
@@ -397,10 +376,10 @@ class HydrologyModel(
             time_index=time_index,
             days=days,
             seed=seed,
-            layer_roles=self.layer_roles,
-            soil_moisture_capacity=self.constants.soil_moisture_capacity,
-            soil_moisture_residual=self.constants.soil_moisture_residual,
-            meters_to_mm=self.constants.meters_to_mm,
+            layer_roles=self.layer_structure.layer_roles,
+            soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
+            soil_moisture_residual=self.model_constants.soil_moisture_residual,
+            meters_to_mm=self.model_constants.meters_to_mm,
         )
 
         # Create lists for output variables to store daily data
@@ -411,10 +390,10 @@ class HydrologyModel(
             interception = above_ground.calculate_interception(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 precipitation=hydro_input["current_precipitation"][:, day],
-                intercept_param_1=self.constants.intercept_param_1,
-                intercept_param_2=self.constants.intercept_param_2,
-                intercept_param_3=self.constants.intercept_param_3,
-                veg_density_param=self.constants.veg_density_param,
+                intercept_param_1=self.model_constants.intercept_param_1,
+                intercept_param_2=self.model_constants.intercept_param_2,
+                intercept_param_3=self.model_constants.intercept_param_3,
+                veg_density_param=self.model_constants.veg_density_param,
             )
 
             # Precipitation that reaches the surface per day, [mm]
@@ -438,7 +417,7 @@ class HydrologyModel(
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity_mm"],
                 available_water=precipitation_surface - surface_runoff,
                 infiltration_shape_parameter=(
-                    self.constants.infiltration_shape_parameter
+                    self.model_constants.infiltration_shape_parameter
                 ),
             )
 
@@ -464,17 +443,23 @@ class HydrologyModel(
                 relative_humidity=hydro_input["subcanopy_humidity"],
                 atmospheric_pressure=hydro_input["subcanopy_pressure"],
                 soil_moisture=top_soil_moisture_vol,
-                soil_moisture_residual=self.constants.soil_moisture_residual,
-                soil_moisture_capacity=self.constants.soil_moisture_capacity,
+                soil_moisture_residual=self.model_constants.soil_moisture_residual,
+                soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed=0.1,  # m/s TODO wind_speed in data object
-                celsius_to_kelvin=self.constants.celsius_to_kelvin,
-                density_air=self.constants.density_air,
-                latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
-                gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
-                heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
+                celsius_to_kelvin=self.model_constants.celsius_to_kelvin,
+                density_air=self.model_constants.density_air,
+                latent_heat_vapourisation=(
+                    self.model_constants.latent_heat_vapourisation
+                ),
+                gas_constant_water_vapour=(
+                    self.model_constants.gas_constant_water_vapour
+                ),
+                heat_transfer_coefficient=(
+                    self.model_constants.heat_transfer_coefficient
+                ),
                 extinction_coefficient_global_radiation=(
-                    self.constants.extinction_coefficient_global_radiation
+                    self.model_constants.extinction_coefficient_global_radiation
                 ),
             )
             daily_lists["soil_evaporation"].append(soil_evaporation)
@@ -501,13 +486,19 @@ class HydrologyModel(
             vertical_flow = below_ground.calculate_vertical_flow(
                 soil_moisture=soil_moisture_evap / hydro_input["soil_layer_thickness"],
                 soil_layer_thickness=hydro_input["soil_layer_thickness"],  # mm
-                soil_moisture_capacity=self.constants.soil_moisture_capacity,  # vol
-                soil_moisture_residual=self.constants.soil_moisture_residual,  # vol
-                hydraulic_conductivity=self.constants.hydraulic_conductivity,  # m/s
-                hydraulic_gradient=self.constants.hydraulic_gradient,  # m/m
-                nonlinearily_parameter=self.constants.nonlinearily_parameter,
-                groundwater_capacity=self.constants.groundwater_capacity,
-                seconds_to_day=self.constants.seconds_to_day,
+                soil_moisture_capacity=(
+                    self.model_constants.soil_moisture_capacity
+                ),  # vol
+                soil_moisture_residual=(
+                    self.model_constants.soil_moisture_residual
+                ),  # vol
+                hydraulic_conductivity=(
+                    self.model_constants.hydraulic_conductivity
+                ),  # m/s
+                hydraulic_gradient=self.model_constants.hydraulic_gradient,  # m/m
+                nonlinearily_parameter=self.model_constants.nonlinearily_parameter,
+                groundwater_capacity=self.model_constants.groundwater_capacity,
+                seconds_to_day=self.model_constants.seconds_to_day,
             )
             daily_lists["vertical_flow"].append(vertical_flow)
 
@@ -518,11 +509,11 @@ class HydrologyModel(
                 vertical_flow=vertical_flow,
                 evapotranspiration=hydro_input["current_evapotranspiration"],
                 soil_moisture_capacity=(
-                    self.constants.soil_moisture_capacity
+                    self.model_constants.soil_moisture_capacity
                     * hydro_input["soil_layer_thickness"]
                 ),
                 soil_moisture_residual=(
-                    self.constants.soil_moisture_residual
+                    self.model_constants.soil_moisture_residual
                     * hydro_input["soil_layer_thickness"]
                 ),
             )
@@ -536,9 +527,13 @@ class HydrologyModel(
                 soil_moisture=(
                     soil_moisture_updated / hydro_input["soil_layer_thickness"]
                 ),
-                air_entry_water_potential=self.constants.air_entry_water_potential,
-                water_retention_curvature=self.constants.water_retention_curvature,
-                soil_moisture_capacity=self.constants.soil_moisture_capacity,
+                air_entry_water_potential=(
+                    self.model_constants.air_entry_water_potential
+                ),
+                water_retention_curvature=(
+                    self.model_constants.water_retention_curvature
+                ),
+                soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             )
             daily_lists["matric_potential"].append(matric_potential)
 
@@ -547,13 +542,15 @@ class HydrologyModel(
                 groundwater_storage=hydro_input["groundwater_storage"],
                 vertical_flow_to_groundwater=vertical_flow[-1],
                 bypass_flow=bypass_flow,
-                max_percolation_rate_uzlz=self.constants.max_percolation_rate_uzlz,
-                groundwater_loss=self.constants.groundwater_loss,
+                max_percolation_rate_uzlz=(
+                    self.model_constants.max_percolation_rate_uzlz
+                ),
+                groundwater_loss=self.model_constants.groundwater_loss,
                 reservoir_const_upper_groundwater=(
-                    self.constants.reservoir_const_upper_groundwater
+                    self.model_constants.reservoir_const_upper_groundwater
                 ),
                 reservoir_const_lower_groundwater=(
-                    self.constants.reservoir_const_lower_groundwater
+                    self.model_constants.reservoir_const_lower_groundwater
                 ),
             )
 
@@ -597,7 +594,8 @@ class HydrologyModel(
                     (
                         np.full(
                             (
-                                len(self.layer_roles) - self.layer_roles.count("soil"),
+                                len(self.layer_structure.layer_roles)
+                                - self.layer_structure.layer_roles.count("soil"),
                                 self.data.grid.n_cells,
                             ),
                             np.nan,
@@ -645,8 +643,8 @@ class HydrologyModel(
             river_discharge_mm=total_river_discharge,
             area=self.data.grid.cell_area,
             days=days,
-            seconds_to_day=self.constants.seconds_to_day,
-            meters_to_millimeters=self.constants.meters_to_mm,
+            seconds_to_day=self.model_constants.seconds_to_day,
+            meters_to_millimeters=self.model_constants.meters_to_mm,
         )
         soil_hydrology["river_discharge_rate"] = DataArray(
             river_discharge_rate, dims="cell_id"
@@ -687,7 +685,7 @@ def setup_hydrology_input_current_timestep(
     time_index: int,
     days: int,
     seed: None | int,
-    layer_roles: list[str],
+    layer_roles: tuple[str, ...],
     soil_moisture_capacity: float,
     soil_moisture_residual: float,
     meters_to_mm: float,
