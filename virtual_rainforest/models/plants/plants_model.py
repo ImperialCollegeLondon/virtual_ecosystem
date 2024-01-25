@@ -86,7 +86,7 @@ class PlantsModel(
         data: The data object to be used in the model.
         core_components: The core components used across models.
         flora: A Flora instance of the plant functional types to be used in the model.
-        constants: Set of constants for the plants model.
+        model_constants: Set of constants for the plants model.
     """
 
     # TODO - think about a shared "plant cohort" core axis that defines the cohort
