@@ -23,11 +23,12 @@ from math import sqrt
 from typing import Any
 
 from numpy import array, timedelta64
-from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
@@ -52,22 +53,23 @@ class AnimalModel(
 
     Args:
         data: The data object to be used in the model.
-        update_interval: Time to wait between updates of the model state.
+        core_components: The core components used across models.
         functional_groups: The list of animal functional groups present in the
-            simulation
+            simulation.
+        model_constants: Set of constants for the animal model.
     """
 
     def __init__(
         self,
         data: Data,
-        update_interval: Quantity,
+        core_components: CoreComponents,
         functional_groups: list[FunctionalGroup],
-        constants: AnimalConsts = AnimalConsts(),
+        model_constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(data=data, core_components=core_components, **kwargs)
 
-        days_as_float = self.update_interval.to("days").magnitude
+        days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
         """Convert pint update_interval to timedelta64 once during initialization."""
 
@@ -76,7 +78,7 @@ class AnimalModel(
 
         self.communities: dict[int, AnimalCommunity] = {}
         """Set empty dict for populating with communities."""
-        self.constants = constants
+        self.model_constants = model_constants
         """Animal constants."""
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -122,7 +124,7 @@ class AnimalModel(
                 community_key=k,
                 neighbouring_keys=list(self.data.grid.neighbours[k]),
                 get_destination=self.get_community_by_key,
-                constants=self.constants,
+                constants=self.model_constants,
             )
             for k in self.data.grid.cell_id
         }
@@ -134,7 +136,7 @@ class AnimalModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
@@ -144,24 +146,29 @@ class AnimalModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_components: The core components used across models.
             config: A validated Virtual Rainforest model configuration object.
-            update_interval: Frequency with which all models are updated
         """
 
-        # Find timing details
+        # Load in the relevant constants
+        model_constants = load_constants(config, "plants", "PlantsConsts")
 
-        functional_groups_raw = config["animals"]["functional_groups"]
-
-        animal_functional_groups = [
-            FunctionalGroup(**k, constants=AnimalConsts())
-            for k in functional_groups_raw
+        # Load functional groups
+        functional_groups = [
+            FunctionalGroup(**k, constants=model_constants)
+            for k in config["animals"]["functional_groups"]
         ]
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(data, update_interval, animal_functional_groups)
+        return cls(
+            data=data,
+            core_components=core_components,
+            functional_groups=functional_groups,
+            model_constants=model_constants,
+        )
 
     def setup(self) -> None:
         """Function to set up the animal model."""
@@ -223,11 +230,13 @@ class AnimalModel(
 
         return {
             "decomposed_excrement": DataArray(
-                array(decomposed_excrement) / self.update_interval.to("days").magnitude,
+                array(decomposed_excrement)
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
                 dims="cell_id",
             ),
             "decomposed_carcasses": DataArray(
-                array(decomposed_carcasses) / self.update_interval.to("days").magnitude,
+                array(decomposed_carcasses)
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
                 dims="cell_id",
             ),
         }
