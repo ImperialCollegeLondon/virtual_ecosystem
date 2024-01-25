@@ -118,12 +118,12 @@ class AbioticSimpleModel(
         # create soil temperature array
         self.data["soil_temperature"] = DataArray(
             np.full(
-                (len(self.layer_structure.layer_roles), self.data.grid.n_cells),
+                (self.layer_structure.n_layers, self.data.grid.n_cells),
                 np.nan,
             ),
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, len(self.layer_structure.layer_roles)),
+                "layers": np.arange(0, self.layer_structure.n_layers),
                 "layer_roles": ("layers", self.layer_structure.layer_roles),
                 "cell_id": self.data.grid.cell_id,
             },

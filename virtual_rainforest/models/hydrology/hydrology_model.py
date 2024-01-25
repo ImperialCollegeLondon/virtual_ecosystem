@@ -187,8 +187,7 @@ class HydrologyModel(
         soil_moisture_values = np.repeat(
             a=[np.nan, self.initial_soil_moisture],
             repeats=[
-                len(self.layer_structure.layer_roles)
-                - len(self.layer_structure.soil_layers),
+                self.layer_structure.n_layers - len(self.layer_structure.soil_layers),
                 len(self.layer_structure.soil_layers),
             ],
         )
@@ -196,11 +195,11 @@ class HydrologyModel(
         self.data["soil_moisture"] = DataArray(
             np.broadcast_to(
                 soil_moisture_values,
-                (self.data.grid.n_cells, len(self.layer_structure.layer_roles)),
+                (self.data.grid.n_cells, self.layer_structure.n_layers),
             ).T,
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(len(self.layer_structure.layer_roles)),
+                "layers": np.arange(self.layer_structure.n_layers),
                 "layer_roles": ("layers", self.layer_structure.layer_roles),
                 "cell_id": self.data.grid.cell_id,
             },
@@ -594,7 +593,7 @@ class HydrologyModel(
                     (
                         np.full(
                             (
-                                len(self.layer_structure.layer_roles)
+                                self.layer_structure.n_layers
                                 - self.layer_structure.layer_roles.count("soil"),
                                 self.data.grid.n_cells,
                             ),
