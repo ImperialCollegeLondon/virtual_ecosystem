@@ -100,7 +100,7 @@ class HydrologyModel(
         # Sanity checks for initial soil moisture and initial_groundwater_saturation
         for attr, value in (
             ("initial_soil_moisture", initial_soil_moisture),
-            ("'initial_groundwater_saturation", initial_groundwater_saturation),
+            ("initial_groundwater_saturation", initial_groundwater_saturation),
         ):
             if not isinstance(value, (float, int)):
                 to_raise = InitialisationError(f"The {attr} must be numeric!")
@@ -684,7 +684,7 @@ def setup_hydrology_input_current_timestep(
     time_index: int,
     days: int,
     seed: None | int,
-    layer_roles: tuple[str, ...],
+    layer_roles: list[str],
     soil_moisture_capacity: float,
     soil_moisture_residual: float,
     meters_to_mm: float,

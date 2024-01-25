@@ -188,7 +188,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         raise InitialisationError(msg)
 
     # Define the layers
-    layer_shape = (len(layer_structure.layer_roles), data.grid.n_cells)
+    layer_shape = (layer_structure.n_layers, data.grid.n_cells)
 
     for each_layer_name in layers_to_create:
         # Set the layers
@@ -196,7 +196,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
             data=np.full(layer_shape, fill_value=np.nan),
             dims=("layers", "cell_id"),
             coords={
-                "layers": np.arange(len(layer_structure.layer_roles)),
+                "layers": np.arange(layer_structure.n_layers),
                 "layer_roles": ("layers", layer_structure.layer_roles),
                 "cell_id": data.grid.cell_id,
             },

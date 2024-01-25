@@ -37,7 +37,7 @@ and matter in the system. This will be implemented at a later stage.
 
 def run_microclimate(
     data: Data,
-    layer_roles: tuple[str, ...],
+    layer_roles: list[str],
     time_index: int,  # could be datetime?
     constants: AbioticSimpleConsts,
     Bounds: dict[str, float] = Bounds,
@@ -165,7 +165,7 @@ def log_interpolation(
     data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
-    layer_roles: tuple[str, ...],
+    layer_roles: list[str],
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,

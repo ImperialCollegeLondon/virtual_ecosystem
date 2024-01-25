@@ -193,7 +193,7 @@ class LayerStructure:
     """The height above ground used to represent surface conditions."""
     subcanopy_layer_height: float = field(init=False)
     """The height above ground used to represent subcanopy conditions."""
-    layer_roles: tuple[str, ...] = field(init=False)
+    layer_roles: list[str] = field(init=False)
     """An tuple of the roles of the vertical layers within the model from top to
     bottom."""
     n_layers: int = field(init=False)
@@ -270,7 +270,7 @@ class LayerStructure:
             else:
                 setattr(self, attr, value)
 
-        self.layer_roles = tuple(
+        self.layer_roles = (
             ["above"]
             + ["canopy"] * int(canopy_layers)
             + ["subcanopy"]
