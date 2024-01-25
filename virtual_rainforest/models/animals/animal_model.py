@@ -151,7 +151,7 @@ class AnimalModel(
         """
 
         # Load in the relevant constants
-        model_constants = load_constants(config, "plants", "PlantsConsts")
+        model_constants = load_constants(config, "animals", "AnimalConsts")
 
         # Load functional groups
         functional_groups = [
