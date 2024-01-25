@@ -194,7 +194,10 @@ class LayerStructure:
     subcanopy_layer_height: float = field(init=False)
     """The height above ground used to represent subcanopy conditions."""
     layer_roles: tuple[str, ...] = field(init=False)
-    """An ordered tuple giving the roles of the layers within the model."""
+    """An tuple of the roles of the vertical layers within the model from top to
+    bottom."""
+    n_layers: int = field(init=False)
+    """The total number of vertical layers in the model."""
     config: InitVar[Config]
     """A validated model configuration."""
 
@@ -274,5 +277,7 @@ class LayerStructure:
             + ["surface"]
             + ["soil"] * len(soil_layers)
         )
+
+        self.n_layers = len(self.layer_roles)
 
         LOGGER.info("Layer structure built from model configuration")

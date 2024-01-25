@@ -53,6 +53,7 @@ ALTERNATE_CANOPY = (
                 "surface_layer_height": 0.1,
                 "subcanopy_layer_height": 1.5,
                 "layer_roles": DEFAULT_CANOPY,
+                "n_layers": 15,
             },
             {
                 "start_time": np.datetime64("2013-01-01"),
@@ -87,6 +88,7 @@ ALTERNATE_CANOPY = (
                 "surface_layer_height": 0.2,
                 "subcanopy_layer_height": 1.2,
                 "layer_roles": ALTERNATE_CANOPY,
+                "n_layers": 9,
             },
             {
                 "start_time": np.datetime64("2020-01-01"),
