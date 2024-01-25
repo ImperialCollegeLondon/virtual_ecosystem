@@ -93,6 +93,7 @@ import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -112,8 +113,9 @@ class BaseModel(ABC):
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance containing
             variables to be used in the model.
-        start_time: Point in time that the model simulation should be started.
-        update_interval: Time to wait between updates of the model state.
+        core_components: A
+            :class:`~virtual_rainforest.core.core_components.CoreComponents`
+            instance containing shared core elements used throughout models.
     """
 
     model_name: str
@@ -158,7 +160,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
-        update_interval: pint.Quantity,
+        core_components: CoreComponents,
         **kwargs: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
@@ -176,7 +178,9 @@ class BaseModel(ABC):
         """
         self.data = data
         """A Data instance providing access to the shared simulation data."""
-        self.update_interval = self._check_update_speed(update_interval)
+        self.update_interval = self._check_update_speed(
+            core_components.model_timing.update_interval
+        )
         """The time interval between model updates."""
         self._repr = ["update_interval"]
         """A list of attributes to be included in the class __repr__ output"""
@@ -207,7 +211,7 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: pint.Quantity
+        cls, data: Data, config: Config, core_components: CoreComponents
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
