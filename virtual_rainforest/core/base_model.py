@@ -93,7 +93,12 @@ import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.core_components import CoreComponents
+from virtual_rainforest.core.constants import CoreConsts
+from virtual_rainforest.core.core_components import (
+    CoreComponents,
+    LayerStructure,
+    ModelTiming,
+)
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -176,12 +181,14 @@ class BaseModel(ABC):
           to confirm that the required variables for the model are present in the
           :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
         """
-        self.data = data
+        self.data: Data = data
         """A Data instance providing access to the shared simulation data."""
-        self.update_interval = self._check_update_speed(
-            core_components.model_timing.update_interval
-        )
-        """The time interval between model updates."""
+        self.model_timing: ModelTiming = core_components.model_timing
+        """The ModelTiming details used in the model."""
+        self.layer_structure: LayerStructure = core_components.layer_structure
+        """The LayerStructure details used in the model."""
+        self.core_constants: CoreConsts = core_components.core_constants
+        """The core constants used in the model."""
         self._repr = ["update_interval"]
         """A list of attributes to be included in the class __repr__ output"""
 
@@ -211,7 +218,7 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, config: Config, core_components: CoreComponents
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

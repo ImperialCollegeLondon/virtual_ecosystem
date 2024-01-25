@@ -14,7 +14,7 @@ from pint import Quantity
 from pint.errors import DimensionalityError, UndefinedUnitError
 
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -34,7 +34,7 @@ class CoreComponents:
     """The vertical layer structure for the simulation."""
     model_timing: ModelTiming = field(init=False)
     """The model timing details for the simulation."""
-    core_constants: ConstantsDataclass = field(init=False)
+    core_constants: CoreConsts = field(init=False)
     """The core constants definitions for the simulation"""
     config: InitVar[Config]
     """A validated model configuration."""
