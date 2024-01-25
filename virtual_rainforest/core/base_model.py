@@ -20,12 +20,19 @@ The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides d
 implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
 and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
 
+Declaring new subclasses
+------------------------
+
 The :class:`~virtual_rainforest.core.base_model.BaseModel` has four class attributes
-that must be specified as arguments to the subclass definition:
+that must be specified as arguments to the subclass declaration:
 :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name`,
 :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`,
 :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds` and
-:attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`.
+:attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`. This behaviour is
+defined in the :meth:`BaseModel.__init_subclass__()
+<virtual_rainforest.core.base_model.BaseModel.__init_subclass__>` method, which also
+gives example code for declaring a new subclass.
+
 The usage of these four attributes is described in their docstrings and each is
 validated when a new subclass is created using the following private methods of the
 class:
@@ -46,9 +53,10 @@ The ``BaseModel.__init__`` method
 ----------------------------------
 
 Each model subclass will include an ``__init__`` method that validates and populates
-model specific attributes. That ``__init__`` method **must** call the ``BaseModel``
-:meth:`~virtual_rainforest.core.base_model.BaseModel.__init__` method, as this populates
-core shared model attrributes - see the linked method description for details.
+model specific attributes. That ``__init__`` method **must** call the
+:meth:`BaseModel.__init__() <virtual_rainforest.core.base_model.BaseModel.__init__>`
+method, as this populates core shared model attrributes - see the linked method
+description for details.
 
 .. code-block:: python
 
@@ -170,11 +178,25 @@ class BaseModel(ABC):
     ):
         """Performs core initialisation for BaseModel subclasses.
 
-        This method should be called by the ``__init__`` method of all subclasses. It
-        populates a set of core model attributes from the provided
-        :class:`~virtual_rainforest.core.core_components.CoreComponents` instance and
-        then uses the
-        :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data` to
+        This method **must** be called in the ``__init__`` method of all subclasses.
+
+        It populates a set of shared instance attributes from the provided
+        :class:`~virtual_rainforest.core.core_components.CoreComponents` and
+        :class:`~virtual_rainforest.core.data.Data` value:
+
+        * ``data``: the provided :class:`~virtual_rainforest.core.data.Data` instance,
+        * ``model_timing``: the
+          :class:`~virtual_rainforest.core.core_components.ModelTiming` instance from
+          the ``core_components`` argument.
+        * ``layer_structure``: the
+          :class:`~virtual_rainforest.core.core_components.LayerStructure` instance from
+          the ``core_components`` argument.
+        * ``core_constants``: the
+          :class:`~virtual_rainforest.core.constants.CoreConsts` instance from
+          the ``core_components`` argument.
+
+        It then uses the
+        :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data` method to
         confirm that the required variables for the model are present in the provided
         :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
         """
