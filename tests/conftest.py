@@ -298,7 +298,10 @@ def dummy_carbon_data(fixture_core_components):
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", fixture_core_components.layer_roles),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -314,7 +317,10 @@ def dummy_carbon_data(fixture_core_components):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", fixture_core_components.layer_roles),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -334,7 +340,10 @@ def dummy_carbon_data(fixture_core_components):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", fixture_core_components.layer_roles),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -346,13 +355,13 @@ def dummy_carbon_data(fixture_core_components):
 @pytest.fixture
 def top_soil_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return fixture_core_components.layer_roles.index("soil")
+    return fixture_core_components.layer_structure.layer_roles.index("soil")
 
 
 @pytest.fixture
 def surface_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return fixture_core_components.layer_roles.index("surface")
+    return fixture_core_components.layer_structure.layer_roles.index("surface")
 
 
 @pytest.fixture
