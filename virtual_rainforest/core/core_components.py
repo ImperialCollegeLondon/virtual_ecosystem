@@ -209,7 +209,7 @@ class LayerStructure:
         lyr_config = config["core"]["layers"]
 
         # Validate configuration
-        self.canopy_layers = _validate_canopy_layers(lyr_config["canopy_layers"])
+        self.canopy_layers = _validate_positive_integer(lyr_config["canopy_layers"])
         self.soil_layers = _validate_soil_layers(lyr_config["soil_layers"])
 
         # Other heights should all be positive floats
@@ -218,14 +218,7 @@ class LayerStructure:
             ("surface_layer_height", lyr_config["surface_layer_height"]),
             ("subcanopy_layer_height", lyr_config["subcanopy_layer_height"]),
         ):
-            if not isinstance(value, (float, int)) or value < 0:
-                to_raise = ConfigurationError(
-                    f"The {attr} value must be a positive float."
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
-            else:
-                setattr(self, attr, value)
+            setattr(self, attr, _validate_positive_finite_numeric(value, attr))
 
         self.layer_roles = tuple(
             ["above"]
@@ -238,13 +231,14 @@ class LayerStructure:
         LOGGER.info("Layer structure built from model configuration")
 
 
-def _validate_canopy_layers(canopy_layers: int) -> int:
-    """Validation function for canopy layer configuration setting."""
+def _validate_positive_integer(value: float | int) -> int:
+    """Validation function for positive integer values including integer floats."""
 
+    # Note that float.is_integer() traps np.infty and np.nan, both of which are floats
     if (
-        not isinstance(canopy_layers, int)
-        and not (isinstance(canopy_layers, float) and canopy_layers.is_integer())
-        and canopy_layers < 1
+        (not isinstance(value, (float, int)))
+        or (isinstance(value, int) and value < 1)
+        or (isinstance(value, float) and (not value.is_integer() or value < 1))
     ):
         to_raise = ConfigurationError(
             "The number of canopy layers is not a positive integer."
@@ -252,11 +246,15 @@ def _validate_canopy_layers(canopy_layers: int) -> int:
         LOGGER.error(to_raise)
         raise to_raise
 
-    return canopy_layers
+    return int(value)
 
 
 def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
     """Validation function for soil layer configuration setting."""
+
+    # NOTE - this could become a validate_decreasing_negative_numerics() if we ever
+    #        needed that more widely.
+
     if not isinstance(soil_layers, list) or len(soil_layers) < 1:
         to_raise = ConfigurationError(
             "The soil layers must be a non-empty list of layer depths."
@@ -278,3 +276,19 @@ def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
         raise to_raise
 
     return soil_layers
+
+
+def _validate_positive_finite_numeric(value: float | int, label: str) -> float | int:
+    """Validation function for positive numeric values."""
+
+    if (
+        not isinstance(value, (float, int))
+        or np.isinf(value)
+        or np.isnan(value)
+        or value < 0
+    ):
+        to_raise = ConfigurationError(f"The {label} value must be a positive numeric.")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    return value

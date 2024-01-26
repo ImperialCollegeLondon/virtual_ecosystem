@@ -275,3 +275,66 @@ def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
         )
 
     log_check(caplog=caplog, expected_log=expected_log_entries)
+
+
+@pytest.mark.parametrize(
+    argnames="value, raises",
+    argvalues=[
+        (1, does_not_raise()),
+        (1.23, does_not_raise()),
+        (np.infty, pytest.raises(ConfigurationError)),
+        (np.nan, pytest.raises(ConfigurationError)),
+        (-9, pytest.raises(ConfigurationError)),
+        (-9.5, pytest.raises(ConfigurationError)),
+        ("h", pytest.raises(ConfigurationError)),
+        ([1], pytest.raises(ConfigurationError)),
+    ],
+)
+def test__validate_positive_finite_numeric(value, raises):
+    """Testing private validation function."""
+    from virtual_rainforest.core.core_components import (
+        _validate_positive_finite_numeric,
+    )
+
+    with raises:
+        _validate_positive_finite_numeric(value, "label")
+
+
+@pytest.mark.parametrize(
+    argnames="value, raises",
+    argvalues=[
+        (10, does_not_raise()),
+        (1.23, pytest.raises(ConfigurationError)),
+        (np.infty, pytest.raises(ConfigurationError)),
+        (np.nan, pytest.raises(ConfigurationError)),
+        (-9, pytest.raises(ConfigurationError)),
+        (-9.5, pytest.raises(ConfigurationError)),
+        ("h", pytest.raises(ConfigurationError)),
+        ([1], pytest.raises(ConfigurationError)),
+    ],
+)
+def test__validate_positive_integer(value, raises):
+    """Testing private validation function."""
+    from virtual_rainforest.core.core_components import _validate_positive_integer
+
+    with raises:
+        _validate_positive_integer(value)
+
+
+@pytest.mark.parametrize(
+    argnames="value, raises",
+    argvalues=[
+        (1, pytest.raises(ConfigurationError)),
+        ("h", pytest.raises(ConfigurationError)),
+        ([1], pytest.raises(ConfigurationError)),
+        ([-1], does_not_raise()),
+        ([-1, -0.5], pytest.raises(ConfigurationError)),
+        ([-0.5, -1.5], does_not_raise()),
+    ],
+)
+def test__validate_soil_layers(value, raises):
+    """Testing private validation function."""
+    from virtual_rainforest.core.core_components import _validate_soil_layers
+
+    with raises:
+        _validate_soil_layers(value)
