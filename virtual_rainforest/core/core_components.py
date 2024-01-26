@@ -96,15 +96,13 @@ class ModelTiming:
         # NOTE: some of this is also trapped by validation against the core schema.
         # Start date from string to np.datetime64
         try:
-            start_time = np.datetime64(timing["start_date"])
+            self.start_time = np.datetime64(timing["start_date"])
         except ValueError:
             to_raise = ConfigurationError(
                 f"Cannot parse start_date: {timing['start_date']}"
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        self.start_time = start_time
 
         # Handle conversion of strings to time quantities
         for attr in ("run_length", "update_interval"):
@@ -134,7 +132,7 @@ class ModelTiming:
         # intervals to exceed the requested run length and calculate the actual run
         # length
         self.end_time = (
-            start_time
+            self.start_time
             + np.ceil(self.run_length / self.update_interval) * self.update_interval
         )
         self.reconciled_run_length = self.end_time - self.start_time
