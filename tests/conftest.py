@@ -398,7 +398,7 @@ def new_axis_validators():
 
 
 @pytest.fixture
-def dummy_climate_data(layer_roles_fixture):
+def dummy_climate_data(fixture_core_components):
     """Creates a dummy climate data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
@@ -445,7 +445,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="evapotranspiration",
@@ -456,7 +459,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="leaf_area_index",
@@ -471,7 +477,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="layer_heights",
@@ -502,7 +511,10 @@ def dummy_climate_data(layer_roles_fixture):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -533,7 +545,10 @@ def dummy_climate_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -563,7 +578,10 @@ def dummy_climate_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
