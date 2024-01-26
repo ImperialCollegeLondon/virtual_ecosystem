@@ -7,9 +7,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR
 from typing import Any
 
-import pint
 import pytest
-from numpy import datetime64, timedelta64
 
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
@@ -276,7 +274,7 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
         assert str(err.value) == exp_msg
 
 
-def test_check_failure_on_missing_methods(data_instance):
+def test_check_failure_on_missing_methods(data_instance, fixture_core_components):
     """Test that a model without methods raises an error.
 
     The two properties get caught earlier, when __init_subclass__ runs, but missing
@@ -294,11 +292,7 @@ def test_check_failure_on_missing_methods(data_instance):
         pass
 
     with pytest.raises(TypeError) as err:
-        inst = InitVarModel(  # noqa: F841
-            data=data_instance,
-            update_interval=timedelta64(1, "W"),
-            start_time=datetime64("2022-11-01"),
-        )
+        _ = InitVarModel(data=data_instance, core_components=fixture_core_components)
 
     assert (
         str(err.value) == "Can't instantiate abstract class InitVarModel with "
@@ -353,7 +347,13 @@ def test_check_failure_on_missing_methods(data_instance):
     ],
 )
 def test_check_required_init_vars(
-    caplog, data_instance, req_init_vars, raises, exp_err_msg, exp_log
+    caplog,
+    data_instance,
+    fixture_core_components,
+    req_init_vars,
+    raises,
+    exp_err_msg,
+    exp_log,
 ):
     """Tests the validation of the required_init_vars property on init."""
 
@@ -363,6 +363,7 @@ def test_check_required_init_vars(
 
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.core.data import Data
 
     class TestCaseModel(
@@ -386,9 +387,14 @@ def test_check_required_init_vars(
 
         @classmethod
         def from_config(
-            cls, data: Data, config: Config, update_interval: pint.Quantity
+            cls,
+            data: Data,
+            core_components: CoreComponents,
+            config: Config,
         ) -> Any:
-            return super().from_config(data, config, update_interval)
+            return super().from_config(
+                data=data, core_components=core_components, config=config
+            )
 
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
@@ -398,10 +404,9 @@ def test_check_required_init_vars(
 
     # Create an instance to check the handling
     with raises as err:
-        inst = TestCaseModel(  # noqa: F841
+        inst = TestCaseModel(
             data=data_instance,
-            update_interval=pint.Quantity("1 week"),
-            start_time=datetime64("2022-11-01"),
+            core_components=fixture_core_components,
         )
 
     if err:
@@ -416,67 +421,64 @@ def test_check_required_init_vars(
 
 
 @pytest.mark.parametrize(
-    argnames=["config", "raises", "timestep", "expected_log"],
+    argnames=["config_string", "raises", "expected_log"],
     argvalues=[
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 month",
-                    }
-                },
-            },
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "1 month"
+            """,
             does_not_raise(),
-            pint.Quantity("1 month"),
             (),
+            id="correct 1",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "1 day",
-                    }
-                },
-            },
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "1 day"
+            """,
             does_not_raise(),
-            pint.Quantity("1 day"),
             (),
+            id="correct 2",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "30 minutes",
-                    }
-                },
-            },
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "30 minutes"
+            """,
             pytest.raises(ConfigurationError),
-            None,
-            ((ERROR, "The update interval is faster than the model update bounds."),),
+            (
+                (
+                    ERROR,
+                    "The update interval is faster than the timing_test "
+                    "lower bound of 1 day.",
+                ),
+            ),
+            id="too fast",
         ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "3 months",
-                    }
-                },
-            },
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "3 months"
+            """,
             pytest.raises(ConfigurationError),
-            None,
-            ((ERROR, "The update interval is slower than the model update bounds."),),
+            (
+                (
+                    ERROR,
+                    "The update interval is slower than the timing_test upper "
+                    "bound of 1 month.",
+                ),
+            ),
+            id="too slow",
         ),
     ],
 )
-def test_check_update_speed(caplog, config, raises, timestep, expected_log):
+def test_check_update_speed(caplog, config_string, raises, expected_log):
     """Tests check on update speed."""
 
     from virtual_rainforest.core.base_model import BaseModel
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.core.data import Data
 
     class TimingTestModel(
@@ -500,19 +502,21 @@ def test_check_update_speed(caplog, config, raises, timestep, expected_log):
 
         @classmethod
         def from_config(
-            cls, data: Data, config: Config, update_interval: pint.Quantity
+            cls,
+            data: Data,
+            core_components: CoreComponents,
+            config: Config,
         ) -> Any:
-            return super().from_config(data, config, update_interval)
+            return super().from_config(
+                data=data, core_components=core_components, config=config
+            )
 
-    # Registration of TestClassModel emits logging messages - discard.
+    config = Config(cfg_strings=config_string)
+    core_components = CoreComponents(config=config)
+    # Clear model registration and configuration messages
     caplog.clear()
 
     with raises:
-        inst = TimingTestModel(
-            data=data_instance,
-            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
-            start_time=datetime64(config["core"]["timing"]["start_date"]),
-        )
-        assert inst.update_interval == timestep
+        _ = TimingTestModel(data=data_instance, core_components=core_components)
 
     log_check(caplog, expected_log)

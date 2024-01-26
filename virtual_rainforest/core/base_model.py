@@ -401,18 +401,18 @@ class BaseModel(ABC):
         """
 
         # Check if either bound is violated
-        if self.model_timing.update_interval < self.model_update_bounds[0]:
+        if self.model_timing.update_interval_quantity < self.model_update_bounds[0]:
             to_raise = ConfigurationError(
                 f"The update interval is faster than the {self.model_name} "
-                f"update bounds of {self.model_update_bounds[0]}."
+                f"lower bound of {self.model_update_bounds[0]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
 
-        if self.model_timing.update_interval > self.model_update_bounds[1]:
+        if self.model_timing.update_interval_quantity > self.model_update_bounds[1]:
             to_raise = ConfigurationError(
                 f"The update interval is slower than the {self.model_name} "
-                f"update bounds of {self.model_update_bounds[1]}."
+                f"upper bound of {self.model_update_bounds[1]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
