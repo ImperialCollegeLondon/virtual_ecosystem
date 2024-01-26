@@ -209,21 +209,7 @@ class LayerStructure:
         lyr_config = config["core"]["layers"]
 
         # Validate contents
-        # NOTE: some of this is also trapped by validation against the core schema.
-        # Canopy layers
-        canopy_layers = lyr_config["canopy_layers"]
-        if (
-            not isinstance(canopy_layers, int)
-            and not (isinstance(canopy_layers, float) and canopy_layers.is_integer())
-            and canopy_layers < 1
-        ):
-            to_raise = ConfigurationError(
-                "The number of canopy layers is not a positive integer."
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        self.canopy_layers = canopy_layers
+        self.canopy_layers = _validate_canopy_layers(lyr_config["canopy_layers"])
 
         # Soil layers
         soil_layers = lyr_config["soil_layers"]
@@ -267,10 +253,27 @@ class LayerStructure:
 
         self.layer_roles = tuple(
             ["above"]
-            + ["canopy"] * int(canopy_layers)
+            + ["canopy"] * int(self.canopy_layers)
             + ["subcanopy"]
             + ["surface"]
             + ["soil"] * len(soil_layers)
         )
 
         LOGGER.info("Layer structure built from model configuration")
+
+
+def _validate_canopy_layers(canopy_layers: int) -> int:
+    """Validation function for canopy layer configuration setting."""
+
+    if (
+        not isinstance(canopy_layers, int)
+        and not (isinstance(canopy_layers, float) and canopy_layers.is_integer())
+        and canopy_layers < 1
+    ):
+        to_raise = ConfigurationError(
+            "The number of canopy layers is not a positive integer."
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    return canopy_layers
