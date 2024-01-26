@@ -213,6 +213,8 @@ class BaseModel(ABC):
 
         # Check the required init variables
         self.check_init_data()
+        # Check the configured update interval is within model bounds
+        self._check_update_speed()
 
     @abstractmethod
     def setup(self) -> None:
@@ -390,15 +392,8 @@ class BaseModel(ABC):
 
         return model_update_bounds_pint
 
-    def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
-        """Function to check that the update speed of a specific model is within bounds.
-
-        Args:
-            update_interval: A :class:`pint.Quantity` giving the update interval for the
-                model.
-
-        Returns:
-            The update interval for the overall model
+    def _check_update_speed(self) -> None:
+        """Method to check that the configure update speed is within the model bounds.
 
         Raises:
             ConfigurationError: If the update interval does not fit with the model's
@@ -406,21 +401,21 @@ class BaseModel(ABC):
         """
 
         # Check if either bound is violated
-        if update_interval < pint.Quantity(self.model_update_bounds[0]):
+        if self.model_timing.update_interval < self.model_update_bounds[0]:
             to_raise = ConfigurationError(
-                "The update interval is faster than the model update bounds."
+                f"The update interval is faster than the {self.model_name} "
+                f"update bounds of {self.model_update_bounds[0]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
 
-        if update_interval > pint.Quantity(self.model_update_bounds[1]):
+        if self.model_timing.update_interval > self.model_update_bounds[1]:
             to_raise = ConfigurationError(
-                "The update interval is slower than the model update bounds."
+                f"The update interval is slower than the {self.model_name} "
+                f"update bounds of {self.model_update_bounds[1]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        return update_interval
 
     @classmethod
     def _check_vars_updated(cls, vars_updated: tuple[str, ...]) -> tuple[str, ...]:
