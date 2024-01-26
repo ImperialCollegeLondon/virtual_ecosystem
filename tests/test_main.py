@@ -7,7 +7,6 @@ defined in main.py that it calls.
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
-import pint
 import pytest
 
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
@@ -15,69 +14,64 @@ from virtual_rainforest.main import vr_run
 
 from .conftest import log_check
 
+INITIALISATION_LOG = [
+    (INFO, "Initialising models: soil"),
+    (INFO, "Initialised soil.SoilConsts from config"),
+    (
+        INFO,
+        "Information required to initialise the soil model successfully extracted.",
+    ),
+    (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+    (DEBUG, "soil model: required var 'pH' checked"),
+    (DEBUG, "soil model: required var 'bulk_density' checked"),
+    (DEBUG, "soil model: required var 'clay_fraction' checked"),
+]
+
 
 @pytest.mark.parametrize(
-    "cfg_strings,update_interval,output,raises,expected_log_entries",
+    "cfg_strings,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("7 days"),
-            "SoilModel(update_interval = 7 day)",
+            '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
+            "SoilModel(update_interval=604800 seconds)",
             does_not_raise(),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-                (DEBUG, "soil model: required var 'pH' checked"),
-                (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'clay_fraction' checked"),
-            ),
+            tuple(INITIALISATION_LOG),
             id="valid config",
         ),
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("1 minute"),
+            '[core.timing]\nupdate_interval = "1 minute"\n[soil]\n',
             None,
             pytest.raises(InitialisationError),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (ERROR, "The update interval is faster than the model update bounds."),
-                (CRITICAL, "Configuration failed for models: soil"),
+            tuple(
+                INITIALISATION_LOG
+                + [
+                    (
+                        ERROR,
+                        "The update interval is faster than the soil "
+                        "lower bound of 30 minute.",
+                    ),
+                    (CRITICAL, "Configuration failed for models: soil"),
+                ],
             ),
             id="update interval too short",
         ),
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("1 year"),
+            '[core.timing]\nupdate_interval = "1 year"\n[soil]\n',
             None,
             pytest.raises(InitialisationError),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (ERROR, "The update interval is slower than the model update bounds."),
-                (CRITICAL, "Configuration failed for models: soil"),
+            tuple(
+                INITIALISATION_LOG
+                + [
+                    (
+                        ERROR,
+                        "The update interval is slower than the soil "
+                        "upper bound of 3 month.",
+                    ),
+                    (CRITICAL, "Configuration failed for models: soil"),
+                ],
             ),
             id="update interval too long",
         ),
@@ -87,7 +81,6 @@ def test_initialise_models(
     caplog,
     dummy_carbon_data,
     cfg_strings,
-    update_interval,
     output,
     raises,
     expected_log_entries,
@@ -95,19 +88,21 @@ def test_initialise_models(
     """Test the function that initialises the models."""
 
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
     config = Config(cfg_strings=cfg_strings)
+    core_components = CoreComponents(config)
     caplog.clear()
 
     with raises:
         models = initialise_models(
             config=config,
             data=dummy_carbon_data,
+            core_components=core_components,
             models=config.model_classes,
-            update_interval=update_interval,
         )
 
         if output is None:
@@ -139,9 +134,8 @@ def test_initialise_models(
             """,
             (
                 (
-                    CRITICAL,
-                    "Units for core.timing.update_interval are not valid time units: "
-                    "0.5 martian days",
+                    ERROR,
+                    "Invalid units for core.timing.update_interval: 0.5 martian days",
                 ),
             ),
             id="bad_config_data_one",
@@ -156,7 +150,7 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     schema validation.
     """
 
-    with pytest.raises(InitialisationError):
+    with pytest.raises(ConfigurationError):
         vr_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
