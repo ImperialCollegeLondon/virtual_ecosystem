@@ -208,33 +208,9 @@ class LayerStructure:
 
         lyr_config = config["core"]["layers"]
 
-        # Validate contents
+        # Validate configuration
         self.canopy_layers = _validate_canopy_layers(lyr_config["canopy_layers"])
-
-        # Soil layers
-        soil_layers = lyr_config["soil_layers"]
-
-        if not isinstance(soil_layers, list) or len(soil_layers) < 1:
-            to_raise = ConfigurationError(
-                "The soil layers must be a non-empty list of layer depths."
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if not all([isinstance(v, (float, int)) for v in soil_layers]):
-            to_raise = ConfigurationError("The soil layer depths are not all numeric.")
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        np_soil_layer = np.array(soil_layers)
-        if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
-            to_raise = ConfigurationError(
-                "Soil layer depths must be strictly decreasing and negative."
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        self.soil_layers = soil_layers
+        self.soil_layers = _validate_soil_layers(lyr_config["soil_layers"])
 
         # Other heights should all be positive floats
         for attr, value in (
@@ -256,7 +232,7 @@ class LayerStructure:
             + ["canopy"] * int(self.canopy_layers)
             + ["subcanopy"]
             + ["surface"]
-            + ["soil"] * len(soil_layers)
+            + ["soil"] * len(self.soil_layers)
         )
 
         LOGGER.info("Layer structure built from model configuration")
@@ -277,3 +253,28 @@ def _validate_canopy_layers(canopy_layers: int) -> int:
         raise to_raise
 
     return canopy_layers
+
+
+def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
+    """Validation function for soil layer configuration setting."""
+    if not isinstance(soil_layers, list) or len(soil_layers) < 1:
+        to_raise = ConfigurationError(
+            "The soil layers must be a non-empty list of layer depths."
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    if not all([isinstance(v, (float, int)) for v in soil_layers]):
+        to_raise = ConfigurationError("The soil layer depths are not all numeric.")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    np_soil_layer = np.array(soil_layers)
+    if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
+        to_raise = ConfigurationError(
+            "Soil layer depths must be strictly decreasing and negative."
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    return soil_layers
