@@ -195,11 +195,6 @@ class AbioticConsts(ConstantsDataclass):
     stomatal_resistance: float = 200.0
     """Default stomatal resistance, [s m2 mumol-1]."""
 
-    soil_surface_heat_transfer_coefficient: float = 12.5
-    """Soil surface heat transfer coefficient, default = 12.5
-    :cite:p:`van_de_griend_bare_1994`.
-    """
-
     soil_thermal_conductivity: float = 0.7
     """Soil thermal conductivity, [W m-1 K-1], default = 0.7
     :cite:p:`monteith_principles_1990`.

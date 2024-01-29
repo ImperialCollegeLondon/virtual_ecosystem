@@ -250,14 +250,14 @@ def test_calculate_sensible_heat_flux_soil():
         topsoil_temperature=np.array([295, 290, 285]),
         molar_density_air=np.array([38, 38, 38]),
         specific_heat_air=np.array([29, 29, 29]),
-        wind_speed_surface=0.1,
+        wind_speed_surface=np.array([0.1, 0.1, 0.1]),
         soil_surface_heat_transfer_coefficient=12.5,
     )
-    np.testing.assert_allclose(result, np.array([44.08, 0.0, -44.08]))
+    np.testing.assert_allclose(result, np.array([4.408, 0.0, -4.408]))
 
 
 def test_calculate_latent_heat_flux_from_soil_evaporation():
-    """Test evaporation to latent heat flux conversion."""
+    """Test evaporation to latent heat flux conversion works correctly."""
 
     from virtual_rainforest.models.abiotic.energy_balance import (
         calculate_latent_heat_flux_from_soil_evaporation,

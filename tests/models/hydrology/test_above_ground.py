@@ -45,7 +45,7 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
-        heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
+        heat_transfer_coefficient=HydroConsts.soil_surface_heat_transfer_coefficient,
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),

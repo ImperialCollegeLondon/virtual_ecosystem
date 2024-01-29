@@ -474,7 +474,9 @@ class HydrologyModel(
                 density_air=self.constants.density_air,
                 latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
                 gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
-                heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
+                heat_transfer_coefficient=(
+                    self.constants.soil_surface_heat_transfer_coefficient
+                ),
                 extinction_coefficient_global_radiation=(
                     self.constants.extinction_coefficient_global_radiation
                 ),

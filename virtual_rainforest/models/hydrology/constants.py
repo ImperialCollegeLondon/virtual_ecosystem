@@ -79,8 +79,11 @@ class HydroConsts(ConstantsDataclass):
     gas_constant_water_vapour: float = 461.51
     """Gas constant for water vapour, [J kg-1 K-1]"""
 
-    heat_transfer_coefficient: float = 12.5
-    """Heat transfer coefficient, :cite:p:`van_de_griend_bare_1994` """
+    soil_surface_heat_transfer_coefficient: float = 12.5
+    """Heat transfer coefficient from soil to atmosphere above.
+
+    :cite:p:`van_de_griend_bare_1994`.
+    """
 
     stream_flow_capacity: float = 5000.0
     """Stream flow capacity, [mm per timestep].

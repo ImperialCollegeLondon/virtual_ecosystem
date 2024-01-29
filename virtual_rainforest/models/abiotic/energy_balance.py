@@ -426,7 +426,10 @@ def calculate_sensible_heat_flux_soil(
         Sensible heat flux from topsoil, [W m-2]
     """
 
-    aerodynamic_resistance = soil_surface_heat_transfer_coefficient / wind_speed_surface
+    aerodynamic_resistance = (
+        1 / wind_speed_surface**2
+    ) * soil_surface_heat_transfer_coefficient
+
     return (
         molar_density_air
         * specific_heat_air
