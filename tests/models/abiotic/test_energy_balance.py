@@ -236,3 +236,21 @@ def test_calculate_soil_longwave_emission():
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
     np.testing.assert_allclose(result, np.array([320.843847, 320.843847, 320.843847]))
+
+
+def test_calculate_sensible_heat_flux_soil():
+    """Test sensible heat from soil is calculated correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_sensible_heat_flux_soil,
+    )
+
+    result = calculate_sensible_heat_flux_soil(
+        air_temperature_surface=np.array([290, 290, 290]),
+        topsoil_temperature=np.array([295, 290, 285]),
+        molar_density_air=np.array([38, 38, 38]),
+        specific_heat_air=np.array([29, 29, 29]),
+        wind_speed_surface=0.1,
+        soil_surface_heat_transfer_coefficient=12.5,
+    )
+    np.testing.assert_allclose(result, np.array([44.08, 0.0, -44.08]))

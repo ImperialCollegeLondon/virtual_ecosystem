@@ -404,3 +404,46 @@ def calculate_soil_longwave_emission(
         topsoil longwave emission, [W m-2]
     """
     return soil_emissivity * stefan_boltzmann * topsoil_temperature**4
+
+
+def calculate_sensible_heat_flux_soil(
+    air_temperature_surface: NDArray[np.float32],
+    topsoil_temperature: NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    wind_speed_surface: NDArray[np.float32],
+    soil_surface_heat_transfer_coefficient: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    r"""Calculate sensible heat flux from soil surface.
+
+    The sensible heat flux from the soil surface is given by:
+
+    :math:`H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}`
+
+    Where :math:`T_{S}` is the soil surface temperature, :math:`T_{b}^{A}` is the
+    temperature of the bottom air layer and :math:`r_{A}` is the aerodynamic resistance
+    of the soil surface, given by
+
+    :math:`r_{A} = \frac {C_{S}}{u_{b}}`
+
+    Where :math:`u_{b}` is the wind speed in the bottom air layer and :math:`C_{S}` is
+    the soil surface heat transfer coefficient.
+
+    Args:
+        air_temperature_surface: Air temperature near the surface, [K]
+        topsoil_temperature: Topsoil temperature, [K]
+        molar_density_air: Molar density of air, [mol m-3]
+        specific_heat_air: Specific heat of air, [J mol-1 K-1]
+        wind_speed_surface: Wind speed near the surface, [m s-1]
+        soil_surface_heat_transfer_coefficient: Soil surface heat transfer coefficient
+
+    Returns:
+        Sensible heat flux from topsoil, [W m-2]
+    """
+
+    aerodynamic_resistance = soil_surface_heat_transfer_coefficient / wind_speed_surface
+    return (
+        molar_density_air
+        * specific_heat_air
+        * (topsoil_temperature - air_temperature_surface)
+    ) / aerodynamic_resistance
