@@ -254,3 +254,17 @@ def test_calculate_sensible_heat_flux_soil():
         soil_surface_heat_transfer_coefficient=12.5,
     )
     np.testing.assert_allclose(result, np.array([44.08, 0.0, -44.08]))
+
+
+def test_calculate_latent_heat_flux_from_soil_evaporation():
+    """Test evaporation to latent heat flux conversion."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_latent_heat_flux_from_soil_evaporation,
+    )
+
+    result = calculate_latent_heat_flux_from_soil_evaporation(
+        soil_evaporation=np.array([0.001, 0.01, 0.1]),
+        latent_heat_vaporisation=2254.0,
+    )
+    np.testing.assert_allclose(result, np.array([2.254, 22.54, 225.4]))

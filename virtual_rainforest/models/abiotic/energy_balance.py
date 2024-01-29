@@ -25,21 +25,6 @@ radiation on leaf temperature. We use a linearisation approach to solve the equa
 leaf temperature and air temperature simultaneously, see
 :cite:t:`maclean_microclimc_2021`.
 
-For soils, the sensible and latent heat fluxes are given by:
-
-:math:`H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}`
-
-:math:`Q_{S} = \frac {\rho_{air} \lambda (q_{*}(T_{b}^{A}) - q_{b}^{A})}{r_{A}}`
-
-Where :math:`T_{S}` is the soil surface temperature, :math:`T_{b}^{A}` and
-:math:`q_{b}^{A}` are the temperature and specific humidity of the bottom air layer and
-:math:`r_{A}` is the aerodynamic resistance of the soil surface, given by
-
-:math:`r_{A} = \frac {C_{S}}{u_{b}}`
-
-Where :math:`u_{b}` is the wind speed in the bottom air layer and :math:`C_{S}` is the
-soil surface heat transfer coefficient.
-
 In the soil, heat storage is almost always significant. Thus, Fourier's Law is combined
 with the continuity equation to obtain a time dependant differential equation that
 describes soil temperature as a function of depth and time. A numerical solution can be
@@ -447,3 +432,22 @@ def calculate_sensible_heat_flux_soil(
         * specific_heat_air
         * (topsoil_temperature - air_temperature_surface)
     ) / aerodynamic_resistance
+
+
+def calculate_latent_heat_flux_from_soil_evaporation(
+    soil_evaporation: NDArray[np.float32],
+    latent_heat_vaporisation: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate latent heat flux from soil evaporation.
+
+    We assume that 1 mm of evaporated water is equivalent to 1 kg of water.
+
+    Args:
+        soil_evaporation: Soil evaporation, [mm]
+        latent_heat_vaporisation: latent heat of vaporisation, [J kg-1]
+
+    Returns:
+        latent heat flux from topsoil, [W m-2]
+    """
+
+    return soil_evaporation * latent_heat_vaporisation
