@@ -265,6 +265,22 @@ def test_calculate_latent_heat_flux_from_soil_evaporation():
 
     result = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=np.array([0.001, 0.01, 0.1]),
-        latent_heat_vaporisation=2254.0,
+        latent_heat_vaporisation=np.array([2254.0, 2254.0, 2254.0]),
     )
     np.testing.assert_allclose(result, np.array([2.254, 22.54, 225.4]))
+
+
+def test_calculate_ground_heat_flux():
+    """Test graound heat flux is calculated correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_ground_heat_flux,
+    )
+
+    result = calculate_ground_heat_flux(
+        soil_absorbed_radiation=np.array([100, 50, 0]),
+        topsoil_longwave_emission=np.array([10, 10, 10]),
+        topsoil_sensible_heat_flux=np.array([10, 10, 10]),
+        topsoil_latent_heat_flux=np.array([10, 10, 10]),
+    )
+    np.testing.assert_allclose(result, np.array([70, 20, -30]))
