@@ -439,7 +439,7 @@ def calculate_sensible_heat_flux_soil(
 
 def calculate_latent_heat_flux_from_soil_evaporation(
     soil_evaporation: NDArray[np.float32],
-    latent_heat_vaporisation: float | NDArray[np.float32],
+    latent_heat_vaporisation: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate latent heat flux from soil evaporation.
 
@@ -454,3 +454,108 @@ def calculate_latent_heat_flux_from_soil_evaporation(
     """
 
     return soil_evaporation * latent_heat_vaporisation
+
+
+def calculate_ground_heat_flux(
+    soil_absorbed_radiation: NDArray[np.float32],
+    topsoil_longwave_emission: NDArray[np.float32],
+    topsoil_sensible_heat_flux: NDArray[np.float32],
+    topsoil_latent_heat_flux: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate ground heat flux.
+
+    Args:
+        absorbed shortwave radiation, [W m-2]
+        emitted longwave radiation, [W m-2]
+        sensible heat flux from topsoil, [W m-2]
+        latent heat flux from topsoil, [W m-2]
+
+    Returns:
+        ground heat flux, [W m-2]
+    """
+
+    return (
+        soil_absorbed_radiation
+        - topsoil_longwave_emission
+        - topsoil_sensible_heat_flux
+        - topsoil_latent_heat_flux
+    )
+
+
+def calculate_soil_heat_balance(
+    soil_temperature: DataArray,
+    air_temperature: DataArray,
+    shortwave_radiation_surface: DataArray,
+    wind_speed: DataArray,
+    soil_evaporation: DataArray,
+    soil_emissivity: float | NDArray[np.float32],
+    surface_albedo: float | NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    soil_surface_heat_transfer_coefficient: float | NDArray[np.float32],
+    stefan_boltzmann: float,
+    latent_heat_vaporisation: NDArray[np.float32],
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate soil heat balance.
+
+    * calculate soil absorption (RN * (1-albedo))
+    * calculate sensible heat flux (convective flux from soil to atmosphere above)
+    * calculate latent heat flux (conversion of soil evaporation)
+    * calculate ground heat flux (conductive flux)
+    * update topsoil temperature
+    """
+
+    output = {}
+    topsoil_layer_index = next(
+        i for i, v in enumerate(soil_temperature.layer_roles) if v == "soil"
+    )
+
+    soil_absorption = calculate_soil_absorption(
+        shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
+        surface_albedo=surface_albedo,
+    )
+    output["soil_absorption"] = soil_absorption
+
+    longwave_emission_soil = calculate_soil_longwave_emission(
+        topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
+        soil_emissivity=soil_emissivity,
+        stefan_boltzmann=stefan_boltzmann,
+    )
+    output["longwave_emission_soil"] = longwave_emission_soil
+
+    sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
+        air_temperature_surface=air_temperature[topsoil_layer_index - 1].to_numpy(),
+        topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
+        molar_density_air=molar_density_air[topsoil_layer_index - 1].to_numpy(),
+        specific_heat_air=specific_heat_air[topsoil_layer_index - 1].to_numpy(),
+        wind_speed_surface=wind_speed[topsoil_layer_index - 1].to_numpy(),
+        soil_surface_heat_transfer_coefficient=soil_surface_heat_transfer_coefficient,
+    )
+    output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
+
+    latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
+        soil_evaporation=soil_evaporation.to_numpy(),
+        latent_heat_vaporisation=(
+            latent_heat_vaporisation[topsoil_layer_index - 1].to_numpy()
+        ),
+    )
+    output["latent_heat_flux_soil"] = latent_heat_flux_soil
+
+    ground_heat_flux = calculate_ground_heat_flux(
+        soil_absorbed_radiation=soil_absorption,
+        topsoil_longwave_emission=longwave_emission_soil,
+        topsoil_sensible_heat_flux=sensible_heat_flux_soil,
+        topsoil_latent_heat_flux=latent_heat_flux_soil,
+    )
+    output["ground_heat_flux"] = ground_heat_flux
+
+    new_topsoil_temperature = (
+        soil_temperature[topsoil_layer_index].to_numpy()
+        - longwave_emission_soil
+        - sensible_heat_flux_soil
+        - latent_heat_flux_soil
+        - ground_heat_flux
+    )
+    output["new_topsoil_temperature"] = new_topsoil_temperature
+
+    return output
