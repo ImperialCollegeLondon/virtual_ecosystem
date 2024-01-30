@@ -269,6 +269,26 @@ def test_calculate_latent_heat_flux_from_soil_evaporation():
     np.testing.assert_allclose(result, np.array([2.254, 22.54, 225.4]))
 
 
+def test_update_surface_temperature():
+    """Test surface temperature with positive and negative radiation flux."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        update_surface_temperature,
+    )
+
+    result = update_surface_temperature(
+        topsoil_temperature=np.array([297, 297, 297]),
+        surface_net_radiation=np.array([100, 0, -100]),
+        surface_layer_depth=np.array([0.1, 0.1, 0.1]),
+        grid_cell_area=100,
+        update_interval=43200,
+        specific_heat_capacity_soil=AbioticConsts.specific_heat_capacity_soil,
+        volume_to_weight_conversion=1000.0,
+    )
+
+    np.testing.assert_allclose(result, np.array([297.00016, 297.0, 296.99984]))
+
+
 def test_calculate_ground_heat_flux():
     """Test graound heat flux is calculated correctly."""
 
@@ -283,3 +303,74 @@ def test_calculate_ground_heat_flux():
         topsoil_latent_heat_flux=np.array([10, 10, 10]),
     )
     np.testing.assert_allclose(result, np.array([70, 20, -30]))
+
+
+def test_calculate_soil_heat_balance(dummy_climate_data):
+    """Test full surface heat balance is run correctly."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_soil_heat_balance,
+    )
+
+    result = calculate_soil_heat_balance(
+        soil_temperature=dummy_climate_data["soil_temperature"],
+        air_temperature=dummy_climate_data["air_temperature"],
+        shortwave_radiation_surface=DataArray(np.array([100, 10, 0])),
+        soil_evaporation=DataArray(np.array([0.001, 0.01, 0.1])),
+        soil_emissivity=AbioticConsts.soil_emissivity,
+        surface_albedo=AbioticConsts.surface_albedo,
+        molar_density_air=DataArray(np.full((15, 3), 38)),
+        specific_heat_air=DataArray(np.full((15, 3), 29)),
+        aerodynamic_resistance_surface=DataArray(np.array([1250.0, 1250.0, 1250.0])),
+        stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
+        latent_heat_vaporisation=DataArray(np.full((15, 3), 2254.0)),
+        surface_layer_depth=np.array([0.1, 0.1, 0.1]),
+        grid_cell_area=100,
+        update_interval=43200,
+        specific_heat_capacity_soil=AbioticConsts.specific_heat_capacity_soil,
+        volume_to_weight_conversion=1000.0,
+    )
+
+    # Check if all variables were created
+    var_list = [
+        "soil_absorption",
+        "longwave_emission_soil",
+        "sensible_heat_flux_soil",
+        "latent_heat_flux_soil",
+        "ground_heat_flux",
+    ]
+
+    variables = [var for var in result if var not in var_list]
+    assert variables
+
+    np.testing.assert_allclose(result["soil_absorption"], np.array([87.5, 8.75, 0.0]))
+    np.testing.assert_allclose(
+        result["longwave_emission_soil"],
+        np.repeat(0.007258, 3),
+        rtol=1e-04,
+        atol=1e-04,
+    )
+    np.testing.assert_allclose(
+        result["sensible_heat_flux_soil"],
+        np.repeat(3.397735, 3),
+        rtol=1e-04,
+        atol=1e-04,
+    )
+    np.testing.assert_allclose(
+        result["latent_heat_flux_soil"],
+        np.array([2.254, 22.54, 225.4]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
+    np.testing.assert_allclose(
+        result["ground_heat_flux"],
+        np.array([81.841, -17.195, -228.805]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
+    np.testing.assert_allclose(
+        result["new_surface_temperature"],
+        np.array([20.0, 20.0, 20.0]),
+        rtol=1e-04,
+        atol=1e-04,
+    )

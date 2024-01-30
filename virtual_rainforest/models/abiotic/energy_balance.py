@@ -43,12 +43,13 @@ where :math:`\Delta t` is the time increment, conductance,
 :math:`\kappa_{i}=k_{i}/(z_{i+1} - z_{i})`,  and superscript :math:`j` indicates the
 time at which temperature is determined. This equation can be re-arranged and solved for
 :math:`T_{j+1}` by Gaussian elimination using the Thomas algorithm.
+
+TODO check equations for consistency re naming
 """  # noqa: D205, D415
 
 import numpy as np
 from numpy.typing import NDArray
-
-# from pint import Quantity
+from pint import Quantity
 from xarray import DataArray
 
 
@@ -381,8 +382,8 @@ def calculate_soil_longwave_emission(
     emissivity as in the Stefan Boltzmann law.
 
     Args:
-        topsoil_temperature: temperature of top soil layer, [K]
-        soil_emissivity: soil emissivity, dimensionless
+        topsoil_temperature: Temperature of top soil layer, [K]
+        soil_emissivity: Soil emissivity, dimensionless
         stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
 
     Returns:
@@ -441,7 +442,7 @@ def calculate_latent_heat_flux_from_soil_evaporation(
 
     Args:
         soil_evaporation: Soil evaporation, [mm]
-        latent_heat_vaporisation: latent heat of vaporisation, [J kg-1]
+        latent_heat_vaporisation: Latent heat of vaporisation, [J kg-1]
 
     Returns:
         latent heat flux from topsoil, [W m-2]
@@ -457,6 +458,11 @@ def calculate_ground_heat_flux(
     topsoil_latent_heat_flux: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate ground heat flux.
+
+    The ground heat flux is calculated as the residual of splitting incoming raditaion
+    into emitted longwave radiation, and sensible and latent heat flux. A positive
+    ground heat flux means a warming of the soil, a negative flux indicates a cooling of
+    the soil.
 
     Args:
         soil_absorbed_radiation: Shortwave radiation absorbed by topsoil, [W m-2]
@@ -476,79 +482,158 @@ def calculate_ground_heat_flux(
     )
 
 
-#
-# def calculate_soil_heat_balance(
-#     soil_temperature: DataArray,
-#     air_temperature: DataArray,
-#     shortwave_radiation_surface: DataArray,
-#     soil_evaporation: DataArray,
-#     soil_emissivity: float | NDArray[np.float32],
-#     surface_albedo: float | NDArray[np.float32],
-#     molar_density_air: NDArray[np.float32],
-#     specific_heat_air: NDArray[np.float32],
-#     aerodynamic_resistance_surface: NDArray[np.float32],
-#     stefan_boltzmann: float,
-#     latent_heat_vaporisation: NDArray[np.float32],
-# ) -> dict[str, NDArray[np.float32]]:
-#     """Calculate soil heat balance.
+def update_surface_temperature(
+    topsoil_temperature: NDArray[np.float32],
+    surface_net_radiation: NDArray[np.float32],
+    surface_layer_depth: float | NDArray[np.float32],
+    grid_cell_area: float,
+    update_interval: Quantity,
+    specific_heat_capacity_soil: float | NDArray[np.float32],
+    volume_to_weight_conversion: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Update surface temperature after exchange of radiation.
 
-#     * calculate soil absorption (RN * (1-albedo))
-#     * calculate sensible heat flux (convective flux from soil to atmosphere above)
-#     * calculate latent heat flux (conversion of soil evaporation)
-#     * calculate ground heat flux (conductive flux)
-#     * update topsoil temperature
-#     """
+    This function calculates the surface temperature after absorption of
+    shortwave radiation, emission of longwave radiation, and surface fluxes. This
+    process usually happens in the top few centimeters of the soil column, which is much
+    less than the thickness of the upper soil layer of the current layer implementation.
+    In the simulation flow, we therefor set the topsoil layer depth to 0.05, TODO merge
+    this into temperature profile.
 
-#     output = {}
-#     topsoil_layer_index = next(
-#         i for i, v in enumerate(soil_temperature.layer_roles) if v == "soil"
-#     )
+    Args:
+        topsoil_temperature: Topsoil temperature
+        surface_net_radiation: Longwave or shortwave radiation that enters
+            (positive) or leaves (negative) the topsoil, [W m-2]
+        surface_layer_depth: Topsoil layer depth, [m]
+        grid_cell_area: Grid cell area, [m2]
+        update_interval: Update interval to convert between W and J, [s]
+        specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]
+        volume_to_weight_conversion: Factor to convert between soil volume and weight in
+            kilograms
 
-#     soil_absorption = calculate_soil_absorption(
-#         shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
-#         surface_albedo=surface_albedo,
-#     )
-#     output["soil_absorption"] = soil_absorption
+    Returns:
+        topsoil temperature
+    """
+    topsoil_mass = surface_layer_depth * grid_cell_area * volume_to_weight_conversion
 
-#     longwave_emission_soil = calculate_soil_longwave_emission(
-#         topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
-#         soil_emissivity=soil_emissivity,
-#         stefan_boltzmann=stefan_boltzmann,
-#     )
-#     output["longwave_emission_soil"] = longwave_emission_soil
+    temperature_change = (surface_net_radiation * update_interval) / (
+        topsoil_mass * specific_heat_capacity_soil
+    )
+    return topsoil_temperature + temperature_change
 
-#     sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
-#         air_temperature_surface=air_temperature[topsoil_layer_index - 1].to_numpy(),
-#         topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
-#         molar_density_air=molar_density_air[topsoil_layer_index - 1].to_numpy(),
-#         specific_heat_air=specific_heat_air[topsoil_layer_index - 1].to_numpy(),
-#         aerodynamic_resistance=aerodynamic_resistance_surface,
-#     )
-#     output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
 
-#     latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
-#         soil_evaporation=soil_evaporation.to_numpy(),
-#         latent_heat_vaporisation=(
-#             latent_heat_vaporisation[topsoil_layer_index - 1].to_numpy()
-#         ),
-#     )
-#     output["latent_heat_flux_soil"] = latent_heat_flux_soil
+def calculate_soil_heat_balance(
+    soil_temperature: DataArray,
+    air_temperature: DataArray,
+    shortwave_radiation_surface: DataArray,
+    soil_evaporation: DataArray,
+    soil_emissivity: float | NDArray[np.float32],
+    surface_albedo: float | NDArray[np.float32],
+    molar_density_air: DataArray,
+    specific_heat_air: DataArray,
+    aerodynamic_resistance_surface: DataArray,
+    stefan_boltzmann: float,
+    latent_heat_vaporisation: DataArray,
+    surface_layer_depth: float | NDArray[np.float32],
+    update_interval: Quantity,
+    grid_cell_area: int,
+    specific_heat_capacity_soil: float,
+    volume_to_weight_conversion: float,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate soil heat balance.
 
-#     ground_heat_flux = calculate_ground_heat_flux(
-#         soil_absorbed_radiation=soil_absorption,
-#         topsoil_longwave_emission=longwave_emission_soil,
-#         topsoil_sensible_heat_flux=sensible_heat_flux_soil,
-#         topsoil_latent_heat_flux=latent_heat_flux_soil,
-#     )
-#     output["ground_heat_flux"] = ground_heat_flux
+    * calculate soil absorption (RN * (1-albedo))
+    * calculate sensible heat flux (convective flux from soil to atmosphere above)
+    * calculate latent heat flux (conversion of soil evaporation)
+    * calculate ground heat flux (conductive flux)
+    * update topsoil temperature
 
-#     new_topsoil_temperature = (
-#         soil_temperature[topsoil_layer_index].to_numpy()
-#         - longwave_emission_soil
-#         - sensible_heat_flux_soil
-#         - latent_heat_flux_soil
-#         - ground_heat_flux
-#     )
-#     output["new_topsoil_temperature"] = new_topsoil_temperature
+    Args:
+        soil_temperature: Soil temperature
+        air_temperature: Air temperature
+        shortwave_radiation_surface: Shortwave radiation that reaches the surface below
+            the canopy, [W m-2]
+        soil_evaporation: Soil evaporation, [mm]
+        soil_emissivity: Soil emissivity, dimensionless
+        surface_albedo: Surface albedo, dimensionless
+        molar_density_air: Molar density of air, [mol m-3]
+        specific_heat_air: Specific heat of air, [J mol-1 K-1]
+        aerodynamic_resistance_surface: Aerodynamic resistance near the surface
+        stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
+        latent_heat_vaporisation: Latent heat of vaporisation, [J kg-1]
+        surface_layer_depth: Topsoil layer depth, [m]
+        grid_cell_area: Grid cell area, [m2]
+        update_interval: Update interval to convert between W and J, [s]
+        specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]
+        volume_to_weight_conversion: Factor to convert between soil volume and weight in
+            kilograms
 
-#     return output
+    Returns:
+        dictionnary with soil shortwave absorption, soil longwave emission, sensible and
+            latent heat flux from the soil, ground heat flux, and updated topsoil
+            temperature
+    """
+
+    output = {}
+    topsoil_layer_index = next(
+        i for i, v in enumerate(soil_temperature.layer_roles) if v == "soil"
+    )
+
+    soil_absorption = calculate_soil_absorption(
+        shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
+        surface_albedo=surface_albedo,
+    )
+    output["soil_absorption"] = soil_absorption
+
+    longwave_emission_soil = calculate_soil_longwave_emission(
+        topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
+        soil_emissivity=soil_emissivity,
+        stefan_boltzmann=stefan_boltzmann,
+    )
+    output["longwave_emission_soil"] = longwave_emission_soil
+
+    sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
+        air_temperature_surface=air_temperature[topsoil_layer_index - 1].to_numpy(),
+        topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
+        molar_density_air=molar_density_air[topsoil_layer_index - 1].to_numpy(),
+        specific_heat_air=specific_heat_air[topsoil_layer_index - 1].to_numpy(),
+        aerodynamic_resistance=aerodynamic_resistance_surface.to_numpy(),
+    )
+    output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
+
+    latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
+        soil_evaporation=soil_evaporation.to_numpy(),
+        latent_heat_vaporisation=(
+            latent_heat_vaporisation[topsoil_layer_index - 1].to_numpy()
+        ),
+    )
+    output["latent_heat_flux_soil"] = latent_heat_flux_soil
+
+    ground_heat_flux = calculate_ground_heat_flux(
+        soil_absorbed_radiation=soil_absorption,
+        topsoil_longwave_emission=longwave_emission_soil,
+        topsoil_sensible_heat_flux=sensible_heat_flux_soil,
+        topsoil_latent_heat_flux=latent_heat_flux_soil,
+    )
+    output["ground_heat_flux"] = ground_heat_flux
+
+    surface_net_radiation = (
+        shortwave_radiation_surface.to_numpy()
+        - longwave_emission_soil
+        - sensible_heat_flux_soil
+        - latent_heat_flux_soil
+        - ground_heat_flux
+    )
+
+    new_surface_temperature = update_surface_temperature(
+        topsoil_temperature=soil_temperature[topsoil_layer_index].to_numpy(),
+        surface_net_radiation=surface_net_radiation,
+        surface_layer_depth=surface_layer_depth,
+        grid_cell_area=grid_cell_area,
+        update_interval=update_interval,
+        specific_heat_capacity_soil=specific_heat_capacity_soil,
+        volume_to_weight_conversion=volume_to_weight_conversion,
+    )
+    output["new_surface_temperature"] = new_surface_temperature
+
+    return output
