@@ -401,6 +401,9 @@ def test_update_abiotic_model(
     # Build the config object
     config = Config(cfg_strings=cfg_string)
 
+    dummy_climate_data["wind_speed_ref"] = DataArray(
+        [[0, 5, 10], [0, 5, 10], [0, 5, 10]], dims=["time_index", "cell_id"]
+    )
     # initialise model
     model = AbioticModel.from_config(
         dummy_climate_data,

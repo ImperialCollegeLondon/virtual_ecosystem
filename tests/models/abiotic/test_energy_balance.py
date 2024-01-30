@@ -250,8 +250,7 @@ def test_calculate_sensible_heat_flux_soil():
         topsoil_temperature=np.array([295, 290, 285]),
         molar_density_air=np.array([38, 38, 38]),
         specific_heat_air=np.array([29, 29, 29]),
-        wind_speed_surface=np.array([0.1, 0.1, 0.1]),
-        soil_surface_heat_transfer_coefficient=12.5,
+        aerodynamic_resistance=np.array([1250.0, 1250.0, 1250.0]),
     )
     np.testing.assert_allclose(result, np.array([4.408, 0.0, -4.408]))
 

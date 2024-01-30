@@ -34,7 +34,7 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
 
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
-        wind_speed=wind,
+        wind_speed_surface=wind,
         relative_humidity=np.array([80, 80, 90]),
         atmospheric_pressure=np.array([90, 90, 90]),
         soil_moisture=np.array([0.01, 0.1, 0.5]),
@@ -45,14 +45,20 @@ def test_calculate_soil_evaporation(wind, dens_air, latvap):
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
-        heat_transfer_coefficient=HydroConsts.soil_surface_heat_transfer_coefficient,
+        soil_surface_heat_transfer_coefficient=(
+            HydroConsts.soil_surface_heat_transfer_coefficient
+        ),
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
     )
 
-    exp_result = np.array([0.007452, 0.003701, 0.135078])
-    np.testing.assert_allclose(result, exp_result, rtol=0.01)
+    exp_evap = np.array([0.007452, 0.003701, 0.135078])
+    exp_ra = np.array([1250.0, 1250.0, 1250.0])
+    np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
+    np.testing.assert_allclose(
+        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
+    )
 
 
 def test_find_lowest_neighbour(dummy_climate_data):

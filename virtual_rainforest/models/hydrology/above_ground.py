@@ -23,14 +23,14 @@ def calculate_soil_evaporation(
     soil_moisture_residual: float | NDArray[np.float32],
     soil_moisture_capacity: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
-    wind_speed: float | NDArray[np.float32],
+    wind_speed_surface: NDArray[np.float32],
     celsius_to_kelvin: float,
     density_air: float | NDArray[np.float32],
     latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
-    heat_transfer_coefficient: float,
+    soil_surface_heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
-) -> NDArray[np.float32]:
+) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
@@ -62,19 +62,21 @@ def calculate_soil_evaporation(
         soil_moisture: Volumetric relative water content, [unitless]
         soil_moisture_residual: residual soil moisture, [unitless]
         soil_moisture_capacity: soil moisture capacity, [unitless]
-        wind_speed: wind speed at reference height, [m s-1]
+        wind_speed_surface: wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
         latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
-        heat_transfer_coefficient: heat transfer coefficient of air
+        soil_surface_heat_transfer_coefficient: heat transfer coefficient between soil
+            and air
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
 
     Returns:
-        soil evaporation, [mm]
+        soil evaporation, [mm] and aerodynamic resistance near the surface
     """
 
+    output = {}
     # Convert temperature to Kelvin
     temperature_k = temperature + celsius_to_kelvin
 
@@ -100,16 +102,20 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = heat_transfer_coefficient / wind_speed**2
+    aerodynamic_resistance = (
+        1 / wind_speed_surface**2
+    ) * soil_surface_heat_transfer_coefficient
+    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # Return surface evaporation, [mm]
-    return (evaporative_flux / latent_heat_vapourisation).squeeze() * np.exp(
-        -extinction_coefficient_global_radiation * leaf_area_index
-    )
+    output["soil_evaporation"] = (  # Return surface evaporation, [mm]
+        evaporative_flux / latent_heat_vapourisation
+    ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+
+    return output
 
 
 def find_lowest_neighbour(

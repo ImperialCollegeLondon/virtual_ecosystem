@@ -329,7 +329,8 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["cell_id", "time_index"],
     )
     data["wind_speed_ref"] = DataArray(
-        [[0, 5, 10], [0, 5, 10], [0, 5, 10]], dims=["time_index", "cell_id"]
+        [[0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
+        dims=["time_index", "cell_id"],
     )
     data["mean_annual_temperature"] = DataArray(
         np.full((3), 20),
