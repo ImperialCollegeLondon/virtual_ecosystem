@@ -231,7 +231,7 @@ def test_calculate_soil_longwave_emission():
     )
 
     result = calculate_soil_longwave_emission(
-        topsoil_temperature=np.array([290, 290, 290]),
+        topsoil_temperature=np.array([290.0, 290.0, 290.0]),
         soil_emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
