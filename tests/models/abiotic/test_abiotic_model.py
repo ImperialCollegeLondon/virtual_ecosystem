@@ -453,3 +453,20 @@ def test_update_abiotic_model(
         rtol=1e-3,
         atol=1e-3,
     )
+
+    exp_new_soiltemp = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]] * 13,
+                [[20.713125, 20.712525, 20.712458], [20.0, 20.0, 20.0]],
+            ],
+            axis=0,
+        ),
+        dims=["layers", "cell_id"],
+    )
+    np.testing.assert_allclose(
+        model.data["soil_temperature"],
+        exp_new_soiltemp,
+        rtol=1e-04,
+        atol=1e-04,
+    )

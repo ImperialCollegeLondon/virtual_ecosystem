@@ -178,10 +178,20 @@ class AbioticModel(
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic model.
 
+        The function updates the microclimate in the following order:
+
+        * wind profiles
+        * soil energy balance
+        * TODO canopy energy balance for each layer
+        * TODO conductivities
+        * TODO vertical mixing
+
+
         Args:
             time_index: The index of the current time step in the data object.
         """
 
+        # Wind profiles
         wind_update_inputs: dict[str, DataArray] = {}
 
         for var in ["layer_heights", "leaf_area_index", "air_temperature"]:
@@ -238,6 +248,39 @@ class AbioticModel(
             wind_output[var] = var_out
 
         self.data.add_from_dict(output_dict=wind_output)
+
+        # Soil energy balance
+        topsoil_layer_index = next(
+            i
+            for i, v in enumerate(self.data["soil_temperature"].layer_roles)
+            if v == "soil"
+        )
+        soil_energy_balance = energy_balance.calculate_soil_heat_balance(
+            data=self.data,
+            topsoil_layer_index=topsoil_layer_index,
+            update_interval=43200,  # self.update_interval,
+            abiotic_consts=self.constants,
+            core_consts=self.core_constants,
+        )
+
+        soil_output = {}
+        var_list = [
+            "soil_absorption",
+            "longwave_emission_soil",
+            "sensible_heat_flux_soil",
+            "latent_heat_flux_soil",
+            "ground_heat_flux",
+        ]
+        for var in var_list:
+            soil_output[var] = DataArray(
+                soil_energy_balance[var],
+                dims="cell_id",
+                coords={"cell_id": self.data.grid.cell_id},
+            )
+        self.data["soil_temperature"][topsoil_layer_index] = soil_energy_balance[
+            "new_surface_temperature"
+        ]
+        self.data.add_from_dict(output_dict=soil_output)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

@@ -503,5 +503,19 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
     )
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
+    data["shortwave_radiation_surface"] = DataArray(
+        np.array([100, 10, 0]), dims="cell_id"
+    )
+    data["soil_evaporation"] = DataArray(np.array([0.001, 0.01, 0.1]), dims="cell_id")
+    data["molar_density_air"] = DataArray(
+        np.full((15, 3), 38), dims=["layers", "cell_id"]
+    )
+    data["specific_heat_air"] = DataArray(
+        np.full((15, 3), 29), dims=["layers", "cell_id"]
+    )
+    data["aerodynamic_resistance_surface"] = DataArray(np.repeat(1250.0, 3))
+    data["latent_heat_vaporisation"] = DataArray(
+        np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
+    )
 
     return data

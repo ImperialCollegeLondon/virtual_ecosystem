@@ -226,11 +226,15 @@ class AbioticConsts(ConstantsDataclass):
     The value is takes from a study that compares changes in surface albedo before and
     after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
 
-    radiation_to_soil_temperature: float = 0.01
-    """Factor to convert absorbed shortwave radiation to change soil temperature change.
-
-    TODO need to find value for this.
-    """
-
     soil_emissivity: float = 0.8
     """Soil emissivity, dimensionless."""
+
+    surface_layer_depth: float = 0.1
+    """Surface layer depth, [m].
+
+    This depth defines the soil depth that is directly involved in the surface energy
+    balance.
+    """
+
+    volume_to_weight_conversion: float = 1000.0
+    """Factor to convert between soil volume and weight in kilograms."""

@@ -312,23 +312,28 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
         calculate_soil_heat_balance,
     )
 
+    data = dummy_climate_data
+    data["shortwave_radiation_surface"] = DataArray(
+        np.array([100, 10, 0]), dims="cell_id"
+    )
+    data["soil_evaporation"] = DataArray(np.array([0.001, 0.01, 0.1]), dims="cell_id")
+    data["molar_density_air"] = DataArray(
+        np.full((15, 3), 38), dims=["layers", "cell_id"]
+    )
+    data["specific_heat_air"] = DataArray(
+        np.full((15, 3), 29), dims=["layers", "cell_id"]
+    )
+    data["aerodynamic_resistance_surface"] = DataArray(np.repeat(1250.0, 3))
+    data["latent_heat_vaporisation"] = DataArray(
+        np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
+    )
+
     result = calculate_soil_heat_balance(
-        soil_temperature=dummy_climate_data["soil_temperature"],
-        air_temperature=dummy_climate_data["air_temperature"],
-        shortwave_radiation_surface=DataArray(np.array([100, 10, 0])),
-        soil_evaporation=DataArray(np.array([0.001, 0.01, 0.1])),
-        soil_emissivity=AbioticConsts.soil_emissivity,
-        surface_albedo=AbioticConsts.surface_albedo,
-        molar_density_air=DataArray(np.full((15, 3), 38)),
-        specific_heat_air=DataArray(np.full((15, 3), 29)),
-        aerodynamic_resistance_surface=DataArray(np.array([1250.0, 1250.0, 1250.0])),
-        stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
-        latent_heat_vaporisation=DataArray(np.full((15, 3), 2254.0)),
-        surface_layer_depth=np.array([0.1, 0.1, 0.1]),
-        grid_cell_area=100,
+        data=data,
+        topsoil_layer_index=13,
         update_interval=43200,
-        specific_heat_capacity_soil=AbioticConsts.specific_heat_capacity_soil,
-        volume_to_weight_conversion=1000.0,
+        abiotic_consts=AbioticConsts,
+        core_consts=CoreConsts,
     )
 
     # Check if all variables were created
@@ -368,9 +373,13 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
         rtol=1e-04,
         atol=1e-04,
     )
-    np.testing.assert_allclose(
-        result["new_surface_temperature"],
-        np.array([20.0, 20.0, 20.0]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+
+    var_list = [
+        "soil_absorption",
+        "longwave_emission_soil",
+        "sensible_heat_flux_soil",
+        "latent_heat_flux_soil",
+        "ground_heat_flux",
+    ]
+    variables = [var for var in result if var not in var_list]
+    assert variables
