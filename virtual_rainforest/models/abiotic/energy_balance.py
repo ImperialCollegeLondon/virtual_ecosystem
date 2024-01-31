@@ -543,6 +543,7 @@ def calculate_soil_heat_balance(
 
     The function takes an instance of data object, AbioticConsts and CoreConsts which
     must provide the following inputs:
+
     * soil_temperature: Soil temperature
     * air_temperature: Air temperature
     * shortwave_radiation_surface: Shortwave radiation that reaches the surface below
@@ -559,7 +560,7 @@ def calculate_soil_heat_balance(
     * grid_cell_area: Grid cell area, [m2]
     * specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]
     * volume_to_weight_conversion: Factor to convert between soil volume and weight in
-            kilograms
+        kilograms
 
     Args:
         data: instance if a data object

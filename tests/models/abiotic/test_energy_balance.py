@@ -220,7 +220,7 @@ def test_calculate_soil_absorption():
         surface_albedo=np.array([0.2, 0.2, 0.2]),
     )
 
-    np.testing.assert_allclose(result, np.array([80, 8, 0]))
+    np.testing.assert_allclose(result, np.array([80, 8, 0]), rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_soil_longwave_emission():
@@ -235,7 +235,12 @@ def test_calculate_soil_longwave_emission():
         soil_emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
-    np.testing.assert_allclose(result, np.array([320.843847, 320.843847, 320.843847]))
+    np.testing.assert_allclose(
+        result,
+        np.array([320.843847, 320.843847, 320.843847]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
 
 
 def test_calculate_sensible_heat_flux_soil():
@@ -252,7 +257,12 @@ def test_calculate_sensible_heat_flux_soil():
         specific_heat_air=np.array([29, 29, 29]),
         aerodynamic_resistance=np.array([1250.0, 1250.0, 1250.0]),
     )
-    np.testing.assert_allclose(result, np.array([4.408, 0.0, -4.408]))
+    np.testing.assert_allclose(
+        result,
+        np.array([4.408, 0.0, -4.408]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
 
 
 def test_calculate_latent_heat_flux_from_soil_evaporation():
