@@ -770,18 +770,18 @@ def setup_hydrology_input_current_timestep(
         num_days=days,
         seed=seed,
     )
-    output["surface_temperature"] = (
-        data["air_temperature"].isel(layers=layer_roles.index("surface"))
-    ).to_numpy()
-    output["surface_humidity"] = (
-        data["relative_humidity"].isel(layers=layer_roles.index("surface"))
-    ).to_numpy()
+    for out_var, in_var in (
+        ("surface_temperature", "air_temperature"),
+        ("surface_humidity", "relative_humidity"),
+        ("surface_wind_speed", "wind_speed"),
+    ):
+        output[out_var] = (
+            data[in_var].isel(layers=layer_roles.index("surface")).to_numpy()
+        )
+
     output["surface_pressure"] = (
         data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
     )
-    output["surface_wind_speed"] = (
-        data["wind_speed"].isel(layers=layer_roles.index("surface"))
-    ).to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
