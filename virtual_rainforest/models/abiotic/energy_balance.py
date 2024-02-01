@@ -555,7 +555,7 @@ def calculate_soil_heat_balance(
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
     * aerodynamic_resistance_surface: Aerodynamic resistance near the surface
     * stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
-    * latent_heat_vaporisation: Latent heat of vaporisation, [J kg-1]
+    * latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
     * surface_layer_depth: Topsoil layer depth, [m]
     * grid_cell_area: Grid cell area, [m2]
     * specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]

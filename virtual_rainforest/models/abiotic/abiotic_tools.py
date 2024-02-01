@@ -87,11 +87,11 @@ def calculate_latent_heat_vaporisation(
             vaporisation
 
     Returns:
-        latent heat of vaporisation, [J kg-1]
+        latent heat of vaporisation, [kJ kg-1]
     """
     temperature_kelvin = temperature + celsius_to_kelvin
     return (
         latent_heat_vap_equ_factor_1
         * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factor_2))
         ** 2
-    )
+    ) / 1000.0

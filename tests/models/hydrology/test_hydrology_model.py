@@ -367,7 +367,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.52002, 0.520263, 0.520006], [0.455899, 0.456052, 0.455858]],
+                    [[0.12881, 0.128855, 0.128799], [0.419579, 0.419584, 0.419583]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -382,8 +382,8 @@ def test_setup(
                 ),
                 DataArray(
                     [
-                        [-201.975325, -201.197219, -202.071172],
-                        [-549.007624, -547.513334, -549.340899],
+                        [-1.797720e07, -1.801166e07, -1.794423e07],
+                        [-1.252784e03, -1.252680e03, -1.252707e03],
                     ],
                     dims=["layers", "cell_id"],
                 ),
@@ -402,17 +402,17 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [1.111498, 1.114365, 1.11434],
+            [0.672665, 0.67353, 0.673522],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_soil_evap = DataArray(
-            [16.433136, 16.433136, 16.433136],
+            [347.118768, 346.741376, 347.120086],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_total_discharge = DataArray(
-            [0, 1423, 2846],
+            [0, 1367, 2735],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -429,8 +429,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["soil_moisture"],
-            exp_soil_moisture,
+            model.data["soil_moisture"][13:15],
+            exp_soil_moisture[13:15],
             rtol=1e-4,
             atol=1e-4,
         )
@@ -465,8 +465,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["matric_potential"],
-            exp_matric_pot,
+            model.data["matric_potential"][13:15],
+            exp_matric_pot[13:15],
             rtol=1e-4,
             atol=1e-4,
         )

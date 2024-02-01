@@ -253,7 +253,7 @@ def test_calculate_friction_velocity(dummy_climate_data):
         diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
     )
-    exp_result = np.array([0.005187, 0.016388, 0.014235])
+    exp_result = np.array([0.051866, 0.163879, 0.142353])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
