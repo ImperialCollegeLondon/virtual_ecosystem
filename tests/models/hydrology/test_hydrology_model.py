@@ -406,7 +406,7 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-        exp_soil_evap = DataArray(
+        exp_soil_evap = DataArray(  # TODO this seems too high
             [347.118768, 346.741376, 347.120086],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
@@ -429,8 +429,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["soil_moisture"][13:15],
-            exp_soil_moisture[13:15],
+            model.data["soil_moisture"],
+            exp_soil_moisture,
             rtol=1e-4,
             atol=1e-4,
         )
@@ -465,8 +465,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["matric_potential"][13:15],
-            exp_matric_pot[13:15],
+            model.data["matric_potential"],
+            exp_matric_pot,
             rtol=1e-4,
             atol=1e-4,
         )
