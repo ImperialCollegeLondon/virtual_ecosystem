@@ -223,16 +223,16 @@ def test_calculate_soil_absorption():
     np.testing.assert_allclose(result, np.array([80, 8, 0]), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_soil_longwave_emission():
+def test_calculate_longwave_emission():
     """Test that longwave radiation is calculated correctly."""
 
     from virtual_rainforest.models.abiotic.energy_balance import (
-        calculate_soil_longwave_emission,
+        calculate_longwave_emission,
     )
 
-    result = calculate_soil_longwave_emission(
-        topsoil_temperature=np.array([290.0, 290.0, 290.0]),
-        soil_emissivity=AbioticConsts.soil_emissivity,
+    result = calculate_longwave_emission(
+        temperature=np.array([290.0, 290.0, 290.0]),
+        emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
     np.testing.assert_allclose(

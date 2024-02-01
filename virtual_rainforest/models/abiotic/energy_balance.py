@@ -375,25 +375,27 @@ def calculate_soil_absorption(
     return shortwave_radiation_surface * (1 - surface_albedo)
 
 
-def calculate_soil_longwave_emission(
-    topsoil_temperature: NDArray[np.float32],
-    soil_emissivity: float | NDArray[np.float32],
+def calculate_longwave_emission(
+    temperature: NDArray[np.float32],
+    emissivity: float | NDArray[np.float32],
     stefan_boltzmann: float,
 ) -> NDArray[np.float32]:
-    """Calculate topsoil longwave emission.
+    """Calculate longwave emission using the Stefan Boltzmann law..
 
-    The emission of longwave radiation depends on the soil temperature and soil
-    emissivity as in the Stefan Boltzmann law.
+    According to Stefan Boltzmann law, the amount of radiation emitted per unit time
+    from area of a black body at absolute temperature is directly proportional to the
+    fourth power of the temperature. Emissivity (which is equal to absorptive power)
+    lies between 0 to 1.
 
     Args:
-        topsoil_temperature: Temperature of top soil layer, [K]
-        soil_emissivity: Soil emissivity, dimensionless
+        temperature: Temperature, [K]
+        emissivity: Emissivity, dimensionless
         stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
 
     Returns:
-        topsoil longwave emission, [W m-2]
+        Longwave emission, [W m-2]
     """
-    return soil_emissivity * stefan_boltzmann * topsoil_temperature**4
+    return emissivity * stefan_boltzmann * temperature**4
 
 
 def calculate_sensible_heat_flux_soil(
@@ -582,9 +584,9 @@ def calculate_soil_heat_balance(
     )
     output["soil_absorption"] = soil_absorption
 
-    longwave_emission_soil = calculate_soil_longwave_emission(
-        topsoil_temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
-        soil_emissivity=abiotic_consts.soil_emissivity,
+    longwave_emission_soil = calculate_longwave_emission(
+        temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
+        emissivity=abiotic_consts.soil_emissivity,
         stefan_boltzmann=core_consts.stefan_boltzmann_constant,
     )
     output["longwave_emission_soil"] = longwave_emission_soil
