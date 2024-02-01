@@ -80,7 +80,7 @@ class HydroConsts(ConstantsDataclass):
     """Gas constant for water vapour, [J kg-1 K-1]"""
 
     soil_surface_heat_transfer_coefficient: float = 12.5
-    """Heat transfer coefficient from soil to atmosphere above.
+    """Heat transfer coefficient from soil to atmosphere above, [W m-2 K-1].
 
     :cite:p:`van_de_griend_bare_1994`.
     """

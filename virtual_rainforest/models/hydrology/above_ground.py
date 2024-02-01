@@ -68,7 +68,7 @@ def calculate_soil_evaporation(
         latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         soil_surface_heat_transfer_coefficient: heat transfer coefficient between soil
-            and air
+            and air, [W m-2 K-1]
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
 

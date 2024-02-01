@@ -250,11 +250,9 @@ class AbioticModel(
         self.data.add_from_dict(output_dict=wind_output)
 
         # Soil energy balance
-        topsoil_layer_index = next(
-            i
-            for i, v in enumerate(self.data["soil_temperature"].layer_roles)
-            if v == "soil"
-        )
+        # TODO update when we rolled out new LayerStructure
+        topsoil_layer_index = self.layer_roles.index("soil")
+
         soil_energy_balance = energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
