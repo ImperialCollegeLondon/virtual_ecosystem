@@ -324,19 +324,21 @@ def dummy_climate_data(layer_roles_fixture):
     )
     data = Data(grid)
 
+    # Reference data
     data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30),
+        np.full((3, 3), 30.0),
         dims=["cell_id", "time_index"],
     )
     data["wind_speed_ref"] = DataArray(
-        [[0, 5, 10], [0, 5, 10], [0, 5, 10]], dims=["time_index", "cell_id"]
+        np.full((3, 3), 1.0),
+        dims=["time_index", "cell_id"],
     )
     data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20),
+        np.full((3), 20.0),
         dims=["cell_id"],
     )
     data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90),
+        np.full((3, 3), 90.0),
         dims=["cell_id", "time_index"],
     )
     data["vapour_pressure_deficit_ref"] = DataArray(
@@ -344,45 +346,35 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["cell_id", "time_index"],
     )
     data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96),
+        np.full((3, 3), 96.0),
         dims=["cell_id", "time_index"],
     )
     data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400),
+        np.full((3, 3), 400.0),
         dims=["cell_id", "time_index"],
     )
-    pressure = np.repeat(a=[96.0, np.nan], repeats=[13, 2])
-    data["atmospheric_pressure"] = DataArray(
-        np.broadcast_to(pressure, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": data.grid.cell_id,
-        },
-        name="atmospheric_pressure",
+    data["precipitation"] = DataArray(
+        np.full((3, 3), 200.0),
+        dims=["time_index", "cell_id"],
+    )
+    data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
+    data["topofcanopy_radiation"] = DataArray(
+        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
     )
 
-    evapotranspiration = np.repeat(a=[np.nan, 20.0, np.nan], repeats=[1, 3, 11])
-    data["evapotranspiration"] = DataArray(
-        np.broadcast_to(evapotranspiration, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": data.grid.cell_id,
-        },
-        name="evapotranspiration",
-    )
+    # Simulation data
+    full_coordinates = {
+        "layers": np.arange(15),
+        "layer_roles": ("layers", layer_roles_fixture),
+        "cell_id": data.grid.cell_id,
+    }
+
+    # Structural variables
     leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
     data["leaf_area_index"] = DataArray(
         np.broadcast_to(leaf_area_index, (3, 15)).T,
         dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": data.grid.cell_id,
-        },
+        coords=full_coordinates,
         name="leaf_area_index",
     )
 
@@ -393,43 +385,18 @@ def dummy_climate_data(layer_roles_fixture):
     data["layer_heights"] = DataArray(
         np.broadcast_to(layer_heights, (3, 15)).T,
         dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
-            "cell_id": data.grid.cell_id,
-        },
+        coords=full_coordinates,
         name="layer_heights",
     )
+    data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
 
-    data["precipitation"] = DataArray(
-        [[200, 200, 200], [200, 200, 200], [200, 200, 200]],
-        dims=["time_index", "cell_id"],
-    )
-    data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["surface_runoff"] = DataArray([10, 50, 100], dims="cell_id")
-    data["surface_runoff_accumulated"] = DataArray([0, 10, 300], dims="cell_id")
-    data["subsurface_flow_accumulated"] = DataArray([10, 10, 30], dims="cell_id")
-    data["soil_moisture"] = xr.concat(
-        [
-            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(np.full((2, 3), 0.20), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    )
-    data["soil_temperature"] = xr.concat(
-        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
-        dim="dim_0",
-    )
-    data["soil_temperature"] = (
-        data["soil_temperature"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
-                "cell_id": data.grid.cell_id,
-            }
-        )
+    # Microclimate and energy balance
+    pressure = np.repeat(a=[96.0, np.nan], repeats=[13, 2])
+    data["atmospheric_pressure"] = DataArray(
+        np.broadcast_to(pressure, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="atmospheric_pressure",
     )
 
     data["air_temperature"] = xr.concat(
@@ -454,12 +421,16 @@ def dummy_climate_data(layer_roles_fixture):
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
-            "cell_id": data.grid.cell_id,
-        }
+    ).assign_coords(full_coordinates)
+
+    data["soil_temperature"] = xr.concat(
+        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
+        dim="dim_0",
+    )
+    data["soil_temperature"] = (
+        data["soil_temperature"]
+        .rename({"dim_0": "layers", "dim_1": "cell_id"})
+        .assign_coords(full_coordinates)
     )
 
     data["relative_humidity"] = xr.concat(
@@ -484,23 +455,46 @@ def dummy_climate_data(layer_roles_fixture):
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
-            "cell_id": data.grid.cell_id,
-        }
+    ).assign_coords(full_coordinates)
+
+    data["shortwave_radiation_surface"] = DataArray(
+        np.array([100, 10, 0]), dims="cell_id"
+    )
+    data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
+    data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
+    data["molar_density_air"] = DataArray(
+        np.full((15, 3), 38.0), dims=["layers", "cell_id"]
+    )
+    data["specific_heat_air"] = DataArray(
+        np.full((15, 3), 29.0), dims=["layers", "cell_id"]
+    )
+    data["aerodynamic_resistance_surface"] = DataArray(np.repeat(12.5, 3))
+    data["latent_heat_vaporisation"] = DataArray(
+        np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
     )
 
+    # Hydrology
+    evapotranspiration = np.repeat(a=[np.nan, 20.0, np.nan], repeats=[1, 3, 11])
+    data["evapotranspiration"] = DataArray(
+        np.broadcast_to(evapotranspiration, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="evapotranspiration",
+    )
+    data["soil_evaporation"] = DataArray(np.array([0.001, 0.01, 0.1]), dims="cell_id")
+    data["surface_runoff"] = DataArray([10, 50, 100], dims="cell_id")
+    data["surface_runoff_accumulated"] = DataArray([0, 10, 300], dims="cell_id")
+    data["subsurface_flow_accumulated"] = DataArray([10, 10, 30], dims="cell_id")
+    data["soil_moisture"] = xr.concat(
+        [
+            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
+            DataArray(np.full((2, 3), 0.20), dims=["layers", "cell_id"]),
+        ],
+        dim="layers",
+    )
     data["groundwater_storage"] = DataArray(
-        np.full((2, 3), 450),
+        np.full((2, 3), 450.0),
         dims=("groundwater_layers", "cell_id"),
     )
-    data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
-    data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
-    data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
 
     return data

@@ -45,6 +45,10 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'wind_speed_ref' checked",
+                ),
             ),
         ),
         (
@@ -164,6 +168,10 @@ def test_hydrology_model_initialization(
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
                 ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'wind_speed_ref' checked",
+                ),
             ),
             id="default_config",
         ),
@@ -205,6 +213,10 @@ def test_hydrology_model_initialization(
                 (
                     DEBUG,
                     "hydrology model: required var 'elevation' checked",
+                ),
+                (
+                    DEBUG,
+                    "hydrology model: required var 'wind_speed_ref' checked",
                 ),
             ),
             id="modified_config_correct",
@@ -355,7 +367,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.52002, 0.520263, 0.520006], [0.455899, 0.456052, 0.455858]],
+                    [[0.12881, 0.128855, 0.128799], [0.419579, 0.419584, 0.419583]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -370,8 +382,8 @@ def test_setup(
                 ),
                 DataArray(
                     [
-                        [-201.975325, -201.197219, -202.071172],
-                        [-549.007624, -547.513334, -549.340899],
+                        [-1.797720e07, -1.801166e07, -1.794423e07],
+                        [-1.252784e03, -1.252680e03, -1.252707e03],
                     ],
                     dims=["layers", "cell_id"],
                 ),
@@ -390,17 +402,17 @@ def test_setup(
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [1.111498, 1.114365, 1.11434],
+            [0.672665, 0.67353, 0.673522],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-        exp_soil_evap = DataArray(
-            [16.433136, 16.433136, 16.433136],
+        exp_soil_evap = DataArray(  # TODO this seems too high
+            [347.118768, 346.741376, 347.120086],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_total_discharge = DataArray(
-            [0, 1423, 2846],
+            [0, 1367, 2735],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -485,6 +497,19 @@ def test_setup_hydrology_input_current_timestep(
         setup_hydrology_input_current_timestep,
     )
 
+    dummy_climate_data["wind_speed"] = (
+        DataArray(dummy_climate_data["wind_speed_ref"].isel(time_index=0))
+        .expand_dims("layers")
+        .rename("wind_speed")
+        .assign_coords(
+            coords={
+                "layers": [layer_roles_fixture.index("surface")],
+                "layer_roles": ("layers", ["surface"]),
+                "cell_id": [0, 1, 2],
+            },
+        )
+    )
+
     result = setup_hydrology_input_current_timestep(
         data=dummy_climate_data,
         time_index=1,
@@ -499,9 +524,10 @@ def test_setup_hydrology_input_current_timestep(
     # Check if all variables were created
     var_list = [
         "current_precipitation",
-        "subcanopy_temperature",
-        "subcanopy_humidity",
-        "subcanopy_pressure",
+        "surface_temperature",
+        "surface_humidity",
+        "surface_pressure",
+        "surface_wind_speed",
         "leaf_area_index_sum"
         "current_evapotranspiration"
         "soil_layer_heights"
@@ -523,12 +549,12 @@ def test_setup_hydrology_input_current_timestep(
         (dummy_climate_data["precipitation"].isel(time_index=1)).to_numpy(),
     )
     np.testing.assert_allclose(
-        result["subcanopy_temperature"], dummy_climate_data["air_temperature"][11]
+        result["surface_temperature"], dummy_climate_data["air_temperature"][12]
     )
     np.testing.assert_allclose(
-        result["subcanopy_humidity"], dummy_climate_data["relative_humidity"][11]
+        result["surface_humidity"], dummy_climate_data["relative_humidity"][12]
     )
     np.testing.assert_allclose(
-        result["subcanopy_pressure"],
+        result["surface_pressure"],
         (dummy_climate_data["atmospheric_pressure_ref"].isel(time_index=1)).to_numpy(),
     )

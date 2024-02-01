@@ -195,11 +195,6 @@ class AbioticConsts(ConstantsDataclass):
     stomatal_resistance: float = 200.0
     """Default stomatal resistance, [s m2 mumol-1]."""
 
-    soil_surface_heat_transfer_coefficient: float = 12.5
-    """Soil surface heat transfer coefficient, default = 12.5
-    :cite:p:`van_de_griend_bare_1994`.
-    """
-
     soil_thermal_conductivity: float = 0.7
     """Soil thermal conductivity, [W m-1 K-1], default = 0.7
     :cite:p:`monteith_principles_1990`.
@@ -224,3 +219,22 @@ class AbioticConsts(ConstantsDataclass):
 
     bottom_leaf_air_conductivity: float = 0.13
     """Initial leaf air heat conductivity at the bottom of the canopy, (mol m-2 s-1)"""
+
+    surface_albedo: float = 0.125
+    """Mean surface albedo of a tropical rainforest in South East Asia.
+
+    The value is takes from a study that compares changes in surface albedo before and
+    after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
+
+    soil_emissivity: float = 0.8
+    """Soil emissivity, dimensionless."""
+
+    surface_layer_depth: float = 0.1
+    """Surface layer depth, [m].
+
+    This depth defines the soil depth that is directly involved in the surface energy
+    balance.
+    """
+
+    volume_to_weight_conversion: float = 1000.0
+    """Factor to convert between soil volume and weight in kilograms."""

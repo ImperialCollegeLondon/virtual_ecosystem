@@ -128,14 +128,14 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
         .where(dummy_climate_data.data["layer_heights"].layer_roles != "soil")
         .dropna(dim="layers")
     )
-    result_T = generate_relative_turbulence_intensity(
+    result_t = generate_relative_turbulence_intensity(
         layer_heights=layer_heights.to_numpy(),
         min_relative_turbulence_intensity=0.36,
         max_relative_turbulence_intensity=0.9,
         increasing_with_height=True,
     )
 
-    exp_result_T = np.array(
+    exp_result_t = np.array(
         [
             [17.64, 17.64, 17.64],
             [16.56, 16.56, 16.56],
@@ -145,14 +145,14 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
             [0.414, 0.414, 0.414],
         ]
     )
-    result_F = generate_relative_turbulence_intensity(
+    result_f = generate_relative_turbulence_intensity(
         layer_heights=layer_heights.to_numpy(),
         min_relative_turbulence_intensity=0.36,
         max_relative_turbulence_intensity=0.9,
         increasing_with_height=False,
     )
 
-    exp_result_F = np.array(
+    exp_result_f = np.array(
         [
             [-16.38, -16.38, -16.38],
             [-15.3, -15.3, -15.3],
@@ -162,8 +162,8 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
             [0.846, 0.846, 0.846],
         ]
     )
-    np.testing.assert_allclose(result_T, exp_result_T, rtol=1e-3, atol=1e-3)
-    np.testing.assert_allclose(result_F, exp_result_F, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(result_t, exp_result_t, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(result_f, exp_result_f, rtol=1e-3, atol=1e-3)
 
 
 def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
@@ -253,7 +253,7 @@ def test_calculate_friction_velocity(dummy_climate_data):
         diabatic_correction_momentum=np.array([-0.1, 0.0, 0.1]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
     )
-    exp_result = np.array([0.0, 0.819397, 1.423534])
+    exp_result = np.array([0.051866, 0.163879, 0.142353])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
@@ -337,9 +337,7 @@ def test_calculate_wind_profile(dummy_climate_data):
         air_temperature=air_temperature.to_numpy(),
         atmospheric_pressure=np.array([96, 96, 96]),
         sensible_heat_flux_topofcanopy=np.array([100, 50, 10]),
-        wind_speed_ref=(
-            dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
-        ),
+        wind_speed_ref=np.array([0, 5, 10]),
         wind_reference_height=(
             dummy_climate_data.data["canopy_height"] + 10
         ).to_numpy(),

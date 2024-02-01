@@ -49,6 +49,7 @@ class HydrologyModel(
         ("relative_humidity_ref", ("spatial",)),
         ("atmospheric_pressure_ref", ("spatial",)),
         ("elevation", ("spatial",)),
+        ("wind_speed_ref", ("spatial",)),
     ),
     vars_updated=(
         "precipitation_surface",  # precipitation-interception loss, input to `plants`
@@ -56,6 +57,7 @@ class HydrologyModel(
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "soil_evaporation",
+        "aerodynamic_resistance_surface",
         "surface_runoff_accumulated",
         "matric_potential",
         "groundwater_storage",
@@ -239,8 +241,8 @@ class HydrologyModel(
             .rename("air_temperature")
             .assign_coords(
                 coords={
-                    "layers": [self.layer_roles.index("subcanopy")],
-                    "layer_roles": ("layers", ["subcanopy"]),
+                    "layers": [self.layer_roles.index("surface")],
+                    "layer_roles": ("layers", ["surface"]),
                     "cell_id": self.data.grid.cell_id,
                 },
             )
@@ -254,8 +256,22 @@ class HydrologyModel(
             .rename("relative_humidity")
             .assign_coords(
                 coords={
-                    "layers": [self.layer_roles.index("subcanopy")],
-                    "layer_roles": ("layers", ["subcanopy"]),
+                    "layers": [self.layer_roles.index("surface")],
+                    "layer_roles": ("layers", ["surface"]),
+                    "cell_id": self.data.grid.cell_id,
+                },
+            )
+        )
+
+        # Create initial wind speed for first soil evaporation update.
+        self.data["wind_speed"] = (
+            DataArray(self.data["wind_speed_ref"].isel(time_index=0))
+            .expand_dims("layers")
+            .rename("wind_speed")
+            .assign_coords(
+                coords={
+                    "layers": [self.layer_roles.index("surface")],
+                    "layer_roles": ("layers", ["surface"]),
                     "cell_id": self.data.grid.cell_id,
                 },
             )
@@ -302,6 +318,7 @@ class HydrologyModel(
         * surface_runoff, [mm], equivalent to SPLASH runoff
         * surface_runoff_accumulated, [mm]
         * soil_evaporation, [mm]
+        * aerodynamic_resistance_surface
         * vertical_flow, [mm d-1]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
@@ -462,31 +479,39 @@ class HydrologyModel(
             )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
-                temperature=hydro_input["subcanopy_temperature"],
-                relative_humidity=hydro_input["subcanopy_humidity"],
-                atmospheric_pressure=hydro_input["subcanopy_pressure"],
+                temperature=hydro_input["surface_temperature"],
+                relative_humidity=hydro_input["surface_humidity"],
+                atmospheric_pressure=hydro_input["surface_pressure"],
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.constants.soil_moisture_residual,
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
-                wind_speed=0.1,  # m/s TODO wind_speed in data object
+                wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.constants.celsius_to_kelvin,
                 density_air=self.constants.density_air,
                 latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
                 gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
-                heat_transfer_coefficient=self.constants.heat_transfer_coefficient,
+                soil_surface_heat_transfer_coefficient=(
+                    self.constants.soil_surface_heat_transfer_coefficient
+                ),
                 extinction_coefficient_global_radiation=(
                     self.constants.extinction_coefficient_global_radiation
                 ),
             )
-            daily_lists["soil_evaporation"].append(soil_evaporation)
+            daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
+            daily_lists["aerodynamic_resistance_surface"].append(
+                soil_evaporation["aerodynamic_resistance_surface"]
+            )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
             soil_moisture_evap: NDArray[np.float32] = np.concatenate(
                 (
                     np.expand_dims(
                         np.clip(
-                            (soil_moisture_infiltrated - soil_evaporation),
+                            (
+                                soil_moisture_infiltrated
+                                - soil_evaporation["soil_evaporation"]
+                            ),
                             hydro_input["top_soil_moisture_residual_mm"],
                             hydro_input["top_soil_moisture_capacity_mm"],
                         ),
@@ -587,6 +612,14 @@ class HydrologyModel(
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow thought top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
+
+        soil_hydrology["aerodynamic_resistance_surface"] = DataArray(
+            np.mean(
+                np.stack(daily_lists["aerodynamic_resistance_surface"], axis=1), axis=1
+            ),
             dims="cell_id",
             coords={"cell_id": self.data.grid.cell_id},
         )
@@ -699,9 +732,10 @@ def setup_hydrology_input_current_timestep(
     The function resturns a dictionary with the following variables:
 
     * current_precipitation
-    * subcanopy_temperature
-    * subcanopy_humidity
-    * subcanopy_pressure
+    * surface_temperature
+    * surface_humidity
+    * surface_pressure
+    * surface_wind_speed
     * leaf_area_index_sum
     * current_evapotranspiration
     * soil_layer_heights
@@ -736,13 +770,16 @@ def setup_hydrology_input_current_timestep(
         num_days=days,
         seed=seed,
     )
-    output["subcanopy_temperature"] = (
-        data["air_temperature"].isel(layers=layer_roles.index("subcanopy"))
-    ).to_numpy()
-    output["subcanopy_humidity"] = (
-        data["relative_humidity"].isel(layers=layer_roles.index("subcanopy"))
-    ).to_numpy()
-    output["subcanopy_pressure"] = (
+    for out_var, in_var in (
+        ("surface_temperature", "air_temperature"),
+        ("surface_humidity", "relative_humidity"),
+        ("surface_wind_speed", "wind_speed"),
+    ):
+        output[out_var] = (
+            data[in_var].isel(layers=layer_roles.index("surface")).to_numpy()
+        )
+
+    output["surface_pressure"] = (
         data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
     )
 
