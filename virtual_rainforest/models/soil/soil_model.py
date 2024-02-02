@@ -22,7 +22,6 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from pint import Quantity
 from scipy.integrate import solve_ivp
 from xarray import DataArray
 
@@ -30,10 +29,10 @@ from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
 from virtual_rainforest.models.soil.constants import SoilConsts
 
@@ -82,14 +81,11 @@ class SoilModel(
     def __init__(
         self,
         data: Data,
-        update_interval: Quantity,
-        soil_layers: list[float],
-        canopy_layers: int,
+        core_components: CoreComponents,
         model_constants: SoilConsts,
-        core_constants: CoreConsts,
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(data=data, core_components=core_components, **kwargs)
 
         # Check that soil pool data is appropriately bounded
         if (
@@ -104,23 +100,18 @@ class SoilModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        # create a list of layer roles
-        layer_roles = set_layer_roles(canopy_layers, soil_layers)
         # Find first soil layer from the list of layer roles
-        self.top_soil_layer_index = next(
-            i for i, v in enumerate(layer_roles) if v == "soil"
-        )
+        self.top_soil_layer_index = self.layer_structure.layer_roles.index("soil")
         """The layer in the data object representing the first soil layer."""
+
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants = model_constants
         """Set of constants for the soil model."""
-        self.core_constants = core_constants
-        """Set of constants shared between models."""
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
@@ -130,29 +121,22 @@ class SoilModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_components: The core components used across models.
             config: A validated Virtual Rainforest model configuration object.
-            update_interval: Frequency with which all models are updated
         """
 
-        # Find number of soil and canopy layers
-        soil_layers = config["core"]["layers"]["soil_layers"]
-        canopy_layers = config["core"]["layers"]["canopy_layers"]
-
         # Load in the relevant constants
-        soil_constants = load_constants(config, "soil", "SoilConsts")
-        core_constants = load_constants(config, "core", "CoreConsts")
+        model_constants = load_constants(config, "soil", "SoilConsts")
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
             "extracted."
         )
+
         return cls(
             data=data,
-            update_interval=update_interval,
-            soil_layers=soil_layers,
-            canopy_layers=canopy_layers,
-            model_constants=soil_constants,
-            core_constants=core_constants,
+            core_components=core_components,
+            model_constants=model_constants,
         )
 
     def setup(self) -> None:
@@ -200,7 +184,7 @@ class SoilModel(
         no_cells = self.data.grid.n_cells
 
         # Extract update interval (in units of number of days)
-        update_time = self.update_interval.to("days").magnitude
+        update_time = self.model_timing.update_interval_quantity.to("days").magnitude
         t_span = (0.0, update_time)
 
         # Construct vector of initial values y0

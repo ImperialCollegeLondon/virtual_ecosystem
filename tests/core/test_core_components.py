@@ -10,7 +10,7 @@ from pint import Quantity
 from tests.conftest import log_check
 from virtual_rainforest.core.exceptions import ConfigurationError
 
-DEFAULT_CANOPY = (
+DEFAULT_CANOPY = [
     "above",
     "canopy",
     "canopy",
@@ -26,9 +26,9 @@ DEFAULT_CANOPY = (
     "surface",
     "soil",
     "soil",
-)
+]
 
-ALTERNATE_CANOPY = (
+ALTERNATE_CANOPY = [
     "above",
     "canopy",
     "canopy",
@@ -38,7 +38,7 @@ ALTERNATE_CANOPY = (
     "soil",
     "soil",
     "soil",
-)
+]
 
 
 @pytest.mark.parametrize(
@@ -53,6 +53,7 @@ ALTERNATE_CANOPY = (
                 "surface_layer_height": 0.1,
                 "subcanopy_layer_height": 1.5,
                 "layer_roles": DEFAULT_CANOPY,
+                "n_layers": 15,
             },
             {
                 "start_time": np.datetime64("2013-01-01"),
@@ -87,6 +88,7 @@ ALTERNATE_CANOPY = (
                 "surface_layer_height": 0.2,
                 "subcanopy_layer_height": 1.2,
                 "layer_roles": ALTERNATE_CANOPY,
+                "n_layers": 9,
             },
             {
                 "start_time": np.datetime64("2020-01-01"),
@@ -98,7 +100,7 @@ ALTERNATE_CANOPY = (
                 "reconciled_run_length": np.timedelta64(946728000, "s"),
             },
             {"depth_of_active_soil_layer": 2},
-            id="defaults",
+            id="alternative config",
         ),
     ],
 )

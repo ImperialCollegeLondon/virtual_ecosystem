@@ -14,7 +14,7 @@ from pint import Quantity
 from pint.errors import DimensionalityError, UndefinedUnitError
 
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -34,7 +34,7 @@ class CoreComponents:
     """The vertical layer structure for the simulation."""
     model_timing: ModelTiming = field(init=False)
     """The model timing details for the simulation."""
-    core_constants: ConstantsDataclass = field(init=False)
+    core_constants: CoreConsts = field(init=False)
     """The core constants definitions for the simulation"""
     config: InitVar[Config]
     """A validated model configuration."""
@@ -191,8 +191,11 @@ class LayerStructure:
     """The height above ground used to represent surface conditions."""
     subcanopy_layer_height: float = field(init=False)
     """The height above ground used to represent subcanopy conditions."""
-    layer_roles: tuple[str, ...] = field(init=False)
-    """An ordered tuple giving the roles of the layers within the model."""
+    layer_roles: list[str] = field(init=False)
+    """An tuple of the roles of the vertical layers within the model from top to
+    bottom."""
+    n_layers: int = field(init=False)
+    """The total number of vertical layers in the model."""
     config: InitVar[Config]
     """A validated model configuration."""
 
@@ -220,13 +223,15 @@ class LayerStructure:
         ):
             setattr(self, attr, _validate_positive_finite_numeric(value, attr))
 
-        self.layer_roles = tuple(
+        self.layer_roles = (
             ["above"]
             + ["canopy"] * int(self.canopy_layers)
             + ["subcanopy"]
             + ["surface"]
             + ["soil"] * len(self.soil_layers)
         )
+
+        self.n_layers = len(self.layer_roles)
 
         LOGGER.info("Layer structure built from model configuration")
 
