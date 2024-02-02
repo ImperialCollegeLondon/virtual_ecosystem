@@ -76,7 +76,7 @@ class HydrologyModel(
 
     Raises:
         InitialisationError: when soil moisture or saturation parameters are not numeric
-        or out of [0,1] bounds.
+            or out of [0,1] bounds.
 
     TODOs:
 
