@@ -16,7 +16,9 @@ class PlantFunctionalType:
     """Data class containing plant functional type definitions."""
 
     pft_name: str
+    """The name of the plant functional type."""
     max_height: float
+    """The maximum stem height of the plant functional type."""
 
 
 class Flora(dict):
@@ -33,7 +35,7 @@ class Flora(dict):
     Args:
         pfts: A list of ``PlantFunctionalType`` instances, which must not have
             duplicated
-            :class:`~virtual_rainforest.models.plants.functional_types.PlantFunctionalType.pft_name`
+            :attr:`~virtual_rainforest.models.plants.functional_types.PlantFunctionalType.pft_name`
             attributes.
     """
 
