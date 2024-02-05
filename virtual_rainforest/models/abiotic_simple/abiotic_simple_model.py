@@ -22,15 +22,14 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
 from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
@@ -61,34 +60,27 @@ class AbioticSimpleModel(
 
     Args:
         data: The data object to be used in the model.
-        update_interval: Time to wait between updates of the model state.
-        soil_layers: A list setting the number and depths of soil layers to be modelled.
-        canopy_layers: The initial number of canopy layers to be modelled.
-        constants: Set of constants for the abiotic simple model.
+        core_components: The core components used across models.
+        model_constants: Set of constants for the abiotic_simple model.
     """
 
     def __init__(
         self,
         data: Data,
-        update_interval: Quantity,
-        soil_layers: list[float],
-        canopy_layers: int,
-        constants: AbioticSimpleConsts,
+        core_components: CoreComponents,
+        model_constants: AbioticSimpleConsts = AbioticSimpleConsts(),
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(data=data, core_components=core_components, **kwargs)
 
-        # create a list of layer roles
-        layer_roles = set_layer_roles(canopy_layers, soil_layers)
-
-        self.layer_roles = layer_roles
-        """A list of vertical layer roles."""
-        self.constants = constants
+        self.data
+        """A Data instance providing access to the shared simulation data."""
+        self.model_constants = model_constants
         """Set of constants for the abiotic simple model"""
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> AbioticSimpleModel:
         """Factory function to initialise the abiotic simple model from configuration.
 
@@ -98,22 +90,24 @@ class AbioticSimpleModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_components: The core components used across models.
             config: A validated Virtual Rainforest model configuration object.
-            update_interval: Frequency with which all models are updated.
         """
 
-        # Find number of soil and canopy layers
-        soil_layers = config["core"]["layers"]["soil_layers"]
-        canopy_layers = config["core"]["layers"]["canopy_layers"]
-
         # Load in the relevant constants
-        constants = load_constants(config, "abiotic_simple", "AbioticSimpleConsts")
+        model_constants = load_constants(
+            config, "abiotic_simple", "AbioticSimpleConsts"
+        )
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
         )
-        return cls(data, update_interval, soil_layers, canopy_layers, constants)
+        return cls(
+            data=data,
+            core_components=core_components,
+            model_constants=model_constants,
+        )
 
     def setup(self) -> None:
         """Function to set up the abiotic simple model.
@@ -125,11 +119,14 @@ class AbioticSimpleModel(
 
         # create soil temperature array
         self.data["soil_temperature"] = DataArray(
-            np.full((len(self.layer_roles), len(self.data.grid.cell_id)), np.nan),
+            np.full(
+                (self.layer_structure.n_layers, self.data.grid.n_cells),
+                np.nan,
+            ),
             dims=["layers", "cell_id"],
             coords={
-                "layers": np.arange(0, len(self.layer_roles)),
-                "layer_roles": ("layers", self.layer_roles),
+                "layers": np.arange(0, self.layer_structure.n_layers),
+                "layer_roles": ("layers", self.layer_structure.layer_roles),
                 "cell_id": self.data.grid.cell_id,
             },
             name="soil_temperature",
@@ -141,7 +138,7 @@ class AbioticSimpleModel(
         ] = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            constants=self.constants,
+            constants=self.model_constants,
         ).rename(
             "vapour_pressure_deficit_ref"
         )
@@ -161,9 +158,9 @@ class AbioticSimpleModel(
         # object. For now, we leave it as a separate routine.
         output_variables = microclimate.run_microclimate(
             data=self.data,
-            layer_roles=self.layer_roles,
+            layer_roles=self.layer_structure.layer_roles,
             time_index=time_index,
-            constants=self.constants,
+            constants=self.model_constants,
         )
         self.data.add_from_dict(output_dict=output_variables)
 

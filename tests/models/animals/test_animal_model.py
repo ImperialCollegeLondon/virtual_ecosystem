@@ -4,15 +4,14 @@ from contextlib import nullcontext as does_not_raise
 from logging import INFO
 
 import numpy as np
-import pint
 import pytest
 
 from tests.conftest import log_check
 
 
 def test_animal_model_initialization(
-    caplog,
     plant_climate_data_instance,
+    fixture_core_components,
     functional_group_list_instance,
     constants_instance,
 ):
@@ -22,78 +21,59 @@ def test_animal_model_initialization(
 
     # Initialize model
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
-        constants=constants_instance,
+        data=plant_climate_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
     )
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
     assert model.model_name == "animals"
     assert str(model) == "A animals model instance"
-    assert repr(model) == "AnimalModel(update_interval = 1 week)"
+    assert repr(model) == "AnimalModel(update_interval=1209600 seconds)"
     assert isinstance(model.communities, dict)
 
 
 @pytest.mark.parametrize(
-    "config,time_interval,raises,expected_log_entries",
+    "config_string,raises,expected_log_entries",
     [
-        (
-            {},
-            None,
-            pytest.raises(KeyError),
-            (),  # This error isn't handled so doesn't generate logging
-        ),
-        (
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "7 days",
-                    }
-                },
-                "animals": {
-                    "model_time_step": "12 hours",
-                    "functional_groups": [
-                        {
-                            "name": "carnivorous_bird",
-                            "taxa": "bird",
-                            "diet": "carnivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 0.1,
-                            "adult_mass": 1.0,
-                        },
-                        {
-                            "name": "herbivorous_bird",
-                            "taxa": "bird",
-                            "diet": "herbivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 0.05,
-                            "adult_mass": 0.5,
-                        },
-                        {
-                            "name": "carnivorous_mammal",
-                            "taxa": "mammal",
-                            "diet": "carnivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 4.0,
-                            "adult_mass": 40.0,
-                        },
-                        {
-                            "name": "herbivorous_mammal",
-                            "taxa": "mammal",
-                            "diet": "herbivore",
-                            "metabolic_type": "endothermic",
-                            "birth_mass": 1.0,
-                            "adult_mass": 10.0,
-                        },
-                    ],
-                },
-            },
-            pint.Quantity("7 days"),
+        pytest.param(
+            """[core.timing]
+            start_date = "2020-01-01"
+            update_interval = "7 days"
+            [[animals.functional_groups]]
+            name = "carnivorous_bird"
+            taxa = "bird"
+            diet = "carnivore"
+            metabolic_type = "endothermic"
+            birth_mass = 0.1
+            adult_mass = 1.0
+            [[animals.functional_groups]]
+            name = "herbivorous_bird"
+            taxa = "bird"
+            diet = "herbivore"
+            metabolic_type = "endothermic"
+            birth_mass = 0.05
+            adult_mass = 0.5
+            [[animals.functional_groups]]
+            name = "carnivorous_mammal"
+            taxa = "mammal"
+            diet = "carnivore"
+            metabolic_type = "endothermic"
+            birth_mass = 4.0
+            adult_mass = 40.0
+            [[animals.functional_groups]]
+            name = "herbivorous_mammal"
+            taxa = "mammal"
+            diet = "herbivore"
+            metabolic_type = "endothermic"
+            birth_mass = 1.0
+            adult_mass = 10.0
+            """,
             does_not_raise(),
             (
+                (INFO, "Initialised animals.AnimalConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the animal model successfully "
@@ -102,29 +82,35 @@ def test_animal_model_initialization(
                 (INFO, "Adding data array for 'decomposed_excrement'"),
                 (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
+            id="success",
         ),
     ],
 )
 def test_generate_animal_model(
     caplog,
     plant_climate_data_instance,
-    config,
-    time_interval,
+    config_string,
     raises,
     expected_log_entries,
-    constants_instance,
 ):
     """Test that the function to initialise the animal model behaves as expected."""
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    # Build the config object and core components
+    config = Config(cfg_strings=config_string)
+    core_components = CoreComponents(config)
+    caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AnimalModel.from_config(
             data=plant_climate_data_instance,
+            core_components=core_components,
             config=config,
-            update_interval=pint.Quantity(config["core"]["timing"]["update_interval"]),
         )
-        assert model.update_interval == time_interval
+
         # Run the update step (once this does something should check output)
         model.update(time_index=0)
 
@@ -157,7 +143,10 @@ def test_get_community_by_key(animal_model_instance):
 
 
 def test_update_method_sequence(
-    plant_climate_data_instance, functional_group_list_instance, constants_instance
+    plant_climate_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
 ):
     """Test update to ensure it runs the community methods in order.
 
@@ -168,10 +157,10 @@ def test_update_method_sequence(
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
-        constants=constants_instance,
+        data=plant_climate_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
     )
 
     # Mock all the methods that are supposed to be called by update
@@ -209,15 +198,15 @@ def test_update_method_sequence(
 
 
 def test_update_method_time_index_argument(
-    plant_climate_data_instance, functional_group_list_instance
+    plant_climate_data_instance, fixture_core_components, functional_group_list_instance
 ):
     """Test update to ensure the time index argument does not create an error."""
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        plant_climate_data_instance,
-        pint.Quantity("1 week"),
-        functional_group_list_instance,
+        data=plant_climate_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
     )
 
     time_index = 5
@@ -229,16 +218,26 @@ def test_update_method_time_index_argument(
 def test_calculate_litter_additions(functional_group_list_instance):
     """Test that litter additions from animal model are calculated correctly."""
 
+    from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.animals import AnimalModel
+    from virtual_rainforest.models.animals.animal_model import AnimalModel
+
+    # Build the config object and core components
+    config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')
+    core_components = CoreComponents(config)
 
     # Create a small data object to work with
     grid = Grid(cell_nx=2, cell_ny=2)
     data = Data(grid)
 
     # Use it to initialise the model
-    model = AnimalModel(data, pint.Quantity("1 week"), functional_group_list_instance)
+    model = AnimalModel(
+        data=data,
+        core_components=core_components,
+        functional_groups=functional_group_list_instance,
+    )
 
     # Update the waste pools
     decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
