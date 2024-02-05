@@ -66,5 +66,5 @@ class CoreConsts(ConstantsDataclass):
     gas_constant_water_vapor: float = 461.51
     """Gas constant for water vapor, [J kg-1 K-1]"""
 
-    seconds_to_day: float = 86400
+    seconds_to_day: float = 86400.0
     """Factor to convert variable unit from seconds to day."""

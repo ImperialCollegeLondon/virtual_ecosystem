@@ -405,13 +405,13 @@ def test_setup(
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
-        exp_soil_evap = DataArray(  # TODO this seems too high
+        exp_soil_evap = DataArray(
             [345.1148, 344.759928, 345.15422],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_total_discharge = DataArray(
-            [0, 1368, 2738],
+            [0, 20925, 42201],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
