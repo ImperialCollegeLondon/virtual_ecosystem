@@ -126,8 +126,8 @@ team.
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>
   Litter Constants <api/litter/constants.md>
-  
-  
+  Plants Model <api/plants/plants_model.md>
+  Plants Structures <api/plants/plant_structures.md>
 ```
 
 ```{eval-rst}
