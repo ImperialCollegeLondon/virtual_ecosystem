@@ -20,21 +20,22 @@ The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides d
 implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
 and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
 
+Declaring new subclasses
+------------------------
+
 The :class:`~virtual_rainforest.core.base_model.BaseModel` has four class attributes
-that must be defined in subclasses:
-
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute and
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
-  attribute.
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`
-  attribute
-* The :attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`
-  attribute
-
+that must be specified as arguments to the subclass declaration:
+:attr:`~virtual_rainforest.core.base_model.BaseModel.model_name`,
+:attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`,
+:attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds` and
+:attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`. This behaviour is
+defined in the :meth:`BaseModel.__init_subclass__()
+<virtual_rainforest.core.base_model.BaseModel.__init_subclass__>` method, which also
+gives example code for declaring a new subclass.
 
 The usage of these four attributes is described in their docstrings and each is
-validated when a new subclass is create using the following private
-methods of the class:
+validated when a new subclass is created using the following private methods of the
+class:
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
 :meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_update_bounds` and
@@ -51,14 +52,15 @@ and validates the class attributes for the new model class.
 The ``BaseModel.__init__`` method
 ----------------------------------
 
-The ``__init__`` method for subclasses **must** call the ``BaseModel``
-:meth:`~virtual_rainforest.core.base_model.BaseModel.__init__` method as shown below.
-This method carries out some core initialisation steps: see the method description for
-details.
+Each model subclass will include an ``__init__`` method that validates and populates
+model specific attributes. That ``__init__`` method **must** call the
+:meth:`BaseModel.__init__() <virtual_rainforest.core.base_model.BaseModel.__init__>`
+method, as this populates core shared model attrributes - see the linked method
+description for details.
 
 .. code-block:: python
 
-    super().__init__(data, update_interval, start_time, **kwargs)
+    super().__init__(data, core_components)
 
 
 The ``from_config`` factory method
@@ -66,11 +68,17 @@ The ``from_config`` factory method
 
 The ABC also defines the abstract class method
 :func:`~virtual_rainforest.core.base_model.BaseModel.from_config`. This method must be
-defined by subclasses and must be a factory method that takes a
-:class:`~virtual_rainforest.core.data.Data` instance and  a model specific configuration
-dictionary and returns an instance of the subclass. For any given model, the method
-should provide any code to validate the configuration and then use the configuration to
-initialise and return a new instance of the class.
+defined by subclasses and must be a factory method that returns an instance of the model
+subclass. The method must follow the signature of that method, providing:
+
+* ``data`` as an instance of :class:`~virtual_rainforest.core.data.Data`.
+* ``core_components`` as an instance of
+  :class:`~virtual_rainforest.core.core_components.CoreComponents`.
+* ``config`` as an instance of
+  :class:`~virtual_rainforest.core.config.Config`.
+
+The method should provide any code to validate the configuration for that model and then
+use the configuration to initialise and return a new instance of the class.
 
 Model registration
 ------------------
@@ -93,6 +101,12 @@ import pint
 
 from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
+from virtual_rainforest.core.core_components import (
+    CoreComponents,
+    LayerStructure,
+    ModelTiming,
+)
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
@@ -112,8 +126,9 @@ class BaseModel(ABC):
     Args:
         data: A :class:`~virtual_rainforest.core.data.Data` instance containing
             variables to be used in the model.
-        start_time: Point in time that the model simulation should be started.
-        update_interval: Time to wait between updates of the model state.
+        core_components: A
+            :class:`~virtual_rainforest.core.core_components.CoreComponents`
+            instance containing shared core elements used throughout models.
     """
 
     model_name: str
@@ -158,31 +173,48 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
-        update_interval: pint.Quantity,
+        core_components: CoreComponents,
         **kwargs: Any,
     ):
         """Performs core initialisation for BaseModel subclasses.
 
-        This method should be called by the ``__init__`` method of all subclasses and
-        performs the following core steps:
+        This method **must** be called in the ``__init__`` method of all subclasses.
 
-        * It populates the shared instance attributes
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.data` and
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.update_interval`.
-        * It uses the
-          :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data`
-          to confirm that the required variables for the model are present in the
-          :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
+        It populates a set of shared instance attributes from the provided
+        :class:`~virtual_rainforest.core.core_components.CoreComponents` and
+        :class:`~virtual_rainforest.core.data.Data` value:
+
+        * ``data``: the provided :class:`~virtual_rainforest.core.data.Data` instance,
+        * ``model_timing``: the
+          :class:`~virtual_rainforest.core.core_components.ModelTiming` instance from
+          the ``core_components`` argument.
+        * ``layer_structure``: the
+          :class:`~virtual_rainforest.core.core_components.LayerStructure` instance from
+          the ``core_components`` argument.
+        * ``core_constants``: the
+          :class:`~virtual_rainforest.core.constants.CoreConsts` instance from
+          the ``core_components`` argument.
+
+        It then uses the
+        :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data` method to
+        confirm that the required variables for the model are present in the provided
+        :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
         """
-        self.data = data
+        self.data: Data = data
         """A Data instance providing access to the shared simulation data."""
-        self.update_interval = self._check_update_speed(update_interval)
-        """The time interval between model updates."""
-        self._repr = ["update_interval"]
+        self.model_timing: ModelTiming = core_components.model_timing
+        """The ModelTiming details used in the model."""
+        self.layer_structure: LayerStructure = core_components.layer_structure
+        """The LayerStructure details used in the model."""
+        self.core_constants: CoreConsts = core_components.core_constants
+        """The core constants used in the model."""
+        self._repr: list[tuple[str, ...]] = [("model_timing", "update_interval")]
         """A list of attributes to be included in the class __repr__ output"""
 
         # Check the required init variables
         self.check_init_data()
+        # Check the configured update interval is within model bounds
+        self._check_update_speed()
 
     @abstractmethod
     def setup(self) -> None:
@@ -207,7 +239,7 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: pint.Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 
@@ -360,15 +392,8 @@ class BaseModel(ABC):
 
         return model_update_bounds_pint
 
-    def _check_update_speed(self, update_interval: pint.Quantity) -> pint.Quantity:
-        """Function to check that the update speed of a specific model is within bounds.
-
-        Args:
-            update_interval: A :class:`pint.Quantity` giving the update interval for the
-                model.
-
-        Returns:
-            The update interval for the overall model
+    def _check_update_speed(self) -> None:
+        """Method to check that the configure update speed is within the model bounds.
 
         Raises:
             ConfigurationError: If the update interval does not fit with the model's
@@ -376,21 +401,21 @@ class BaseModel(ABC):
         """
 
         # Check if either bound is violated
-        if update_interval < pint.Quantity(self.model_update_bounds[0]):
+        if self.model_timing.update_interval_quantity < self.model_update_bounds[0]:
             to_raise = ConfigurationError(
-                "The update interval is faster than the model update bounds."
+                f"The update interval is faster than the {self.model_name} "
+                f"lower bound of {self.model_update_bounds[0]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
 
-        if update_interval > pint.Quantity(self.model_update_bounds[1]):
+        if self.model_timing.update_interval_quantity > self.model_update_bounds[1]:
             to_raise = ConfigurationError(
-                "The update interval is slower than the model update bounds."
+                f"The update interval is slower than the {self.model_name} "
+                f"upper bound of {self.model_update_bounds[1]}."
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        return update_interval
 
     @classmethod
     def _check_vars_updated(cls, vars_updated: tuple[str, ...]) -> tuple[str, ...]:
@@ -463,12 +488,24 @@ class BaseModel(ABC):
             raise excep
 
     def __repr__(self) -> str:
-        """Represent a Model as a string."""
+        """Represent a Model as a string from the attributes listed in _repr.
+
+        Each entry in self._repr is a tuple of strings providing a path through the
+        model hierarchy. The method assembles the tips of each path into a repr string.
+        """
+
+        repr_elements: list[str] = []
+
+        for repr_entry in self._repr:
+            obj = self
+            for attr in repr_entry:
+                obj = getattr(obj, attr)
+            repr_elements.append(f"{attr}={obj}")
 
         # Add all args to the function signature
-        func_sig = ", ".join([f"{k} = {getattr(self, k)}" for k in self._repr])
+        repr_string = ", ".join(repr_elements)
 
-        return f"{self.__class__.__name__}({func_sig})"
+        return f"{self.__class__.__name__}({repr_string})"
 
     def __str__(self) -> str:
         """Inform user what the model type is."""

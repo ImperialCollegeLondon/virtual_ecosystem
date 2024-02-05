@@ -90,6 +90,7 @@ team.
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
+  Core Components <api/core/core_components.md>
   Core Constants <api/core/constants.md>
   Constants Classes <api/core/constants_class.md>
   Constants Loader <api/core/constants_loader.md>
