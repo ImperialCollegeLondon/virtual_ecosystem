@@ -19,5 +19,6 @@ kernelspec:
 ```{eval-rst}
 .. automodule:: virtual_rainforest.core.core_components
     :autosummary:
-    :members:
+    :members: 
+    :special-members: __post_init__
 ```

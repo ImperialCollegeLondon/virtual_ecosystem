@@ -161,7 +161,7 @@ class LayerStructure:
     The layer structure is shown below, along with values from the default
     configuration. All heights are in metres relative to ground level and the canopy
     layer heights are defined dynamically by the
-    :class:`~virtual_rainforest.models.plants.PlantsModel`.
+    :class:`~virtual_rainforest.models.plants.plants_model.PlantsModel`.
 
     .. csv-table::
         :header: "Index", "Role", "Description", "Set by", "Default"
