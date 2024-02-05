@@ -106,6 +106,7 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
+    ("py:class", "numpy._typing._array_like._ScalarType_co"),
     # TODO - Delete this once Vivienne has merged this feature into develop
     ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
     # Something off about JSONSchema intersphinx mapping?
