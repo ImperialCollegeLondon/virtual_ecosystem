@@ -47,6 +47,7 @@ class CoreConsts(ConstantsDataclass):
 
     The von Karman's constant describes the logarithmic velocity profile of a turbulent
     fluid near a no-slip boundary."""
+
     depth_of_active_soil_layer: float = 0.25
     """Depth of the biogeochemically active soil layer [m].
 
@@ -55,3 +56,15 @@ class CoreConsts(ConstantsDataclass):
     from :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this
     value.
     """
+
+    meters_to_mm: float = 1000.0
+    """Factor to convert variable unit from meters to millimeters."""
+
+    molecular_weight_air: float = 28.96
+    """Molecular weight of air, [g mol-1]."""
+
+    gas_constant_water_vapor: float = 461.51
+    """Gas constant for water vapor, [J kg-1 K-1]"""
+
+    seconds_to_day: float = 86400
+    """Factor to convert variable unit from seconds to day."""

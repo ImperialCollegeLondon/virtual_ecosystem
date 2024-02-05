@@ -14,7 +14,16 @@ config dictionary to the required types they are caught and then logged, and at 
 of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
 
-TODO change temperature to Kelvin
+TODOs
+
+    * find a way to load daily (precipitation) data and loop over daily time_index
+    * add time dimension to required_init_vars
+    * allow for different time steps (currently only 30 days)
+    * potentially move `calculate_drainage_map` to core
+    * change temperature to Kelvin
+    * fix soil evaporation values
+    * change soil moisture to mm
+    * add abiotic constants from config
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -29,11 +38,14 @@ from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import InitialisationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.utils import set_layer_roles
+from virtual_rainforest.models.abiotic import abiotic_tools
+from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.hydrology import above_ground, below_ground
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
@@ -56,6 +68,8 @@ class HydrologyModel(
         "soil_moisture",
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
+        "latent_heat_vaporisation",
+        "molar_density_air",
         "soil_evaporation",
         "aerodynamic_resistance_surface",
         "surface_runoff_accumulated",
@@ -79,16 +93,10 @@ class HydrologyModel(
         initial_groundwater_saturation: Initial level of groundwater saturation (between
             0 and 1) for all layers and grid cells identical.
         constants: Set of constants for the hydrology model.
+        core_constants: Set of constants shared across all models.
 
     Raises:
         InitialisationError: when initial soil moisture is out of bounds.
-
-    TODOs:
-
-    * find a way to load daily (precipitation) data and loop over daily time_index
-    * add time dimension to required_init_vars
-    * allow for different time steps (currently only 30 days)
-    * potentially move `calculate_drainage_map` to core
     """
 
     def __init__(
@@ -100,6 +108,7 @@ class HydrologyModel(
         initial_soil_moisture: float,
         initial_groundwater_saturation: float,
         constants: HydroConsts,
+        core_constants: CoreConsts,
         **kwargs: Any,
     ):
         # Sanity checks for initial soil moisture
@@ -142,6 +151,8 @@ class HydrologyModel(
         """Initial level of groundwater saturation for all layers identical."""
         self.constants = constants
         """Set of constants for the hydrology model"""
+        self.core_constants = core_constants
+        """Set of core constants for the hydrology model"""
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
@@ -176,6 +187,7 @@ class HydrologyModel(
 
         # Load in the relevant constants
         constants = load_constants(config, "hydrology", "HydroConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
@@ -189,6 +201,7 @@ class HydrologyModel(
             initial_soil_moisture,
             initial_groundwater_saturation,
             constants,
+            core_constants,
         )
 
     def setup(self) -> None:
@@ -320,6 +333,8 @@ class HydrologyModel(
         * soil_evaporation, [mm]
         * aerodynamic_resistance_surface
         * vertical_flow, [mm d-1]
+        * latent_heat_vaporisation, [J kg-1]
+        * molar_density_air, [mol m-3]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
@@ -410,16 +425,24 @@ class HydrologyModel(
         # Set seed for random rainfall generator
         seed: None | int = kwargs.pop("seed", None)
 
+        surface_layer_index = self.layer_roles.index("surface")
+
         # Select variables at relevant heights for current time step
         hydro_input = setup_hydrology_input_current_timestep(
             data=self.data,
             time_index=time_index,
+            surface_layer_index=surface_layer_index,
             days=days,
             seed=seed,
-            layer_roles=self.layer_roles,
             soil_moisture_capacity=self.constants.soil_moisture_capacity,
             soil_moisture_residual=self.constants.soil_moisture_residual,
-            meters_to_mm=self.constants.meters_to_mm,
+            core_constants=self.core_constants,
+            latent_heat_vap_equ_factor_1=(
+                AbioticConsts.latent_heat_vap_equ_factor_1  # TODO
+            ),
+            latent_heat_vap_equ_factor_2=(
+                AbioticConsts.latent_heat_vap_equ_factor_2  # TODO
+            ),
         )
 
         # Create lists for output variables to store daily data
@@ -473,11 +496,20 @@ class HydrologyModel(
                 hydro_input["top_soil_moisture_capacity_mm"],
             ).squeeze()
 
+            density_air_kg = (
+                hydro_input["molar_density_air"][surface_layer_index]
+                * self.core_constants.molecular_weight_air
+                / 1000.0
+            )
+
             # Calculate daily soil evaporation, [mm]
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / hydro_input["soil_layer_thickness"][0]
             )
 
+            latent_heat_vaporisation = (
+                hydro_input["latent_heat_vaporisation"][surface_layer_index] / 1000.0
+            )
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=hydro_input["surface_temperature"],
                 relative_humidity=hydro_input["surface_humidity"],
@@ -487,10 +519,10 @@ class HydrologyModel(
                 soil_moisture_capacity=self.constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
-                celsius_to_kelvin=self.constants.celsius_to_kelvin,
-                density_air=self.constants.density_air,
-                latent_heat_vapourisation=self.constants.latent_heat_vapourisation,
-                gas_constant_water_vapour=self.constants.gas_constant_water_vapour,
+                celsius_to_kelvin=self.core_constants.zero_Celsius,
+                density_air=density_air_kg,
+                latent_heat_vaporisation=latent_heat_vaporisation,
+                gas_constant_water_vapor=self.core_constants.gas_constant_water_vapor,
                 soil_surface_heat_transfer_coefficient=(
                     self.constants.soil_surface_heat_transfer_coefficient
                 ),
@@ -534,7 +566,7 @@ class HydrologyModel(
                 hydraulic_gradient=self.constants.hydraulic_gradient,  # m/m
                 nonlinearily_parameter=self.constants.nonlinearily_parameter,
                 groundwater_capacity=self.constants.groundwater_capacity,
-                seconds_to_day=self.constants.seconds_to_day,
+                seconds_to_day=self.core_constants.seconds_to_day,
             )
             daily_lists["vertical_flow"].append(vertical_flow)
 
@@ -624,6 +656,14 @@ class HydrologyModel(
             coords={"cell_id": self.data.grid.cell_id},
         )
 
+        # Return latent heat of vaporisation and molar density of air
+        for var in ["latent_heat_vaporisation", "molar_density_air"]:
+            soil_hydrology[var] = DataArray(
+                np.mean(daily_lists[var]),
+                dims=self.data["layer_heights"].dims,
+                coords=self.data["layer_heights"].coords,
+            )
+
         # Return mean soil moisture, [-], and matric potential, [kPa], and add
         # atmospheric layers (nan)
         for var in ["soil_moisture", "matric_potential"]:
@@ -680,8 +720,8 @@ class HydrologyModel(
             river_discharge_mm=total_river_discharge,
             area=self.data.grid.cell_area,
             days=days,
-            seconds_to_day=self.constants.seconds_to_day,
-            meters_to_millimeters=self.constants.meters_to_mm,
+            seconds_to_day=self.core_constants.seconds_to_day,
+            meters_to_millimeters=self.core_constants.meters_to_mm,
         )
         soil_hydrology["river_discharge_rate"] = DataArray(
             river_discharge_rate, dims="cell_id"
@@ -720,12 +760,14 @@ def calculate_layer_thickness(
 def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
+    surface_layer_index: int,
     days: int,
     seed: None | int,
-    layer_roles: list[str],
     soil_moisture_capacity: float,
     soil_moisture_residual: float,
-    meters_to_mm: float,
+    core_constants: CoreConsts,
+    latent_heat_vap_equ_factor_1: float,
+    latent_heat_vap_equ_factor_2: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs to hydrology.update() for current time step.
 
@@ -751,9 +793,9 @@ def setup_hydrology_input_current_timestep(
         data: Data object that contains inputs from the microclimate model, the plant
             model, and the hydrology model that are required for current update
         time_index: time index
+        surface_layer_index: index of surface layer
         days: number of days
         seed: seed for random rainfall generator
-        layer_roles: list of layer roles
         soil_moisture_capacity: soil moisture capacity, unitless
         soil_moisture_residual: soil moisture residual, unitless
         meters_to_mm: factor to convert between meters and millimieters
@@ -763,6 +805,24 @@ def setup_hydrology_input_current_timestep(
     """
 
     output = {}
+
+    # Calculate latent heat of vaporisation and density of air
+    latent_heat_vaporisation = abiotic_tools.calculate_latent_heat_vaporisation(
+        temperature=data["air_temperature"].to_numpy(),
+        celsius_to_kelvin=core_constants.zero_Celsius,
+        latent_heat_vap_equ_factor_1=latent_heat_vap_equ_factor_1,
+        latent_heat_vap_equ_factor_2=latent_heat_vap_equ_factor_2,
+    )
+    output["latent_heat_vaporisation"] = latent_heat_vaporisation
+
+    molar_density_air = abiotic_tools.calculate_molar_density_air(
+        temperature=data["air_temperature"].to_numpy(),
+        atmospheric_pressure=(data["atmospheric_pressure"].to_numpy()),
+        standard_mole=core_constants.standard_mole,
+        standard_pressure=core_constants.standard_pressure,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+    )
+    output["molar_density_air"] = molar_density_air
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
@@ -774,14 +834,9 @@ def setup_hydrology_input_current_timestep(
         ("surface_temperature", "air_temperature"),
         ("surface_humidity", "relative_humidity"),
         ("surface_wind_speed", "wind_speed"),
+        ("surface_pressure", "atmospheric_pressure"),
     ):
-        output[out_var] = (
-            data[in_var].isel(layers=layer_roles.index("surface")).to_numpy()
-        )
-
-    output["surface_pressure"] = (
-        data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
-    )
+        output[out_var] = data[in_var][surface_layer_index].to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
@@ -799,7 +854,7 @@ def setup_hydrology_input_current_timestep(
 
     output["soil_layer_thickness"] = calculate_layer_thickness(  # [mm]
         soil_layer_heights=output["soil_layer_heights"],
-        meters_to_mm=meters_to_mm,
+        meters_to_mm=core_constants.meters_to_mm,
     )
     output["top_soil_moisture_capacity_mm"] = (
         soil_moisture_capacity * output["soil_layer_thickness"][0]

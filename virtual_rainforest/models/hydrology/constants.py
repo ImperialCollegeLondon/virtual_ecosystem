@@ -55,29 +55,11 @@ class HydroConsts(ConstantsDataclass):
     movement of water and indicates the direction in which water will flow.
     """
 
-    seconds_to_day: float = 86400
-    """Factor to convert variable unit from seconds to day."""
-
     nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
     :cite:p:`van_genuchten_closed-form_1980`."""
-
-    meters_to_mm: float = 1000
-    """Factor to convert variable unit from meters to millimeters."""
-
-    celsius_to_kelvin: float = 273.15
-    """Factor to convert variable unit from Celsius to Kelvin."""
-
-    density_air: float = 1.225
-    """Density of air under standard atmosphere, [kg m-3]"""
-
-    latent_heat_vapourisation: float = 2.45
-    """Latent heat of vapourisation under standard atmosphere, [MJ kg-1]"""
-
-    gas_constant_water_vapour: float = 461.51
-    """Gas constant for water vapour, [J kg-1 K-1]"""
 
     soil_surface_heat_transfer_coefficient: float = 12.5
     """Heat transfer coefficient from soil to atmosphere above, [W m-2 K-1].
