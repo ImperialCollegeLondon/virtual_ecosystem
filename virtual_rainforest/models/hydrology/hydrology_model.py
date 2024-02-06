@@ -112,7 +112,7 @@ class HydrologyModel(
         **kwargs: Any,
     ):
         # Sanity checks for initial soil moisture
-        if type(initial_soil_moisture) is not float:
+        if not isinstance(initial_soil_moisture, float):
             to_raise = InitialisationError("The initial soil moisture must be a float!")
             LOGGER.error(to_raise)
             raise to_raise
@@ -404,7 +404,7 @@ class HydrologyModel(
         * relative humidity, []
         * atmospheric pressure, [kPa]
         * precipitation, [mm]
-        * wind speed (currently not implemented, default = 0.1 m s-1)
+        * wind speed, [m s-1]
         * leaf area index, [m m-2]
         * layer heights, [m]
         * Volumetric relative water content (previous time step), [unitless]
@@ -497,12 +497,6 @@ class HydrologyModel(
                 hydro_input["top_soil_moisture_capacity_mm"],
             ).squeeze()
 
-            density_air_kg = (
-                hydro_input["molar_density_air"][surface_layer_index]
-                * self.core_constants.molecular_weight_air
-                / 1000.0
-            )
-
             # Calculate daily soil evaporation, [mm]
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / hydro_input["soil_layer_thickness"][0]
@@ -511,6 +505,12 @@ class HydrologyModel(
             latent_heat_vaporisation = (
                 hydro_input["latent_heat_vaporisation"][surface_layer_index] / 1000.0
             )
+            density_air_kg = (
+                hydro_input["molar_density_air"][surface_layer_index]
+                * self.core_constants.molecular_weight_air
+                / 1000.0
+            )
+
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=hydro_input["surface_temperature"],
                 relative_humidity=hydro_input["surface_humidity"],
@@ -858,8 +858,9 @@ def setup_hydrology_input_current_timestep(
         data["layer_heights"].isel(layers=data["layer_roles"] == "soil").to_numpy()
     )
 
-    # FIXME - there's an implicit axis order built into these calculations (vertical
-    #         profile is axis 0) that needs fixing.
+    # There's an implicit axis order built into these calculations (vertical profile
+    # is axis 0) that needs fixing. TODO We need to document axis order at a higher
+    # level for validation.
 
     output["soil_layer_thickness"] = calculate_layer_thickness(  # [mm]
         soil_layer_heights=output["soil_layer_heights"],
