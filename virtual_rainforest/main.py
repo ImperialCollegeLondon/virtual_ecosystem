@@ -7,14 +7,11 @@ import os
 from collections.abc import Sequence
 from graphlib import CycleError, TopologicalSorter
 from itertools import chain
-from math import ceil
 from pathlib import Path
 from typing import Any
 
-import pint
-from numpy import datetime64, timedelta64
-
 from virtual_rainforest.core.config import Config
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
@@ -24,16 +21,16 @@ from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_
 def initialise_models(
     config: Config,
     data: Data,
+    core_components: CoreComponents,
     models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
-    update_interval: pint.Quantity,
 ) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
     """Initialise a set of models for use in a `virtual_rainforest` simulation.
 
     Args:
         config: A validated Virtual Rainforest model configuration object.
         data: A Data instance.
+        core_components: A CoreComponents instance.
         modules: A dictionary of models to be configured.
-        update_interval: The interval with which each model is updated
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
@@ -46,7 +43,7 @@ def initialise_models(
     models_cfd = {}
     for model_name, model_class in models.items():
         try:
-            this_model = model_class.from_config(data, config, update_interval)
+            this_model = model_class.from_config(data, core_components, config)
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
@@ -60,82 +57,6 @@ def initialise_models(
         raise to_raise
 
     return models_cfd
-
-
-def extract_timing_details(
-    config: Config,
-) -> tuple[datetime64, timedelta64, pint.Quantity, datetime64]:
-    """Extract timing details for main loop from the model configuration.
-
-    The start time, run length and update interval are all extracted from the
-    configuration. Sanity checks are carried out on these extracted values. The end time
-    is then generated from the previously extracted timing information. This end time
-    will always be a multiple of the update interval, with the convention that the
-    simulation should always run for at least as long as the user specified run
-    length.
-
-    Args:
-        config: A validated Virtual Rainforest model configuration object.
-
-    Raises:
-        InitialisationError: If the run length is too short for the model to update, or
-            the units of update interval or run length aren't valid.
-    """
-
-    # First extract start and end times
-    start_time = datetime64(config["core"]["timing"]["start_date"])
-
-    # Catch bad time dimensions
-    try:
-        raw_length = pint.Quantity(config["core"]["timing"]["run_length"]).to("seconds")
-    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
-        to_raise = InitialisationError(
-            "Units for core.timing.run_length are not valid time units: %s"
-            % config["core"]["timing"]["run_length"]
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-    else:
-        # Round raw time interval to nearest second
-        run_length = timedelta64(round(raw_length.magnitude), "s")
-
-    # Catch bad time dimensions
-    try:
-        # This averages across months and years (i.e. 1 month => 30.4375 days)
-        raw_interval = pint.Quantity(config["core"]["timing"]["update_interval"]).to(
-            "seconds"
-        )
-    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError):
-        to_raise = InitialisationError(
-            "Units for core.timing.update_interval are not valid time units: %s"
-            % config["core"]["timing"]["update_interval"]
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-    else:
-        # Round raw time interval to nearest second
-        update_interval = timedelta64(round(raw_interval.magnitude), "s")
-
-    if run_length < update_interval:
-        to_raise = InitialisationError(
-            f"Models will never update as the update interval ({update_interval}) is "
-            f"larger than the run length ({run_length})"
-        )
-        LOGGER.critical(to_raise)
-        raise to_raise
-
-    # Calculate when the simulation should stop based on principle that it should run at
-    # least as long as the user requests rather than shorter
-    end_time = start_time + ceil(run_length / update_interval) * update_interval
-
-    # Then inform the user how long it will run for
-    LOGGER.info(
-        "Virtual Rainforest simulation will run from %s until %s. This is a run length "
-        "of %s, the user requested %s"
-        % (start_time, end_time, end_time - start_time, run_length)
-    )
-
-    return start_time, update_interval, raw_interval, end_time
 
 
 def _get_model_sequence(
@@ -251,18 +172,11 @@ def vr_run(
 
     # Build core elements
     grid = Grid.from_config(config)
+    core_components = CoreComponents(config=config)
     data = Data(grid)
     data.load_data_config(config)
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
-
-    # Extract all the relevant timing details
-    (
-        current_time,
-        update_interval,
-        update_interval_as_quantity,
-        end_time,
-    ) = extract_timing_details(config)
 
     # Get the model initialisation sequence and initialise
     init_sequence = _get_model_sequence(
@@ -271,8 +185,8 @@ def vr_run(
     models_init = initialise_models(
         config=config,
         data=data,
+        core_components=core_components,
         models=init_sequence,
-        update_interval=update_interval_as_quantity,
     )
 
     LOGGER.info("All models successfully intialised.")
@@ -315,10 +229,11 @@ def vr_run(
 
     # Setup the timing loop
     time_index = 0
-    while current_time < end_time:
+    current_time = core_components.model_timing.start_time
+    while current_time < core_components.model_timing.end_time:
         LOGGER.info(f"Starting update {time_index}: {current_time}")
 
-        current_time += update_interval
+        current_time += core_components.model_timing.update_interval
 
         # Run update() method for every model
         for model in models_update.values():

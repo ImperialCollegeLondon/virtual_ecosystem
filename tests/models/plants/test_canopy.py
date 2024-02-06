@@ -88,14 +88,16 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
             log_check(caplog, exp_log)
 
 
-def test_initialise_canopy_layers(plants_data, layer_structure):
+def test_initialise_canopy_layers(plants_data, fixture_core_components):
     """Test the function to initialise canopy layers in the data object."""
 
     from virtual_rainforest.models.plants.canopy import initialise_canopy_layers
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
-    data = initialise_canopy_layers(data=plants_data, layer_structure=layer_structure)
+    data = initialise_canopy_layers(
+        data=plants_data, layer_structure=fixture_core_components.layer_structure
+    )
 
     # Set up expectations
     expected_layers = (

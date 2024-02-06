@@ -149,7 +149,99 @@ def data_instance():
 
 
 @pytest.fixture
-def dummy_carbon_data(layer_roles_fixture):
+def fixture_config():
+    """Simple configuration fixture for use in tests."""
+
+    from virtual_rainforest.core.config import Config
+
+    cfg_string = """
+        [core]
+        [core.grid]
+        cell_nx = 10
+        cell_ny = 10
+        [core.timing]
+        start_date = "2020-01-01"
+        update_interval = "2 weeks"
+        run_length = "50 years"
+        [core.data_output_options]
+        save_initial_state = true
+        save_final_state = true
+        out_initial_file_name = "model_at_start.nc"
+        out_final_file_name = "model_at_end.nc"
+
+        [core.layers]
+        canopy_layers = 10
+        soil_layers = [-0.25, -1.0]
+        above_canopy_height_offset = 2.0
+        surface_layer_height = 0.1
+        subcanopy_layer_height = 1.5
+
+        [plants]
+        a_plant_integer = 12
+        [[plants.ftypes]]
+        pft_name = "shrub"
+        max_height = 1.0
+        [[plants.ftypes]]
+        pft_name = "broadleaf"
+        max_height = 50.0
+
+        [[animals.functional_groups]]
+        name = "carnivorous_bird"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        birth_mass = 0.1
+        adult_mass = 1.0
+        [[animals.functional_groups]]
+        name = "herbivorous_bird"
+        taxa = "bird"
+        diet = "herbivore"
+        metabolic_type = "endothermic"
+        birth_mass = 0.05
+        adult_mass = 0.5
+        [[animals.functional_groups]]
+        name = "carnivorous_mammal"
+        taxa = "mammal"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        birth_mass = 4.0
+        adult_mass = 40.0
+        [[animals.functional_groups]]
+        name = "herbivorous_mammal"
+        taxa = "mammal"
+        diet = "herbivore"
+        metabolic_type = "endothermic"
+        birth_mass = 1.0
+        adult_mass = 10.0
+        [[animals.functional_groups]]
+        name = "carnivorous_insect"
+        taxa = "insect"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        birth_mass = 0.001
+        adult_mass = 0.01
+        [[animals.functional_groups]]
+        name = "herbivorous_insect"
+        taxa = "insect"
+        diet = "herbivore"
+        metabolic_type = "ectothermic"
+        birth_mass = 0.0005
+        adult_mass = 0.005
+        """
+
+    return Config(cfg_strings=cfg_string)
+
+
+@pytest.fixture
+def fixture_core_components(fixture_config):
+    """A CoreComponents instance for use in testing."""
+    from virtual_rainforest.core.core_components import CoreComponents
+
+    return CoreComponents(fixture_config)
+
+
+@pytest.fixture
+def dummy_carbon_data(fixture_core_components):
     """Creates a dummy carbon data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
@@ -206,7 +298,10 @@ def dummy_carbon_data(layer_roles_fixture):
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -222,7 +317,10 @@ def dummy_carbon_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -242,7 +340,10 @@ def dummy_carbon_data(layer_roles_fixture):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -252,15 +353,15 @@ def dummy_carbon_data(layer_roles_fixture):
 
 
 @pytest.fixture
-def top_soil_layer_index(layer_roles_fixture):
+def top_soil_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return next(i for i, v in enumerate(layer_roles_fixture) if v == "soil")
+    return fixture_core_components.layer_structure.layer_roles.index("soil")
 
 
 @pytest.fixture
-def surface_layer_index(layer_roles_fixture):
+def surface_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return next(i for i, v in enumerate(layer_roles_fixture) if v == "surface")
+    return fixture_core_components.layer_structure.layer_roles.index("surface")
 
 
 @pytest.fixture
@@ -297,17 +398,7 @@ def new_axis_validators():
 
 
 @pytest.fixture
-def layer_roles_fixture():
-    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        set_layer_roles,
-    )
-
-    return set_layer_roles(10, [-0.25, -1.0])
-
-
-@pytest.fixture
-def dummy_climate_data(layer_roles_fixture):
+def dummy_climate_data(fixture_core_components):
     """Creates a dummy climate data object for use in tests."""
 
     from virtual_rainforest.core.data import Data
@@ -357,6 +448,7 @@ def dummy_climate_data(layer_roles_fixture):
         np.full((3, 3), 200.0),
         dims=["time_index", "cell_id"],
     )
+
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
     data["topofcanopy_radiation"] = DataArray(
         np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
@@ -365,7 +457,7 @@ def dummy_climate_data(layer_roles_fixture):
     # Simulation data
     full_coordinates = {
         "layers": np.arange(15),
-        "layer_roles": ("layers", layer_roles_fixture),
+        "layer_roles": ("layers", fixture_core_components.layer_structure.layer_roles),
         "cell_id": data.grid.cell_id,
     }
 

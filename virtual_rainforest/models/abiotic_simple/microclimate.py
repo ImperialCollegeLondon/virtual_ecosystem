@@ -167,7 +167,7 @@ def log_interpolation(
     data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
-    layer_roles: list,
+    layer_roles: list[str],
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,

@@ -5,7 +5,7 @@ import xarray as xr
 from xarray import DataArray
 
 
-def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
+def test_log_interpolation(dummy_climate_data, fixture_core_components):
     """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_rainforest.models.abiotic_simple.microclimate import log_interpolation
@@ -19,7 +19,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
         data=data,
         reference_data=data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
-        layer_roles=layer_roles_fixture,
+        layer_roles=fixture_core_components.layer_structure.layer_roles,
         layer_heights=data["layer_heights"],
         upper_bound=80,
         lower_bound=0,
@@ -51,7 +51,10 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -62,7 +65,7 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
         data=data,
         reference_data=data["relative_humidity_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
-        layer_roles=layer_roles_fixture,
+        layer_roles=fixture_core_components.layer_structure.layer_roles,
         layer_heights=data["layer_heights"],
         upper_bound=100,
         lower_bound=0,
@@ -93,7 +96,10 @@ def test_log_interpolation(dummy_climate_data, layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -209,7 +215,7 @@ def test_calculate_vapour_pressure_deficit():
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
+def test_run_microclimate(dummy_climate_data, fixture_core_components):
     """Test interpolation of all variables."""
 
     from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
@@ -228,7 +234,7 @@ def test_run_microclimate(dummy_climate_data, layer_roles_fixture):
     )
     result = run_microclimate(
         data=data,
-        layer_roles=layer_roles_fixture,
+        layer_roles=fixture_core_components.layer_structure.layer_roles,
         time_index=0,
         constants=AbioticSimpleConsts(),
     )
