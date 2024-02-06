@@ -22,16 +22,14 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from pint import Quantity
 from xarray import DataArray
 
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.core.constants_loader import load_constants
+from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.abiotic import energy_balance, wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.abiotic_simple import microclimate
@@ -52,37 +50,25 @@ class AbioticModel(
 
     Args:
         data: The data object to be used in the model.
-        update_interval: Time to wait between updates of the model state.
-        soil_layers: A list setting the number and depths of soil layers to be modelled.
-        canopy_layers: The initial number of canopy layers to be modelled.
-        constants: Set of constants for the abiotic model.
+        core_components: The core components used across models.
+        model_constants: Set of constants for the abiotic model.
     """
 
     def __init__(
         self,
         data: Data,
-        update_interval: Quantity,
-        soil_layers: list[float],
-        canopy_layers: int,
-        constants: AbioticConsts,
-        core_constants: CoreConsts,
+        core_components: CoreComponents,
+        model_constants: AbioticConsts = AbioticConsts(),
         **kwargs: Any,
     ):
-        super().__init__(data, update_interval, **kwargs)
+        super().__init__(data=data, core_components=core_components, **kwargs)
 
-        # create a list of layer roles
-        layer_roles = set_layer_roles(canopy_layers, soil_layers)
-
-        self.layer_roles = layer_roles
-        """A list of vertical layer roles."""
-        self.constants = constants
+        self.model_constants = model_constants
         """Set of constants for the abiotic model."""
-        self.core_constants = core_constants
-        """Set of universal constants that are used across all models."""
 
     @classmethod
     def from_config(
-        cls, data: Data, config: Config, update_interval: Quantity
+        cls, data: Data, core_components: CoreComponents, config: Config
     ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
@@ -92,17 +78,12 @@ class AbioticModel(
 
         Args:
             data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            core_components: The core components used across models.
             config: A validated Virtual Rainforest model configuration object.
-            update_interval: Frequency with which all models are updated.
         """
 
-        # Find number of soil and canopy layers
-        soil_layers = config["core"]["layers"]["soil_layers"]
-        canopy_layers = config["core"]["layers"]["canopy_layers"]
-
         # Load in the relevant constants
-        constants = load_constants(config, "abiotic", "AbioticConsts")
-        core_constants = load_constants(config, "core", "CoreConsts")
+        model_constants = load_constants(config, "abiotic", "AbioticConsts")
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
@@ -110,11 +91,8 @@ class AbioticModel(
         )
         return cls(
             data,
-            update_interval,
-            soil_layers,
-            canopy_layers,
-            constants,
-            core_constants,
+            core_components=core_components,
+            model_constants=model_constants,
         )
 
     def setup(self) -> None:
@@ -142,7 +120,7 @@ class AbioticModel(
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
         initial_microclimate = microclimate.run_microclimate(
             data=self.data,
-            layer_roles=self.layer_roles,
+            layer_roles=self.layer_structure.layer_roles,
             time_index=0,
             constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
             Bounds=microclimate.Bounds,
@@ -153,19 +131,27 @@ class AbioticModel(
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
             layer_heights=self.data["layer_heights"],
-            light_extinction_coefficient=self.constants.light_extinction_coefficient,
-            canopy_temperature_ini_factor=self.constants.canopy_temperature_ini_factor,
+            light_extinction_coefficient=(
+                self.model_constants.light_extinction_coefficient
+            ),
+            canopy_temperature_ini_factor=(
+                self.model_constants.canopy_temperature_ini_factor
+            ),
         )
 
         initial_conductivities = energy_balance.initialise_conductivities(
             layer_heights=self.data["layer_heights"],
-            initial_air_conductivity=self.constants.initial_air_conductivity,
-            top_leaf_vapor_conductivity=self.constants.top_leaf_vapor_conductivity,
-            bottom_leaf_vapor_conductivity=(
-                self.constants.bottom_leaf_vapor_conductivity
+            initial_air_conductivity=self.model_constants.initial_air_conductivity,
+            top_leaf_vapor_conductivity=(
+                self.model_constants.top_leaf_vapor_conductivity
             ),
-            top_leaf_air_conductivity=self.constants.top_leaf_air_conductivity,
-            bottom_leaf_air_conductivity=self.constants.bottom_leaf_air_conductivity,
+            bottom_leaf_vapor_conductivity=(
+                self.model_constants.bottom_leaf_vapor_conductivity
+            ),
+            top_leaf_air_conductivity=self.model_constants.top_leaf_air_conductivity,
+            bottom_leaf_air_conductivity=(
+                self.model_constants.bottom_leaf_air_conductivity
+            ),
         )
 
         self.data.add_from_dict(output_dict=initial_microclimate)
@@ -216,7 +202,7 @@ class AbioticModel(
                 self.data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
             ),
             wind_reference_height=(self.data["canopy_height"] + 10).to_numpy(),
-            abiotic_constants=self.constants,
+            abiotic_constants=self.model_constants,
             core_constants=self.core_constants,
         )  # TODO wind height above in constants, cross-check with reference heights
 
@@ -235,7 +221,8 @@ class AbioticModel(
                         wind_update[var],
                         np.full(
                             (
-                                len(self.layer_roles) - len(wind_update[var]),
+                                len(self.layer_structure.layer_roles)
+                                - len(wind_update[var]),
                                 self.data.grid.n_cells,
                             ),
                             np.nan,
@@ -251,13 +238,13 @@ class AbioticModel(
 
         # Soil energy balance
         # TODO update when we rolled out new LayerStructure
-        topsoil_layer_index = self.layer_roles.index("soil")
+        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
         soil_energy_balance = energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
             update_interval=43200,  # self.update_interval,
-            abiotic_consts=self.constants,
+            abiotic_consts=self.model_constants,
             core_consts=self.core_constants,
         )
 
