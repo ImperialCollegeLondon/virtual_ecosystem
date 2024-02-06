@@ -112,9 +112,20 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     cfg = Config(cfg_strings=config)
     core_components = CoreComponents(cfg)
 
+    core_constants = {
+        "placeholder": 123.4,
+        "standard_pressure": 101.325,
+        "standard_mole": 44.642,
+        "molar_heat_capacity_air": 29.19,
+        "gravity": 6.6743e-11,
+        "stefan_boltzmann_constant": 5.670374419e-08,
+        "von_karmans_constant": 0.4,
+    }
+    core_constants.update(expected_constants)
+
     assert core_components.layer_structure.__dict__ == expected_layers
     assert core_components.model_timing.__dict__ == expected_timing
-    assert core_components.core_constants.__dict__ == expected_constants
+    assert core_components.core_constants.__dict__ == core_constants
 
 
 @pytest.mark.parametrize(

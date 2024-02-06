@@ -417,7 +417,9 @@ def test_setup_hydrology_input_current_timestep(
         .rename("wind_speed")
         .assign_coords(
             coords={
-                "layers": [fixture_core_components.layer_structure.index("surface")],
+                "layers": [
+                    fixture_core_components.layer_structure.layer_roles.index("surface")
+                ],
                 "layer_roles": ("layers", ["surface"]),
                 "cell_id": [0, 1, 2],
             },
