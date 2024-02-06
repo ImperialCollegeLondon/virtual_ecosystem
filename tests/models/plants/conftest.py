@@ -6,107 +6,13 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def plants_config():
-    """Simple configuration fixture for use in tests."""
-
-    from virtual_rainforest.core.config import Config
-
-    cfg_string = """
-        [core]
-        [core.grid]
-        cell_nx = 10
-        cell_ny = 10
-        [core.timing]
-        start_date = "2020-01-01"
-        update_interval = "2 weeks"
-        run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        save_final_state = true
-        out_initial_file_name = "model_at_start.nc"
-        out_final_file_name = "model_at_end.nc"
-
-        [core.layers]
-        canopy_layers = 10
-        soil_layers = [-0.25, -1.0]
-        above_canopy_height_offset = 2.0
-        surface_layer_height = 0.1
-        subcanopy_layer_height = 1.5
-
-        [plants]
-        a_plant_integer = 12
-        [[plants.ftypes]]
-        pft_name = "shrub"
-        max_height = 1.0
-        [[plants.ftypes]]
-        pft_name = "broadleaf"
-        max_height = 50.0
-
-        [[animals.functional_groups]]
-        name = "carnivorous_bird"
-        taxa = "bird"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        birth_mass = 0.1
-        adult_mass = 1.0
-        [[animals.functional_groups]]
-        name = "herbivorous_bird"
-        taxa = "bird"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        birth_mass = 0.05
-        adult_mass = 0.5
-        [[animals.functional_groups]]
-        name = "carnivorous_mammal"
-        taxa = "mammal"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        birth_mass = 4.0
-        adult_mass = 40.0
-        [[animals.functional_groups]]
-        name = "herbivorous_mammal"
-        taxa = "mammal"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        birth_mass = 1.0
-        adult_mass = 10.0
-        [[animals.functional_groups]]
-        name = "carnivorous_insect"
-        taxa = "insect"
-        diet = "carnivore"
-        metabolic_type = "ectothermic"
-        birth_mass = 0.001
-        adult_mass = 0.01
-        [[animals.functional_groups]]
-        name = "herbivorous_insect"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-        """
-
-    return Config(cfg_strings=cfg_string)
-
-
-@pytest.fixture
-def flora(plants_config):
+def flora(fixture_config):
     """Construct a minimal Flora object."""
     from virtual_rainforest.models.plants.functional_types import Flora
 
-    flora = Flora.from_config(plants_config)
+    flora = Flora.from_config(fixture_config)
 
     return flora
-
-
-@pytest.fixture
-def layer_structure(plants_config):
-    """Construct a minimal LayerStructure object."""
-    from virtual_rainforest.models.plants.plants_model import LayerStructure
-
-    layer_structure = LayerStructure.from_config(plants_config)
-
-    return layer_structure
 
 
 @pytest.fixture
@@ -160,15 +66,13 @@ def plants_data():
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora, layer_structure):
+def fxt_plants_model(plants_data, flora, fixture_core_components):
     """Return a simple PlantsModel instance."""
-    from pint import Quantity
 
     from virtual_rainforest.models.plants.plants_model import PlantsModel
 
     return PlantsModel(
         data=plants_data,
-        update_interval=Quantity("1 month"),
+        core_components=fixture_core_components,
         flora=flora,
-        layer_structure=layer_structure,
     )

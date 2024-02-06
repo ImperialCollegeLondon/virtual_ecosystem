@@ -24,7 +24,7 @@ def plant_data_instance():
 
 
 @pytest.fixture
-def plant_climate_data_instance(layer_roles_fixture):
+def plant_climate_data_instance(fixture_core_components):
     """Fixture returning a combination of plant and air temperature data."""
 
     from virtual_rainforest.core.data import Data
@@ -68,7 +68,10 @@ def plant_climate_data_instance(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -99,18 +102,20 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def animal_model_instance(
-    data_instance, functional_group_list_instance, constants_instance
+    data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
 ):
     """Fixture for an animal model object used in tests."""
-    from pint import Quantity
 
     from virtual_rainforest.models.animals.animal_model import AnimalModel
 
     return AnimalModel(
-        data_instance,
-        Quantity("1 day"),
-        functional_group_list_instance,
-        constants_instance,
+        data=data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
     )
 
 

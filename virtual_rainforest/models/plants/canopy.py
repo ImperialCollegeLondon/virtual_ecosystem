@@ -7,58 +7,15 @@ NOTE - much of this will be outsourced to pyrealm.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
-from virtual_rainforest.core.data import Config, Data
+from virtual_rainforest.core.core_components import LayerStructure
+from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.utils import set_layer_roles
 from virtual_rainforest.models.plants.community import PlantCohort, PlantCommunities
-
-
-@dataclass
-class LayerStructure:
-    """Simulation vertical layer structure.
-
-    This data class is a container for five configurable elements used to define the
-    vertical layer structure of the simulation. All are configured via the
-    ``core.layers`` configuration section.
-    """
-
-    canopy_layers: int
-    """The maximum number of canopy layers."""
-    soil_layers: list[float]
-    """A list of the depths of soil layer boundaries."""
-    above_canopy_height_offset: float
-    """The height above the canopy of the provided reference climate variables."""
-    surface_layer_height: float
-    """The height above ground used to represent surface conditions."""
-    subcanopy_layer_height: float
-    """The height above ground used to represent subcanopy conditions."""
-
-    @classmethod
-    def from_config(cls, config: Config) -> LayerStructure:
-        """Configure a LayerStructure object.
-
-        This is a factory method to generate a LayerStructure instance from an existing
-        :class:`~virtual_rainforest.core.config.Config` instance.
-
-        Args:
-            config: A Config instance.
-        """
-
-        lyr_config = config["core"]["layers"]
-        return cls(
-            canopy_layers=lyr_config["canopy_layers"],
-            soil_layers=lyr_config["soil_layers"],
-            above_canopy_height_offset=lyr_config["above_canopy_height_offset"],
-            surface_layer_height=lyr_config["surface_layer_height"],
-            subcanopy_layer_height=lyr_config["subcanopy_layer_height"],
-        )
 
 
 def generate_canopy_model(
@@ -230,12 +187,8 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         LOGGER.critical(msg)
         raise InitialisationError(msg)
 
-    # TODO - These layer roles desperately need to be set up in _one_ place!
-    layer_roles = set_layer_roles(
-        canopy_layers=layer_structure.canopy_layers,
-        soil_layers=layer_structure.soil_layers,
-    )
-    layer_shape = (len(layer_roles), data.grid.n_cells)
+    # Define the layers
+    layer_shape = (layer_structure.n_layers, data.grid.n_cells)
 
     for each_layer_name in layers_to_create:
         # Set the layers
@@ -243,8 +196,8 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
             data=np.full(layer_shape, fill_value=np.nan),
             dims=("layers", "cell_id"),
             coords={
-                "layers": np.arange(len(layer_roles)),
-                "layer_roles": ("layers", layer_roles),
+                "layers": np.arange(layer_structure.n_layers),
+                "layer_roles": ("layers", layer_structure.layer_roles),
                 "cell_id": data.grid.cell_id,
             },
         )

@@ -4,7 +4,6 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
-import pint
 import pytest
 from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
@@ -14,36 +13,18 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 from virtual_rainforest.models.soil.soil_model import IntegrationError
 
 
-@pytest.fixture
-def soil_model_fixture(dummy_carbon_data):
-    """Create a soil model fixture based on the dummy carbon data."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.models.soil.soil_model import SoilModel
-
-    # Build the config object
-    config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
-    )
-
-    return SoilModel.from_config(
-        data=dummy_carbon_data, config=config, update_interval=pint.Quantity("12 hours")
-    )
-
-
-def test_soil_model_initialization(caplog, dummy_carbon_data):
+def test_soil_model_initialization(
+    caplog, dummy_carbon_data, fixture_soil_core_components
+):
     """Test `SoilModel` initialization with good data."""
     from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     model = SoilModel(
-        dummy_carbon_data,
-        pint.Quantity("1 week"),
-        [-0.25, -1.0],
-        10,
-        model_constants=SoilConsts,
-        core_constants=CoreConsts,
+        data=dummy_carbon_data,
+        core_components=fixture_soil_core_components,
+        model_constants=SoilConsts(),
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -51,7 +32,7 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
     assert hasattr(model, "integrate")
     assert model.model_name == "soil"
     assert str(model) == "A soil model instance"
-    assert repr(model) == "SoilModel(update_interval = 1 week)"
+    assert repr(model) == "SoilModel(update_interval=43200 seconds)"
 
     # Final check that expected logging entries are produced
     log_check(
@@ -68,10 +49,11 @@ def test_soil_model_initialization(caplog, dummy_carbon_data):
     )
 
 
-def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
+def test_soil_model_initialization_no_data(
+    caplog, dummy_carbon_data, fixture_core_components
+):
     """Test `SoilModel` initialization with no data."""
 
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.models.soil.constants import SoilConsts
@@ -84,12 +66,9 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
 
         # Try and initialise model with empty data object
         _ = SoilModel(
-            empty_data,
-            pint.Quantity("1 week"),
-            [-0.25, -1.0],
-            10,
-            model_constants=SoilConsts,
-            core_constants=CoreConsts,
+            data=empty_data,
+            core_components=fixture_core_components,
+            model_constants=SoilConsts(),
         )
 
     # Final check that expected logging entries are produced
@@ -108,10 +87,11 @@ def test_soil_model_initialization_no_data(caplog, dummy_carbon_data):
     )
 
 
-def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
+def test_soil_model_initialization_bounds_error(
+    caplog, dummy_carbon_data, fixture_core_components
+):
     """Test `SoilModel` initialization."""
 
-    from virtual_rainforest.core.constants import CoreConsts
     from virtual_rainforest.models.soil.constants import SoilConsts
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
@@ -123,12 +103,9 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
 
         # Initialise model with bad data object
         _ = SoilModel(
-            dummy_carbon_data,
-            pint.Quantity("1 week"),
-            [-0.25, -1.0],
-            10,
-            model_constants=SoilConsts,
-            core_constants=CoreConsts,
+            data=dummy_carbon_data,
+            core_components=fixture_core_components,
+            model_constants=SoilConsts(),
         )
 
     # Final check that expected logging entries are produced
@@ -149,16 +126,14 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
 
 
 @pytest.mark.parametrize(
-    "cfg_string,time_interval,max_decomp,raises,expected_log_entries",
+    "cfg_string,max_decomp,raises,expected_log_entries",
     [
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n",
-            pint.Quantity("12 hours"),
             60.0,
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -177,12 +152,10 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05\n",
-            pint.Quantity("12 hours"),
             0.05,
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -202,7 +175,6 @@ def test_soil_model_initialization_bounds_error(caplog, dummy_carbon_data):
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
-            None,
             pytest.raises(ConfigurationError),
             (
                 (ERROR, "Unknown names supplied for SoilConsts: max_decomp_rate"),
@@ -217,7 +189,6 @@ def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
     cfg_string,
-    time_interval,
     max_decomp,
     raises,
     expected_log_entries,
@@ -225,24 +196,25 @@ def test_generate_soil_model(
     """Test that the function to initialise the soil model behaves as expected."""
 
     from virtual_rainforest.core.config import Config
+    from virtual_rainforest.core.core_components import CoreComponents
     from virtual_rainforest.core.registry import register_module
     from virtual_rainforest.models.soil.soil_model import SoilModel
 
     # Register the module components to access constants classes
     register_module("virtual_rainforest.models.soil")
 
-    # Build the config object
+    # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
+    core_components = CoreComponents(config)
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = SoilModel.from_config(
-            dummy_carbon_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_carbon_data,
+            core_components=core_components,
+            config=config,
         )
-        assert model.update_interval == time_interval
         assert model.model_constants.max_decomp_rate_pom == max_decomp
 
     # Final check that expected logging entries are produced
@@ -250,7 +222,7 @@ def test_generate_soil_model(
 
 
 # Check that mocked function is called
-def test_update(mocker, soil_model_fixture, dummy_carbon_data):
+def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     """Test to check that the update step works and increments the update step."""
 
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
@@ -258,7 +230,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     end_microbe = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
 
-    mock_integrate = mocker.patch.object(soil_model_fixture, "integrate")
+    mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
     mock_integrate.return_value = Dataset(
         data_vars=dict(
@@ -269,7 +241,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
         )
     )
 
-    soil_model_fixture.update(time_index=0)
+    fixture_soil_model.update(time_index=0)
 
     # Check that integrator is called once (and once only)
     mock_integrate.assert_called_once()
@@ -328,7 +300,7 @@ def test_update(mocker, soil_model_fixture, dummy_carbon_data):
     ],
 )
 def test_integrate_soil_model(
-    mocker, caplog, soil_model_fixture, mock_output, raises, final_pools, expected_log
+    mocker, caplog, fixture_soil_model, mock_output, raises, final_pools, expected_log
 ):
     """Test that function to integrate the soil model works as expected."""
 
@@ -339,7 +311,7 @@ def test_integrate_soil_model(
         mock_integrate.return_value = mock_output
 
     with raises:
-        new_pools = soil_model_fixture.integrate()
+        new_pools = fixture_soil_model.integrate()
         # Check returned pools matched (mocked) integrator output
         assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
@@ -355,10 +327,14 @@ def test_integrate_soil_model(
     log_check(caplog, expected_log)
 
 
-def test_order_independance(dummy_carbon_data, soil_model_fixture):
+def test_order_independance(
+    dummy_carbon_data,
+    fixture_soil_model,
+    fixture_soil_config,
+    fixture_soil_core_components,
+):
     """Check that pool order in the data object doesn't change integration result."""
 
-    from virtual_rainforest.core.config import Config
     from virtual_rainforest.core.data import Data
     from virtual_rainforest.core.grid import Grid
     from virtual_rainforest.core.registry import register_module
@@ -399,13 +375,14 @@ def test_order_independance(dummy_carbon_data, soil_model_fixture):
         new_data[pool_name] = dummy_carbon_data[pool_name]
 
     # Use this new data to make a new soil model object
-    config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
+    new_soil_model = SoilModel.from_config(
+        data=new_data,
+        core_components=fixture_soil_core_components,
+        config=fixture_soil_config,
     )
-    new_soil_model = SoilModel.from_config(new_data, config, pint.Quantity("12 hours"))
 
     # Integrate using both data objects
-    output = soil_model_fixture.integrate()
+    output = fixture_soil_model.integrate()
     output_reversed = new_soil_model.integrate()
 
     # Compare each final pool
