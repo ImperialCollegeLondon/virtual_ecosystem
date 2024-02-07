@@ -746,11 +746,11 @@ def calculate_layer_thickness(
     """Calculate layer thickness from soil layer depth profile.
 
     Args:
-        soil_layer_heights: soil layer heights, [m]
-        meters_to_mm: meter to millimeter conversion factor
+        soil_layer_heights: Soil layer heights, [m]
+        meters_to_mm: Meter to millimeter conversion factor
 
     Returns:
-        soil layer thickness, mm
+        Soil layer thickness, [mm]
     """
 
     return np.diff(soil_layer_heights, axis=0, prepend=0) * (-meters_to_mm)
@@ -792,12 +792,12 @@ def setup_hydrology_input_current_timestep(
         data: Data object that contains inputs from the microclimate model, the plant
             model, and the hydrology model that are required for current update
         time_index: time index
-        surface_layer_index: index of surface layer
-        days: number of days
-        seed: seed for random rainfall generator
-        soil_moisture_capacity: soil moisture capacity, unitless
-        soil_moisture_residual: soil moisture residual, unitless
-        core_constants: CoreConsts,
+        surface_layer_index: Index of surface layer
+        days: Number of days
+        seed: Seed for random rainfall generator
+        soil_moisture_capacity: Soil moisture capacity, unitless
+        soil_moisture_residual: Soil moisture residual, unitless
+        core_constants: Set of core constants
         latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
             vaporisation
         latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
