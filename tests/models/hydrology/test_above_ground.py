@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
+from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
@@ -14,8 +15,8 @@ from virtual_rainforest.models.hydrology.constants import HydroConsts
     "dens_air, latvap",
     [
         (
-            HydroConsts.density_air,
-            HydroConsts.latent_heat_vapourisation,
+            1.225,
+            2.45,
         ),
         (
             np.array([1.225, 1.225, 1.225]),
@@ -39,10 +40,10 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
         leaf_area_index=np.array([3, 4, 5]),
-        celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
+        celsius_to_kelvin=273.15,
         density_air=dens_air,
-        latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
+        latent_heat_vaporisation=latvap,
+        gas_constant_water_vapor=CoreConsts.gas_constant_water_vapor,
         soil_surface_heat_transfer_coefficient=(
             HydroConsts.soil_surface_heat_transfer_coefficient
         ),
@@ -268,7 +269,7 @@ def test_convert_mm_flow_to_m3_per_second():
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
         days=30,
-        seconds_to_day=HydroConsts.seconds_to_day,
+        seconds_to_day=CoreConsts.seconds_to_day,
         meters_to_millimeters=1000,
     )
 

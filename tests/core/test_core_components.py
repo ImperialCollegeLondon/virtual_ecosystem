@@ -120,6 +120,11 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         "gravity": 6.6743e-11,
         "stefan_boltzmann_constant": 5.670374419e-08,
         "von_karmans_constant": 0.4,
+        "depth_of_active_soil_layer": 0.25,
+        "meters_to_mm": 1000.0,
+        "molecular_weight_air": 28.96,
+        "gas_constant_water_vapor": 461.51,
+        "seconds_to_day": 86400.0,
     }
     core_constants.update(expected_constants)
 

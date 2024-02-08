@@ -65,6 +65,8 @@ class AbioticModel(
 
         self.model_constants = model_constants
         """Set of constants for the abiotic model."""
+        self.core_constants = core_components.core_constants
+        """Set of universal constants that are used across all models."""
 
     @classmethod
     def from_config(

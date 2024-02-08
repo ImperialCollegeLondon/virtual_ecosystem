@@ -200,7 +200,7 @@ def convert_soil_moisture_to_water_potential(
     )
 
 
-def update_groundwater_storge(
+def update_groundwater_storage(
     groundwater_storage: NDArray[np.float32],
     vertical_flow_to_groundwater: NDArray[np.float32],
     bypass_flow: NDArray[np.float32],
