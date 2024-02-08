@@ -26,7 +26,7 @@ leaf temperature and air temperature simultaneously, see
 :cite:t:`maclean_microclimc_2021`.
 
 The soil energy balance functions are described in
-:mod:`~virtual_rainforest.models.energy_balance.soil_energy_balance`.
+:mod:`~virtual_rainforest.models.abiotic.soil_energy_balance`.
 
 TODO check equations for consistency re naming
 """  # noqa: D205, D415
