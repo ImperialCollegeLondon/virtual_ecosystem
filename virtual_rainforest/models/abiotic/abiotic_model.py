@@ -30,7 +30,7 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.abiotic import energy_balance, wind
+from virtual_rainforest.models.abiotic import energy_balance, soil_energy_balance, wind
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
@@ -242,7 +242,7 @@ class AbioticModel(
         # TODO update when we rolled out new LayerStructure
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
-        soil_energy_balance = energy_balance.calculate_soil_heat_balance(
+        soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
             update_interval=43200,  # self.update_interval,
@@ -260,11 +260,11 @@ class AbioticModel(
         ]
         for var in var_list:
             soil_output[var] = DataArray(
-                soil_energy_balance[var],
+                soil_heat_balance[var],
                 dims="cell_id",
                 coords={"cell_id": self.data.grid.cell_id},
             )
-        self.data["soil_temperature"][topsoil_layer_index] = soil_energy_balance[
+        self.data["soil_temperature"][topsoil_layer_index] = soil_heat_balance[
             "new_surface_temperature"
         ]
         self.data.add_from_dict(output_dict=soil_output)
