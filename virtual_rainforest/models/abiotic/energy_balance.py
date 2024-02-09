@@ -352,3 +352,39 @@ def calculate_longwave_emission(
         Longwave emission, [W m-2]
     """
     return emissivity * stefan_boltzmann * temperature**4
+
+
+def calculate_air_heat_conductivity_above(
+    height_above_canopy: NDArray[np.float32],
+    zero_displacement_height: NDArray[np.float32],
+    canopy_height: NDArray[np.float32],
+    friction_velocity: NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    adiabatic_correction_heat: NDArray[np.float32],
+    von_karmans_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate air heat conductivity by turbulent convection above canopy.
+
+    Args:
+        height_above_canopy: Height above canopy, [m]
+        zero_displacement_height: Zero displacement height, [m]
+        canopy_height: canopy height, [m]
+        friction_velocity: Friction velocity, dimensionless
+        molar_density_air: Molar density of air, [mole m-3]
+        adiabatic_correction_heat: Adiabatic correction factor for heat
+        von_karmans_constant: Von Karman constant, unitless
+
+    Returns:
+        Air heat conductivity by turbulent convection above canopy, [mol m-2 s-1]
+    """
+
+    return (von_karmans_constant * molar_density_air * friction_velocity) / (
+        np.log(height_above_canopy - zero_displacement_height)
+        / (canopy_height - zero_displacement_height)
+        + adiabatic_correction_heat
+    )
+
+
+# def calculate_leaf_air_vapour_conductivity():
+
+# def calculate_leaf_air_heat_conductivity():

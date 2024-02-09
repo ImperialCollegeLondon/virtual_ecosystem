@@ -223,3 +223,27 @@ def test_calculate_longwave_emission():
         rtol=1e-04,
         atol=1e-04,
     )
+
+
+def test_calculate_air_heat_conductivity_above(dummy_climate_data):
+    """Test heat conductivity above canopy."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_air_heat_conductivity_above,
+    )
+
+    result = calculate_air_heat_conductivity_above(
+        height_above_canopy=dummy_climate_data["layer_heights"][0],
+        zero_displacement_height=np.array([0.0, 25.312559, 27.58673]),
+        canopy_height=dummy_climate_data["layer_heights"][1],
+        friction_velocity=np.array([0.051866, 0.163879, 0.142353]),
+        molar_density_air=np.repeat(28.96, 3),
+        adiabatic_correction_heat=np.array([0.003044, -0.036571, 0.042159]),
+        von_karmans_constant=CoreConsts.von_karmans_constant,
+    )
+    np.testing.assert_allclose(
+        result,
+        np.array([5.067245, 5.147202, 2.508593]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
