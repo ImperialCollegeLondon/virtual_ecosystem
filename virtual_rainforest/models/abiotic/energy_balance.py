@@ -426,6 +426,8 @@ def calculate_air_heat_conductivity_canopy(
     equivalent to the free space between the leaves and stems, and :math:`\Psi_{H}` is a
     within-canopy diabatic correction factor for heat.
 
+    TODO better tests for different conditions
+
     Args:
         attenuation_coefficient: Wind attenuation coefficient, dimensionless
         mean_mixing_length: Mixing length for canopy air transport, [m]
@@ -476,8 +478,8 @@ def calculate_leaf_air_heat_conductivity(
 
     .. math:: g_{Ha} = \frac {0.664 \hat{\rho} D_{H} R_{e}^{0.5} P_{r}^{0.5}}{x_{d}}
 
-    where :math:`D_{H}` is thermal diffusivity, :math:`x_{d} is the characteristic
-    dimension of the leaf (xd≈ 0.7w), :math:`\hat{\rho}` is the molar density of air,
+    where :math:`D_{H}` is thermal diffusivity, :math:`x_{d}` is the characteristic
+    dimension of the leaf, :math:`\hat{\rho}` is the molar density of air,
     :math:`R_{e}` is the Reynolds number, and :math:`P_{r}` is the Prandtl number.
 
     When wind speeds are low, an expression that is adequate for leaves is given by
@@ -487,6 +489,8 @@ def calculate_leaf_air_heat_conductivity(
 
     where :math:`G_{r}` is the Grashof number. When the leaf is cooler than the air, the
     heat transfer is only half as efficient so the constant 0.54 becomes 0.26.
+
+    TODO better tests for different conditions
 
     Args:
         temperature: Temperature, [C]
@@ -553,86 +557,3 @@ def calculate_leaf_air_heat_conductivity(
     )
 
     return conductance
-
-
-# def calculate_heat_conductivity_at_height_z():
-
-
-# def calculate_leaf_and_air_temperatures(
-
-# ) -> dict[str, NDArray[np.float32]]:
-#     r"""Calculate leaf and air temperature under steady state.
-
-#   The air temperature surrounding the leaf (:math:`T_{A}`) is assumed to be influenced
-#     by leaf (:math:`T_{L}`), soil (:math:`T_{0}`) and reference air (:math:`T_{R}`)
-#     temperature as follows:
-
-#     .. math::
-#         g_{tR} c_{p} (T_{R} - T_{a})
-#         + g_{t0} c_{p} (T_{0} - T_{a})
-#         + g_{L} c_{p} (T_{L} - T_{A}) = 0
-
-#     where cp the specific heat of air at constant pressure and gtR, gt0 and g¬L are
-#   conductance from reference height, the ground and from the leaf respectively. Though
-#     latent and radiative heat are assumed to affect leaf temperature, with indirect
-#     effects on air temperature (captured by the inclusion TL), but they are assumed to
-#     have no direct bearing on air temperature. The term gL = 1/(1/gHA + 1/gz) where
-#    gHa is leaf boundary layer conductance and gz ¬the sub-canopy turbulent conductance
-
-#   at the height of the leaf over distance zLA – the mean distance between the leaf and
-#    the air. Defining TL – TA as ΔT and rearranging gives:
-
-#     T_A=a_A+b_A ∆T_L, where a_A=(g_tR T_R+g_t0 T_0)/(g_tR+g_t0 ),
-#     and b_A=g_L/(g_tR+g_t0 )
-
-#     The sensible heat flux between the leaf and the air is given by
-#     g_Ha c_p (T_L-T_A )=b_H ∆T_L where b_H=g_Ha c_p. The equivalent vapour flux
-#     equation is g_tR (e_R-e_a )+g_t0 (e_0-e_a )+g_v (e_L-e_a )=0
-#     Where eL, eA, e0 and eR are the vapour pressure of the leaf, air, soil and air at
-#     reference height respectively and gv is leaf conductance for vapour given by
-#     gv = 1/(1/gc + gL) where gc is stomatal conductance. Assuming the leaf to be
-#     saturated, and approximated by e_s [T_R ]+∆_v [T_R ]∆T_L where ∆_v is the slope of
-#     the saturated pressure curve at temperature T_R, and rearranging gives
-#     e_a=a_E+b_E ∆T_L
-#     where a_E=(g_tR e_R+g_t0 e_0+g_v e_s [T_R ])/(g_tR+g_t0+g_v )
-#     and b_E=(∆_V [T_R ])/(g_tR+g_t0+g_v )
-#     From e.g. Allen et al (1998)
-# ∆_v=4098(0.6108 exp⁡(17.27(T ̅-273.15)/(T ̅-35.85)) )/(T ̅-35.85)^2
-# where T ̅ = (T_L+T_A)/2
-#       The slope saturated pressure curve is not unduly sensitive to minor variation in
-#   temperature and for the purposes of estimating∆_v, T ̅ is often approximated by T_R
-#       (e.g. Monteith & Unsworth 2013). In the model implementation, however, minor
-#         improvements in the estimation are made, by assuming that the air surrounding
-#     the leaf is moderately coupled to the air above it, i.e. T_L≅T_R and by providing
-#           an approximate estimate of T_L for from leaf area and net radiation.
-#     The latent heat term is given by λE=(λg_v)/p_a  (e_L-e_A )
-#     Substituting eA for its linearized form, again assuming eL is approximated by
-#       e_s [T_R ]+∆_v [T_R ]∆T_L, and rearranging gives:
-#     λE=a_L+b_L ∆T_L, where (λg_v)/p ̅_a  (e_s [T_R ]-a_e )
-#       and b_L=(λg_v)/p ̅_a  (∆_V [T_R ]-b_E )
-#     Radiation emitted by the leaf (Rem) is given
-#     R_em=ε_s σ〖T_L〗^4
-#     where ε_s is leaf emissivity and σ the Stefan-Boltzmann constant.
-#       〖T_L〗^4=(T_a+∆T_L )^4 and by binomial expansion ≅〖T_a〗^4+4〖T_a〗^3 ∆T_L.
-#         Likewise 〖T_a〗^4=(a_L+b_L ∆T_L )^4≅〖a_L〗^4+4〖a_L〗^3 b_L ∆T_L.
-#         Assuming that the air surrounding the leaf is moderately coupled to the air
-#           above it, such that the difference between T_A^3 and 〖T_R〗^3 relative to
-#           〖T_L〗^4 are negligible, the equation for emitted radiation can then be
-#           linearized as follows:
-#     R_em=a_R+b_R ∆T_L
-#     where a_R=〖〖ε_s σa〗_A〗^4 and b_R=4ε_s σ(〖a_A〗^3 b_A+〖T_R〗^3 ).
-#     The full heat balance equation for the difference between leaf and canopy
-#     air temperature becomes
-#     ∆T_L=(R_abs-a_R-a_L)/(1+b_R+b_L+b_H )
-#     The equation is then used to calculate air and leaf temperature
-#     (T_A=a_A+b_A ∆T_L and T_L=T_A+∆T_L)
-
-#     """
-#     # for each canopy layer
-#         # air conductivity between layer and soil temperature
-#         # conductivity between layer and reference height
-#         # conductivity between leaves and air in this layer
-
-#         # temperature gradient between layer and soil temperature
-#         # temperature gradient between layer and reference height
-#         # temperature gradient between leaves and air in this layer
