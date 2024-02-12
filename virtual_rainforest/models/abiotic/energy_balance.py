@@ -22,8 +22,8 @@ for vapor loss from the leaves as a function of the stomatal conductance.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
-leaf temperature and air temperature simultaneously, see
-:cite:t:`maclean_microclimc_2021`.
+leaf temperature and air temperature simultaneously after
+:cite:t:`maclean_microclimc_2021`, see TODO put name of equation here.
 
 The soil energy balance functions are described in
 :mod:`~virtual_rainforest.models.abiotic.soil_energy_balance`.
@@ -50,16 +50,16 @@ def initialise_absorbed_radiation(
     incoming light intensity at the top of the canopy (:math:`I_{0}`). The
     implementation based on Beer's law:
 
-    :math:`I(z) = I_{0} * e^{(-k * LAI * z)}`
+    .. math:: I(z) = I_{0} * e^{(-k * LAI * z)}
 
     Args:
-        topofcanopy_radiation: top of canopy radiation shortwave radiation, [W m-2]
-        leaf_area_index: leaf area index of each canopy layer, [m m-1]
-        layer_heights: layer heights, [m]
-        light_extinction_coefficient: light extinction coefficient, [m-1]
+        topofcanopy_radiation: Top of canopy radiation shortwave radiation, [W m-2]
+        leaf_area_index: Leaf area index of each canopy layer, [m m-1]
+        layer_heights: Layer heights, [m]
+        light_extinction_coefficient: Light extinction coefficient, [m-1]
 
     Returns:
-        shortwave radiation absorbed by canopy layers, [W m-2]
+        Shortwave radiation absorbed by canopy layers, [W m-2]
     """
 
     absorbed_radiation = np.zeros_like(leaf_area_index)
@@ -87,13 +87,13 @@ def initialise_canopy_temperature(
     """Initialise canopy temperature.
 
     Args:
-        air_temperature: air temperature, [C]
+        air_temperature: Air temperature, [C]
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
-        absorbed_radiation: shortwave radiation absorbed by canopy
+        absorbed_radiation: Shortwave radiation absorbed by canopy
 
     Returns:
-        initial canopy temperature, [C]
+        Initial canopy temperature, [C]
     """
     return air_temperature + canopy_temperature_ini_factor * absorbed_radiation
 
@@ -113,8 +113,8 @@ def initialise_canopy_and_soil_fluxes(
     and latent heat flux (canopy and soil), and ground heat flux.
 
     Args:
-        air_temperature: air temperature, [C]
-        topofcanopy_radiation: top of canopy radiation, [W m-2]
+        air_temperature: Air temperature, [C]
+        topofcanopy_radiation: Top of canopy radiation, [W m-2]
         leaf_area_index: Leaf area index, [m m-2]
         layer_heights: Layer heights, [m]
         light_extinction_coefficient: Light extinction coefficient for canopy
@@ -122,7 +122,7 @@ def initialise_canopy_and_soil_fluxes(
             function of air temperature and absorbed shortwave radiation
 
     Returns:
-        dictionnary with absorbed radiation (canopy), canopy temperature, sensible
+        Dictionary with absorbed radiation (canopy), canopy temperature, sensible
             and latent heat flux (canopy and soil), and ground heat flux.
     """
 
@@ -214,10 +214,10 @@ def initialise_conductivities(
 
     The initial values for all conductivities are typical for decidious woodland with
     wind above canopy at 2 m/s.
-    Air heat conductivity by turbulent convection (:math:`g_{t}`is scaled by canopy
-    height and `m` (and hence distance between nodes). Leaf-air vapor conductivity
-    :math:`g_{v}` and leaf-air heat conductivity :math:`g_{ha}` are linearly
-    interpolated between intial values.
+    Air heat conductivity by turbulent convection (:math:`g_{t}`) is scaled by canopy
+    height and `m` (and hence distance between nodes). Leaf-air vapor conductivity (=
+    stomatal conductance) (:math:`g_{v}`) and leaf-air heat conductivity
+    (:math:`g_{Ha}`) are linearly interpolated between intial values.
     The first value in each output represents conductivity between the air at 2 m above
     canopy and the highest canopy layer. The last value represents conductivity between
     the ground and the lowest canopy node.
@@ -238,7 +238,7 @@ def initialise_conductivities(
     Returns:
         Heat conductivity in air of each canopy layer node, [mol m-2 s-1]
         Leaf conductivity to vapour loss for each canopy layer node, [mol m-2 s-1]
-        heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
+        Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
     canopy_height = layer_heights[1].to_numpy()
@@ -306,17 +306,21 @@ def interpolate_along_heights(
 ) -> NDArray[np.float32]:
     """Vertical interpolation for given start and end values along a height axis.
 
+    This function can be used to lineraly interpolate atmospheric or soil variables such
+    as temperature or humidity for a set of user specified heights based on the top and
+    bottom values.
+
     Args:
-        start_height: The starting heights of the interpolation range, [m]
-        end_height: The ending heights of the interpolation range, [m]
-        target_heights: array of target heights with the first column representing
+        start_height: Starting heights of the interpolation range, [m]
+        end_height: Ending heights of the interpolation range, [m]
+        target_heights: Array of target heights with the first column representing
             heights and subsequent columns representing additional dimensions, here
             `cell_id`.
         start_value: The value at the starting height.
         end_value: The value at the ending height.
 
     Returns:
-        interpolated values corresponding to the target heights
+        Interpolated values corresponding to the target heights
     """
     # Ensure the target heights are within the range [start_height, end_height]
     target_heights = np.clip(target_heights, start_height, end_height)
@@ -336,11 +340,11 @@ def calculate_longwave_emission(
     emissivity: float | NDArray[np.float32],
     stefan_boltzmann: float,
 ) -> NDArray[np.float32]:
-    """Calculate longwave emission using the Stefan Boltzmann law..
+    """Calculate longwave emission using the Stefan Boltzmann law.
 
-    According to Stefan Boltzmann law, the amount of radiation emitted per unit time
-    from area of a black body at absolute temperature is directly proportional to the
-    fourth power of the temperature. Emissivity (which is equal to absorptive power)
+    According to the Stefan Boltzmann law, the amount of radiation emitted per unit time
+    from the area of a black body at absolute temperature is directly proportional to
+    the fourth power of the temperature. Emissivity (which is equal to absorptive power)
     lies between 0 to 1.
 
     Args:
@@ -363,12 +367,22 @@ def calculate_air_heat_conductivity_above(
     adiabatic_correction_heat: NDArray[np.float32],
     von_karmans_constant: float,
 ) -> NDArray[np.float32]:
-    """Calculate air heat conductivity by turbulent convection above canopy.
+    r"""Calculate air heat conductivity by turbulent convection above canopy.
+
+    Heat conductance, :math:`g_{t}` between any two heights :math:`z_{1}` and
+    :math:`z_{0}` above-canopy is given by
+
+    .. math::
+        g_{t} = \frac {0.4 \hat{\rho} u^{*}}{ln(\frac{z_{1} - d}{z_{0} - d}) + \Psi_{H}}
+
+    where :math:`\hat{\rho}` is the molar density or air, :math:`u^{*}` is the friction
+    velocity, :math:`d` is the zero displacement height, and :math:`\Psi_{H}` is the
+    adiabatic correction factor for heat.
 
     Args:
         height_above_canopy: Height above canopy, [m]
         zero_displacement_height: Zero displacement height, [m]
-        canopy_height: canopy height, [m]
+        canopy_height: Canopy height, [m]
         friction_velocity: Friction velocity, dimensionless
         molar_density_air: Molar density of air, [mole m-3]
         adiabatic_correction_heat: Adiabatic correction factor for heat
@@ -396,18 +410,32 @@ def calculate_air_heat_conductivity_canopy(
     diabatic_correction_momentum: NDArray[np.float32],
     canopy_height: NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    """Calculate air heat conductivity by turbulent convection in the canopy.
+    r"""Calculate air heat conductivity by turbulent convection in the canopy.
+
+    Within-canopy heat conductance (:math:`g_{t}`) between any two heights :math:`z_{1}`
+    and :math:`z_{0}` below-canopy is given by
+
+    .. math::
+        g_{t} = \frac{u_{h}l_{m}i_{w}a}
+        {(exp(\frac{-a_{z_{0}}}{h-1}) - exp(\frac{-a_{z_{1}}}{h-1})) \Psi_{H}}
+
+
+    where :math:`u_{h}` is wind speed at the top of the canopy at height :math:`h`,
+    :math:`a` is a wind attenuation coefficient, :math:`i_{w}` is a coefficient
+    describing relative turbulence intensity, :math:`l_{m}` is the mean mixing length,
+    equivalent to the free space between the leaves and stems, and :math:`\Psi_{H}` is a
+    within-canopy diabatic correction factor for heat.
 
     Args:
-        attenuation_coefficient: NDArray[np.float32],
-        mean_mixing_length: NDArray[np.float32],
-        molar_density_air: NDArray[np.float32],
-        upper_height: NDArray[np.float32],
-        lower_height: NDArray[np.float32],
-        relative_turbulence_intensity: NDArray[np.float32],
-        top_of_canopy_wind_speed: NDArray[np.float32],
-        diabatic_correction_momentum: NDArray[np.float32],
-        canopy_height
+        attenuation_coefficient: Wind attenuation coefficient, dimensionless
+        mean_mixing_length: Mixing length for canopy air transport, [m]
+        molar_density_air: Molar density of air, [mol m-3]
+        upper_height: Height of upper layer, [m]
+        lower_height: Height of lower layer, [m]
+        relative_turbulence_intensity: relative turbulence intensity, dimensionless
+        top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
+        diabatic_correction_momentum: Diabatic correction factor for momentum
+        canopy_height: Canopy height, [m]
 
     Returns:
        air heat conductivity by turbulent convection in the canopy, [mol m-2 s-1]
@@ -425,6 +453,186 @@ def calculate_air_heat_conductivity_canopy(
     return term1 / (term2 - term3)
 
 
-# def calculate_leaf_air_vapour_conductivity():
+def calculate_leaf_air_heat_conductivity(
+    temperature: NDArray[np.float32],
+    wind_speed: NDArray[np.float32],
+    characteristic_dimension_surface: NDArray[np.float32],
+    temperature_difference: NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    kinematic_viscosity_parameter1: float,
+    kinematic_viscosity_parameter2: float,
+    thermal_diffusivity_parameter1: float,
+    thermal_diffusivity_parameter2: float,
+    grashof_parameter: float,
+    forced_conductance_parameter: float,
+    positive_free_conductance_parameter: float,
+    negative_free_conductance_parameter: float,
+) -> NDArray[np.float32]:
+    r"""Calculates forced or free laminer conductance between leaf and air.
 
-# def calculate_leaf_air_heat_conductivity():
+    When wind speeds are moderate to high, conduction between the leaf and air
+    :math:`g_{Ha}` is predominantly under laminar forced convection and from e.g.
+    :cite:t:`campbell_introduction_2012` is given by
+
+    .. math:: g_{Ha} = \frac {0.664 \hat{\rho} D_{H} R_{e}^{0.5} P_{r}^{0.5}}{x_{d}}
+
+    where :math:`D_{H}` is thermal diffusivity, :math:`x_{d} is the characteristic
+    dimension of the leaf (xd≈ 0.7w), :math:`\hat{\rho}` is the molar density of air,
+    :math:`R_{e}` is the Reynolds number, and :math:`P_{r}` is the Prandtl number.
+
+    When wind speeds are low, an expression that is adequate for leaves is given by
+    (Campbell and Norman, 2012)
+
+    .. math:: g_{Ha} = \frac{0.54 \hat{\rho} D_{H} (G_{r}P_{r})^{0.25}}{x_{d}}
+
+    where :math:`G_{r}` is the Grashof number. When the leaf is cooler than the air, the
+    heat transfer is only half as efficient so the constant 0.54 becomes 0.26.
+
+    Args:
+        temperature: Temperature, [C]
+        wind_speed: Wind speed, [m s-1]
+        characteristic_dimension_surface: chacteristic dimension of surface, [m]
+        temperature_difference: Estimate of temperature differences of surface and air,
+            e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
+        molar_density_air: Molar density of air, [mol m-3]
+        kinematic_viscosity_parameter1: Parameter in calculation of kinematic viscosity
+        kinematic_viscosity_parameter2: Parameter in calculation of kinematic viscosity
+        thermal_diffusivity_parameter1: Parameter in calculation of thermal diffusivity
+        thermal_diffusivity_parameter2: Parameter in calculation of thermal diffusivity
+        grashof_parameter: Parameter in calculation of Grashof number
+        forced_conductance_parameter: Parameter in calculation of forced conductance
+        positive_free_conductance_parameter: Parameter in calculation of free
+            conductance for positive temperature difference
+        negative_free_conductance_parameter: Parameter in calculation of free
+            conductance for negative temperature difference
+
+    Returns:
+        conductance, [mol m-2 s-1]
+    """
+
+    temperature_k = temperature + 273.15
+    kinematic_viscosity = (
+        kinematic_viscosity_parameter1 * temperature_k - kinematic_viscosity_parameter2
+    ) / 10**6
+    thermal_diffusivity = (
+        thermal_diffusivity_parameter1 * temperature_k - thermal_diffusivity_parameter2
+    ) / 10**6
+    grashof_number = (
+        grashof_parameter
+        * characteristic_dimension_surface**3
+        * np.abs(temperature_difference)
+    ) / (temperature_k * kinematic_viscosity**2)
+    reyolds_number = wind_speed * characteristic_dimension_surface / kinematic_viscosity
+    prandtl_number = kinematic_viscosity / thermal_diffusivity
+
+    # Forced conductance
+    forced_conductance = (
+        forced_conductance_parameter
+        * thermal_diffusivity
+        * molar_density_air
+        * reyolds_number**0.5
+        * prandtl_number ** (1 / 3)
+    ) / characteristic_dimension_surface
+
+    # Free conductance
+    m = np.where(
+        temperature_difference > 0,
+        positive_free_conductance_parameter,
+        negative_free_conductance_parameter,
+    )
+    free_conductance = (
+        m
+        * molar_density_air
+        * thermal_diffusivity
+        * (grashof_number * prandtl_number) ** (1 / 4)
+    ) / characteristic_dimension_surface
+
+    # Set to whichever is higher
+    conductance = np.where(
+        forced_conductance > free_conductance, forced_conductance, free_conductance
+    )
+
+    return conductance
+
+
+# def calculate_heat_conductivity_at_height_z():
+
+
+# def calculate_leaf_and_air_temperatures(
+
+# ) -> dict[str, NDArray[np.float32]]:
+#     r"""Calculate leaf and air temperature under steady state.
+
+#   The air temperature surrounding the leaf (:math:`T_{A}`) is assumed to be influenced
+#     by leaf (:math:`T_{L}`), soil (:math:`T_{0}`) and reference air (:math:`T_{R}`)
+#     temperature as follows:
+
+#     .. math::
+#         g_{tR} c_{p} (T_{R} - T_{a})
+#         + g_{t0} c_{p} (T_{0} - T_{a})
+#         + g_{L} c_{p} (T_{L} - T_{A}) = 0
+
+#     where cp the specific heat of air at constant pressure and gtR, gt0 and g¬L are
+#   conductance from reference height, the ground and from the leaf respectively. Though
+#     latent and radiative heat are assumed to affect leaf temperature, with indirect
+#     effects on air temperature (captured by the inclusion TL), but they are assumed to
+#     have no direct bearing on air temperature. The term gL = 1/(1/gHA + 1/gz) where
+#    gHa is leaf boundary layer conductance and gz ¬the sub-canopy turbulent conductance
+
+#   at the height of the leaf over distance zLA – the mean distance between the leaf and
+#    the air. Defining TL – TA as ΔT and rearranging gives:
+
+#     T_A=a_A+b_A ∆T_L, where a_A=(g_tR T_R+g_t0 T_0)/(g_tR+g_t0 ),
+#     and b_A=g_L/(g_tR+g_t0 )
+
+#     The sensible heat flux between the leaf and the air is given by
+#     g_Ha c_p (T_L-T_A )=b_H ∆T_L where b_H=g_Ha c_p. The equivalent vapour flux
+#     equation is g_tR (e_R-e_a )+g_t0 (e_0-e_a )+g_v (e_L-e_a )=0
+#     Where eL, eA, e0 and eR are the vapour pressure of the leaf, air, soil and air at
+#     reference height respectively and gv is leaf conductance for vapour given by
+#     gv = 1/(1/gc + gL) where gc is stomatal conductance. Assuming the leaf to be
+#     saturated, and approximated by e_s [T_R ]+∆_v [T_R ]∆T_L where ∆_v is the slope of
+#     the saturated pressure curve at temperature T_R, and rearranging gives
+#     e_a=a_E+b_E ∆T_L
+#     where a_E=(g_tR e_R+g_t0 e_0+g_v e_s [T_R ])/(g_tR+g_t0+g_v )
+#     and b_E=(∆_V [T_R ])/(g_tR+g_t0+g_v )
+#     From e.g. Allen et al (1998)
+# ∆_v=4098(0.6108 exp⁡(17.27(T ̅-273.15)/(T ̅-35.85)) )/(T ̅-35.85)^2
+# where T ̅ = (T_L+T_A)/2
+#       The slope saturated pressure curve is not unduly sensitive to minor variation in
+#   temperature and for the purposes of estimating∆_v, T ̅ is often approximated by T_R
+#       (e.g. Monteith & Unsworth 2013). In the model implementation, however, minor
+#         improvements in the estimation are made, by assuming that the air surrounding
+#     the leaf is moderately coupled to the air above it, i.e. T_L≅T_R and by providing
+#           an approximate estimate of T_L for from leaf area and net radiation.
+#     The latent heat term is given by λE=(λg_v)/p_a  (e_L-e_A )
+#     Substituting eA for its linearized form, again assuming eL is approximated by
+#       e_s [T_R ]+∆_v [T_R ]∆T_L, and rearranging gives:
+#     λE=a_L+b_L ∆T_L, where (λg_v)/p ̅_a  (e_s [T_R ]-a_e )
+#       and b_L=(λg_v)/p ̅_a  (∆_V [T_R ]-b_E )
+#     Radiation emitted by the leaf (Rem) is given
+#     R_em=ε_s σ〖T_L〗^4
+#     where ε_s is leaf emissivity and σ the Stefan-Boltzmann constant.
+#       〖T_L〗^4=(T_a+∆T_L )^4 and by binomial expansion ≅〖T_a〗^4+4〖T_a〗^3 ∆T_L.
+#         Likewise 〖T_a〗^4=(a_L+b_L ∆T_L )^4≅〖a_L〗^4+4〖a_L〗^3 b_L ∆T_L.
+#         Assuming that the air surrounding the leaf is moderately coupled to the air
+#           above it, such that the difference between T_A^3 and 〖T_R〗^3 relative to
+#           〖T_L〗^4 are negligible, the equation for emitted radiation can then be
+#           linearized as follows:
+#     R_em=a_R+b_R ∆T_L
+#     where a_R=〖〖ε_s σa〗_A〗^4 and b_R=4ε_s σ(〖a_A〗^3 b_A+〖T_R〗^3 ).
+#     The full heat balance equation for the difference between leaf and canopy
+#     air temperature becomes
+#     ∆T_L=(R_abs-a_R-a_L)/(1+b_R+b_L+b_H )
+#     The equation is then used to calculate air and leaf temperature
+#     (T_A=a_A+b_A ∆T_L and T_L=T_A+∆T_L)
+
+#     """
+#     # for each canopy layer
+#         # air conductivity between layer and soil temperature
+#         # conductivity between layer and reference height
+#         # conductivity between leaves and air in this layer
+
+#         # temperature gradient between layer and soil temperature
+#         # temperature gradient between layer and reference height
+#         # temperature gradient between leaves and air in this layer

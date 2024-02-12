@@ -238,3 +238,42 @@ class AbioticConsts(ConstantsDataclass):
 
     volume_to_weight_conversion: float = 1000.0
     """Factor to convert between soil volume and weight in kilograms."""
+
+    kinematic_viscosity_parameter1: float = 0.0908
+    """Parameter in calculation of kinematic viscosity
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    kinematic_viscosity_parameter2: float = 11.531
+    """Parameter in calculation of kinematic viscosity
+    :cite:p:`campbell_introduction_2012`.
+    """
+    thermal_diffusivity_parameter1: float = 0.1285
+    """Parameter in calculation of thermal diffusivity
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    thermal_diffusivity_parameter2: float = 16.247
+    """Parameter in calculation of thermal diffusivity
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    grashof_parameter: float = 9.807
+    """Parameter in calculation of Grashof number
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    forced_conductance_parameter: float = 0.34
+    """Parameter in calculation of forced conductance
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    positive_free_conductance_parameter: float = 0.54
+    """Parameter in calculation of free conductance for positive temperature difference
+    :cite:p:`campbell_introduction_2012`.
+    """
+
+    negative_free_conductance_parameter: float = 0.26
+    """Parameter in calculation of free conductance for negative temperature difference
+    :cite:p:`campbell_introduction_2012`.
+    """

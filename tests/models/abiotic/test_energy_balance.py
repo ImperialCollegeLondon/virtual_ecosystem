@@ -249,7 +249,7 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
     )
 
 
-def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
+def test_calculate_air_heat_conductivity_canopy():
     """Test calculate air heat conductivity in canopy."""
 
     from virtual_rainforest.models.abiotic.energy_balance import (
@@ -273,3 +273,32 @@ def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
         rtol=1e-04,
         atol=1e-04,
     )
+
+
+def test_calculate_leaf_air_heat_conductivity():
+    """Test calculation of leaf air heat conductivity."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_leaf_air_heat_conductivity,
+    )
+
+    result = calculate_leaf_air_heat_conductivity(
+        temperature=np.full((3, 3), 20.0),
+        wind_speed=np.full((3, 3), 1.0),
+        characteristic_dimension_surface=np.full((3, 3), 0.1),
+        temperature_difference=np.full((3, 3), 1.0),
+        molar_density_air=np.full((3, 3), 28.96),
+        kinematic_viscosity_parameter1=AbioticConsts.kinematic_viscosity_parameter1,
+        kinematic_viscosity_parameter2=AbioticConsts.kinematic_viscosity_parameter2,
+        thermal_diffusivity_parameter1=AbioticConsts.thermal_diffusivity_parameter1,
+        thermal_diffusivity_parameter2=AbioticConsts.thermal_diffusivity_parameter2,
+        grashof_parameter=AbioticConsts.grashof_parameter,
+        forced_conductance_parameter=AbioticConsts.forced_conductance_parameter,
+        positive_free_conductance_parameter=(
+            AbioticConsts.positive_free_conductance_parameter
+        ),
+        negative_free_conductance_parameter=(
+            AbioticConsts.negative_free_conductance_parameter
+        ),
+    )
+    np.testing.assert_allclose(result, np.full((3, 3), 0.15279), rtol=1e-04, atol=1e-04)
