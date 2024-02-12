@@ -247,3 +247,29 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
         rtol=1e-04,
         atol=1e-04,
     )
+
+
+def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
+    """Test calculate air heat conductivity in canopy."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_air_heat_conductivity_canopy,
+    )
+
+    result = calculate_air_heat_conductivity_canopy(
+        attenuation_coefficient=np.repeat(13.0, 3),
+        mean_mixing_length=np.repeat(1.3, 3),
+        molar_density_air=np.repeat(28.96, 3),
+        upper_height=np.repeat(10.0, 3),
+        lower_height=np.repeat(5.0, 3),
+        relative_turbulence_intensity=np.repeat(15.0, 3),
+        top_of_canopy_wind_speed=np.repeat(1.0, 3),
+        diabatic_correction_momentum=np.repeat(0.03, 3),
+        canopy_height=np.repeat(30.0, 3),
+    )
+    np.testing.assert_allclose(
+        result,
+        np.array([5.45304, 5.45304, 5.45304]),
+        rtol=1e-04,
+        atol=1e-04,
+    )

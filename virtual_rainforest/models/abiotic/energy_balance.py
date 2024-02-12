@@ -385,6 +385,46 @@ def calculate_air_heat_conductivity_above(
     )
 
 
+def calculate_air_heat_conductivity_canopy(
+    attenuation_coefficient: NDArray[np.float32],
+    mean_mixing_length: NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    upper_height: NDArray[np.float32],
+    lower_height: NDArray[np.float32],
+    relative_turbulence_intensity: NDArray[np.float32],
+    top_of_canopy_wind_speed: NDArray[np.float32],
+    diabatic_correction_momentum: NDArray[np.float32],
+    canopy_height: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate air heat conductivity by turbulent convection in the canopy.
+
+    Args:
+        attenuation_coefficient: NDArray[np.float32],
+        mean_mixing_length: NDArray[np.float32],
+        molar_density_air: NDArray[np.float32],
+        upper_height: NDArray[np.float32],
+        lower_height: NDArray[np.float32],
+        relative_turbulence_intensity: NDArray[np.float32],
+        top_of_canopy_wind_speed: NDArray[np.float32],
+        diabatic_correction_momentum: NDArray[np.float32],
+        canopy_height
+
+    Returns:
+       air heat conductivity by turbulent convection in the canopy, [mol m-2 s-1]
+    """
+    term1 = (
+        mean_mixing_length
+        * relative_turbulence_intensity
+        * molar_density_air  # NOTE this should be the mean of the two layers
+        * top_of_canopy_wind_speed
+        * attenuation_coefficient
+    ) / diabatic_correction_momentum
+
+    term2 = np.exp(-attenuation_coefficient * (lower_height / canopy_height - 1))
+    term3 = np.exp(-attenuation_coefficient * (upper_height / canopy_height - 1))
+    return term1 / (term2 - term3)
+
+
 # def calculate_leaf_air_vapour_conductivity():
 
 # def calculate_leaf_air_heat_conductivity():
