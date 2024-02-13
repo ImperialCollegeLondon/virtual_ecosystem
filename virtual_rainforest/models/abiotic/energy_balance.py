@@ -18,7 +18,7 @@ surrounding the leaf, :math:`\lambda` the latent heat of vaporisation of water,
 :math:`e_{L}` the effective vapor pressure of the leaf, :math:`e_{A}` the vapor
 pressure of air and :math:`p_{A}` atmospheric pressure. :math:`g_{Ha}` is the heat
 conductance between leaf and atmosphere, :math:`g_{v}` represents the conductance
-for vapor loss from the leaves as the stomatal conductance.
+for vapor loss from the leaves as a function of the stomatal conductance :math:`g_{c}`.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
@@ -215,9 +215,9 @@ def initialise_conductivities(
     The initial values for all conductivities are typical for decidious woodland with
     wind above canopy at 2 m/s.
     Air heat conductivity by turbulent convection (:math:`g_{t}`) is scaled by canopy
-    height and `m` (and hence distance between nodes). Leaf-air vapor conductivity (=
-    stomatal conductance) (:math:`g_{v}`) and leaf-air heat conductivity
-    (:math:`g_{Ha}`) are linearly interpolated between intial values.
+    height and `m` (and hence distance between nodes). Leaf-air vapor conductivity
+    (:math:`g_{v}`) and leaf-air heat conductivity (:math:`g_{Ha}`) are linearly
+    interpolated between intial values.
     The first value in each output represents conductivity between the air at 2 m above
     canopy and the highest canopy layer. The last value represents conductivity between
     the ground and the lowest canopy node.
@@ -237,8 +237,7 @@ def initialise_conductivities(
 
     Returns:
         Heat conductivity in air of each canopy layer node, [mol m-2 s-1],
-        Stomatal conductance (leaf conductivity to vapor loss for each canopy layer
-        node, [mol m-2 s-1],
+        Leaf conductivity to vapor loss for each canopy layer node, [mol m-2 s-1],
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
@@ -268,18 +267,18 @@ def initialise_conductivities(
     )
 
     # Initialise leaf vapor conductivity
-    stomatal_conductance = (
-        output["air_conductivity"].copy().rename("stomatal_conductance")
+    leaf_vapor_conductivity = (
+        output["air_conductivity"].copy().rename("leaf_vapor_conductivity")
     )
-    stomatal_cond_interpolation = interpolate_along_heights(
+    leaf_vapor_cond_interpolation = interpolate_along_heights(
         start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
         target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
         start_value=top_leaf_vapor_conductivity,
         end_value=bottom_leaf_vapor_conductivity,
     )
-    stomatal_conductance[atmosphere_layers.indexes] = stomatal_cond_interpolation
-    output["stomatal_conductance"] = stomatal_conductance
+    leaf_vapor_conductivity[atmosphere_layers.indexes] = leaf_vapor_cond_interpolation
+    output["leaf_vapor_conductivity"] = leaf_vapor_conductivity
 
     # Initialise leaf air heat conductivity
     leaf_air_conductivity = (
@@ -560,31 +559,24 @@ def calculate_leaf_air_heat_conductivity(
     return conductance
 
 
-def calculate_stomatal_conductance(
-    incoming_shortwave_radiation: NDArray[np.float32],
-    max_stomatal_conductance: float | NDArray[np.float32],
-    q50: float | NDArray[np.float32],
-    shortwave_to_par_conversion: float,
+def calculate_leaf_vapor_conductivity(
+    leaf_air_conductivity: NDArray[np.float32],
+    stomatal_conductance: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    r"""Calculate stomatal conductance, [mol m-2 s-1].
+    r"""Calculate leaf air conductivity for vapor, [mol m-2 s-1].
 
-    This function adjusts stomatal conductance based on available incoming shortwave
-    radiation :cite:p:`maclean_microclimc_2021`.
+    The conductance for vapor loss from leaves :math:`g_{v}` depends on stomatal
+    conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
+
+    .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
+
+    :cite:p:`maclean_microclimc_2021`.
 
     Args:
-        incoming_shortwave_radiation: Incoming shortwave radiation, [W m-2]
-        max_stomatal_conductance: Maximum stomatal conductance, [mol m-2 s-1]
-        q50: Amount of photosynthetically active radiation when stomatal conductance is
-            at 50 percent of its maximum
-        shortwave_to_par_conversion: Factor to convert shortwave radiation to
-            photosynthetically active radiation
+        leaf_air_conductivity: Heat conductivity between air and leaf, [mol m-2 s-1]
+        stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
 
     Returns:
-        Stomatal conductance, [mol m-2 s-1]
+        Leaf vapor conductivity, [mol m-2 s-1]
     """
-
-    photo_active_radiation = incoming_shortwave_radiation * shortwave_to_par_conversion
-
-    return (max_stomatal_conductance * photo_active_radiation) / (
-        photo_active_radiation + q50
-    )
+    return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))

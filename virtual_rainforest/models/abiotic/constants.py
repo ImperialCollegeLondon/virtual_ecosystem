@@ -266,21 +266,3 @@ class AbioticConsts(ConstantsDataclass):
     """Parameter in calculation of free conductance for negative temperature difference
     :cite:p:`campbell_introduction_2012`.
     """
-
-    max_stomatal_conductance: float = 10.0
-    """Maximum stomatal conductance, [mol m-2 s-1].
-
-    Value is taken from :cite:t:`maclean_microclimc_2021`.
-    """
-
-    q50: float = 1.0
-    r"""Photosynthetically active radiation when stomatal conductance is at 50\% of max.
-
-    Value taken from :cite:t:`maclean_microclimc_2021`.
-    """
-
-    shortwave_to_par_conversion: float = 4.6
-    """Factor to convert shortwave radiation to photosynthetically active radiation.
-
-    Value is taken from :cite:t:`maclean_microclimc_2021`.
-    """

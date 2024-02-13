@@ -148,7 +148,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         np.broadcast_to(leaf_vap_values, (3, 15)).T,
         dims=["layers", "cell_id"],
         coords=coords,
-        name="stomatal_conductance",
+        name="leaf_vapor_conductivity",
     )
 
     leaf_air_values = np.repeat(
@@ -166,7 +166,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         result["air_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["stomatal_conductance"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
+        result["leaf_vapor_conductivity"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
         result["leaf_air_conductivity"], exp_leaf_air_cond, rtol=1e-04, atol=1e-04
@@ -304,17 +304,15 @@ def test_calculate_leaf_air_heat_conductivity():
     np.testing.assert_allclose(result, np.full((3, 3), 0.15279), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_stomatal_conductance():
-    """Test stomatal conductance."""
+def test_calculate_leaf_vapor_conductivity():
+    """Test calculate leaf vapor conductivity."""
 
     from virtual_rainforest.models.abiotic.energy_balance import (
-        calculate_stomatal_conductance,
+        calculate_leaf_vapor_conductivity,
     )
 
-    result = calculate_stomatal_conductance(
-        incoming_shortwave_radiation=np.repeat(100.0, 3),
-        max_stomatal_conductance=np.repeat(10.0, 3),
-        q50=np.repeat(1.0, 3),
-        shortwave_to_par_conversion=4.6,
+    result = calculate_leaf_vapor_conductivity(
+        leaf_air_conductivity=np.repeat(5.0, 3),
+        stomatal_conductance=np.repeat(5.0, 3),
     )
-    np.testing.assert_allclose(result, np.full(3, 9.978308), rtol=1e-04, atol=1e-04)
+    np.testing.assert_allclose(result, np.repeat(2.5, 3), rtol=1e-04, atol=1e-04)
