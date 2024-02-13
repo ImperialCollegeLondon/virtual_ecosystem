@@ -23,7 +23,13 @@ Each of the abiotic sub-modules has its own API reference page:
 
 * The :mod:`~virtual_rainforest.models.abiotic.energy_balance` submodule calculates the
   energy balance of the Virtual Rainforest. The module returns vertical profiles of air
-  temperature, relative humidity, and soil temperature.
+  temperature, relative humidity, and vapor pressure deficit as well as the partitioned
+  energy and radiation fluxes at the leaf surface.
+
+* The :mod:`~virtual_rainforest.models.abiotic.soil_energy_balance` submodule calculates
+  the soil energy balance of the Virtual Rainforest. The module returns vertical
+  profiles of soil temperature and the partitioned energy and radiation fluxes at the
+  surface.
 """  # noqa: D205, D415
 
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

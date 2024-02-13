@@ -328,7 +328,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
         "ground_heat_flux",
         "canopy_absorption",
         "air_conductivity",
-        "leaf_vapor_conductivity",
+        "stomatal_conductance",
         "leaf_air_conductivity",
     ]:
         assert var in model.data

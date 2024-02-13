@@ -1,6 +1,6 @@
 r"""The ``models.abiotic.energy_balance`` module calculates the energy balance for the
 Virtual Rainforest. Given that the time increments of the model are an hour or longer,
-we can assume that below-canopy heat and vapour exchange attain steady state and heat
+we can assume that below-canopy heat and vapor exchange attain steady state and heat
 storage in the canopy does not need to be simulated explicitly. Under steady-state,
 the balance equation for the leaves in each canopy layer is as follows (after
 :cite:t:`maclean_microclimc_2021`):
@@ -15,10 +15,10 @@ the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_
 emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{L}` the
 absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vaporisation of water,
-:math:`e_{L}` the effective vapour pressure of the leaf, :math:`e_{A}` the vapor
+:math:`e_{L}` the effective vapor pressure of the leaf, :math:`e_{A}` the vapor
 pressure of air and :math:`p_{A}` atmospheric pressure. :math:`g_{Ha}` is the heat
 conductance between leaf and atmosphere, :math:`g_{v}` represents the conductance
-for vapor loss from the leaves as a function of the stomatal conductance.
+for vapor loss from the leaves as the stomatal conductance.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
@@ -210,7 +210,7 @@ def initialise_conductivities(
     top_leaf_air_conductivity: float,
     bottom_leaf_air_conductivity: float,
 ) -> dict[str, DataArray]:
-    r"""Initialise conductivities for first model time step.
+    r"""Initialise conductivities for first model time step, [mol m-2 s-1].
 
     The initial values for all conductivities are typical for decidious woodland with
     wind above canopy at 2 m/s.
@@ -236,8 +236,9 @@ def initialise_conductivities(
             [mol m-2 s-1]
 
     Returns:
-        Heat conductivity in air of each canopy layer node, [mol m-2 s-1]
-        Leaf conductivity to vapour loss for each canopy layer node, [mol m-2 s-1]
+        Heat conductivity in air of each canopy layer node, [mol m-2 s-1],
+        Stomatal conductance (leaf conductivity to vapor loss for each canopy layer
+        node, [mol m-2 s-1],
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
@@ -266,19 +267,19 @@ def initialise_conductivities(
         name="air_conductivity",
     )
 
-    # Initialise leaf vapour conductivity
-    leaf_vapor_conductivity = (
-        output["air_conductivity"].copy().rename("leaf_vapor_conductivity")
+    # Initialise leaf vapor conductivity
+    stomatal_conductance = (
+        output["air_conductivity"].copy().rename("stomatal_conductance")
     )
-    leaf_vapor_cond_interpolation = interpolate_along_heights(
+    stomatal_cond_interpolation = interpolate_along_heights(
         start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
         target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
         start_value=top_leaf_vapor_conductivity,
         end_value=bottom_leaf_vapor_conductivity,
     )
-    leaf_vapor_conductivity[atmosphere_layers.indexes] = leaf_vapor_cond_interpolation
-    output["leaf_vapor_conductivity"] = leaf_vapor_conductivity
+    stomatal_conductance[atmosphere_layers.indexes] = stomatal_cond_interpolation
+    output["stomatal_conductance"] = stomatal_conductance
 
     # Initialise leaf air heat conductivity
     leaf_air_conductivity = (
@@ -340,7 +341,7 @@ def calculate_longwave_emission(
     emissivity: float | NDArray[np.float32],
     stefan_boltzmann: float,
 ) -> NDArray[np.float32]:
-    """Calculate longwave emission using the Stefan Boltzmann law.
+    """Calculate longwave emission using the Stefan Boltzmann law, [W m-2].
 
     According to the Stefan Boltzmann law, the amount of radiation emitted per unit time
     from the area of a black body at absolute temperature is directly proportional to
@@ -410,7 +411,7 @@ def calculate_air_heat_conductivity_canopy(
     diabatic_correction_momentum: NDArray[np.float32],
     canopy_height: NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    r"""Calculate air heat conductivity by turbulent convection in the canopy.
+    r"""Calculate air heat conductivity by turbulent convection in canopy,[mol m-2 s-1].
 
     Within-canopy heat conductance (:math:`g_{t}`) between any two heights :math:`z_{1}`
     and :math:`z_{0}` below-canopy is given by
@@ -470,7 +471,7 @@ def calculate_leaf_air_heat_conductivity(
     positive_free_conductance_parameter: float,
     negative_free_conductance_parameter: float,
 ) -> NDArray[np.float32]:
-    r"""Calculates forced or free laminer conductance between leaf and air.
+    r"""Calculate forced or free laminer conductance between leaf and air,[mol m-2 s-1].
 
     When wind speeds are moderate to high, conduction between the leaf and air
     :math:`g_{Ha}` is predominantly under laminar forced convection and from e.g.
@@ -511,7 +512,7 @@ def calculate_leaf_air_heat_conductivity(
             conductance for negative temperature difference
 
     Returns:
-        conductance, [mol m-2 s-1]
+        Leaf air heat conductance, [mol m-2 s-1]
     """
 
     temperature_k = temperature + 273.15
@@ -557,3 +558,33 @@ def calculate_leaf_air_heat_conductivity(
     )
 
     return conductance
+
+
+def calculate_stomatal_conductance(
+    incoming_shortwave_radiation: NDArray[np.float32],
+    max_stomatal_conductance: float | NDArray[np.float32],
+    q50: float | NDArray[np.float32],
+    shortwave_to_par_conversion: float,
+) -> NDArray[np.float32]:
+    r"""Calculate stomatal conductance, [mol m-2 s-1].
+
+    This function adjusts stomatal conductance based on available incoming shortwave
+    radiation :cite:p:`maclean_microclimc_2021`.
+
+    Args:
+        incoming_shortwave_radiation: Incoming shortwave radiation, [W m-2]
+        max_stomatal_conductance: Maximum stomatal conductance, [mol m-2 s-1]
+        q50: Amount of photosynthetically active radiation when stomatal conductance is
+            at 50 percent of its maximum
+        shortwave_to_par_conversion: Factor to convert shortwave radiation to
+            photosynthetically active radiation
+
+    Returns:
+        Stomatal conductance, [mol m-2 s-1]
+    """
+
+    photo_active_radiation = incoming_shortwave_radiation * shortwave_to_par_conversion
+
+    return (max_stomatal_conductance * photo_active_radiation) / (
+        photo_active_radiation + q50
+    )

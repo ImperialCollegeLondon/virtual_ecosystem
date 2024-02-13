@@ -101,12 +101,12 @@ class AbioticModel(
         """Function to set up the abiotic model.
 
         This function initializes soil temperature and canopy temperature for all
-        corresponding layers and calculates the reference vapour pressure deficit for
+        corresponding layers and calculates the reference vapor pressure deficit for
         all time steps of the simulation. All variables are added directly to the
         self.data object.
         """
 
-        # Calculate vapour pressure deficit at reference height for all time steps
+        # Calculate vapor pressure deficit at reference height for all time steps
         self.data[
             "vapour_pressure_deficit_ref"
         ] = microclimate.calculate_vapour_pressure_deficit(
@@ -118,7 +118,7 @@ class AbioticModel(
         )
 
         # Generate initial profiles of air temperature [C], relative humidity [-],
-        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # vapor pressure deficit [kPa], soil temperature [C], atmospheric pressure
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
         initial_microclimate = microclimate.run_microclimate(
             data=self.data,
@@ -170,10 +170,9 @@ class AbioticModel(
 
         * wind profiles
         * soil energy balance
-        * TODO canopy energy balance for each layer
         * TODO conductivities
+        * TODO canopy energy balance for each layer
         * TODO vertical mixing
-
 
         Args:
             time_index: The index of the current time step in the data object.

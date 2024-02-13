@@ -123,12 +123,12 @@ class AbioticConsts(ConstantsDataclass):
     adjusted."""
 
     min_wind_speed_above_canopy: float = 0.55
-    """Minimum wind speed above the canopy, [m/s].
+    """Minimum wind speed above the canopy, [m s-1].
 
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     min_windspeed_below_canopy: float = 0.001
-    """Minimum wind speed below the canopy or in absence of vegetation, [m/s]."""
+    """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
     min_roughness_length: float = 0.05
     """Minimum roughness length, [m].
@@ -169,59 +169,48 @@ class AbioticConsts(ConstantsDataclass):
     absorbed shortwave radiation."""
 
     light_extinction_coefficient: float = 0.01
-    """Light extinction coefficient for canopy, default = 0.01."""
-
-    latent_heat_flux_fraction: float = 0.5
-    """Fraction of incoming energy that is turned into latent heat flux, default = 0.5.
-    """
-
-    ground_heat_flux_fraction: float = 0.05
-    """Fraction of incoming energy that is turned into ground heat flux, default = 0.05.
-    """
+    """Light extinction coefficient for canopy."""
 
     gas_constant_water_vapor: float = 461.51
     """Gas constant for water vapor, [J kg -1 K-1]."""
 
     specific_heat_capacity_leaf: float = 2760.0
-    """Specific heat capacity of leaf, [J kg-1 K-1], default = 2760
-    :cite:p:`aston_heat_1985`.
+    """Specific heat capacity of leaf, [J kg-1 K-1], :cite:p:`aston_heat_1985`.
     """
 
     leaf_heat_transfer_coefficient: float = 50.0
     """Leaf heat transfer coefficient, [s^1/2 m^-1/2],
-    :cite:p:`linacre_determinations_1964`, default = 50.
+    :cite:p:`linacre_determinations_1964`.
     """
 
     stomatal_resistance: float = 200.0
     """Default stomatal resistance, [s m2 mumol-1]."""
 
     soil_thermal_conductivity: float = 0.7
-    """Soil thermal conductivity, [W m-1 K-1], default = 0.7
-    :cite:p:`monteith_principles_1990`.
+    """Soil thermal conductivity, [W m-1 K-1], :cite:p:`monteith_principles_1990`.
     """
 
     specific_heat_capacity_soil: float = 2.7e6
-    """Specific heat capacity of soil, [J kg-1 K-1], default = 2.7e6
-    :cite:p:`monteith_principles_1990`.
+    """Specific heat capacity of soil, [J kg-1 K-1], :cite:p:`monteith_principles_1990`.
     """
 
     initial_air_conductivity: float = 50.0
-    """Initial air conductivity, (mol m-2 s-1)"""
+    """Initial air conductivity, [mol m-2 s-1]."""
 
     top_leaf_vapor_conductivity: float = 0.32
-    """Initial leaf vapor conductivity at the top of the canopy, (mol m-2 s-1)"""
+    """Initial leaf vapor conductivity at the top of the canopy, [mol m-2 s-1]."""
 
     bottom_leaf_vapor_conductivity: float = 0.25
-    """Initial leaf vapor conductivity at the bottom of the canopy, (mol m-2 s-1)"""
+    """Initial leaf vapor conductivity at the bottom of the canopy, [mol m-2 s-1]."""
 
     top_leaf_air_conductivity: float = 0.19
-    """Initial leaf air heat conductivity at the top of the canopy, (mol m-2 s-1)"""
+    """Initial leaf air heat conductivity at the top of the canopy, [mol m-2 s-1]."""
 
     bottom_leaf_air_conductivity: float = 0.13
-    """Initial leaf air heat conductivity at the bottom of the canopy, (mol m-2 s-1)"""
+    """Initial leaf air heat conductivity at the bottom of the canopy, [mol m-2 s-1]."""
 
     surface_albedo: float = 0.125
-    """Mean surface albedo of a tropical rainforest in South East Asia.
+    """Mean surface albedo of a tropical rainforest in South East Asia, dimensionless.
 
     The value is takes from a study that compares changes in surface albedo before and
     after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
@@ -276,4 +265,22 @@ class AbioticConsts(ConstantsDataclass):
     negative_free_conductance_parameter: float = 0.26
     """Parameter in calculation of free conductance for negative temperature difference
     :cite:p:`campbell_introduction_2012`.
+    """
+
+    max_stomatal_conductance: float = 10.0
+    """Maximum stomatal conductance, [mol m-2 s-1].
+
+    Value is taken from :cite:t:`maclean_microclimc_2021`.
+    """
+
+    q50: float = 1.0
+    r"""Photosynthetically active radiation when stomatal conductance is at 50\% of max.
+
+    Value taken from :cite:t:`maclean_microclimc_2021`.
+    """
+
+    shortwave_to_par_conversion: float = 4.6
+    """Factor to convert shortwave radiation to photosynthetically active radiation.
+
+    Value is taken from :cite:t:`maclean_microclimc_2021`.
     """

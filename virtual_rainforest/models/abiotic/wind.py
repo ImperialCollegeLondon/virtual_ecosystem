@@ -146,7 +146,7 @@ def calculate_diabatic_correction_above(
 
     Diabatic correction factor for heat and momentum are used to adjust wind profiles
     for surface heating and cooling :cite:p:`maclean_microclimc_2021`. When the surface
-    is strongly heated, the diabatic correction factor for momemtum :math:`psi_{m}`
+    is strongly heated, the diabatic correction factor for momentum :math:`\Psi_{M}`
     becomes negative and drops to values of around -1.5. In contrast, when the surface
     is much cooler than the air above it, it increases to values around 4.
 
@@ -482,11 +482,11 @@ def calculate_wind_profile(
     :cite:p:`campbell_introduction_1998` as implemented in
     :cite:t:`maclean_microclimc_2021`):
 
-    :math:`u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \phi_M`
+    :math:`u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \Psi_M`
 
     where :math:`u_z` is wind speed at height :math:`z` above the canopy, :math:`d` is
     the height above ground within the canopy where the wind profile extrapolates to
-    zero, :math:`z_m` the roughness length for momentum, :math:`\phi_M` is a diabatic
+    zero, :math:`z_m` the roughness length for momentum, :math:`\Psi_M` is a diabatic
     correction for momentum and :math:`u^{*}` is the friction velocity, which gives the
     wind speed at height :math:`d + z_m`.
 
