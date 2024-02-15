@@ -77,7 +77,7 @@ def register_variables(module_name: str) -> None:
     list(getmembers(variables_submodule))
 
 
-def initialise_variables(models: list[type[BaseModel]]) -> None:
+def _initialise_variables(models: list[type[BaseModel]]) -> None:
     """Initialise the runtime variable registry.
 
     Args:
@@ -106,7 +106,7 @@ def initialise_variables(models: list[type[BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var_name] = KNOWN_VARIABLES[var_name]
 
 
-def verify_updated_by(models: list[type[BaseModel]]) -> None:
+def _verify_updated_by(models: list[type[BaseModel]]) -> None:
     """Verify that all variables updated by models are in the runtime registry.
 
     Args:
@@ -136,7 +136,7 @@ def verify_updated_by(models: list[type[BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var].updated_by.append(model.model_name)
 
 
-def verify_used_by(models: list[type[BaseModel]]) -> None:
+def _verify_used_by(models: list[type[BaseModel]]) -> None:
     """Verify that all variables used by models are in the runtime registry.
 
     Args:
@@ -159,3 +159,18 @@ def verify_used_by(models: list[type[BaseModel]]) -> None:
                     " by any model."
                 )
             RUN_VARIABLES_REGISTRY[var].used_by.append(model.model_name)
+
+
+def setup_variables(models: list[type[BaseModel]]) -> None:
+    """Setup the runtime variable registry, running some validation.
+
+    Args:
+        models: The list of models to setup the registry for.
+
+    Raises:
+        ValueError: If a variable required by a model is not in the known variables
+            registry or the runtime registry.
+    """
+    _initialise_variables(models)
+    _verify_updated_by(models)
+    _verify_used_by(models)

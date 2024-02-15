@@ -7,6 +7,7 @@ The validation of configuration documents is done using JSONSchema documents ass
 with the different model components. See the :mod:`~virtual_rainforest.core.schema`
 module for details.
 """  # noqa: D205, D415
+
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
@@ -20,6 +21,7 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
+from virtual_rainforest.core.variables import setup_variables
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -475,6 +477,9 @@ class Config(dict):
         for module in requested_modules:
             all_schemas[module] = MODULE_REGISTRY[module].schema
             self.model_classes[module] = MODULE_REGISTRY[module].model
+
+        # Setup the variables for the requested modules
+        setup_variables(list(self.model_classes.values()))
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)
