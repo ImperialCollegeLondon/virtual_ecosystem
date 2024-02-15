@@ -90,6 +90,7 @@ team.
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
+  Core Components <api/core/core_components.md>
   Core Constants <api/core/constants.md>
   Constants Classes <api/core/constants_class.md>
   Constants Loader <api/core/constants_loader.md>
@@ -126,8 +127,8 @@ team.
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>
   Litter Constants <api/litter/constants.md>
-  
-  
+  Plants Model <api/plants/plants_model.md>
+  Plants Structures <api/plants/plant_structures.md>
 ```
 
 ```{eval-rst}
