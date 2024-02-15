@@ -16,6 +16,7 @@ from virtual_rainforest.core.data import Data, merge_continuous_data_files
 from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 from virtual_rainforest.core.grid import Grid
 from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_rainforest.core.variables import verify_variables_axis
 
 
 def initialise_models(
@@ -175,6 +176,9 @@ def vr_run(
     core_components = CoreComponents(config=config)
     data = Data(grid)
     data.load_data_config(config)
+
+    # Verify that all variables have the correct axis
+    verify_variables_axis()
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 

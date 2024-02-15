@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from inspect import getmembers
 
+from virtual_rainforest.core.axes import AXIS_VALIDATORS
 from virtual_rainforest.core.base_model import BaseModel
 from virtual_rainforest.core.logger import LOGGER
 
@@ -20,7 +21,7 @@ class Variable:
     """Unites the variable should be represented in."""
     var_type: str
     """Type of the variable."""
-    axes: tuple[str, ...]
+    axis: tuple[str, ...]
     """Axes the variable is defined on."""
     initialised_by: str = field(default_factory=str, init=False)
     """Model that initialised the variable."""
@@ -174,3 +175,16 @@ def setup_variables(models: list[type[BaseModel]]) -> None:
     _initialise_variables(models)
     _verify_updated_by(models)
     _verify_used_by(models)
+
+
+def verify_variables_axis() -> None:
+    """Verify that all required variables have valid, available axis."""
+    for var in RUN_VARIABLES_REGISTRY.values():
+        unknown_axes = set(var.axis).difference(AXIS_VALIDATORS)
+
+        if unknown_axes:
+            to_raise = ValueError(
+                f"Variable {var.name} uses unknown core: {','.join(unknown_axes)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
