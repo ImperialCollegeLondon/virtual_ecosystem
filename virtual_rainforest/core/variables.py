@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from inspect import getmembers
 
-from virtual_rainforest.core.axes import AXIS_VALIDATORS
-from virtual_rainforest.core.base_model import BaseModel
+import virtual_rainforest.core.axes as axes
+import virtual_rainforest.core.base_model as base_model
 from virtual_rainforest.core.logger import LOGGER
 
 
@@ -78,7 +78,7 @@ def register_variables(module_name: str) -> None:
     list(getmembers(variables_submodule))
 
 
-def _initialise_variables(models: list[type[BaseModel]]) -> None:
+def _initialise_variables(models: list[type[base_model.BaseModel]]) -> None:
     """Initialise the runtime variable registry.
 
     Args:
@@ -107,7 +107,7 @@ def _initialise_variables(models: list[type[BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var_name] = KNOWN_VARIABLES[var_name]
 
 
-def _verify_updated_by(models: list[type[BaseModel]]) -> None:
+def _verify_updated_by(models: list[type[base_model.BaseModel]]) -> None:
     """Verify that all variables updated by models are in the runtime registry.
 
     Args:
@@ -137,7 +137,7 @@ def _verify_updated_by(models: list[type[BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var].updated_by.append(model.model_name)
 
 
-def _verify_used_by(models: list[type[BaseModel]]) -> None:
+def _verify_used_by(models: list[type[base_model.BaseModel]]) -> None:
     """Verify that all variables used by models are in the runtime registry.
 
     Args:
@@ -162,7 +162,7 @@ def _verify_used_by(models: list[type[BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var].used_by.append(model.model_name)
 
 
-def setup_variables(models: list[type[BaseModel]]) -> None:
+def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
     """Setup the runtime variable registry, running some validation.
 
     Args:
@@ -180,7 +180,7 @@ def setup_variables(models: list[type[BaseModel]]) -> None:
 def verify_variables_axis() -> None:
     """Verify that all required variables have valid, available axis."""
     for var in RUN_VARIABLES_REGISTRY.values():
-        unknown_axes = set(var.axis).difference(AXIS_VALIDATORS)
+        unknown_axes = set(var.axis).difference(axes.AXIS_VALIDATORS)
 
         if unknown_axes:
             to_raise = ValueError(

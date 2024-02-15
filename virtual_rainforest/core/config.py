@@ -17,11 +17,11 @@ from typing import Any
 import tomli_w
 from jsonschema import FormatChecker
 
+import virtual_rainforest.core.variables as variables
 from virtual_rainforest.core.exceptions import ConfigurationError
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
 from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
-from virtual_rainforest.core.variables import setup_variables
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -479,7 +479,7 @@ class Config(dict):
             self.model_classes[module] = MODULE_REGISTRY[module].model
 
         # Setup the variables for the requested modules
-        setup_variables(list(self.model_classes.values()))
+        variables.setup_variables(list(self.model_classes.values()))
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)

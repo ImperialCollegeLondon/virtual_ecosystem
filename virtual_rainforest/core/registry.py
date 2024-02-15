@@ -16,9 +16,9 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
+import virtual_rainforest.core.variables as variables
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.variables import register_variables
 from virtual_rainforest.core.schema import load_schema
 
 
@@ -181,7 +181,7 @@ def register_module(module_name: str) -> None:
             )
 
     # Register the known variables associated to this module
-    register_variables(module_name)
+    variables.register_variables(module_name)
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
