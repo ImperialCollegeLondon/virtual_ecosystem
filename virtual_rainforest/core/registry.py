@@ -11,7 +11,6 @@ The module also provides the :func:`~virtual_rainforest.core.registry.register_m
 function, which is used to populate the registry with the components of a given module.
 """  # noqa: D205, D415
 
-
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
 from inspect import getmembers, isclass
@@ -19,6 +18,7 @@ from typing import Any
 
 from virtual_rainforest.core.constants_class import ConstantsDataclass
 from virtual_rainforest.core.logger import LOGGER
+from virtual_rainforest.core.variables import register_variables
 from virtual_rainforest.core.schema import load_schema
 
 
@@ -179,6 +179,9 @@ def register_module(module_name: str) -> None:
                 module_name,
                 class_name,
             )
+
+    # Register the known variables associated to this module
+    register_variables(module_name)
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
