@@ -16,8 +16,8 @@ class Variable:
     updated_by: list[str]
     used_by: list[str]
 
-    def __post_init__(self) -> None:
-        """Post init populates the registry."""
+    def __call__(self) -> None:
+        """Calling the variable populates the registry."""
         if self.name in VARIABLES_REGISTRY:
             raise ValueError(f"Variable {self.name} already in registry")
 
