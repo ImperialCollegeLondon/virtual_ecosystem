@@ -10,34 +10,43 @@ from virtual_rainforest.core.logger import LOGGER
 
 @dataclass
 class Variable:
-    """Base class for all variables."""
+    """Simulation variable, containing static and runtime metadata."""
 
     name: str
+    """Name of the variable. Must be unique."""
     description: str
+    """Description of what the variable represents."""
     units: str
+    """Unites the variable should be represented in."""
     var_type: str
-    axes: tuple[str, ...] = field(default_factory=tuple)
+    """Type of the variable."""
+    axes: tuple[str, ...]
+    """Axes the variable is defined on."""
     initialised_by: str = field(default_factory=str, init=False)
-    updated_by: list[str] = field(default_factory=list)
-    used_by: list[str] = field(default_factory=list)
+    """Model that initialised the variable."""
+    updated_by: list[str] = field(default_factory=list, init=False)
+    """Models that update the variable."""
+    used_by: list[str] = field(default_factory=list, init=False)
+    """Models that use the variable."""
 
-    def initialise(self, model_name: str) -> None:
-        """Calling the variable populates the runtime registry.
-
-        Args:
-            model_name: The name of the model that is initialising the variable.
+    def __post_init__(self) -> None:
+        """Register the variable in the known variables.
 
         Raises:
-            ValueError: If the variable is already in the registry.
+            ValueError: If a variable is already in the known variables registry.
         """
-        if self.name in RUN_VARIABLES_REGISTRY:
+        if self.name in KNOWN_VARIABLES:
             raise ValueError(
-                f"Variable {self.name} already in registry, initialised by"
-                f"{RUN_VARIABLES_REGISTRY[self.name].initialised_by}."
+                f"Variable {self.name} already in the known variables registry."
             )
 
-        self.initialised_by = model_name
-        RUN_VARIABLES_REGISTRY[self.name] = self
+        LOGGER.info(
+            "Variable registered for %s: %s ",
+            self.__module__,
+            self.name,
+        )
+
+        KNOWN_VARIABLES[self.name] = self
 
 
 RUN_VARIABLES_REGISTRY: dict[str, Variable] = {}
@@ -48,7 +57,7 @@ KNOWN_VARIABLES: dict[str, Variable] = {}
 
 
 def register_variables(module_name: str) -> None:
-    """Register known variables.
+    """Register known variables in the module.
 
     As variables are global, they are registered in the global KNOWN_VARIABLES registry
     rather than on a per-module basis.
@@ -65,20 +74,7 @@ def register_variables(module_name: str) -> None:
         LOGGER.info("No variables registered for %s.", module_name)
         return
 
-    for _, var in getmembers(
-        variables_submodule, lambda var: isinstance(var, Variable)
-    ):
-        if var.name in KNOWN_VARIABLES:
-            raise ValueError(
-                f"Variable {var.name} already in the known variables registry."
-            )
-
-        KNOWN_VARIABLES[var.name] = var
-        LOGGER.info(
-            "Variable registered for %s: %s ",
-            module_name,
-            var.name,
-        )
+    list(getmembers(variables_submodule))
 
 
 def initialise_variables(models: list[type[BaseModel]]) -> None:
@@ -89,18 +85,25 @@ def initialise_variables(models: list[type[BaseModel]]) -> None:
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
-            registry.
+            registry or if it is already initialised by another model.
     """
     for model in models:
         for v in model.required_init_vars:
             # TODO In the future, var will be a string, so this won't be necessary
-            var = v[0]
-            if var not in KNOWN_VARIABLES:
+            var_name = v[0]
+            if var_name not in KNOWN_VARIABLES:
                 raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not in the known"
-                    " variables registry."
+                    f"Variable {var_name} required by {model.model_name} is not in the"
+                    " known variables registry."
                 )
-            KNOWN_VARIABLES[var].initialise(model.model_name)
+            if var_name in RUN_VARIABLES_REGISTRY:
+                raise ValueError(
+                    f"Variable {var_name} already in registry, initialised by"
+                    f"{RUN_VARIABLES_REGISTRY[var_name].initialised_by}."
+                )
+
+            KNOWN_VARIABLES[var_name].initialised_by = model.model_name
+            RUN_VARIABLES_REGISTRY[var_name] = KNOWN_VARIABLES[var_name]
 
 
 def verify_updated_by(models: list[type[BaseModel]]) -> None:
