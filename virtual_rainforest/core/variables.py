@@ -107,7 +107,7 @@ def verify_updated_by(models: list[type[BaseModel]]) -> None:
     """Verify that all variables updated by models are in the runtime registry.
 
     Args:
-        models: The list of models that are updating the variables.
+        models: The list of models to check.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
@@ -122,7 +122,7 @@ def verify_updated_by(models: list[type[BaseModel]]) -> None:
                 )
             if var not in RUN_VARIABLES_REGISTRY:
                 raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not  initialised"
+                    f"Variable {var} required by {model.model_name} is not initialised"
                     " by any model."
                 )
             if len(RUN_VARIABLES_REGISTRY[var].updated_by):
@@ -131,3 +131,28 @@ def verify_updated_by(models: list[type[BaseModel]]) -> None:
                     f" by {RUN_VARIABLES_REGISTRY[var].updated_by}."
                 )
             RUN_VARIABLES_REGISTRY[var].updated_by.append(model.model_name)
+
+
+def verify_used_by(models: list[type[BaseModel]]) -> None:
+    """Verify that all variables used by models are in the runtime registry.
+
+    Args:
+        models: The list of models to check.
+
+    Raises:
+        ValueError: If a variable required by a model is not in the known variables
+            registry or the runtime registry.
+    """
+    for model in models:
+        for var in model.vars_used:
+            if var not in KNOWN_VARIABLES:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} is not in the known"
+                    " variables registry."
+                )
+            if var not in RUN_VARIABLES_REGISTRY:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} is not initialised"
+                    " by any model."
+                )
+            RUN_VARIABLES_REGISTRY[var].used_by.append(model.model_name)

@@ -166,8 +166,16 @@ class BaseModel(ABC):
 
     At the moment, this tuple is used to decide which variables to output from the
     :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
-    by a model used in the specific simulation. In future, this could also be used
-    to prevent multiple models from updating the same variable and similar problems.
+    by a model used in the specific simulation. It is also be used warn if multiple
+    models will be updating the same variable and to verify that these variables are
+    indeed initialised by another model, and therefore will be available.
+    """
+
+    vars_used: tuple[str, ...]
+    """Variables that are used by the model.
+
+    This is used to verify that all variables used by the model are being initialised
+    by another model, and therefore will be available.
     """
 
     def __init__(
