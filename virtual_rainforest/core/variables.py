@@ -10,6 +10,11 @@ class Variable:
     name: str
     description: str
     units: str
+    var_type: str
+    axis: tuple[str, ...]
+    initialised_by: str
+    updated_by: list[str]
+    used_by: list[str]
 
     def __post_init__(self) -> None:
         """Post init populates the registry."""
