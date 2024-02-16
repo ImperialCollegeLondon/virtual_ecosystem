@@ -6,7 +6,6 @@ Notes:
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
 """  # noqa: #D205, D415
 
-
 from __future__ import annotations
 
 from itertools import chain
@@ -27,6 +26,10 @@ from virtual_rainforest.models.animals.scaling_functions import damuths_law
 
 class AnimalCommunity:
     """This is a class for the animal community of a grid cell.
+
+    This class manages the animal cohorts present in a grid cell and provides methods
+    that need to loop over all cohorts, move cohorts to new grids, or manage an
+    interaction between two cohorts.
 
     Args:
         functional_groups: A list of FunctionalGroup objects
@@ -89,6 +92,9 @@ class AnimalCommunity:
         generated. So the more functional groups that are made, the denser the animal
         community will be. This function will need to be reworked dramatically later on.
 
+        Currently, the number of individuals in a cohort is handled using Damuth's Law,
+        which only holds for mammals.
+
         """
         for functional_group in self.functional_groups:
             individuals = damuths_law(
@@ -109,6 +115,8 @@ class AnimalCommunity:
 
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
+
+        Travel distance is not currently a function of body-size or locomotion.
 
         TODO: Implement juvenile dispersal.
         TODO: Implement low-density trigger.
@@ -134,6 +142,9 @@ class AnimalCommunity:
     def die_cohort(self, cohort: AnimalCohort) -> None:
         """The function to change the cohort status from alive to dead.
 
+        This method is a computation question, not a scientific one. The science is in
+        the various methods that call die_cohort after a mortality inflicting event.
+
         Args:
             cohort: The AnimalCohort instance that has lost all individuals.
 
@@ -157,6 +168,8 @@ class AnimalCommunity:
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and mass=birth_mass.
+
+        The science here follows Madingley.
 
         TODO: Implement juvenile dispersal.
         TODO: Check whether madingley discards excess reproductive mass
@@ -225,7 +238,7 @@ class AnimalCommunity:
             food_choice = consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                carcass_pool=self.carcass_pool,
+                # carcass_pool=self.carcass_pool,
                 excrement_pool=self.excrement_pool,
             )
             if isinstance(food_choice, AnimalCohort) and food_choice.individuals == 0:

@@ -277,6 +277,8 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
     This is linear scaling of herbivore search times with current body mass.
 
+    Madingley
+
 
     Args:
         alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
@@ -295,6 +297,8 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
     """The potential biomass (g) of plant k eating by cohort i, per day.
 
     TODO: Finish docstring
+
+    Madingley
 
     Args:
         alpha_i_k: Effective rate at which an individual herbivore searches its
@@ -318,6 +322,8 @@ def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
 
     Time (days) for an individual of cohort i to handle 1 gram of plant resource.
 
+    Madingley
+
     Args:
         h_0: Time in days that it would take a herbivore of mass = M_ref to handle 1g
           of autotroph mass.
@@ -340,6 +346,10 @@ def F_i_k_individual(N_i_t: int, k_i_k: float, H_i_k: float, B_k_t: float) -> fl
     The instantaneous rate at which stock k is eaten by herbivore
       cohort i.
 
+    Madingley
+
+    TODO: finish the code here
+
     Args:
       N_i_t: Current herbivore population size.
       k_i_k: The potential biomass (g) of plant k eating by cohort i, per day.
@@ -356,6 +366,8 @@ def theta_opt_i(
     theta_opt_min_f: float, theta_opt_f: float, sigma_opt_f: float
 ) -> float:
     """Optimum predator-prey mass ratio.
+
+    Madingley
 
     Args:
         theta_opt_min_f:
@@ -377,6 +389,8 @@ def w_bar_i_j(
     sigma_opt_pred_prey: float,
 ) -> float:
     """The probability of successfully capturing a prey item.
+
+    Madingley
 
     Args:
         mass_predator: Current mass of the predator..
@@ -402,6 +416,8 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 
     This is linear scaling of herbivore search times with current body mass.
 
+    Madingley
+
 
     Args:
         alpha_0_pred: Constant describing effective rate per unit body mass at which any
@@ -423,6 +439,8 @@ def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> fl
     TODO: Finish docstring
     TODO: double check output needs to be float, might be int
 
+    Madingley
+
     Args:
         alpha_i_j: .
         N_i_t:
@@ -443,6 +461,8 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
 
     Time (days) for an individual of cohort i to handle 1 individual of cohort j.
 
+    Madingley
+
     Args:
         h_pred_0: Time that it would take a predator of body mass equal to the reference
           mass, to handle a prey individual of body mass equal to one gram.
@@ -459,18 +479,22 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
     return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * M_i_t
 
 
-def F_i_j_individual(N_i_t: int, k_i_k: float, H_i_k: float, B_k_t: float) -> float:
+def F_i_j_individual(N_i_t: int, k_i_j: float, H_i_j: float, N_j_t: float) -> float:
     """Instantaneous predation rate.
 
     The instantaneous rate at which prey cohort j is eaten by predator cohort i.
 
+    Madingley
+
+    TODO: finish the code here
+
     Args:
       N_i_t: Current herbivore population size.
-      k_i_k: The potential biomass (g) of plant k eating by cohort i, per day.
-      H_i_k: Handling time of plant resource k by cohort i.
-      B_k_t: Current plant resource pool size.
+      k_i_j: The potential biomass (g) of plant k eating by cohort i, per day.
+      H_i_j: Handling time of plant resource k by cohort i.
+      N_j_t: Current plant resource pool size.
 
-    Returns: A float instantaneous herbivory rate.
+    Returns: A float instantaneous predation rate.
     """
     # below the summation is over all accessible j's in the cell
-    return N_i_t  # * (k_i_k / (1 + sum(k_i_j * H_i_j))) * (1 / B_k_t)
+    return N_i_t  # * (k_i_j / (1 + sum(k_i_j * H_i_j))) * (1 / N_j_t)

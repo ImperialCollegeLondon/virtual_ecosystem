@@ -134,8 +134,12 @@ class AnimalConsts(ConstantsDataclass):
     decay_fraction_carcasses: float = 0.2  # Decay fraction for carcasses
 
     # Madingley Foraging Parameters
+
     tau_f = 0.5  # tau_f
     """Proportion of time for which functional group is active."""
+    sigma_f_t = 0.5  # sigma_f(t) - TODO: find real value
+    """Proportion of the time step in which it's suitable to be active for functional
+    group f."""
 
     # Trophic paramters
 
@@ -172,6 +176,8 @@ class AnimalConsts(ConstantsDataclass):
     """Time that it would take a herbivore of body mass equal to the reference mass,
     to handle one gram of autotroph biomass"""
 
+    M_pred_ref = 1.0  # toy value TODO: find real value
+    """The reference value for predator mass."""
     sigma_opt_pred_prey = 0.7  # sigma_opt_pred-prey [Madingley]
     """Standard deviation of the normal distribution describing realized attack rates
     around the optimal predator-prey body mass ratio."""

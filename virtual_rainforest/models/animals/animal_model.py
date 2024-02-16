@@ -16,7 +16,6 @@ of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
-
 from __future__ import annotations
 
 from math import sqrt
@@ -180,7 +179,13 @@ class AnimalModel(BaseModel):
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to step the animal model through time.
 
-        Currently this is a toy implementation.
+        Temporary solution.
+
+        This method sets the order of operations for the animal module. In nature, these
+        events would be simultaneous. The ordering within the method is less a question
+        of the science and more a question of computational logic and stability.
+
+
 
         Args:
             time_index: The index representing the current time step in the data object.

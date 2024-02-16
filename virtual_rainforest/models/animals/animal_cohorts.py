@@ -8,25 +8,18 @@ Notes:
 
 from __future__ import annotations
 
-from math import ceil
-from random import choice
-from typing import Optional, Sequence
+from math import ceil, exp
+from typing import Sequence
 
 from numpy import random, timedelta64
 
+import virtual_rainforest.models.animals.scaling_functions as sf
 from virtual_rainforest.core.logger import LOGGER
 from virtual_rainforest.models.animals.animal_traits import DietType
 from virtual_rainforest.models.animals.constants import AnimalConsts
 from virtual_rainforest.models.animals.decay import CarcassPool
 from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 from virtual_rainforest.models.animals.protocols import Consumer, DecayPool, Resource
-from virtual_rainforest.models.animals.scaling_functions import (
-    damuths_law,
-    intake_rate_scaling,
-    metabolic_rate,
-    natural_mortality_scaling,
-    prey_group_selection,
-)
 
 
 class AnimalCohort:
@@ -62,7 +55,7 @@ class AnimalCohort:
         """The number of individuals in this cohort."""
         self.constants = constants
         """Animal constants."""
-        self.damuth_density: int = damuths_law(
+        self.damuth_density: int = sf.damuths_law(
             self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
         """The number of individuals in an average cohort of this type."""
@@ -71,19 +64,19 @@ class AnimalCohort:
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
 
-        self.intake_rate: float = intake_rate_scaling(
+        self.intake_rate: float = sf.intake_rate_scaling(
             self.functional_group.adult_mass, self.functional_group.intake_rate_terms
         )
         """The individual rate of plant mass consumption over an 8hr foraging day
         [kg/day]."""
-        self.prey_groups = prey_group_selection(
+        self.prey_groups = sf.prey_group_selection(
             self.functional_group.diet,
             self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
 
-        self.adult_natural_mortality_prob = natural_mortality_scaling(
+        self.adult_natural_mortality_prob = sf.natural_mortality_scaling(
             self.functional_group.adult_mass, self.functional_group.longevity_scaling
         )
         # TODO: Distinguish between background, senesence, and starvation mortalities.
@@ -116,7 +109,7 @@ class AnimalCohort:
             raise ValueError("mass_current cannot be negative.")
 
         #  kg/day metabolic rate * number of days
-        mass_metabolized = metabolic_rate(
+        mass_metabolized = sf.metabolic_rate(
             self.mass_current,
             temperature,
             self.functional_group.metabolic_rate_terms,
@@ -250,13 +243,55 @@ class AnimalCohort:
         # return the net mass gain of predation
         return prey_mass * predator.functional_group.conversion_efficiency
 
+    def f_i_k(self, plant_list: Sequence[Resource]) -> None:
+        """The function to determine instantaneous herbivory rates.
+
+        This method is the F_i_k equation from Madingley, for use in the delta_M
+        equation.
+
+        Args:
+            plant_list: A list of plant cohorts available for herbivory.
+            N_i_t: Current herbivore population size.
+            k_i_k: The potential biomass (g) of plant k eating by cohort i, per day.
+            H_i_k: Handling time of plant resource k by cohort i.
+            B_k_t: Current plant resource pool size.
+
+
+        Returns:
+            The instantaneous consumption rate of a herbivore cohort consuming a
+            plant resource.
+
+        """
+        # below the summation is over all accessible k's in the cell
+        # return N_i_t * (k_i_k / (1 + sum(k_i_k * H_i_k))) * (1 / B_k_t)
+        pass
+
+    def delta_mass(self, plant_list: Sequence[Resource]) -> None:
+        """The function to change in mass of an animal cohort through herbivory.
+
+        This method is the delta_M_i equation from Madingley for use in the full mass
+        change equation.
+
+        Args:
+            plant_list: A list of plant cohorts available for herbivory.
+
+        Returns:
+            The total biomass assimilated as food by cohort i through herbivory on all
+            stocks.
+
+        """
+        """delta_M = epsilon_f * sum_over_plant_list(
+            plant_biomass * (1 - math.exp(-(self.F_i_k) * time_step * tau_f * SIGMA_f))
+        )"""
+        pass
+
     def forage_cohort(
         self,
         plant_list: Sequence[Resource],
-        animal_list: Sequence[Resource],
-        carcass_pool: DecayPool,
+        animal_list: Sequence[AnimalCohort],
+        # carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> Optional[Resource]:  # Note the optional here, temporary
+    ) -> float:
         """This function handles selection of resources from a list of options.
 
         Currently, this function is passed a list of plant or animal resources from
@@ -264,7 +299,11 @@ class AnimalCohort:
         After this, excrete is called to pass excess waste to the excrement pool.
         Later this function will involve more complex weightings of prey options.
 
+        Madingley's detla_mass = delta_mass_herbivory + delta_mass_predation is in here
+
         TODO: Fix the occasional division by zero bug in eat and then remove Optional
+        TODO: ensure mass is lost from resources
+        TODO: ensure mass flows to carcass pools
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
@@ -272,32 +311,167 @@ class AnimalCohort:
             carcass_pool: A CarcassPool object representing available carcasses.
             excrement_pool: A pool representing the excrement in the grid cell
 
+        Return:
+            A float value of the change in consumer mass.
         """
 
         if self.individuals == 0:
             LOGGER.warning("No individuals in cohort to forage.")
-            return None  # Early return with no food choice
-
-        mass_consumed = 0.0  # Initialize to 0.0
+            # return None  # Early return with no food choice
 
         try:
             if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-                food_choice = choice(plant_list)
-                mass_consumed = self.eat(food_choice, excrement_pool)
+                delta_mass = self.delta_mass_herbivory(plant_list)
+
             elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-                food_choice = choice(animal_list)
-                mass_consumed = self.eat(food_choice, carcass_pool)
+                delta_mass = self.delta_mass_predation(animal_list)
+
             else:
                 LOGGER.info("No food available.")
-                food_choice = None  # No food available
 
         except ValueError as e:
             raise e
 
         # excrete excess digestive wastes
-        self.excrete(excrement_pool, mass_consumed)
+        self.excrete(excrement_pool, delta_mass)
 
-        return food_choice
+        return delta_mass
+
+    def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
+        """Cumulative density method for delta_mass_predation.
+
+        The cumulative density of organisms with a mass lying within the same predator
+        specific mass bin as Mi.
+
+        Madingley
+
+        TODO: current format makes no sense, dig up the details in the supp
+        TODO: update A_cell with real reference
+
+        Args:
+            animal_list: A sequence of animal cohorts that can be consumed by the
+                         predator.
+
+        Returns:
+            The float value of theta.
+        """
+        A_cell = 1.0  # temporary
+        theta = 0.0
+
+        for cohort in animal_list:
+            if self.mass_current == cohort.mass_current:
+                theta += cohort.individuals / A_cell
+
+        return theta
+
+    def delta_mass_predation(self, animal_list: Sequence[AnimalCohort]) -> float:
+        """This method handles mass assimilation from predation.
+
+        This is Madingley's delta_assimilation_mass_predation
+
+        TODO: Replace A_cell, delta_t values with actual reference
+        TODO: I think this'll need an animal call to remove the plant mass that is eaten
+        TODO: add epsilon conversion efficiency
+
+        Args:
+            animal_list: A sequence of animal cohorts that can be consumed by the
+                         predator.
+
+        Returns:
+            The change in mass experienced by the predator.
+        """
+
+        delta_mass_pred = 0.0  # initialize at zero
+
+        for cohort in animal_list:
+            N_j = cohort.individuals
+            N = self.individuals
+            A_cell = 1.0  # ha
+            alpha_0 = self.constants.alpha_0[self.functional_group.diet]
+            theta_opt_i = sf.theta_opt_i(
+                self.constants.theta_opt_min_f,
+                self.constants.theta_opt_f,
+                self.constants.sigma_opt_f,
+            )
+            w_bar = sf.w_bar_i_j(
+                self.mass_current,
+                cohort.mass_current,
+                theta_opt_i,
+                self.constants.N_sigma_opt_pred_prey,
+            )
+            alpha = sf.alpha_i_j(alpha_0, self.mass_current, w_bar)
+            k = sf.k_i_j(
+                alpha,
+                N,
+                A_cell,
+                self.theta_i_j(animal_list),
+            )
+            H = sf.H_i_j(
+                self.constants.h_pred_0,
+                self.constants.M_pred_ref,
+                self.mass_current,
+                self.constants.b_herb_pred[self.functional_group.diet],
+            )
+            F = sf.F_i_j_individual(N, k, H, N_j)
+            delta_t = 30.0  # days
+
+            delta_mass_pred += (
+                cohort.mass_current
+                * cohort.individuals
+                * (
+                    1
+                    - exp(
+                        -(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t)
+                    )
+                )
+            )
+
+        return delta_mass_pred
+
+    def delta_mass_herbivory(self, plant_list: Sequence[Resource]) -> float:
+        """This method handles mass assimilation from herbivory.
+
+        This is Madingley's delta_assimilation_mass_herbivory
+
+        TODO: Replace A_cell, delta_t values with actual reference
+        TODO: I think this'll need a plant call to remove the plant mass that is eaten
+        TODO: add epsilon conversion efficiency
+
+
+        Args:
+            plant_list: A sequence of plant pools that can be consumed by the herbivore.
+
+        Returns:
+            The change in mass experienced by the herbivore.
+
+
+        """
+
+        delta_mass_herb = 0.0  # initialize at zero
+
+        for plant in plant_list:
+            B = plant.mass_current
+            N = self.individuals
+            A_cell = 1.0  # ha
+            alpha = sf.alpha_i_k(
+                self.constants.alpha_0[self.functional_group.diet], self.mass_current
+            )
+            k = sf.k_i_k(alpha, self.constants.phi_herb_f, B, A_cell)
+            H = sf.H_i_k(
+                self.constants.h_herb_0,
+                self.constants.M_herb_ref,
+                self.mass_current,
+                self.constants.b_herb_pred[self.functional_group.diet],
+            )
+            F = sf.F_i_k_individual(N, k, H, B)
+            delta_t = 30.0  # days
+
+            delta_mass_herb += B * (
+                1
+                - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+            )
+
+        return delta_mass_herb
 
     def eat(self, food: Resource, pool: DecayPool) -> float:
         """This function handles the mass transfer of a trophic interaction.
@@ -351,6 +525,14 @@ class AnimalCohort:
         return (
             self.mass_current + self.reproductive_mass
         ) / self.functional_group.adult_mass < mass_threshold
+
+    def eat_plants_madingley(self) -> None:
+        """Possible rework of eat for herbivory."""
+        pass
+
+    def eat_animals_madingley(self) -> None:
+        """Possible rework of eat for predation."""
+        pass
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
