@@ -6,6 +6,8 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
+from virtual_rainforest.models.abiotic.constants import AbioticConsts
+
 
 def interpolate_along_heights(
     start_height: NDArray[np.float32],
@@ -216,7 +218,7 @@ def calculate_air_heat_conductivity_canopy(
         molar_density_air: Molar density of air, [mol m-3]
         upper_height: Height of upper layer, [m]
         lower_height: Height of lower layer, [m]
-        relative_turbulence_intensity: relative turbulence intensity, dimensionless
+        relative_turbulence_intensity: Relative turbulence intensity, dimensionless
         top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
         diabatic_correction_momentum: Diabatic correction factor for momentum
         canopy_height: Canopy height, [m]
@@ -240,7 +242,7 @@ def calculate_air_heat_conductivity_canopy(
 def calculate_leaf_air_heat_conductivity(
     temperature: NDArray[np.float32],
     wind_speed: NDArray[np.float32],
-    characteristic_dimension_surface: NDArray[np.float32],
+    characteristic_dimension_leaf: NDArray[np.float32],
     temperature_difference: NDArray[np.float32],
     molar_density_air: NDArray[np.float32],
     kinematic_viscosity_parameter1: float,
@@ -277,7 +279,8 @@ def calculate_leaf_air_heat_conductivity(
     Args:
         temperature: Temperature, [C]
         wind_speed: Wind speed, [m s-1]
-        characteristic_dimension_surface: chacteristic dimension of surface, [m]
+        characteristic_dimension_leaf: chacteristic dimension of leaf, typically around
+            0.7*leaf width, [m]
         temperature_difference: Estimate of temperature differences of surface and air,
             e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
         molar_density_air: Molar density of air, [mol m-3]
@@ -305,10 +308,10 @@ def calculate_leaf_air_heat_conductivity(
     ) / 10**6
     grashof_number = (
         grashof_parameter
-        * characteristic_dimension_surface**3
+        * characteristic_dimension_leaf**3
         * np.abs(temperature_difference)
     ) / (temperature_k * kinematic_viscosity**2)
-    reyolds_number = wind_speed * characteristic_dimension_surface / kinematic_viscosity
+    reyolds_number = wind_speed * characteristic_dimension_leaf / kinematic_viscosity
     prandtl_number = kinematic_viscosity / thermal_diffusivity
 
     # Forced conductance
@@ -318,7 +321,7 @@ def calculate_leaf_air_heat_conductivity(
         * molar_density_air
         * reyolds_number**0.5
         * prandtl_number ** (1 / 3)
-    ) / characteristic_dimension_surface
+    ) / characteristic_dimension_leaf
 
     # Free conductance
     m = np.where(
@@ -331,7 +334,7 @@ def calculate_leaf_air_heat_conductivity(
         * molar_density_air
         * thermal_diffusivity
         * (grashof_number * prandtl_number) ** (1 / 4)
-    ) / characteristic_dimension_surface
+    ) / characteristic_dimension_leaf
 
     # Set to whichever is higher
     conductance = np.where(
@@ -362,3 +365,92 @@ def calculate_leaf_vapor_conductivity(
         Leaf vapor conductivity, [mol m-2 s-1]
     """
     return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
+
+
+def calculate_current_conductivities(
+    above_ground_heights: DataArray,
+    attenuation_coefficient: NDArray[np.float32],
+    mean_mixing_length: NDArray[np.float32],
+    molar_density_air: NDArray[np.float32],
+    relative_turbulence_intensity: NDArray[np.float32],
+    top_of_canopy_wind_speed: NDArray[np.float32],
+    diabatic_correction_momentum: NDArray[np.float32],
+    air_temperature_canopy: NDArray[np.float32],
+    wind_speed_canopy: NDArray[np.float32],
+    characteristic_dimension_leaf: NDArray[np.float32],
+    estimated_temperature_difference: NDArray[np.float32],
+    stomatal_conductance: NDArray[np.float32],
+    abiotic_constants: AbioticConsts,
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate conductivities based on current reference data.
+
+    Args:
+        above_ground_heights: heights above ground, from reference height 2m above the
+            canopy to the surface layer, [m]
+        attenuation_coefficient: Wind attenuation coefficient, dimensionless
+        mean_mixing_length: Mixing length for canopy air transport, [m]
+        molar_density_air: Molar density of air, [mol m-3]
+        relative_turbulence_intensity: Relative turbulence intensity
+        top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
+        diabatic_correction_momentum: Diabatic correction for momentum
+        air_temperature_canopy: Air temperature suppronding the canopy, [C]
+        wind_speed_canopy: Wind speed within the canopy, [m s-1]
+        characteristic_dimension_leaf: Characteristic dimension of leaf
+        estimated_temperature_difference: Estimated temperature difference, usually from
+            previous time step
+        stomatal_conductance: Stomatal conductance
+        abiotic_constants: set of constants
+
+    Returns:
+        dictionnary of conductances, [mol m-2 s-1]
+    """
+
+    output = {}
+    # Air heat conductivity, gt
+    current_air_heat_conductivity = []
+    for layer in np.arange(0, len(above_ground_heights) - 1):
+        result = calculate_air_heat_conductivity_canopy(
+            attenuation_coefficient=attenuation_coefficient[layer],
+            mean_mixing_length=mean_mixing_length,
+            molar_density_air=molar_density_air[layer],
+            upper_height=above_ground_heights.isel(layers=layer).to_numpy(),
+            lower_height=above_ground_heights.isel(layers=layer + 1).to_numpy(),
+            relative_turbulence_intensity=relative_turbulence_intensity[layer],
+            top_of_canopy_wind_speed=top_of_canopy_wind_speed,
+            diabatic_correction_momentum=diabatic_correction_momentum[layer],
+            canopy_height=above_ground_heights.isel(layers=1).to_numpy(),
+        )
+        current_air_heat_conductivity.append(result)
+
+    output["current_air_heat_conductivity"] = np.vstack(current_air_heat_conductivity)
+
+    # Leaf air heat conductivity, gha
+    current_leaf_air_heat_conductivity = calculate_leaf_air_heat_conductivity(
+        temperature=air_temperature_canopy,
+        wind_speed=wind_speed_canopy,
+        characteristic_dimension_leaf=characteristic_dimension_leaf,
+        temperature_difference=estimated_temperature_difference,
+        molar_density_air=molar_density_air[0:3],
+        kinematic_viscosity_parameter1=abiotic_constants.kinematic_viscosity_parameter1,
+        kinematic_viscosity_parameter2=abiotic_constants.kinematic_viscosity_parameter1,
+        thermal_diffusivity_parameter1=abiotic_constants.thermal_diffusivity_parameter1,
+        thermal_diffusivity_parameter2=abiotic_constants.thermal_diffusivity_parameter2,
+        grashof_parameter=abiotic_constants.grashof_parameter,
+        forced_conductance_parameter=abiotic_constants.forced_conductance_parameter,
+        positive_free_conductance_parameter=(
+            abiotic_constants.positive_free_conductance_parameter
+        ),
+        negative_free_conductance_parameter=(
+            abiotic_constants.negative_free_conductance_parameter
+        ),
+    )
+    output["current_leaf_air_heat_conductivity"] = current_leaf_air_heat_conductivity
+
+    # Leaf vapor conductivity, gv
+    current_leaf_vapor_conductivity = calculate_leaf_vapor_conductivity(
+        leaf_air_conductivity=current_leaf_air_heat_conductivity,
+        stomatal_conductance=stomatal_conductance,
+    )
+    output["current_leaf_vapor_conductivity"] = current_leaf_vapor_conductivity
+
+    return output

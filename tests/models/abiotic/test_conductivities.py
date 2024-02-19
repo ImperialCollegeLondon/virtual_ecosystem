@@ -167,7 +167,7 @@ def test_calculate_leaf_air_heat_conductivity():
     result = calculate_leaf_air_heat_conductivity(
         temperature=np.full((3, 3), 20.0),
         wind_speed=np.full((3, 3), 1.0),
-        characteristic_dimension_surface=np.full((3, 3), 0.1),
+        characteristic_dimension_leaf=np.full((3, 3), 0.1),
         temperature_difference=np.full((3, 3), 1.0),
         molar_density_air=np.full((3, 3), 28.96),
         kinematic_viscosity_parameter1=AbioticConsts.kinematic_viscosity_parameter1,
@@ -198,3 +198,64 @@ def test_calculate_leaf_vapor_conductivity():
         stomatal_conductance=np.repeat(5.0, 3),
     )
     np.testing.assert_allclose(result, np.repeat(2.5, 3), rtol=1e-04, atol=1e-04)
+
+
+def test_calculate_current_conductivities(dummy_climate_data):
+    """Test update current conductivities."""
+
+    from virtual_rainforest.models.abiotic.conductivities import (
+        calculate_current_conductivities,
+    )
+
+    layer_heights = dummy_climate_data["layer_heights"]
+    above_ground_heights = layer_heights[layer_heights["layer_roles"] != "soil"].dropna(
+        dim="layers", how="all"
+    )
+    result = calculate_current_conductivities(
+        above_ground_heights=above_ground_heights,
+        attenuation_coefficient=np.full((6, 3), 13.0),
+        mean_mixing_length=np.repeat(1.3, 3),
+        molar_density_air=np.full((6, 3), 28.96),
+        relative_turbulence_intensity=np.full((6, 3), 15.0),
+        top_of_canopy_wind_speed=np.repeat(1.0, 3),
+        diabatic_correction_momentum=np.full((6, 3), 0.03),
+        air_temperature_canopy=np.full((3, 3), 20.0),
+        wind_speed_canopy=np.full((3, 3), 0.1),
+        characteristic_dimension_leaf=0.01,
+        estimated_temperature_difference=np.full((3, 3), 2),
+        stomatal_conductance=np.full((3, 3), 15.0),
+        abiotic_constants=AbioticConsts,
+    )
+    exp_gt = np.array(
+        [
+            [4.221723e05, 4.221723e05, 4.221723e05],
+            [3.254242e03, 3.254242e03, 3.254242e03],
+            [4.270779e01, 4.270779e01, 4.270779e01],
+            [1.086865, 1.086865, 1.086865],
+            [1.269968, 1.269968, 1.269968],
+        ]
+    )
+    exp_gv = np.array(
+        [
+            [0.139074, 0.139074, 0.139074],
+            [0.139074, 0.139074, 0.139074],
+            [0.139074, 0.139074, 0.139074],
+        ]
+    )
+    exp_gha = np.array(
+        [
+            [0.137796, 0.137796, 0.137796],
+            [0.137796, 0.137796, 0.137796],
+            [0.137796, 0.137796, 0.137796],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        result["current_air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["current_leaf_air_heat_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["current_leaf_vapor_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
+    )
