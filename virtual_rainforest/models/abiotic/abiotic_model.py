@@ -30,7 +30,12 @@ from virtual_rainforest.core.constants_loader import load_constants
 from virtual_rainforest.core.core_components import CoreComponents
 from virtual_rainforest.core.data import Data
 from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.abiotic import energy_balance, soil_energy_balance, wind
+from virtual_rainforest.models.abiotic import (
+    conductivities,
+    energy_balance,
+    soil_energy_balance,
+    wind,
+)
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
 from virtual_rainforest.models.abiotic_simple import microclimate
 from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
@@ -141,7 +146,7 @@ class AbioticModel(
             ),
         )
 
-        initial_conductivities = energy_balance.initialise_conductivities(
+        initial_conductivities = conductivities.initialise_conductivities(
             layer_heights=self.data["layer_heights"],
             initial_air_conductivity=self.model_constants.initial_air_conductivity,
             top_leaf_vapor_conductivity=(

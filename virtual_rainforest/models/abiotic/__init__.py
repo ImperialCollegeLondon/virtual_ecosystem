@@ -30,6 +30,9 @@ Each of the abiotic sub-modules has its own API reference page:
   the soil energy balance of the Virtual Rainforest. The module returns vertical
   profiles of soil temperature and the partitioned energy and radiation fluxes at the
   surface.
+
+* The :mod:`~virtual_rainforest.models.abiotic.conductivities` submodule calculates
+  the conductivities for the energy balance of the Virtual Rainforest.
 """  # noqa: D205, D415
 
 from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel  # noqa: F401
