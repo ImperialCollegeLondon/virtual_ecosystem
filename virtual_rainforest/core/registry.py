@@ -11,7 +11,6 @@ The module also provides the :func:`~virtual_rainforest.core.registry.register_m
 function, which is used to populate the registry with the components of a given module.
 """  # noqa: D205, D415
 
-
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
 from inspect import getmembers, isclass

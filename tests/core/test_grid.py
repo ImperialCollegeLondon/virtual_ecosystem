@@ -2,6 +2,7 @@
 
 This module tests the functionality of grid.py
 """
+
 import json
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, ERROR, INFO
