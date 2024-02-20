@@ -340,28 +340,6 @@ def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
     return h_herb_0 * (M_ref / M_i_t) ** b_herb
 
 
-def F_i_k_individual(N_i_t: int, k_i_k: float, H_i_k: float, B_k_t: float) -> float:
-    """Instantaneous herbivory rate.
-
-    The instantaneous rate at which stock k is eaten by herbivore
-      cohort i.
-
-    Madingley
-
-    TODO: finish the code here
-
-    Args:
-      N_i_t: Current herbivore population size.
-      k_i_k: The potential biomass (g) of plant k eating by cohort i, per day.
-      H_i_k: Handling time of plant resource k by cohort i.
-      B_k_t: Current plant resource pool size.
-
-    Returns: A float instantaneous herbivory rate.
-    """
-    # below the summation is over all accessible k's in the cell
-    return N_i_t  # * (k_i_k / (1 + sum(k_i_k * H_i_k))) * (1 / B_k_t)
-
-
 def theta_opt_i(
     theta_opt_min_f: float, theta_opt_f: float, sigma_opt_f: float
 ) -> float:
