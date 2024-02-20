@@ -294,7 +294,7 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
 
 def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
-    """The potential biomass (g) of plant k eating by cohort i, per day.
+    """The potential biomass (g) of plant k eaten by cohort i, per day.
 
     TODO: Finish docstring
 
@@ -303,7 +303,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
     Args:
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
-        phi_herb_t: Fraction of the total herbivore stock that is available to any one
+        phi_herb_t: Fraction of the total plant stock that is available to any one
           herbivore cohort
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
@@ -325,8 +325,8 @@ def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
     Madingley
 
     Args:
-        h_0: Time in days that it would take a herbivore of mass = M_ref to handle 1g
-          of autotroph mass.
+        h_herb_0: Time in days that it would take a herbivore of mass = M_ref to handle
+          1g of autotroph mass.
         M_ref: Reference body mass.
         M_i_t: Current herbivore mass
         b_herb: Exponent of the power-law function relating the handling time of

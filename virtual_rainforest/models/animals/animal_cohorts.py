@@ -243,11 +243,13 @@ class AnimalCohort:
         # return the net mass gain of predation
         return prey_mass * predator.functional_group.conversion_efficiency
 
-    def f_i_k(self, plant_list: Sequence[Resource]) -> None:
-        """The function to determine instantaneous herbivory rates.
+    def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
+        """The method to determine instantaneous herbivory rate on plant k.
 
         This method is the F_i_k equation from Madingley, for use in the delta_M
         equation.
+
+        TODO: replace temporary A_cell value
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
@@ -264,7 +266,26 @@ class AnimalCohort:
         """
         # below the summation is over all accessible k's in the cell
         # return N_i_t * (k_i_k / (1 + sum(k_i_k * H_i_k))) * (1 / B_k_t)
-        pass
+
+        N = self.individuals  # herb cohort size
+        A_cell = 1.0  # temporary
+        alpha = sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
+        phi = self.functional_group.constants.phi_herb_t
+        B_k = target_plant.mass_current  # current plant biomass
+        k = sf.k_i_k(alpha, phi, B_k, A_cell)  # potential consumed biomass
+
+        total_handling_t = 0.0
+        for plant in plant_list:
+            total_handling_t = sf.k_i_k(
+                alpha, phi, plant.mass_current, A_cell
+            ) + sf.H_i_k(
+                self.constants.h_herb_0,
+                self.constants.M_herb_ref,
+                self.mass_current,
+                self.constants.b_herb,
+            )
+
+        return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
     def delta_mass(self, plant_list: Sequence[Resource]) -> None:
         """The function to change in mass of an animal cohort through herbivory.
@@ -387,7 +408,7 @@ class AnimalCohort:
             N_j = cohort.individuals
             N = self.individuals
             A_cell = 1.0  # ha
-            alpha_0 = self.constants.alpha_0[self.functional_group.diet]
+            alpha_0 = self.constants.alpha_0_pred
             theta_opt_i = sf.theta_opt_i(
                 self.constants.theta_opt_min_f,
                 self.constants.theta_opt_f,
@@ -410,7 +431,7 @@ class AnimalCohort:
                 self.constants.h_pred_0,
                 self.constants.M_pred_ref,
                 self.mass_current,
-                self.constants.b_herb_pred[self.functional_group.diet],
+                self.constants.b_pred,
             )
             F = sf.F_i_j_individual(N, k, H, N_j)
             delta_t = 30.0  # days
@@ -451,19 +472,7 @@ class AnimalCohort:
 
         for plant in plant_list:
             B = plant.mass_current
-            N = self.individuals
-            A_cell = 1.0  # ha
-            alpha = sf.alpha_i_k(
-                self.constants.alpha_0[self.functional_group.diet], self.mass_current
-            )
-            k = sf.k_i_k(alpha, self.constants.phi_herb_f, B, A_cell)
-            H = sf.H_i_k(
-                self.constants.h_herb_0,
-                self.constants.M_herb_ref,
-                self.mass_current,
-                self.constants.b_herb_pred[self.functional_group.diet],
-            )
-            F = sf.F_i_k_individual(N, k, H, B)
+            F = self.F_i_k(plant_list, plant)
             delta_t = 30.0  # days
 
             delta_mass_herb += B * (

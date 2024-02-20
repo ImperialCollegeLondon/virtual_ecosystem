@@ -143,29 +143,21 @@ class AnimalConsts(ConstantsDataclass):
 
     # Trophic paramters
 
-    alpha_0: dict[DietType, float] = field(
-        default_factory=lambda: {
-            DietType.HERBIVORE: 1.0e-11,  # alpha_herb_0 [Madingley] ha/(day*g)
-            DietType.CARNIVORE: 1.0e-6,  # alpha_pred_0 [Madingley] ha/(day*g)
-        }
-    )
-    """Effective rate per unit mass at which an animal searches its environment."""
+    alpha_0_herb = 1.0e-11  # alpha_herb_0 [Madingley] ha/(day*g)
+    """Effective rate per unit mass at which a herbivore searches its environment."""
+    alpha_0_pred = 1.0e-6  # alpha_pred_0 [Madingley] ha/(day*g)
+    """Effective rate per unit mass at which a predator searches its environment."""
 
-    phi_herb_f = 0.1  # phi_herb_f
+    phi_herb_t = 0.1  # phi_herb_t
     """Fraction of the resource stock that is available to any one herbivore cohort."""
 
-    b_herb_pred: dict[DietType, float] = field(
-        default_factory=lambda: {
-            DietType.HERBIVORE: 0.7,  # ( ),b_herb)
-            DietType.CARNIVORE: 0.05,  # Toy Values
-        }
-    )
-    """
-    Herbivore: Exponent of the power-law function relating the handling time of
-      autotroph matter to herbivore mass.
-    Carnivore: Exponent of the power-law relationship between the handling time of
-      prey and the ratio of prey to predator body mass.
-    """
+    b_herb = 0.7  # ( ),b_herb)
+    """Herbivore: Exponent of the power-law function relating the handling time of
+      autotroph matter to herbivore mass."""
+
+    b_pred = 0.05  # Toy Values
+    """Carnivore: Exponent of the power-law relationship between the handling time of
+      prey and the ratio of prey to predator body mass."""
 
     M_herb_ref = 1.0  # M_herb_ref [Madingley] g
     """Reference mass for herbivore handling time."""
