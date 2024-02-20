@@ -224,10 +224,15 @@ def test_calculate_current_conductivities(dummy_climate_data):
         characteristic_dimension_leaf=0.01,
         estimated_temperature_difference=np.full((3, 3), 2),
         stomatal_conductance=np.full((3, 3), 15.0),
+        zero_displacement_height=np.repeat(20.0, 3),
+        friction_velocity=np.repeat(1.0, 3),
+        adiabatic_correction_heat=np.full((6, 3), 1),
+        von_karmans_constant=CoreConsts.von_karmans_constant,
         abiotic_constants=AbioticConsts,
     )
     exp_gt = np.array(
         [
+            [9.278403, 9.278403, 9.278403],
             [4.221723e05, 4.221723e05, 4.221723e05],
             [3.254242e03, 3.254242e03, 3.254242e03],
             [4.270779e01, 4.270779e01, 4.270779e01],

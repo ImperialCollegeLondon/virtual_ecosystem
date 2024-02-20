@@ -380,6 +380,10 @@ def calculate_current_conductivities(
     characteristic_dimension_leaf: NDArray[np.float32],
     estimated_temperature_difference: NDArray[np.float32],
     stomatal_conductance: NDArray[np.float32],
+    zero_displacement_height: NDArray[np.float32],
+    friction_velocity: NDArray[np.float32],
+    adiabatic_correction_heat: NDArray[np.float32],
+    von_karmans_constant: float,
     abiotic_constants: AbioticConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate conductivities based on current reference data.
@@ -399,14 +403,28 @@ def calculate_current_conductivities(
         estimated_temperature_difference: Estimated temperature difference, usually from
             previous time step
         stomatal_conductance: Stomatal conductance
-        abiotic_constants: set of constants
+        zero_displacement_height: Zero displacement height, [m]
+        friction_velocity: Friction velocity
+        adiabatic_correction_heat: Adiabatic correction for heat
+        von_karmans_constant: Von Karman constant
+        abiotic_constants: set of abiotic constants
 
     Returns:
         dictionnary of conductances, [mol m-2 s-1]
     """
 
     output = {}
+
     # Air heat conductivity, gt
+    air_heat_conductivity_above = calculate_air_heat_conductivity_above(
+        height_above_canopy=above_ground_heights.isel(layers=0).to_numpy(),
+        zero_displacement_height=zero_displacement_height,
+        canopy_height=above_ground_heights.isel(layers=1).to_numpy(),
+        friction_velocity=friction_velocity[0],
+        molar_density_air=molar_density_air[0],
+        adiabatic_correction_heat=adiabatic_correction_heat[0],
+        von_karmans_constant=von_karmans_constant,
+    )
     current_air_heat_conductivity = []
     for layer in np.arange(0, len(above_ground_heights) - 1):
         result = calculate_air_heat_conductivity_canopy(
@@ -422,7 +440,9 @@ def calculate_current_conductivities(
         )
         current_air_heat_conductivity.append(result)
 
-    output["current_air_heat_conductivity"] = np.vstack(current_air_heat_conductivity)
+    output["current_air_heat_conductivity"] = np.vstack(
+        [air_heat_conductivity_above, np.vstack(current_air_heat_conductivity)]
+    )
 
     # Leaf air heat conductivity, gha
     current_leaf_air_heat_conductivity = calculate_leaf_air_heat_conductivity(
