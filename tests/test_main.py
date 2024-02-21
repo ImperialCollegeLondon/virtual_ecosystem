@@ -8,6 +8,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
 import pytest
+
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.main import ve_run
 

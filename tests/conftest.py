@@ -6,11 +6,11 @@ from typing import Any
 import numpy as np
 import pytest
 import xarray as xr
+from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
-from xarray import DataArray
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)

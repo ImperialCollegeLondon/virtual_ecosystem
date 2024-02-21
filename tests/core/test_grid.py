@@ -13,9 +13,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Local constants
 # 10000 m2 hex: apothem = 53.73 m, side = 62.04 m

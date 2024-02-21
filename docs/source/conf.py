@@ -19,9 +19,10 @@ from dataclasses import dataclass, field
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
-import virtual_ecosystem as ve
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
+
+import virtual_ecosystem as ve
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for

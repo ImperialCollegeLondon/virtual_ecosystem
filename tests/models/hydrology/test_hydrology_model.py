@@ -6,10 +6,10 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 import numpy as np
 import pytest
 import xarray as xr
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from xarray import DataArray
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [

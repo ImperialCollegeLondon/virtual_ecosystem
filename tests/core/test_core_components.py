@@ -6,9 +6,9 @@ from logging import ERROR, INFO
 import numpy as np
 import pytest
 from pint import Quantity
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 DEFAULT_CANOPY = [
     "above",

@@ -5,6 +5,7 @@ This module tests the functionality of the litter pools module
 
 import numpy as np
 import pytest
+
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 

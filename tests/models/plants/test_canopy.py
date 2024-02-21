@@ -6,9 +6,9 @@ from logging import CRITICAL
 import numpy as np
 import pytest
 from numpy import ndarray
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_generate_canopy_model(plants_data, flora):

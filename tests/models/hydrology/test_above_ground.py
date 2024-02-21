@@ -5,9 +5,9 @@ from logging import ERROR
 
 import numpy as np
 import pytest
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 from tests.conftest import log_check
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(

@@ -5,9 +5,9 @@ from logging import CRITICAL, ERROR
 from pathlib import Path
 
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 
 @pytest.mark.parametrize(

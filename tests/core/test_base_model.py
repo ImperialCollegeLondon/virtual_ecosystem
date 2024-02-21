@@ -8,17 +8,18 @@ from logging import CRITICAL, DEBUG, ERROR
 from typing import Any
 
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
 def data_instance():
     """Creates a simple data instance for use in testing."""
+    from xarray import DataArray
+
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from xarray import DataArray
 
     grid = Grid()
     data = Data(grid=grid)

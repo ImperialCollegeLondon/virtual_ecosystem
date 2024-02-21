@@ -370,6 +370,7 @@ class TestAnimalCommunity:
         from itertools import chain
 
         from numpy import timedelta64
+
         from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
         mock_metabolize = mocker.patch.object(AnimalCohort, "metabolize")

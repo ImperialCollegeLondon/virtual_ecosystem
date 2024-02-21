@@ -5,6 +5,7 @@ This module tests the functionality of the soil carbon module
 
 import numpy as np
 import pytest
+
 from virtual_ecosystem.models.soil.constants import SoilConsts
 
 

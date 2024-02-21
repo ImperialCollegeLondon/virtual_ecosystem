@@ -172,6 +172,7 @@ def test_carnivore_prey_group_selection():
 def test_prey_group_selection_invalid_diet_type():
     """Test for an invalid diet type."""
     import pytest
+
     from virtual_ecosystem.models.animals.scaling_functions import prey_group_selection
 
     with pytest.raises(ValueError, match="Invalid diet type:"):

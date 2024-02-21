@@ -6,10 +6,10 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from xarray import DataArray
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 
 def test_litter_model_initialization(

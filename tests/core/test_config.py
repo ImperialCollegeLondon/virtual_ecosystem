@@ -11,9 +11,9 @@ from logging import CRITICAL, ERROR, INFO, WARNING
 from pathlib import Path
 
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check, record_found_in_log
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(

@@ -4,9 +4,9 @@ from contextlib import nullcontext as does_not_raise
 from logging import ERROR, INFO
 
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_cannot_create_unfrozen_constants_dataclass():

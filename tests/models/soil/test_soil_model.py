@@ -6,11 +6,11 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 import numpy as np
 import pytest
 from scipy.optimize import OptimizeResult  # type: ignore
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.models.soil.soil_model import IntegrationError
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.models.soil.soil_model import IntegrationError
 
 
 def test_soil_model_initialization(

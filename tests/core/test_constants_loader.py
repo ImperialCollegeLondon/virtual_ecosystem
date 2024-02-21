@@ -4,9 +4,9 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
 
 import pytest
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -74,6 +74,7 @@ def test_load_constants(
     """Check that function to load in specified constants classes works as expected."""
 
     from scipy import constants  # type: ignore
+
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.core.constants_loader import load_constants
