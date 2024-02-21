@@ -7,15 +7,14 @@ functional types.
 """
 
 import numpy as np
-from xarray import DataArray, Dataset
-
-from virtual_rainforest.example_data.generation_scripts.common import (
+from virtual_ecosystem.example_data.generation_scripts.common import (
     cell_id,
     n_cells,
     n_dates,
     time,
     time_index,
 )
+from xarray import DataArray, Dataset
 
 data = Dataset()
 

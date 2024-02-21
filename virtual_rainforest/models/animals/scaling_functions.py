@@ -1,6 +1,6 @@
 """The `models.animals.scaling_functions` module contains a set of functions containing
 scaling equations" (relationships between body-mass and a trait) required by the broader
-:mod:`~virtual_rainforest.models.animals` module
+:mod:`~virtual_ecosystem.models.animals` module
 
 To Do:
 - streamline units of scaling functions [kg]->[kg] etc
@@ -9,8 +9,8 @@ To Do:
 
 from math import ceil, exp, log
 
-from virtual_rainforest.models.animals.animal_traits import DietType, MetabolicType
-from virtual_rainforest.models.animals.constants import BOLTZMANN_CONSTANT
+from virtual_ecosystem.models.animals.animal_traits import DietType, MetabolicType
+from virtual_ecosystem.models.animals.constants import BOLTZMANN_CONSTANT
 
 
 def damuths_law(mass: float, terms: tuple) -> int:

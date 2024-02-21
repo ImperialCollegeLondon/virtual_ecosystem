@@ -6,7 +6,6 @@ Notes:
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
 """  # noqa: #D205, D415
 
-
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
@@ -14,15 +13,14 @@ from itertools import chain
 from random import choice
 
 from numpy import timedelta64
-
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-from virtual_rainforest.models.animals.constants import AnimalConsts
-from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.plant_resources import PlantResources
-from virtual_rainforest.models.animals.scaling_functions import damuths_law
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animals.decay import CarcassPool, ExcrementPool
+from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animals.plant_resources import PlantResources
+from virtual_ecosystem.models.animals.scaling_functions import damuths_law
 
 
 class AnimalCommunity:

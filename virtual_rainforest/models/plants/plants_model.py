@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.models.plants.plants_model` module creates
-:class:`~virtual_rainforest.models.plants.plants_model.PlantsModel` class as a child of
-the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
+"""The :mod:`~virtual_ecosystem.models.plants.plants_model` module creates
+:class:`~virtual_ecosystem.models.plants.plants_model.PlantsModel` class as a child of
+the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -9,20 +9,19 @@ from typing import Any
 
 import numpy as np
 import xarray
-
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.plants.canopy import (
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.canopy import (
     build_canopy_arrays,
     initialise_canopy_layers,
 )
-from virtual_rainforest.models.plants.community import PlantCommunities
-from virtual_rainforest.models.plants.constants import PlantsConsts
-from virtual_rainforest.models.plants.functional_types import Flora
+from virtual_ecosystem.models.plants.community import PlantCommunities
+from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.functional_types import Flora
 
 
 class PlantsModel(
@@ -53,7 +52,7 @@ class PlantsModel(
     When a model instance is created, the model attributes are validated and set.
     The initial canopy structure for each grid cell is then generated from provided
     plant cohort data using the
-    :meth:`~virtual_rainforest.models.plants.plants_model.PlantsModel.update_canopy_layers`
+    :meth:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.update_canopy_layers`
     method. This includes the irradiance absorbed within each canopy layer and reaching
     ground level, which at present is estimated using the first time step of the
     provided photosynthetic photon flux density (PPFD).
@@ -140,9 +139,9 @@ class PlantsModel(
         and data, raising an exception if the configuration is invalid.
 
         Args:
-            data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             core_components: The core components used across models.
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load in the relevant constants
@@ -345,7 +344,7 @@ class PlantsModel(
 
         # TODO - this implementation isn't great. Need to think about whether Cohorts
         # are objects or whether Communities are a dataclass of arrays. Also need to
-        # think about where the split between the virtual_rainforest layer definition
+        # think about where the split between the virtual_ecosystem layer definition
         # (with above canopy/subcanopy/surface/soil) and the pyrealm canopy layer
         # definition occurs.
 

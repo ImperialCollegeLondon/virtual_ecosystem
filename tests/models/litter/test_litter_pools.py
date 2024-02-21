@@ -5,8 +5,7 @@ This module tests the functionality of the litter pools module
 
 import numpy as np
 import pytest
-
-from virtual_rainforest.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 @pytest.fixture
@@ -14,7 +13,7 @@ def temp_and_water_factors(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Temperature and water factors for the various litter layers."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_environmental_factors,
     )
 
@@ -50,7 +49,7 @@ def test_calculate_environmental_factors(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Test that the calculation of the environmental factors works as expected."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_environmental_factors,
     )
 
@@ -74,7 +73,7 @@ def test_calculate_temperature_effect_on_litter_decomp(
     dummy_litter_data, top_soil_layer_index
 ):
     """Test that temperature effects on decomposition are calculated correctly."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_temperature_effect_on_litter_decomp,
     )
 
@@ -92,7 +91,7 @@ def test_calculate_temperature_effect_on_litter_decomp(
 
 def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
     """Test that soil moisture effects on decomposition are calculated correctly."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_moisture_effect_on_litter_decomp,
     )
 
@@ -112,7 +111,7 @@ def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
 
 def test_calculate_litter_chemistry_factor():
     """Test that litter chemistry effects on decomposition are calculated correctly."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_chemistry_factor,
     )
 
@@ -131,8 +130,8 @@ def test_calculate_change_in_litter_variables(
     dummy_litter_data, surface_layer_index, top_soil_layer_index
 ):
     """Test that litter pool update calculation is correct."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_change_in_litter_variables,
     )
 
@@ -179,7 +178,7 @@ def test_calculate_change_in_litter_variables(
 
 def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
     """Test that calculation of the decay rates works as expected."""
-    from virtual_rainforest.models.litter.litter_pools import calculate_decay_rates
+    from virtual_ecosystem.models.litter.litter_pools import calculate_decay_rates
 
     expected_decay = {
         "metabolic_above": [0.00450883, 0.00225442, 0.00105206],
@@ -208,8 +207,8 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
 
 def test_calculate_total_C_mineralised(decay_rates):
     """Test that calculation of total C mineralised is as expected."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_total_C_mineralised,
     )
 
@@ -224,7 +223,7 @@ def test_calculate_total_C_mineralised(decay_rates):
 
 def test_calculate_updated_pools(dummy_litter_data, decay_rates):
     """Test that the function to calculate the pool values after the update works."""
-    from virtual_rainforest.models.litter.litter_pools import calculate_updated_pools
+    from virtual_ecosystem.models.litter.litter_pools import calculate_updated_pools
 
     expected_pools = {
         "above_metabolic": [0.291759466, 0.147025527, 0.070837127],
@@ -253,7 +252,7 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
 
 def test_calculate_lignin_updates(dummy_litter_data):
     """Test that the function to calculate the lignin updates works as expected."""
-    from virtual_rainforest.models.litter.litter_pools import calculate_lignin_updates
+    from virtual_ecosystem.models.litter.litter_pools import calculate_lignin_updates
 
     updated_pools = {
         "above_structural": np.array([0.501102522, 0.251269950, 0.091377105]),
@@ -284,7 +283,7 @@ def test_calculate_litter_decay_metabolic_above(
     dummy_litter_data, temp_and_water_factors
 ):
     """Test calculation of above ground metabolic litter decay."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_decay_metabolic_above,
     )
 
@@ -303,7 +302,7 @@ def test_calculate_litter_decay_structural_above(
     dummy_litter_data, temp_and_water_factors
 ):
     """Test calculation of above ground structural litter decay."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_decay_structural_above,
     )
 
@@ -322,7 +321,7 @@ def test_calculate_litter_decay_structural_above(
 
 def test_calculate_litter_decay_woody(dummy_litter_data, temp_and_water_factors):
     """Test calculation of woody litter decay."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_decay_woody,
     )
 
@@ -343,7 +342,7 @@ def test_calculate_litter_decay_metabolic_below(
     dummy_litter_data, temp_and_water_factors
 ):
     """Test calculation of below ground metabolic litter decay."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_decay_metabolic_below,
     )
 
@@ -363,7 +362,7 @@ def test_calculate_litter_decay_structural_below(
     dummy_litter_data, temp_and_water_factors
 ):
     """Test calculation of below ground structural litter decay."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_litter_decay_structural_below,
     )
 
@@ -383,7 +382,7 @@ def test_calculate_litter_decay_structural_below(
 
 def test_calculate_carbon_mineralised():
     """Test that the calculation of litter decay mineralisation works as expected."""
-    from virtual_rainforest.models.litter.litter_pools import (
+    from virtual_ecosystem.models.litter.litter_pools import (
         calculate_carbon_mineralised,
     )
 
@@ -400,7 +399,7 @@ def test_calculate_carbon_mineralised():
 
 def test_calculate_change_in_lignin(dummy_litter_data):
     """Test that function to calculate lignin changes works properly."""
-    from virtual_rainforest.models.litter.litter_pools import calculate_change_in_lignin
+    from virtual_ecosystem.models.litter.litter_pools import calculate_change_in_lignin
 
     expected_lignin = [-0.008079787, -0.001949152, 0.0012328767]
 

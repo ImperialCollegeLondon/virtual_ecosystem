@@ -26,8 +26,8 @@ def test_calculate_environmental_effect_factors(
     dummy_carbon_data, top_soil_layer_index
 ):
     """Test that function to calculate all set of environmental factors works."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
 
@@ -63,8 +63,8 @@ def calculate_temperature_effect_on_microbes(
     dummy_carbon_data, top_soil_layer_index, activation_energy, expected_factors
 ):
     """Test function to calculate microbial temperature response."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_temperature_effect_on_microbes,
     )
 
@@ -82,8 +82,8 @@ def test_calculate_water_potential_impact_on_microbes(
     dummy_carbon_data, top_soil_layer_index
 ):
     """Test the calculation of the impact of soil water on microbial rates."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
@@ -101,8 +101,8 @@ def test_calculate_water_potential_impact_on_microbes(
 
 def test_soil_water_potential_too_high(dummy_carbon_data, top_soil_layer_index):
     """Test that too high soil water potential results in an error."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
 
@@ -119,8 +119,8 @@ def test_soil_water_potential_too_high(dummy_carbon_data, top_soil_layer_index):
 
 def test_calculate_pH_suitability():
     """Test that calculation of pH suitability is correct."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import calculate_pH_suitability
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
     pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
     expected_inhib = [0.25, 1.0, 0.428571428, 1.0, 0.0, 0.0]
@@ -170,7 +170,7 @@ def test_calculate_pH_suitability():
 )
 def test_calculate_pH_suitability_errors(params):
     """Test that calculation of pH suitability generates errors if constants are bad."""
-    from virtual_rainforest.models.soil.env_factors import calculate_pH_suitability
+    from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
     pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
 
@@ -180,8 +180,8 @@ def test_calculate_pH_suitability_errors(params):
 
 def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
     """Test calculation of the effect of soil clay fraction on saturation constants."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
     )
 
@@ -198,8 +198,8 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
 
 def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
     """Test calculation of the effect of soil clay fraction on necromass decay."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_clay_impact_on_necromass_decay,
     )
 
@@ -215,9 +215,9 @@ def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
 
 def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
     """Test calculation of solute leaching rates."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import calculate_leaching_rate
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import calculate_leaching_rate
 
     expected_rate = [1.07473723e-6, 2.53952130e-6, 9.91551977e-5, 5.25567712e-5]
     vertical_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])

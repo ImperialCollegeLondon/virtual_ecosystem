@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.config import Config, ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
 
 
 @dataclass(frozen=True)
@@ -22,11 +22,11 @@ class PlantFunctionalType:
 
 
 class Flora(dict):
-    """Defines the flora used in a ``virtual_rainforest`` model.
+    """Defines the flora used in a ``virtual_ecosystem`` model.
 
     The flora is the set of plant functional types used within a particular simulation
     and this class provides dictionary-like access to a defined set of
-    :class:`~virtual_rainforest.models.plants.functional_types.PlantFunctionalType`
+    :class:`~virtual_ecosystem.models.plants.functional_types.PlantFunctionalType`
     instances.
 
     Instances of this class should not be altered during model fitting, at least until
@@ -35,7 +35,7 @@ class Flora(dict):
     Args:
         pfts: A list of ``PlantFunctionalType`` instances, which must not have
             duplicated
-            :attr:`~virtual_rainforest.models.plants.functional_types.PlantFunctionalType.pft_name`
+            :attr:`~virtual_ecosystem.models.plants.functional_types.PlantFunctionalType.pft_name`
             attributes.
     """
 
@@ -55,7 +55,7 @@ class Flora(dict):
         """Factory method to generate a Flora instance from a configuration.
 
         Args:
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
 
         Returns:
             A populated Flora instance

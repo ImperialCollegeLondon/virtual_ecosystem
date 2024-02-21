@@ -5,9 +5,9 @@ from logging import CRITICAL, ERROR
 from pathlib import Path
 
 import pytest
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
 
 
 @pytest.mark.parametrize(
@@ -47,11 +47,11 @@ from virtual_rainforest.core.exceptions import ConfigurationError, Initialisatio
 )
 def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
     """Check that an error is logged if an output file is already saved."""
-    from virtual_rainforest.core.utils import check_outfile
+    from virtual_ecosystem.core.utils import check_outfile
 
     # Configure the mock to return a specific list of files
     if out_path == "./complete_config.toml":
-        mock_content = mocker.patch("virtual_rainforest.core.config.Path.exists")
+        mock_content = mocker.patch("virtual_ecosystem.core.config.Path.exists")
         mock_content.return_value = True
 
     # Check that check_outfile fails as expected
@@ -141,7 +141,7 @@ def test_check_outfile(caplog, mocker, out_path, expected_log_entries):
 )
 def test_set_layer_roles(soil_layers, canopy_layers, raises, caplog, exp_log):
     """Test correct order of layers."""
-    from virtual_rainforest.core.utils import set_layer_roles
+    from virtual_ecosystem.core.utils import set_layer_roles
 
     with raises:
         result = set_layer_roles(canopy_layers, soil_layers)

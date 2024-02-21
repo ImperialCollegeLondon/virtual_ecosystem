@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.models.animals.animal_model` module creates a
-:class:`~virtual_rainforest.models.animals.animal_model.AnimalModel` class as a
-child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
+"""The :mod:`~virtual_ecosystem.models.animals.animal_model` module creates a
+:class:`~virtual_ecosystem.models.animals.animal_model.AnimalModel` class as a
+child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
-:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
+:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
+:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
-Virtual Rainforest model develops. The factory method
-:func:`~virtual_rainforest.models.animals.animal_model.AnimalModel.from_config`
+Virtual Ecosystem model develops. The factory method
+:func:`~virtual_ecosystem.models.animals.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
 from our currently pretty minimal configuration dictionary. These parameters are
 then used to generate a class instance. If errors crop up here when converting the
@@ -16,24 +16,22 @@ of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
-
 from __future__ import annotations
 
 from math import sqrt
 from typing import Any
 
 from numpy import array, timedelta64
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
+from virtual_ecosystem.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
 from xarray import DataArray
-
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
-from virtual_rainforest.models.animals.constants import AnimalConsts
-from virtual_rainforest.models.animals.functional_group import FunctionalGroup
 
 
 class AnimalModel(
@@ -145,9 +143,9 @@ class AnimalModel(
         invalid rather than returning an initialised model instance None is returned.
 
         Args:
-            data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             core_components: The core components used across models.
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load in the relevant constants

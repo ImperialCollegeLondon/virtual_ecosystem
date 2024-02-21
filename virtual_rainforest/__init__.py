@@ -2,7 +2,7 @@ import importlib.metadata
 
 from . import example_data
 
-__version__ = importlib.metadata.version("virtual_rainforest")
+__version__ = importlib.metadata.version("virtual_ecosystem")
 
 example_data_path = example_data.__path__[0]
 """The path to the example data folder.

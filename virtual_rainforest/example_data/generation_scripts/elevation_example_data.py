@@ -1,4 +1,4 @@
-"""Elevation data for `vr_run` example.
+"""Elevation data for `ve_run` example.
 
 This code creates an example elevation map from a digital elevation model
 ([SRTM](https://www2.jpl.nasa.gov/srtm/)) which is required to run the example hydrology
@@ -17,9 +17,8 @@ is simply stored here and written to an appropriate file format.
 """
 
 import numpy as np
+from virtual_ecosystem.example_data.generation_scripts.common import cell_displacements
 from xarray import DataArray
-
-from virtual_rainforest.example_data.generation_scripts.common import cell_displacements
 
 # # Load DEM in 30m resolution
 # original_data = requests.get(

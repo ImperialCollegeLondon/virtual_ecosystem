@@ -1,12 +1,12 @@
 """The ``models.abiotic_simple.constants`` module contains a set of dataclasses
 containing parameters  required by the broader
-:mod:`~virtual_rainforest.models.abiotic_simple` model. These parameters are constants
+:mod:`~virtual_ecosystem.models.abiotic_simple` model. These parameters are constants
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)

@@ -114,7 +114,7 @@
                "required": []
             },
             "data_output_options": {
-               "description": "Options for output the virtual rainforest model state",
+               "description": "Options for output the virtual ecosystem model state",
                "type": "object",
                "properties": {
                   "save_initial_state": {

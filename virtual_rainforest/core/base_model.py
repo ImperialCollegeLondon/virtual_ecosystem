@@ -1,51 +1,51 @@
-"""The :mod:`~virtual_rainforest.core.base_model` module defines the high level API for
-the different models within the Virtual Rainforest. The module creates the
-:class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class (ABC) which
+"""The :mod:`~virtual_ecosystem.core.base_model` module defines the high level API for
+the different models within the Virtual Ecosystem. The module creates the
+:class:`~virtual_ecosystem.core.base_model.BaseModel` abstract base class (ABC) which
 defines a consistent API for subclasses defining an actual model. The API defines
 abstract methods for each of the key stages in the workflow of running a model:
 individual subclasses are **required** to provide model specific implementations for
 each stage, although the specific methods may simply do nothing if no action is needed
 at that stage. The stages are:
 
-* Creating a model instance (:class:`~virtual_rainforest.core.base_model.BaseModel`).
-* Setup a model instance (:meth:`~virtual_rainforest.core.base_model.BaseModel.setup`).
+* Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
+* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel.setup`).
 * Perform any spinup required to get a model state to equilibrate
-  (:meth:`~virtual_rainforest.core.base_model.BaseModel.spinup`).
+  (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
-  :meth:`~virtual_rainforest.core.base_model.BaseModel.update`).
+  :meth:`~virtual_ecosystem.core.base_model.BaseModel.update`).
 * Cleanup any unneeded resources at the end of a simulation
-  (:meth:`~virtual_rainforest.core.base_model.BaseModel.cleanup`).
+  (:meth:`~virtual_ecosystem.core.base_model.BaseModel.cleanup`).
 
-The :class:`~virtual_rainforest.core.base_model.BaseModel` class also provides default
-implementations for the :meth:`~virtual_rainforest.core.base_model.BaseModel.__repr__`
-and :meth:`~virtual_rainforest.core.base_model.BaseModel.__str__` special methods.
+The :class:`~virtual_ecosystem.core.base_model.BaseModel` class also provides default
+implementations for the :meth:`~virtual_ecosystem.core.base_model.BaseModel.__repr__`
+and :meth:`~virtual_ecosystem.core.base_model.BaseModel.__str__` special methods.
 
 Declaring new subclasses
 ------------------------
 
-The :class:`~virtual_rainforest.core.base_model.BaseModel` has four class attributes
+The :class:`~virtual_ecosystem.core.base_model.BaseModel` has four class attributes
 that must be specified as arguments to the subclass declaration:
-:attr:`~virtual_rainforest.core.base_model.BaseModel.model_name`,
-:attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`,
-:attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds` and
-:attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`. This behaviour is
+:attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`,
+:attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`,
+:attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds` and
+:attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`. This behaviour is
 defined in the :meth:`BaseModel.__init_subclass__()
-<virtual_rainforest.core.base_model.BaseModel.__init_subclass__>` method, which also
+<virtual_ecosystem.core.base_model.BaseModel.__init_subclass__>` method, which also
 gives example code for declaring a new subclass.
 
 The usage of these four attributes is described in their docstrings and each is
 validated when a new subclass is created using the following private methods of the
 class:
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_name`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_model_update_bounds` and
-:meth:`~virtual_rainforest.core.base_model.BaseModel._check_vars_updated`.
+:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_name`,
+:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_required_init_vars`,
+:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_update_bounds` and
+:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_vars_updated`.
 
 Model checking
 --------------
 
-The :class:`~virtual_rainforest.core.base_model.BaseModel` abstract base class defines
-the :func:`~virtual_rainforest.core.base_model.BaseModel.__init_subclass__` class
+The :class:`~virtual_ecosystem.core.base_model.BaseModel` abstract base class defines
+the :func:`~virtual_ecosystem.core.base_model.BaseModel.__init_subclass__` class
 method. This method is called automatically whenever a subclass of the ABC is imported
 and validates the class attributes for the new model class.
 
@@ -54,7 +54,7 @@ The ``BaseModel.__init__`` method
 
 Each model subclass will include an ``__init__`` method that validates and populates
 model specific attributes. That ``__init__`` method **must** call the
-:meth:`BaseModel.__init__() <virtual_rainforest.core.base_model.BaseModel.__init__>`
+:meth:`BaseModel.__init__() <virtual_ecosystem.core.base_model.BaseModel.__init__>`
 method, as this populates core shared model attrributes - see the linked method
 description for details.
 
@@ -67,15 +67,15 @@ The ``from_config`` factory method
 ----------------------------------
 
 The ABC also defines the abstract class method
-:func:`~virtual_rainforest.core.base_model.BaseModel.from_config`. This method must be
+:func:`~virtual_ecosystem.core.base_model.BaseModel.from_config`. This method must be
 defined by subclasses and must be a factory method that returns an instance of the model
 subclass. The method must follow the signature of that method, providing:
 
-* ``data`` as an instance of :class:`~virtual_rainforest.core.data.Data`.
+* ``data`` as an instance of :class:`~virtual_ecosystem.core.data.Data`.
 * ``core_components`` as an instance of
-  :class:`~virtual_rainforest.core.core_components.CoreComponents`.
+  :class:`~virtual_ecosystem.core.core_components.CoreComponents`.
 * ``config`` as an instance of
-  :class:`~virtual_rainforest.core.config.Config`.
+  :class:`~virtual_ecosystem.core.config.Config`.
 
 The method should provide any code to validate the configuration for that model and then
 use the configuration to initialise and return a new instance of the class.
@@ -84,12 +84,12 @@ Model registration
 ------------------
 
 Models have three core components: the
-:class:`~virtual_rainforest.core.base_model.BaseModel` subclass itself (``model``),
+:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``),
 a JSON schema for validating the model configuration (``schema``) and an optional set of
 user modifiable constants classes (``constants``, see
-:class:`~virtual_rainforest.core.constants_class.ConstantsDataclass`). All model
+:class:`~virtual_ecosystem.core.constants_class.ConstantsDataclass`). All model
 modules must register these components when they are imported: see the
-:mod:`~virtual_rainforest.core.registry` module.
+:mod:`~virtual_ecosystem.core.registry` module.
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -98,25 +98,24 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import pint
-
-from virtual_rainforest.core.axes import AXIS_VALIDATORS
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.core.core_components import (
+from virtual_ecosystem.core.axes import AXIS_VALIDATORS
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.core_components import (
     CoreComponents,
     LayerStructure,
     ModelTiming,
 )
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
 
 
 class BaseModel(ABC):
-    """A superclass for all Virtual Rainforest models.
+    """A superclass for all Virtual Ecosystem models.
 
     This abstract base class defines the shared common methods and attributes used as an
-    API across all Virtual Rainforest models. This includes functions to setup, spin up
+    API across all Virtual Ecosystem models. This includes functions to setup, spin up
     and update the specific model, as well as a function to cleanup redundant model
     data.
 
@@ -124,10 +123,10 @@ class BaseModel(ABC):
     as well as shared helper functions.
 
     Args:
-        data: A :class:`~virtual_rainforest.core.data.Data` instance containing
+        data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
             variables to be used in the model.
         core_components: A
-            :class:`~virtual_rainforest.core.core_components.CoreComponents`
+            :class:`~virtual_ecosystem.core.core_components.CoreComponents`
             instance containing shared core elements used throughout models.
     """
 
@@ -135,7 +134,7 @@ class BaseModel(ABC):
     """The model name.
 
     This class attribute sets the name used to refer to identify the model class in
-    the :data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`, within the
+    the :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`, within the
     configuration settings and in logging messages.
     """
 
@@ -153,7 +152,7 @@ class BaseModel(ABC):
     """Required variables for model initialisation.
 
     This class property defines a set of variable names that must be present in the
-    :class:`~virtual_rainforest.core.data.Data` instance used to initialise an
+    :class:`~virtual_ecosystem.core.data.Data` instance used to initialise an
     instance of this class. It is a tuple containing zero or more tuples, each
     providing a variable name and then a tuple of zero or more core axes that the
     variable must map onto.
@@ -165,7 +164,7 @@ class BaseModel(ABC):
     """Variables that are updated by the model.
 
     At the moment, this tuple is used to decide which variables to output from the
-    :class:`~virtual_rainforest.core.data.Data` object, i.e. every variable updated
+    :class:`~virtual_ecosystem.core.data.Data` object, i.e. every variable updated
     by a model used in the specific simulation. In future, this could also be used
     to prevent multiple models from updating the same variable and similar problems.
     """
@@ -181,24 +180,24 @@ class BaseModel(ABC):
         This method **must** be called in the ``__init__`` method of all subclasses.
 
         It populates a set of shared instance attributes from the provided
-        :class:`~virtual_rainforest.core.core_components.CoreComponents` and
-        :class:`~virtual_rainforest.core.data.Data` value:
+        :class:`~virtual_ecosystem.core.core_components.CoreComponents` and
+        :class:`~virtual_ecosystem.core.data.Data` value:
 
-        * ``data``: the provided :class:`~virtual_rainforest.core.data.Data` instance,
+        * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance,
         * ``model_timing``: the
-          :class:`~virtual_rainforest.core.core_components.ModelTiming` instance from
+          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from
           the ``core_components`` argument.
         * ``layer_structure``: the
-          :class:`~virtual_rainforest.core.core_components.LayerStructure` instance from
+          :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
         * ``core_constants``: the
-          :class:`~virtual_rainforest.core.constants.CoreConsts` instance from
+          :class:`~virtual_ecosystem.core.constants.CoreConsts` instance from
           the ``core_components`` argument.
 
         It then uses the
-        :meth:`~virtual_rainforest.core.base_model.BaseModel.check_init_data` method to
+        :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
         confirm that the required variables for the model are present in the provided
-        :attr:`~virtual_rainforest.core.base_model.BaseModel.data` attribute.
+        :attr:`~virtual_ecosystem.core.base_model.BaseModel.data` attribute.
         """
         self.data: Data = data
         """A Data instance providing access to the shared simulation data."""
@@ -249,7 +248,7 @@ class BaseModel(ABC):
 
         Args:
             model_name: The
-                :attr:`~virtual_rainforest.core.base_model.BaseModel.model_name`
+                :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`
                 attribute to be used for a subclass.
 
         Raises:
@@ -276,7 +275,7 @@ class BaseModel(ABC):
 
         Args:
             required_init_vars: The
-                :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars`
+                :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`
                 attribute to be used for a subclass.
 
         Raises:
@@ -339,7 +338,7 @@ class BaseModel(ABC):
         """Check that the model_update_bounds attribute is valid.
 
         This is used to validate the class attribute
-        :attr:`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`, which
+        :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds`, which
         describes the lower and upper bounds on model update frequency. The lower bound
         must be less than the upper bound.
 
@@ -444,7 +443,7 @@ class BaseModel(ABC):
         Subclasses of the BaseModel need to provide the values for class attributes in
         their signatures. Those values are defined by the arguments to this method,
         which validates and sets the class attributes for the subclass. See
-        :class:`~virtual_rainforest.core.base_model.BaseModel` for details on the class
+        :class:`~virtual_ecosystem.core.base_model.BaseModel` for details on the class
         attributes. For example:
 
         .. code-block:: python
@@ -515,8 +514,8 @@ class BaseModel(ABC):
         """Check the init data contains the required variables.
 
         This method is used to check that the set of variables defined in the
-        :attr:`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` class
-        attribute are present in the :attr:`~virtual_rainforest.core.data.Data` instance
+        :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars` class
+        attribute are present in the :attr:`~virtual_ecosystem.core.data.Data` instance
         used to create a new instance of the class.
 
         Raises:

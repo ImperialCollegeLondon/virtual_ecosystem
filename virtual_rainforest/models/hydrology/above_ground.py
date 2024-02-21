@@ -1,5 +1,5 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
-processes for the Virtual Rainforest. At the moment, this includes rain water
+processes for the Virtual Ecosystem. At the moment, this includes rain water
 interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
 """  # noqa: D205, D415
@@ -8,9 +8,8 @@ from math import sqrt
 
 import numpy as np
 from numpy.typing import NDArray
-
-from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.logger import LOGGER
 
 
 def calculate_soil_evaporation(

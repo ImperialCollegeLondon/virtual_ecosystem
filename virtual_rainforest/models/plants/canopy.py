@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.models.plants.canopy` submodule provides the core
+"""The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides the core
 functions used to estimate the canopy model.
 
 NOTE - much of this will be outsourced to pyrealm.
@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import NDArray
+from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.community import PlantCohort, PlantCommunities
 from xarray import DataArray
-
-from virtual_rainforest.core.core_components import LayerStructure
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.plants.community import PlantCohort, PlantCommunities
 
 
 def generate_canopy_model(
@@ -31,8 +30,8 @@ def generate_canopy_model(
     radiation (``fapar``, :math:`f_{APAR}`) for the canopy.
 
     This function also updates the input community data, by setting the
-    :attr:`~virtual_rainforest.models.plants.community.PlantCohort.canopy_area`
-    attribute of each :attr:`~virtual_rainforest.models.plants.community.PlantCohort`
+    :attr:`~virtual_ecosystem.models.plants.community.PlantCohort.canopy_area`
+    attribute of each :attr:`~virtual_ecosystem.models.plants.community.PlantCohort`
     object to the area of canopy for that cohort within each of the canopy layers. These
     are then used to calculate the gross primary productivity of each cohort within the
     community.

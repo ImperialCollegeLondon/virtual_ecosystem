@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `hydrology` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.hydrology
+.. automodule:: virtual_ecosystem.models.hydrology
 ```

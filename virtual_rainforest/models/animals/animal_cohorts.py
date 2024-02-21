@@ -13,14 +13,13 @@ from math import ceil
 from random import choice
 
 from numpy import random, timedelta64
-
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.animals.animal_traits import DietType
-from virtual_rainforest.models.animals.constants import AnimalConsts
-from virtual_rainforest.models.animals.decay import CarcassPool
-from virtual_rainforest.models.animals.functional_group import FunctionalGroup
-from virtual_rainforest.models.animals.protocols import Consumer, DecayPool, Resource
-from virtual_rainforest.models.animals.scaling_functions import (
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animals.animal_traits import DietType
+from virtual_ecosystem.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animals.decay import CarcassPool
+from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animals.protocols import Consumer, DecayPool, Resource
+from virtual_ecosystem.models.animals.scaling_functions import (
     damuths_law,
     intake_rate_scaling,
     metabolic_rate,

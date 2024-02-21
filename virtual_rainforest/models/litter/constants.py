@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.models.litter.constants` module contains
+"""The :mod:`~virtual_ecosystem.models.litter.constants` module contains
 constants and parameters for the
-:mod:`~virtual_rainforest.models.litter.litter_model`. These parameters are constants
+:mod:`~virtual_ecosystem.models.litter.litter_model`. These parameters are constants
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
@@ -8,7 +8,7 @@ in that they should not be changed during a particular simulation.
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)

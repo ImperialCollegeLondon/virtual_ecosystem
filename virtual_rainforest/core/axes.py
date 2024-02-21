@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.core.axes` module handles the validation of data being
-loaded into the core data storage of the virtual rainforest simulation. The main
+"""The :mod:`~virtual_ecosystem.core.axes` module handles the validation of data being
+loaded into the core data storage of the virtual ecosystem simulation. The main
 functionality in this module is ensuring that any loaded data is congruent with the core
 axes of the simulation and the configuration of a given simulation.
 
 The AxisValidator class
 =======================
 
-The :class:`~virtual_rainforest.core.axes.AxisValidator` abstract base class provides an
+The :class:`~virtual_ecosystem.core.axes.AxisValidator` abstract base class provides an
 extensible framework for validating data arrays. Each subclass of the base class defines
 a particular core axis along with the name or names of dimensions in the input array
 that are expected to map onto that axis. So, for example, a validator can support the
@@ -14,9 +14,9 @@ that are expected to map onto that axis. So, for example, a validator can suppor
 bespoke methods to test whether that validator can be applied to an input data array and
 then a validation routine to apply when it can.
 
-When new :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses are defined,
+When new :class:`~virtual_ecosystem.core.axes.AxisValidator` subclasses are defined,
 they are automatically added to the
-:attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. This maintains a list of
+:attr:`~virtual_ecosystem.core.axes.AXIS_VALIDATORS` registry. This maintains a list of
 the validators defined for each core axis.
 
 Note that the set of validators defined for a specific core axis should be mutually
@@ -25,7 +25,7 @@ exclusive: only one should be applicable to any given dataset being tested on th
 DataArray validation
 ====================
 
-The :func:`~virtual_rainforest.core.axes.validate_dataarray` function takes an input
+The :func:`~virtual_ecosystem.core.axes.validate_dataarray` function takes an input
 Data Array and applies validation where applicable across all the core axes. The
 function returns the validated input (possibly altered to align with the core axes)
 along with a dictionary using the set of core axes as names: the value associated with
@@ -38,20 +38,19 @@ Core axes
 The 'spatial' axis
 ------------------
 
-The :class:`~virtual_rainforest.core.axes.AxisValidator` subclasses defined for the
+The :class:`~virtual_ecosystem.core.axes.AxisValidator` subclasses defined for the
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
-:class:`~virtual_rainforest.core.grid.Grid` instance for the simulation. `x`
+:class:`~virtual_ecosystem.core.grid.Grid` instance for the simulation. `x`
 """  # noqa: D205, D415
 
 from abc import ABC, abstractmethod
 from typing import Any
 
 import numpy as np
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.logger import LOGGER
 from xarray import DataArray
-
-from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
 
 
 class AxisValidator(ABC):
@@ -59,17 +58,17 @@ class AxisValidator(ABC):
 
     This abstract base class provides the structure for axis validators. These are used
     to check that a ``DataArray`` to be added to a ``Data`` instance is congruent with
-    the configuration of a virtual rainforest simulation. The base class provides
+    the configuration of a virtual ecosystem simulation. The base class provides
     abstract methods that provide the following functionality:
 
-    * :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate`: test that a
+    * :meth:`~virtual_ecosystem.core.axes.AxisValidator.can_validate`: test that a
       given ``AxisValidator`` subclass can be applied to the inputs.
-    * :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation`: run
+    * :meth:`~virtual_ecosystem.core.axes.AxisValidator.run_validation`: run
       appropriate validation and standardisation on the input ``DataArray``.
 
-    The :meth:`~virtual_rainforest.core.axes.AxisValidator.can_validate` method should
+    The :meth:`~virtual_ecosystem.core.axes.AxisValidator.can_validate` method should
     be used first to check that a particular ``DataArray`` can be validated, and then
-    the :meth:`~virtual_rainforest.core.axes.AxisValidator.run_validation` method can be
+    the :meth:`~virtual_ecosystem.core.axes.AxisValidator.run_validation` method can be
     used to validate that input if appropriate.
     """
 
@@ -87,10 +86,10 @@ class AxisValidator(ABC):
         """Adds new subclasses to the AxisValidator registry.
 
         When new subclasses are created this method automatically extends the
-        :attr:`~virtual_rainforest.core.axes.AXIS_VALIDATORS` registry. AxisValidators
+        :attr:`~virtual_ecosystem.core.axes.AXIS_VALIDATORS` registry. AxisValidators
         are arranged in the registry dictionary as lists keyed under core axis names,
         and the core axis name for a given subclass is set in the  subclass
-        :attr:`~virtual_rainforest.core.axes.AxisValidator.core_axis`
+        :attr:`~virtual_ecosystem.core.axes.AxisValidator.core_axis`
         class attribute.
 
         Raises:
@@ -262,7 +261,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
     Applies to:
         An input DataArray that provides coordinate values along a ``cell_id`` dimension
         is assumed to map data onto the cells values defined in the
-        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation. The
+        :class:`~virtual_ecosystem.core.grid.Grid` configured for the simulation. The
         coordinate values are tested to check they provide a one-to-one map onto the
         ``cell_id`` values defined for each cell in the ``Grid``. Because ``cell_id``
         values are defined for cells in all grid types, this validator does not require
@@ -334,7 +333,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         The input DataArray for this validator has a ``cell_id`` dimension but there are
         no ``cell_id`` values provided as coordinates along that dimension. The
         ``cell_id`` dimension name means that the array is assumed to provide data for
-        the cells defined in the :class:`~virtual_rainforest.core.grid.Grid` configured
+        the cells defined in the :class:`~virtual_ecosystem.core.grid.Grid` configured
         for the simulation. The data are then assumed to be in the same order as the
         cells in the ``Grid``.  As a one-dimensional array of cells is defined for all
         grid configurations, this validator does not require a particular grid geometry.
@@ -396,13 +395,13 @@ class Spat_XY_Coord_Square(AxisValidator):
     Applies to:
         An input DataArray that provides coordinates along ``x`` and ``y`` dimensions is
         assumed to map data onto the cells defined in a
-        :class:`~virtual_rainforest.core.grid.Grid` configured for the simulation with a
+        :class:`~virtual_ecosystem.core.grid.Grid` configured for the simulation with a
         ``square`` cell geometry. The pairwise combinations of ``x`` and ``y``
         coordinates in the data are expected to provide a one-to-one mapping onto  grid
         cell geometries.
 
     This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
-    dimension used in the :mod:`~virtual_rainforest.core.grid` module.
+    dimension used in the :mod:`~virtual_ecosystem.core.grid` module.
     """
 
     core_axis = "spatial"
@@ -444,7 +443,7 @@ class Spat_XY_Coord_Square(AxisValidator):
 
         Returns:
             A DataArray with the ``x`` and ``y`` dimensions remapped onto the internal
-            ``cell_id`` dimension used in the :mod:`~virtual_rainforest.core.grid`
+            ``cell_id`` dimension used in the :mod:`~virtual_ecosystem.core.grid`
             module.
         """
         # Get x and y coords to check the extents and cell coverage.
@@ -486,11 +485,11 @@ class Spat_XY_Dim_Square(AxisValidator):
         An input DataArray with ``x`` and ``y`` dimensions specifies the size of the
         array along those dimensions but does not provide coordinates for the cells. The
         input is then  assumed to provide an array with the same shape as a the cell
-        grid of a :class:`~virtual_rainforest.core.grid.Grid` configured for the
+        grid of a :class:`~virtual_ecosystem.core.grid.Grid` configured for the
         simulation with a ``square`` cell geometries.
 
     This validator also remaps ``x`` and ``y`` dimensions onto the internal ``cell_id``
-    dimension used in the :mod:`~virtual_rainforest.core.grid` module.
+    dimension used in the :mod:`~virtual_ecosystem.core.grid` module.
     """
 
     core_axis = "spatial"
@@ -529,7 +528,7 @@ class Spat_XY_Dim_Square(AxisValidator):
 
         Returns:
             A DataArray with the ``x`` and ``y`` dimensions remapped onto the internal
-            ``cell_id`` dimension used in the :mod:`~virtual_rainforest.core.grid`
+            ``cell_id`` dimension used in the :mod:`~virtual_ecosystem.core.grid`
             module.
         """
         # Otherwise the data array must be the same shape as the grid

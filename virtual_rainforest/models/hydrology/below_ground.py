@@ -1,8 +1,7 @@
 """The ``models.hydrology.below_ground`` module simulates the below-ground hydrological
-processes for the Virtual Rainforest. This includes vertical flow, soil moisture and
+processes for the Virtual Ecosystem. This includes vertical flow, soil moisture and
 matric potential, groundwater storage, and subsurface horizontal flow.
 """  # noqa: D205, D415
-
 
 import numpy as np
 from numpy.typing import NDArray

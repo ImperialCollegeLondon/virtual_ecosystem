@@ -1,7 +1,7 @@
 # Developer setup
 
 This document is a help file for developers setting up a computer to work with the
-Virtual Rainforest codebase.
+Virtual Ecosystem codebase.
 
 ## Python version
 
@@ -64,7 +64,7 @@ You should then see output describing the creation of a virtual environment and 
 installation of the required packages into that environment. For example:
 
 ```bash
-dorme@MacBook-Pro virtual_rainforest % poetry install
+dorme@MacBook-Pro virtual_ecosystem % poetry install
 Creating virtualenv virtual-rainforest-Laomc1u4-py3.10 in /Users/dorme/Library/Caches/pypoetry/virtualenvs
 Installing dependencies from lock file
 
@@ -110,7 +110,7 @@ Package operations: 39 installs, 0 updates, 0 removals
   • Installing pytest-mock (3.8.1)
   • Installing pytest-mypy (0.9.1)
 
-Installing the current project: virtual_rainforest (0.1.0)
+Installing the current project: virtual_ecosystem (0.1.0)
 ```
 
 ## Using the virtual environments
@@ -121,20 +121,20 @@ may have parallel `venv` for different Python versions and you can check this us
 `poetry env list`:
 
 ```bash
-dorme@MacBook-Pro virtual_rainforest % poetry env list
+dorme@MacBook-Pro virtual_ecosystem % poetry env list
 virtual-rainforest-Laomc1u4-py3.10 (Activated)
 virtual-rainforest-Laomc1u4-py3.9
-dorme@MacBook-Pro virtual_rainforest %
+dorme@MacBook-Pro virtual_ecosystem %
 ```
 
 You can now launch a shell using that `venv`.
 
 ```bash
-dorme@MacBook-Pro virtual_rainforest % poetry shell
+dorme@MacBook-Pro virtual_ecosystem % poetry shell
 Spawning shell within /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.10
-dorme@MacBook-Pro virtual_rainforest % . /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainfor
+dorme@MacBook-Pro virtual_ecosystem % . /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainfor
 est-Laomc1u4-py3.10/bin/activate
-(virtual-rainforest-Laomc1u4-py3.10) dorme@MacBook-Pro virtual_rainforest %
+(virtual-rainforest-Laomc1u4-py3.10) dorme@MacBook-Pro virtual_ecosystem %
 ```
 
 The command line prompt has been updated to show the active `venv`.
@@ -202,7 +202,7 @@ Release branches? [release/]
 Hotfix branches? [hotfix/]
 Support branches? [support/]
 Version tag prefix? [] v
-Hooks and filters directory? [/usr/file/structure/virtual_rainforest/.git/hooks]
+Hooks and filters directory? [/usr/file/structure/virtual_ecosystem/.git/hooks]
 ```
 
 Once this is done `git flow` has been setup and new branches can be created using

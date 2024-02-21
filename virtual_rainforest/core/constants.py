@@ -1,5 +1,5 @@
 """This submodule contains dataclasses containing core constants used across
-the Virtual Rainforest. This includes universal constants but also constants that may be
+the Virtual Ecosystem. This includes universal constants but also constants that may be
 shared across model.
 
 Note that true universal constants are defined as class variables of dataclasses. This
@@ -10,13 +10,12 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 from scipy import constants
-
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)
 class CoreConsts(ConstantsDataclass):
-    """Core constants for use across the Virtual Rainforest modules."""
+    """Core constants for use across the Virtual Ecosystem modules."""
 
     zero_Celsius: ClassVar[float] = constants.zero_Celsius
     """Conversion constant from Kelvin to Celsius (°)."""

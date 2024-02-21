@@ -6,20 +6,20 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 import numpy as np
 import pytest
 from scipy.optimize import OptimizeResult  # type: ignore
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.models.soil.soil_model import IntegrationError
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.models.soil.soil_model import IntegrationError
 
 
 def test_soil_model_initialization(
     caplog, dummy_carbon_data, fixture_soil_core_components
 ):
     """Test `SoilModel` initialization with good data."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     model = SoilModel(
         data=dummy_carbon_data,
@@ -54,10 +54,10 @@ def test_soil_model_initialization_no_data(
 ):
     """Test `SoilModel` initialization with no data."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with pytest.raises(ValueError):
         # Make four cell grid
@@ -92,8 +92,8 @@ def test_soil_model_initialization_bounds_error(
 ):
     """Test `SoilModel` initialization."""
 
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
@@ -195,13 +195,13 @@ def test_generate_soil_model(
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.registry import register_module
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.soil")
+    register_module("virtual_ecosystem.models.soil")
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -306,7 +306,7 @@ def test_integrate_soil_model(
 
     if mock_output:
         mock_integrate = mocker.patch(
-            "virtual_rainforest.models.soil.soil_model.solve_ivp"
+            "virtual_ecosystem.models.soil.soil_model.solve_ivp"
         )
         mock_integrate.return_value = mock_output
 
@@ -335,13 +335,13 @@ def test_order_independance(
 ):
     """Check that pool order in the data object doesn't change integration result."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.core.registry import register_module
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
+    register_module("virtual_ecosystem.models.abiotic_simple")
 
     # Create new data object with same size as dummy_carbon_data fixture
     grid = Grid(
@@ -392,9 +392,9 @@ def test_order_independance(
 
 def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     """Test that the function that creates the object to integrate exists and works."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.soil_model import construct_full_soil_model
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
         -0.00371115,
@@ -456,7 +456,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
 
 def test_make_slices():
     """Test that function to make slices works as expected."""
-    from virtual_rainforest.models.soil.soil_model import make_slices
+    from virtual_ecosystem.models.soil.soil_model import make_slices
 
     no_cells = 4
     no_pools = 2

@@ -1,13 +1,13 @@
-# Welcome to the Virtual Rainforest
+# Welcome to the Virtual Ecosystem
 
-[![codecov](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest/branch/develop/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest)
+[![codecov](https://codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem/branch/develop/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem)
 
-This repository is the home for the development of the Virtual Rainforest. The
-Virtual Rainforest is a project to develop a simulation of all of the major
-processes involved in a real rainforest including the:
+This repository is the home for the development of the Virtual Ecosystem. The
+Virtual Ecosystem is a project to develop a simulation of all of the major
+processes involved in a real ecosystem including the:
 
 * growth and demographic processes of the primary producers within the forest,
-* microclimatic processes within and around the rainforest,
+* microclimatic processes within and around the ecosystem,
 * hydrological processes within the canopy, soil and drainage networks,
 * biotic and abiotic processes within the soil, and the
 * growth and demography of heterotrophs.
@@ -45,5 +45,5 @@ team.
 
 ## Model documentation
 
-The full documentation for the Virtual Rainforest model can be viewed
-[here](https://virtual-rainforest.readthedocs.io/en/latest/).
+The full documentation for the Virtual Ecosystem model can be viewed
+[here](https://virtual-ecosystem.readthedocs.io/en/latest/).

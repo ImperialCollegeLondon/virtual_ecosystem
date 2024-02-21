@@ -8,18 +8,17 @@ from logging import CRITICAL, DEBUG, ERROR
 from typing import Any
 
 import pytest
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
 def data_instance():
     """Creates a simple data instance for use in testing."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
     from xarray import DataArray
-
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
 
     grid = Grid()
     data = Data(grid=grid)
@@ -189,7 +188,7 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
     but this tests the ensemble behaviour of the __init_subclass__ method.
     """
 
-    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_ecosystem.core.base_model import BaseModel
 
     caplog.clear()
 
@@ -256,7 +255,7 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
     """Test that  __init_subclass__ traps bad values for required_init_vars."""
 
     # BaseModel is required here in the code being exec'd from the params.
-    from virtual_rainforest.core.base_model import BaseModel  # noqa: F401
+    from virtual_ecosystem.core.base_model import BaseModel  # noqa: F401
 
     with exp_raise as err:
         # Run the code to define the model
@@ -280,7 +279,7 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
     The two properties get caught earlier, when __init_subclass__ runs, but missing
     methods are caught when anyone tries to get an instance of the model.
     """
-    from virtual_rainforest.core.base_model import BaseModel
+    from virtual_ecosystem.core.base_model import BaseModel
 
     class InitVarModel(
         BaseModel,
@@ -361,10 +360,10 @@ def test_check_required_init_vars(
     # create the instance via a module-scope fixture and the alternative is just
     # defining it at the top, which isn't encapsulated in a test.
 
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.data import Data
 
     class TestCaseModel(
         BaseModel,
@@ -476,10 +475,10 @@ def test_check_required_init_vars(
 def test_check_update_speed(caplog, config_string, raises, expected_log):
     """Tests check on update speed."""
 
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.data import Data
 
     class TimingTestModel(
         BaseModel,

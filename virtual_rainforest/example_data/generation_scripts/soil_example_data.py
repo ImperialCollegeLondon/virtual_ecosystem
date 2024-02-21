@@ -1,4 +1,4 @@
-"""Example soil data for `vr_run`.
+"""Example soil data for `ve_run`.
 
 This script generates the data required to run the soil component of the example
 dataset. **It is important to note that none of this data is real data**. Instead, this
@@ -7,9 +7,8 @@ sensibly for.
 """
 
 import numpy as np
+from virtual_ecosystem.example_data.generation_scripts.common import cell_displacements
 from xarray import Dataset
-
-from virtual_rainforest.example_data.generation_scripts.common import cell_displacements
 
 gradient = np.outer(cell_displacements / 90, cell_displacements / 90)
 
@@ -58,7 +57,7 @@ example_soil_data = Dataset(
         x=(["x"], cell_displacements),
         y=(["y"], cell_displacements),
     ),
-    attrs=dict(description="Soil data for dummy Virtual Rainforest model."),
+    attrs=dict(description="Soil data for dummy Virtual Ecosystem model."),
 )
 
 # Save the example soil data file as netcdf

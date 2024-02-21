@@ -12,10 +12,9 @@ The module also provides a constant vertical profile of atmospheric pressure and
 
 import numpy as np
 import xarray as xr
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 from xarray import DataArray
-
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
 
 Bounds: dict[str, float] = {
     "air_temperature_min": -20,
@@ -55,7 +54,7 @@ def run_microclimate(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, :math:`m` is the gradient
-    (:data:`~virtual_rainforest.models.abiotic_simple.constants.AbioticSimpleConsts`)
+    (:data:`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleConsts`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 

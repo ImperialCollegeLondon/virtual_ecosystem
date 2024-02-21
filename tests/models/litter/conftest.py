@@ -9,9 +9,9 @@ from xarray import DataArray, concat
 def fixture_litter_model(dummy_litter_data):
     """Create a litter model fixture based on the dummy litter data."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     # Build the config object
     config = Config(
@@ -28,8 +28,8 @@ def fixture_litter_model(dummy_litter_data):
 def dummy_litter_data(fixture_core_components):
     """Creates a dummy litter data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(cell_nx=3, cell_ny=1)

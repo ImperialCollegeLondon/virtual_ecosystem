@@ -4,16 +4,16 @@ required for setting up and testing the early stages of the animal module.
 
 from __future__ import annotations
 
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.animals.constants import AnimalConsts
-from virtual_rainforest.models.animals.protocols import Consumer, DecayPool
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animals.protocols import Consumer, DecayPool
 
 
 class PlantResources:
     """A class implementing the Resource protocol for plant data.
 
     This class acts as the interface between plant model data stored in the core data
-    object using the :class:`~virtual_rainforest.models.animals.protocols.Resource`
+    object using the :class:`~virtual_ecosystem.models.animals.protocols.Resource`
     protocol.
 
     At present, it only exposes a single resource - the total leaf mass of the entire

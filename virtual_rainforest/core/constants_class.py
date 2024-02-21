@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.core.constants_class` module provides the abstract base
-class :mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass` and the
-:mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass.from_config` method to
+"""The :mod:`~virtual_ecosystem.core.constants_class` module provides the abstract base
+class :mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass` and the
+:mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass.from_config` method to
 generate instances using a dictionary to override default constant values.
 
 The main use of the base class is to unambiguously identify dataclasses within the core
@@ -8,11 +8,11 @@ and models as providing constants for use within models. To create a constants c
 use in a model:
 
 1. Create a `constants.py` submodule within the model.
-2. Import the :mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass` base
+2. Import the :mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass` base
    class.
 3. Define a new frozen dataclass as a subclass of the base class and populate the
    dataclass with the required constant values. See
-   :mod:`~virtual_rainforest.core.constants_class.ConstantsDataclass` for syntax
+   :mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass` for syntax
    details.
 """  # noqa: D205, D415
 
@@ -26,8 +26,8 @@ from dataclasses import (  # type: ignore [attr-defined]
 )
 from typing import Any
 
-from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
 
 
 @dataclass(frozen=True)

@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.core.schema` module  provides tools for handling the
+"""The :mod:`~virtual_ecosystem.core.schema` module  provides tools for handling the
 JSON schemas used to validate model configuration documents. The
-:func:`~virtual_rainforest.core.schema.load_schema` and
-:func:`~virtual_rainforest.core.schema.merge_schemas` functions are used to load schema
+:func:`~virtual_ecosystem.core.schema.load_schema` and
+:func:`~virtual_ecosystem.core.schema.merge_schemas` functions are used to load schema
 documents and then build a single JSONSchema across the models used in a simulation.
 
 The resulting merged schema is then used with the
-:data:`~virtual_rainforest.core.schema.ValidatorWithDefaults` JSON schema validator.
-This has been extended using the :func:`~virtual_rainforest.core.schema.set_defaults`
+:data:`~virtual_ecosystem.core.schema.ValidatorWithDefaults` JSON schema validator.
+This has been extended using the :func:`~virtual_ecosystem.core.schema.set_defaults`
 iterator to provide a global JSONSchema validator instance that fills in missing entries
 in configuration documents from default values provided in the schemas.
 
@@ -18,10 +18,9 @@ default values exist (e.g. 1 week for the model time step) they should also be i
 in the schema.
 
 The JSONSchema documents for a module should be loaded when a model is imported into the
-:data:`~virtual_rainforest.core.registry.MODULE_REGISTRY`. See the
-:mod:`~virtual_rainforest.core.registry` module for details.
+:data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. See the
+:mod:`~virtual_ecosystem.core.registry` module for details.
 """  # noqa: D205, D415
-
 
 import json
 from collections.abc import Iterator
@@ -30,8 +29,7 @@ from typing import Any
 
 import dpath
 from jsonschema import Draft202012Validator, exceptions, validators
-
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.logger import LOGGER
 
 
 def set_defaults(

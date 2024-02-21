@@ -1,7 +1,7 @@
-# The Virtual Rainforest models
+# The Virtual Ecosystem models
 
 This document provides a brief overview of the models that make up the Virtual
-Rainforest.
+Ecosystem.
 
 ## Core Model
 
@@ -11,7 +11,7 @@ The `core` model is responsible for:
   various options to be used. The `core` model provides loading and validation routines
   for this configuration.
 
-- **Logger configuration**: the various models in the Virtual Rainforest can emit a lot
+- **Logger configuration**: the various models in the Virtual Ecosystem can emit a lot
   of logging information and the `core` model is used to set up the logging depth and
   log files.
 
@@ -32,7 +32,7 @@ The `core` model is responsible for:
 
 ## Plant Model
 
-The Plant Model models the primary production from plants in the Virtual Rainforest. We
+The Plant Model models the primary production from plants in the Virtual Ecosystem. We
 use the P Model {cite}`prentice_balancing_2014,wang_towards_2017`, to estimate the
 optimal balance between water loss and photosynthetic productivity and hence gross
 primary productivity (GPP). The P Model requires estimates of the following drivers:
@@ -100,7 +100,7 @@ Further theoretical background for the Soil Model can be found
 
 ## Abiotic Model
 
-The Abiotic Model provides the microclimate for the Virtual Rainforest.
+The Abiotic Model provides the microclimate for the Virtual Ecosystem.
 Using a small set of input variables from external sources such as reanalysis or
 regional climate models, the model calculates atmospheric and soil parameters that
 drive the dynamics of plants, animals, and microbes at different vertical levels:
@@ -114,7 +114,7 @@ drive the dynamics of plants, animals, and microbes at different vertical levels
 At the moment, the default option is a simple regression model that estimates
 microclimate for a monthly time step. We are also working on a process-based abiotic
 model that runs on a shorter time step, typically sub-daily, and could be used to run
-the Virtual Rainforest in high temporal resolution or for representative days per month.
+the Virtual Ecosystem in high temporal resolution or for representative days per month.
 Both versions of the abiotic model provide the following variables at different vertical
 levels:
 
@@ -170,7 +170,7 @@ and the atmosphere.
 #### Wind
 
 The wind submodule calculates the above- and within-canopy wind profiles for the Virtual
-Rainforest. These profiles will determine the exchange of heat, water, and $\ce{CO_{2}}$
+Ecosystem. These profiles will determine the exchange of heat, water, and $\ce{CO_{2}}$
 between soil and atmosphere below the canopy as well as the exchange with the atmsophere
 above the canopy.
 
@@ -183,10 +183,10 @@ vertically depending on wind speed below the canopy.
 
 ## Hydrology Model
 
-The Hydrology model simulates the hydrological processes in the Virtual Rainforest. We
+The Hydrology model simulates the hydrological processes in the Virtual Ecosystem. We
 placed hydrology in a separate model in order to allow easy replacement with a different
 hydrology model. Also, this provides more flexibility in defining the order of
-models an/or processes in the overall Virtual Rainforest workflow.
+models an/or processes in the overall Virtual Ecosystem workflow.
 
 The first part of the Hydrology model determines the water balance within each
 grid cell including rainfall, intercept, surface runoff out of the grid cell,

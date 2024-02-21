@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.core.grid` module is used to create the grid of cells
+"""The :mod:`~virtual_ecosystem.core.grid` module is used to create the grid of cells
 underlying the simulation and to identify the neighbourhood connections of cells.
 
 - set up neighbourhoods. ? store as graph (networkx - might only need a really
@@ -21,9 +21,8 @@ from numpy.typing import NDArray
 from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
-
-from virtual_rainforest.core.config import Config, ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -184,18 +183,18 @@ def make_hex_grid(
 
 
 class Grid:
-    """Define the grid of cells used in a Virtual Rainforest simulation.
+    """Define the grid of cells used in a Virtual Ecosystem simulation.
 
-    The simulation grid used in a Virtual Rainforest simulation is assumed to be a
+    The simulation grid used in a Virtual Ecosystem simulation is assumed to be a
     projected coordinate system with linear dimensions in metres. Grid cell sizes are
     set using their area in square metres and users can specify offsets to align a
     simulation grid to a particular projected coordinate system. However, the Virtual
-    Rainforest codebase makes no attempt to manage or validate projection information:
+    Ecosystem codebase makes no attempt to manage or validate projection information:
     we assume that users maintain a common coordinate system across inputs.
 
     Args:
         grid_type: The grid type to be used, which must identify a grid creation
-            function in the :data:`~virtual_rainforest.core.grid.GRID_REGISTRY`
+            function in the :data:`~virtual_ecosystem.core.grid.GRID_REGISTRY`
             dictionary.
         cell_area: The area of each grid cell, in square metres.
         cell_nx: The number of cells in the grid along the x (easting) axis
@@ -301,7 +300,7 @@ class Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         try:
@@ -318,7 +317,7 @@ class Grid:
     def dumps(self, dp: int = 2, **kwargs: Any) -> str:
         """Export a grid as a GeoJSON string.
 
-        The virtual_rainforest.core.Grid object assumes an unspecified projected
+        The virtual_ecosystem.core.Grid object assumes an unspecified projected
         coordinate system. As a result, GeoJSON files created by this export method do
         not strictly obey the GeoJSON specification
         (https://www.rfc-editor.org/rfc/rfc7946), which requires WGS84 coordinates to
@@ -335,7 +334,7 @@ class Grid:
     def dump(self, outfile: str, dp: int = 2, **kwargs: Any) -> None:
         """Export a grid as a GeoJSON file.
 
-        The virtual_rainforest.core.Grid object assumes an unspecified projected
+        The virtual_ecosystem.core.Grid object assumes an unspecified projected
         coordinate system. As a result, GeoJSON files created by this export method do
         not strictly obey the GeoJSON specification
         (https://www.rfc-editor.org/rfc/rfc7946), which requires WGS84 coordinates to
@@ -515,7 +514,7 @@ class Grid:
         """Returns indexing to map xy coordinates a single cell_id axis.
 
         This function maps the provided one-dimensional set of x and y points onto the
-        grid (using `~virtual_rainforest.core.grid.Grid.map_xy_to_cell_id`) and then
+        grid (using `~virtual_ecosystem.core.grid.Grid.map_xy_to_cell_id`) and then
         checks that the mapped points provide a one-to-one mapping onto the grid cells.
 
         The function then returns a pair of arrays that give indices on the original

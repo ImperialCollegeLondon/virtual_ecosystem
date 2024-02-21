@@ -13,20 +13,20 @@ kernelspec:
   name: vr_python3
 ---
 
-# Adding and using data with the Virtual Rainforest
+# Adding and using data with the Virtual Ecosystem
 
-A Virtual Rainforest simulation requires data to run. That includes the loading of
+A Virtual Ecosystem simulation requires data to run. That includes the loading of
 initial forcing data for the model - things like air temperature, elevation and
 photosynthetically active radiation - but also  includes the storage of internal
 variables calculated by the various models running within the simulation. The data
-handling for simulations is managed by the {mod}`~virtual_rainforest.core.data` module
-and the {class}`~virtual_rainforest.core.data.Data` class, which provides the data
-loading and storage functions for the Virtual Rainforest. The data system is extendable
+handling for simulations is managed by the {mod}`~virtual_ecosystem.core.data` module
+and the {class}`~virtual_ecosystem.core.data.Data` class, which provides the data
+loading and storage functions for the Virtual Ecosystem. The data system is extendable
 to provide support for different file formats and axis validation (see the [module API
 docs](../../api/core/data.md)) but that is beyond the scope of this document.
 
-A Virtual Rainforest simulation will have one instance of the
-{class}`~virtual_rainforest.core.data.Data` class to provide access to the different
+A Virtual Ecosystem simulation will have one instance of the
+{class}`~virtual_ecosystem.core.data.Data` class to provide access to the different
 forcing and internal variables used in the simulation. As they are loaded, all variables
 are validated and then  added to an {class}`xarray.Dataset` object, which provides a
 consistent indexing and data manipulation for the underlying arrays of data.
@@ -37,7 +37,7 @@ working with data using Python are shown below.
 
 ## Validation
 
-One of the main functions of the {mod}`~virtual_rainforest.core.data` module is to
+One of the main functions of the {mod}`~virtual_ecosystem.core.data` module is to
 automatically validate data before it is added to the `Data` instance. Validation is
 applied along a set of **core axes** used in the simulation. For a given core axis:
 
@@ -63,7 +63,7 @@ validators see the [core axis](axes.md) documentation.
 
 ## Creating a `Data` instance
 
-A  {class}`~virtual_rainforest.core.data.Data` instance is created using information
+A  {class}`~virtual_ecosystem.core.data.Data` instance is created using information
 that provides information on the core configuration of the simulation. At present, this
 is just the spatial grid being used.
 
@@ -73,11 +73,11 @@ from pathlib import Path
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.axes import *
-from virtual_rainforest.core.readers import load_to_dataarray
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.axes import *
+from virtual_ecosystem.core.readers import load_to_dataarray
 
 # Create a grid with square 100m2 cells in a 10 by 10 lattice and a Data instance
 grid = Grid(grid_type='square', cell_area=100, cell_nx=10, cell_ny=10)
@@ -88,14 +88,14 @@ data
 
 ## Adding data to a Data instance
 
-Data can be added to a {class}`~virtual_rainforest.core.data.Data` instance using one of
+Data can be added to a {class}`~virtual_ecosystem.core.data.Data` instance using one of
 two methods:
 
 1. An existing DataArray object can be added to a
-   {class}`~virtual_rainforest.core.data.Data` instance just using the standard
-   dictionary assignment: ``data['var_name'] = data_array``. The Virtual Rainforest
-   {mod}`~virtual_rainforest.core.readers` module provides the
-   function {func}`~virtual_rainforest.core.readers.load_to_dataarray` to read data into
+   {class}`~virtual_ecosystem.core.data.Data` instance just using the standard
+   dictionary assignment: ``data['var_name'] = data_array``. The Virtual Ecosystem
+   {mod}`~virtual_ecosystem.core.readers` module provides the
+   function {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to read data into
    a DataArray from supported file formats. This can then be added directly to a Data
    instance:
 
@@ -103,14 +103,14 @@ two methods:
 data['var_name'] = load_to_dataarray('path/to/file.nc', var='temperature')
 ```
 
-1. The  {meth}`~virtual_rainforest.core.data.Data.load_data_config` method takes a
+1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
    loaded Data configuration - which is a set of named variables and source files - and
-   then just uses {func}`~virtual_rainforest.core.readers.load_to_dataarray` to try and
+   then just uses {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to try and
    load each one.
 
 ### Adding a data array directly
 
-Adding a  DataArray to a {class}`~virtual_rainforest.core.data.Data` method takes an
+Adding a  DataArray to a {class}`~virtual_ecosystem.core.data.Data` method takes an
 existing DataArray object and then uses the built in validation to match the data onto
 core axes. So, for example, the grid used above has a spatial resolution and size:
 
@@ -137,7 +137,7 @@ That data array can then be added to the  loaded and validated:
 data["temperature"] = temperature_data
 ```
 
-The representation of the {class}`virtual_rainforest.core.data.Data` instance now shows
+The representation of the {class}`virtual_ecosystem.core.data.Data` instance now shows
 the loaded variables:
 
 ```{code-cell}
@@ -159,7 +159,7 @@ print(loaded_temp)
 ```
 
 You can check whether a particular variable has been validated on a given core axis
-using the {meth}`~virtual_rainforest.core.data.Data.on_core_axis` method:
+using the {meth}`~virtual_ecosystem.core.data.Data.on_core_axis` method:
 
 ```{code-cell}
 data.on_core_axis("temperature", "spatial")
@@ -189,7 +189,7 @@ data.on_core_axis("temp", "spatial")
 
 ### Loading data from a configuration
 
-The configuration files for a Virtual Rainforest simulation can include a data
+The configuration files for a Virtual Ecosystem simulation can include a data
 configuration section. This can be used to automatically load multiple datasets into
 a Data object. The configuration file is TOML formatted and should contain an entry
 like the example below for each variable to be loaded.
@@ -207,7 +207,7 @@ be raised. This means that all variables need to be combined in one `config` fil
 
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
-{class}`~virtual_rainforest.core.config.Config` object. You can also use a string
+{class}`~virtual_ecosystem.core.config.Config` object. You can also use a string
 containing TOML formatted text or a list of TOML strings to create a configuration
 object:
 
@@ -233,7 +233,7 @@ data
 ## Data output
 
 The entire contents of the `Data` object can be output using the
-{meth}`~virtual_rainforest.core.data.Data.save_to_netcdf` method:
+{meth}`~virtual_ecosystem.core.data.Data.save_to_netcdf` method:
 
 ```python
 data.save_to_netcdf(output_file_path)

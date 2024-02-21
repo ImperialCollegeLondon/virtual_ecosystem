@@ -1,12 +1,13 @@
-"""The :mod:`~virtual_rainforest.core.config` module is used to read in the various
+"""The :mod:`~virtual_ecosystem.core.config` module is used to read in the various
 configuration files, validate their contents, and then configure a ready to run instance
-of the virtual rainforest model. The basic details of how this system is used can be
-found :doc:`here </virtual_rainforest/core/config>`.
+of the virtual ecosystem model. The basic details of how this system is used can be
+found :doc:`here </virtual_ecosystem/core/config>`.
 
 The validation of configuration documents is done using JSONSchema documents associated
-with the different model components. See the :mod:`~virtual_rainforest.core.schema`
+with the different model components. See the :mod:`~virtual_ecosystem.core.schema`
 module for details.
 """  # noqa: D205, D415
+
 import sys
 from collections.abc import Sequence
 from copy import deepcopy
@@ -15,11 +16,10 @@ from typing import Any
 
 import tomli_w
 from jsonschema import FormatChecker
-
-from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
-from virtual_rainforest.core.schema import ValidatorWithDefaults, merge_schemas
+from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
+from virtual_ecosystem.core.schema import ValidatorWithDefaults, merge_schemas
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -130,34 +130,34 @@ class Config(dict):
     """Configuration loading and validation.
 
     The ``Config`` class is used to generate a validated configuration for a Virtual
-    Rainforest simulation. The ``cfg_paths`` attribute is used to provide paths to TOML
+    Ecosystem simulation. The ``cfg_paths`` attribute is used to provide paths to TOML
     configuration files or directories containing sets of files to be used. The provided
     paths are then run through the follow steps to resolve and load the configuration
     data.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.collect_config_paths` method is
+    * The :meth:`~virtual_ecosystem.core.config.Config.collect_config_paths` method is
       used to collect the actual TOML files to be used to build the configuration from
       the provided paths.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.load_config_toml` method is then
+    * The :meth:`~virtual_ecosystem.core.config.Config.load_config_toml` method is then
       used to load the parsed contents of each resolved file into the
-      :attr:`~virtual_rainforest.core.config.Config.toml_contents` attribute.
+      :attr:`~virtual_ecosystem.core.config.Config.toml_contents` attribute.
 
     Alternatively, configuration data may be passed as a string or list of strings using
     the ``cfg_strings`` argument. These strings must contain TOML formatted data, which
     is parsed and added to the
-    :attr:`~virtual_rainforest.core.config.Config.toml_contents` attribute.
+    :attr:`~virtual_ecosystem.core.config.Config.toml_contents` attribute.
 
     Whichever approach is used, the next two steps are then applied to the provided TOML
     data:
 
-    * The :meth:`~virtual_rainforest.core.config.Config.build_config` method is used to
+    * The :meth:`~virtual_ecosystem.core.config.Config.build_config` method is used to
       merge the loaded configuration across files and check that configuration settings
       are uniquely defined.
 
-    * The :meth:`~virtual_rainforest.core.config.Config.validate_config` method
+    * The :meth:`~virtual_ecosystem.core.config.Config.validate_config` method
       validates the compiled configuration against the appropriate configuration schema
-      for the :mod:`~virtual_rainforest.core` module and any models included in the
+      for the :mod:`~virtual_ecosystem.core` module and any models included in the
       configuration. This validation will also fill in any missing configuration
       settings with defined defaults.
 
@@ -165,7 +165,7 @@ class Config(dict):
     provided ``cfg_paths``, but the ``auto`` argument can be used to turn off automatic
     validation.
 
-    The :meth:`~virtual_rainforest.core.config.Config.export_config` method can be used
+    The :meth:`~virtual_ecosystem.core.config.Config.export_config` method can be used
     to export the compiled and validated configuration as a single TOML file.
 
     If the core.data_output_options.save_merged_config option is set to true a merged
@@ -262,11 +262,11 @@ class Config(dict):
     def collect_config_paths(self) -> None:
         """Collect TOML config files from provided paths.
 
-        The :class:`~virtual_rainforest.core.config.Config` class is initialised with a
+        The :class:`~virtual_ecosystem.core.config.Config` class is initialised with a
         list of paths to either individual TOML config files or directories containing
         possibly multiple config files. This method examines that list to collect all
         the individual TOML config files in the provided locations and then populates
-        the :attr:`~virtual_rainforest.core.config.Config.toml_files` attribute.
+        the :attr:`~virtual_ecosystem.core.config.Config.toml_files` attribute.
 
         Raises:
             ConfigurationError: this is raised if any of the paths: do not exist, are
@@ -316,12 +316,12 @@ class Config(dict):
         """Load the contents of resolved configuration files.
 
         This method populates the
-        :attr:`~virtual_rainforest.core.config.Config.toml_contents` dictionary with the
+        :attr:`~virtual_ecosystem.core.config.Config.toml_contents` dictionary with the
         contents of the configuration files set in
-        :attr:`~virtual_rainforest.core.config.Config.toml_files`. That attribute is
+        :attr:`~virtual_ecosystem.core.config.Config.toml_files`. That attribute is
         normally populated by providing a set of paths to
-        :class:`~virtual_rainforest.core.config.Config` and running the
-        :meth:`~virtual_rainforest.core.config.Config.collect_config_paths` method, but
+        :class:`~virtual_ecosystem.core.config.Config` and running the
+        :meth:`~virtual_ecosystem.core.config.Config.collect_config_paths` method, but
         it can also be set directly.
 
         Raises:
@@ -350,7 +350,7 @@ class Config(dict):
         """Load the contents of a config provided as a string.
 
         This method populates the
-        :attr:`~virtual_rainforest.core.config.Config.toml_contents` dictionary with the
+        :attr:`~virtual_ecosystem.core.config.Config.toml_contents` dictionary with the
         contents of a provided TOML formatted string.
 
         Raises:
@@ -446,7 +446,7 @@ class Config(dict):
         This method identifies the modules to be configured from the top-level
         configuration keys, setting the requested modules to be used in the configured
         simulation. The schemas for the requested modules are then loaded and combined
-        using the :meth:`~virtual_rainforest.core.schema.merge_schemas` function to
+        using the :meth:`~virtual_ecosystem.core.schema.merge_schemas` function to
         generate a single validation schema for model configuration.
         """
 
@@ -461,13 +461,13 @@ class Config(dict):
             requested_modules.remove("core")
 
         # Register the core module components and access the core schema.
-        register_module("virtual_rainforest.core")
+        register_module("virtual_ecosystem.core")
         core_schema = MODULE_REGISTRY["core"].schema
 
         # Attempt to register the requested modules - this function will handle unknown
         # module names and exit.
         for module in requested_modules:
-            register_module(f"virtual_rainforest.models.{module}")
+            register_module(f"virtual_ecosystem.models.{module}")
 
         # Generate a dictionary of schemas for requested modules and populate the
         # model_classes attribute
@@ -528,7 +528,7 @@ class Config(dict):
         inputs. This is used to validate the core config to confirm the module list
         before then validating individual module configurations. When validation errors
         are found, the details of each validation issue is appended to the
-        :attr:`~virtual_rainforest.core.config.Config.config_errors` attribute.
+        :attr:`~virtual_ecosystem.core.config.Config.config_errors` attribute.
 
         Args:
             config_data: A dictionary containing model configuration data.
@@ -550,7 +550,7 @@ class Config(dict):
         """Exports a validated and merged configuration as a single file.
 
         This method will only export a configuration file if the
-        :class:`~virtual_rainforest.core.config.Config` instance has been successfully
+        :class:`~virtual_ecosystem.core.config.Config` instance has been successfully
         validated.
 
         Args:

@@ -18,7 +18,7 @@ kernelspec:
 
 The atmospheric variables from regional climate models or observations are typically
 provided in spatial and temporal resolutions that are different from the requirements
-of the Virtual Rainforest. This document describes how to download climate data from
+of the Virtual Ecosystem. This document describes how to download climate data from
 the Copernicus [Climate Data Store](https://cds.climate.copernicus.eu/) (CDS) and basic
 pre-processing options using the
 [CDS toolbox](https://cds.climate.copernicus.eu/cdsapp#!/toolbox).
@@ -71,8 +71,8 @@ simulations:
   [here for hourly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=overview)
   and [here for monthly data](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview)
 
-  Example code to manipulate downloaded ERA5-Land data as used in the `vr_run` example
-  is available [here](../../../virtual_rainforest/example_data/generation_scripts/climate_example_data.py).
+  Example code to manipulate downloaded ERA5-Land data as used in the `ve_run` example
+  is available [here](../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py).
 
 * WFDE5
   
@@ -132,8 +132,8 @@ Once you selected the data, you can either download the dataset for further proc
 or click on 'show Toolbox request' at the bottom of the page, copy the code, and open
 the CDS toolbox editor.
 
-The code to manipulate climate data as used in the `vr_run` example is available
-[here](../../../virtual_rainforest/example_data/generation_scripts/climate_example_data.py).
+The code to manipulate climate data as used in the `ve_run` example is available
+[here](../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py).
 
 ### Toolbox template CORDEX-SEA
 
@@ -178,8 +178,8 @@ def download_application():
     return monthly_mean, fig
 ```
 
-The data handling for simulations is managed by the {mod}`~virtual_rainforest.core.data`
-module and the {class}`~virtual_rainforest.core.data.Data` class, which provides the
-data loading and storage functions for the Virtual Rainforest. The data system is
+The data handling for simulations is managed by the {mod}`~virtual_ecosystem.core.data`
+module and the {class}`~virtual_ecosystem.core.data.Data` class, which provides the
+data loading and storage functions for the Virtual Ecosystem. The data system is
 extendable to provide support for different file formats and axis validation but that is
 beyond the scope of this document.

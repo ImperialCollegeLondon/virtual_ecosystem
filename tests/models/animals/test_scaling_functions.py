@@ -14,7 +14,7 @@ import pytest
 def test_damuths_law(mass, population_density, terms):
     """Testing damuth's law for various body-masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import damuths_law
+    from virtual_ecosystem.models.animals.scaling_functions import damuths_law
 
     testing_pop = damuths_law(mass, terms)
     assert testing_pop == population_density
@@ -60,8 +60,8 @@ def test_damuths_law(mass, population_density, terms):
 def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     """Testing metabolic rate for various body-masses."""
 
-    from virtual_rainforest.models.animals.animal_traits import MetabolicType
-    from virtual_rainforest.models.animals.scaling_functions import metabolic_rate
+    from virtual_ecosystem.models.animals.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animals.scaling_functions import metabolic_rate
 
     testing_rate = metabolic_rate(
         mass, temperature, terms, MetabolicType(metabolic_type)
@@ -80,7 +80,7 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
 def test_muscle_mass_scaling(mass, muscle, terms):
     """Testing muscle mass scaling for various body-masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import muscle_mass_scaling
+    from virtual_ecosystem.models.animals.scaling_functions import muscle_mass_scaling
 
     gains = muscle_mass_scaling(mass, terms)
     assert gains == pytest.approx(muscle, rel=1e-6)
@@ -97,7 +97,7 @@ def test_muscle_mass_scaling(mass, muscle, terms):
 def test_fat_mass_scaling(mass, fat, terms):
     """Testing fat mass scaling for various body-masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import fat_mass_scaling
+    from virtual_ecosystem.models.animals.scaling_functions import fat_mass_scaling
 
     gains = fat_mass_scaling(mass, terms)
     assert gains == pytest.approx(fat, rel=1e-6)
@@ -114,7 +114,7 @@ def test_fat_mass_scaling(mass, fat, terms):
 def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
     """Testing energetic reserve scaling for various body-masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         energetic_reserve_scaling,
     )
 
@@ -133,7 +133,7 @@ def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
 def test_intake_rate_scaling(mass, intake_rate, terms):
     """Testing intake rate scaling for various body-masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import intake_rate_scaling
+    from virtual_ecosystem.models.animals.scaling_functions import intake_rate_scaling
 
     test_rate = intake_rate_scaling(mass, terms)
     assert test_rate == pytest.approx(intake_rate, rel=1e-6)
@@ -141,7 +141,7 @@ def test_intake_rate_scaling(mass, intake_rate, terms):
 
 def test_herbivore_prey_group_selection():
     """Test for herbivore diet type selection."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -152,7 +152,7 @@ def test_herbivore_prey_group_selection():
 
 def test_carnivore_prey_group_selection():
     """Test for carnivore diet type selection."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -172,8 +172,7 @@ def test_carnivore_prey_group_selection():
 def test_prey_group_selection_invalid_diet_type():
     """Test for an invalid diet type."""
     import pytest
-
-    from virtual_rainforest.models.animals.scaling_functions import prey_group_selection
+    from virtual_ecosystem.models.animals.scaling_functions import prey_group_selection
 
     with pytest.raises(ValueError, match="Invalid diet type:"):
         prey_group_selection("omnivore", 10.0, (0.1, 1000.0))
@@ -181,7 +180,7 @@ def test_prey_group_selection_invalid_diet_type():
 
 def test_prey_group_selection_mass_and_terms_impact():
     """Test to ensure `mass` and `terms` don't affect output."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -202,7 +201,7 @@ def test_prey_group_selection_mass_and_terms_impact():
 )
 def test_natural_mortality_scaling(mass, terms, expected):
     """Testing natural mortality scaling for various body-masses."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         natural_mortality_scaling,
     )
 
@@ -212,7 +211,7 @@ def test_natural_mortality_scaling(mass, terms, expected):
 
 def test_natural_mortality_scaling_zero_mass():
     """Testing natural mortality scaling with a zero mass."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         natural_mortality_scaling,
     )
 
@@ -222,7 +221,7 @@ def test_natural_mortality_scaling_zero_mass():
 
 def test_natural_mortality_scaling_negative_mass():
     """Testing natural mortality scaling with a negative mass."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         natural_mortality_scaling,
     )
 
@@ -232,7 +231,7 @@ def test_natural_mortality_scaling_negative_mass():
 
 def test_natural_mortality_scaling_invalid_terms():
     """Testing natural mortality scaling with invalid terms."""
-    from virtual_rainforest.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animals.scaling_functions import (
         natural_mortality_scaling,
     )
 

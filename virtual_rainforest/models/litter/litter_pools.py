@@ -1,5 +1,5 @@
 """The ``models.litter.litter_pools`` module  simulates the litter pools for the Virtual
-Rainforest. Pools are divided into above and below ground pools, with below ground pools
+Ecosystem. Pools are divided into above and below ground pools, with below ground pools
 affected by both soil moisture and temperature, and above ground pools just affected by
 soil surface temperatures. The pools are also divided based on the recalcitrance of
 their inputs, dead wood is given a separate pool, and all other inputs are divided
@@ -18,9 +18,8 @@ This is tracked because litter chemistry is a major determinant of litter decay 
 
 import numpy as np
 from numpy.typing import NDArray
-
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.litter.constants import LitterConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 def calculate_change_in_litter_variables(

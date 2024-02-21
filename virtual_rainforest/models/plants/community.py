@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.models.plants.community` submodule provides a simple
+"""The :mod:`~virtual_ecosystem.models.plants.community` submodule provides a simple
 dataclass to hold plant cohort information and then the ``PlantCommunities`` class that
 is used to hold list of plant cohorts by grid cell and generate those lists from
 variables provided in the data object.
@@ -12,10 +12,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
-
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.plants.functional_types import Flora, PlantFunctionalType
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.functional_types import Flora, PlantFunctionalType
 
 
 @dataclass
@@ -48,7 +47,7 @@ class PlantCommunities(dict, Mapping[int, PlantCohort]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
-    :class:`~virtual_rainforest.core.data.Data` object that must contain the variables
+    :class:`~virtual_ecosystem.core.data.Data` object that must contain the variables
     ``plant_cohorts_cell_id``, ``plant_cohorts_pft``, ``plant_cohorts_n`` and
     ``plant_cohorts_dbh``. These are required to be equal length, one-dimensional arrays
     that provide the data to initialise each plant cohort. The data are validated and

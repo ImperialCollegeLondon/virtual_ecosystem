@@ -4,9 +4,9 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, INFO
 
 import pytest
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -74,13 +74,12 @@ def test_load_constants(
     """Check that function to load in specified constants classes works as expected."""
 
     from scipy import constants  # type: ignore
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.core.constants_loader import load_constants
+    from virtual_ecosystem.core.registry import register_module
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.core.constants_loader import load_constants
-    from virtual_rainforest.core.registry import register_module
-
-    register_module("virtual_rainforest.core")
+    register_module("virtual_ecosystem.core")
     # Artificially create a configuration that omits the soil module. The soil module
     # should be registered by the config creation, but trap what happens if the config
     # doesn't match to the registered modules.

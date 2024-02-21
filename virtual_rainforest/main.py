@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_rainforest.main` module defines the function used to run a full
+"""The :mod:`~virtual_ecosystem.main` module defines the function used to run a full
 simulation of the model, along with helper functions to validate and configure the
 model.
 """  # noqa: D205, D415
@@ -10,12 +10,12 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data, merge_continuous_data_files
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data, merge_continuous_data_files
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
 
 
 def initialise_models(
@@ -24,10 +24,10 @@ def initialise_models(
     core_components: CoreComponents,
     models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
 ) -> dict[str, Any]:  # FIXME -> dict[str, Type[BaseModel]]
-    """Initialise a set of models for use in a `virtual_rainforest` simulation.
+    """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
-        config: A validated Virtual Rainforest model configuration object.
+        config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
         modules: A dictionary of models to be configured.
@@ -82,7 +82,7 @@ def _get_model_sequence(
     Args:
         config: A validated configuration object.
         models: A dictionary of model subclasses or instances.
-        method: The :class:`~virtual_rainforest.core.base_model.BaseModel` method to use
+        method: The :class:`~virtual_ecosystem.core.base_model.BaseModel` method to use
             to define the model execution sequence.
 
     Returns:
@@ -135,15 +135,15 @@ def _get_model_sequence(
     return {model_name: models[model_name] for model_name in resolved_order}
 
 
-def vr_run(
+def ve_run(
     cfg_paths: str | Path | Sequence[str | Path] = [],
     cfg_strings: str | list[str] = [],
     override_params: dict[str, Any] = {},
     logfile: Path | None = None,
 ) -> None:
-    """Perform a virtual rainforest simulation.
+    """Perform a virtual ecosystem simulation.
 
-    This is a high-level function that runs a virtual rainforest simulation. At the
+    This is a high-level function that runs a virtual ecosystem simulation. At the
     moment this involves validating an input configuration, and using this configuration
     to generate a set of configured model objects suitable for downstream use. Down the
     line this should be extended to encompass far more steps.
@@ -262,7 +262,7 @@ def vr_run(
             out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
 
-    LOGGER.info("Virtual rainforest model run completed!")
+    LOGGER.info("Virtual ecosystem model run completed!")
 
     # Restore default logging settings
     if logfile is not None:

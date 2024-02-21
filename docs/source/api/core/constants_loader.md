@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.core.constants_loader` module
+# API documentation for the {mod}`~virtual_ecosystem.core.constants_loader` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.core.constants_loader
+.. automodule:: virtual_ecosystem.core.constants_loader
     :autosummary:
     :members:
 ```

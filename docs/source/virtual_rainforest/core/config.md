@@ -1,6 +1,6 @@
 # The configuration module
 
-This module is used to configure a `virtual_rainforest` simulation run. This module
+This module is used to configure a `virtual_ecosystem` simulation run. This module
 reads in a set of configuration files written using `toml`. It is setup in such a way as
 to allow a reduced set of modules to be configured (e.g. just `plants` and `soil`), and
 to allow specific module implementations to be configured (e.g. `plants_with_hydro`
@@ -68,7 +68,7 @@ settings:
 [abiotic_simple]
 ```
 
-The `[core]` element is optional as the Virtual Rainforest core module is always
+The `[core]` element is optional as the Virtual Ecosystem core module is always
 required and the default core settings will be used if it is omitted. It can be useful
 to include it as a reminder that a particular configuration is intentionally using the
 default settings. Each module configuration section can of course be expanded to change

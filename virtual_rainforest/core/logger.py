@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.core.logger` module is used to setup the extend the
+"""The :mod:`~virtual_ecosystem.core.logger` module is used to setup the extend the
 standard logging setup to provide additional functionality relevant to the virtual
-rainforest model.
+ecosystem model.
 
 At the moment the module simply sets up the logger so that other modules can access it.
 It is very likely to be further extended in future.
@@ -83,15 +83,15 @@ logging.basicConfig(
     format="[%(levelname)s] - %(module)s - %(funcName)s(%(lineno)d) - %(message)s",
 )
 
-LOGGER = logging.getLogger("virtual_rainforest")
-""":class:`logging.Logger`: The core logger instance used in the Virtual Rainforest."""
+LOGGER = logging.getLogger("virtual_ecosystem")
+""":class:`logging.Logger`: The core logger instance used in the Virtual Ecosystem."""
 
 
 def add_file_logger(logfile: Path) -> None:
     """Redirect logging to a provided file path.
 
     This function adds a FileHandler with the name ``vr_logfile`` to
-    :data:`~virtual_rainforest.core.logger.LOGGER` using the provided ``logfile`` path.
+    :data:`~virtual_ecosystem.core.logger.LOGGER` using the provided ``logfile`` path.
     It also turns off record propagation so that logging messages are only sent to that
     file and not to the parent StreamHandler.
 
@@ -125,7 +125,7 @@ def remove_file_logger() -> None:
     """Remove the file logger and return to stream logging.
 
     This function attempts to remove the ``vr_logfile`` FileHandler that is added by
-    :func:`~virtual_rainforest.core.logger.add_file_logger`. If that file handler is
+    :func:`~virtual_ecosystem.core.logger.add_file_logger`. If that file handler is
     not found it simple exits, otherwise it removes the file handler and restores
     message propagation.
     """

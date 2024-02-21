@@ -1,16 +1,16 @@
-# Virtual Rainforest simulation flow
+# Virtual Ecosystem simulation flow
 
-This document describes the main simulation flow of the Virtual Rainforest model. The
+This document describes the main simulation flow of the Virtual Ecosystem model. The
 main stages are:
 
 * setup of the **simulation core** that provides shared resources and functions
 * setup of the individual **science models** that simulate the behaviour of different
-components of the Virtual Rainforest, and
+components of the Virtual Ecosystem, and
 * iteration of the simulation over the configured timescale.
 
 ```{mermaid}
 flowchart TD
-    A[vr_run] --> B
+    A[ve_run] --> B
     B --> F
     C --> F
     D --> F
@@ -68,7 +68,7 @@ individual cells that will be used in the simulation.
 All of the data required to initialise and run the simulation is then loaded into an
 internal [`Data` object](./core/data.md). The model configuration sets the locations of
 files containing required variables and this configuration is passed into the
-{meth}`~virtual_rainforest.core.data.Data.load_data_config` method, which ensures that:
+{meth}`~virtual_ecosystem.core.data.Data.load_data_config` method, which ensures that:
 
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
@@ -88,8 +88,8 @@ days), ignoring leap years.
 
 ## Science models
 
-The Virtual Rainforest is implemented as model objects, each of which is responsible for
-simulating a particular aspect of the rainforest ecosystem. The models used for the
+The Virtual Ecosystem is implemented as model objects, each of which is responsible for
+simulating a particular aspect of the ecosystem ecosystem. The models used for the
 specific simulation run can be set in the configuration and will typically include the
 four standard models:
 
@@ -110,7 +110,7 @@ order.
 
 The loaded configuration should include the configuration details for each individual
 science model. These are now used to initialise each requested model using the
-{meth}`~virtual_rainforest.core.base_model.BaseModel.from_config` method defined
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.from_config` method defined
 for each model. This method checks that the configuration is valid for the science
 model.
 
@@ -119,7 +119,7 @@ model.
 Some models require an additional setup step to calculate values for internal variables
 from the initial loaded data or to set up further structures within the model, such as
 representations of plant or animal communities. Each model will run the
-{meth}`~virtual_rainforest.core.base_model.BaseModel.setup` method defined for the
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.setup` method defined for the
 specific model. In simple science models, this method may not actually need to do
 anything.
 
@@ -127,13 +127,13 @@ anything.
 
 Some models may then require a spin up step to allow initial variables to reach an
 equilibrium before running the main simulation. Again, each model will run the
-{meth}`~virtual_rainforest.core.base_model.BaseModel.spinup` method defined for the
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.spinup` method defined for the
 specific model, and again this may not need to do anything for simple models.
 
 ### Model update
 
 At this point, the model instance is now ready for simulation. The
-{meth}`~virtual_rainforest.core.base_model.BaseModel.update` method for each science
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.update` method for each science
 model is run as part of the simulation process described below.
 
 ## Simulation process

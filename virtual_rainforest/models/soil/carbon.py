@@ -1,5 +1,5 @@
 """The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
-Rainforest. At the moment five pools are modelled, these are low molecular weight carbon
+Ecosystem. At the moment five pools are modelled, these are low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
 matter (POM), and POM degrading enzymes.
 """  # noqa: D205, D415
@@ -8,10 +8,9 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
-
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.soil.constants import SoilConsts
-from virtual_rainforest.models.soil.env_factors import (
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.env_factors import (
     calculate_environmental_effect_factors,
     calculate_leaching_rate,
     calculate_temperature_effect_on_microbes,

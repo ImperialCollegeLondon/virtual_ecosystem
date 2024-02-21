@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `litter` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.litter
+.. automodule:: virtual_ecosystem.models.litter
 ```

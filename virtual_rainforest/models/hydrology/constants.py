@@ -1,6 +1,6 @@
-"""The :mod:`~virtual_rainforest.models.hydrology.constants` module contains a set of
+"""The :mod:`~virtual_ecosystem.models.hydrology.constants` module contains a set of
 dataclasses containing and parameters required by the
-:mod:`~virtual_rainforest.models.hydrology.hydrology_model`. These parameters are
+:mod:`~virtual_ecosystem.models.hydrology.hydrology_model`. These parameters are
 constants in that they should not be changed during a particular simulation.
 
 TODO Soil parameters vary strongly with soil type and will require literature search and
@@ -10,7 +10,7 @@ examples within reasonable bounds.
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)
@@ -151,7 +151,7 @@ class HydroConsts(ConstantsDataclass):
 
     This constant is used to reduce potential evaporation for bare soil to maximum
     shaded evaporation in
-    :func:~virtual_rainforest.models.hydrology.above_ground.calculate_soil_evaporation`.
+    :func:~virtual_ecosystem.models.hydrology.above_ground.calculate_soil_evaporation`.
     Typical values are 0.4 to 0.7 for monocotyledons and 0.65 to 1.1 for broad leaved
     dicotyledons :cite:t:`monteith_light_1969`. The extinction coefficient can be
     estimated from measurements of PAR above and below a canopy with a known LAI.

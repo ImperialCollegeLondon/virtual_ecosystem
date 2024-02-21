@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.hydrology.above_ground` module
+#  API for the {mod}`~virtual_ecosystem.models.hydrology.above_ground` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.hydrology.above_ground
+.. automodule:: virtual_ecosystem.models.hydrology.above_ground
     :autosummary:
     :members:
     :special-members: __init__

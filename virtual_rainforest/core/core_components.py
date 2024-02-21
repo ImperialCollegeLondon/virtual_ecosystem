@@ -1,6 +1,6 @@
 """This submodule contains a dataclass used to generate core common components required
 by models. It is used as input to the
-:class:`~virtual_rainforest.core.base_model.BaseModel`, allowing single instances of
+:class:`~virtual_ecosystem.core.base_model.BaseModel`, allowing single instances of
 these components to be cascaded down to individual model subclass instances via the
 ``__init__`` method of the base model..
 """  # noqa: D205, D415
@@ -12,12 +12,11 @@ from dataclasses import InitVar, dataclass, field
 import numpy as np
 from pint import Quantity
 from pint.errors import DimensionalityError, UndefinedUnitError
-
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
 
 
 @dataclass
@@ -26,7 +25,7 @@ class CoreComponents:
 
     This dataclass takes a validated model configuration and uses it to generate a set
     of core model attributes, populated via the ``__init__`` method of
-    :class:`~virtual_rainforest.core.base_model.BaseModel` and hence inherited by the
+    :class:`~virtual_ecosystem.core.base_model.BaseModel` and hence inherited by the
     specific model subclasses.
     """
 
@@ -50,7 +49,7 @@ class CoreComponents:
 class ModelTiming:
     """Model timing details.
 
-    This data class defines the timing of a Virtual Rainforest simulation from the
+    This data class defines the timing of a Virtual Ecosystem simulation from the
     ``core.timing`` section of a validated model configuration. The start time, run
     length and update interval are all extracted from the configuration and validated.
 
@@ -84,7 +83,7 @@ class ModelTiming:
         """Populate the ``ModelTiming`` instance.
 
         This method populates the ``ModelTiming`` attributes from the provided
-        :class:`~virtual_rainforest.core.config.Config` instance.
+        :class:`~virtual_ecosystem.core.config.Config` instance.
 
         Args:
             config: A Config instance.
@@ -149,7 +148,7 @@ class ModelTiming:
 class LayerStructure:
     """Simulation vertical layer structure.
 
-    This class defines the structure of the vertical dimension of the Virtual Rainforest
+    This class defines the structure of the vertical dimension of the Virtual Ecosystem
     from a model configuration. Five values from the ``core.layers`` configuration
     section are used to define a set of vertical layers and their heights (or relative
     heights): ``canopy_layers``, ``soil_layers``, ``above_canopy_height_offset``,
@@ -161,7 +160,7 @@ class LayerStructure:
     The layer structure is shown below, along with values from the default
     configuration. All heights are in metres relative to ground level and the canopy
     layer heights are defined dynamically by the
-    :class:`~virtual_rainforest.models.plants.plants_model.PlantsModel`.
+    :class:`~virtual_ecosystem.models.plants.plants_model.PlantsModel`.
 
     .. csv-table::
         :header: "Index", "Role", "Description", "Set by", "Default"
@@ -203,7 +202,7 @@ class LayerStructure:
         """Populate the ``LayerStructure`` instance.
 
         This method populates the ``LayerStructure`` attributes from the provided
-        :class:`~virtual_rainforest.core.config.Config` instance.
+        :class:`~virtual_ecosystem.core.config.Config` instance.
 
         Args:
             config: A Config instance.

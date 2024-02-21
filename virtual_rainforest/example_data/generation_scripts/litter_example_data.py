@@ -1,16 +1,15 @@
-"""Necessary litter data for `vr_run` example.
+"""Necessary litter data for `ve_run` example.
 
 This script generates the data required to run the litter component in the example
 dataset. It is important to note that none of this data is real data. Instead, the code
 below creates some typical values for the required input data and generates a simple
 spatial pattern. Descriptions of the relevant litter pools can be found here:
-/virtual_rainforest/docs/source/virtual_rainforest/soil/soil_details.md.
+/virtual_ecosystem/docs/source/virtual_ecosystem/soil/soil_details.md.
 """
 
 import numpy as np
+from virtual_ecosystem.example_data.generation_scripts.common import cell_displacements
 from xarray import Dataset
-
-from virtual_rainforest.example_data.generation_scripts.common import cell_displacements
 
 # Calculate a gradient
 gradient = np.multiply.outer(cell_displacements / 90, cell_displacements / 90)
@@ -53,7 +52,7 @@ example_litter_data = Dataset(
         x=(["x"], cell_displacements),
         y=(["y"], cell_displacements),
     ),
-    attrs=dict(description="Litter data for example Virtual Rainforest model."),
+    attrs=dict(description="Litter data for example Virtual Ecosystem model."),
 )
 
 # Save the dummy litter data file as netcdf

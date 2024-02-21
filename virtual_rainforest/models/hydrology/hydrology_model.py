@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.models.hydrology.hydrology_model` module
+"""The :mod:`~virtual_ecosystem.models.hydrology.hydrology_model` module
 creates a
-:class:`~virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel`
-class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class.
+:class:`~virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel`
+class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the Virtual Rainforest
+:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the Virtual Ecosystem
 model develops. The factory method
-:func:`~virtual_rainforest.models.hydrology.hydrology_model.HydrologyModel.from_config`
+:func:`~virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters from our
 currently pretty minimal configuration dictionary. These parameters are then used to
 generate a class instance. If errors crop here when converting the information from the
@@ -23,17 +23,16 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.hydrology import above_ground, below_ground
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
 from xarray import DataArray
-
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.hydrology import above_ground, below_ground
-from virtual_rainforest.models.hydrology.constants import HydroConsts
 
 
 class HydrologyModel(
@@ -138,9 +137,9 @@ class HydrologyModel(
         invalid rather than returning an initialised model instance an error is raised.
 
         Args:
-            data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             core_components: The core components used across models.
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load model parameters
@@ -270,7 +269,7 @@ class HydrologyModel(
         r"""Function to update the hydrology model.
 
         This function calculates the main hydrological components of the Virtual
-        Rainforest and updates the following variables in the `data` object:
+        Ecosystem and updates the following variables in the `data` object:
 
         * precipitation_surface, [mm]
         * soil_moisture, [-]
@@ -294,12 +293,12 @@ class HydrologyModel(
         Precipitation that reaches the surface is defined as incoming precipitation
         minus canopy interception, which is estimated using a stroage-based approach,
         see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.calculate_interception`
+        :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_interception`
         .
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`, see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.calculate_surface_runoff`
+        :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_surface_runoff`
         : if precipitation exceeds top soil moisture capacity
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
@@ -309,16 +308,16 @@ class HydrologyModel(
         cell based above-ground hydrology. The accumulated surface runoff is calculated
         as the sum of current runoff and the runoff from upstream cells at the previous
         time step, see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.accumulate_horizontal_flow`
+        :func:`~virtual_ecosystem.models.hydrology.above_ground.accumulate_horizontal_flow`
         .
 
         Potential soil evaporation is calculated with classical bulk aerodynamic
         formulation, following the so-called ':math:`\alpha` method', see
-        :func:`~virtual_rainforest.models.hydrology.above_ground.calculate_soil_evaporation`
+        :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_soil_evaporation`
         , and reduced to actual evaporation as a function of leaf area index.
 
         Vertical flow between soil layers is calculated using the Richards equation, see
-        :func:`~virtual_rainforest.models.hydrology.below_ground.calculate_vertical_flow`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.calculate_vertical_flow`
         . Here, the mean vertical flow in mm per day that goes though the top soil layer
         is returned to the data object. Note that there are
         severe limitations to this approach on the temporal and spatial scale of this
@@ -326,15 +325,15 @@ class HydrologyModel(
 
         Soil moisture is updated by iteratively updating the soil moisture of individual
         layers under consideration of the vertical flow in and out of each layer, see
-        :func:`~virtual_rainforest.models.hydrology.below_ground.update_soil_moisture`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`
         . The conversion to matric potential is based on :cite:t:`campbell_simple_1974`,
         see
-        :func:`~virtual_rainforest.models.hydrology.below_ground.convert_soil_moisture_to_water_potential`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.convert_soil_moisture_to_water_potential`
         .
 
         Groundwater storage and flows are modelled using two parallel linear
         reservoirs, see
-        :func:`~virtual_rainforest.models.hydrology.below_ground.update_groundwater_storge`
+        :func:`~virtual_ecosystem.models.hydrology.below_ground.update_groundwater_storge`
         . The horizontal flow between grid cells currently uses the same function as the
         above ground runoff.
 
@@ -356,7 +355,7 @@ class HydrologyModel(
         * accumulated subsurface runoff (previous time step), [mm]
 
         and a number of parameters that as described in detail in
-        :class:`~virtual_rainforest.models.hydrology.constants.HydroConsts`.
+        :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
         """
         # Determine number of days, currently only 30 days (=1 month)
         if self.model_timing.update_interval_quantity != Quantity("1 month"):

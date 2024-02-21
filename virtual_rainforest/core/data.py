@@ -1,10 +1,10 @@
-"""The :mod:`~virtual_rainforest.core.data` module handles the population and storage of
-data sources used to run Virtual Rainforest simulations.
+"""The :mod:`~virtual_ecosystem.core.data` module handles the population and storage of
+data sources used to run Virtual Ecosystem simulations.
 
 The Data class
 ==============
 
-The core :class:`~virtual_rainforest.core.data.Data` class is used to store data for the
+The core :class:`~virtual_ecosystem.core.data.Data` class is used to store data for the
 variables used in a simulation. It can be used both for data from external sources - for
 example, data used to set the initial environment or time series of inputs - and for
 internal variables used in the simulation. The class behaves like a dictionary - so data
@@ -13,50 +13,50 @@ for data being added to the object.
 
 All data added to the class is stored in a :class:`~xarray.Dataset` object, and data
 extracted from the object will be a :class:`~xarray.DataArray`. The ``Dataset`` can also
-be accessed directly using the :attr:`~virtual_rainforest.core.data.Data.data` attribute
+be accessed directly using the :attr:`~virtual_ecosystem.core.data.Data.data` attribute
 of the class instance to use any of the :class:`~xarray.Dataset` class methods.
 
-When data is added to a :class:`~virtual_rainforest.core.data.Data` instance, it is
+When data is added to a :class:`~virtual_ecosystem.core.data.Data` instance, it is
 automatically validated against the configuration of a simulation before being added to
-the :attr:`~virtual_rainforest.core.data.Data.data` attribute. The validation process
+the :attr:`~virtual_ecosystem.core.data.Data.data` attribute. The validation process
 also stores information that allows models to can confirm that a given variable has been
 successfully validated.
 
-The core of the :class:`~virtual_rainforest.core.data.Data` class is the
-:meth:`~virtual_rainforest.core.data.Data.__setitem__` method. This method provides the
+The core of the :class:`~virtual_ecosystem.core.data.Data` class is the
+:meth:`~virtual_ecosystem.core.data.Data.__setitem__` method. This method provides the
 following functionality:
 
-* It allows a ``DataArray`` to be added to a :class:`~virtual_rainforest.core.data.Data`
+* It allows a ``DataArray`` to be added to a :class:`~virtual_ecosystem.core.data.Data`
   instance using the ``data['varname'] = data_array`` syntax.
 * It applies the validation step using the
-  :func:`~virtual_rainforest.core.axes.validate_dataarray` function. See the
-  :mod:`~virtual_rainforest.core.axes` module for the details of the validation process,
-  including the :class:`~virtual_rainforest.core.axes.AxisValidator` class and the
+  :func:`~virtual_ecosystem.core.axes.validate_dataarray` function. See the
+  :mod:`~virtual_ecosystem.core.axes` module for the details of the validation process,
+  including the :class:`~virtual_ecosystem.core.axes.AxisValidator` class and the
   concept of core axes.
 * It inserts the data into the :class:`~xarray.Dataset` instance stored in the
-  :attr:`~virtual_rainforest.core.data.Data.data` attribute.
+  :attr:`~virtual_ecosystem.core.data.Data.data` attribute.
 * Lastly, it records the data validation details in the
-  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute.
+  :attr:`~virtual_ecosystem.core.data.Data.variable_validation` attribute.
 
-The :class:`~virtual_rainforest.core.data.Data` class also provides three shorthand
+The :class:`~virtual_ecosystem.core.data.Data` class also provides three shorthand
 methods to get information and data from an instance.
 
-* The :meth:`~virtual_rainforest.core.data.Data.__contains__` method tests if a named
+* The :meth:`~virtual_ecosystem.core.data.Data.__contains__` method tests if a named
   variable is included in the internal :class:`~xarray.Dataset` instance.
 
     .. code-block:: python
 
         # Equivalent code 'varname' in data 'varname' in data.data
 
-* The :meth:`~virtual_rainforest.core.data.Data.__getitem__` method is used to retrieve
+* The :meth:`~virtual_ecosystem.core.data.Data.__getitem__` method is used to retrieve
   a named variable from the internal :class:`~xarray.Dataset` instance.
 
     .. code-block:: python
 
         # Equivalent code data['varname'] data.data['varname']
 
-* The :meth:`~virtual_rainforest.core.data.Data.on_core_axis` method queries the
-  :attr:`~virtual_rainforest.core.data.Data.variable_validation` attribute to confirm
+* The :meth:`~virtual_ecosystem.core.data.Data.on_core_axis` method queries the
+  :attr:`~virtual_ecosystem.core.data.Data.variable_validation` attribute to confirm
   that a named variable has been validated on a named axis.
 
     .. code-block:: python
@@ -71,18 +71,18 @@ The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using an appropriate reader packages for the format,
 * coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
-* use the :meth:`~virtual_rainforest.core.data.Data.__setitem__` method to validate and
-  add it to a :class:`~virtual_rainforest.core.data.Data` instance.
+* use the :meth:`~virtual_ecosystem.core.data.Data.__setitem__` method to validate and
+  add it to a :class:`~virtual_ecosystem.core.data.Data` instance.
 
-The  :func:`~virtual_rainforest.core.readers.load_to_dataarray` implements data loading
+The  :func:`~virtual_ecosystem.core.readers.load_to_dataarray` implements data loading
 to a DataArray for some known file formats, using file reader functions described in the
-:mod:`~virtual_rainforest.core.readers` module. See the details of that module for
+:mod:`~virtual_ecosystem.core.readers` module. See the details of that module for
 supported formats and for extending the system to additional file formats.
 
 .. code-block:: python
 
     # Load temperature data from a supported file
-    from virtual_rainforest.core.readers import load_to_dataarray
+    from virtual_ecosystem.core.readers import load_to_dataarray
     data['temp'] = load_to_dataarray(
         '/path/to/supported/format.nc', var_name='temperature'
     )
@@ -90,10 +90,10 @@ supported formats and for extending the system to additional file formats.
 Using a data configuration
 --------------------------
 
-A :class:`~virtual_rainforest.core.data.Data` instance can also be populated using the
-:meth:`~virtual_rainforest.core.data.Data.load_data_config` method. This is expecting to
+A :class:`~virtual_ecosystem.core.data.Data` instance can also be populated using the
+:meth:`~virtual_ecosystem.core.data.Data.load_data_config` method. This is expecting to
 take a properly validated configuration object, typically created from TOML files
-(see :class:`~virtual_rainforest.core.config.Config`). The expected
+(see :class:`~virtual_ecosystem.core.config.Config`). The expected
 structure of the data configuration section within those TOML files is as follows:
 
 .. code-block:: toml
@@ -124,20 +124,19 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
+from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.readers import load_to_dataarray
+from virtual_ecosystem.core.utils import check_outfile
 from xarray import DataArray, Dataset, open_mfdataset
-
-from virtual_rainforest.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_rainforest.core.config import Config, ConfigurationError
-from virtual_rainforest.core.grid import Grid
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.core.readers import load_to_dataarray
-from virtual_rainforest.core.utils import check_outfile
 
 
 class Data:
-    """The Virtual Rainforest data object.
+    """The Virtual Ecosystem data object.
 
-    This class holds data for a Virtual Rainforest simulation. It functions like a
+    This class holds data for a Virtual Ecosystem simulation. It functions like a
     dictionary but the class extends the dictionary methods to provide common methods
     for data validation etc and to hold key attributes, such as the underlying spatial
     grid.
@@ -165,7 +164,7 @@ class Data:
 
         The validation details for each variable is stored in this dictionary using the
         variable name as a key. The validation details are a dictionary, keyed using
-        core axis names, of the :class:`~virtual_rainforest.core.axes.AxisValidator`
+        core axis names, of the :class:`~virtual_ecosystem.core.axes.AxisValidator`
         subclass applied to that axis. If no validator was applied, the entry for that
         core axis will be ``None``.
         """
@@ -183,13 +182,13 @@ class Data:
 
         This method takes an input {class}`~xarray.DataArray` object and then matches
         the dimension and coordinates signature of the array to find a loading routine
-        given the grid used in the {class}`virtual_rainforest.core.data.Data` instance.
+        given the grid used in the {class}`virtual_ecosystem.core.data.Data` instance.
         That routine is used to validate the DataArray and then add the DataArray to the
         {class}`~xarray.Dataset` object or replace the existing DataArray under that
         key.
 
         Note that the DataArray name is expected to match the standard internal variable
-        names used in Virtual Rainforest.
+        names used in Virtual Ecosystem.
 
         Args:
             key: The name to store the data under
@@ -288,7 +287,7 @@ class Data:
         name of the variable within the file (``var_name``).
 
         Args:
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         LOGGER.info("Loading data from configuration")
@@ -363,7 +362,7 @@ class Data:
         can be saved using this function.
 
         Args:
-            output_file_path: Path location to save the Virtual Rainforest model state.
+            output_file_path: Path location to save the Virtual Ecosystem model state.
             variables_to_save: List of variables to be saved. If not provided then all
                 variables are saved.
         """

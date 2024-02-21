@@ -1,5 +1,5 @@
 """The ``core.utils`` module contains functions that are used across the
-Virtual Rainforest, but which don't have a natural home in a specific module. Adding
+Virtual Ecosystem, but which don't have a natural home in a specific module. Adding
 functions here can be a good way to reduce the amount boiler plate code generated for
 tasks that are repeated across modules.
 """  # noqa: D205, D415
@@ -7,9 +7,8 @@ tasks that are repeated across modules.
 from pathlib import Path
 
 import numpy as np
-
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
 
 
 def check_outfile(merge_file_path: Path) -> None:
@@ -66,7 +65,7 @@ def set_layer_roles(
     """Create a list of layer roles.
 
     This function creates a list of strings describing the layer roles for the vertical
-    dimension of the Virtual Rainforest. These roles are used with data arrays that have
+    dimension of the Virtual Ecosystem. These roles are used with data arrays that have
     that vertical dimension: the roles then show what information is being captured at
     different heights through that vertical dimension. Within the model, ground level is
     at height 0 metres: above ground heights are positive and below ground heights are

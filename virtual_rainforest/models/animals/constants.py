@@ -1,6 +1,6 @@
 """The `models.animals.constants` module contains a set of dataclasses containing
 constants" (fitting relationships taken from the literature) required by the broader
-:mod:`~virtual_rainforest.models.animals` module
+:mod:`~virtual_ecosystem.models.animals` module
 
 The near-future intention is to rework the relationship between these constants and the
 AnimalCohort objects in which they are used such that there is a FunctionalType class
@@ -11,8 +11,8 @@ avoid frequent searches through this constants file for values.
 
 from dataclasses import dataclass, field
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
-from virtual_rainforest.models.animals.animal_traits import (
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.models.animals.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,

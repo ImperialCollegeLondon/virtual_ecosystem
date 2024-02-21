@@ -1,7 +1,7 @@
-"""Simple climate data pre-processing example for `vr_run` example data.
+"""Simple climate data pre-processing example for `ve_run` example data.
 
 This section illustrates how to perform simple manipulations to adjust ERA5-Land data to
-use in the Virtual Rainforest. This includes reading climate data from netcdf,
+use in the Virtual Ecosystem. This includes reading climate data from netcdf,
 converting the data into an input format that is suitable for the abiotic module (e.g.
 Kelvin to Celsius conversion), adding further required variables, and writing the output
 in a new netcdf file. This does not include spatially interpolating coarser resolution
@@ -25,7 +25,7 @@ Metadata:
 * Format: NetCDF3
 
 Once the new netcdf file is created, the final step is to add the grid information to
-the grid config `TOML` to load this data correctly when setting up a Virtual Rainforest
+the grid config `TOML` to load this data correctly when setting up a Virtual Ecosystem
 Simulation. Here, we can also add the 45 m offset to position the coordinated at the
 centre of the grid cell.
 
@@ -39,13 +39,12 @@ yoff = -45.0
 
 import numpy as np
 import xarray as xr
-from xarray import DataArray
-
-from virtual_rainforest.example_data.generation_scripts.common import (
+from virtual_ecosystem.example_data.generation_scripts.common import (
     time_index,
     x_cell_ids,
     y_cell_ids,
 )
+from xarray import DataArray
 
 # 1. Load ERA5_Land data in low resolution
 
@@ -53,7 +52,7 @@ dataset = xr.open_dataset("../source/ERA5_land.nc")
 
 # 2. Convert temperatures units
 # The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
-# to degree Celsius for the Virtual Rainforest. This includes 2m air temperature and
+# to degree Celsius for the Virtual Ecosystem. This includes 2m air temperature and
 # 2m dewpoint temperature which are used to calculate relative humidity in next step.
 
 dataset["t2m_C"] = dataset["t2m"] - 273.15  # 2m air temperature
@@ -85,7 +84,7 @@ dataset["sp_kPa"] = dataset["sp"] / 1000
 # 6. Clean dataset and rename variables
 # In this step, we delete the initial temperature variables (K), precipitation (m), and
 # surface pressure(Pa) and rename the remaining variables according to the Virtual
-# Rainforest naming convention.
+# Ecosystem naming convention.
 
 dataset_cleaned = dataset.drop_vars(["d2m", "d2m_C", "t2m", "tp", "sp"])
 dataset_renamed = dataset_cleaned.rename(
@@ -124,13 +123,13 @@ dataset_xy = (
 )
 
 # 9. Scale to 90 m resolution
-# The Virtual Rainforest example data is run on a 90 x 90 m grid. This means that some
+# The Virtual Ecosystem example data is run on a 90 x 90 m grid. This means that some
 # form of spatial downscaling has to be applied to the dataset, for example by spatially
 # interpolating coarser resolution climate data and including the effects of local
 # topography. This is not yet implemented!
 
 # For the purpose of a example data in the development stage, the coordinates can be
-# overwritten to match the Virtual Rainforest grid and we can select a smaller area.
+# overwritten to match the Virtual Ecosystem grid and we can select a smaller area.
 # Note that the resulting dataset does no longer match a digital elevation model for the
 # area!
 
@@ -154,6 +153,6 @@ dataset_xy_timeindex = (
 # 11. Save netcdf
 # Once we confirmed that our dataset is complete and our calculations are correct, we
 # save it as a new netcdf file. This can then be fed into the code data loading system
-# here {mod}`~virtual_rainforest.core.data`.
+# here {mod}`~virtual_ecosystem.core.data`.
 
 dataset_xy_timeindex.to_netcdf("../data/example_climate_data.nc")

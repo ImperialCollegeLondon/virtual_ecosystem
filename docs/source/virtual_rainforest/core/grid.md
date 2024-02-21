@@ -15,14 +15,14 @@ kernelspec:
 
 # The `core.grid` module
 
-This module is used to define the grid of cells used in a `virtual_rainforest`
+This module is used to define the grid of cells used in a `virtual_ecosystem`
 simulation. Square and hexagon grids are currently supported.
 
 ```{code-cell}
 import matplotlib.pyplot as plt
 import numpy as np
 
-from virtual_rainforest.core.grid import Grid
+from virtual_ecosystem.core.grid import Grid
 ```
 
 ## Square grids

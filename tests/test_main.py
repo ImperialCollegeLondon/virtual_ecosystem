@@ -1,6 +1,6 @@
 """Test module for main.py (and associated functionality).
 
-This module tests both the main simulation function `vr_run` and the other functions
+This module tests both the main simulation function `ve_run` and the other functions
 defined in main.py that it calls.
 """
 
@@ -8,9 +8,8 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
 import pytest
-
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.main import vr_run
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.main import ve_run
 
 from .conftest import log_check
 
@@ -87,9 +86,9 @@ def test_initialise_models(
 ):
     """Test the function that initialises the models."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.main import initialise_models
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
@@ -142,8 +141,8 @@ def test_initialise_models(
         ),
     ],
 )
-def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
-    """Test the main `vr_run` function handles bad model configurations correctly.
+def test_ve_run_model_issues(caplog, config_content, expected_log_entries):
+    """Test the main `ve_run` function handles bad model configurations correctly.
 
     Note that some of this is also safeguarded by the config validation. Unknown model
     names should not pass schema validation, but incorrect config data can still pass
@@ -151,7 +150,7 @@ def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
     """
 
     with pytest.raises(ConfigurationError):
-        vr_run(cfg_strings=config_content)
+        ve_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
 
@@ -225,8 +224,8 @@ def test_get_model_sequence(
 ):
     """Test the function that sets the model sequence."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.main import _get_model_sequence
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.main import _get_model_sequence
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,

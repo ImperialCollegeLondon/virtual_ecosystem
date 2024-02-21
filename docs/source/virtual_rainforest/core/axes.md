@@ -15,7 +15,7 @@ kernelspec:
 
 # Core axes
 
-The Virtual Rainforest uses a set of **core axes** which have dimensions and possibly
+The Virtual Ecosystem uses a set of **core axes** which have dimensions and possibly
 coordinates set by the configuration of a simulation.
 
 * The **dimensions** of an axis set the shape of the axis. For example, a simulation
@@ -48,12 +48,12 @@ with `x` and `y` dimensions.
 
 Datasets that use `latitude` and `longitude` dimension names - or variants of those 
 names - will not be validated on the `spatial` axis. This is because we expect Virtual 
-Rainforest to be used exclusively with projected coordinate systems and so spatial data 
+Ecosystem to be used exclusively with projected coordinate systems and so spatial data 
 on geographic coordinates must be projected onto appropriate local projected coordinates
 before use.
 ```
 
-Within a simulation, the Virtual Rainforest uses a single spatial dimension along the
+Within a simulation, the Virtual Ecosystem uses a single spatial dimension along the
 [grid](grid.md) cell ids, so a `cell_id` dimension can be used to directly map data onto
 the grid. However, spatial data is often provided using two dimensional `x` and `y`
 coordinates, which can then be used to map data onto polygon geometry of each of the

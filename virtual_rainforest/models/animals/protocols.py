@@ -1,11 +1,11 @@
 """The `models.animals.protocols` module contains a class provides eatability definition
 used by AnimalCohorts, PlantResources, and Carcasses in the
-:mod:`~virtual_rainforest.models.animals` module.
+:mod:`~virtual_ecosystem.models.animals` module.
 """  # noqa: D205, D415
 
 from typing import Protocol
 
-from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
 
 
 class Consumer(Protocol):

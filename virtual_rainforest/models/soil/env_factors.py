@@ -8,9 +8,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature, gas_constant
-
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.soil.constants import SoilConsts
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
 @dataclass

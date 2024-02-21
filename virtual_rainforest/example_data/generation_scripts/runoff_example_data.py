@@ -1,13 +1,12 @@
-"""Example runoff data for `vr_run`.
+"""Example runoff data for `ve_run`.
 
 This code randomly generates normally distributed surface runoff data to run in the
-`vr_run` example data without the SPLASH implementation.
+`ve_run` example data without the SPLASH implementation.
 """
 
 import numpy as np
+from virtual_ecosystem.example_data.generation_scripts.common import cell_displacements
 from xarray import DataArray
-
-from virtual_rainforest.example_data.generation_scripts.common import cell_displacements
 
 # Randomly generate surface runoff with normal distribution
 mu, sigma = 10, 2  # mean and standard deviation

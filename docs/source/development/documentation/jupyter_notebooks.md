@@ -14,7 +14,7 @@ jupytext:
 
 Jupyter notebooks are a literate-programming format that allows text and runnable code
 to be combined in a single document. They provide the ability to write documentation
-pages that show the actual use of the `virtual_rainforest` project along with outputs
+pages that show the actual use of the `virtual_ecosystem` project along with outputs
 and figures. They are also an invaluable tool for sharing design and troubleshooting
 investigations. The [Jupyter project](https://jupyter.org/) provides many different
 tools for working with notebooks, including the main `jupyter` program and a
@@ -22,11 +22,11 @@ browser-based notebook editor called `jupyter-lab`.
 
 ## Running `jupyter-lab`
 
-The `poetry` virtual environment for `virtual_rainforest` is already setup to
+The `poetry` virtual environment for `virtual_ecosystem` is already setup to
 include `jupyter` and `jupyter-lab`, which is a browser-based application for editing
-and running notebooks. As that virtual environment also has the `virtual_rainforest`
+and running notebooks. As that virtual environment also has the `virtual_ecosystem`
 package installed in development mode, a `jupyter` notebook running using this
-enviroment will be able to import and use `virtual_rainforest` code from the active
+enviroment will be able to import and use `virtual_ecosystem` code from the active
 branch.
 
 You can open `jupyter-lab` in a couple of ways. The simplest way is to use `poetry run
@@ -37,8 +37,8 @@ produced from `poetry`:
 
 ```zsh
 % poetry env list --full-path
-/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.10
-/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.9 (Activated)
+/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10
+/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.9 (Activated)
 ```
 
 In VS Code, you then have to set the Python interpreter to the full path to the
@@ -55,7 +55,7 @@ and even different environments of the same language. Each option is setup as a
 **kernel**, which is basically a pointer to a particular programming environment or
 virtual environment.
 
-To make sure that `virtual_rainforest` project notebooks are always built using the
+To make sure that `virtual_ecosystem` project notebooks are always built using the
 correct virtual environment on all systems (including developer machines, ReadTheDocs
 and Github Actions), this project requires that `jupyter` is set up to use the virtual
 environment created by `poetry` under the `vr_python3` kernel name. There is a good
@@ -80,7 +80,7 @@ run the code cells. That command is doing some subtle and important things:
 The choice of kernel name is **important** because `jupyter` uses the kernel specified
 in the notebook metadata and we want it to be stable. The kernel name:
 
-- needs to point to a virtual environment including the `virtual_rainforest` package
+- needs to point to a virtual environment including the `virtual_ecosystem` package
   and dependencies, and
 - should be consistent across supported Python versions and developer machines.
 
@@ -92,7 +92,7 @@ The options are:
   **spectacularly bad** kernel name because files would change as they are run on
   different developer machines.
 - Using the `vr_python3` name is hopefully unique and should be a stable pointer to a
-  venv that includes  the `virtual_rainforest` package and dependencies.
+  venv that includes  the `virtual_ecosystem` package and dependencies.
 
 Just to point to the gory details, there is now a `kernelspec` called `vr_python3`. That
 is just a pointer to a JSON file that points to the machine-specific venv location.
@@ -109,7 +109,7 @@ Available kernels:
 % cat /Users/dorme/Library/Jupyter/kernels/vr_python3/kernel.json
 {
  "argv": [
-  "/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.10/bin/python",
+  "/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10/bin/python",
   "-m",
   "ipykernel_launcher",
   "-f",

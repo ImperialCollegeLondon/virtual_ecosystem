@@ -1,15 +1,15 @@
-# Virtual Rainforest parameterisation
+# Virtual Ecosystem parameterisation
 
-The Virtual Rainforest contains a very large number of constants. These constants are
+The Virtual Ecosystem contains a very large number of constants. These constants are
 assigned default values based on either site specific data or best estimates from the
 literature. However, in many cases this still leads to significant uncertainty about
-true values of constants. Because of this, the Virtual Rainforest is set up to allow all
+true values of constants. Because of this, the Virtual Ecosystem is set up to allow all
 constants to be changed. This allows end users to change constant values if they have
 access to better estimates, and also allows for sensitivity analysis to be performed.
 
 As a quick note on terminology, we have chosen to call all our parameters "constants",
 despite many of them not being truly universal constants. This is to make it clear that
-none of them should be changed within a given Virtual Rainforest simulation. Though it
+none of them should be changed within a given Virtual Ecosystem simulation. Though it
 is fine to use different values for them across different simulations.
 
 ## Using non-default values for constants

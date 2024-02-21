@@ -1,16 +1,15 @@
 """The `models.animals.functional_group` module contains a class that organizes
 constants and rate equations used by AnimalCohorts in the
-:mod:`~virtual_rainforest.models.animals` module.
+:mod:`~virtual_ecosystem.models.animals` module.
 """  # noqa: D205, D415
 
 import pandas as pd
-
-from virtual_rainforest.models.animals.animal_traits import (
+from virtual_ecosystem.models.animals.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
 )
-from virtual_rainforest.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animals.constants import AnimalConsts
 
 
 class FunctionalGroup:

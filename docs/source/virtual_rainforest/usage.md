@@ -1,12 +1,12 @@
-# Basic Virtual Rainforest model usage
+# Basic Virtual Ecosystem model usage
 
-## Installing the virtual rainforest model
+## Installing the virtual ecosystem model
 
-For most users the best way to make use of the Virtual Rainforest package is to install
+For most users the best way to make use of the Virtual Ecosystem package is to install
 it via `pip`. It should be noted, however, that this isn't currently possible.
 
 Developer installation should be carried out using poetry. This is achieved by creating
-a local copy of the Virtual Rainforest `git` repository. The package is then installed
+a local copy of the Virtual Ecosystem `git` repository. The package is then installed
 by calling navigating to the repository and calling:
 
 ```shell
@@ -14,27 +14,27 @@ poetry install
 ```
 
 This will install the model and all its dependencies. The model entry points (e.g.
-`vr_run`) can then be made use of by calling `poetry run {name_of_entrypoint}`, or by
+`ve_run`) can then be made use of by calling `poetry run {name_of_entrypoint}`, or by
 entering a poetry shell (by calling `poetry shell`). When actively developing it is
 generally better to be within a poetry shell, as this ensures that you have command line
 access to all relevant dependencies.
 
-## Running an example Virtual Rainforest simulation
+## Running an example Virtual Ecosystem simulation
 
-Some example data is included with Virtual Rainforest to provide
-an introduction to the file formats and configuration. To try Virtual Rainforest using
+Some example data is included with Virtual Ecosystem to provide
+an introduction to the file formats and configuration. To try Virtual Ecosystem using
 this example data, you first need to install the data to a location of your choice. The
 command below will create the `vr_example` directory at the location you choose and
 install all of the configuration and data files to run a model.
 
 ```shell
-vr_run --install-example /path/
+ve_run --install-example /path/
 ```
 
 You can then run the model itself:
 
 ```shell
-vr_run /path/vr_example/config \ 
+ve_run /path/vr_example/config \ 
     --outpath /path/vr_example/config/out \ 
     --logfile /path/vr_example/out/vr_example.log
 ```

@@ -1,8 +1,9 @@
-"""The :mod:`~virtual_rainforest.entry_points`  module defines the command line entry
-points to the virtual_rainforest package. At the moment a single entry point is defined
-`vr_run`, which simply configures and runs a virtual rainforest simulation based on a
+"""The :mod:`~virtual_ecosystem.entry_points`  module defines the command line entry
+points to the virtual_ecosystem package. At the moment a single entry point is defined
+`ve_run`, which simply configures and runs a virtual ecosystem simulation based on a
 set of configuration files.
 """  # noqa D210, D415
+
 import argparse
 import sys
 import textwrap
@@ -11,12 +12,12 @@ from pathlib import Path
 from shutil import copytree, ignore_patterns
 from typing import Any
 
-import virtual_rainforest as vr
-from virtual_rainforest import example_data_path
-from virtual_rainforest.core.config import config_merge
-from virtual_rainforest.core.exceptions import ConfigurationError
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.main import vr_run
+import virtual_ecosystem as ve
+from virtual_ecosystem import example_data_path
+from virtual_ecosystem.core.config import config_merge
+from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.main import ve_run
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
@@ -103,10 +104,10 @@ def install_example_directory(install_dir: Path) -> int:
     return 0
 
 
-def vr_run_cli(args_list: list[str] | None = None) -> int:
-    """Configure and run a Virtual Rainforest simulation.
+def ve_run_cli(args_list: list[str] | None = None) -> int:
+    """Configure and run a Virtual Ecosystem simulation.
 
-    This program sets up and runs a Virtual Rainforest simulation. The program expects
+    This program sets up and runs a Virtual Ecosystem simulation. The program expects
     to be provided with paths to TOML formatted configuration files for the simulation.
     The configuration is modular: a directory path can be used to add all TOML
     configuration files in the directory, or individual file paths can be used to select
@@ -115,11 +116,11 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
 
     As an alternative to providing configuration paths, the `--install-example` option
     allows users to provide a location where a simple example set of datasets and
-    configuration files provided with the Virtual Rainforest package can be installed.
+    configuration files provided with the Virtual Ecosystem package can be installed.
     This option will create a `vr_example` directory in the location, and users can
     examine the input files and run the simulation from that directory:
 
-    `vr_run /provided/install/path/vr_example`
+    `ve_run /provided/install/path/vr_example`
 
     The output directory for simulation results is typically set in the configuration
     files, but can be overwritten using the `--outpath` option. A log file path can be
@@ -134,8 +135,8 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
     Args:
         args_list: This is a developer and testing facing argument that is used to
             simulate command line arguments, allowing this function to be called
-            directly. For example, ``vr_run --install-example /usr/abc`` can be
-            replicated by calling ``vr_run_cli(['--install-example', '/usr/abc/'])``.
+            directly. For example, ``ve_run --install-example /usr/abc`` can be
+            replicated by calling ``ve_run_cli(['--install-example', '/usr/abc/'])``.
 
     Returns:
         An integer indicating success (0) or failure (1)
@@ -148,8 +149,8 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
     # Check function docstring exists to safeguard against -OO mode, and strip off the
     # description of the function args_list, which should not be included in the command
     # line docs
-    if vr_run_cli.__doc__ is not None:
-        desc = textwrap.dedent("\n".join(vr_run_cli.__doc__.splitlines()[:-10]))
+    if ve_run_cli.__doc__ is not None:
+        desc = textwrap.dedent("\n".join(ve_run_cli.__doc__.splitlines()[:-10]))
     else:
         desc = "Python in -OO mode: no docs"
 
@@ -159,7 +160,7 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {vr.__version__}",
+        version=f"%(prog)s {ve.__version__}",
     )
 
     parser.add_argument("cfg_paths", type=str, help="Paths to config files", nargs="*")
@@ -167,7 +168,7 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
     parser.add_argument(
         "--install-example",
         type=Path,
-        help="Install the Virtual Rainforest example data to the given location",
+        help="Install the Virtual Ecosystem example data to the given location",
         dest="install_example",
     )
 
@@ -186,7 +187,7 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
     parser.add_argument(
         "--logfile",
         type=Path,
-        help="A file path to use for logging a Virtual Rainforest simulation",
+        help="A file path to use for logging a Virtual Ecosystem simulation",
         default=None,
     )
 
@@ -214,8 +215,8 @@ def vr_run_cli(args_list: list[str] | None = None) -> int:
         # Parse any extra parameters passed using the --param flag
         _parse_command_line_params(args.params, override_params)
 
-    # Run the virtual rainforest run function
-    vr_run(
+    # Run the virtual ecosystem run function
+    ve_run(
         cfg_paths=args.cfg_paths,
         override_params=override_params,
         logfile=args.logfile,

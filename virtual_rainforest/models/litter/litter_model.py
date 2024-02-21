@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_rainforest.models.litter.litter_model` module creates a
-:class:`~virtual_rainforest.models.litter.litter_model.LitterModel` class as a child of
-the :class:`~virtual_rainforest.core.base_model.BaseModel` class. At present a lot of
+"""The :mod:`~virtual_ecosystem.models.litter.litter_model` module creates a
+:class:`~virtual_ecosystem.models.litter.litter_model.LitterModel` class as a child of
+the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At present a lot of
 the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.base_model.BaseModel.setup` and
-:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the Virtual Rainforest
+:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
+:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the Virtual Ecosystem
 model develops. The factory method
-:func:`~virtual_rainforest.models.litter.litter_model.LitterModel.from_config` exists in
+:func:`~virtual_ecosystem.models.litter.litter_model.LitterModel.from_config` exists in
 a more complete state, and unpacks a small number of parameters from our currently
 pretty minimal configuration dictionary. These parameters are then used to generate a
 class instance. If errors crop here when converting the information from the config
@@ -36,19 +36,18 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from xarray import DataArray
-
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.litter.constants import LitterConsts
-from virtual_rainforest.models.litter.litter_pools import (
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.litter_pools import (
     calculate_change_in_litter_variables,
 )
+from xarray import DataArray
 
 
 class LitterModel(
@@ -81,7 +80,7 @@ class LitterModel(
 
     This model can be configured based on the data object and a config dictionary. At
     present the underlying model this class wraps is quite simple (i.e. two litter
-    pools), but this will get more complex as the Virtual Rainforest develops.
+    pools), but this will get more complex as the Virtual Ecosystem develops.
 
     Args:
         data: The data object to be used in the model.
@@ -160,9 +159,9 @@ class LitterModel(
         invalid rather than returning an initialised model instance an error is raised.
 
         Args:
-            data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             core_components: The core components used across models.
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load in the relevant constants

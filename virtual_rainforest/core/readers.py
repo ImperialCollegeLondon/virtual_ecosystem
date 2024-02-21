@@ -1,28 +1,28 @@
-"""The :mod:`~virtual_rainforest.core.readers` module provides the function
-:func:`~virtual_rainforest.core.readers.load_to_dataarray`, which is used to load data
+"""The :mod:`~virtual_ecosystem.core.readers` module provides the function
+:func:`~virtual_ecosystem.core.readers.load_to_dataarray`, which is used to load data
 from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
-can then be added to a :class:`~virtual_rainforest.core.data.Data` instance for use in a
-Virtual Rainforest simulation.
+can then be added to a :class:`~virtual_ecosystem.core.data.Data` instance for use in a
+Virtual Ecosystem simulation.
 
 The module also supports the registration of different reader functions, used to convert
 files in different storage formats into a ``DataArray``. The
-:func:`~virtual_rainforest.core.readers.load_to_dataarray` automatically uses an
+:func:`~virtual_ecosystem.core.readers.load_to_dataarray` automatically uses an
 appropriate reader based on the file suffix.
 
 The FILE_FORMAT_REGISTRY
 ========================
 
-The :attr:`~virtual_rainforest.core.readers.FILE_FORMAT_REGISTRY` is used to register a
+The :attr:`~virtual_ecosystem.core.readers.FILE_FORMAT_REGISTRY` is used to register a
 set of known file formats for use in
-:func:`~virtual_rainforest.core.readers.load_to_dataarray`. This registry is extendable,
+:func:`~virtual_ecosystem.core.readers.load_to_dataarray`. This registry is extendable,
 so that new functions that implement data loading for a given file format can be added.
 
 New file format readers are made available using the
-:func:`~virtual_rainforest.core.readers.register_file_format_loader` decorator, which
+:func:`~virtual_ecosystem.core.readers.register_file_format_loader` decorator, which
 needs to specify the file formats supported (as a tuple of file suffixes) and then
 decorates a function that returns a :class:`~xarray.DataArray` that can be added to a
-:class:`~virtual_rainforest.core.data.Data` instance and validated
-using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
+:class:`~virtual_ecosystem.core.data.Data` instance and validated
+using :func:`~virtual_ecosystem.core.axes.validate_dataarray`. For example:
 
 .. code-block:: python
 
@@ -34,9 +34,8 @@ using :func:`~virtual_rainforest.core.axes.validate_dataarray`. For example:
 from collections.abc import Callable
 from pathlib import Path
 
+from virtual_ecosystem.core.logger import LOGGER
 from xarray import DataArray, load_dataset
-
-from virtual_rainforest.core.logger import LOGGER
 
 FILE_FORMAT_REGISTRY: dict[str, Callable] = {}
 """A registry for different file format loaders
@@ -45,7 +44,7 @@ This dictionary maps a tuple of file format suffixes onto a function that allows
 data to be loaded. That loader function should coerce the data into an xarray DataArray.
 
 Users can register their own functions to load from a particular file format using the
-:func:`~virtual_rainforest.core.readers.register_file_format_loader` decorator. The
+:func:`~virtual_ecosystem.core.readers.register_file_format_loader` decorator. The
 function itself should have the following signature:
 
 .. code-block:: python
@@ -141,10 +140,10 @@ def load_to_dataarray(
     """Loads data from a file into a DataArray.
 
     The function takes a path to a file format supported in the
-    :attr:`~virtual_rainforest.core.readers.FILE_FORMAT_REGISTRY` and uses the
+    :attr:`~virtual_ecosystem.core.readers.FILE_FORMAT_REGISTRY` and uses the
     appropriate data loader function to load the data and convert it to a
     {class}`~xarray.DataArray`, ready for insertion into a
-    :attr:`~virtual_rainforest.core.data.Data` instance.
+    :attr:`~virtual_ecosystem.core.data.Data` instance.
 
     Args:
         file: A Path for the file containing the variable to load.
