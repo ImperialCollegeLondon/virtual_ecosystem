@@ -43,8 +43,8 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     )
 
     leaf_vap_values = np.repeat(
-        a=[0.25, 0.254389, 0.276332, 0.298276, np.nan, 0.316928, 0.32, np.nan],
-        repeats=[1, 1, 1, 1, 7, 1, 1, 2],
+        a=[np.nan, 0.254389, 0.276332, 0.298276, np.nan],
+        repeats=[1, 1, 1, 1, 11],
     )
     exp_leaf_vap_cond = DataArray(
         np.broadcast_to(leaf_vap_values, (3, 15)).T,
@@ -53,9 +53,9 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         name="leaf_vapor_conductivity",
     )
 
-    leaf_air_values = np.repeat(
-        a=[0.13, 0.133762, 0.152571, 0.171379, np.nan, 0.187367, 0.19, np.nan],
-        repeats=[1, 1, 1, 1, 7, 1, 1, 2],
+    leaf_air_values = np.repeat(  # TODO there should be only 3 values
+        a=[np.nan, 0.133762, 0.152571, 0.171379, np.nan],
+        repeats=[1, 1, 1, 1, 11],
     )
     exp_leaf_air_cond = DataArray(
         np.broadcast_to(leaf_air_values, (3, 15)).T,
@@ -254,6 +254,15 @@ def test_calculate_current_conductivities(dummy_climate_data):
             [0.137796, 0.137796, 0.137796],
         ]
     )
+    exp_gtr = np.array(
+        [
+            [4.221723e05, 4.221723e05, 4.221723e05],
+            [3229.348817, 3229.348817, 3229.348817],
+            [42.150351, 42.150351, 42.150351],
+            [1.059545, 1.059545, 1.059545],
+            [0.577626, 0.577626, 0.577626],
+        ]
+    )
 
     np.testing.assert_allclose(
         result["current_air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04
@@ -263,4 +272,7 @@ def test_calculate_current_conductivities(dummy_climate_data):
     )
     np.testing.assert_allclose(
         result["current_leaf_vapor_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["current_air_heat_conductivity_ref"], exp_gtr, rtol=1e-04, atol=1e-04
     )

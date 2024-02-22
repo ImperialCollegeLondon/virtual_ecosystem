@@ -88,6 +88,7 @@ def initialise_conductivities(
 
     canopy_height = layer_heights[1].to_numpy()
     atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
+    canopy_layers = layer_heights[layer_heights["layer_roles"] == "canopy"]
     soil_layers = layer_heights[layer_heights["layer_roles"] == "soil"]
 
     output = {}
@@ -112,32 +113,46 @@ def initialise_conductivities(
     )
 
     # Initialise leaf vapor conductivity
-    leaf_vapor_conductivity = (
-        output["air_conductivity"].copy().rename("leaf_vapor_conductivity")
-    )
-    leaf_vapor_cond_interpolation = interpolate_along_heights(
+    leaf_vapor_conductivity = interpolate_along_heights(
         start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
-        target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
+        target_heights=layer_heights[canopy_layers.indexes].to_numpy(),
         start_value=top_leaf_vapor_conductivity,
         end_value=bottom_leaf_vapor_conductivity,
     )
-    leaf_vapor_conductivity[atmosphere_layers.indexes] = leaf_vapor_cond_interpolation
-    output["leaf_vapor_conductivity"] = leaf_vapor_conductivity
+    output["leaf_vapor_conductivity"] = DataArray(
+        np.vstack(
+            [
+                np.repeat(np.nan, len(canopy_height)),
+                leaf_vapor_conductivity,
+                np.full((len(soil_layers) + 2, len(canopy_height)), np.nan),
+            ],
+        ),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="leaf_vapor_conductivity",
+    )
 
     # Initialise leaf air heat conductivity
-    leaf_air_conductivity = (
-        output["air_conductivity"].copy().rename("leaf_air_conductivity")
-    )
-    leaf_air_cond_interpolation = interpolate_along_heights(
+    leaf_air_conductivity = interpolate_along_heights(
         start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
-        target_heights=layer_heights[atmosphere_layers.indexes].to_numpy(),
+        target_heights=layer_heights[canopy_layers.indexes].to_numpy(),
         start_value=top_leaf_air_conductivity,
         end_value=bottom_leaf_air_conductivity,
     )
-    leaf_air_conductivity[atmosphere_layers.indexes] = leaf_air_cond_interpolation
-    output["leaf_air_conductivity"] = leaf_air_conductivity
+    output["leaf_air_conductivity"] = DataArray(
+        np.vstack(
+            [
+                np.repeat(np.nan, len(canopy_height)),
+                leaf_air_conductivity,
+                np.full((len(soil_layers) + 2, len(canopy_height)), np.nan),
+            ],
+        ),
+        dims=layer_heights.dims,
+        coords=layer_heights.coords,
+        name="leaf_air_conductivity",
+    )
 
     return output
 
@@ -442,6 +457,26 @@ def calculate_current_conductivities(
 
     output["current_air_heat_conductivity"] = np.vstack(
         [air_heat_conductivity_above, np.vstack(current_air_heat_conductivity)]
+    )
+
+    # Air heat conductivity between layers and reference height
+    current_air_heat_conductivity_ref = []
+    for layer in np.arange(0, len(above_ground_heights) - 1):
+        result = calculate_air_heat_conductivity_canopy(
+            attenuation_coefficient=attenuation_coefficient[layer],
+            mean_mixing_length=mean_mixing_length,
+            molar_density_air=molar_density_air[layer],
+            upper_height=above_ground_heights.isel(layers=0).to_numpy(),
+            lower_height=above_ground_heights.isel(layers=layer + 1).to_numpy(),
+            relative_turbulence_intensity=relative_turbulence_intensity[layer],
+            top_of_canopy_wind_speed=top_of_canopy_wind_speed,
+            diabatic_correction_momentum=diabatic_correction_momentum[layer],
+            canopy_height=above_ground_heights.isel(layers=1).to_numpy(),
+        )
+        current_air_heat_conductivity_ref.append(result)
+
+    output["current_air_heat_conductivity_ref"] = np.vstack(
+        current_air_heat_conductivity_ref
     )
 
     # Leaf air heat conductivity, gha
