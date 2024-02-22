@@ -393,3 +393,90 @@ def test_w_bar_i_j(
         assert (
             0.0 <= result <= 1.0
         ), "Result is outside the expected probability range [0.0, 1.0]"
+
+
+@pytest.mark.parametrize(
+    "alpha_0_pred, mass, w_bar_i_j, expected_search_rate",
+    [
+        (0.1, 10.0, 0.5, 0.5),  # Basic scenario
+        (
+            0.2,
+            5.0,
+            0.75,
+            0.75,
+        ),  # Different values for alpha_0_pred, mass, and w_bar_i_j
+        (0.0, 10.0, 0.5, 0.0),  # Zero alpha_0_pred
+        (0.1, 0.0, 0.5, 0.0),  # Zero mass
+        (0.1, 10.0, 0.0, 0.0),  # Zero w_bar_i_j (probability)
+        (0.1, 10.0, 1.0, 1.0),  # w_bar_i_j is 1 (certain success)
+    ],
+)
+def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
+    """Testing the effective search rate calculation for various inputs."""
+    from virtual_rainforest.models.animals.scaling_functions import alpha_i_j
+
+    calculated_search_rate = alpha_i_j(alpha_0_pred, mass, w_bar_i_j)
+    assert calculated_search_rate == pytest.approx(expected_search_rate, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    "alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output",
+    [
+        (0.1, 100, 1.0, 0.5, 5.0),  # Basic scenario
+        (0.2, 50, 2.0, 0.75, 3.75),  # Varied parameters
+        (0.0, 100, 1.0, 0.5, 0.0),  # Zero search rate
+        (0.1, 0, 1.0, 0.5, 0.0),  # Zero predator population
+        (0.1, 100, 0.0, 0.5, float("inf")),  # Zero cell area, expect infinite or error
+        (0.1, 100, 1.0, 0.0, 0.0),  # Zero theta_i_j
+    ],
+)
+def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
+    """Testing the calculation of potential prey items eaten."""
+    from virtual_rainforest.models.animals.scaling_functions import k_i_j
+
+    # Handle special case where division by zero might occur
+    if A_cell == 0:
+        with pytest.raises(ZeroDivisionError):
+            k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+    else:
+        calculated_output = k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j)
+        assert calculated_output == pytest.approx(expected_output, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    "h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time",
+    [
+        (1.0, 10.0, 10.0, 0.75, 10.0),  # Basic scenario where M_ref equals M_i_t
+        (1.0, 10.0, 5.0, 0.75, 8.4089641),  # M_i_t is half of M_ref
+        (1.0, 10.0, 20.0, 0.75, 11.892071),  # M_i_t is double of M_ref
+        (2.0, 10.0, 10.0, 0.75, 20.0),  # Increased h_pred_0
+        (1.0, 10.0, 10.0, 1.0, 10.0),  # Increased b_pred
+        (
+            1.0,
+            10.0,
+            0.0,
+            0.75,
+            float("inf"),
+        ),  # Edge case: Zero M_i_t, expect division by zero or infinity
+        (
+            1.0,
+            0.0,
+            10.0,
+            0.75,
+            0.0,
+        ),  # Edge case: Zero M_ref, leads to zero handling time
+    ],
+)
+def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time):
+    """Testing the handling time calculation for various predator-prey interactions."""
+    from virtual_rainforest.models.animals.scaling_functions import H_i_j
+
+    # Handle special case where division by zero might occur
+    if M_i_t == 0:
+        with pytest.raises(ZeroDivisionError):
+            H_i_j(h_pred_0, M_ref, M_i_t, b_pred)
+    else:
+        calculated_handling_time = H_i_j(h_pred_0, M_ref, M_i_t, b_pred)
+        assert calculated_handling_time == pytest.approx(
+            expected_handling_time, rel=1e-6
+        )
