@@ -1,6 +1,7 @@
 """Test module for abiotic.energy_balance.py."""
 
 import numpy as np
+from xarray import DataArray
 
 from virtual_rainforest.core.constants import CoreConsts
 from virtual_rainforest.models.abiotic.constants import AbioticConsts
@@ -68,6 +69,20 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result)
 
 
+def test_calculate_slope_of_saturated_pressure_curve():
+    """Test calculation of slope of saturated pressure curve."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_slope_of_saturated_pressure_curve,
+    )
+
+    result = calculate_slope_of_saturated_pressure_curve(
+        temperature=np.full((4, 3), 20.0)
+    )
+    exp_result = np.full((4, 3), 0.14474)
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
+
+
 def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
     """Test that canopy and soil fluxes initialised correctly."""
 
@@ -122,3 +137,84 @@ def test_calculate_longwave_emission():
         rtol=1e-04,
         atol=1e-04,
     )
+
+
+def test_calculate_leaf_and_air_temperature(dummy_climate_data):
+    """Test updating leaf and air temperature."""
+
+    from virtual_rainforest.models.abiotic.energy_balance import (
+        calculate_leaf_and_air_temperature,
+    )
+    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+
+    result = calculate_leaf_and_air_temperature(
+        air_temperature=(
+            dummy_climate_data["air_temperature"][
+                dummy_climate_data["air_temperature"]["layer_roles"] != "soil"
+            ].dropna(dim="layers", how="all")
+        ).to_numpy(),
+        air_temperature_ref=(
+            dummy_climate_data["air_temperature_ref"].isel(time_index=0).to_numpy()
+        ),
+        vapor_pressure_ref=np.repeat(0.14, 3),
+        true_canopy_layers=np.full((3, 3), 1.0),
+        topsoil_temperature=np.repeat(18.0, 3),
+        leaf_air_heat_conductivity=np.full((3, 3), 0.13),
+        conductivity_from_ref_height=np.full((5, 3), 3.0),
+        soil_moisture=np.repeat(0.6, 3),
+        leaf_emissivity=0.8,
+        latent_heat_vaporisation=np.full((6, 3), 2445.0),
+        leaf_vapor_conductivity=np.full((3, 3), 0.2),
+        atmospheric_pressure=dummy_climate_data["atmospheric_pressure_ref"].to_numpy(),
+        absorbed_radiation=np.full((3, 3), 10.0),
+        specific_heat_air=np.full((6, 3), 29),
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        saturation_vapour_pressure_factor1=(
+            AbioticSimpleConsts.saturation_vapour_pressure_factor1
+        ),
+        saturation_vapour_pressure_factor2=(
+            AbioticSimpleConsts.saturation_vapour_pressure_factor2
+        ),
+        saturation_vapour_pressure_factor3=(
+            AbioticSimpleConsts.saturation_vapour_pressure_factor3
+        ),
+    )
+
+    exp_air_temp = DataArray(
+        np.concatenate(
+            (
+                np.array(
+                    [
+                        [30.0, 30.0, 30.0],
+                        [27.94559875, 27.94559875, 27.94559875],
+                        [27.94559875, 27.94559875, 27.94559875],
+                        [27.94559875, 27.94559875, 27.94559875],
+                    ],
+                ),
+                np.full((7, 3), np.nan),
+                np.array([[27.206405, 27.206405, 27.206405], [22.65, 22.65, 22.65]]),
+                np.full((2, 3), np.nan),
+            ),
+        ),
+        dims=["layers", "cell_id"],
+    )
+
+    exp_leaf_temp = DataArray(
+        np.concatenate(
+            (
+                np.full((1, 3), np.nan),
+                np.array(
+                    [
+                        [30.010218, 30.010218, 30.010218],
+                        [29.036393, 29.036393, 29.036393],
+                        [27.371628, 27.371628, 27.371628],
+                    ],
+                ),
+                np.full((11, 3), np.nan),
+            ),
+        ),
+        dims=["layers", "cell_id"],
+    )
+
+    np.testing.assert_allclose(result["leaf_temperature"][1:4], exp_leaf_temp[1:4])
+    np.testing.assert_allclose(result["air_temperature"], exp_air_temp)
