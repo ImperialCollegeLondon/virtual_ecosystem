@@ -173,3 +173,21 @@ def plant_instance(plant_data_instance, constants_instance):
     return PlantResources(
         data=plant_data_instance, cell_id=4, constants=constants_instance
     )
+
+
+@pytest.fixture
+def plant_list_instance(plant_data_instance, constants_instance):
+    """Fixture providing a list of plant resources."""
+    from virtual_rainforest.models.animals.plant_resources import PlantResources
+
+    return [
+        PlantResources(
+            data=plant_data_instance, cell_id=4, constants=constants_instance
+        ),
+        PlantResources(
+            data=plant_data_instance, cell_id=4, constants=constants_instance
+        ),
+        PlantResources(
+            data=plant_data_instance, cell_id=4, constants=constants_instance
+        ),
+    ]

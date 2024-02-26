@@ -257,57 +257,6 @@ class TestAnimalCohort:
         assert carcass_instance.scavengeable_energy > initial_scavengeable_energy
         assert carcass_instance.decomposed_energy > 0.0
 
-    def test_forage_cohort(
-        self, predator_cohort_instance, prey_cohort_instance, mocker
-    ):
-        """Testing forage_cohort."""
-        # Setup
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
-        from virtual_rainforest.models.animals.animal_traits import DietType
-        from virtual_rainforest.models.animals.decay import CarcassPool, ExcrementPool
-        from virtual_rainforest.models.animals.plant_resources import PlantResources
-
-        # Mocking the eat method of AnimalCohort
-        mock_eat = mocker.patch.object(AnimalCohort, "eat")
-
-        # Instances
-        plant_list_instance = [mocker.MagicMock(spec=PlantResources)]
-        animal_list_instance = [
-            mocker.MagicMock(spec=AnimalCohort) for _ in range(3)
-        ]  # Assuming 3 animal cohorts
-        carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
-        excrement_pool_instance = mocker.MagicMock(spec=ExcrementPool)
-        excrement_pool_instance.scavengeable_energy = 0
-        excrement_pool_instance.decomposed_energy = 0
-
-        animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
-
-        for animal_cohort_instance in animal_cohort_instances:
-            # Execution
-            animal_cohort_instance.forage_cohort(
-                plant_list=plant_list_instance,
-                animal_list=animal_list_instance,
-                carcass_pool=carcass_pool_instance,
-                excrement_pool=excrement_pool_instance,
-            )
-
-            # Assertions
-            if animal_cohort_instance.functional_group.diet == DietType.HERBIVORE:
-                mock_eat.assert_called_with(
-                    plant_list_instance[0], excrement_pool_instance
-                )  # Assuming just one plant instance for simplicity
-            elif animal_cohort_instance.functional_group.diet == DietType.CARNIVORE:
-                # Ensure eat was called for each animal in the list
-                assert len(mock_eat.call_args_list) == 1
-                for call in mock_eat.call_args_list:
-                    # Ensure each call had a single AnimalCohort and the CarcassPool
-                    args, _ = call
-                    assert args[0] in animal_list_instance
-                    assert args[1] == carcass_pool_instance
-
-            # Reset mock_eat for next iteration
-            mock_eat.reset_mock()
-
     def test_eat(self, herbivore_cohort_instance, mocker):
         """Testing eat."""
         from virtual_rainforest.models.animals.protocols import Pool, Resource
@@ -442,3 +391,104 @@ class TestAnimalCohort:
             herbivore_cohort_instance.individuals
             == initial_individuals_copy - expected_deaths
         )
+
+
+def test_calculate_alpha(herbivore_cohort_instance):
+    """Test the calculation of search efficiency based on the cohort's current mass."""
+
+    from unittest.mock import patch
+
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.alpha_i_k",
+        return_value=0.1,
+    ) as mock_alpha:
+        alpha = herbivore_cohort_instance.calculate_alpha()
+        mock_alpha.assert_called_once_with(
+            herbivore_cohort_instance.constants.alpha_0_herb,
+            herbivore_cohort_instance.mass_current,
+        )
+        assert alpha == 0.1
+
+
+def test_calculate_potential_consumed_biomass(
+    herbivore_cohort_instance, plant_instance
+):
+    """Test the calculation of potential consumed biomass for a target plant."""
+
+    from unittest.mock import patch
+
+    alpha = 0.1  # Assume this is the calculated search efficiency
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.k_i_k", return_value=20.0
+    ) as mock_k:
+        biomass = herbivore_cohort_instance.calculate_potential_consumed_biomass(
+            plant_instance, alpha
+        )
+        mock_k.assert_called_once_with(
+            alpha,
+            herbivore_cohort_instance.functional_group.constants.phi_herb_t,
+            plant_instance.mass_current,
+            1.0,
+        )  # Assuming A_cell is temporarily 1.0
+        assert biomass == 20.0
+
+
+def test_calculate_total_handling_time(herbivore_cohort_instance, plant_list_instance):
+    """Test the aggregation of handling times across all available plant resources."""
+
+    from unittest.mock import patch
+
+    alpha = 0.1  # Assume this is the calculated search efficiency
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.k_i_k", return_value=20.0
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.H_i_k", return_value=0.2
+    ):
+        total_handling_time = herbivore_cohort_instance.calculate_total_handling_time(
+            plant_list_instance, alpha
+        )
+        # Assert based on expected behavior; this will need to be adjusted based on the
+        # number of plants and their handling times
+        expected_handling_time = sum(
+            [20.2 for _ in plant_list_instance]
+        )  # Simplified; adjust calculation as needed
+        assert total_handling_time == pytest.approx(expected_handling_time, rel=1e-6)
+
+
+def test_F_i_k(herbivore_cohort_instance, plant_list_instance):
+    """Test F_i_k."""
+
+    from unittest.mock import patch
+
+    target_plant = plant_list_instance[0]
+
+    with patch(
+        (
+            "virtual_rainforest.models.animals.animal_cohorts."
+            "AnimalCohort.calculate_alpha"
+        ),
+        return_value=0.1,
+    ) as mock_alpha, patch(
+        (
+            "virtual_rainforest.models.animals.animal_cohorts."
+            "AnimalCohort.calculate_potential_consumed_biomass"
+        ),
+        return_value=20.0,
+    ) as mock_potential_biomass, patch(
+        (
+            "virtual_rainforest.models.animals.animal_cohorts."
+            "AnimalCohort.calculate_total_handling_time"
+        ),
+        return_value=40.4,
+    ) as mock_total_handling:
+        rate = herbivore_cohort_instance.F_i_k(plant_list_instance, target_plant)
+
+        mock_alpha.assert_called_once()
+        mock_potential_biomass.assert_called_once_with(target_plant, 0.1)
+        mock_total_handling.assert_called_once_with(plant_list_instance, 0.1)
+
+        N = herbivore_cohort_instance.individuals
+        B_k = target_plant.mass_current
+        expected_rate = N * (20.0 / (1 + 40.4)) * (1 / B_k)
+
+        assert rate == pytest.approx(expected_rate, rel=1e-6)

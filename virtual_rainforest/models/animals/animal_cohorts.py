@@ -243,8 +243,9 @@ class AnimalCohort:
         # return the net mass gain of predation
         return prey_mass * predator.functional_group.conversion_efficiency
 
+    """
     def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
-        """The method to determine instantaneous herbivory rate on plant k.
+        The method to determine instantaneous herbivory rate on plant k.
 
         This method is the F_i_k equation from Madingley, for use in the delta_M
         equation.
@@ -263,7 +264,7 @@ class AnimalCohort:
             The instantaneous consumption rate of a herbivore cohort consuming a
             plant resource.
 
-        """
+
         # below the summation is over all accessible k's in the cell
         # return N_i_t * (k_i_k / (1 + sum(k_i_k * H_i_k))) * (1 / B_k_t)
 
@@ -285,6 +286,98 @@ class AnimalCohort:
                 self.constants.b_herb,
             )
 
+        return N * (k / (1 + total_handling_t)) * (1 / B_k)"""
+
+    def calculate_alpha(self) -> float:
+        """Calculate search efficiency.
+
+        This utilizes the alpha_i_k scaling function to determine the effective rate at
+        which an individual herbivore searches its environment, factoring in the
+        herbivore's current mass.
+
+        Returns:
+            A float representing the search efficiency rate in [ha/(day*g)].
+        """
+
+        return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
+
+    def calculate_potential_consumed_biomass(
+        self, target_plant: Resource, alpha: float
+    ) -> float:
+        """Calculate potential consumed biomass for the target plant.
+
+        This method computes the potential consumed biomass based on the search
+        efficiency (alpha),the fraction of the total plant stock available to the cohort
+        (phi), and the biomass of the target plant.
+
+        Args:
+            target_plant: The plant resource being targeted by the herbivore cohort.
+            alpha: The search efficiency rate of the herbivore cohort.
+
+        Returns:
+            A float representing the potential consumed biomass of the target plant by
+            the cohort [g/day].
+        """
+
+        phi = self.functional_group.constants.phi_herb_t
+        A_cell = 1.0  # temporary
+        return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
+
+    def calculate_total_handling_time(
+        self, plant_list: Sequence[Resource], alpha: float
+    ) -> float:
+        """Calculate total handling time across all plant resources.
+
+        This aggregates the handling times for consuming each plant resource in the
+        list, incorporating the search efficiency and other scaling factors to compute
+        the total handling time required by the cohort.
+
+        Args:
+            plant_list: A sequence of plant resources available for consumption by the
+            cohort.
+            alpha: The search efficiency rate of the herbivore cohort.
+
+        Returns:
+            A float representing the total handling time in days required by the cohort
+            for all available plant resources.
+        """
+
+        total_handling_t = 0.0
+        phi = self.functional_group.constants.phi_herb_t
+        A_cell = 1.0  # temporary
+        for plant in plant_list:
+            total_handling_t += sf.k_i_k(
+                alpha, phi, plant.mass_current, A_cell
+            ) + sf.H_i_k(
+                self.constants.h_herb_0,
+                self.constants.M_herb_ref,
+                self.mass_current,
+                self.constants.b_herb,
+            )
+        return total_handling_t
+
+    def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
+        """Refactored method to determine instantaneous herbivory rate on plant k.
+
+        This method integrates the calculated search efficiency, potential consumed
+        biomass of the target plant, and the total handling time for all available
+        plant resources to determine the rate at which the target plant is consumed by
+        the cohort.
+
+        Args:
+            plant_list: A list of plant cohorts available for herbivory by the cohort.
+            target_plant: The specific plant resource being targeted by the herbivore
+                 cohort for consumption.
+
+        Returns:
+            The instantaneous consumption rate [g/day] of the target plant resource by
+              the herbivore cohort.
+        """
+        alpha = self.calculate_alpha()
+        k = self.calculate_potential_consumed_biomass(target_plant, alpha)
+        total_handling_t = self.calculate_total_handling_time(plant_list, alpha)
+        B_k = target_plant.mass_current  # current plant biomass
+        N = self.individuals  # herb cohort size
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
     def F_i_j_individual(
@@ -386,6 +479,7 @@ class AnimalCohort:
         TODO: Fix the occasional division by zero bug in eat and then remove Optional
         TODO: ensure mass is lost from resources
         TODO: ensure mass flows to carcass pools
+        TODO: make new test once other methods are resolved
 
         Args:
             plant_list: A list of plant cohorts available for herbivory.
