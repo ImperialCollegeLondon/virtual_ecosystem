@@ -65,7 +65,7 @@ installation of the required packages into that environment. For example:
 
 ```bash
 dorme@MacBook-Pro virtual_ecosystem % poetry install
-Creating virtualenv virtual-rainforest-Laomc1u4-py3.10 in /Users/dorme/Library/Caches/pypoetry/virtualenvs
+Creating virtualenv virtual-ecosystem-Laomc1u4-py3.10 in /Users/dorme/Library/Caches/pypoetry/virtualenvs
 Installing dependencies from lock file
 
 Package operations: 39 installs, 0 updates, 0 removals
@@ -122,8 +122,8 @@ may have parallel `venv` for different Python versions and you can check this us
 
 ```bash
 dorme@MacBook-Pro virtual_ecosystem % poetry env list
-virtual-rainforest-Laomc1u4-py3.10 (Activated)
-virtual-rainforest-Laomc1u4-py3.9
+virtual-ecosystem-Laomc1u4-py3.10 (Activated)
+virtual-ecosystem-Laomc1u4-py3.9
 dorme@MacBook-Pro virtual_ecosystem %
 ```
 
@@ -131,10 +131,9 @@ You can now launch a shell using that `venv`.
 
 ```bash
 dorme@MacBook-Pro virtual_ecosystem % poetry shell
-Spawning shell within /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainforest-Laomc1u4-py3.10
-dorme@MacBook-Pro virtual_ecosystem % . /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-rainfor
-est-Laomc1u4-py3.10/bin/activate
-(virtual-rainforest-Laomc1u4-py3.10) dorme@MacBook-Pro virtual_ecosystem %
+Spawning shell within /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10
+dorme@MacBook-Pro virtual_ecosystem % . /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10/bin/activate
+(virtual-ecosystem-Laomc1u4-py3.10) dorme@MacBook-Pro virtual_ecosystem %
 ```
 
 The command line prompt has been updated to show the active `venv`.

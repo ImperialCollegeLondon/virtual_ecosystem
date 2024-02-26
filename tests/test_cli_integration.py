@@ -31,10 +31,10 @@ def test_ve_run(capsys):
             ve_run_cli(args_list=["--install-example", tempdir])
             _ = capsys.readouterr()
 
-            example_dir = Path(tempdir) / "vr_example"
+            example_dir = Path(tempdir) / "ve_example"
             configs = example_dir / "config"
             outdir = example_dir / "out"
-            logfile = outdir / "vr_example.log"
+            logfile = outdir / "ve_example.log"
             ve_run_cli(
                 args_list=[
                     str(configs),

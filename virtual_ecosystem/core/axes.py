@@ -1,5 +1,5 @@
 """The :mod:`~virtual_ecosystem.core.axes` module handles the validation of data being
-loaded into the core data storage of the virtual ecosystem simulation. The main
+loaded into the core data storage of the Virtual Ecosystem simulation. The main
 functionality in this module is ensuring that any loaded data is congruent with the core
 axes of the simulation and the configuration of a given simulation.
 
@@ -59,7 +59,7 @@ class AxisValidator(ABC):
 
     This abstract base class provides the structure for axis validators. These are used
     to check that a ``DataArray`` to be added to a ``Data`` instance is congruent with
-    the configuration of a virtual ecosystem simulation. The base class provides
+    the configuration of a Virtual Ecosystem simulation. The base class provides
     abstract methods that provide the following functionality:
 
     * :meth:`~virtual_ecosystem.core.axes.AxisValidator.can_validate`: test that a

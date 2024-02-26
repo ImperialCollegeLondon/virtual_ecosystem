@@ -5,7 +5,7 @@ formats and configuration. Using this data is described in the [usage](./usage.m
 documentation and this page describes the structure and contents of the example data
 folder.
 
-It might be useful to install the `vr_example` directory to a location of your choice
+It might be useful to install the `ve_example` directory to a location of your choice
 when reading these notes, using the command shown below, but the contents of the key
 files are also linked on this page.
 
@@ -15,7 +15,7 @@ ve_run --install-example /location/path/
 
 ## Example data directory structure
 
-The `vr_example` directory contains the following sub-directories:
+The `ve_example` directory contains the following sub-directories:
 
 1. The `config` directory contains three configuration files that combine to provide a
    basic complete configuration for the example data.

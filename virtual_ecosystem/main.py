@@ -141,9 +141,9 @@ def ve_run(
     override_params: dict[str, Any] = {},
     logfile: Path | None = None,
 ) -> None:
-    """Perform a virtual ecosystem simulation.
+    """Perform a Virtual Ecosystem simulation.
 
-    This is a high-level function that runs a virtual ecosystem simulation. At the
+    This is a high-level function that runs a Virtual Ecosystem simulation. At the
     moment this involves validating an input configuration, and using this configuration
     to generate a set of configured model objects suitable for downstream use. Down the
     line this should be extended to encompass far more steps.
@@ -262,7 +262,7 @@ def ve_run(
             out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
 
-    LOGGER.info("Virtual ecosystem model run completed!")
+    LOGGER.info("Virtual Ecosystem model run completed!")
 
     # Restore default logging settings
     if logfile is not None:

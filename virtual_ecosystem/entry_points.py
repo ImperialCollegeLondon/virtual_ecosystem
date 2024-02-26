@@ -1,6 +1,6 @@
 """The :mod:`~virtual_ecosystem.entry_points`  module defines the command line entry
 points to the virtual_ecosystem package. At the moment a single entry point is defined
-`ve_run`, which simply configures and runs a virtual ecosystem simulation based on a
+`ve_run`, which simply configures and runs a Virtual Ecosystem simulation based on a
 set of configuration files.
 """  # noqa D210, D415
 
@@ -78,7 +78,7 @@ def install_example_directory(install_dir: Path) -> int:
     simulation directory structure and files more easily and avoids working with the
     original files inside the package tree.
 
-    The files are installed to a ``vr_example`` directory within the provided install
+    The files are installed to a ``ve_example`` directory within the provided install
     location.
 
     Args:
@@ -91,11 +91,9 @@ def install_example_directory(install_dir: Path) -> int:
         sys.stderr.write("--install-example path is not a valid directory.\n")
         return 1
 
-    example_dir = install_dir / "vr_example"
+    example_dir = install_dir / "ve_example"
     if example_dir.exists():
-        sys.stderr.write(
-            f"VR example directory (vr_example already present in: {install_dir} \n"
-        )
+        sys.stderr.write(f"VE example directory already present in: {install_dir} \n")
         return 1
 
     copytree(example_data_path, example_dir, ignore=ignore_patterns("__*"))
@@ -117,10 +115,10 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     As an alternative to providing configuration paths, the `--install-example` option
     allows users to provide a location where a simple example set of datasets and
     configuration files provided with the Virtual Ecosystem package can be installed.
-    This option will create a `vr_example` directory in the location, and users can
+    This option will create a `ve_example` directory in the location, and users can
     examine the input files and run the simulation from that directory:
 
-    `ve_run /provided/install/path/vr_example`
+    `ve_run /provided/install/path/ve_example`
 
     The output directory for simulation results is typically set in the configuration
     files, but can be overwritten using the `--outpath` option. A log file path can be

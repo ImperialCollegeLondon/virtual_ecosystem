@@ -1,6 +1,6 @@
 """The :mod:`~virtual_ecosystem.core.logger` module is used to setup the extend the
-standard logging setup to provide additional functionality relevant to the virtual
-ecosystem model.
+standard logging setup to provide additional functionality relevant to the Virtual
+Ecosystem model.
 
 At the moment the module simply sets up the logger so that other modules can access it.
 It is very likely to be further extended in future.
