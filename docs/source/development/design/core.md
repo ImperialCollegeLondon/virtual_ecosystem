@@ -23,7 +23,7 @@ The basic requirements are:
 At this point, the contenders are really `yaml` and `toml`. The `yaml` format is more
 widely used but the complexities of `yaml` mean that it has some unusual behaviour and
 security implications - there is a recommended `safe_loader` for example! So, for these
-reasons make use of the `toml` file format for configuration of the virtual rainforest.
+reasons make use of the `toml` file format for configuration of the Virtual Ecosystem.
 
 ### Configuration system
 

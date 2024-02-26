@@ -30,7 +30,7 @@ At present, the pre-processing does not include scaling or topographic adjustmen
 
 ## Climate input variables
 
-The abiotic module of the virtual rainforest requires the following climate input
+The abiotic module of the Virtual Ecosystem requires the following climate input
 variables (or derivatives) at each time step (default: monthly means):
 
 * Air temperature (typically 2m; mean, minimum, and maximum)
@@ -47,7 +47,7 @@ and optionally:
 
 ## Recommended data sets
 
-We recommend the following data sets to force the virtual rainforest microclimate
+We recommend the following data sets to force the Virtual Ecosystem microclimate
 simulations:
 
 * ERA5 / ERA5-Land

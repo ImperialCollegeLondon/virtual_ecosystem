@@ -6,7 +6,7 @@ command line tools or a single more generic tool.
 
 ## The `ve_run` command line tool
 
-The `ve_run` command line tool exists to run the virtual rainforest model. At the moment
+The `ve_run` command line tool exists to run the Virtual Ecosystem model. At the moment
 this consists of validated a set of schema files, using their contents to initialise a
 set of models and then setting up the main simulation loop. It goes no further than
 that, and no actual simulation steps are performed. This will change in the future.

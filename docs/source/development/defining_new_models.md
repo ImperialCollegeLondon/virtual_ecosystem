@@ -15,7 +15,7 @@ kernelspec:
 # Creating new Virtual Ecosystem models
 
 The Virtual Ecosystem initially contains a set of models defining core components of
-the rainforest, examples include the `abiotic`, `animals`, `plants` and `soil` models.
+an ecosystem, examples include the `abiotic`, `animals`, `plants` and `soil` models.
 However, the simulation is designed to be modular:
 
 * Different combinations of models can be configured for a particular simulation.
@@ -132,7 +132,7 @@ from __future__ import annotations
 # To support the kwargs argument to BaseModel.__init__
 from typing import Any
 
-# Data in the virtual rainforest is stored as xarray.DataArrays and array calculations 
+# Data in the Virtual Ecosystem is stored as xarray.DataArrays and array calculations 
 # typically use numpy.
 import numpy as np
 import xarray
