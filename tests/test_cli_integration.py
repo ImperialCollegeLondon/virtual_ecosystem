@@ -54,7 +54,7 @@ def test_ve_run(capsys):
             assert logfile.exists()
             with open(logfile) as logfile_io:
                 contents = logfile_io.readlines()
-                assert "Virtual ecosystem model run completed!" in contents[-1]
+                assert "Virtual Ecosystem model run completed!" in contents[-1]
 
         except Exception as excep:
             # If the code above fails then tidy up the logger to restore normal stream
