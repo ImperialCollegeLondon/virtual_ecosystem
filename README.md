@@ -1,6 +1,6 @@
 # Welcome to the Virtual Ecosystem
 
-[![codecov](https://codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem/branch/develop/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem)
+[![codecov](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest/branch/develop/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/virtual_rainforest)
 
 This repository is the home for the development of the Virtual Ecosystem. The
 Virtual Ecosystem is a project to develop a simulation of all of the major
