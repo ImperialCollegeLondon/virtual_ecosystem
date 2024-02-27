@@ -6,7 +6,6 @@ Notes:
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
 """  # noqa: #D205, D415
 
-
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
