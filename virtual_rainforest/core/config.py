@@ -7,6 +7,7 @@ The validation of configuration documents is done using JSONSchema documents ass
 with the different model components. See the :mod:`~virtual_rainforest.core.schema`
 module for details.
 """  # noqa: D205, D415
+
 import sys
 from collections.abc import Sequence
 from copy import deepcopy

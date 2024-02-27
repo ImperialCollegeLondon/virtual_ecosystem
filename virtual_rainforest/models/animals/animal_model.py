@@ -16,7 +16,6 @@ of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
 """  # noqa: D205, D415
 
-
 from __future__ import annotations
 
 from math import sqrt

@@ -27,5 +27,4 @@ Each of the animal sub-modules has its own API reference page:
   which provides an API for exposing plant model data via the animal model protocols.
 """  # noqa: D205, D415
 
-
 from virtual_rainforest.models.animals.animal_model import AnimalModel  # noqa: F401

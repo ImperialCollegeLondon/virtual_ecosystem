@@ -3,7 +3,6 @@ pools which are still potentially forageable by animals but are in the process o
 microbial decomposition. And the moment this consists of animal carcasses and excrement.
 """  # noqa: #D205, D415
 
-
 from dataclasses import dataclass
 
 
