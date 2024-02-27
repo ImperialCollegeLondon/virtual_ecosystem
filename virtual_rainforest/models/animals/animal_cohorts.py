@@ -243,51 +243,6 @@ class AnimalCohort:
         # return the net mass gain of predation
         return prey_mass * predator.functional_group.conversion_efficiency
 
-    """
-    def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
-        The method to determine instantaneous herbivory rate on plant k.
-
-        This method is the F_i_k equation from Madingley, for use in the delta_M
-        equation.
-
-        TODO: replace temporary A_cell value
-
-        Args:
-            plant_list: A list of plant cohorts available for herbivory.
-            N_i_t: Current herbivore population size.
-            k_i_k: The potential biomass (g) of plant k eating by cohort i, per day.
-            H_i_k: Handling time of 1g of plant resource k by cohort i, in days.
-            B_k_t: Current plant resource pool size.
-
-
-        Returns:
-            The instantaneous consumption rate of a herbivore cohort consuming a
-            plant resource.
-
-
-        # below the summation is over all accessible k's in the cell
-        # return N_i_t * (k_i_k / (1 + sum(k_i_k * H_i_k))) * (1 / B_k_t)
-
-        N = self.individuals  # herb cohort size
-        A_cell = 1.0  # temporary
-        alpha = sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
-        phi = self.functional_group.constants.phi_herb_t
-        B_k = target_plant.mass_current  # current plant biomass
-        k = sf.k_i_k(alpha, phi, B_k, A_cell)  # potential consumed biomass
-
-        total_handling_t = 0.0
-        for plant in plant_list:
-            total_handling_t += sf.k_i_k(
-                alpha, phi, plant.mass_current, A_cell
-            ) + sf.H_i_k(
-                self.constants.h_herb_0,
-                self.constants.M_herb_ref,
-                self.mass_current,
-                self.constants.b_herb,
-            )
-
-        return N * (k / (1 + total_handling_t)) * (1 / B_k)"""
-
     def calculate_alpha(self) -> float:
         """Calculate search efficiency.
 
@@ -380,10 +335,10 @@ class AnimalCohort:
         N = self.individuals  # herb cohort size
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
-    def F_i_j_individual(
+    """def F_i_j_individual(
         self, animal_list: Sequence[AnimalCohort], target_animal: AnimalCohort
-    ) -> float:
-        """The method to determine instantaneous predation rate on cohort j.
+    ) -> float:"""
+    """The method to determine instantaneous predation rate on cohort j.
 
         This method is the F_i_j equation from Madingley, for use in the delta_M
         equation.
@@ -403,7 +358,7 @@ class AnimalCohort:
             prey cohort.
 
         """
-        # below the summation is over all accessible j's in the cell
+    """# below the summation is over all accessible j's in the cell
         # return N_i_t  # * (k_i_j / (1 + sum(k_i_j * H_i_j))) * (1 / N_j_t)
 
         N_i = self.individuals  # predator cohort size
@@ -438,6 +393,62 @@ class AnimalCohort:
                 M_i,
                 self.constants.b_pred,
             )
+
+        return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)"""
+
+    def calculate_theta_opt_i(self) -> float:
+        """Calculate the optimal predation param based on predator-prey mass ratio."""
+        return sf.theta_opt_i(
+            self.constants.theta_opt_min_f,
+            self.constants.theta_opt_f,
+            self.constants.sigma_opt_f,
+        )
+
+    def calculate_predation_success_probability(self, M_target: float) -> float:
+        """Calculate the probability of a successful predation event."""
+        M_i = self.mass_current
+        theta_opt_i = self.calculate_theta_opt_i()
+        return sf.w_bar_i_j(
+            M_i,
+            M_target,
+            theta_opt_i,
+            self.constants.sigma_opt_pred_prey,
+        )
+
+    def calculate_predation_search_rate(self, w_bar: float) -> float:
+        """Calculate the search rate of the predator for preying."""
+        return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
+
+    def calculate_potential_prey_consumed(
+        self, alpha: float, theta_i_j: float
+    ) -> float:
+        """Calculate the potential number of prey consumed."""
+        N_i = self.individuals
+        A_cell = 1.0  # temporary
+        return sf.k_i_j(alpha, N_i, A_cell, theta_i_j)
+
+    def calculate_total_handling_time_for_predation(self, alpha: float) -> float:
+        """Calculate the total handling time for preying on available animal cohorts."""
+        M_i = self.mass_current
+        return sf.H_i_j(
+            self.constants.h_pred_0,
+            self.constants.M_pred_ref,
+            M_i,
+            self.constants.b_pred,
+        )
+
+    def F_i_j_individual(
+        self, animal_list: Sequence[AnimalCohort], target_animal: AnimalCohort
+    ) -> float:
+        """Refactored method to determine instantaneous predation rate on cohort j."""
+        M_target = target_animal.mass_current
+        w_bar = self.calculate_predation_success_probability(M_target)
+        alpha = self.calculate_predation_search_rate(w_bar)
+        theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
+        k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
+        total_handling_t = self.calculate_total_handling_time_for_predation(alpha)
+        N_i = self.individuals
+        N_target = target_animal.individuals
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 

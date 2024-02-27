@@ -492,3 +492,187 @@ def test_F_i_k(herbivore_cohort_instance, plant_list_instance):
         expected_rate = N * (20.0 / (1 + 40.4)) * (1 / B_k)
 
         assert rate == pytest.approx(expected_rate, rel=1e-6)
+
+
+def test_calculate_theta_opt_i(herbivore_cohort_instance):
+    """Test calculate_theta_opt_i for correct optimal predation parameter."""
+    from unittest.mock import patch
+
+    # Mocking the theta_opt_i function from the scaling_functions module
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.theta_opt_i",
+        return_value=0.5,
+    ) as mock_theta_opt:
+        result = herbivore_cohort_instance.calculate_theta_opt_i()
+
+        # Verifying that theta_opt_i was called with the correct parameters
+        mock_theta_opt.assert_called_once_with(
+            herbivore_cohort_instance.constants.theta_opt_min_f,
+            herbivore_cohort_instance.constants.theta_opt_f,
+            herbivore_cohort_instance.constants.sigma_opt_f,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 0.5, "Expected optimal predation parameter not returned."
+
+
+def test_calculate_predation_success_probability(herbivore_cohort_instance):
+    """Test successful predation probability calculation."""
+    from unittest.mock import patch
+
+    target_mass = 50.0  # Example target mass
+
+    # Patch both calculate_theta_opt_i and w_bar_i_j for isolation
+    with patch(
+        "virtual_rainforest.models.animals.animal_cohorts."
+        "AnimalCohort.calculate_theta_opt_i",
+        return_value=0.7,
+    ) as mock_theta_opt, patch(
+        "virtual_rainforest.models.animals.scaling_functions.w_bar_i_j",
+        return_value=0.6,
+    ) as mock_w_bar:
+        result = herbivore_cohort_instance.calculate_predation_success_probability(
+            target_mass
+        )
+
+        # Ensure calculate_theta_opt_i is called within the method
+        mock_theta_opt.assert_called_once()
+
+        # Verify that w_bar_i_j was called with the correct parameters
+        mock_w_bar.assert_called_once_with(
+            herbivore_cohort_instance.mass_current,
+            target_mass,
+            0.7,  # Expect theta_opt_i from mocked calculate_theta_opt_i return value
+            herbivore_cohort_instance.constants.sigma_opt_pred_prey,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 0.6, "Expected predation success probability not returned."
+
+
+def test_calculate_predation_search_rate(herbivore_cohort_instance):
+    """Test predation search rate calculation."""
+    from unittest.mock import patch
+
+    success_probability = 0.5  # Example success probability
+
+    # Mock the alpha_i_j function to isolate and control its output
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.alpha_i_j",
+        return_value=0.8,
+    ) as mock_alpha_i_j:
+        result = herbivore_cohort_instance.calculate_predation_search_rate(
+            success_probability
+        )
+
+        # Verify that alpha_i_j was called with the correct parameters
+        mock_alpha_i_j.assert_called_once_with(
+            herbivore_cohort_instance.constants.alpha_0_pred,
+            herbivore_cohort_instance.mass_current,
+            success_probability,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 0.8, "Expected predation search rate not returned."
+
+
+def test_calculate_potential_prey_consumed(herbivore_cohort_instance):
+    """Test calculation of potential number of prey consumed."""
+    from unittest.mock import patch
+
+    alpha = 0.8  # Example search rate
+    theta_i_j = 0.7  # Example predation parameter
+
+    # Mock the k_i_j function to control its output
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.k_i_j", return_value=15.0
+    ) as mock_k_i_j:
+        result = herbivore_cohort_instance.calculate_potential_prey_consumed(
+            alpha, theta_i_j
+        )
+
+        # Verify that k_i_j was called with the correct parameters
+        mock_k_i_j.assert_called_once_with(
+            alpha,
+            herbivore_cohort_instance.individuals,
+            1.0,  # Assuming A_cell is temporarily set to 1.0
+            theta_i_j,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 15.0, "Expected potential prey consumed not returned."
+
+
+def test_calculate_total_handling_time_for_predation(herbivore_cohort_instance):
+    """Test total handling time calculation for predation."""
+    from unittest.mock import patch
+
+    # Example predation search rate
+    alpha = 0.8
+
+    # Mock the H_i_j function to control its output
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.H_i_j", return_value=2.5
+    ) as mock_H_i_j:
+        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation(
+            alpha
+        )
+
+        # Verify that H_i_j was called with the correct parameters
+        mock_H_i_j.assert_called_once_with(
+            herbivore_cohort_instance.constants.h_pred_0,
+            herbivore_cohort_instance.constants.M_pred_ref,
+            herbivore_cohort_instance.mass_current,
+            herbivore_cohort_instance.constants.b_pred,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 2.5, "Expected total handling time for predation not returned."
+
+
+def test_F_i_j_individual(predator_cohort_instance, animal_list_instance):
+    """Test instantaneous predation rate calculation on a selected target cohort."""
+    from unittest.mock import patch
+
+    # Selecting a target animal from the provided animal list instance
+    target_animal = animal_list_instance[0]
+
+    # Mock all component methods used in F_i_j_individual to isolate integration logic.
+    with patch.object(
+        predator_cohort_instance,
+        "calculate_predation_success_probability",
+        return_value=0.5,
+    ) as mock_success_prob, patch.object(
+        predator_cohort_instance, "calculate_predation_search_rate", return_value=0.8
+    ) as mock_search_rate, patch.object(
+        predator_cohort_instance, "theta_i_j", return_value=0.7
+    ) as mock_theta_i_j, patch.object(
+        predator_cohort_instance, "calculate_potential_prey_consumed", return_value=10
+    ) as mock_potential_prey, patch.object(
+        predator_cohort_instance,
+        "calculate_total_handling_time_for_predation",
+        return_value=2,
+    ) as mock_total_handling:
+        # Execute the method under test
+        rate = predator_cohort_instance.F_i_j_individual(
+            animal_list_instance, target_animal
+        )
+
+        # Verify each mocked method was called with expected arguments
+        mock_success_prob.assert_called_once_with(target_animal.mass_current)
+        mock_search_rate.assert_called_once_with(0.5)  # w_bar from mock_success_prob
+        mock_theta_i_j.assert_called_once_with(animal_list_instance)
+        mock_potential_prey.assert_called_once_with(
+            0.8, 0.7
+        )  # alpha from mock_search_rate, theta_i_j from mock_theta_i_j
+        mock_total_handling.assert_called_once_with(0.8)  # alpha from mock_search_rate
+
+        # Calculate the expected rate based on the mocked return values and assert
+        N_i = predator_cohort_instance.individuals
+        N_target = target_animal.individuals
+        expected_rate = (
+            N_i * (10 / (1 + 2)) * (1 / N_target)
+        )  # Using mocked return values
+        assert rate == pytest.approx(
+            expected_rate
+        ), "F_i_j_individual did not return the expected predation rate."
