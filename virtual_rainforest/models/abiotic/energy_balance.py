@@ -351,8 +351,7 @@ def calculate_leaf_and_air_temperature(
     * vapor_pressure_ref: Vapor pressure at reference height 2m above canopy, [kPa]
     * mean_topsoil_temperature: Topsoil temperature, [C]
     * leaf_air_heat_conductivity: Leaf air heat conductivity, [mol m-2 s-1]
-    * conductivity_from_ref_height: Heat conductivity from reference height 2m above
-        canopy, [mol m-2 s-1]
+    * conductivity_from_ref_height: Heat conductivity from ref height, [mol m-2 s-1]
     * mean_topsoil_moisture: Relative soil moisture, dimensionless
     * leaf_vapor_conductivity: Leaf vapor conductivity, [mol m-2 s-1]
     * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
