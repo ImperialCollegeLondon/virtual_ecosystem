@@ -107,6 +107,38 @@ def test_interpolate_along_heights(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
+def test_interpolate_along_heights_arrays(dummy_climate_data):
+    """Test linear interpolation along heights with arrays of boundary values."""
+
+    from virtual_rainforest.models.abiotic.conductivities import (
+        interpolate_along_heights,
+    )
+
+    layer_heights = dummy_climate_data["layer_heights"]
+    atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
+    result = interpolate_along_heights(
+        start_height=layer_heights[-3].to_numpy(),
+        end_height=layer_heights[-0].to_numpy(),
+        target_heights=(layer_heights[atmosphere_layers.indexes].to_numpy()),
+        start_value=np.repeat(50.0, 3),
+        end_value=np.repeat(20.0, 3),
+    )
+    exp_result = np.concatenate(
+        [
+            [
+                [20.0, 20.0, 20.0],
+                [21.88087774, 21.88087774, 21.88087774],
+                [31.28526646, 31.28526646, 31.28526646],
+                [40.68965517, 40.68965517, 40.68965517],
+            ],
+            [[np.nan, np.nan, np.nan]] * 7,
+            [[48.68338558, 48.68338558, 48.68338558], [50.0, 50.0, 50.0]],
+        ],
+        axis=0,
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
+
+
 def test_calculate_air_heat_conductivity_above(dummy_climate_data):
     """Test heat conductivity above canopy."""
 

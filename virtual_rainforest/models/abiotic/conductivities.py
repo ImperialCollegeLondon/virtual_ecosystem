@@ -13,8 +13,8 @@ def interpolate_along_heights(
     start_height: NDArray[np.float32],
     end_height: NDArray[np.float32],
     target_heights: NDArray[np.float32],
-    start_value: float,
-    end_value: float,
+    start_value: float | NDArray[np.float32],
+    end_value: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Vertical interpolation for given start and end values along a height axis.
 

@@ -120,7 +120,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     constants = AbioticSimpleConsts()
 
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0),
+        data["air_temperature_ref"].isel(time_index=0).drop("time_index"),
         factor1=constants.saturation_vapour_pressure_factor1,
         factor2=constants.saturation_vapour_pressure_factor2,
         factor3=constants.saturation_vapour_pressure_factor3,
@@ -223,15 +223,6 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     data = dummy_climate_data
 
-    data["atmospheric_pressure"] = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords=data["layer_heights"].coords,
-        name="atmospheric_pressure",
-    )
-    data["atmospheric_co2"] = (
-        data["atmospheric_pressure"].copy().rename("atmospheric_co2")
-    )
     result = run_microclimate(
         data=data,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
@@ -267,7 +258,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_atmospheric_pressure = xr.concat(
         [
             DataArray(
-                np.full((13, 3), 96),
+                np.full((13, 3), 96.0),
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),

@@ -36,6 +36,8 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
+from virtual_rainforest.core.data import Data
+from virtual_rainforest.models.abiotic.conductivities import interpolate_along_heights
 from virtual_rainforest.models.abiotic_simple.microclimate import (
     calculate_saturation_vapour_pressure,
 )
@@ -252,20 +254,10 @@ def calculate_slope_of_saturated_pressure_curve(
 
 
 def calculate_leaf_and_air_temperature(
-    air_temperature: NDArray[np.float32],
-    air_temperature_ref: NDArray[np.float32],
-    vapor_pressure_ref: NDArray[np.float32],
-    topsoil_temperature: NDArray[np.float32],
+    data: Data,
+    time_index: int,
     true_canopy_layers: NDArray[np.float32],
-    leaf_air_heat_conductivity: NDArray[np.float32],
-    conductivity_from_ref_height: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
     leaf_emissivity: NDArray[np.float32],
-    latent_heat_vaporisation: NDArray[np.float32],
-    leaf_vapor_conductivity: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
-    absorbed_radiation: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
     stefan_boltzmann_constant: float | NDArray[np.float32],
     saturation_vapour_pressure_factor1: float,
     saturation_vapour_pressure_factor2: float,
@@ -353,122 +345,215 @@ def calculate_leaf_and_air_temperature(
 
     .. math:: T_{L} = T_{A} + \Delta T_{L}.
 
+    the data object has to contain the previous and current values for the following:
+
+    * air_temperature_ref: Air temperature at reference height 2m above canopy, [C]
+    * vapor_pressure_ref: Vapor pressure at reference height 2m above canopy, [kPa]
+    * mean_topsoil_temperature: Topsoil temperature, [C]
+    * leaf_air_heat_conductivity: Leaf air heat conductivity, [mol m-2 s-1]
+    * conductivity_from_ref_height: Heat conductivity from reference height 2m above
+        canopy, [mol m-2 s-1]
+    * mean_topsoil_moisture: Relative soil moisture, dimensionless
+    * leaf_vapor_conductivity: Leaf vapor conductivity, [mol m-2 s-1]
+    * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
+    * air_temperature: Air temperature, [C]
+    * latent_heat_vaporisation: Latent heat of vaporisation, [J kg-1]
+    * absorbed_radiation: Absorbed radiation, [W m-2]
+    * specific_heat_air: Specific heat of air, [J mol-1 K-1]
+
+    Args:
+        data: Instance of data object
+        time_index: Time index
+        true_canopy_layers: Canopy layers that are not NAN
+        leaf_emissivity: Leaf emissivity, dimensionless
+        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
+        saturation_vapour_pressure_factor1: Factor for saturation vapour pressure
+            calculation.
+        saturation_vapour_pressure_factor2: Factor for saturation vapour pressure
+            calculation.
+        saturation_vapour_pressure_factor3: Factor for saturation vapour pressure
+            calculation.
+
+    Returns:
+        air temperature, [C], leaf temperature, [C]
     """
 
     output = {}
 
+    # Calculates mean values from previous and current time step
+    means = {}
+    for var in [
+        "conductivity_from_ref_height",
+        "leaf_air_heat_conductivity",
+        "leaf_vapor_conductivity",
+        "air_temperature_ref",
+        "vapor_pressure_ref",
+        "atmospheric_pressure_ref",
+    ]:
+        means[var] = (
+            data[var].isel(time_index=time_index)
+            + data[var].isel(time_index=time_index - 1)
+        ) / 2
+
     # Calculate vapor pressures
     soil_saturated_vapor_pressure = calculate_saturation_vapour_pressure(
-        temperature=DataArray(topsoil_temperature),
+        temperature=DataArray(data["mean_topsoil_temperature"]),
         factor1=saturation_vapour_pressure_factor1,
         factor2=saturation_vapour_pressure_factor2,
         factor3=saturation_vapour_pressure_factor3,
     )
-    soil_vapor_pressure = soil_moisture * soil_saturated_vapor_pressure
+    soil_vapor_pressure = data["mean_topsoil_moisture"] * soil_saturated_vapor_pressure
     saturated_vapor_pressure_ref = calculate_saturation_vapour_pressure(
-        temperature=DataArray(air_temperature_ref),
+        temperature=DataArray(means["air_temperature_ref"]),
         factor1=saturation_vapour_pressure_factor1,
         factor2=saturation_vapour_pressure_factor2,
         factor3=saturation_vapour_pressure_factor3,
     )
 
     # Calculate conductivity from soil
-    conductivity_from_soil = soil_moisture * soil_saturated_vapor_pressure
+    mean_conductivity_from_soil = (
+        data["mean_topsoil_moisture"] * soil_saturated_vapor_pressure
+    )
 
-    # Factors from leaf and air temperature linearisation TODO for each layer loop
+    # Factors from leaf and air temperature linearisation
     a_A_list = []
-    for layer in range(0, len(true_canopy_layers)):
+    for layer in range(1, len(true_canopy_layers) + 1):
         a_A_layer = (
-            (conductivity_from_ref_height[layer] * air_temperature_ref)
-            + conductivity_from_soil * topsoil_temperature
-        ) / (conductivity_from_ref_height[layer] + conductivity_from_soil)
+            (
+                means["conductivity_from_ref_height"][layer]
+                * means["air_temperature_ref"]
+            )
+            + mean_conductivity_from_soil * data["mean_topsoil_temperature"]
+        ) / (means["conductivity_from_ref_height"][layer] + mean_conductivity_from_soil)
         a_A_list.append(a_A_layer)
     a_A = np.vstack(a_A_list)
 
     b_A_list = []
-    for layer in range(0, len(true_canopy_layers)):
-        b_A_layer = leaf_air_heat_conductivity[layer] / (
-            conductivity_from_ref_height[layer] + conductivity_from_soil
+    for layer in range(1, len(true_canopy_layers) + 1):
+        b_A_layer = means["leaf_air_heat_conductivity"][layer] / (
+            means["conductivity_from_ref_height"][layer] + mean_conductivity_from_soil
         )
         b_A_list.append(b_A_layer)
     b_A = np.vstack(b_A_list)
 
     # Factors from longwave radiative flux linearisation
     a_R = leaf_emissivity * stefan_boltzmann_constant * a_A**4
-    b_R = (
-        4
-        * leaf_emissivity
-        * stefan_boltzmann_constant
-        * (a_A**3 * b_A + air_temperature_ref**3)
-    )
+
+    b_R_list = []
+    for layer in range(0, len(true_canopy_layers)):
+        b_R_layer = (
+            4
+            * leaf_emissivity
+            * stefan_boltzmann_constant
+            * (a_A[layer] ** 3 * b_A[layer] + means["air_temperature_ref"] ** 3)
+        )
+        b_R_list.append(b_R_layer)
+    b_R = np.vstack(b_R_list)
 
     # Factors from vapor pressure linearisation
-    delta_v_ref = calculate_slope_of_saturated_pressure_curve(air_temperature_ref)
+    delta_v_ref = calculate_slope_of_saturated_pressure_curve(
+        means["air_temperature_ref"].to_numpy()
+    )
 
     a_E_list = []
-    for layer in range(0, len(true_canopy_layers)):
+    for layer in range(1, len(true_canopy_layers) + 1):
         a_E_layer = (
-            conductivity_from_ref_height[layer] * vapor_pressure_ref
-            + conductivity_from_soil * soil_vapor_pressure
-            + leaf_vapor_conductivity[layer] * saturated_vapor_pressure_ref
+            means["conductivity_from_ref_height"][layer] * means["vapor_pressure_ref"]
+            + mean_conductivity_from_soil * soil_vapor_pressure
+            + means["leaf_vapor_conductivity"][layer] * saturated_vapor_pressure_ref
         ) / (
-            conductivity_from_ref_height[layer]
-            + conductivity_from_soil
-            + leaf_vapor_conductivity[layer]
+            means["conductivity_from_ref_height"][layer]
+            + mean_conductivity_from_soil
+            + means["leaf_vapor_conductivity"][layer]
         )
         a_E_list.append(a_E_layer)
     a_E = np.vstack(a_E_list)
 
     b_E_list = []
-    for layer in range(0, len(true_canopy_layers)):
+    for layer in range(1, len(true_canopy_layers) + 1):
         b_E_layer = delta_v_ref / (
-            conductivity_from_ref_height[layer]
-            + conductivity_from_soil
-            + leaf_vapor_conductivity[layer]
+            means["conductivity_from_ref_height"][layer]
+            + mean_conductivity_from_soil
+            + means["leaf_vapor_conductivity"][layer]
         )
         b_E_list.append(b_E_layer)
     b_E = np.vstack(b_E_list)
 
     # Factors from latent heat flux linearisation
     a_L_list = []
-    for layer in range(0, len(true_canopy_layers)):
+    for layer in range(1, len(true_canopy_layers) + 1):
         a_L_layer = (
-            latent_heat_vaporisation[layer] * leaf_vapor_conductivity[layer]
-        ) / (atmospheric_pressure[layer] * (saturated_vapor_pressure_ref - a_E[layer]))
+            data["latent_heat_vaporisation"][layer]
+            * means["leaf_vapor_conductivity"][layer]
+        ) / (
+            means["atmospheric_pressure_ref"]
+            * (saturated_vapor_pressure_ref - a_E[layer - 1])
+        )
         a_L_list.append(a_L_layer)
     a_L = np.vstack(a_L_list)
 
     b_L_list = []
-    for layer in range(0, len(true_canopy_layers)):
+    for layer in range(1, len(true_canopy_layers) + 1):
         b_L_layer = (
-            latent_heat_vaporisation[layer] * leaf_vapor_conductivity[layer]
-        ) / (atmospheric_pressure[layer] * (delta_v_ref - b_E[layer]))
+            data["latent_heat_vaporisation"][layer]
+            * means["leaf_vapor_conductivity"][layer]
+        ) / (means["atmospheric_pressure_ref"] * (delta_v_ref - b_E[layer - 1]))
         b_L_list.append(b_L_layer)
     b_L = np.vstack(b_L_list)
 
     # Factor from sensible heat flux linearisation
     b_H_list = []
-    for layer in range(0, len(true_canopy_layers)):
-        b_H_layer = leaf_air_heat_conductivity[layer] * specific_heat_air[layer]
+    for layer in range(1, len(true_canopy_layers) + 1):
+        b_H_layer = (
+            means["leaf_air_heat_conductivity"][layer]
+            * data["specific_heat_air"][layer]
+        )
         b_H_list.append(b_H_layer)
     b_H = np.vstack(b_H_list)
 
     # Calculate new leaf and air temperature
-    delta_leaf_temperature = (absorbed_radiation - a_R - a_L) / (1 + b_R + b_L + b_H)
+    delta_leaf_temperature_list = []
+    for layer in range(0, len(true_canopy_layers)):
+        delta_leaf_temperature_layer = (
+            data["absorbed_radiation"][layer + 1].to_numpy() - a_R[layer] - a_L[layer]
+        ) / (1 + b_R[layer] + b_L[layer] + b_H[layer])
+        delta_leaf_temperature_list.append(delta_leaf_temperature_layer)
+    delta_leaf_temperature = np.vstack(delta_leaf_temperature_list)
+
     new_air_temperature = a_A + b_A * delta_leaf_temperature
     new_leaf_temperature = (
-        air_temperature[1 : len(true_canopy_layers) + 1] + delta_leaf_temperature
+        data["air_temperature"][1 : len(true_canopy_layers) + 1]
+        + delta_leaf_temperature
+    )
+
+    # Interpolate temperature below canopy
+    target_heights = np.vstack(
+        [
+            data["layer_heights"]
+            .where(data["layer_heights"]["layer_roles"] == "subcanopy")
+            .dropna(dim="layers"),
+            data["layer_heights"]
+            .where(data["layer_heights"]["layer_roles"] == "surface")
+            .dropna(dim="layers"),
+        ]
+    )
+    below_canopy_temperature = interpolate_along_heights(
+        start_height=data["layer_heights"][len(true_canopy_layers)].to_numpy(),
+        end_height=np.repeat(0.0, data.grid.n_cells),
+        target_heights=target_heights,
+        start_value=new_air_temperature[-1],
+        end_value=data["mean_topsoil_temperature"].to_numpy(),
     )
 
     # Create arrays and return for data object
     output["air_temperature"] = DataArray(
         np.vstack(
             [
-                air_temperature_ref,
+                data["air_temperature_ref"].isel(time_index=time_index),
                 new_air_temperature,
-                np.full((7, 3), np.nan),
-                air_temperature[-3:-1],
-                np.full((2, 3), np.nan),
+                np.full((7, data.grid.n_cells), np.nan),
+                below_canopy_temperature,
+                np.full((2, data.grid.n_cells), np.nan),
             ]
         ),
         dims=["layers", "cell_id"],
@@ -476,9 +561,9 @@ def calculate_leaf_and_air_temperature(
     output["leaf_temperature"] = DataArray(
         np.vstack(
             [
-                np.repeat(np.nan, 3),
+                np.repeat(np.nan, data.grid.n_cells),
                 new_leaf_temperature,
-                np.full((11, 3), np.nan),
+                np.full((11, data.grid.n_cells), np.nan),
             ]
         ),
         dims=["layers", "cell_id"],

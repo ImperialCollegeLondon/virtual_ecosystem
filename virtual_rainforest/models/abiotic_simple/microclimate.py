@@ -126,6 +126,7 @@ def run_microclimate(
         .isel(time_index=time_index)
         .where(output["air_temperature"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
+        .drop_vars("time_index")
         .T
     )
 

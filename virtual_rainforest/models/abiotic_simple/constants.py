@@ -26,8 +26,8 @@ class AbioticSimpleConsts(ConstantsDataclass):
     of leaf area index from :cite:t:`hardwick_relationship_2015`"""
 
     saturation_vapour_pressure_factor1: float = 0.61078
-    """factor 1 for saturation vapour pressure calculation."""
+    """Factor 1 for saturation vapour pressure calculation."""
     saturation_vapour_pressure_factor2: float = 7.5
-    """factor 2 for saturation vapour pressure calculation."""
+    """Factor 2 for saturation vapour pressure calculation."""
     saturation_vapour_pressure_factor3: float = 237.3
-    """factor 3 for saturation vapour pressure calculation."""
+    """Factor 3 for saturation vapour pressure calculation."""
