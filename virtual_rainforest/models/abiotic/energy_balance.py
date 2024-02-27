@@ -569,5 +569,39 @@ def calculate_leaf_and_air_temperature(
     )
 
     # TODO return VPD profile
-
+    vapor_pressure_mean = a_E + b_E * delta_leaf_temperature
+    vapor_pressure_new = data["vapor_pressure_ref"].to_numpy() + 2 * (
+        vapor_pressure_mean - data["vapor_pressure_ref"].to_numpy()
+    )
+    saturation_vapour_pressure_new = calculate_saturation_vapour_pressure(
+        new_air_temperature,
+        factor1=saturation_vapour_pressure_factor1,
+        factor2=saturation_vapour_pressure_factor2,
+        factor3=saturation_vapour_pressure_factor3,
+    )
+    canopy_vapor_pressure = np.where(
+        vapor_pressure_new > saturation_vapour_pressure_new,
+        saturation_vapour_pressure_new,
+        vapor_pressure_new,
+    )
+    below_canopy_vapor_pressure = interpolate_along_heights(
+        start_height=data["layer_heights"][len(true_canopy_layers)].to_numpy(),
+        end_height=np.repeat(0.0, data.grid.n_cells),
+        target_heights=target_heights,
+        start_value=canopy_vapor_pressure[-1],
+        end_value=soil_vapor_pressure.to_numpy(),
+    )
+    output["vapor_pressure"] = DataArray(
+        np.vstack(
+            [
+                data["vapor_pressure_ref"].isel(time_index=time_index),
+                canopy_vapor_pressure,
+                np.full((7, data.grid.n_cells), np.nan),
+                below_canopy_vapor_pressure,
+                np.full((2, data.grid.n_cells), np.nan),
+            ]
+        ),
+        dims=["layers", "cell_id"],
+    )
+    # TODO add VPD = sat- act by expanding dimensions again
     return output

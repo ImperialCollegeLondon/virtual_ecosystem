@@ -271,5 +271,25 @@ class AbioticModel(
         ]
         self.data.add_from_dict(output_dict=soil_output)
 
+        # Update soil temperatures
+
+        # Calculate conductivities
+        # new_conductivities = conductivities.calculate_current_conductivities(
+        # )
+        # self.data.add_from_dict(output_dict=new_conductivities)
+
+        # Update air temperature, leaf temperature and vapor pressure deficit
+        # new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
+        #     data=self.data,
+        #     time_index=time_index,
+        #     true_canopy_layers=
+        #     leaf_emissivity=
+        #     stefan_boltzmann_constant=
+        #     saturation_vapour_pressure_factor1=
+        #     saturation_vapour_pressure_factor2=
+        #     saturation_vapour_pressure_factor3=
+        # )
+        # self.data.add_from_dict(output_dict=new_microclimate)
+
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
