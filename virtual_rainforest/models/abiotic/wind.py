@@ -1,5 +1,5 @@
 r"""The wind module calculates the above- and within-canopy wind profile for the
-Virtual Rainforest. The wind profile determines the exchange of heat, water, and
+Virtual Ecosystem. The wind profile determines the exchange of heat, water, and
 :math:`CO_{2}` between soil and atmosphere below the canopy as well as the exchange with
 the atmosphere above the canopy.
 
@@ -8,7 +8,6 @@ TODO replace leaf area index by plant area index when we have more info about ve
 distribution of leaf and woody parts
 TODO change temperatures to Kelvin
 """  # noqa: D205, D415
-
 
 import numpy as np
 from numpy.typing import NDArray

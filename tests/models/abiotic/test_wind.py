@@ -1,5 +1,4 @@
-"""Test module for wind.py."""
-
+"""Test module for abiotic.wind.py."""
 
 import numpy as np
 
