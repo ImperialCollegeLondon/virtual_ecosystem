@@ -1,5 +1,6 @@
 [core]
 [hydrology.depends]
+init = ['plants']
 update = ['plants', 'abiotic_simple']
 [abiotic_simple]
 [animals]

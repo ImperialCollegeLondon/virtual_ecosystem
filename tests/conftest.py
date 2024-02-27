@@ -1,4 +1,5 @@
 """Collection of fixtures to assist the testing scripts."""
+
 from logging import DEBUG
 from typing import Any
 

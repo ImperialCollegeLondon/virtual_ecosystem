@@ -22,7 +22,6 @@ The JSONSchema documents for a module should be loaded when a model is imported 
 :mod:`~virtual_rainforest.core.registry` module for details.
 """  # noqa: D205, D415
 
-
 import json
 from collections.abc import Iterator
 from pathlib import Path

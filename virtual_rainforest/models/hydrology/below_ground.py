@@ -3,7 +3,6 @@ processes for the Virtual Rainforest. This includes vertical flow, soil moisture
 matric potential, groundwater storage, and subsurface horizontal flow.
 """  # noqa: D205, D415
 
-
 import numpy as np
 from numpy.typing import NDArray
 
