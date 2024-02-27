@@ -10,5 +10,4 @@ in the Virtual Rainforest. The submodules provide:
   PlantCommunities class that records list of plant cohorts by grid cell.
 """  # noqa: D205, D415
 
-
 from virtual_rainforest.models.plants.plants_model import PlantsModel  # noqa: F401

@@ -203,16 +203,16 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         )
 
     # Initialise the fixed layer heights
-    data["layer_heights"].loc[
-        dict(layers=data["layer_roles"] == "soil")
-    ] = np.row_stack(layer_structure.soil_layers)
+    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "soil")] = (
+        np.row_stack(layer_structure.soil_layers)
+    )
 
-    data["layer_heights"].loc[
-        dict(layers=data["layer_roles"] == "surface")
-    ] = layer_structure.surface_layer_height
+    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "surface")] = (
+        layer_structure.surface_layer_height
+    )
 
-    data["layer_heights"].loc[
-        dict(layers=data["layer_roles"] == "subcanopy")
-    ] = layer_structure.subcanopy_layer_height
+    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "subcanopy")] = (
+        layer_structure.subcanopy_layer_height
+    )
 
     return data
