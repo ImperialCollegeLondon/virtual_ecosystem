@@ -53,7 +53,7 @@ def test_calculate_latent_heat_flux_from_soil_evaporation():
 
     result = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=np.array([0.001, 0.01, 0.1]),
-        latent_heat_vaporisation=np.array([2254.0, 2254.0, 2254.0]),
+        latent_heat_vapourisation=np.array([2254.0, 2254.0, 2254.0]),
     )
     np.testing.assert_allclose(result, np.array([2.254, 22.54, 225.4]))
 
@@ -113,7 +113,7 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
         np.full((15, 3), 29), dims=["layers", "cell_id"]
     )
     data["aerodynamic_resistance_surface"] = DataArray(np.repeat(1250.0, 3))
-    data["latent_heat_vaporisation"] = DataArray(
+    data["latent_heat_vapourisation"] = DataArray(
         np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
     )
 

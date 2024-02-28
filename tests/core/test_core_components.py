@@ -123,7 +123,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         "depth_of_active_soil_layer": 0.25,
         "meters_to_mm": 1000.0,
         "molecular_weight_air": 28.96,
-        "gas_constant_water_vapor": 461.51,
+        "gas_constant_water_vapour": 461.51,
         "seconds_to_day": 86400.0,
     }
     core_constants.update(expected_constants)

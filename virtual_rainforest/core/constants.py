@@ -63,8 +63,8 @@ class CoreConsts(ConstantsDataclass):
     molecular_weight_air: float = 28.96
     """Molecular weight of air, [g mol-1]."""
 
-    gas_constant_water_vapor: float = 461.51
-    """Gas constant for water vapor, [J kg-1 K-1]"""
+    gas_constant_water_vapour: float = 461.51
+    """Gas constant for water vapour, [J kg-1 K-1]"""
 
     seconds_to_day: float = 86400.0
     """Factor to convert variable unit from seconds to day."""

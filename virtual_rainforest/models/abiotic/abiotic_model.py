@@ -106,12 +106,12 @@ class AbioticModel(
         """Function to set up the abiotic model.
 
         This function initializes soil temperature and canopy temperature for all
-        corresponding layers and calculates the reference vapor pressure deficit for
+        corresponding layers and calculates the reference vapour pressure deficit for
         all time steps of the simulation. All variables are added directly to the
         self.data object.
         """
 
-        # Calculate vapor pressure deficit at reference height for all time steps
+        # Calculate vapour pressure deficit at reference height for all time steps
         self.data["vapour_pressure_deficit_ref"] = (
             microclimate.calculate_vapour_pressure_deficit(
                 temperature=self.data["air_temperature_ref"],
@@ -121,7 +121,7 @@ class AbioticModel(
         )
 
         # Generate initial profiles of air temperature [C], relative humidity [-],
-        # vapor pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
         initial_microclimate = microclimate.run_microclimate(
             data=self.data,
@@ -147,11 +147,11 @@ class AbioticModel(
         initial_conductivities = conductivities.initialise_conductivities(
             layer_heights=self.data["layer_heights"],
             initial_air_conductivity=self.model_constants.initial_air_conductivity,
-            top_leaf_vapor_conductivity=(
-                self.model_constants.top_leaf_vapor_conductivity
+            top_leaf_vapour_conductivity=(
+                self.model_constants.top_leaf_vapour_conductivity
             ),
-            bottom_leaf_vapor_conductivity=(
-                self.model_constants.bottom_leaf_vapor_conductivity
+            bottom_leaf_vapour_conductivity=(
+                self.model_constants.bottom_leaf_vapour_conductivity
             ),
             top_leaf_air_conductivity=self.model_constants.top_leaf_air_conductivity,
             bottom_leaf_air_conductivity=(
@@ -278,7 +278,7 @@ class AbioticModel(
         # )
         # self.data.add_from_dict(output_dict=new_conductivities)
 
-        # Update air temperature, leaf temperature and vapor pressure deficit
+        # Update air temperature, leaf temperature and vapour pressure deficit
         # new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
         #     data=self.data,
         #     time_index=time_index,

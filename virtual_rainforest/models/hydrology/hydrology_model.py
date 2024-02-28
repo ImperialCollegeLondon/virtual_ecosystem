@@ -67,7 +67,7 @@ class HydrologyModel(
         "soil_moisture",
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
-        "latent_heat_vaporisation",
+        "latent_heat_vapourisation",
         "molar_density_air",
         "soil_evaporation",
         "aerodynamic_resistance_surface",
@@ -315,7 +315,7 @@ class HydrologyModel(
         * soil_evaporation, [mm]
         * aerodynamic_resistance_surface
         * vertical_flow, [mm d-1]
-        * latent_heat_vaporisation, [J kg-1]
+        * latent_heat_vapourisation, [J kg-1]
         * molar_density_air, [mol m-3]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
@@ -483,8 +483,8 @@ class HydrologyModel(
                 soil_moisture_infiltrated / hydro_input["soil_layer_thickness"][0]
             )
 
-            latent_heat_vaporisation = (
-                hydro_input["latent_heat_vaporisation"][surface_layer_index] / 1000.0
+            latent_heat_vapourisation = (
+                hydro_input["latent_heat_vapourisation"][surface_layer_index] / 1000.0
             )
             density_air_kg = (
                 hydro_input["molar_density_air"][surface_layer_index]
@@ -503,8 +503,8 @@ class HydrologyModel(
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
                 density_air=density_air_kg,
-                latent_heat_vaporisation=latent_heat_vaporisation,
-                gas_constant_water_vapor=self.core_constants.gas_constant_water_vapor,
+                latent_heat_vapourisation=latent_heat_vapourisation,
+                gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
                 soil_surface_heat_transfer_coefficient=(
                     self.model_constants.soil_surface_heat_transfer_coefficient
                 ),
@@ -663,9 +663,9 @@ class HydrologyModel(
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Return monthly latent heat of vaporisation and molar density of air
+        # Return monthly latent heat of vapourisation and molar density of air
         # (currently only one value per month, will be average with daily input)
-        for var in ["latent_heat_vaporisation", "molar_density_air"]:
+        for var in ["latent_heat_vapourisation", "molar_density_air"]:
             soil_hydrology[var] = DataArray(
                 np.mean(daily_lists[var]),
                 dims=self.data["layer_heights"].dims,
@@ -799,9 +799,9 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants
         latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
-            vaporisation
+            vapourisation
         latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
-            vaporisation
+            vapourisation
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -809,14 +809,14 @@ def setup_hydrology_input_current_timestep(
 
     output = {}
 
-    # Calculate latent heat of vaporisation and density of air
-    latent_heat_vaporisation = abiotic_tools.calculate_latent_heat_vaporisation(
+    # Calculate latent heat of vapourisation and density of air
+    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
         temperature=data["air_temperature"].to_numpy(),
         celsius_to_kelvin=core_constants.zero_Celsius,
         latent_heat_vap_equ_factor_1=latent_heat_vap_equ_factor_1,
         latent_heat_vap_equ_factor_2=latent_heat_vap_equ_factor_2,
     )
-    output["latent_heat_vaporisation"] = latent_heat_vaporisation
+    output["latent_heat_vapourisation"] = latent_heat_vapourisation
 
     molar_density_air = abiotic_tools.calculate_molar_density_air(
         temperature=data["air_temperature"].to_numpy(),

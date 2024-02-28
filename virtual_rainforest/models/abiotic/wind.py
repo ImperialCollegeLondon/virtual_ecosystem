@@ -388,8 +388,8 @@ def calculate_wind_above_canopy(
 ) -> NDArray[np.float32]:
     """Calculate wind speed above canopy from wind speed at reference height, [m s-1].
 
-    Wind speed above the canopy dictates heat and vapor exchange between the canopy
-    and the air above it, and therefore ultimately determines temperature and vapor
+    Wind speed above the canopy dictates heat and vapour exchange between the canopy
+    and the air above it, and therefore ultimately determines temperature and vapour
     profiles.
     The wind profile above canopy typically follows a logarithmic height profile, which
     extrapolates to zero roughly two thirds of the way to the top of the canopy. The

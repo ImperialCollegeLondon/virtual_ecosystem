@@ -97,7 +97,7 @@ def calculate_sensible_heat_flux_soil(
 
 def calculate_latent_heat_flux_from_soil_evaporation(
     soil_evaporation: NDArray[np.float32],
-    latent_heat_vaporisation: NDArray[np.float32],
+    latent_heat_vapourisation: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate latent heat flux from soil evaporation.
 
@@ -105,13 +105,13 @@ def calculate_latent_heat_flux_from_soil_evaporation(
 
     Args:
         soil_evaporation: Soil evaporation, [mm]
-        latent_heat_vaporisation: Latent heat of vaporisation, [J kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
 
     Returns:
         latent heat flux from topsoil, [W m-2]
     """
 
-    return soil_evaporation * latent_heat_vaporisation
+    return soil_evaporation * latent_heat_vapourisation
 
 
 def calculate_ground_heat_flux(
@@ -214,7 +214,7 @@ def calculate_soil_heat_balance(
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
     * aerodynamic_resistance_surface: Aerodynamic resistance near the surface
     * stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
-    * latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
+    * latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
     * surface_layer_depth: Topsoil layer depth, [m]
     * grid_cell_area: Grid cell area, [m2]
     * specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]
@@ -261,8 +261,8 @@ def calculate_soil_heat_balance(
 
     latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=data["soil_evaporation"].to_numpy(),
-        latent_heat_vaporisation=(
-            data["latent_heat_vaporisation"][topsoil_layer_index - 1].to_numpy()
+        latent_heat_vapourisation=(
+            data["latent_heat_vapourisation"][topsoil_layer_index - 1].to_numpy()
         ),
     )
     output["latent_heat_flux_soil"] = latent_heat_flux_soil

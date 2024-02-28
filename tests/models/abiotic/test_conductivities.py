@@ -17,8 +17,8 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     result = initialise_conductivities(
         layer_heights=dummy_climate_data["layer_heights"],
         initial_air_conductivity=50.0,
-        top_leaf_vapor_conductivity=0.32,
-        bottom_leaf_vapor_conductivity=0.25,
+        top_leaf_vapour_conductivity=0.32,
+        bottom_leaf_vapour_conductivity=0.25,
         top_leaf_air_conductivity=0.19,
         bottom_leaf_air_conductivity=0.13,
     )
@@ -50,7 +50,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         np.broadcast_to(leaf_vap_values, (3, 15)).T,
         dims=["layers", "cell_id"],
         coords=coords,
-        name="leaf_vapor_conductivity",
+        name="leaf_vapour_conductivity",
     )
 
     leaf_air_values = np.repeat(  # TODO there should be only 3 values
@@ -68,7 +68,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         result["air_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["leaf_vapor_conductivity"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
+        result["leaf_vapour_conductivity"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
         result["leaf_air_conductivity"], exp_leaf_air_cond, rtol=1e-04, atol=1e-04
@@ -218,14 +218,14 @@ def test_calculate_leaf_air_heat_conductivity():
     np.testing.assert_allclose(result, np.full((3, 3), 0.15279), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_leaf_vapor_conductivity():
-    """Test calculate leaf vapor conductivity."""
+def test_calculate_leaf_vapour_conductivity():
+    """Test calculate leaf vapour conductivity."""
 
     from virtual_rainforest.models.abiotic.conductivities import (
-        calculate_leaf_vapor_conductivity,
+        calculate_leaf_vapour_conductivity,
     )
 
-    result = calculate_leaf_vapor_conductivity(
+    result = calculate_leaf_vapour_conductivity(
         leaf_air_conductivity=np.repeat(5.0, 3),
         stomatal_conductance=np.repeat(5.0, 3),
     )
@@ -303,7 +303,7 @@ def test_calculate_current_conductivities(dummy_climate_data):
         result["current_leaf_air_heat_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["current_leaf_vapor_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
+        result["current_leaf_vapour_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
         result["current_air_heat_conductivity_ref"], exp_gtr, rtol=1e-04, atol=1e-04

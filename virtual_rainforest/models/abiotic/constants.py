@@ -24,13 +24,13 @@ class AbioticConsts(ConstantsDataclass):
     Implementation after :cite:t:`maclean_microclimc_2021`."""
 
     latent_heat_vap_equ_factor_1: float = 1.91846e6
-    """Factor in calculation of latent heat of vaporisation.
+    """Factor in calculation of latent heat of vapourisation.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`henderson-sellers_new_1984`.
     """
     latent_heat_vap_equ_factor_2: float = 33.91
-    """Factor in calculation of latent heat of vaporisation.
+    """Factor in calculation of latent heat of vapourisation.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`henderson-sellers_new_1984`.
@@ -171,8 +171,8 @@ class AbioticConsts(ConstantsDataclass):
     light_extinction_coefficient: float = 0.01
     """Light extinction coefficient for canopy."""
 
-    gas_constant_water_vapor: float = 461.51
-    """Gas constant for water vapor, [J kg -1 K-1]."""
+    gas_constant_water_vapour: float = 461.51
+    """Gas constant for water vapour, [J kg -1 K-1]."""
 
     specific_heat_capacity_leaf: float = 2760.0
     """Specific heat capacity of leaf, [J kg-1 K-1], :cite:p:`aston_heat_1985`.
@@ -197,11 +197,11 @@ class AbioticConsts(ConstantsDataclass):
     initial_air_conductivity: float = 50.0
     """Initial air conductivity, [mol m-2 s-1]."""
 
-    top_leaf_vapor_conductivity: float = 0.32
-    """Initial leaf vapor conductivity at the top of the canopy, [mol m-2 s-1]."""
+    top_leaf_vapour_conductivity: float = 0.32
+    """Initial leaf vapour conductivity at the top of the canopy, [mol m-2 s-1]."""
 
-    bottom_leaf_vapor_conductivity: float = 0.25
-    """Initial leaf vapor conductivity at the bottom of the canopy, [mol m-2 s-1]."""
+    bottom_leaf_vapour_conductivity: float = 0.25
+    """Initial leaf vapour conductivity at the bottom of the canopy, [mol m-2 s-1]."""
 
     top_leaf_air_conductivity: float = 0.19
     """Initial leaf air heat conductivity at the top of the canopy, [mol m-2 s-1]."""

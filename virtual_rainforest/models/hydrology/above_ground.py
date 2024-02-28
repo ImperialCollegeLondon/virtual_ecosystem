@@ -26,8 +26,8 @@ def calculate_soil_evaporation(
     wind_speed_surface: NDArray[np.float32],
     celsius_to_kelvin: float,
     density_air: float | NDArray[np.float32],
-    latent_heat_vaporisation: float | NDArray[np.float32],
-    gas_constant_water_vapor: float,
+    latent_heat_vapourisation: float | NDArray[np.float32],
+    gas_constant_water_vapour: float,
     soil_surface_heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
 ) -> dict[str, NDArray[np.float32]]:
@@ -65,8 +65,8 @@ def calculate_soil_evaporation(
         wind_speed_surface: wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
-        latent_heat_vaporisation: latent heat of vaporisation, [MJ kg-1]
-        gas_constant_water_vapor: gas constant for water vapor, [J kg-1 K-1]
+        latent_heat_vapourisation: latent heat of vapourisation, [MJ kg-1]
+        gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         soil_surface_heat_transfer_coefficient: heat transfer coefficient between soil
             and air, [W m-2 K-1]
         extinction_coefficient_global_radiation: Extinction coefficient for global
@@ -97,7 +97,7 @@ def calculate_soil_evaporation(
 
     pressure_deficit = atmospheric_pressure - saturation_vapour_pressure
     saturated_specific_humidity = (
-        gas_constant_water_vapor / latent_heat_vaporisation
+        gas_constant_water_vapour / latent_heat_vapourisation
     ) * (saturation_vapour_pressure / pressure_deficit)
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
@@ -112,7 +112,7 @@ def calculate_soil_evaporation(
     )
 
     output["soil_evaporation"] = (  # Return surface evaporation, [mm]
-        evaporative_flux / latent_heat_vaporisation
+        evaporative_flux / latent_heat_vapourisation
     ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
 
     return output

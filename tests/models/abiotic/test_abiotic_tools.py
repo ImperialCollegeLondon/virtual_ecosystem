@@ -55,14 +55,14 @@ def test_calculate_specific_heat_air():
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_latent_heat_vaporisation():
-    """Test calculation of latent heat of vaporization."""
+def test_calculate_latent_heat_vapourisation():
+    """Test calculation of latent heat of vapourization."""
 
     from virtual_rainforest.models.abiotic.abiotic_tools import (
-        calculate_latent_heat_vaporisation,
+        calculate_latent_heat_vapourisation,
     )
 
-    result = calculate_latent_heat_vaporisation(
+    result = calculate_latent_heat_vapourisation(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
         celsius_to_kelvin=CoreConsts.zero_Celsius,
         latent_heat_vap_equ_factor_1=AbioticConsts.latent_heat_vap_equ_factor_1,

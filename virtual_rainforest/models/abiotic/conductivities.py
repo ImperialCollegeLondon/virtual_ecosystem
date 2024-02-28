@@ -50,8 +50,8 @@ def interpolate_along_heights(
 def initialise_conductivities(
     layer_heights: DataArray,
     initial_air_conductivity: float,
-    top_leaf_vapor_conductivity: float,
-    bottom_leaf_vapor_conductivity: float,
+    top_leaf_vapour_conductivity: float,
+    bottom_leaf_vapour_conductivity: float,
     top_leaf_air_conductivity: float,
     bottom_leaf_air_conductivity: float,
 ) -> dict[str, DataArray]:
@@ -60,7 +60,7 @@ def initialise_conductivities(
     The initial values for all conductivities are typical for decidious woodland with
     wind above canopy at 2 m/s.
     Air heat conductivity by turbulent convection (:math:`g_{t}`) is scaled by canopy
-    height and `m` (and hence distance between nodes). Leaf-air vapor conductivity
+    height and `m` (and hence distance between nodes). Leaf-air vapour conductivity
     (:math:`g_{v}`) and leaf-air heat conductivity (:math:`g_{Ha}`) are linearly
     interpolated between intial values.
     The first value in each output represents conductivity between the air at 2 m above
@@ -71,10 +71,10 @@ def initialise_conductivities(
         layer_height: layer heights, [m]
         initial_air_conductivity: Initial value for heat conductivity by turbulent
             convection in air, [mol m-2 s-1]
-        top_leaf_vapor_conductivity: Initial leaf vapor conductivity at the top of the
+        top_leaf_vapour_conductivity: Initial leaf vapour conductivity at the top of the
             canopy, [mol m-2 s-1]
-        bottom_leaf_vapor_conductivity: Initial leaf vapor conductivity at the bottom of
-            the canopy, [mol m-2 s-1]
+        bottom_leaf_vapour_conductivity: Initial leaf vapour conductivity at the bottom
+            of the canopy, [mol m-2 s-1]
         top_leaf_air_conductivity: Initial leaf air heat conductivity at the top of the
             canopy, [mol m-2 s-1]
         bottom_leaf_air_conductivity: Initial leaf air heat conductivity at the surface,
@@ -82,7 +82,7 @@ def initialise_conductivities(
 
     Returns:
         Heat conductivity in air of each canopy layer node, [mol m-2 s-1],
-        Leaf conductivity to vapor loss for each canopy layer node, [mol m-2 s-1],
+        Leaf conductivity to vapour loss for each canopy layer node, [mol m-2 s-1],
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
@@ -112,25 +112,25 @@ def initialise_conductivities(
         name="air_conductivity",
     )
 
-    # Initialise leaf vapor conductivity
-    leaf_vapor_conductivity = interpolate_along_heights(
+    # Initialise leaf vapour conductivity
+    leaf_vapour_conductivity = interpolate_along_heights(
         start_height=layer_heights[-(len(soil_layers) + 1)].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
         target_heights=layer_heights[canopy_layers.indexes].to_numpy(),
-        start_value=top_leaf_vapor_conductivity,
-        end_value=bottom_leaf_vapor_conductivity,
+        start_value=top_leaf_vapour_conductivity,
+        end_value=bottom_leaf_vapour_conductivity,
     )
-    output["leaf_vapor_conductivity"] = DataArray(
+    output["leaf_vapour_conductivity"] = DataArray(
         np.vstack(
             [
                 np.repeat(np.nan, len(canopy_height)),
-                leaf_vapor_conductivity,
+                leaf_vapour_conductivity,
                 np.full((len(soil_layers) + 2, len(canopy_height)), np.nan),
             ],
         ),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="leaf_vapor_conductivity",
+        name="leaf_vapour_conductivity",
     )
 
     # Initialise leaf air heat conductivity
@@ -359,13 +359,13 @@ def calculate_leaf_air_heat_conductivity(
     return conductance
 
 
-def calculate_leaf_vapor_conductivity(
+def calculate_leaf_vapour_conductivity(
     leaf_air_conductivity: NDArray[np.float32],
     stomatal_conductance: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    r"""Calculate leaf air conductivity for vapor, [mol m-2 s-1].
+    r"""Calculate leaf air conductivity for vapour, [mol m-2 s-1].
 
-    The conductance for vapor loss from leaves :math:`g_{v}` depends on stomatal
+    The conductance for vapour loss from leaves :math:`g_{v}` depends on stomatal
     conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
 
     .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
@@ -377,7 +377,7 @@ def calculate_leaf_vapor_conductivity(
         stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
 
     Returns:
-        Leaf vapor conductivity, [mol m-2 s-1]
+        Leaf vapour conductivity, [mol m-2 s-1]
     """
     return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
 
@@ -501,11 +501,11 @@ def calculate_current_conductivities(
     )
     output["current_leaf_air_heat_conductivity"] = current_leaf_air_heat_conductivity
 
-    # Leaf vapor conductivity, gv
-    current_leaf_vapor_conductivity = calculate_leaf_vapor_conductivity(
+    # Leaf vapour conductivity, gv
+    current_leaf_vapour_conductivity = calculate_leaf_vapour_conductivity(
         leaf_air_conductivity=current_leaf_air_heat_conductivity,
         stomatal_conductance=stomatal_conductance,
     )
-    output["current_leaf_vapor_conductivity"] = current_leaf_vapor_conductivity
+    output["current_leaf_vapour_conductivity"] = current_leaf_vapour_conductivity
 
     return output

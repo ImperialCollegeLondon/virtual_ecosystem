@@ -67,13 +67,13 @@ def calculate_specific_heat_air(
     )
 
 
-def calculate_latent_heat_vaporisation(
+def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,
     latent_heat_vap_equ_factor_1: float,
     latent_heat_vap_equ_factor_2: float,
 ) -> NDArray[np.float32]:
-    """Calculate latent heat of vaporisation.
+    """Calculate latent heat of vapourisation.
 
     Implementation after Eq. 8, :cite:t:`henderson-sellers_new_1984`.
 
@@ -82,12 +82,12 @@ def calculate_latent_heat_vaporisation(
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
         latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
-            vaporisation
+            vapourisation
         latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
-            vaporisation
+            vapourisation
 
     Returns:
-        latent heat of vaporisation, [kJ kg-1]
+        latent heat of vapourisation, [kJ kg-1]
     """
     temperature_kelvin = temperature + celsius_to_kelvin
     return (

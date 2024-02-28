@@ -42,8 +42,8 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         leaf_area_index=np.array([3, 4, 5]),
         celsius_to_kelvin=273.15,
         density_air=dens_air,
-        latent_heat_vaporisation=latvap,
-        gas_constant_water_vapor=CoreConsts.gas_constant_water_vapor,
+        latent_heat_vapourisation=latvap,
+        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
         soil_surface_heat_transfer_coefficient=(
             HydroConsts.soil_surface_heat_transfer_coefficient
         ),

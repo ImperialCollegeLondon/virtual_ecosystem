@@ -437,7 +437,7 @@ def dummy_climate_data(fixture_core_components):
         np.full((3, 3), 0.14),
         dims=["cell_id", "time_index"],
     )
-    data["vapor_pressure_ref"] = DataArray(
+    data["vapour_pressure_ref"] = DataArray(
         np.full((3, 3), 0.14),
         dims=["cell_id", "time_index"],
     )
@@ -583,7 +583,7 @@ def dummy_climate_data(fixture_core_components):
         np.full((15, 3), 29.0), dims=["layers", "cell_id"]
     )
     data["aerodynamic_resistance_surface"] = DataArray(np.repeat(12.5, 3))
-    data["latent_heat_vaporisation"] = DataArray(
+    data["latent_heat_vapourisation"] = DataArray(
         np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
     )
 
@@ -599,11 +599,11 @@ def dummy_climate_data(fixture_core_components):
     )
 
     leaf_vap_cond = np.repeat(a=[np.nan, 0.2, np.nan], repeats=[1, 3, 11])
-    data["leaf_vapor_conductivity"] = (
+    data["leaf_vapour_conductivity"] = (
         DataArray(
             np.broadcast_to(leaf_vap_cond, (3, 15)).T,
             dims=["layers", "cell_id"],
-            name="leaf_vapor_conductivity",
+            name="leaf_vapour_conductivity",
         )
         .expand_dims(dim={"time_index": 3})
         .assign_coords(full_coordinates_timeindex)
