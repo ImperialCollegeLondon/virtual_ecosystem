@@ -471,86 +471,6 @@ class AnimalCohort:
         )"""
         pass
 
-    def forage_cohort(
-        self,
-        plant_list: Sequence[Resource],
-        animal_list: Sequence[AnimalCohort],
-        # carcass_pool: DecayPool,
-        excrement_pool: DecayPool,
-    ) -> float:
-        """This function handles selection of resources from a list of options.
-
-        Currently, this function is passed a list of plant or animal resources from
-        AnimalCommunity.forage_community and performs a simple random uniform selection.
-        After this, excrete is called to pass excess waste to the excrement pool.
-        Later this function will involve more complex weightings of prey options.
-
-        Madingley's detla_mass = delta_mass_herbivory + delta_mass_predation is in here
-
-        TODO: Fix the occasional division by zero bug in eat and then remove Optional
-        TODO: ensure mass is lost from resources
-        TODO: ensure mass flows to carcass pools
-        TODO: make new test once other methods are resolved
-
-        Args:
-            plant_list: A list of plant cohorts available for herbivory.
-            animal_list: A list of animal cohorts available for predation.
-            carcass_pool: A CarcassPool object representing available carcasses.
-            excrement_pool: A pool representing the excrement in the grid cell
-
-        Return:
-            A float value of the change in consumer mass.
-        """
-
-        if self.individuals == 0:
-            LOGGER.warning("No individuals in cohort to forage.")
-            # return None  # Early return with no food choice
-
-        try:
-            if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-                delta_mass = self.delta_mass_herbivory(plant_list)
-
-            elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-                delta_mass = self.delta_mass_predation(animal_list)
-
-            else:
-                LOGGER.info("No food available.")
-
-        except ValueError as e:
-            raise e
-
-        # excrete excess digestive wastes
-        self.excrete(excrement_pool, delta_mass)
-
-        return delta_mass
-
-    def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
-        """Cumulative density method for delta_mass_predation.
-
-        The cumulative density of organisms with a mass lying within the same predator
-        specific mass bin as Mi.
-
-        Madingley
-
-        TODO: current format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference
-
-        Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
-                         predator.
-
-        Returns:
-            The float value of theta.
-        """
-        A_cell = 1.0  # temporary
-        theta = 0.0
-
-        for cohort in animal_list:
-            if self.mass_current == cohort.mass_current:
-                theta += cohort.individuals / A_cell
-
-        return theta
-
     def delta_mass_predation(self, animal_list: Sequence[AnimalCohort]) -> float:
         """This method handles mass assimilation from predation.
 
@@ -647,6 +567,87 @@ class AnimalCohort:
             )
 
         return delta_mass_herb
+
+    def forage_cohort(
+        self,
+        plant_list: Sequence[Resource],
+        animal_list: Sequence[AnimalCohort],
+        # carcass_pool: DecayPool,
+        excrement_pool: DecayPool,
+    ) -> float:
+        """This function handles selection of resources from a list of options.
+
+        Currently, this function is passed a list of plant or animal resources from
+        AnimalCommunity.forage_community and performs a simple random uniform selection.
+        After this, excrete is called to pass excess waste to the excrement pool.
+        Later this function will involve more complex weightings of prey options.
+
+        Madingley's detla_mass = delta_mass_herbivory + delta_mass_predation is in here
+
+        TODO: Fix the occasional division by zero bug in eat and then remove Optional
+        TODO: ensure mass is lost from resources
+        TODO: ensure mass flows to carcass pools
+        TODO: make new test once other methods are resolved
+
+        Args:
+            plant_list: A list of plant cohorts available for herbivory.
+            animal_list: A list of animal cohorts available for predation.
+            carcass_pool: A CarcassPool object representing available carcasses.
+            excrement_pool: A pool representing the excrement in the grid cell
+
+        Return:
+            A float value of the change in consumer mass.
+        """
+
+        if self.individuals == 0:
+            LOGGER.warning("No individuals in cohort to forage.")
+            return 0.0
+
+        delta_mass = 0.0
+
+        try:
+            if self.functional_group.diet == DietType.HERBIVORE and plant_list:
+                delta_mass = self.delta_mass_herbivory(plant_list)
+                self.excrete(excrement_pool, delta_mass)  # Move excrete call here
+
+            elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
+                delta_mass = self.delta_mass_predation(animal_list)
+                self.excrete(excrement_pool, delta_mass)  # Move excrete call here
+
+            else:
+                LOGGER.info("No food available.")
+
+        except ValueError as e:
+            raise e
+
+        return delta_mass
+
+    def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
+        """Cumulative density method for delta_mass_predation.
+
+        The cumulative density of organisms with a mass lying within the same predator
+        specific mass bin as Mi.
+
+        Madingley
+
+        TODO: current format makes no sense, dig up the details in the supp
+        TODO: update A_cell with real reference
+
+        Args:
+            animal_list: A sequence of animal cohorts that can be consumed by the
+                         predator.
+
+        Returns:
+            The float value of theta.
+        """
+        A_cell = 1.0  # temporary
+        theta = 0.0
+
+        for cohort in animal_list:
+            if self.mass_current == cohort.mass_current:
+                theta += cohort.individuals / A_cell
+
+        return theta
 
     def eat(self, food: Resource, pool: DecayPool) -> float:
         """This function handles the mass transfer of a trophic interaction.

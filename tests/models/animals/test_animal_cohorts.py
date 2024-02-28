@@ -676,3 +676,183 @@ def test_F_i_j_individual(predator_cohort_instance, animal_list_instance):
         assert rate == pytest.approx(
             expected_rate
         ), "F_i_j_individual did not return the expected predation rate."
+
+
+def test_theta_i_j(predator_cohort_instance, animal_list_instance):
+    """Test theta_i_j."""
+    # TODO change this A_cell to call it from its real plant in the data
+    A_cell = (
+        1.0  # Define A_cell value used in method implementation, adjust as necessary
+    )
+
+    # Execute the method under test
+    theta = predator_cohort_instance.theta_i_j(animal_list_instance)
+
+    # Calculate expected theta value considering A_cell
+    expected_theta = (
+        sum(
+            cohort.individuals
+            for cohort in animal_list_instance
+            if cohort.mass_current == predator_cohort_instance.mass_current
+        )
+        / A_cell
+    )
+
+    assert theta == expected_theta
+
+
+def test_delta_mass_predation(predator_cohort_instance, animal_list_instance):
+    """Test mass assimilation calculation from predation."""
+
+    import math
+    from unittest.mock import patch
+
+    # Mocking external calls used in delta_mass_predation
+    with patch(
+        "virtual_rainforest.models.animals.scaling_functions.theta_opt_i",
+        return_value=0.7,
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.w_bar_i_j",
+        return_value=0.5,
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.alpha_i_j",
+        return_value=0.8,
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.k_i_j", return_value=10
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.H_i_j", return_value=2
+    ), patch(
+        "virtual_rainforest.models.animals.scaling_functions.F_i_j_individual",
+        return_value=0.3,
+    ):
+        delta_t = 30.0  # Assuming delta_t is 30 days for the calculation
+        tau_f = (
+            predator_cohort_instance.constants.tau_f
+        )  # Assumed to be available from constants
+        sigma_f_t = (
+            predator_cohort_instance.constants.sigma_f_t
+        )  # Assumed to be available from constants
+
+        # Execute the method under test
+        delta_mass = predator_cohort_instance.delta_mass_predation(animal_list_instance)
+
+        # Manually compute the expected delta_mass_pred using mocked return values
+        # and provided constants
+        expected_delta_mass = sum(
+            cohort.mass_current
+            * cohort.individuals
+            * (
+                1
+                - math.exp(
+                    -0.3 * delta_t * tau_f * sigma_f_t
+                )  # Using F, delta_t, tau_f, sigma_f_t
+            )
+            for cohort in animal_list_instance
+        )
+
+        # Assert the calculated delta_mass_pred matches the expected value
+        assert delta_mass == pytest.approx(
+            expected_delta_mass
+        ), "The calculated change in mass from predation did not match expected value."
+
+
+def test_delta_mass_herbivory(herbivore_cohort_instance, plant_list_instance):
+    """Test mass assimilation calculation from herbivory."""
+    import math
+    from unittest.mock import patch
+
+    # Assuming delta_t, tau_f, and sigma_f_t are known or can be obtained from
+    # the herbivore's constants
+    delta_t = 30.0  # days, assumed for the calculation
+    tau_f = herbivore_cohort_instance.constants.tau_f
+    sigma_f_t = herbivore_cohort_instance.constants.sigma_f_t
+
+    # Mock the F_i_k method to control its output
+    with patch.object(
+        herbivore_cohort_instance, "F_i_k", side_effect=lambda plant_list, plant: 0.1
+    ) as mock_F_i_k:
+        # Execute the method under test
+        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(plant_list_instance)
+
+        # Ensure F_i_k is called for each plant in the list with the correct arguments
+        assert mock_F_i_k.call_count == len(plant_list_instance)
+        for plant in plant_list_instance:
+            mock_F_i_k.assert_any_call(plant_list_instance, plant)
+
+        # Manually compute the expected delta_mass_herb using mocked return values and
+        # provided constants
+        expected_delta_mass = sum(
+            plant.mass_current
+            * (
+                1
+                - math.exp(
+                    -0.1 * delta_t * tau_f * sigma_f_t
+                )  # Using mocked F value, delta_t, tau_f, sigma_f_t
+            )
+            for plant in plant_list_instance
+        )
+
+        # Assert the calculated delta_mass_herb matches the expected value
+        assert delta_mass == pytest.approx(
+            expected_delta_mass
+        ), "The calculated change in mass due herbivory did not match expected value."
+
+
+@pytest.fixture
+def excrement_instance():
+    """Fixture for a soil pool used in tests."""
+    from virtual_rainforest.models.animals.decay import ExcrementPool
+
+    return ExcrementPool(100000.0, 0.0)
+
+
+def test_forage_cohort_herbivore(
+    herbivore_cohort_instance, plant_list_instance, excrement_instance
+):
+    """Test resource selection and mass change for a herbivore cohort."""
+    from unittest.mock import patch
+
+    # Mocking the delta_mass_herbivory method
+    with patch.object(
+        herbivore_cohort_instance, "delta_mass_herbivory", return_value=5.0
+    ) as mock_herbivory, patch.object(
+        herbivore_cohort_instance, "excrete"
+    ) as mock_excrete:
+        delta_mass = herbivore_cohort_instance.forage_cohort(
+            plant_list_instance, [], excrement_instance
+        )
+
+        mock_herbivory.assert_called_once_with(plant_list_instance)
+        mock_excrete.assert_called_once_with(excrement_instance, 5.0)
+        assert delta_mass == 5.0, "Expected delta mass not returned for herbivory."
+
+
+def test_forage_cohort_carnivore(
+    predator_cohort_instance, animal_list_instance, excrement_instance
+):
+    """Test resource selection and mass change for a carnivore cohort."""
+    from unittest.mock import patch
+
+    # Mocking the delta_mass_predation method
+    with patch.object(
+        predator_cohort_instance, "delta_mass_predation", return_value=10.0
+    ) as mock_predation, patch.object(
+        predator_cohort_instance, "excrete"
+    ) as mock_excrete:
+        delta_mass = predator_cohort_instance.forage_cohort(
+            [], animal_list_instance, excrement_instance
+        )
+
+        mock_predation.assert_called_once_with(animal_list_instance)
+        mock_excrete.assert_called_once_with(excrement_instance, 10.0)
+        assert delta_mass == 10.0, "Expected delta mass not returned for predation."
+
+
+def test_forage_cohort_no_food_available(herbivore_cohort_instance, excrement_instance):
+    """Test behavior when no food is available."""
+
+    delta_mass = herbivore_cohort_instance.forage_cohort([], [], excrement_instance)
+    # Assuming delta_mass should be 0 or another specific value when no food available
+    assert (
+        delta_mass == 0
+    ), "Expected delta mass not handled correctly when no food is available."
