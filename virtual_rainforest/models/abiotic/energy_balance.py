@@ -545,17 +545,19 @@ def calculate_leaf_and_air_temperature(
     )
 
     # Create arrays and return for data object
+    new_temperature_profile = np.vstack(
+        [
+            data["air_temperature_ref"].isel(time_index=time_index),
+            new_air_temperature,
+            np.full((7, data.grid.n_cells), np.nan),
+            below_canopy_temperature,
+            np.full((2, data.grid.n_cells), np.nan),
+        ]
+    )
     output["air_temperature"] = DataArray(
-        np.vstack(
-            [
-                data["air_temperature_ref"].isel(time_index=time_index),
-                new_air_temperature,
-                np.full((7, data.grid.n_cells), np.nan),
-                below_canopy_temperature,
-                np.full((2, data.grid.n_cells), np.nan),
-            ]
-        ),
+        new_temperature_profile,
         dims=["layers", "cell_id"],
+        coords=data["layer_heights"].coords,
     )
     output["leaf_temperature"] = DataArray(
         np.vstack(
@@ -568,20 +570,23 @@ def calculate_leaf_and_air_temperature(
         dims=["layers", "cell_id"],
     )
 
-    # TODO return VPD profile
+    # Calculate vapor pressure
     vapor_pressure_mean = a_E + b_E * delta_leaf_temperature
     vapor_pressure_new = data["vapor_pressure_ref"].to_numpy() + 2 * (
         vapor_pressure_mean - data["vapor_pressure_ref"].to_numpy()
     )
     saturation_vapour_pressure_new = calculate_saturation_vapour_pressure(
-        new_air_temperature,
+        DataArray(new_temperature_profile),
         factor1=saturation_vapour_pressure_factor1,
         factor2=saturation_vapour_pressure_factor2,
         factor3=saturation_vapour_pressure_factor3,
     )
+    saturation_vapour_pressure_new_canopy = saturation_vapour_pressure_new[
+        1 : len(true_canopy_layers) + 1
+    ]
     canopy_vapor_pressure = np.where(
-        vapor_pressure_new > saturation_vapour_pressure_new,
-        saturation_vapour_pressure_new,
+        vapor_pressure_new > saturation_vapour_pressure_new_canopy,
+        saturation_vapour_pressure_new_canopy,
         vapor_pressure_new,
     )
     below_canopy_vapor_pressure = interpolate_along_heights(
@@ -603,5 +608,8 @@ def calculate_leaf_and_air_temperature(
         ),
         dims=["layers", "cell_id"],
     )
-    # TODO add VPD = sat- act by expanding dimensions again
+
+    output["vapor_pressure_deficit"] = output["vapor_pressure"] / DataArray(
+        saturation_vapour_pressure_new, dims=["layers", "cell_id"]
+    )
     return output

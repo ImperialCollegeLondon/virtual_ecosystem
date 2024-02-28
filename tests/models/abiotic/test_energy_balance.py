@@ -218,8 +218,30 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
         dims=["layers", "cell_id"],
     )
 
+    exp_vpd = DataArray(
+        np.concatenate(
+            (
+                np.array(
+                    [
+                        [0.09878147, 0.09878147, 0.09878147],
+                        [0.23379686, 0.23379686, 0.23379686],
+                        [0.23379686, 0.23379686, 0.23379686],
+                        [0.23379686, 0.23379686, 0.23379686],
+                    ],
+                ),
+                np.full((7, 3), np.nan),
+                np.full((2, 3), 0.2),
+                np.full((2, 3), np.nan),
+            ),
+        ),
+        dims=["layers", "cell_id"],
+    )
+
     np.testing.assert_allclose(result["leaf_temperature"], exp_leaf_temp)
     np.testing.assert_allclose(result["air_temperature"], exp_air_temp)
     np.testing.assert_allclose(
         result["vapor_pressure"], exp_vapor_pressure, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["vapor_pressure_deficit"], exp_vpd, rtol=1e-04, atol=1e-04
     )
