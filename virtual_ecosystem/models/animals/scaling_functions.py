@@ -58,9 +58,7 @@ def metabolic_rate_energy(
         return terms[1] * mass_g ** terms[0]
     elif metabolic_type == MetabolicType.ECTOTHERMIC:
         b0, exponent = terms
-        return (
-            b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
-        )
+        return b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
     else:
         raise ValueError("Invalid metabolic type: {metabolic_type}")
 

@@ -466,7 +466,7 @@ class Grid:
         self,
         x_coords: np.ndarray,
         y_coords: np.ndarray,
-    ) -> list[list[int | None]]:
+    ) -> list[list[int]]:
         """Map a set of coordinates onto grid cells.
 
         This function loops over points defined by pairs of x and y coordinates and maps
@@ -544,15 +544,16 @@ class Grid:
         if (x_idx is None) ^ (y_idx is None):  # Note: ^ is xor
             raise ValueError("Only one of x/y indices provided.")
 
-        if (x_idx is None) and (y_idx is None):
-            x_idx = np.arange(x_coords.shape[0])
-            y_idx = np.arange(y_coords.shape[0])
+        # Generate internal x and y indices.
+        if (x_idx is not None) and (y_idx is not None):
+            _x_idx = x_idx
+            _y_idx = y_idx
+        else:
+            _x_idx = np.arange(x_coords.shape[0])
+            _y_idx = np.arange(y_coords.shape[0])
 
         # Check the shapes of the indices.
-        # x_idx and y_idx cannot now be None, so type ignore.
-        if (x_idx.shape != x_coords.shape) or (  # type: ignore [union-attr]
-            y_idx.shape != y_coords.shape  # type: ignore [union-attr]
-        ):
+        if (_x_idx.shape != x_coords.shape) or (_y_idx.shape != y_coords.shape):
             raise ValueError("Dimensions of x/y indices do not match coordinates")
 
         # Find the set of total number of cell mappings per point
@@ -579,9 +580,6 @@ class Grid:
         if len(cells_found) != self.n_cells:
             raise ValueError("Some cells contain more than one point.")
 
-        # Get a list of (cell_id, x, y) tuples
-        cells = list(zip(cell_id_map, x_idx, y_idx))  # type: ignore [arg-type]
-        cells.sort()
-        _, x_idx, y_idx = zip(*cells)
-
-        return np.array(x_idx), np.array(y_idx)
+        # Sort indices into cell map order
+        cell_order = np.argsort(cell_id_map)
+        return _x_idx[cell_order], _y_idx[cell_order]
