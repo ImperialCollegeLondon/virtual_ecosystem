@@ -8,7 +8,7 @@ from xarray import DataArray
 @pytest.fixture
 def flora(fixture_config):
     """Construct a minimal Flora object."""
-    from virtual_rainforest.models.plants.functional_types import Flora
+    from virtual_ecosystem.models.plants.functional_types import Flora
 
     flora = Flora.from_config(fixture_config)
 
@@ -18,9 +18,9 @@ def flora(fixture_config):
 @pytest.fixture
 def plants_data():
     """Construct a minimal data object with plant cohort data."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.core.utils import set_layer_roles
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.core.utils import set_layer_roles
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 
@@ -69,7 +69,7 @@ def plants_data():
 def fxt_plants_model(plants_data, flora, fixture_core_components):
     """Return a simple PlantsModel instance."""
 
-    from virtual_rainforest.models.plants.plants_model import PlantsModel
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     return PlantsModel(
         data=plants_data,

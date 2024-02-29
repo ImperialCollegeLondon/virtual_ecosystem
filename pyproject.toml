@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "virtual_rainforest"
+name = "virtual_ecosystem"
 version = "0.1.0"
-description = """The package simulates the abiotic, soil, animal and plant components of a rainforest"""
+description = """The package simulates the abiotic, soil, animal and plant components of an ecosystem."""
 authors = [
     "Rob Ewers <r.ewers@imperial.ac.uk>",
     "David Orme <d.orme@imperial.ac.uk>",
@@ -12,7 +12,7 @@ authors = [
 ]
 
 [tool.poetry.scripts]
-vr_run = "virtual_rainforest.entry_points:vr_run_cli"
+ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"

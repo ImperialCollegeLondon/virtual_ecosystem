@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)

@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.core.grid` module
+# API documentation for the {mod}`~virtual_ecosystem.core.grid` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.core.grid
+.. automodule:: virtual_ecosystem.core.grid
     :autosummary:
     :members:
     :special-members: __repr__

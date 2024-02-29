@@ -6,13 +6,13 @@ This module tests the functionality of the soil carbon module
 import numpy as np
 import pytest
 
-from virtual_rainforest.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
 def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     """Test that the two pool update functions work correctly."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.soil.carbon import calculate_soil_carbon_updates
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
         "soil_c_pool_lmwc": [-0.00371115, 0.00278502, -0.01849181, 0.00089995],
@@ -62,7 +62,7 @@ def test_determine_microbial_biomass_losses(
     dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check that the determination of microbial biomass losses works correctly."""
-    from virtual_rainforest.models.soil.carbon import determine_microbial_biomass_losses
+    from virtual_ecosystem.models.soil.carbon import determine_microbial_biomass_losses
 
     expected_maintenance = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
     expected_pom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
@@ -99,7 +99,7 @@ def test_calculate_maintenance_biomass_synthesis(
     dummy_carbon_data, top_soil_layer_index
 ):
     """Check maintenance respiration cost calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.carbon import (
         calculate_maintenance_biomass_synthesis,
     )
 
@@ -116,7 +116,7 @@ def test_calculate_maintenance_biomass_synthesis(
 
 def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index):
     """Check carbon use efficiency calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_carbon_use_efficiency
+    from virtual_ecosystem.models.soil.carbon import calculate_carbon_use_efficiency
 
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
@@ -149,7 +149,7 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index
 )
 def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     """Check that enzyme turnover rates are calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_enzyme_turnover
+    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_turnover
 
     actual_decay = calculate_enzyme_turnover(
         enzyme_pool=dummy_carbon_data["soil_enzyme_pom"], turnover_rate=turnover
@@ -162,7 +162,7 @@ def test_calculate_microbial_carbon_uptake(
     dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
-    from virtual_rainforest.models.soil.carbon import calculate_microbial_carbon_uptake
+    from virtual_ecosystem.models.soil.carbon import calculate_microbial_carbon_uptake
 
     expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
     expected_assimilation = [4.64972597e-3, 2.78306303e-3, 1.73129097e-2, 2.77134508e-5]
@@ -186,7 +186,7 @@ def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, top_soil_layer_index, environmental_factors
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
-    from virtual_rainforest.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.carbon import (
         calculate_enzyme_mediated_decomposition,
     )
 

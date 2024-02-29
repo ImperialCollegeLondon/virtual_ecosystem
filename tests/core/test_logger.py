@@ -24,7 +24,7 @@ from tests.conftest import log_check
 @pytest.fixture(autouse=True)
 def teardown_hook():
     """Logger test teardown hook."""
-    from virtual_rainforest.core.logger import remove_file_logger
+    from virtual_ecosystem.core.logger import remove_file_logger
 
     yield
 
@@ -35,7 +35,7 @@ def teardown_hook():
 
 def test_add_file_logger():
     """Test the add_file_logger function works."""
-    from virtual_rainforest.core.logger import (
+    from virtual_ecosystem.core.logger import (
         LOGGER,
         add_file_logger,
         remove_file_logger,
@@ -66,7 +66,7 @@ def test_add_file_logger():
 
 def test_add_file_logger_twice_fails():
     """Test that add_logger function works."""
-    from virtual_rainforest.core.logger import add_file_logger, remove_file_logger
+    from virtual_ecosystem.core.logger import add_file_logger, remove_file_logger
 
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / "test_add_file_logger.log"
@@ -83,7 +83,7 @@ def test_add_file_logger_twice_fails():
 
 def test_remove_file_logger(caplog):
     """Tests that remove_file_logger behaves as expected."""
-    from virtual_rainforest.core.logger import (
+    from virtual_ecosystem.core.logger import (
         LOGGER,
         add_file_logger,
         remove_file_logger,

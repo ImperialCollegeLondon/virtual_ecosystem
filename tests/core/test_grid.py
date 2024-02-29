@@ -15,7 +15,7 @@ from hypothesis.strategies import integers
 from scipy.spatial.distance import euclidean  # type: ignore
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Local constants
 # 10000 m2 hex: apothem = 53.73 m, side = 62.04 m
@@ -29,7 +29,7 @@ hxa = hxA / (3 * hxs)
 def test_make_square_grid(cell_id):
     """Test make_square_grid()."""
 
-    from virtual_rainforest.core.grid import make_square_grid
+    from virtual_ecosystem.core.grid import make_square_grid
 
     cids, cpolys = make_square_grid(cell_area=100, cell_nx=10, cell_ny=10)
 
@@ -59,7 +59,7 @@ def test_make_square_grid(cell_id):
 def test_make_hex_grid(cell_id):
     """Test make_hex_grid()."""
 
-    from virtual_rainforest.core.grid import make_hex_grid
+    from virtual_ecosystem.core.grid import make_hex_grid
 
     cids, cpolys = make_hex_grid(cell_area=100, cell_nx=10, cell_ny=10)
 
@@ -99,12 +99,12 @@ def test_make_hex_grid(cell_id):
 def test_grid_exceptions(mocker, grid_type, excep_type, message):
     """Test Grid init exceptions."""
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     # Mock the registered 'square' creator with something that returns unequal length
     # ids and polygons tuples.
     mocker.patch.dict(
-        "virtual_rainforest.core.grid.GRID_REGISTRY",
+        "virtual_ecosystem.core.grid.GRID_REGISTRY",
         {"square": lambda *args, **kwargs: ((1, 2, 3, 4), ("poly", "poly", "poly"))},
     )
 
@@ -162,7 +162,7 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     __init__ argument itself. Those few ones are tested here.
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(grid_type=grid_type, cell_nx=3, cell_ny=3)
 
@@ -236,7 +236,7 @@ def test_grid_from_config(caplog, config, expected_err, expected_log):
     NOTE: this does not use an actual Config object, just a dictionary
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     with expected_err:
         _ = Grid.from_config(config)
@@ -276,7 +276,7 @@ def test_get_distances(preset_distances, grid_type, cfrom, cto):
     the expected values, but that would give more robustness.
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(grid_type=grid_type, cell_area=100)
 
@@ -364,7 +364,7 @@ def test_set_neighbours(grid_type, distance, expected):
     Uses small grids and hand-derived neighbourhood lists.
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(grid_type, cell_nx=3, cell_ny=3)
     grid.set_neighbours(distance=distance)
@@ -376,7 +376,7 @@ def test_set_neighbours(grid_type, distance, expected):
 def test_grid_dumps():
     """Test some basic properties of a dumped GeoJSON grid."""
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid()
     geojson = grid.dumps()

@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.core.logger` module
+# API documentation for the {mod}`~virtual_ecosystem.core.logger` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.core.logger
+.. automodule:: virtual_ecosystem.core.logger
     :autosummary:
     :members:
     :special-members: __init__

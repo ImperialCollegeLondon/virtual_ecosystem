@@ -7,22 +7,22 @@ import os
 import shutil
 import subprocess
 
-import virtual_rainforest as vr
+import virtual_ecosystem as ve
 
 
 def test_entry_point_existence():
     """Check that the entry points exist."""
 
-    exit_status = os.system("vr_run --help")
+    exit_status = os.system("ve_run --help")
     assert exit_status == 0
 
 
 def test_version():
     """Check --version information is displayed correctly."""
-    expected_version = vr.__version__
+    expected_version = ve.__version__
     result = subprocess.run(
-        [shutil.which("vr_run"), "--version"], capture_output=True, text=True
+        [shutil.which("ve_run"), "--version"], capture_output=True, text=True
     )
 
     assert result.returncode == 0
-    assert result.stdout == f"vr_run {expected_version}\n"
+    assert result.stdout == f"ve_run {expected_version}\n"

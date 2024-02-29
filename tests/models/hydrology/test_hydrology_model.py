@@ -9,7 +9,7 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -79,9 +79,9 @@ def test_hydrology_model_initialization(
     expected_log_entries,
 ):
     """Test `HydrologyModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.hydrology.constants import HydroConsts
-    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     with raises:
         # Initialize model
@@ -173,9 +173,9 @@ def test_generate_hydrology_model(
 ):
     """Test that the initialisation of the hydrology model works as expected."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -222,9 +222,9 @@ def test_setup(
     raises,
 ):
     """Test set up and update."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.hydrology.hydrology_model import HydrologyModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -389,7 +389,7 @@ def test_setup(
 def test_calculate_layer_thickness():
     """Test."""
 
-    from virtual_rainforest.models.hydrology.hydrology_model import (
+    from virtual_ecosystem.models.hydrology.hydrology_model import (
         calculate_layer_thickness,
     )
 
@@ -406,7 +406,7 @@ def test_setup_hydrology_input_current_timestep(
 ):
     """Test that correct values are selected for current time step."""
 
-    from virtual_rainforest.models.hydrology.hydrology_model import (
+    from virtual_ecosystem.models.hydrology.hydrology_model import (
         setup_hydrology_input_current_timestep,
     )
 

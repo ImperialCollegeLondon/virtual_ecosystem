@@ -10,14 +10,14 @@ kernelspec:
   name: python3
 ---
 
-# Welcome to the Virtual Rainforest
+# Welcome to the Virtual Ecosystem
 
-This repository is the home for the development of the Virtual Rainforest. The Virtual
-Rainforest is a project to develop a simulation of all of the major processes involved
-in a real rainforest including the:
+This repository is the home for the development of the Virtual Ecosystem. The Virtual
+Ecosystem is a project to develop a simulation of all of the major processes involved
+in a real ecosystem including the:
 
 - growth and demographic processes of the primary producers within the forest,
-- microclimatic processes within and around the rainforest,
+- microclimatic processes within and around the ecosystem,
 - hydrological processes within the canopy, soil and drainage networks,
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
@@ -61,18 +61,18 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: The Virtual Rainforest
+  :caption: The Virtual Ecosystem
 
-  virtual_rainforest/module_overview.md
-  virtual_rainforest/usage.md
-  virtual_rainforest/example_data.md
-  virtual_rainforest/main_simulation.md
-  virtual_rainforest/constants.md
-  virtual_rainforest/soil/soil_details.md
-  virtual_rainforest/core/grid.md
-  virtual_rainforest/core/data.md
-  virtual_rainforest/core/axes.md
-  virtual_rainforest/core/config.md
+  virtual_ecosystem/module_overview.md
+  virtual_ecosystem/usage.md
+  virtual_ecosystem/example_data.md
+  virtual_ecosystem/main_simulation.md
+  virtual_ecosystem/constants.md
+  virtual_ecosystem/soil/soil_details.md
+  virtual_ecosystem/core/grid.md
+  virtual_ecosystem/core/data.md
+  virtual_ecosystem/core/axes.md
+  virtual_ecosystem/core/config.md
 ```
 
 ```{eval-rst}
@@ -136,7 +136,7 @@ team.
   :maxdepth: 4
   :caption: Command line tools
 
-  command_line_tools/vr_run.md
+  command_line_tools/ve_run.md
 ```
 
 ```{eval-rst}

@@ -79,9 +79,9 @@ from tests.conftest import log_check
 def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log):
     """Test the data handling of the plants __init__."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 

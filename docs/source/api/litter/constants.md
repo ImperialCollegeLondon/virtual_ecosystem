@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.models.litter.constants` module
+# API documentation for the {mod}`~virtual_ecosystem.models.litter.constants` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.litter.constants
+.. automodule:: virtual_ecosystem.models.litter.constants
     :autosummary:
     :members:
 ```

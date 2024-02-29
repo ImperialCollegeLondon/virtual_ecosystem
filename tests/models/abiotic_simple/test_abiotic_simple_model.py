@@ -9,7 +9,7 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -37,11 +37,11 @@ def test_abiotic_simple_model_initialization(
     expected_log_entries,
 ):
     """Test `AbioticSimpleModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     with raises:
         # Initialize model
@@ -137,9 +137,9 @@ def test_generate_abiotic_simple_model(
     expected_log_entries,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
@@ -165,9 +165,9 @@ def test_setup(
     dummy_climate_data,
 ):
     """Test set up and update."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
