@@ -455,24 +455,3 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
     """
 
     return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * M_i_t
-
-
-def F_i_j_individual(N_i_t: int, k_i_j: float, H_i_j: float, N_j_t: float) -> float:
-    """Instantaneous predation rate.
-
-    The instantaneous rate at which prey cohort j is eaten by predator cohort i.
-
-    Madingley
-
-    TODO: finish the code here
-
-    Args:
-      N_i_t: Current herbivore population size.
-      k_i_j: The potential biomass (g) of plant k eating by cohort i, per day.
-      H_i_j: Handling time of plant resource k by cohort i.
-      N_j_t: Current plant resource pool size.
-
-    Returns: A float instantaneous predation rate.
-    """
-    # below the summation is over all accessible j's in the cell
-    return N_i_t  # * (k_i_j / (1 + sum(k_i_j * H_i_j))) * (1 / N_j_t)

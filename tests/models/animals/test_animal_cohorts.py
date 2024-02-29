@@ -433,7 +433,9 @@ def test_calculate_potential_consumed_biomass(
         assert biomass == 20.0
 
 
-def test_calculate_total_handling_time(herbivore_cohort_instance, plant_list_instance):
+def calculate_total_handling_time_for_herbivory(
+    herbivore_cohort_instance, plant_list_instance
+):
     """Test the aggregation of handling times across all available plant resources."""
 
     from unittest.mock import patch
@@ -444,8 +446,10 @@ def test_calculate_total_handling_time(herbivore_cohort_instance, plant_list_ins
     ), patch(
         "virtual_rainforest.models.animals.scaling_functions.H_i_k", return_value=0.2
     ):
-        total_handling_time = herbivore_cohort_instance.calculate_total_handling_time(
-            plant_list_instance, alpha
+        total_handling_time = (
+            herbivore_cohort_instance.calculate_total_handling_time_for_herbivory(
+                plant_list_instance, alpha
+            )
         )
         # Assert based on expected behavior; this will need to be adjusted based on the
         # number of plants and their handling times
@@ -477,7 +481,7 @@ def test_F_i_k(herbivore_cohort_instance, plant_list_instance):
     ) as mock_potential_biomass, patch(
         (
             "virtual_rainforest.models.animals.animal_cohorts."
-            "AnimalCohort.calculate_total_handling_time"
+            "AnimalCohort.calculate_total_handling_time_for_herbivory"
         ),
         return_value=40.4,
     ) as mock_total_handling:

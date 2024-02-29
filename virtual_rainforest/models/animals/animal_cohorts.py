@@ -278,7 +278,7 @@ class AnimalCohort:
         A_cell = 1.0  # temporary
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
-    def calculate_total_handling_time(
+    def calculate_total_handling_time_for_herbivory(
         self, plant_list: Sequence[Resource], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
@@ -330,71 +330,12 @@ class AnimalCohort:
         """
         alpha = self.calculate_alpha()
         k = self.calculate_potential_consumed_biomass(target_plant, alpha)
-        total_handling_t = self.calculate_total_handling_time(plant_list, alpha)
+        total_handling_t = self.calculate_total_handling_time_for_herbivory(
+            plant_list, alpha
+        )
         B_k = target_plant.mass_current  # current plant biomass
         N = self.individuals  # herb cohort size
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
-
-    """def F_i_j_individual(
-        self, animal_list: Sequence[AnimalCohort], target_animal: AnimalCohort
-    ) -> float:"""
-    """The method to determine instantaneous predation rate on cohort j.
-
-        This method is the F_i_j equation from Madingley, for use in the delta_M
-        equation.
-
-        TODO: replace temporary A_cell value
-
-        Args:
-            animal_list: A list of animal cohorts available for predation.
-            N_i_t: Current predator population size.
-            k_i_k: The potential number prey oh cohort j eaten by cohort i, per day.
-            H_i_k: Handling time of 1g of cohort j by cohort i, per day.
-            B_j_t: Current number of individuals of cohort j.
-
-
-        Returns:
-            The instantaneous consumption rate of a predator cohort consuming a
-            prey cohort.
-
-        """
-    """# below the summation is over all accessible j's in the cell
-        # return N_i_t  # * (k_i_j / (1 + sum(k_i_j * H_i_j))) * (1 / N_j_t)
-
-        N_i = self.individuals  # predator cohort size
-        N_target = target_animal.individuals
-        A_cell = 1.0  # temporary
-        M_i = self.mass_current
-        M_target = target_animal.mass_current
-        theta_opt_i = sf.theta_opt_i(
-            self.constants.theta_opt_min_f,
-            self.constants.theta_opt_f,
-            self.constants.sigma_opt_f,
-        )
-        w_bar = sf.w_bar_i_j(
-            M_i,
-            M_target,
-            theta_opt_i,
-            self.constants.sigma_opt_pred_prey,
-        )
-        theta_i_j = self.theta_i_j(animal_list)
-        alpha = sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
-        # N_j = target_animal.individuals  # current number of prey
-        k_target = sf.k_i_j(alpha, N_i, A_cell, theta_i_j)  # potential consumed biomass
-
-        total_handling_t = 0.0
-        for cohort in animal_list:
-            # M_j = cohort.mass_current
-            # N_j = cohort.individuals
-            total_handling_t = sf.k_i_j(alpha, N_i, A_cell, theta_i_j)
-            +sf.H_i_j(
-                self.constants.h_pred_0,
-                self.constants.M_pred_ref,
-                M_i,
-                self.constants.b_pred,
-            )
-
-        return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)"""
 
     def calculate_theta_opt_i(self) -> float:
         """Calculate the optimal predation param based on predator-prey mass ratio."""
@@ -452,25 +393,6 @@ class AnimalCohort:
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
-    def delta_mass(self, plant_list: Sequence[Resource]) -> None:
-        """The function to change in mass of an animal cohort through herbivory.
-
-        This method is the delta_M_i equation from Madingley for use in the full mass
-        change equation.
-
-        Args:
-            plant_list: A list of plant cohorts available for herbivory.
-
-        Returns:
-            The total biomass assimilated as food by cohort i through herbivory on all
-            stocks.
-
-        """
-        """delta_M = epsilon_f * sum_over_plant_list(
-            plant_biomass * (1 - math.exp(-(self.F_i_k) * time_step * tau_f * SIGMA_f))
-        )"""
-        pass
-
     def delta_mass_predation(self, animal_list: Sequence[AnimalCohort]) -> float:
         """This method handles mass assimilation from predation.
 
@@ -491,35 +413,7 @@ class AnimalCohort:
         delta_mass_pred = 0.0  # initialize at zero
 
         for cohort in animal_list:
-            N_j = cohort.individuals
-            N = self.individuals
-            A_cell = 1.0  # ha
-            alpha_0 = self.constants.alpha_0_pred
-            theta_opt_i = sf.theta_opt_i(
-                self.constants.theta_opt_min_f,
-                self.constants.theta_opt_f,
-                self.constants.sigma_opt_f,
-            )
-            w_bar = sf.w_bar_i_j(
-                self.mass_current,
-                cohort.mass_current,
-                theta_opt_i,
-                self.constants.N_sigma_opt_pred_prey,
-            )
-            alpha = sf.alpha_i_j(alpha_0, self.mass_current, w_bar)
-            k = sf.k_i_j(
-                alpha,
-                N,
-                A_cell,
-                self.theta_i_j(animal_list),
-            )
-            H = sf.H_i_j(
-                self.constants.h_pred_0,
-                self.constants.M_pred_ref,
-                self.mass_current,
-                self.constants.b_pred,
-            )
-            F = sf.F_i_j_individual(N, k, H, N_j)
+            F = self.F_i_j_individual(animal_list, cohort)
             delta_t = 30.0  # days
 
             delta_mass_pred += (
@@ -608,10 +502,16 @@ class AnimalCohort:
         try:
             if self.functional_group.diet == DietType.HERBIVORE and plant_list:
                 delta_mass = self.delta_mass_herbivory(plant_list)
+                # i need an efficiency step here to get the
+                # i need an eat call here that adds mass to consumer
+                # I need a get_eaten call here that removes mass from the resource
                 self.excrete(excrement_pool, delta_mass)  # Move excrete call here
 
             elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
                 delta_mass = self.delta_mass_predation(animal_list)
+                # i need an efficiency step here to get the
+                # i need an eat call here that adds mass to consumer
+                # I need a get_eaten call here that removes mass from the resource
                 self.excrete(excrement_pool, delta_mass)  # Move excrete call here
 
             else:
@@ -701,14 +601,6 @@ class AnimalCohort:
         return (
             self.mass_current + self.reproductive_mass
         ) / self.functional_group.adult_mass < mass_threshold
-
-    def eat_plants_madingley(self) -> None:
-        """Possible rework of eat for herbivory."""
-        pass
-
-    def eat_animals_madingley(self) -> None:
-        """Possible rework of eat for predation."""
-        pass
 
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
