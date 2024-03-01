@@ -189,7 +189,8 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
         pytest.param(
             "not_existing_var",
             pytest.raises(KeyError),
-            "'not_existing_var'",
+            """"No variable named 'not_existing_var'. """
+            '''Variables on the dataset include ['existing_var']"''',
             None,
             id="should_not_get",
         ),
