@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "virtual_ecosystem"
-version = "0.1.0"
+version = "0.1.1a0"
 description = """The package simulates the abiotic, soil, animal and plant components of an ecosystem."""
 authors = [
     "Rob Ewers <r.ewers@imperial.ac.uk>",
