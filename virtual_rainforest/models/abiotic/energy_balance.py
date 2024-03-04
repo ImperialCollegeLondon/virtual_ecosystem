@@ -357,6 +357,7 @@ def calculate_leaf_and_air_temperature(
     * soil_moisture: Relative soil moisture, dimensionless
     * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
     * air_temperature: Air temperature, [C]
+    * leaf_temperature: Leaf temperature, [C]
     * latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
     * absorbed_radiation: Absorbed radiation, [W m-2]
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
@@ -368,11 +369,11 @@ def calculate_leaf_and_air_temperature(
 
     Args:
         data: Instance of data object
-        time_index: time index
+        time_index: Time index
         topsoil_layer_index: Index of top soil layer
-        abiotic_constants: set of abiotic constants
-        abiotic_simple_constants: set of abiotic constants
-        core_constants: set of core constants
+        abiotic_constants: Set of abiotic constants
+        abiotic_simple_constants: Set of abiotic constants
+        core_constants: Set of core constants
 
     Returns:
         air temperature, [C], leaf temperature, [C], vapour pressure [kPa], vapour
@@ -632,9 +633,17 @@ def calculate_leaf_and_air_temperature(
         saturation_vapour_pressure_new, dims=["layers", "cell_id"]
     )
 
-    # TODO return current conductivities as DataArrays
-    # output["conductivity_from_ref_height"] =
-    # output["leaf_air_heat_conductivity"] =
-    # output["leaf_vapour_conductivity"] =
+    # Return current conductivities as DataArrays
+    for var in [
+        "conductivity_from_ref_height",
+        "leaf_air_heat_conductivity",
+        "leaf_vapour_conductivity",
+    ]:
+        output[var] = DataArray(
+            current_conductivities[var],
+            dims=data["air_temperature"].dims,
+            coords=data["air_temperature"].coords,
+            name=var,
+        )
 
     return output

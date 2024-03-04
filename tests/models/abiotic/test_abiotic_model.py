@@ -434,3 +434,21 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         rtol=1e-04,
         atol=1e-04,
     )
+
+    exp_gv = DataArray(
+        np.concatenate(
+            [
+                [
+                    [np.nan, np.nan, np.nan],
+                    [0.186217, 0.186217, 0.186217],
+                    [0.185638, 0.185638, 0.185638],
+                    [0.184646, 0.184646, 0.184646],
+                ],
+                [[np.nan, np.nan, np.nan]] * 11,
+            ],
+        ),
+        dims=["layers", "cell_id"],
+    )
+    np.testing.assert_allclose(
+        model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
+    )

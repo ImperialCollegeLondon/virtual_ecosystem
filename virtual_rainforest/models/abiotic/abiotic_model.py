@@ -49,7 +49,16 @@ class AbioticModel(
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
     ),
-    vars_updated=(),
+    vars_updated=(
+        "air_temperature",
+        "leaf_temperature",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "air_heat_conductivity",
+        "conductivity_from_ref_height",
+        "leaf_air_heat_conductivity",
+        "leaf_vapour_conductivity",
+    ),
 ):
     """A class describing the abiotic model.
 
@@ -158,6 +167,11 @@ class AbioticModel(
                 self.model_constants.bottom_leaf_air_conductivity
             ),
         )
+
+        # Initialise leaf temperature and update data object
+        self.data["leaf_temperature"] = (
+            initial_microclimate["air_temperature"] * 1.1
+        ).rename("leaf_temperature")
 
         self.data.add_from_dict(output_dict=initial_microclimate)
         self.data.add_from_dict(output_dict=initial_canopy_and_soil)
