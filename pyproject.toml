@@ -18,7 +18,7 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Topic :: Scientific/Engineering",
 ]
-description = """The package simulates the abiotic, soil, animal and plant components of an ecosystem."""
+description = """An holistic ecosystem simulation model."""
 homepage = "https://virtual-ecosystem.readthedocs.io/"
 license = "BSD-3-Clause"
 name = "virtual_ecosystem"
