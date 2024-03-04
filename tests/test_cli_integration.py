@@ -19,7 +19,12 @@ def test_ve_run_install_example(capsys):
 
 
 def test_ve_run(capsys):
-    """Test that the CLI can successfully run with example data."""
+    """Test that the CLI can successfully run with example data.
+
+    Note that this does not currently test the various CLI options independently. We
+    could do with a fast running minimal test or a mocker to do that.
+    """
+
     # import virtual_ecosystem.core  # noqa #F401
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
@@ -42,13 +47,14 @@ def test_ve_run(capsys):
                     str(outdir),
                     "--logfile",
                     str(logfile),
+                    "--progress",
                 ]
             )
 
-            # Test the command line output is as expected
+            # Test the requested --progress output ends as expected
             captured = capsys.readouterr()
-            expected = "VR run complete."
-            assert captured.out.startswith(expected)
+            expected = "VR run complete.\n"
+            assert captured.out.endswith(expected)
 
             # Check the logfile has been populated as expected
             assert logfile.exists()
