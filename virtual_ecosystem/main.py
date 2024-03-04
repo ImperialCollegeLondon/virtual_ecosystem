@@ -10,6 +10,8 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 
+from tqdm import tqdm
+
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
@@ -140,6 +142,7 @@ def ve_run(
     cfg_strings: str | list[str] = [],
     override_params: dict[str, Any] = {},
     logfile: Path | None = None,
+    progress: bool = False,
 ) -> None:
     """Perform a Virtual Ecosystem simulation.
 
@@ -154,11 +157,21 @@ def ve_run(
         override_params: Extra parameters provided by the user
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
+        progress: A logical switch to turn on simple progress reporting, mostly for
+            visual confirmation of progress when the log is not printed to the console.
     """
+
+    if progress:
+        print("Starting Virtual Ecosystem simulation.")
 
     # Switch from console logging to file logging
     if logfile is not None:
         add_file_logger(logfile)
+        if progress:
+            print(f"* Logging to: {logfile}")
+
+    if progress:
+        print("* Loading configuration")
 
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
@@ -169,12 +182,19 @@ def ve_run(
     if data_opt["save_merged_config"]:
         outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
         config.export_config(outfile)
+        if progress:
+            print(f"* Saved compiled configuration: {outfile}")
 
     # Build core elements
     grid = Grid.from_config(config)
     core_components = CoreComponents(config=config)
+    if progress:
+        print("* Built core model components")
+
     data = Data(grid)
     data.load_data_config(config)
+    if progress:
+        print("* Initial data loaded")
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
@@ -188,6 +208,8 @@ def ve_run(
         core_components=core_components,
         models=init_sequence,
     )
+    if progress:
+        print(f"* Models initialised: {', '.join(init_sequence.keys())}")
 
     LOGGER.info("All models successfully intialised.")
 
@@ -208,6 +230,8 @@ def ve_run(
         data.save_to_netcdf(
             out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
+        if progress:
+            print("* Saved model inital state")
 
     # If no path for saving continuous data is specified, fall back on using out_path
     if "out_folder_continuous" not in config["core"]["data_output_options"]:
@@ -226,8 +250,11 @@ def ve_run(
     models_update = _get_model_sequence(
         config=config, models=models_init, method="update"
     )
+    if progress:
+        print("* Starting simulation")
 
     # Setup the timing loop
+    pbar = tqdm(total=core_components.model_timing.n_updates)
     time_index = 0
     current_time = core_components.model_timing.start_time
     while current_time < core_components.model_timing.end_time:
@@ -250,20 +277,34 @@ def ve_run(
             )
             continuous_data_files.append(outfile_path)
 
+        pbar.update(n=1)
+
+    pbar.close()
+
+    if progress:
+        print("* Simulation completed")
+
     # Merge all files together based on a list
     if config["core"]["data_output_options"]["save_continuous_data"]:
         merge_continuous_data_files(
             config["core"]["data_output_options"], continuous_data_files
         )
+        if progress:
+            print("* Merged time series data")
 
     # Save the final model state
     if config["core"]["data_output_options"]["save_final_state"]:
         data.save_to_netcdf(
             out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
+        if progress:
+            print("* Saved final model state")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
 
     # Restore default logging settings
     if logfile is not None:
         remove_file_logger()
+
+    if progress:
+        print("VR run complete.")
