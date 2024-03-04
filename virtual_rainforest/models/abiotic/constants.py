@@ -266,3 +266,6 @@ class AbioticConsts(ConstantsDataclass):
     """Parameter in calculation of free conductance for negative temperature difference
     :cite:p:`campbell_introduction_2012`.
     """
+
+    leaf_emissivity: float = 0.8
+    """Leaf emissivity, dimensionless."""

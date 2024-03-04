@@ -148,22 +148,21 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
 
     result = calculate_air_heat_conductivity_above(
         height_above_canopy=dummy_climate_data["layer_heights"][0],
-        zero_displacement_height=np.array([0.0, 25.312559, 27.58673]),
+        zero_displacement_height=(
+            dummy_climate_data["zero_displacement_height"].to_numpy()
+        ),
         canopy_height=dummy_climate_data["layer_heights"][1],
-        friction_velocity=np.array([0.051866, 0.163879, 0.142353]),
-        molar_density_air=np.repeat(28.96, 3),
-        adiabatic_correction_heat=np.array([0.003044, -0.036571, 0.042159]),
+        friction_velocity=dummy_climate_data["friction_velocity"][0].to_numpy(),
+        molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
+        diabatic_correction_heat=(
+            dummy_climate_data["diabatic_correction_heat"][0].to_numpy()
+        ),
         von_karmans_constant=CoreConsts.von_karmans_constant,
     )
-    np.testing.assert_allclose(
-        result,
-        np.array([5.067245, 5.147202, 2.508593]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+    np.testing.assert_allclose(result, np.repeat(705.63476, 3), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_air_heat_conductivity_canopy():
+def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
     """Test calculate air heat conductivity in canopy."""
 
     from virtual_rainforest.models.abiotic.conductivities import (
@@ -171,25 +170,27 @@ def test_calculate_air_heat_conductivity_canopy():
     )
 
     result = calculate_air_heat_conductivity_canopy(
-        attenuation_coefficient=np.repeat(13.0, 3),
-        mean_mixing_length=np.repeat(1.3, 3),
-        molar_density_air=np.repeat(28.96, 3),
+        attenuation_coefficient=(
+            dummy_climate_data["attenuation_coefficient"][1].to_numpy()
+        ),
+        mean_mixing_length=dummy_climate_data["mean_mixing_length"].to_numpy(),
+        molar_density_air=dummy_climate_data["molar_density_air"][1].to_numpy(),
         upper_height=np.repeat(10.0, 3),
         lower_height=np.repeat(5.0, 3),
-        relative_turbulence_intensity=np.repeat(15.0, 3),
+        relative_turbulence_intensity=(
+            dummy_climate_data["relative_turbulence_intensity"][1].to_numpy()
+        ),
         top_of_canopy_wind_speed=np.repeat(1.0, 3),
-        diabatic_correction_momentum=np.repeat(0.03, 3),
-        canopy_height=np.repeat(30.0, 3),
+        diabatic_correction_momentum=(
+            dummy_climate_data["diabatic_correction_momentum"][1].to_numpy()
+        ),
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
     )
-    np.testing.assert_allclose(
-        result,
-        np.array([5.45304, 5.45304, 5.45304]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+    exp_result = np.array([7.899376, 7.899376, 7.899376])
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_leaf_air_heat_conductivity():
+def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
     """Test calculation of leaf air heat conductivity."""
 
     from virtual_rainforest.models.abiotic.conductivities import (
@@ -197,11 +198,14 @@ def test_calculate_leaf_air_heat_conductivity():
     )
 
     result = calculate_leaf_air_heat_conductivity(
-        temperature=np.full((3, 3), 20.0),
-        wind_speed=np.full((3, 3), 1.0),
-        characteristic_dimension_leaf=np.full((3, 3), 0.1),
-        temperature_difference=np.full((3, 3), 1.0),
-        molar_density_air=np.full((3, 3), 28.96),
+        temperature=dummy_climate_data["air_temperature"].to_numpy(),
+        wind_speed=dummy_climate_data["wind_speed"].to_numpy(),
+        characteristic_dimension_leaf=0.1,
+        temperature_difference=(
+            dummy_climate_data["leaf_temperature"]
+            - dummy_climate_data["air_temperature"]
+        ).to_numpy(),
+        molar_density_air=dummy_climate_data["molar_density_air"].to_numpy(),
         kinematic_viscosity_parameter1=AbioticConsts.kinematic_viscosity_parameter1,
         kinematic_viscosity_parameter2=AbioticConsts.kinematic_viscosity_parameter2,
         thermal_diffusivity_parameter1=AbioticConsts.thermal_diffusivity_parameter1,
@@ -215,7 +219,19 @@ def test_calculate_leaf_air_heat_conductivity():
             AbioticConsts.negative_free_conductance_parameter
         ),
     )
-    np.testing.assert_allclose(result, np.full((3, 3), 0.15279), rtol=1e-04, atol=1e-04)
+
+    exp_result = np.concatenate(
+        [
+            [[np.nan, np.nan, np.nan]],
+            [
+                [0.065242, 0.065242, 0.065242],
+                [0.065062, 0.065062, 0.065062],
+                [0.064753, 0.064753, 0.064753],
+            ],
+            [[np.nan, np.nan, np.nan]] * 11,
+        ]
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_leaf_vapour_conductivity():
@@ -239,72 +255,78 @@ def test_calculate_current_conductivities(dummy_climate_data):
         calculate_current_conductivities,
     )
 
-    layer_heights = dummy_climate_data["layer_heights"]
-    above_ground_heights = layer_heights[layer_heights["layer_roles"] != "soil"].dropna(
-        dim="layers", how="all"
-    )
     result = calculate_current_conductivities(
-        above_ground_heights=above_ground_heights,
-        attenuation_coefficient=np.full((6, 3), 13.0),
-        mean_mixing_length=np.repeat(1.3, 3),
-        molar_density_air=np.full((6, 3), 28.96),
-        relative_turbulence_intensity=np.full((6, 3), 15.0),
-        top_of_canopy_wind_speed=np.repeat(1.0, 3),
-        diabatic_correction_momentum=np.full((6, 3), 0.03),
-        air_temperature_canopy=np.full((3, 3), 20.0),
-        wind_speed_canopy=np.full((3, 3), 0.1),
+        data=dummy_climate_data,
         characteristic_dimension_leaf=0.01,
-        estimated_temperature_difference=np.full((3, 3), 2),
-        stomatal_conductance=np.full((3, 3), 15.0),
-        zero_displacement_height=np.repeat(20.0, 3),
-        friction_velocity=np.repeat(1.0, 3),
-        adiabatic_correction_heat=np.full((6, 3), 1),
         von_karmans_constant=CoreConsts.von_karmans_constant,
         abiotic_constants=AbioticConsts,
     )
-    exp_gt = np.array(
+    exp_gt = np.concatenate(
         [
-            [9.278403, 9.278403, 9.278403],
-            [4.221723e05, 4.221723e05, 4.221723e05],
-            [3.254242e03, 3.254242e03, 3.254242e03],
-            [4.270779e01, 4.270779e01, 4.270779e01],
-            [1.086865, 1.086865, 1.086865],
-            [1.269968, 1.269968, 1.269968],
+            [
+                [7.056348e02, 7.056348e02, 7.056348e02],
+                [6.514515e04, 6.514515e04, 6.514515e04],
+                [4.714156e02, 4.714156e02, 4.714156e02],
+                [4.169318, 4.169318, 4.169318],
+            ],
+            [[np.nan, np.nan, np.nan]] * 8,
+            [
+                [589.115653, 589.115653, 589.115653],
+                [455.163607, 455.163607, 455.163607],
+                [np.nan, np.nan, np.nan],
+            ],
         ]
     )
-    exp_gv = np.array(
+
+    exp_gv = np.concatenate(
         [
-            [0.139074, 0.139074, 0.139074],
-            [0.139074, 0.139074, 0.139074],
-            [0.139074, 0.139074, 0.139074],
+            [
+                [np.nan, np.nan, np.nan],
+                [0.186217, 0.186217, 0.186217],
+                [0.185638, 0.185638, 0.185638],
+                [0.184646, 0.184646, 0.184646],
+            ],
+            [[np.nan, np.nan, np.nan]] * 11,
         ]
     )
-    exp_gha = np.array(
+    exp_gha = np.concatenate(
         [
-            [0.137796, 0.137796, 0.137796],
-            [0.137796, 0.137796, 0.137796],
-            [0.137796, 0.137796, 0.137796],
+            [
+                [np.nan, np.nan, np.nan],
+                [0.188558, 0.188558, 0.188558],
+                [0.187965, 0.187965, 0.187965],
+                [0.186947, 0.186947, 0.186947],
+            ],
+            [[np.nan, np.nan, np.nan]] * 11,
         ]
     )
-    exp_gtr = np.array(
+
+    exp_gtr = np.concatenate(
         [
-            [4.221723e05, 4.221723e05, 4.221723e05],
-            [3229.348817, 3229.348817, 3229.348817],
-            [42.150351, 42.150351, 42.150351],
-            [1.059545, 1.059545, 1.059545],
-            [0.577626, 0.577626, 0.577626],
+            [
+                [np.nan, np.nan, np.nan],
+                [6.514515e04, 6.514515e04, 6.514515e04],
+                [4.678095e02, 4.678095e02, 4.678095e02],
+                [4.114899, 4.114899, 4.114899],
+            ],
+            [[np.nan, np.nan, np.nan]] * 8,
+            [
+                [59.602899, 59.602899, 59.602899],
+                [20.156303, 20.156303, 20.156303],
+                [np.nan, np.nan, np.nan],
+            ],
         ]
     )
 
     np.testing.assert_allclose(
-        result["current_air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04
+        result["air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["current_leaf_air_heat_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
+        result["leaf_air_heat_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["current_leaf_vapour_conductivity"], exp_gha, rtol=1e-04, atol=1e-04
+        result["leaf_vapour_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["current_air_heat_conductivity_ref"], exp_gtr, rtol=1e-04, atol=1e-04
+        result["conductivity_from_ref_height"], exp_gtr, rtol=1e-04, atol=1e-04
     )

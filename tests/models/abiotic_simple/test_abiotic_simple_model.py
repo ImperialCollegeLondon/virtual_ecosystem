@@ -208,7 +208,6 @@ def test_setup(
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2],
-                "time_index": [0, 1, 2],
             },
         ),
     )

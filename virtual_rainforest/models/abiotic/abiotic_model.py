@@ -173,9 +173,9 @@ class AbioticModel(
 
         * wind profiles
         * soil energy balance
-        * TODO conductivities
-        * TODO canopy energy balance for each layer
-        * TODO vertical mixing
+        * conductivities
+        * canopy energy balance for each layer
+        * TODO soil temperatures
 
         Args:
             time_index: The index of the current time step in the data object.
@@ -247,7 +247,7 @@ class AbioticModel(
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
-            update_interval=43200,  # self.update_interval,
+            update_interval=43200,  # TODO self.update_interval,
             abiotic_consts=self.model_constants,
             core_consts=self.core_constants,
         )
@@ -273,23 +273,16 @@ class AbioticModel(
 
         # Update soil temperatures
 
-        # Calculate conductivities
-        # new_conductivities = conductivities.calculate_current_conductivities(
-        # )
-        # self.data.add_from_dict(output_dict=new_conductivities)
-
         # Update air temperature, leaf temperature and vapour pressure deficit
-        # new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
-        #     data=self.data,
-        #     time_index=time_index,
-        #     true_canopy_layers=
-        #     leaf_emissivity=
-        #     stefan_boltzmann_constant=
-        #     saturation_vapour_pressure_factor1=
-        #     saturation_vapour_pressure_factor2=
-        #     saturation_vapour_pressure_factor3=
-        # )
-        # self.data.add_from_dict(output_dict=new_microclimate)
+        new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
+            data=self.data,
+            time_index=time_index,
+            topsoil_layer_index=self.layer_structure.layer_roles.index("soil"),
+            abiotic_constants=self.model_constants,
+            abiotic_simple_constants=AbioticSimpleConsts(),
+            core_constants=self.core_constants,
+        )
+        self.data.add_from_dict(output_dict=new_microclimate)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""

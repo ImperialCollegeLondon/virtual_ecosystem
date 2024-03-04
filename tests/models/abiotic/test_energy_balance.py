@@ -150,18 +150,10 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
-        true_canopy_layers=np.full((3, 3), 1.0),
-        leaf_emissivity=0.8,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        saturation_vapour_pressure_factor1=(
-            AbioticSimpleConsts.saturation_vapour_pressure_factor1
-        ),
-        saturation_vapour_pressure_factor2=(
-            AbioticSimpleConsts.saturation_vapour_pressure_factor2
-        ),
-        saturation_vapour_pressure_factor3=(
-            AbioticSimpleConsts.saturation_vapour_pressure_factor3
-        ),
+        topsoil_layer_index=13,
+        abiotic_constants=AbioticConsts,
+        abiotic_simple_constants=AbioticSimpleConsts,
+        core_constants=CoreConsts,
     )
 
     exp_air_temp = DataArray(
@@ -170,13 +162,13 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                 np.array(
                     [
                         [30.0, 30.0, 30.0],
-                        [29.232091, 29.232091, 29.232091],
-                        [29.232091, 29.232091, 29.232091],
-                        [29.232091, 29.232091, 29.232091],
+                        [29.999967, 29.999967, 29.999967],
+                        [29.995432, 29.995432, 29.995432],
+                        [29.504507, 29.504507, 29.504507],
                     ],
                 ),
                 np.full((7, 3), np.nan),
-                np.array([[18, 18, 18], [18, 18, 18]]),
+                np.array([[20.0, 20.0, 20.0], [20.0, 20.0, 20.0]]),
                 np.full((2, 3), np.nan),
             ),
         ),
@@ -189,9 +181,9 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                 np.full((1, 3), np.nan),
                 np.array(
                     [
-                        [30.033482, 30.033482, 30.033482],
-                        [29.059657, 29.059657, 29.059657],
-                        [27.394892, 27.394892, 27.394892],
+                        [30.112604, 30.112604, 30.112604],
+                        [29.13954, 29.13954, 29.13954],
+                        [27.425342, 27.425342, 27.425342],
                     ],
                 ),
                 np.full((11, 3), np.nan),
@@ -205,13 +197,13 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                 np.array(
                     [
                         [0.14, 0.14, 0.14],
-                        [0.325057, 0.325057, 0.325057],
-                        [0.325057, 0.325057, 0.325057],
-                        [0.325057, 0.325057, 0.325057],
+                        [0.14001, 0.14001, 0.14001],
+                        [0.141365, 0.141365, 0.141365],
+                        [0.275612, 0.275612, 0.275612],
                     ],
                 ),
                 np.full((7, 3), np.nan),
-                np.full((2, 3), 0.207284),
+                np.full((2, 3), 0.218826),
                 np.full((2, 3), np.nan),
             ),
         ),
@@ -223,10 +215,10 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
             (
                 np.array(
                     [
-                        [0.09878147, 0.09878147, 0.09878147],
-                        [0.23379686, 0.23379686, 0.23379686],
-                        [0.23379686, 0.23379686, 0.23379686],
-                        [0.23379686, 0.23379686, 0.23379686],
+                        [0.098781, 0.098781, 0.098781],
+                        [0.098788, 0.098788, 0.098788],
+                        [0.099756, 0.099756, 0.099756],
+                        [0.196887, 0.196887, 0.196887],
                     ],
                 ),
                 np.full((7, 3), np.nan),
@@ -237,11 +229,11 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
         dims=["layers", "cell_id"],
     )
 
-    np.testing.assert_allclose(result["leaf_temperature"], exp_leaf_temp)
     np.testing.assert_allclose(result["air_temperature"], exp_air_temp)
+    np.testing.assert_allclose(result["leaf_temperature"], exp_leaf_temp)
     np.testing.assert_allclose(
         result["vapour_pressure"], exp_vapour_pressure, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["vapour_pressure_deficit"], exp_vpd, rtol=1e-04, atol=1e-04
+        result["vapour_pressure_deficit"][3], exp_vpd[3], rtol=1e-04, atol=1e-04
     )

@@ -125,6 +125,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         "molecular_weight_air": 28.96,
         "gas_constant_water_vapour": 461.51,
         "seconds_to_day": 86400.0,
+        "characteristic_dimension_leaf": 0.01,
     }
     core_constants.update(expected_constants)
 

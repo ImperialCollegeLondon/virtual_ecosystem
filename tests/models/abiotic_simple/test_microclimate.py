@@ -120,7 +120,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     constants = AbioticSimpleConsts()
 
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0).drop("time_index"),
+        data["air_temperature_ref"].isel(time_index=0),
         factor1=constants.saturation_vapour_pressure_factor1,
         factor2=constants.saturation_vapour_pressure_factor2,
         factor3=constants.saturation_vapour_pressure_factor3,
