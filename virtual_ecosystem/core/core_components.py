@@ -77,6 +77,8 @@ class ModelTiming:
     """The configured update interval."""
     update_interval_quantity: Quantity = field(init=False)
     """The configured update interval as a pint Quantity."""
+    n_updates: int = field(init=False)
+    """The total number of model updates in the configured run."""
     config: InitVar[Config]
     """A validated model configuration."""
 
@@ -136,6 +138,8 @@ class ModelTiming:
             + np.ceil(self.run_length / self.update_interval) * self.update_interval
         )
         self.reconciled_run_length = self.end_time - self.start_time
+
+        self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
 
         # Log the completed timing creation.
         LOGGER.info(
