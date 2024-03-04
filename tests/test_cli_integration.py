@@ -53,7 +53,7 @@ def test_ve_run(capsys):
 
             # Test the requested --progress output ends as expected
             captured = capsys.readouterr()
-            expected = "VR run complete.\n"
+            expected = "Virtual Ecosystem run complete.\n"
             assert captured.out.endswith(expected)
 
             # Check the logfile has been populated as expected

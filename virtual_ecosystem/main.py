@@ -307,4 +307,4 @@ def ve_run(
         remove_file_logger()
 
     if progress:
-        print("VR run complete.")
+        print("Virtual Ecosystem run complete.")
