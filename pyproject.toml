@@ -3,13 +3,24 @@ name = "virtual_ecosystem"
 version = "0.1.1a0"
 description = """The package simulates the abiotic, soil, animal and plant components of an ecosystem."""
 authors = [
-    "Rob Ewers <r.ewers@imperial.ac.uk>",
-    "David Orme <d.orme@imperial.ac.uk>",
-    "Jacob Cook <j.cook17@imperial.ac.uk>",
-    "Vivienne Groner <v.groner@imperial.ac.uk>",
-    "Taran Rallings <r.tallings@imperial.ac.uk>",
-    "Olivia Daniel <olivia.daniel08@imperial.ac.uk>",
+    { name = "Rob Ewers", email = "r.ewers@imperial.ac.uk>" },
+    { name = "David Orme", email = "d.orme@imperial.ac.uk>" },
+    { name = "Jacob Cook", email = "j.cook17@imperial.ac.uk>" },
+    { name = "Vivienne Groner", email = "v.groner@imperial.ac.uk>" },
+    { name = "Taran Rallings", email = "t.rallings@imperial.ac.uk>" },
+    { name = "Olivia Daniel", email = "olivia.daniel08@imperial.ac.uk>" },
 ]
+readme = "README.md"
+homepage = "https://virtual-ecosystem.readthedocs.io/"
+repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Scientific/Engineering",
+]
+licence = "BSD-3-Clause"
+
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
