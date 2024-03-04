@@ -465,12 +465,6 @@ def dummy_climate_data(fixture_core_components):
         "layer_roles": ("layers", fixture_core_components.layer_structure.layer_roles),
         "cell_id": data.grid.cell_id,
     }
-    full_coordinates_timeindex = {
-        "layers": np.arange(15),
-        "layer_roles": ("layers", fixture_core_components.layer_structure.layer_roles),
-        "cell_id": data.grid.cell_id,
-        "time_index": [0, 1, 2],
-    }
 
     # Structural variables
     leaf_area_index = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
@@ -494,7 +488,14 @@ def dummy_climate_data(fixture_core_components):
     data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
 
     # Microclimate and energy balance
-    pressure = np.repeat(a=[96.0, np.nan], repeats=[13, 2])
+    wind_speed = np.repeat(a=[0.1, np.nan, 0.1, np.nan], repeats=[4, 7, 2, 2])
+    data["wind_speed"] = DataArray(
+        np.broadcast_to(wind_speed, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="wind_speed",
+    )
+    pressure = np.repeat(a=[96.0, np.nan, 96.0, np.nan], repeats=[4, 7, 2, 2])
     data["atmospheric_pressure"] = DataArray(
         np.broadcast_to(pressure, (3, 15)).T,
         dims=["layers", "cell_id"],
@@ -572,52 +573,108 @@ def dummy_climate_data(fixture_core_components):
         name="absorbed_radiation",
         coords=full_coordinates,
     )
-
-    data["mean_topsoil_temperature"] = DataArray(np.repeat(18.0, 3), dims=["cell_id"])
     data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
+    molar_density_air = np.repeat(a=[38.0, np.nan, 38.0, np.nan], repeats=[4, 7, 2, 2])
     data["molar_density_air"] = DataArray(
-        np.full((15, 3), 38.0), dims=["layers", "cell_id"]
+        np.broadcast_to(molar_density_air, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="molar_density_air",
+        coords=full_coordinates,
     )
+    specific_heat_air = np.repeat(a=[29.0, np.nan, 29.0, np.nan], repeats=[4, 7, 2, 2])
     data["specific_heat_air"] = DataArray(
-        np.full((15, 3), 29.0), dims=["layers", "cell_id"]
+        np.broadcast_to(specific_heat_air, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="specific_heat_air",
+        coords=full_coordinates,
     )
-    data["aerodynamic_resistance_surface"] = DataArray(np.repeat(12.5, 3))
-    data["latent_heat_vapourisation"] = DataArray(
-        np.full((15, 3), 2254.0), dims=["layers", "cell_id"]
+    data["zero_displacement_height"] = DataArray(np.repeat(20.0, 3), dims="cell_id")
+    diabatic_corr_heat = np.repeat(a=[0.01, np.nan, 0.01, np.nan], repeats=[4, 7, 2, 2])
+    data["diabatic_correction_heat"] = DataArray(
+        np.broadcast_to(diabatic_corr_heat, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="diabatic_correction_heat",
+        coords=full_coordinates,
     )
+    diabatic_corr_momentum = np.repeat(
+        a=[0.03, np.nan, 0.03, np.nan], repeats=[4, 7, 2, 2]
+    )
+    data["diabatic_correction_momentum"] = DataArray(
+        np.broadcast_to(diabatic_corr_momentum, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="diabatic_correction_momentum",
+        coords=full_coordinates,
+    )
+    attenuation_coefficient = np.repeat(
+        a=[13.0, np.nan, 2.0, np.nan], repeats=[4, 7, 2, 2]
+    )
+    data["attenuation_coefficient"] = DataArray(
+        np.broadcast_to(attenuation_coefficient, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="attenuation_coefficient",
+        coords=full_coordinates,
+    )
+    data["mean_mixing_length"] = DataArray(np.repeat(1.3, 3), dims="cell_id")
 
+    relative_turbulence_intensity = np.repeat(
+        a=[[17.64, 16.56, 11.16, 5.76, np.nan, 1.17, 0.414, np.nan]],
+        repeats=[1, 1, 1, 1, 7, 1, 1, 2],
+    )
+    data["relative_turbulence_intensity"] = DataArray(
+        np.broadcast_to(relative_turbulence_intensity, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="relative_turbulence_intensity",
+        coords=full_coordinates,
+    )
+    data["aerodynamic_resistance_surface"] = DataArray(
+        np.repeat(12.5, 3), dims="cell_id"
+    )
+    latent_heat_vapourisation = np.repeat(
+        a=[2254.0, np.nan, 2254.0, np.nan], repeats=[4, 7, 2, 2]
+    )
+    data["latent_heat_vapourisation"] = DataArray(
+        np.broadcast_to(latent_heat_vapourisation, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="latent_heat_vapourisation",
+        coords=full_coordinates,
+    )
+    leaf_temperature = np.repeat(a=[np.nan, 25.0, np.nan], repeats=[1, 3, 11])
+    data["leaf_temperature"] = DataArray(
+        np.broadcast_to(leaf_temperature, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="leaf_temperature",
+    ).assign_coords(full_coordinates)
     leaf_air_cond = np.repeat(a=[np.nan, 0.13, np.nan], repeats=[1, 3, 11])
-    data["leaf_air_heat_conductivity"] = (
-        DataArray(
-            np.broadcast_to(leaf_air_cond, (3, 15)).T,
-            dims=["layers", "cell_id"],
-            name="leaf_air_heat_conductivity",
-        )
-        .expand_dims(dim={"time_index": 3})
-        .assign_coords(full_coordinates_timeindex)
+    data["leaf_air_heat_conductivity"] = DataArray(
+        np.broadcast_to(leaf_air_cond, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="leaf_air_heat_conductivity",
     )
 
     leaf_vap_cond = np.repeat(a=[np.nan, 0.2, np.nan], repeats=[1, 3, 11])
-    data["leaf_vapour_conductivity"] = (
-        DataArray(
-            np.broadcast_to(leaf_vap_cond, (3, 15)).T,
-            dims=["layers", "cell_id"],
-            name="leaf_vapour_conductivity",
-        )
-        .expand_dims(dim={"time_index": 3})
-        .assign_coords(full_coordinates_timeindex)
+    data["leaf_vapour_conductivity"] = DataArray(
+        np.broadcast_to(leaf_vap_cond, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="leaf_vapour_conductivity",
     )
 
     ref_cond = np.repeat(a=[np.nan, 3.0, np.nan, 3.0, np.nan], repeats=[1, 3, 7, 2, 2])
-    data["conductivity_from_ref_height"] = (
-        DataArray(
-            np.broadcast_to(ref_cond, (3, 15)).T,
-            dims=["layers", "cell_id"],
-            name="conductivity_from_ref_height",
-        )
-        .expand_dims(dim={"time_index": 3})
-        .assign_coords(full_coordinates_timeindex)
+    data["conductivity_from_ref_height"] = DataArray(
+        np.broadcast_to(ref_cond, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="conductivity_from_ref_height",
+    )
+
+    stomatal_conductance = np.repeat(a=[np.nan, 15.0, np.nan], repeats=[1, 3, 11])
+    data["stomatal_conductance"] = DataArray(
+        np.broadcast_to(stomatal_conductance, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="stomatal_conductance",
     )
 
     # Hydrology
@@ -639,7 +696,6 @@ def dummy_climate_data(fixture_core_components):
         ],
         dim="layers",
     )
-    data["mean_topsoil_moisture"] = DataArray(np.repeat(0.2, 3), dims="cell_id")
     data["groundwater_storage"] = DataArray(
         np.full((2, 3), 450.0),
         dims=("groundwater_layers", "cell_id"),
