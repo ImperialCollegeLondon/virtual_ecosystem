@@ -123,7 +123,8 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     The output directory for simulation results is typically set in the configuration
     files, but can be overwritten using the `--outpath` option. A log file path can be
     provided for logging output - if this is not provided the log will be written to the
-    console.
+    console. If the log is being redirected to a file, then the `--progress` option can
+    be used to print a simple progress report to the standard output.
 
     The resolved complete configuration will then be written to a single consolidated
     config file in the output path with a default name of
@@ -189,6 +190,12 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         default=None,
     )
 
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="A flag to turn on simple progress reporting",
+    )
+
     args = parser.parse_args(args=args_list)
 
     # Cannot use both install example and paths
@@ -218,7 +225,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         cfg_paths=args.cfg_paths,
         override_params=override_params,
         logfile=args.logfile,
+        progress=args.progress,
     )
 
-    print("VR run complete.")
     return 0
