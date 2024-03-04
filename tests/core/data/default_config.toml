@@ -1,0 +1,5 @@
+# This configuration loads core, abiotic_simple and soil - assumes these can be fully
+# configured from defaults alone
+[core]
+[abiotic_simple]
+[soil]

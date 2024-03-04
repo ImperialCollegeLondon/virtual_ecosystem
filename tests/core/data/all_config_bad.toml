@@ -1,0 +1,30 @@
+[core]
+
+[core.grid]
+nx = 10
+ny = 10
+
+[core.timing]
+start_date = "2020-01-01"
+update_interval = "10 minutes"
+run_length = "50 years"
+
+[core.data_output_options]
+save_initial_state = true
+save_final_state = true
+out_initial_file_name = "model_at_start.nc"
+out_final_file_name = "model_at_end.nc"
+
+[plants]
+a_plant_integer = 12
+
+[[plants.ftypes]]
+pft_name = "shrub"
+max_height = 1.0
+
+[[plants.ftypes]]
+pft_name = "broadleaf"
+max_height = 50.0
+
+[soil]
+model_time_step = "5 days"
