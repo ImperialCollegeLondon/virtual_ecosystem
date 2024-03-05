@@ -16,8 +16,8 @@ def test_animal_model_initialization(
     constants_instance,
 ):
     """Test `AnimalModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Initialize model
     model = AnimalModel(
@@ -94,9 +94,9 @@ def test_generate_animal_model(
     expected_log_entries,
 ):
     """Test that the function to initialise the animal model behaves as expected."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Build the config object and core components
     config = Config(cfg_strings=config_string)
@@ -121,7 +121,7 @@ def test_generate_animal_model(
 def test_get_community_by_key(animal_model_instance):
     """Test the `get_community_by_key` method."""
 
-    from virtual_rainforest.models.animals.animal_model import AnimalCommunity
+    from virtual_ecosystem.models.animals.animal_model import AnimalCommunity
 
     # If you know that your model_instance should have a community with key 0
     community_0 = animal_model_instance.get_community_by_key(0)
@@ -154,7 +154,7 @@ def test_update_method_sequence(
     """
     from unittest.mock import MagicMock
 
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
         data=plant_climate_data_instance,
@@ -201,7 +201,7 @@ def test_update_method_time_index_argument(
     plant_climate_data_instance, fixture_core_components, functional_group_list_instance
 ):
     """Test update to ensure the time index argument does not create an error."""
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
         data=plant_climate_data_instance,
@@ -218,11 +218,11 @@ def test_update_method_time_index_argument(
 def test_calculate_litter_additions(functional_group_list_instance):
     """Test that litter additions from animal model are calculated correctly."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Build the config object and core components
     config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')

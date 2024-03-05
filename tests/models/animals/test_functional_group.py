@@ -94,13 +94,13 @@ class TestFunctionalGroup:
     ):
         """Testing initialization of derived parameters for animal cohorts."""
 
-        from virtual_rainforest.models.animals.animal_traits import (
+        from virtual_ecosystem.models.animals.animal_traits import (
             DietType,
             MetabolicType,
             TaxaType,
         )
-        from virtual_rainforest.models.animals.constants import AnimalConsts
-        from virtual_rainforest.models.animals.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animals.constants import AnimalConsts
+        from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
 
         func_group = FunctionalGroup(
             name,
@@ -135,13 +135,13 @@ def test_import_functional_groups(
     shared_datadir, index, name, taxa, diet, metabolic_type
 ):
     """Testing import functional groups."""
-    from virtual_rainforest.models.animals.animal_traits import (
+    from virtual_ecosystem.models.animals.animal_traits import (
         DietType,
         MetabolicType,
         TaxaType,
     )
-    from virtual_rainforest.models.animals.constants import AnimalConsts
-    from virtual_rainforest.models.animals.functional_group import (
+    from virtual_ecosystem.models.animals.constants import AnimalConsts
+    from virtual_ecosystem.models.animals.functional_group import (
         FunctionalGroup,
         import_functional_groups,
     )

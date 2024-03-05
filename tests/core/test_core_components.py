@@ -8,7 +8,7 @@ import pytest
 from pint import Quantity
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 DEFAULT_CANOPY = [
     "above",
@@ -63,6 +63,7 @@ ALTERNATE_CANOPY = [
                 "update_interval_quantity": Quantity(2629800.0, "second"),
                 "end_time": np.datetime64("2015-01-01T12:00:00"),
                 "reconciled_run_length": np.timedelta64(63115200, "s"),
+                "n_updates": 24,
             },
             {"depth_of_active_soil_layer": 0.25},
             id="defaults",
@@ -98,6 +99,7 @@ ALTERNATE_CANOPY = [
                 "update_interval_quantity": Quantity(10 * 60, "second"),
                 "end_time": np.datetime64("2049-12-31T12:00:00"),
                 "reconciled_run_length": np.timedelta64(946728000, "s"),
+                "n_updates": 1577880,
             },
             {"depth_of_active_soil_layer": 2},
             id="alternative config",
@@ -106,8 +108,8 @@ ALTERNATE_CANOPY = [
 )
 def test_CoreComponents(config, expected_layers, expected_timing, expected_constants):
     """Simple test of core component generation."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
 
     cfg = Config(cfg_strings=config)
     core_components = CoreComponents(cfg)
@@ -187,8 +189,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
 )
 def test_LayerStructure(caplog, config_string, raises, expected_values, expected_log):
     """Test the creation and error handling of LayerStructure."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import LayerStructure
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import LayerStructure
 
     cfg = Config(cfg_strings=config_string)
 
@@ -275,8 +277,8 @@ def test_LayerStructure(caplog, config_string, raises, expected_values, expected
 )
 def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
     """Test that function to extract main loop timing works as intended."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import ModelTiming
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import ModelTiming
 
     config_obj = Config(cfg_strings=config)
     caplog.clear()
@@ -310,9 +312,7 @@ def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
 )
 def test__validate_positive_finite_numeric(value, raises):
     """Testing private validation function."""
-    from virtual_rainforest.core.core_components import (
-        _validate_positive_finite_numeric,
-    )
+    from virtual_ecosystem.core.core_components import _validate_positive_finite_numeric
 
     with raises:
         _validate_positive_finite_numeric(value, "label")
@@ -333,7 +333,7 @@ def test__validate_positive_finite_numeric(value, raises):
 )
 def test__validate_positive_integer(value, raises):
     """Testing private validation function."""
-    from virtual_rainforest.core.core_components import _validate_positive_integer
+    from virtual_ecosystem.core.core_components import _validate_positive_integer
 
     with raises:
         _validate_positive_integer(value)
@@ -352,7 +352,7 @@ def test__validate_positive_integer(value, raises):
 )
 def test__validate_soil_layers(value, raises):
     """Testing private validation function."""
-    from virtual_rainforest.core.core_components import _validate_soil_layers
+    from virtual_ecosystem.core.core_components import _validate_soil_layers
 
     with raises:
         _validate_soil_layers(value)

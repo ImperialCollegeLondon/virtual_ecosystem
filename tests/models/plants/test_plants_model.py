@@ -8,7 +8,7 @@ import numpy as np
 def test_PlantsModel__init__(plants_data, flora, fixture_core_components):
     """Test the PlantsModel.__init__ method."""
 
-    from virtual_rainforest.models.plants.plants_model import PlantsModel
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     plants_model = PlantsModel(
         data=plants_data,
@@ -36,7 +36,7 @@ def test_PlantsModel__init__(plants_data, flora, fixture_core_components):
 def test_PlantsModel_from_config(plants_data, fixture_config, fixture_core_components):
     """Test the PlantsModel.from_config factory method."""
 
-    from virtual_rainforest.models.plants.plants_model import PlantsModel
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     plants_model = PlantsModel.from_config(
         data=plants_data, config=fixture_config, core_components=fixture_core_components

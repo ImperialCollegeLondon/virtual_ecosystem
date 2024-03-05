@@ -15,17 +15,17 @@ kernelspec:
 ---
 
 <!-- markdownlint-disable-next-line  MD013 -->
-# API documentation for the {mod}`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model` module
+# API documentation for the {mod}`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic_simple.abiotic_simple_model
+.. automodule:: virtual_ecosystem.models.abiotic_simple.abiotic_simple_model
 ```
 
 <!-- markdownlint-disable-next-line  MD013 -->
-## The {mod}`~virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel` class
+## The {mod}`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel` class
 
 ```{eval-rst}
-.. autoclass:: virtual_rainforest.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel
+.. autoclass:: virtual_ecosystem.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel
     :autosummary:
     :members:
     :exclude-members: model_name

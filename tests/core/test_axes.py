@@ -10,8 +10,8 @@ from xarray import DataArray
 
 def test_AxisValidator_registration_coreaxis_not_set():
     """Test of AxisValidator registration exceptinos."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import AxisValidator
+    from virtual_ecosystem.core.grid import Grid
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
@@ -32,8 +32,8 @@ def test_AxisValidator_registration_coreaxis_not_set():
 
 def test_AxisValidator_registration_dimnames_not_set():
     """Test of AxisValidator registration exceptinos."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import AxisValidator
+    from virtual_ecosystem.core.grid import Grid
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
@@ -79,8 +79,8 @@ def test_AxisValidator_registration_dimnames_not_set():
 )
 def test_AxisValidator_registration_exceptions(axis_val, dimnames_val, excep_str):
     """Test of AxisValidator registration exceptinos."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import AxisValidator
+    from virtual_ecosystem.core.grid import Grid
 
     # Registered correctly
     with pytest.raises(ValueError) as excep:
@@ -102,7 +102,7 @@ def test_AxisValidator_registration_exceptions(axis_val, dimnames_val, excep_str
 
 def test_AxisValidator_registration(new_axis_validators):
     """Simple test of AxisValidator registration."""
-    from virtual_rainforest.core.axes import AXIS_VALIDATORS
+    from virtual_ecosystem.core.axes import AXIS_VALIDATORS
 
     # Registered correctly
     assert "testing" in AXIS_VALIDATORS
@@ -111,7 +111,7 @@ def test_AxisValidator_registration(new_axis_validators):
 
 def test_AxisValidator_methods(new_axis_validators, fixture_data):
     """Simple test of AxisValidator registration and methods."""
-    from virtual_rainforest.core.axes import AXIS_VALIDATORS
+    from virtual_ecosystem.core.axes import AXIS_VALIDATORS
 
     # Use the methods
     test_validator = AXIS_VALIDATORS["testing"][0]()
@@ -171,7 +171,7 @@ def test_validate_dataarray(
     tests should check the return values
     """
 
-    from virtual_rainforest.core.axes import validate_dataarray
+    from virtual_ecosystem.core.axes import validate_dataarray
 
     # Decorate a mock function to test the failure modes
     with exp_err as err:
@@ -239,9 +239,9 @@ def test_validate_dataarray(
 def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import Spat_CellId_Coord_Any
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import Spat_CellId_Coord_Any
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -283,9 +283,9 @@ def test_Spat_CellId_Coord_Any(grid_args, darray, exp_err, exp_message, exp_vals
 def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import Spat_CellId_Dim_Any
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import Spat_CellId_Dim_Any
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -353,9 +353,9 @@ def test_Spat_CellId_Dim_Any(grid_args, darray, exp_err, exp_message, exp_vals):
 def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import Spat_XY_Coord_Square
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import Spat_XY_Coord_Square
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)
@@ -401,9 +401,9 @@ def test_Spat_XY_Coord_Square(grid_args, darray, exp_err, exp_message, exp_vals)
 def test_Spat_XY_Dim_Square(grid_args, darray, exp_err, exp_message, exp_vals):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.axes import Spat_XY_Dim_Square
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import Spat_XY_Dim_Square
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(**grid_args)
     data = Data(grid)

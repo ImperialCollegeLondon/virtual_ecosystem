@@ -3,7 +3,7 @@
 This section provides examples for climate data downloading and simple pre-processing.
 
 The [Copernicus climate data store](./CDS_toolbox_template.md) section contains a list
-of recommended data sets to run the Virtual Rainforest and describes how to download
+of recommended data sets to run the Virtual Ecosystem and describes how to download
 climate data from the Copernicus
 [Climate Data Store](https://cds.climate.copernicus.eu/) (CDS)
 and basic pre-processing options using the
@@ -29,17 +29,17 @@ Metadata:
 * Format: NetCDF3
 
 We have used a simple recipe from this data source to create the climate data used in
-the [example data](../virtual_rainforest/example_data.md). The code in that recipe is
+the [example data](../virtual_ecosystem/example_data.md). The code in that recipe is
 shown below:
 
 ````{admonition} climate_example_data.py
 :class: dropdown
-```{literalinclude} ../../../virtual_rainforest/example_data/generation_scripts/climate_example_data.py
+```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py
 ```
 ````
 
 In more detail, that script carries out  the main steps perfomed to create the following
-input variables for the Virtual Rainforest:
+input variables for the Virtual Ecosystem:
 
 * air temperature, [C]
 * relative humidity, [-]
@@ -51,7 +51,7 @@ input variables for the Virtual Rainforest:
 ## Adjustment of units
 
 The standard output unit of ERA5-Land temperatures is Kelvin which needs to be converted
-to degree Celsius for the Virtual Rainforest. This includes 2m air temperature and
+to degree Celsius for the Virtual Ecosystem. This includes 2m air temperature and
 2m dewpoint temperature which are used to calculate relative humidity later.
 The standard output unit for total precipitation in ERA5-Land is meters which we need
 to convert to millimeters. Further, the data represents mean daily accumulated
@@ -74,10 +74,10 @@ $$ RH = \frac{100\exp(17.625 \cdot DPT)/(243.04+DPT)}
                  {\exp(17.625 \cdot T)/(243.04+T)}
 $$
 
-## Matching Virtual Rainforest grid and naming conventions
+## Matching Virtual Ecosystem grid and naming conventions
 
 Once all input units are adjusted, the variables are re-named according to the Virtual
-Rainforest naming convention. The coordinate names have to be changed from
+Ecosystem naming convention. The coordinate names have to be changed from
 `longitude/latitude` to `x/y` and the units from `minutes` to `meters`. The ERA5-Land
 coordinates are treated as the centre points of the grid cells which means that when
 setting up the grid, an offset of 4.5 km has to be added.

@@ -1,10 +1,9 @@
 """Test module for hydrology.below_ground.py."""
 
-
 import numpy as np
 import pytest
 
-from virtual_rainforest.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(
@@ -38,7 +37,7 @@ def test_calculate_vertical_flow(
 ):
     """Test vertical flow with float or DataArray input."""
 
-    from virtual_rainforest.models.hydrology.below_ground import calculate_vertical_flow
+    from virtual_ecosystem.models.hydrology.below_ground import calculate_vertical_flow
 
     soil_moisture = np.array([[0.3, 0.6, 0.9], [0.3, 0.6, 0.9]])
     layer_thickness = np.array([[500, 500, 500], [500, 500, 500]])
@@ -66,7 +65,7 @@ def test_calculate_vertical_flow(
 def test_update_soil_moisture():
     """Test soil moisture update."""
 
-    from virtual_rainforest.models.hydrology.below_ground import update_soil_moisture
+    from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
 
     soil_moisture = np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]])
     vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
@@ -87,7 +86,7 @@ def test_update_soil_moisture():
 
 def test_convert_soil_moisture_to_water_potential(dummy_climate_data):
     """Test that function to convert soil moisture to a water potential works."""
-    from virtual_rainforest.models.hydrology.below_ground import (
+    from virtual_ecosystem.models.hydrology.below_ground import (
         convert_soil_moisture_to_water_potential,
     )
 
@@ -108,10 +107,10 @@ def test_convert_soil_moisture_to_water_potential(dummy_climate_data):
 def test_update_groundwater_storage(dummy_climate_data):
     """Test the update_groundwater_storage() function."""
 
-    from virtual_rainforest.models.hydrology.below_ground import (
+    from virtual_ecosystem.models.hydrology.below_ground import (
         update_groundwater_storage,
     )
-    from virtual_rainforest.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     data = dummy_climate_data
     result = update_groundwater_storage(
