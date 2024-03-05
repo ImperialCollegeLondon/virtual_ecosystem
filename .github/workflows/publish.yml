@@ -3,10 +3,11 @@ name: Publishing
 on: [release]
 
 jobs:
+  # First, run the standard test suite
   test:
     uses: ./.github/workflows/ci.yml
 
-  # If tests are successful, we build the wheel and push it to the release
+  # Next, build the package wheel and source releases and add them to the release assets
   build-wheel:
     needs: test
     runs-on: ubuntu-latest
@@ -26,8 +27,8 @@ jobs:
         with:
           files: dist/virtual_ecosystem*
 
-  # If building of the wheel is successful, then we try to publish it
-  # First, in TestPyPI
+  # Now attempt to publish the package to the TestPyPI site, where the virtual_ecosystem
+  # project has been configured to allow trusted publishing from this repo and workflow.
   publish-TestPyPI:
     needs: build-wheel
     name: Publish virtual_ecosystem to TestPyPI
