@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 name = "virtual_ecosystem"
 readme = "README.md"
 repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a6"
+version = "0.1.1a4"
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
