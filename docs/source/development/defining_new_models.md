@@ -12,33 +12,33 @@ kernelspec:
   name: vr_python3
 ---
 
-# Creating new Virtual Rainforest models
+# Creating new Virtual Ecosystem models
 
-The Virtual Rainforest initially contains a set of models defining core components of
-the rainforest, examples include the `abiotic`, `animals`, `plants` and `soil` models.
+The Virtual Ecosystem initially contains a set of models defining core components of
+an ecosystem, examples include the `abiotic`, `animals`, `plants` and `soil` models.
 However, the simulation is designed to be modular:
 
 * Different combinations of models can be configured for a particular simulation.
 * New models can be defined in order to extend the simulation or alter the implemention:
   examples of new functionality might be `freshwater` or `disturbance` models.
 
-This page sets out the steps needed to add a new model to the Virtual Rainforest and
+This page sets out the steps needed to add a new model to the Virtual Ecosystem and
 ensure that it can be accessed by the `core` processes in the simulation.
 
 ## Create a new submodule folder
 
-Start by creating  a new folder for your model, within the `virtual_rainforest/models/`
+Start by creating  a new folder for your model, within the `virtual_ecosystem/models/`
 directory.
 
 ```bash
-mkdir virtual_rainforest/models/freshwater
+mkdir virtual_ecosystem/models/freshwater
 ```
 
 You will need to create at least four files within this folder, although you may choose
 to add other python modules containing different parts of the module functionality.
 
 * An `__init__.py` file, which tells Python that the folder is a submodule within the
-  `virtual_rainforest` package.
+  `virtual_ecosystem` package.
 * A python module  `{model_name}_model.py` that will contain the main model
   object.
 * A JSON Schema file defining the model configuration, called `schema.json`.
@@ -47,15 +47,15 @@ to add other python modules containing different parts of the module functionali
 For example:
 
 ```bash
-touch virtual_rainforest/models/freshwater/__init__.py
-touch virtual_rainforest/models/freshwater/freshwater_model.py
-touch virtual_rainforest/models/freshwater/schema.json
-touch virtual_rainforest/models/freshwater/constants.py
+touch virtual_ecosystem/models/freshwater/__init__.py
+touch virtual_ecosystem/models/freshwater/freshwater_model.py
+touch virtual_ecosystem/models/freshwater/schema.json
+touch virtual_ecosystem/models/freshwater/constants.py
 ```
 
 ## Defining constants and their default values
 
-The definition of 'constant' in the Virtual Rainforest is basically a parameter of any
+The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
 kind that should be held constant throughout a simulation. However, while some constants
 are likely never to be varied, many constants are estimated with error and users
 may want to explore the sensitivity of simulations to changes in those values. We
@@ -76,11 +76,11 @@ data classes. However, having a large number of data classes is likely to make t
 downstream code messier, so constants should only be split across multiple classes when
 there's a strong reason to do so.
 
-Because dataclasses are widely used structures in Python, the Virtual Rainforest defines
-a specific {class}`~virtual_rainforest.core.constants_class.ConstantsDataclass` base
+Because dataclasses are widely used structures in Python, the Virtual Ecosystem defines
+a specific {class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` base
 class to uniquely identify _constants dataclasses_ from other dataclasses. This base
 class also provides the
-{meth}`~virtual_rainforest.core.constants_class.ConstantsDataclass.from_config` methods,
+{meth}`~virtual_ecosystem.core.constants_class.ConstantsDataclass.from_config` methods,
 which validates a configuration dictionary against the dataclass definition and returns
 a configured dataclass instance.
 
@@ -97,7 +97,7 @@ look like the following code:
 from dataclasses import dataclass
 from typing import ClassVar
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
@@ -115,7 +115,7 @@ class FreshwaterConsts(ConstantsDataclass):
 ## Defining the new model class
 
 The model file will define a new subclass of the
-{mod}`~virtual_rainforest.core.base_model.BaseModel` class.
+{mod}`~virtual_ecosystem.core.base_model.BaseModel` class.
 
 ### Required package imports
 
@@ -132,7 +132,7 @@ from __future__ import annotations
 # To support the kwargs argument to BaseModel.__init__
 from typing import Any
 
-# Data in the virtual rainforest is stored as xarray.DataArrays and array calculations 
+# Data in the Virtual Ecosystem is stored as xarray.DataArrays and array calculations 
 # typically use numpy.
 import numpy as np
 import xarray
@@ -145,31 +145,31 @@ from pint import Quantity
 # - the Data class, used as a central data store within the simulation
 # - an custom exception to cover model initalisation failure
 # - the global LOGGER, used to report information to users.
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.exceptions import InitialisationError
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
+from virtual_ecosystem.core.logger import LOGGER
 
 # You will likely also have a set of imports of model specific code such as constants 
 # classes and other classes and functions. For example:
-from virtual_rainforest.models.freshwater.constants import FreshwaterConsts
-from virtual_rainforest.models.freshwater.streamflow import calculate_streamflow
+from virtual_ecosystem.models.freshwater.constants import FreshwaterConsts
+from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 ```
 
 ### Defining the new class and class attributes
 
 Now create a new class, that derives from the
-{mod}`~virtual_rainforest.core.base_model.BaseModel`. To begin with, choose a class name
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`. To begin with, choose a class name
 for the model and define the following class attributes.
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_name` attribute
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
 : This is a string providing the name that is used to refer to this model class in
 configuration files. This **must** match the chosen submodule name for the model, so the
-module `virtual_rainforest.models.freshwater` must use `freshwater` as the model name.
+module `virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.required_init_vars` attribute
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars` attribute
 : This is a tuple that sets which variables must be present in the data used to create a
 new instance of the model. Each entry should provide a variable name and then another
 tuple that sets any required axes for the variable. For example:
@@ -180,13 +180,13 @@ tuple that sets any required axes for the variable. For example:
 (('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
 ```
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.vars_updated` attribute : This
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
 is a tuple that provides information about which data object variables are updated by
 this model. Entries should simply be variable names. The information contained here is
 used to determine which variables to include in the continuous output. So, it is
 important to ensure that this information is up to date.
 
-The {attr}`~virtual_rainforest.core.base_model.BaseModel.model_update_bounds`
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds`
 attribute :
 
 This class attribute defines two time intervals that define a lower and upper bound
@@ -224,8 +224,8 @@ things.
   added to the signature of the `__init__` method, alongside the required parameters of
   the base class, and then stored as attributes of the instance.
 
-1. It _must_ call the {meth}`~virtual_rainforest.core.base_model.BaseModel.__init__`
-   method of the {meth}`~virtual_rainforest.core.base_model.BaseModel` parent class,
+1. It _must_ call the {meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__`
+   method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
    also known as the superclass:
 
    ```python
@@ -238,7 +238,7 @@ things.
 1. The method should check that the provided initialisation values are sane, for example
   that the number of ponds is not negative.
 
-1. The {meth}`~virtual_rainforest.core.base_model.BaseModel` provides a basic `__repr__`
+1. The {meth}`~virtual_ecosystem.core.base_model.BaseModel` provides a basic `__repr__`
    to provide a simple text representation of a class object. This just prints the class
    name and a set of properties. You can add some or all of your custom model properties
    to the `__repr` property to include them in the representation.
@@ -293,8 +293,8 @@ run from a set of configuration files, the model now needs to define two things:
 
 The [JSONSchema](https://json-schema.org/) document in the module root directory defines
 the configuration options for the model. A detailed description of the configuration
-system works can be found [here](../virtual_rainforest/core/config.md) but the schema
-definition is used to validate configuration files for a Virtual Rainforest simulation
+system works can be found [here](../virtual_ecosystem/core/config.md) but the schema
+definition is used to validate configuration files for a Virtual Ecosystem simulation
 that uses your model. Essentially, it defines all of the `__init__` arguments that are
 unique to your model.
 
@@ -321,7 +321,7 @@ no_of_ponds = 3
 
 The JSON Schema document generated from the JSON Schema app above is shown below. Some
 of the fields - such as the `title` and `examples` entries - are not required in the
-Virtual Rainforest configuration and so can be deleted. You may also need to edit which
+Virtual Ecosystem configuration and so can be deleted. You may also need to edit which
 properties are required and which provide defaults that will be used to fill missing
 properties.
 
@@ -404,7 +404,7 @@ users. Configurations that do this may well not work, but that is for users to t
 ### The `from_config` factory method
 
 Configuration files are used to create a configuration object (see
-{class}`~virtual_rainforest.core.config.Config`), which contains details of the
+{class}`~virtual_ecosystem.core.config.Config`), which contains details of the
 configuration process but also provides a dictionary interface to the configuration
 data. So, the example above might result in a `Config` object with the following model
 specific data.
@@ -425,7 +425,7 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also generate the required constants classes from the
 config. At least one constants class should be created, but it's fine to split constants
 across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_rainforest.core.constants_loader.load_constants` utility function can be
+{func}`~virtual_ecosystem.core.constants_loader.load_constants` utility function can be
 used to construct the class with the default values replaced if they are overwritten in
 the config.
 
@@ -443,8 +443,8 @@ def from_config(
     invalid rather than returning an initialised model instance an error is raised.
 
     Args:
-        data: A :class:`~virtual_rainforest.core.data.Data` instance.
-        config: A validated Virtual Rainforest model configuration object.
+        data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+        config: A validated Virtual Ecosystem model configuration object.
         update_interval: Frequency with which all models are updated
     """
     
@@ -464,7 +464,7 @@ def from_config(
 ## Other model steps
 
 There are four functions that must be included as part of the model class. The names and
-roles of these functions might well change as the Virtual Rainforest model develops, but
+roles of these functions might well change as the Virtual Ecosystem model develops, but
 that kind of API change is something that would require significant discussion. Only the
 `update` function is used at present. The other functions need to be included, but
 there's no need to include any particular content within them (i.e. they can just be
@@ -498,7 +498,7 @@ Lastly, you will need to set up the `__init__.py` file in the submodule director
 file is used to tell Python that the directory contains a package submodule, but can
 also be used to supply code that is automatically run when a module is imported.
 
-In the Virtual Rainforest, we use the `__init__.py` file in model submodules to:
+In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
 
 * provide a brief overview of the module, and
 * import the model object into the module root to make it easier to import.
@@ -511,16 +511,16 @@ short description of the overall model design and purpose, and link to key compo
 and how they interact.
 """  # noqa: D204, D415
 
-from virtual_rainforest.models.freshwater.freshwater_model import (  # noqa: F401
+from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
     FreshwaterModel,
 )  
 ```
 
 Under the hood, when a given model is used in a simulation, then the configuration
 process automatically loads all of the model components for that model using the
-{func}`~virtual_rainforest.core.registry.register_module` function. This automatically
+{func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
 loads and validates the model schema, discovers any
-{class}`~virtual_rainforest.core.constants_class.ConstantsDataclass` in the `constants`
+{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
 submodule and then adds those, along with the BaseModel subclass to a central
-{data}`~virtual_rainforest.core.registry.MODULE_REGISTRY` object, which is used to allow
+{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
 the simulation code to easily access model components.

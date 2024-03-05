@@ -9,16 +9,16 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_abiotic_model_initialization(
     caplog, dummy_climate_data, fixture_core_components
 ):
     """Test `AbioticModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
-    from virtual_rainforest.models.abiotic.constants import AbioticConsts
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Initialize model
     model = AbioticModel(
@@ -46,10 +46,10 @@ def test_abiotic_model_initialization(
 def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
     """Test `AbioticModel` initialization with no data."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
-    from virtual_rainforest.models.abiotic.constants import AbioticConsts
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     with pytest.raises(ValueError):
         # Make four cell grid
@@ -140,9 +140,9 @@ def test_generate_abiotic_model(
 ):
     """Test that the function to initialise the abiotic model behaves as expected."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -196,9 +196,9 @@ def test_generate_abiotic_model_bounds_error(
 ):
     """Test that the initialisation of the abiotic model from config."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -229,9 +229,9 @@ def test_generate_abiotic_model_bounds_error(
 def test_setup_abiotic_model(dummy_climate_data, cfg_string):
     """Test that setup() returns expected output in data object."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -360,9 +360,9 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
 def test_update_abiotic_model(dummy_climate_data, cfg_string):
     """Test that update() returns expected output in data object."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)

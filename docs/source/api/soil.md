@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `soil` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.soil
+.. automodule:: virtual_ecosystem.models.soil
 ```

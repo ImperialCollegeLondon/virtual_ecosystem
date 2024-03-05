@@ -1,0 +1,251 @@
+{
+   "type": "object",
+   "properties": {
+      "core": {
+         "description": "Configuration settings for the core module",
+         "type": "object",
+         "properties": {
+            "constants": {
+               "description": "Constants for the core module",
+               "type": "object",
+               "properties": {
+                  "CoreConsts": {
+                     "type": "object"
+                  }
+               },
+               "required": [
+                  "CoreConsts"
+               ]
+            },
+            "grid": {
+               "description": "Details of the grid to configure",
+               "type": "object",
+               "properties": {
+                  "grid_type": {
+                     "description": "The grid cell type",
+                     "type": "string",
+                     "default": "square"
+                  },
+                  "cell_area": {
+                     "description": "The area of each grid cell (m^2)",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 8100
+                  },
+                  "cell_nx": {
+                     "description": "Number of grid cells in x direction",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 9
+                  },
+                  "cell_ny": {
+                     "description": "Number of grid cells in y direction",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 9
+                  },
+                  "xoff": {
+                     "description": "The x offset of the grid origin",
+                     "type": "number",
+                     "default": -45.0
+                  },
+                  "yoff": {
+                     "description": "The y offset of the grid origin",
+                     "type": "number",
+                     "default": -45.0
+                  }
+               },
+               "default": {},
+               "required": []
+            },
+            "timing": {
+               "description": "Overall timing settings for the model",
+               "type": "object",
+               "properties": {
+                  "start_date": {
+                     "description": "Simulation start date",
+                     "type": "string",
+                     "format": "date",
+                     "default": "2013-01-01"
+                  },
+                  "update_interval": {
+                     "description": "Interval at which all models are updated",
+                     "type": "string",
+                     "default": "1 month"
+                  },
+                  "run_length": {
+                     "description": "How long the simulation should be run for",
+                     "type": "string",
+                     "default": "2 years"
+                  }
+               },
+               "default": {},
+               "required": [
+                  "start_date",
+                  "update_interval",
+                  "run_length"
+               ]
+            },
+            "data": {
+               "description": "Configuration settings for the core data module",
+               "type": "object",
+               "properties": {
+                  "variable": {
+                     "description": "Details of variables loaded from file",
+                     "type": "array",
+                     "items": {
+                        "type": "object",
+                        "properties": {
+                           "file": {
+                              "type": "string"
+                           },
+                           "var_name": {
+                              "type": "string"
+                           }
+                        },
+                        "required": [
+                           "file",
+                           "var_name"
+                        ]
+                     }
+                  }
+               },
+               "default": {},
+               "required": []
+            },
+            "data_output_options": {
+               "description": "Options for output the Virtual Ecosystem model state",
+               "type": "object",
+               "properties": {
+                  "save_initial_state": {
+                     "description": "Whether the initial state should be saved",
+                     "type": "boolean",
+                     "default": false
+                  },
+                  "save_continuous_data": {
+                     "description": "Whether continuous data should be saved",
+                     "type": "boolean",
+                     "default": true
+                  },
+                  "save_final_state": {
+                     "description": "Whether the final state should be saved",
+                     "type": "boolean",
+                     "default": true
+                  },
+                  "save_merged_config": {
+                     "description": "Whether to save a merged TOML file containing all config options",
+                     "type": "boolean",
+                     "default": true
+                  },
+                  "out_path": {
+                     "description": "File path for output files",
+                     "type": "string",
+                     "default": "."
+                  },
+                  "out_initial_file_name": {
+                     "description": "File name for initial state output file",
+                     "type": "string",
+                     "default": "initial_state.nc",
+                     "pattern": "^[^/\\\\]+$"
+                  },
+                  "out_folder_continuous": {
+                     "description": "Folder to save states of simulation with time to",
+                     "type": "string"
+                  },
+                  "out_continuous_file_name": {
+                     "description": "Name of file to save combined continuous data to",
+                     "type": "string",
+                     "default": "all_continuous_data.nc",
+                     "pattern": "^[^/\\\\]+$"
+                  },
+                  "out_final_file_name": {
+                     "description": "File name for final state output file",
+                     "type": "string",
+                     "default": "final_state.nc",
+                     "pattern": "^[^/\\\\]+$"
+                  },
+                  "out_merge_file_name": {
+                     "description": "Name for TOML file containing merged configs",
+                     "type": "string",
+                     "default": "vr_full_model_configuration.toml",
+                     "pattern": "^[^/\\\\]+$"
+                  }
+               },
+               "default": {},
+               "required": [
+                  "save_initial_state",
+                  "save_continuous_data",
+                  "save_final_state",
+                  "save_merged_config",
+                  "out_initial_file_name",
+                  "out_continuous_file_name",
+                  "out_final_file_name",
+                  "out_merge_file_name"
+               ]
+            },
+            "layers": {
+               "description": "Layers to create vertical structure",
+               "type": "object",
+               "properties": {
+                  "soil_layers": {
+                     "description": "Depth and number of soil layers to simulate",
+                     "type": "array",
+                     "items": {
+                        "type": "number"
+                     },
+                     "minItems": 1,
+                     "uniqueItems": true,
+                     "default": [
+                        -0.25,
+                        -1.0
+                     ]
+                  },
+                  "canopy_layers": {
+                     "description": "Number of canopy layers to simulate",
+                     "type": "integer",
+                     "exclusiveMinimum": 0,
+                     "default": 10
+                  },
+                  "above_canopy_height_offset": {
+                     "description": "The height offset relative to the canopy top for climatic reference variables.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 2.0
+                  },
+                  "surface_layer_height": {
+                     "description": "The height used to calculate ground surface microclimate conditions.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 0.1
+                  },
+                  "subcanopy_layer_height": {
+                     "description": "The height used to calculate subcanopy microclimate conditions.",
+                     "type": "number",
+                     "exclusiveMinimum": 0,
+                     "default": 1.5
+                  }
+               },
+               "default": {},
+               "required": [
+                  "soil_layers",
+                  "canopy_layers",
+                  "above_canopy_height_offset",
+                  "surface_layer_height",
+                  "subcanopy_layer_height"
+               ]
+            }
+         },
+         "default": {},
+         "required": [
+            "data",
+            "data_output_options",
+            "grid",
+            "timing",
+            "layers"
+         ]
+      }
+   },
+   "required": [
+      "core"
+   ]
+}

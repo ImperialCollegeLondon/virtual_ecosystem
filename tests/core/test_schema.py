@@ -66,7 +66,7 @@ def test_load_schema(
     expected_log_entries,
 ):
     """Tests schema loading and validation."""
-    from virtual_rainforest.core.schema import load_schema
+    from virtual_ecosystem.core.schema import load_schema
 
     caplog.clear()
 
@@ -80,15 +80,15 @@ def test_load_schema(
 def test_merge_schemas():
     """Test that module schemas are properly merged."""
 
-    from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
-    from virtual_rainforest.core.schema import merge_schemas
+    from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
+    from virtual_ecosystem.core.schema import merge_schemas
 
     # Import the models to populate the registry
-    register_module("virtual_rainforest.core")
-    register_module("virtual_rainforest.models.abiotic_simple")
-    register_module("virtual_rainforest.models.animals")
-    register_module("virtual_rainforest.models.plants")
-    register_module("virtual_rainforest.models.soil")
+    register_module("virtual_ecosystem.core")
+    register_module("virtual_ecosystem.models.abiotic_simple")
+    register_module("virtual_ecosystem.models.animals")
+    register_module("virtual_ecosystem.models.plants")
+    register_module("virtual_ecosystem.models.soil")
 
     merged_schemas = merge_schemas(
         {
@@ -111,7 +111,7 @@ def test_merge_schemas():
 
 def test_extend_with_default():
     """Test that validator has been properly extended to allow addition of defaults."""
-    from virtual_rainforest.core.config import ValidatorWithDefaults
+    from virtual_ecosystem.core.config import ValidatorWithDefaults
 
     # Check that function adds a function with the right name in the right location
     TestValidator = ValidatorWithDefaults({"str": {}})

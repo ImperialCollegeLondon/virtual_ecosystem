@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture
 def fixture_soil_config():
     """Create a soil config with faster update interval."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     return Config(
         cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
@@ -16,7 +16,7 @@ def fixture_soil_config():
 @pytest.fixture
 def fixture_soil_core_components(fixture_soil_config):
     """Create a core components from the fixture_soil_config."""
-    from virtual_rainforest.core.core_components import CoreComponents
+    from virtual_ecosystem.core.core_components import CoreComponents
 
     return CoreComponents(fixture_soil_config)
 
@@ -26,7 +26,7 @@ def fixture_soil_model(
     dummy_carbon_data, fixture_soil_config, fixture_soil_core_components
 ):
     """Create a soil model fixture based on the dummy carbon data."""
-    from virtual_rainforest.models.soil.soil_model import SoilModel
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     return SoilModel.from_config(
         data=dummy_carbon_data,
@@ -38,8 +38,8 @@ def fixture_soil_model(
 @pytest.fixture
 def environmental_factors(dummy_carbon_data, top_soil_layer_index):
     """Environmental factors based on dummy carbon data."""
-    from virtual_rainforest.models.soil.constants import SoilConsts
-    from virtual_rainforest.models.soil.env_factors import (
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
         calculate_clay_impact_on_necromass_decay,
         calculate_pH_suitability,

@@ -3,14 +3,14 @@
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_calculate_soil_absorption():
     """Test that soil absorption is calculated correctly."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         calculate_soil_absorption,
     )
 
@@ -25,7 +25,7 @@ def test_calculate_soil_absorption():
 def test_calculate_sensible_heat_flux_soil():
     """Test sensible heat from soil is calculated correctly."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         calculate_sensible_heat_flux_soil,
     )
 
@@ -47,7 +47,7 @@ def test_calculate_sensible_heat_flux_soil():
 def test_calculate_latent_heat_flux_from_soil_evaporation():
     """Test evaporation to latent heat flux conversion works correctly."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         calculate_latent_heat_flux_from_soil_evaporation,
     )
 
@@ -61,7 +61,7 @@ def test_calculate_latent_heat_flux_from_soil_evaporation():
 def test_update_surface_temperature():
     """Test surface temperature with positive and negative radiation flux."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         update_surface_temperature,
     )
 
@@ -81,7 +81,7 @@ def test_update_surface_temperature():
 def test_calculate_ground_heat_flux():
     """Test graound heat flux is calculated correctly."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         calculate_ground_heat_flux,
     )
 
@@ -97,7 +97,7 @@ def test_calculate_ground_heat_flux():
 def test_calculate_soil_heat_balance(dummy_climate_data):
     """Test full surface heat balance is run correctly."""
 
-    from virtual_rainforest.models.abiotic.soil_energy_balance import (
+    from virtual_ecosystem.models.abiotic.soil_energy_balance import (
         calculate_soil_heat_balance,
     )
 

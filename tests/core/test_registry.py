@@ -12,15 +12,15 @@ from tests.conftest import log_check
     argnames="module_name, raises, exp_log",
     argvalues=[
         pytest.param(
-            "virtual_rainforest.core",
+            "virtual_ecosystem.core",
             does_not_raise(),
             (
-                (INFO, "Registering module: virtual_rainforest.core"),
-                (INFO, "Schema registered for virtual_rainforest.core:"),
+                (INFO, "Registering module: virtual_ecosystem.core"),
+                (INFO, "Schema registered for virtual_ecosystem.core:"),
                 (
                     INFO,
                     "Constants class registered for "
-                    "virtual_rainforest.core: CoreConsts",
+                    "virtual_ecosystem.core: CoreConsts",
                 ),
             ),
             id="core_import_good",
@@ -100,9 +100,9 @@ def test_registry(caplog, module_name, raises, exp_log):
     models triggers `register_module` calls from the module __init__.py files.
     """
 
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.constants_class import ConstantsDataclass
-    from virtual_rainforest.core.registry import (
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.constants_class import ConstantsDataclass
+    from virtual_ecosystem.core.registry import (
         MODULE_REGISTRY,
         ModuleInfo,
         register_module,
