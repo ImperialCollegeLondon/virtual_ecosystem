@@ -1,16 +1,15 @@
 """Test module for wind.py."""
 
-
 import numpy as np
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_calculate_zero_plane_displacement(dummy_climate_data):
     """Test if calculated correctly and set to zero without vegetation."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_zero_plane_displacement
+    from virtual_ecosystem.models.abiotic.wind import calculate_zero_plane_displacement
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data.data["canopy_height"].to_numpy(),
@@ -24,7 +23,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
 def test_calculate_roughness_length_momentum(dummy_climate_data):
     """Test roughness length governing momentum transfer."""
 
-    from virtual_rainforest.models.abiotic.wind import (
+    from virtual_ecosystem.models.abiotic.wind import (
         calculate_roughness_length_momentum,
     )
 
@@ -48,7 +47,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
 def test_calculate_diabatic_correction_above(dummy_climate_data):
     """Test diabatic correction factors for heat and momentum."""
 
-    from virtual_rainforest.models.abiotic.wind import (
+    from virtual_ecosystem.models.abiotic.wind import (
         calculate_diabatic_correction_above,
     )
 
@@ -102,7 +101,7 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
 def test_calculate_mean_mixing_length(dummy_climate_data):
     """Test mixing length with and without vegetation."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_mean_mixing_length
+    from virtual_ecosystem.models.abiotic.wind import calculate_mean_mixing_length
 
     result = calculate_mean_mixing_length(
         canopy_height=dummy_climate_data.data["canopy_height"].to_numpy(),
@@ -119,7 +118,7 @@ def test_calculate_mean_mixing_length(dummy_climate_data):
 def test_generate_relative_turbulence_intensity(dummy_climate_data):
     """Test relative turbulence intensity."""
 
-    from virtual_rainforest.models.abiotic.wind import (
+    from virtual_ecosystem.models.abiotic.wind import (
         generate_relative_turbulence_intensity,
     )
 
@@ -169,7 +168,7 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
 def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
     """Test wind attenuation coefficient with and without vegetation."""
 
-    from virtual_rainforest.models.abiotic.wind import (
+    from virtual_ecosystem.models.abiotic.wind import (
         calculate_wind_attenuation_coefficient,
     )
 
@@ -209,7 +208,7 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
 def test_wind_log_profile(dummy_climate_data):
     """Test log wind profile."""
 
-    from virtual_rainforest.models.abiotic.wind import wind_log_profile
+    from virtual_ecosystem.models.abiotic.wind import wind_log_profile
 
     layer_heights = (
         dummy_climate_data.data["layer_heights"]
@@ -241,7 +240,7 @@ def test_wind_log_profile(dummy_climate_data):
 def test_calculate_friction_velocity(dummy_climate_data):
     """Calculate friction velocity."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_fricition_velocity
+    from virtual_ecosystem.models.abiotic.wind import calculate_fricition_velocity
 
     result = calculate_fricition_velocity(
         wind_speed_ref=(
@@ -260,7 +259,7 @@ def test_calculate_friction_velocity(dummy_climate_data):
 def test_calculate_wind_above_canopy(dummy_climate_data):
     """Wind speed above canopy."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_wind_above_canopy
+    from virtual_ecosystem.models.abiotic.wind import calculate_wind_above_canopy
 
     result = calculate_wind_above_canopy(
         friction_velocity=np.array([0.0, 0.819397, 1.423534]),
@@ -279,7 +278,7 @@ def test_calculate_wind_above_canopy(dummy_climate_data):
 def test_calculate_wind_canopy(dummy_climate_data):
     """Test below canopy wind profile."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_wind_canopy
+    from virtual_ecosystem.models.abiotic.wind import calculate_wind_canopy
 
     layer_heights = (
         dummy_climate_data.data["layer_heights"]
@@ -311,7 +310,7 @@ def test_calculate_wind_canopy(dummy_climate_data):
 def test_calculate_wind_profile(dummy_climate_data):
     """Test full update of wind profile."""
 
-    from virtual_rainforest.models.abiotic.wind import calculate_wind_profile
+    from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
     wind_layer_heights = (
         dummy_climate_data.data["layer_heights"]

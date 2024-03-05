@@ -1,5 +1,5 @@
 r"""The wind module calculates the above- and within-canopy wind profile for the
-Virtual Rainforest. The wind profile determines the exchange of heat, water, and
+Virtual Ecosystem. The wind profile determines the exchange of heat, water, and
 :math:`CO_{2}` between soil and atmosphere below the canopy as well as the exchange with
 the atmosphere above the canopy.
 
@@ -9,16 +9,15 @@ distribution of leaf and woody parts
 TODO change temperatures to Kelvin
 """  # noqa: D205, D415
 
-
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.abiotic_tools import (
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
     calculate_molar_density_air,
     calculate_specific_heat_air,
 )
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def calculate_zero_plane_displacement(
@@ -359,7 +358,7 @@ def calculate_fricition_velocity(
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as
             returned by
-            :func:`~virtual_rainforest.models.abiotic.wind.calculate_diabatic_correction_above`
+            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
@@ -407,7 +406,7 @@ def calculate_wind_above_canopy(
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as
             returned by
-            :func:`~virtual_rainforest.models.abiotic.wind.calculate_diabatic_correction_above`
+            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
@@ -448,7 +447,7 @@ def calculate_wind_canopy(
         canopy_height: Height to top of canopy layer, [m]
         attenuation_coefficient: Mean attenuation coefficient based on the profile
             calculated by
-            :func:`~virtual_rainforest.models.abiotic.wind.calculate_wind_attenuation_coefficient`
+            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_wind_attenuation_coefficient`
         min_windspeed_below_canopy: Minimum wind speed below the canopy or in absence of
             vegetation, [m/s]. This value is set to avoid dividion by zero.
 

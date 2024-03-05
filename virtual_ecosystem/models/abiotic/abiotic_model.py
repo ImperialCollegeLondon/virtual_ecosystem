@@ -1,11 +1,11 @@
-"""The :mod:`~virtual_rainforest.models.abiotic.abiotic_model` module creates a
-:class:`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel`
-class as a child of the :class:`~virtual_rainforest.core.base_model.BaseModel` class. At
+"""The :mod:`~virtual_ecosystem.models.abiotic.abiotic_model` module creates a
+:class:`~virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel`
+class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At
 present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_rainforest.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the Virtual Rainforest
+:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
+placeholder functions that don't do anything. This will change as the Virtual Ecosystem
 model develops. The factory method
-:func:`~virtual_rainforest.models.abiotic.abiotic_model.AbioticModel.from_config`
+:func:`~virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters from our
 currently pretty minimal configuration dictionary. These parameters are then used to
 generate a class instance. If errors crop here when converting the information from the
@@ -24,16 +24,16 @@ from typing import Any
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.base_model import BaseModel
-from virtual_rainforest.core.config import Config
-from virtual_rainforest.core.constants_loader import load_constants
-from virtual_rainforest.core.core_components import CoreComponents
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.core.logger import LOGGER
-from virtual_rainforest.models.abiotic import energy_balance, soil_energy_balance, wind
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
-from virtual_rainforest.models.abiotic_simple import microclimate
-from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import energy_balance, soil_energy_balance, wind
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple import microclimate
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 class AbioticModel(
@@ -79,9 +79,9 @@ class AbioticModel(
         invalid rather than returning an initialised model instance an error is raised.
 
         Args:
-            data: A :class:`~virtual_rainforest.core.data.Data` instance.
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             core_components: The core components used across models.
-            config: A validated Virtual Rainforest model configuration object.
+            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load in the relevant constants
@@ -107,14 +107,12 @@ class AbioticModel(
         """
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        self.data[
-            "vapour_pressure_deficit_ref"
-        ] = microclimate.calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
-            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
-        ).rename(
-            "vapour_pressure_deficit_ref"
+        self.data["vapour_pressure_deficit_ref"] = (
+            microclimate.calculate_vapour_pressure_deficit(
+                temperature=self.data["air_temperature_ref"],
+                relative_humidity=self.data["relative_humidity_ref"],
+                constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
+            ).rename("vapour_pressure_deficit_ref")
         )
 
         # Generate initial profiles of air temperature [C], relative humidity [-],

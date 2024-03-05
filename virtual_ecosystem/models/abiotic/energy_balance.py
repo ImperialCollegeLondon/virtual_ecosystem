@@ -1,5 +1,5 @@
 r"""The ``models.abiotic.energy_balance`` module calculates the energy balance for the
-Virtual Rainforest. Given that the time increments of the model are an hour or longer,
+Virtual Ecosystem. Given that the time increments of the model are an hour or longer,
 we can assume that below-canopy heat and vapour exchange attain steady state and heat
 storage in the canopy does not need to be simulated explicitly. Under steady-state,
 the balance equation for the leaves in each canopy layer is as follows (after
@@ -26,7 +26,7 @@ leaf temperature and air temperature simultaneously, see
 :cite:t:`maclean_microclimc_2021`.
 
 The soil energy balance functions are described in
-:mod:`~virtual_rainforest.models.abiotic.soil_energy_balance`.
+:mod:`~virtual_ecosystem.models.abiotic.soil_energy_balance`.
 
 TODO check equations for consistency re naming
 """  # noqa: D205, D415

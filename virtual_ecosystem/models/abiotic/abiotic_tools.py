@@ -1,5 +1,5 @@
 """The ``models.abiotic.abiotic_tools`` module contains a set of general functions that
-are shared across submodules in the :mod:`~virtual_rainforest.models.abiotic` model.
+are shared across submodules in the :mod:`~virtual_ecosystem.models.abiotic` model.
 
 TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin

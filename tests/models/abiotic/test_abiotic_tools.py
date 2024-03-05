@@ -2,14 +2,14 @@
 
 import numpy as np
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_calculate_molar_density_air():
     """Test calculate temperature-dependent molar desity of air."""
 
-    from virtual_rainforest.models.abiotic.abiotic_tools import (
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
         calculate_molar_density_air,
     )
 
@@ -37,7 +37,7 @@ def test_calculate_molar_density_air():
 def test_calculate_specific_heat_air():
     """Test calculate specific heat of air."""
 
-    from virtual_rainforest.models.abiotic.abiotic_tools import (
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
         calculate_specific_heat_air,
     )
 
@@ -58,7 +58,7 @@ def test_calculate_specific_heat_air():
 def test_calculate_latent_heat_vaporisation():
     """Test calculation of latent heat of vaporization."""
 
-    from virtual_rainforest.models.abiotic.abiotic_tools import (
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
         calculate_latent_heat_vaporisation,
     )
 

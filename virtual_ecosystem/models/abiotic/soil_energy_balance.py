@@ -1,5 +1,5 @@
 r"""The ``models.abiotic.soil_energy_balance`` module calculates the soil energy balance
-for the Virtual Rainforest.
+for the Virtual Ecosystem.
 
 In the soil, heat storage is almost always significant. Thus, Fourier's Law is combined
 with the continuity equation to obtain a time dependant differential equation that
@@ -25,10 +25,10 @@ import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
-from virtual_rainforest.models.abiotic.energy_balance import calculate_longwave_emission
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.energy_balance import calculate_longwave_emission
 
 
 def calculate_soil_absorption(

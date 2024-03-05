@@ -3,14 +3,14 @@
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_initialise_absorbed_radiation(dummy_climate_data):
     """Test initial absorbed radiation has correct dimensions."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_absorbed_radiation,
     )
 
@@ -44,7 +44,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
 def test_initialise_canopy_temperature(dummy_climate_data):
     """Test that canopy temperature is initialised correctly."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_canopy_temperature,
     )
 
@@ -72,7 +72,7 @@ def test_initialise_canopy_temperature(dummy_climate_data):
 def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
     """Test that canopy and soil fluxes initialised correctly."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_canopy_and_soil_fluxes,
     )
 
@@ -108,7 +108,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
 def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     """Test conductivities are initialised correctly."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_conductivities,
     )
 
@@ -176,7 +176,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
 def test_interpolate_along_heights(dummy_climate_data):
     """Test linear interpolation along heights."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         interpolate_along_heights,
     )
 
@@ -208,7 +208,7 @@ def test_interpolate_along_heights(dummy_climate_data):
 def test_calculate_longwave_emission():
     """Test that longwave radiation is calculated correctly."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_longwave_emission,
     )
 
