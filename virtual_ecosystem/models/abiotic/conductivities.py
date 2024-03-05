@@ -1,13 +1,13 @@
 r"""The ``models.abiotic.conductivities`` module calculates the conductivities for the
-energy balance of the Virtual Rainforest.
+energy balance of the Virtual Ecosystem.
 """  # noqa: D205, D415
 
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def interpolate_along_heights(

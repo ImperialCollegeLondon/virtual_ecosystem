@@ -3,14 +3,14 @@
 import numpy as np
 from xarray import DataArray
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     """Test conductivities are initialised correctly."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         initialise_conductivities,
     )
 
@@ -78,7 +78,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
 def test_interpolate_along_heights(dummy_climate_data):
     """Test linear interpolation along heights."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         interpolate_along_heights,
     )
 
@@ -110,7 +110,7 @@ def test_interpolate_along_heights(dummy_climate_data):
 def test_interpolate_along_heights_arrays(dummy_climate_data):
     """Test linear interpolation along heights with arrays of boundary values."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         interpolate_along_heights,
     )
 
@@ -142,7 +142,7 @@ def test_interpolate_along_heights_arrays(dummy_climate_data):
 def test_calculate_air_heat_conductivity_above(dummy_climate_data):
     """Test heat conductivity above canopy."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_air_heat_conductivity_above,
     )
 
@@ -165,7 +165,7 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
 def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
     """Test calculate air heat conductivity in canopy."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_air_heat_conductivity_canopy,
     )
 
@@ -193,7 +193,7 @@ def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
 def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
     """Test calculation of leaf air heat conductivity."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_leaf_air_heat_conductivity,
     )
 
@@ -237,7 +237,7 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
 def test_calculate_leaf_vapour_conductivity():
     """Test calculate leaf vapour conductivity."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_leaf_vapour_conductivity,
     )
 
@@ -251,7 +251,7 @@ def test_calculate_leaf_vapour_conductivity():
 def test_calculate_current_conductivities(dummy_climate_data):
     """Test update current conductivities."""
 
-    from virtual_rainforest.models.abiotic.conductivities import (
+    from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_current_conductivities,
     )
 

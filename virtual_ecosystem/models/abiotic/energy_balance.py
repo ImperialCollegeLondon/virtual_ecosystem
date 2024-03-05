@@ -29,22 +29,22 @@ The soil energy balance functions are described in
 :mod:`~virtual_ecosystem.models.abiotic.soil_energy_balance`.
 
 The conductivities are calculated as described in
-:mod:`~virtual_rainforest.models.abiotic.conductivities`.
+:mod:`~virtual_ecosystem.models.abiotic.conductivities`.
 """  # noqa: D205, D415
 
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
-from virtual_rainforest.core.constants import CoreConsts
-from virtual_rainforest.core.data import Data
-from virtual_rainforest.models.abiotic.conductivities import (
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.conductivities import (
     calculate_current_conductivities,
     interpolate_along_heights,
 )
-from virtual_rainforest.models.abiotic.constants import AbioticConsts
-from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
-from virtual_rainforest.models.abiotic_simple.microclimate import (
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.models.abiotic_simple.microclimate import (
     calculate_saturation_vapour_pressure,
 )
 

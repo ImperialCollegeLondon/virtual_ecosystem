@@ -72,7 +72,7 @@ def test_initialise_canopy_temperature(dummy_climate_data):
 def test_calculate_slope_of_saturated_pressure_curve():
     """Test calculation of slope of saturated pressure curve."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_slope_of_saturated_pressure_curve,
     )
 
@@ -142,10 +142,10 @@ def test_calculate_longwave_emission():
 def test_calculate_leaf_and_air_temperature(dummy_climate_data):
     """Test updating leaf and air temperature."""
 
-    from virtual_rainforest.models.abiotic.energy_balance import (
+    from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_leaf_and_air_temperature,
     )
-    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
