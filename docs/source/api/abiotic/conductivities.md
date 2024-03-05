@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-#  API for the {mod}`~virtual_rainforest.models.abiotic.conductivities` module
+#  API for the {mod}`~virtual_ecosystem.models.abiotic.conductivities` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic.conductivities
+.. automodule:: virtual_ecosystem.models.abiotic.conductivities
     :autosummary:
     :members:
     :special-members: __init__

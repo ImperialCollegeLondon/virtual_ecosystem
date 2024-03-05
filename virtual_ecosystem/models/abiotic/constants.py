@@ -1,5 +1,6 @@
 """The ``models.abiotic.constants`` module contains a set of dataclasses which contain
-parameters required by the broader :mod:`~virtual_ecosystem.models.abiotic` model.
+parameters required by the broader
+:mod:`~virtual_ecosystem.models.abiotic.abiotic_model` model.
 These parameters are constants in that they should not be changed during a particular
 simulation.
 """  # noqa: D205, D415

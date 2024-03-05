@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `abiotic` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.abiotic
+.. automodule:: virtual_ecosystem.models.abiotic
 ```

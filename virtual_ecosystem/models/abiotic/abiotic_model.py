@@ -170,7 +170,7 @@ class AbioticModel(
 
         # Initialise leaf temperature and update data object
         self.data["leaf_temperature"] = (
-            initial_microclimate["air_temperature"] * 1.1
+            initial_microclimate["air_temperature"] * 1.1  # TODO move to constants
         ).rename("leaf_temperature")
 
         self.data.add_from_dict(output_dict=initial_microclimate)
