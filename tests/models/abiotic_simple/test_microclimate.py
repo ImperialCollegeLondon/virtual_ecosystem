@@ -212,7 +212,7 @@ def test_calculate_vapour_pressure_deficit():
         ],
         dim="layers",
     )
-    xr.testing.assert_allclose(result, exp_output)
+    xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
 def test_run_microclimate(dummy_climate_data, fixture_core_components):

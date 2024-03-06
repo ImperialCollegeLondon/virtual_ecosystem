@@ -133,13 +133,18 @@ class AbioticSimpleModel(
         )
 
         # calculate vapour pressure deficit at reference height for all time steps
-        self.data["vapour_pressure_deficit_ref"] = (
-            microclimate.calculate_vapour_pressure_deficit(
-                temperature=self.data["air_temperature_ref"],
-                relative_humidity=self.data["relative_humidity_ref"],
-                constants=self.model_constants,
-            ).rename("vapour_pressure_deficit_ref")
+        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            constants=self.model_constants,
         )
+        self.data["vapour_pressure_deficit_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure_deficit"]
+        ).rename("vapour_pressure_deficit_ref")
+
+        self.data["vapour_pressure_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure"]
+        ).rename("vapour_pressure_ref")
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""

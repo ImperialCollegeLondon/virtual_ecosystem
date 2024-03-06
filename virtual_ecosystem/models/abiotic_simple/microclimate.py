@@ -260,8 +260,8 @@ def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
     constants: AbioticSimpleConsts,
-) -> DataArray:
-    """Calculate vapour pressure deficit.
+) -> dict[str, DataArray]:
+    """Calculate vapour pressure and vapour pressure deficit.
 
     Vapor pressure deficit is defined as the difference between saturated vapour
     pressure and actual vapour pressure.
@@ -272,9 +272,10 @@ def calculate_vapour_pressure_deficit(
         constants: Set of constants for the abiotic simple model
 
     Return:
-        vapour pressure deficit, [kPa]
+        vapour pressure, [kPa], vapour pressure deficit, [kPa]
     """
 
+    output = {}
     saturation_vapour_pressure = calculate_saturation_vapour_pressure(
         temperature,
         factor1=constants.saturation_vapour_pressure_factor1,
@@ -282,8 +283,11 @@ def calculate_vapour_pressure_deficit(
         factor3=constants.saturation_vapour_pressure_factor3,
     )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
-
-    return saturation_vapour_pressure - actual_vapour_pressure
+    output["vapour_pressure"] = actual_vapour_pressure
+    output["vapour_pressure_deficit"] = (
+        saturation_vapour_pressure - actual_vapour_pressure
+    )
+    return output
 
 
 def interpolate_soil_temperature(
