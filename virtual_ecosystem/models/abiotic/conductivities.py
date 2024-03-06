@@ -1,5 +1,5 @@
 r"""The ``models.abiotic.conductivities`` module calculates the conductivities for the
-energy balance of the Virtual Ecosystem.
+energy balance of the Virtual Ecosystem based on :cite:t:`maclean_microclimc_2021`.
 """  # noqa: D205, D415
 
 import numpy as np
@@ -17,7 +17,7 @@ def interpolate_along_heights(
     start_value: float | NDArray[np.float32],
     end_value: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    """Vertical interpolation for given start and end values along a height axis.
+    """Linear interpolation for given start and end values along a height axis.
 
     This function can be used to lineraly interpolate atmospheric or soil variables such
     as temperature or humidity for a set of user specified heights based on the top and
@@ -58,15 +58,14 @@ def initialise_conductivities(
 ) -> dict[str, DataArray]:
     r"""Initialise conductivities for first model time step, [mol m-2 s-1].
 
-    The initial values for all conductivities are typical for decidious woodland with
-    wind above canopy at 2 m/s.
     Air heat conductivity by turbulent convection (:math:`g_{t}`) is scaled by canopy
-    height and `m` (and hence distance between nodes). Leaf-air vapour conductivity
-    (:math:`g_{v}`) and leaf-air heat conductivity (:math:`g_{Ha}`) are linearly
-    interpolated between intial values.
+    height and number of canopy layers (and hence distance between nodes). Leaf-air
+    vapour conductivity (:math:`g_{v}`) and leaf-air heat conductivity (:math:`g_{Ha}`)
+    are linearly interpolated between intial values.
+
     The first value in each output represents conductivity between the air at 2 m above
-    canopy and the highest canopy layer. The last value represents conductivity between
-    the ground and the lowest canopy node.
+    canopy and the highest canopy layer. The last (above ground) value represents
+    conductivity between the ground and the lowest canopy node.
 
     Args:
         layer_height: layer heights, [m]
@@ -185,7 +184,7 @@ def calculate_air_heat_conductivity_above(
         canopy_height: Canopy height, [m]
         friction_velocity: Friction velocity, dimensionless
         molar_density_air: Molar density of air, [mole m-3]
-        diabatic_correction_heat: Diabatic correction factor for heat
+        diabatic_correction_heat: Diabatic correction factor for heat, dimensionless
         von_karmans_constant: Von Karman constant, unitless
 
     Returns:
@@ -236,7 +235,8 @@ def calculate_air_heat_conductivity_canopy(
         lower_height: Height of lower layer, [m]
         relative_turbulence_intensity: Relative turbulence intensity, dimensionless
         top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
-        diabatic_correction_momentum: Diabatic correction factor for momentum
+        diabatic_correction_momentum: Diabatic correction factor for momentum,
+            dimensionless
         canopy_height: Canopy height, [m]
 
     Returns:
@@ -296,7 +296,7 @@ def calculate_leaf_air_heat_conductivity(
         temperature: Temperature, [C]
         wind_speed: Wind speed, [m s-1]
         characteristic_dimension_leaf: chacteristic dimension of leaf, typically around
-            0.7*leaf width, [m]
+            0.7 * leaf width, [m]
         temperature_difference: Estimate of temperature differences of surface and air,
             e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
         molar_density_air: Molar density of air, [mol m-3]
@@ -391,17 +391,22 @@ def calculate_current_conductivities(
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate conductivities based on current reference data.
 
+    This function calculated the conductivites for heat and vapour between air layers
+    and the leaf and surroundling atmosphere for the current time step. The first value
+    on the vertical axis is 2m above the canopy, the second value corresponds to the top
+    of the canopy.
+
     The data object must provide the following variables:
 
     * layer_heights: layer heights, [m]
     * air_temperature, [C]
-    * leaf_temperature, [C]
+    * canopy_temperature, [C]
     * attenuation_coefficient: Wind attenuation coefficient, dimensionless
     * mean_mixing_length: Mixing length for canopy air transport, [m]
     * molar_density_air: Molar density of air, [mol m-3]
-    * relative_turbulence_intensity: Relative turbulence intensity
+    * relative_turbulence_intensity: Relative turbulence intensity, dimensionless
     * wind_speed: wind speed, [m s-1]
-    * stomatal_conductance: Stomatal conductance
+    * stomatal_conductance: Stomatal conductance, [mmol m-2 s-1]
     * zero_displacement_height: Zero displacement height, [m]
     * friction_velocity: Friction velocity
     * adiabatic_correction_heat: Adiabatic correction for heat
@@ -412,7 +417,7 @@ def calculate_current_conductivities(
         abiotic_constants: set of abiotic constants
 
     Returns:
-        dictionnary of conductances, [mol m-2 s-1]
+        dictionnary of conductivities, [mol m-2 s-1]
     """
 
     output = {}
@@ -483,7 +488,7 @@ def calculate_current_conductivities(
         wind_speed=data["wind_speed"].to_numpy(),
         characteristic_dimension_leaf=characteristic_dimension_leaf,
         temperature_difference=(
-            data["leaf_temperature"] - data["air_temperature"]
+            data["canopy_temperature"] - data["air_temperature"]
         ).to_numpy(),
         molar_density_air=data["molar_density_air"].to_numpy(),
         kinematic_viscosity_parameter1=abiotic_constants.kinematic_viscosity_parameter1,

@@ -13,8 +13,19 @@ config dictionary to the required types they are caught and then logged, and at 
 of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
 
-TODO temperatures in Kelvin
-TODO Import hydroconsts
+TODO There are currently a number of unresolved/not implemented processes which require
+further advancement in other models of the Virtual Ecosystem or potentially some changes
+to the vertical layer structure:
+
+* add process based calculation of soil temperature
+* change temperatures to Kelvin
+* adjust for soil moisture default in mm (once updated in hydrology model)
+* coordinate latent heat flux/evapotranspiration processes between plants and abiotic
+* add soil fluxes to lower atmosphere (might need to drop 'subcanopy' layer)
+* introducte 'metaconstants' to support sharing of constants between models
+* add self.model_timing.update_interval in seconds as input to soil balance
+* expand tests to cover different atmospheric conditions
+
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -51,7 +62,8 @@ class AbioticModel(
     ),
     vars_updated=(
         "air_temperature",
-        "leaf_temperature",
+        "canopy_temperature",
+        "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
         "air_heat_conductivity",
@@ -168,11 +180,7 @@ class AbioticModel(
             ),
         )
 
-        # Initialise leaf temperature and update data object
-        self.data["leaf_temperature"] = (
-            initial_microclimate["air_temperature"] * 1.1  # TODO move to constants
-        ).rename("leaf_temperature")
-
+        # Update data object
         self.data.add_from_dict(output_dict=initial_microclimate)
         self.data.add_from_dict(output_dict=initial_canopy_and_soil)
         self.data.add_from_dict(output_dict=initial_conductivities)
@@ -189,7 +197,8 @@ class AbioticModel(
         * soil energy balance
         * conductivities
         * canopy energy balance for each layer
-        * TODO soil temperatures
+        * TODO add all soil fluxes to atmosphere
+        * TODO update soil temperatures
 
         Args:
             time_index: The index of the current time step in the data object.
@@ -255,13 +264,12 @@ class AbioticModel(
         self.data.add_from_dict(output_dict=wind_output)
 
         # Soil energy balance
-        # TODO update when we rolled out new LayerStructure
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
-            update_interval=43200,  # TODO self.update_interval,
+            update_interval=43200,  # TODO self.model_timing.update_interval
             abiotic_consts=self.model_constants,
             core_consts=self.core_constants,
         )
@@ -285,7 +293,7 @@ class AbioticModel(
         ]
         self.data.add_from_dict(output_dict=soil_output)
 
-        # Update soil temperatures
+        # TODO Update soil temperatures
 
         # Update air temperature, leaf temperature and vapour pressure deficit
         new_microclimate = energy_balance.calculate_leaf_and_air_temperature(

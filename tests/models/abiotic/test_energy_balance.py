@@ -244,7 +244,7 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
         dims=["layers", "cell_id"],
     )
     np.testing.assert_allclose(result["air_temperature"], exp_air_temp)
-    np.testing.assert_allclose(result["leaf_temperature"], exp_leaf_temp)
+    np.testing.assert_allclose(result["canopy_temperature"], exp_leaf_temp)
     np.testing.assert_allclose(
         result["vapour_pressure"], exp_vapour_pressure, rtol=1e-04, atol=1e-04
     )

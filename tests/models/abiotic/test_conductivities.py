@@ -202,7 +202,7 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
         wind_speed=dummy_climate_data["wind_speed"].to_numpy(),
         characteristic_dimension_leaf=0.1,
         temperature_difference=(
-            dummy_climate_data["leaf_temperature"]
+            dummy_climate_data["canopy_temperature"]
             - dummy_climate_data["air_temperature"]
         ).to_numpy(),
         molar_density_air=dummy_climate_data["molar_density_air"].to_numpy(),

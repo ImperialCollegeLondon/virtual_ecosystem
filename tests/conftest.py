@@ -639,11 +639,11 @@ def dummy_climate_data(fixture_core_components):
         name="latent_heat_vapourisation",
         coords=full_coordinates,
     )
-    leaf_temperature = np.repeat(a=[np.nan, 25.0, np.nan], repeats=[1, 3, 11])
-    data["leaf_temperature"] = DataArray(
-        np.broadcast_to(leaf_temperature, (3, 15)).T,
+    canopy_temperature = np.repeat(a=[np.nan, 25.0, np.nan], repeats=[1, 3, 11])
+    data["canopy_temperature"] = DataArray(
+        np.broadcast_to(canopy_temperature, (3, 15)).T,
         dims=["layers", "cell_id"],
-        name="leaf_temperature",
+        name="canopy_temperature",
     ).assign_coords(full_coordinates)
     leaf_air_cond = np.repeat(a=[np.nan, 0.13, np.nan], repeats=[1, 3, 11])
     data["leaf_air_heat_conductivity"] = DataArray(

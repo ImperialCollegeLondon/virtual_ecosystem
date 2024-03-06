@@ -23,7 +23,7 @@ for vapour loss from the leaves as a function of the stomatal conductance :math:
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
 leaf temperature and air temperature simultaneously after
-:cite:t:`maclean_microclimc_2021`, see TODO put name of equation here.
+:cite:t:`maclean_microclimc_2021`.
 
 The soil energy balance functions are described in
 :mod:`~virtual_ecosystem.models.abiotic.soil_energy_balance`.
@@ -193,7 +193,7 @@ def initialise_canopy_and_soil_fluxes(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="canopy_temperature",
+        name="sensible_heat_flux",
     )
     sensible_heat_flux[layer_heights_canopy.indexes] = 0
     sensible_heat_flux[layer_heights["layer_roles"] == "surface"] = 0
@@ -243,7 +243,7 @@ def calculate_slope_of_saturated_pressure_curve(
 ) -> NDArray[np.float32]:
     r"""Calculate slope of the saturated pressure curve.
 
-    TODO move factors to constants
+    TODO move factors to constants, most of them share with simple_abiotic_model
 
     Args:
         temperature: Temperature, [C]
@@ -357,7 +357,7 @@ def calculate_leaf_and_air_temperature(
     * soil_moisture: Relative soil moisture, dimensionless
     * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
     * air_temperature: Air temperature, [C]
-    * leaf_temperature: Leaf temperature, [C]
+    * canopy_temperature: Leaf temperature, [C]
     * latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
     * absorbed_radiation: Absorbed radiation, [W m-2]
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
@@ -376,7 +376,7 @@ def calculate_leaf_and_air_temperature(
         core_constants: Set of core constants
 
     Returns:
-        air temperature, [C], leaf temperature, [C], vapour pressure [kPa], vapour
+        air temperature, [C], canopy temperature, [C], vapour pressure [kPa], vapour
         pressure deficit, [kPa]
     """
 
@@ -531,18 +531,18 @@ def calculate_leaf_and_air_temperature(
     b_H = np.vstack(b_H_list)
 
     # Calculate new leaf and air temperature
-    delta_leaf_temperature_list = []
+    delta_canopy_temperature_list = []
     for layer in range(0, len(true_canopy_layers)):
-        delta_leaf_temperature_layer = (
+        delta_canopy_temperature_layer = (
             data["absorbed_radiation"][layer + 1].to_numpy() - a_R[layer] - a_L[layer]
         ) / (1 + b_R[layer] + b_L[layer] + b_H[layer])
-        delta_leaf_temperature_list.append(delta_leaf_temperature_layer)
-    delta_leaf_temperature = np.vstack(delta_leaf_temperature_list)
+        delta_canopy_temperature_list.append(delta_canopy_temperature_layer)
+    delta_canopy_temperature = np.vstack(delta_canopy_temperature_list)
 
-    new_air_temperature = a_A + b_A * delta_leaf_temperature
-    new_leaf_temperature = (
+    new_air_temperature = a_A + b_A * delta_canopy_temperature
+    new_canopy_temperature = (
         data["air_temperature"][1 : len(true_canopy_layers) + 1]
-        + delta_leaf_temperature
+        + delta_canopy_temperature
     )
 
     # Interpolate temperature below canopy
@@ -579,11 +579,11 @@ def calculate_leaf_and_air_temperature(
         dims=["layers", "cell_id"],
         coords=data["layer_heights"].coords,
     )
-    output["leaf_temperature"] = DataArray(
+    output["canopy_temperature"] = DataArray(
         np.vstack(
             [
                 np.repeat(np.nan, data.grid.n_cells),
-                new_leaf_temperature,
+                new_canopy_temperature,
                 np.full((11, data.grid.n_cells), np.nan),
             ]
         ),
@@ -591,7 +591,7 @@ def calculate_leaf_and_air_temperature(
     )
 
     # # Calculate vapour pressure
-    vapour_pressure_mean = a_E + b_E * delta_leaf_temperature
+    vapour_pressure_mean = a_E + b_E * delta_canopy_temperature
     vapour_pressure_new = data["vapour_pressure_ref"].isel(
         time_index=time_index
     ).to_numpy() + 2 * (vapour_pressure_mean - data["vapour_pressure_ref"].to_numpy())
