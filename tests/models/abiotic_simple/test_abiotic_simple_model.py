@@ -36,7 +36,10 @@ def test_abiotic_simple_model_initialization(
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import (
+        AbioticSimpleBounds,
+        AbioticSimpleConsts,
+    )
 
     with raises:
         # Initialize model
@@ -50,6 +53,7 @@ def test_abiotic_simple_model_initialization(
         assert isinstance(model, BaseModel)
         assert model.model_name == "abiotic_simple"
         assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
+        assert model.bounds == AbioticSimpleBounds()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

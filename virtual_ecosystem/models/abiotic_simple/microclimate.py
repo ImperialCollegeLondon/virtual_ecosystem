@@ -15,24 +15,10 @@ import xarray as xr
 from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-
-Bounds: dict[str, float] = {
-    "air_temperature_min": -20,
-    "air_temperature_max": 80,
-    "relative_humidity_min": 0,
-    "relative_humidity_max": 100,
-    "vapour_pressure_deficit_min": 0,
-    "vapour_pressure_deficit_max": 10,
-    "soil_temperature_min": -10,
-    "soil_temperature_max": 50,
-}
-"""Upper and lower bounds for abiotic variables. When a values falls outside these
-bounds, it is set to the bound value. Note that this approach does not conserve energy
-and matter in the system. This will be implemented at a later stage.
-"""
-# TODO move bounds to core.bound_checking once that is implemented and introduce method
-# to conserve energy and matter
+from virtual_ecosystem.models.abiotic_simple.constants import (
+    AbioticSimpleBounds,
+    AbioticSimpleConsts,
+)
 
 
 def run_microclimate(
@@ -40,7 +26,7 @@ def run_microclimate(
     layer_roles: list[str],
     time_index: int,  # could be datetime?
     constants: AbioticSimpleConsts,
-    Bounds: dict[str, float] = Bounds,
+    bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
 
@@ -90,7 +76,7 @@ def run_microclimate(
             surface, soil)
         time_index: time index, integer
         constants: Set of constants for the abiotic simple model
-        Bounds: upper and lower allowed values for vertical profiles, used to constrain
+        bounds: upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
     Returns:
@@ -107,15 +93,18 @@ def run_microclimate(
 
     # interpolate atmospheric profiles
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
+        upper_bound_attr = f"{var}_max"
+        lower_bound_attr = f"{var}_min"
+
         output[var] = log_interpolation(
             data=data,
             reference_data=data[var + "_ref"].isel(time_index=time_index),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_roles=layer_roles,
             layer_heights=data["layer_heights"],
-            upper_bound=Bounds[var + "_max"],
-            lower_bound=Bounds[var + "_min"],
-            gradient=getattr(constants, var + "_gradient"),
+            upper_bound=getattr(bounds, upper_bound_attr),
+            lower_bound=getattr(bounds, lower_bound_attr),
+            gradient=getattr(constants, f"{var}_gradient"),
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
@@ -143,8 +132,8 @@ def run_microclimate(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
-        upper_bound=Bounds["soil_temperature_max"],
-        lower_bound=Bounds["soil_temperature_min"],
+        upper_bound=getattr(bounds, "soil_temperature_max"),
+        lower_bound=getattr(bounds, "soil_temperature_min"),
     )
 
     # add above-ground vertical layers back
@@ -288,8 +277,8 @@ def interpolate_soil_temperature(
     layer_heights: DataArray,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
-    upper_bound: float = Bounds["soil_temperature_max"],
-    lower_bound: float = Bounds["soil_temperature_min"],
+    upper_bound: float = getattr(AbioticSimpleBounds, "soil_temperature_max"),
+    lower_bound: float = getattr(AbioticSimpleBounds, "soil_temperature_min"),
 ) -> DataArray:
     """Interpolate soil temperature using logarithmic function.
 

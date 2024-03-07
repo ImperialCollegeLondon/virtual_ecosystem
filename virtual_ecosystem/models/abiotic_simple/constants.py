@@ -31,3 +31,37 @@ class AbioticSimpleConsts(ConstantsDataclass):
     """factor 2 for saturation vapour pressure calculation."""
     saturation_vapour_pressure_factor3: float = 237.3
     """factor 3 for saturation vapour pressure calculation."""
+
+
+@dataclass(frozen=True)
+class AbioticSimpleBounds(ConstantsDataclass):
+    """Upper and lower bounds for abiotic variables.
+
+    When a values falls outside these bounds, it is set to the bound value. Note that
+    this approach does not conserve energy and matter in the system. This will be
+    implemented at a later stage.
+    """
+
+    air_temperature_min: float = -20.0
+    """Minimum air tempertature, [C]."""
+
+    air_temperature_max: float = 80.0
+    """Maximum air tempertature, [C]."""
+
+    relative_humidity_min: float = 0.0
+    """Minimum relative humidity, dimensionless."""
+
+    relative_humidity_max: float = 100.0
+    """Maximum relative humidity, dimensionless."""
+
+    vapour_pressure_deficit_min: float = 0.0
+    """Minimum vapour pressure deficit, [kPa]."""
+
+    vapour_pressure_deficit_max: float = 10.0
+    """Maximum vapour pressure deficit, [kPa]."""
+
+    soil_temperature_min: float = -10.0
+    """Minimum soil temperature, [C]."""
+
+    soil_temperature_max: float = 50.0
+    """Maximum soil temperature, [C]."""
