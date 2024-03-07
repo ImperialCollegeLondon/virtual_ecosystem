@@ -15,11 +15,6 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_pressure_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
-    (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
-    (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
 ]
 
 

@@ -39,11 +39,6 @@ class AbioticSimpleModel(
     required_init_vars=(  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
-        ("atmospheric_co2_ref", ("spatial",)),
-        ("mean_annual_temperature", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("layer_heights", ("spatial",)),
     ),
     vars_updated=(
         "air_temperature",
