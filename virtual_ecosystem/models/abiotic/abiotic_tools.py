@@ -45,8 +45,7 @@ def calculate_molar_density_air(
 def calculate_specific_heat_air(
     temperature: NDArray[np.float32],
     molar_heat_capacity_air: float,
-    specific_heat_equ_factor_1: float,
-    specific_heat_equ_factor_2: float,
+    specific_heat_equ_factors: list[float],
 ) -> NDArray[np.float32]:
     """Calculate temperature-dependent specific heat of air.
 
@@ -62,8 +61,8 @@ def calculate_specific_heat_air(
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
     return (
-        specific_heat_equ_factor_1 * temperature**2
-        + specific_heat_equ_factor_2 * temperature
+        specific_heat_equ_factors[0] * temperature**2
+        + specific_heat_equ_factors[1] * temperature
         + molar_heat_capacity_air
     )
 

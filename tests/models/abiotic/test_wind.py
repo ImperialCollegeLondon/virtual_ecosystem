@@ -340,8 +340,8 @@ def test_calculate_wind_profile(dummy_climate_data):
         wind_reference_height=(
             dummy_climate_data.data["canopy_height"] + 10
         ).to_numpy(),
-        abiotic_constants=AbioticConsts,
-        core_constants=CoreConsts,
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
     )
 
     friction_velocity_exp = np.array(

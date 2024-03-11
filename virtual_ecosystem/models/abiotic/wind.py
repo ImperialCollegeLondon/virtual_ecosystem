@@ -535,8 +535,7 @@ def calculate_wind_profile(
     specific_heat_air = calculate_specific_heat_air(
         temperature=air_temperature,
         molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
-        specific_heat_equ_factor_1=abiotic_constants.specific_heat_equ_factor_1,
-        specific_heat_equ_factor_2=abiotic_constants.specific_heat_equ_factor_2,
+        specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
 
     leaf_area_index_sum = leaf_area_index.sum(axis=1)

@@ -41,11 +41,11 @@ def test_calculate_specific_heat_air():
         calculate_specific_heat_air,
     )
 
+    consts = AbioticConsts()
     result = calculate_specific_heat_air(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
         molar_heat_capacity_air=CoreConsts.molar_heat_capacity_air,
-        specific_heat_equ_factor_1=AbioticConsts.specific_heat_equ_factor_1,
-        specific_heat_equ_factor_2=AbioticConsts.specific_heat_equ_factor_2,
+        specific_heat_equ_factors=consts.specific_heat_equ_factors,
     )
 
     exp_result = np.array(

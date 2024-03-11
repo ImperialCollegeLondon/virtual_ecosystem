@@ -5,7 +5,7 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205, D415
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
@@ -14,13 +14,10 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""
 
-    specific_heat_equ_factor_1: float = 2e-05
-    """Factor in calculation of molar specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`."""
-
-    specific_heat_equ_factor_2: float = 0.0002
-    """Factor in calculation of molar specific heat of air.
+    specific_heat_equ_factors: list[float] = field(
+        default_factory=lambda: [2e-05, 0.0002]
+    )
+    """Factors in calculation of molar specific heat of air.
 
     Implementation after :cite:t:`maclean_microclimc_2021`."""
 
