@@ -41,11 +41,11 @@ def test_calculate_specific_heat_air():
         calculate_specific_heat_air,
     )
 
-    consts = AbioticConsts()
+    constants = AbioticConsts()
     result = calculate_specific_heat_air(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
         molar_heat_capacity_air=CoreConsts.molar_heat_capacity_air,
-        specific_heat_equ_factors=consts.specific_heat_equ_factors,
+        specific_heat_equ_factors=constants.specific_heat_equ_factors,
     )
 
     exp_result = np.array(
@@ -62,11 +62,11 @@ def test_calculate_latent_heat_vapourisation():
         calculate_latent_heat_vapourisation,
     )
 
+    constants = AbioticConsts()
     result = calculate_latent_heat_vapourisation(
         temperature=np.array([[25, 25, 25], [20, 20, 20], [18, 18, 18]]),
         celsius_to_kelvin=CoreConsts.zero_Celsius,
-        latent_heat_vap_equ_factor_1=AbioticConsts.latent_heat_vap_equ_factor_1,
-        latent_heat_vap_equ_factor_2=AbioticConsts.latent_heat_vap_equ_factor_2,
+        latent_heat_vap_equ_factors=constants.latent_heat_vap_equ_factors,
     )
     exp_result = np.array(
         [

@@ -54,8 +54,7 @@ def calculate_specific_heat_air(
     Args:
         temperature: Air temperature, [C]
         molar_heat_capacity_air: Molar heat capacity of air, [J mol-1 C-1]
-        specific_heat_equ_factor_1: Factor in calculation of molar specific heat of air
-        specific_heat_equ_factor_2: Factor in calculation of molar specific heat of air
+        specific_heat_equ_factors: Factors in calculation of molar specific heat of air
 
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
@@ -70,8 +69,7 @@ def calculate_specific_heat_air(
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,
-    latent_heat_vap_equ_factor_1: float,
-    latent_heat_vap_equ_factor_2: float,
+    latent_heat_vap_equ_factors: list[float],
 ) -> NDArray[np.float32]:
     """Calculate latent heat of vapourisation.
 
@@ -81,9 +79,7 @@ def calculate_latent_heat_vapourisation(
         temperature: Air temperature, [C]
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
-        latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
-            vapourisation
-        latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
+        latent_heat_vap_equ_factors: Factors in calculation of latent heat of
             vapourisation
 
     Returns:
@@ -91,7 +87,7 @@ def calculate_latent_heat_vapourisation(
     """
     temperature_kelvin = temperature + celsius_to_kelvin
     return (
-        latent_heat_vap_equ_factor_1
-        * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factor_2))
+        latent_heat_vap_equ_factors[0]
+        * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factors[1]))
         ** 2
     ) / 1000.0

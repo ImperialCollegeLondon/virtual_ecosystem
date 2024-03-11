@@ -21,13 +21,9 @@ class AbioticConsts(ConstantsDataclass):
 
     Implementation after :cite:t:`maclean_microclimc_2021`."""
 
-    latent_heat_vap_equ_factor_1: float = 1.91846e6
-    """Factor in calculation of latent heat of vapourisation.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
-    :cite:t:`henderson-sellers_new_1984`.
-    """
-    latent_heat_vap_equ_factor_2: float = 33.91
+    latent_heat_vap_equ_factors: list[float] = field(
+        default_factory=lambda: [1.91846e6, 33.91]
+    )
     """Factor in calculation of latent heat of vapourisation.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from

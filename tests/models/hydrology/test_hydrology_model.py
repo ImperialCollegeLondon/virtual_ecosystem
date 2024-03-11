@@ -416,7 +416,7 @@ def test_setup_hydrology_input_current_timestep(
             },
         )
     )
-
+    constants = AbioticConsts()
     result = setup_hydrology_input_current_timestep(
         data=dummy_climate_data,
         time_index=0,
@@ -426,8 +426,7 @@ def test_setup_hydrology_input_current_timestep(
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
         core_constants=CoreConsts,
-        latent_heat_vap_equ_factor_1=(AbioticConsts.latent_heat_vap_equ_factor_1),
-        latent_heat_vap_equ_factor_2=(AbioticConsts.latent_heat_vap_equ_factor_2),
+        latent_heat_vap_equ_factors=constants.latent_heat_vap_equ_factors,
     )
 
     # Check if all variables were created

@@ -410,6 +410,7 @@ class HydrologyModel(
         surface_layer_index = self.layer_structure.layer_roles.index("surface")
 
         # Select variables at relevant heights for current time step
+        abiotic_constants = AbioticConsts()
         hydro_input = setup_hydrology_input_current_timestep(
             data=self.data,
             time_index=time_index,
@@ -419,11 +420,8 @@ class HydrologyModel(
             soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
-            latent_heat_vap_equ_factor_1=(
-                AbioticConsts.latent_heat_vap_equ_factor_1  # TODO constants from config
-            ),
-            latent_heat_vap_equ_factor_2=(
-                AbioticConsts.latent_heat_vap_equ_factor_2  # TODO constants from config
+            latent_heat_vap_equ_factors=(
+                abiotic_constants.latent_heat_vap_equ_factors  # TODO from config
             ),
         )
 
@@ -765,8 +763,7 @@ def setup_hydrology_input_current_timestep(
     soil_moisture_capacity: float,
     soil_moisture_residual: float,
     core_constants: CoreConsts,
-    latent_heat_vap_equ_factor_1: float,
-    latent_heat_vap_equ_factor_2: float,
+    latent_heat_vap_equ_factors: list[float],
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs to hydrology.update() for current time step.
 
@@ -798,9 +795,7 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants
-        latent_heat_vap_equ_factor_1: Factor in calculation of latent heat of
-            vapourisation
-        latent_heat_vap_equ_factor_2: Factor in calculation of latent heat of
+        latent_heat_vap_equ_factors: Factors in calculation of latent heat of
             vapourisation
 
     Returns:
@@ -813,8 +808,7 @@ def setup_hydrology_input_current_timestep(
     latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
         temperature=data["air_temperature"].to_numpy(),
         celsius_to_kelvin=core_constants.zero_Celsius,
-        latent_heat_vap_equ_factor_1=latent_heat_vap_equ_factor_1,
-        latent_heat_vap_equ_factor_2=latent_heat_vap_equ_factor_2,
+        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
     )
     output["latent_heat_vapourisation"] = latent_heat_vapourisation
 
