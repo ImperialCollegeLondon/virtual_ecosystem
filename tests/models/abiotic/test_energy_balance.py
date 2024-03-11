@@ -152,8 +152,8 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
         time_index=1,
         topsoil_layer_index=13,
         abiotic_constants=AbioticConsts,
-        abiotic_simple_constants=AbioticSimpleConsts,
-        core_constants=CoreConsts,
+        abiotic_simple_constants=AbioticSimpleConsts(),
+        core_constants=CoreConsts(),
     )
 
     exp_air_temp = DataArray(

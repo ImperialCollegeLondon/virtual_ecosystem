@@ -136,7 +136,9 @@ class AbioticSimpleModel(
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            constants=self.model_constants,
+            saturation_vapour_pressure_factors=(
+                self.model_constants.saturation_vapour_pressure_factors
+            ),
         )
         self.data["vapour_pressure_deficit_ref"] = (
             vapour_pressure_and_deficit["vapour_pressure_deficit"]

@@ -399,18 +399,18 @@ def calculate_leaf_and_air_temperature(
     # Calculate vapour pressures
     soil_saturated_vapour_pressure = calculate_saturation_vapour_pressure(
         temperature=data["soil_temperature"][topsoil_layer_index],
-        factor1=abiotic_simple_constants.saturation_vapour_pressure_factor1,
-        factor2=abiotic_simple_constants.saturation_vapour_pressure_factor2,
-        factor3=abiotic_simple_constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=(
+            abiotic_simple_constants.saturation_vapour_pressure_factors
+        ),
     )
     soil_vapour_pressure = (
         data["soil_moisture"][topsoil_layer_index] * soil_saturated_vapour_pressure
     )
     saturated_vapour_pressure_ref = calculate_saturation_vapour_pressure(
         temperature=data["air_temperature_ref"].isel(time_index=time_index),
-        factor1=abiotic_simple_constants.saturation_vapour_pressure_factor1,
-        factor2=abiotic_simple_constants.saturation_vapour_pressure_factor2,
-        factor3=abiotic_simple_constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=(
+            abiotic_simple_constants.saturation_vapour_pressure_factors
+        ),
     )
 
     # Calculate conductivity from soil
@@ -597,9 +597,9 @@ def calculate_leaf_and_air_temperature(
     ).to_numpy() + 2 * (vapour_pressure_mean - data["vapour_pressure_ref"].to_numpy())
     saturation_vapour_pressure_new = calculate_saturation_vapour_pressure(
         DataArray(new_temperature_profile),
-        factor1=abiotic_simple_constants.saturation_vapour_pressure_factor1,
-        factor2=abiotic_simple_constants.saturation_vapour_pressure_factor2,
-        factor3=abiotic_simple_constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=(
+            abiotic_simple_constants.saturation_vapour_pressure_factors
+        ),
     )
     saturation_vapour_pressure_new_canopy = saturation_vapour_pressure_new[
         1 : len(true_canopy_layers) + 1

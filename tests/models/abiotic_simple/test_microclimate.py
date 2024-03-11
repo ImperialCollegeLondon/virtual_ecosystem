@@ -115,15 +115,13 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     )
 
     data = dummy_climate_data
-
-    # Extract saturation factors from constants
     constants = AbioticSimpleConsts()
-
+    # Extract saturation factors from constants
     result = calculate_saturation_vapour_pressure(
         data["air_temperature_ref"].isel(time_index=0),
-        factor1=constants.saturation_vapour_pressure_factor1,
-        factor2=constants.saturation_vapour_pressure_factor2,
-        factor3=constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=(
+            constants.saturation_vapour_pressure_factors
+        ),
     )
 
     exp_output = DataArray(
@@ -189,8 +187,13 @@ def test_calculate_vapour_pressure_deficit():
         dim="layers",
     )
 
+    constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
-        temperature, rel_humidity, constants=AbioticSimpleConsts()
+        temperature=temperature,
+        relative_humidity=rel_humidity,
+        saturation_vapour_pressure_factors=(
+            constants.saturation_vapour_pressure_factors
+        ),
     )
     exp_output = xr.concat(
         [

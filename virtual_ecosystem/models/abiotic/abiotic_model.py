@@ -125,10 +125,13 @@ class AbioticModel(
         """
 
         # Calculate vapour pressure deficit at reference height for all time steps
+        simple_constants = AbioticSimpleConsts()
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
+            saturation_vapour_pressure_factors=(
+                simple_constants.saturation_vapour_pressure_factors
+            ),  # TODO sort out when constants revised
         )
         self.data["vapour_pressure_deficit_ref"] = (
             vapour_pressure_and_deficit["vapour_pressure_deficit"]
