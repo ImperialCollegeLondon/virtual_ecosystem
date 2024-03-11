@@ -24,7 +24,7 @@ class AbioticConsts(ConstantsDataclass):
     latent_heat_vap_equ_factors: list[float] = field(
         default_factory=lambda: [1.91846e6, 33.91]
     )
-    """Factor in calculation of latent heat of vapourisation.
+    """Factors in calculation of latent heat of vapourisation.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`henderson-sellers_new_1984`.
@@ -131,20 +131,10 @@ class AbioticConsts(ConstantsDataclass):
     roughness significantly affects the wind flow over a particular terrain or surface.
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
-    yasuda_stability_parameter1: float = 6
-    """Parameter to approximate diabatic correction factors for heat and momentum.
-
-    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
-    values taken from :cite:t:`yasuda_turbulent_1988`."""
-
-    yasuda_stability_parameter2: float = 2
-    """Parameter to approximate diabatic correction factors for heat and momentum.
-
-    Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
-    values taken from :cite:t:`yasuda_turbulent_1988`."""
-
-    yasuda_stability_parameter3: float = 16
-    """Parameter to approximate diabatic correction factors for heat and momentum.
+    yasuda_stability_parameters: list[float] = field(
+        default_factory=lambda: [6.0, 2.0, 16.0]
+    )
+    """Parameters to approximate diabatic correction factors for heat and momentum.
 
     Dimenionless parameter, implementation after :cite:t:`maclean_microclimc_2021` and
     values taken from :cite:t:`yasuda_turbulent_1988`."""

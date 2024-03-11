@@ -56,6 +56,8 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
         .where(dummy_climate_data.data["air_temperature"].layer_roles != "soil")
         .dropna(dim="layers")
     )
+    abiotic_consts = AbioticConsts()
+    core_const = CoreConsts()
     result = calculate_diabatic_correction_above(
         molar_density_air=np.repeat(28.96, 3),
         specific_heat_air=np.repeat(1, 3),
@@ -66,12 +68,10 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
         friction_velocity=dummy_climate_data.data["friction_velocity"].to_numpy(),
         wind_heights=np.array([1, 15, 50]),
         zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        celsius_to_kelvin=CoreConsts.zero_Celsius,
-        von_karmans_constant=CoreConsts.von_karmans_constant,
-        yasuda_stability_parameter1=AbioticConsts.yasuda_stability_parameter1,
-        yasuda_stability_parameter2=AbioticConsts.yasuda_stability_parameter2,
-        yasuda_stability_parameter3=AbioticConsts.yasuda_stability_parameter3,
-        diabatic_heat_momentum_ratio=AbioticConsts.diabatic_heat_momentum_ratio,
+        celsius_to_kelvin=core_const.zero_Celsius,
+        von_karmans_constant=core_const.von_karmans_constant,
+        yasuda_stability_parameters=abiotic_consts.yasuda_stability_parameters,
+        diabatic_heat_momentum_ratio=abiotic_consts.diabatic_heat_momentum_ratio,
     )
 
     exp_result_h = np.array(

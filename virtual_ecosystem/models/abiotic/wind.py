@@ -136,9 +136,7 @@ def calculate_diabatic_correction_above(
     zero_plane_displacement: NDArray[np.float32],
     celsius_to_kelvin: float,
     von_karmans_constant: float,
-    yasuda_stability_parameter1: float,
-    yasuda_stability_parameter2: float,
-    yasuda_stability_parameter3: float,
+    yasuda_stability_parameters: list[float],
     diabatic_heat_momentum_ratio: float,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate the diabatic correction factors for momentum and heat above canopy.
@@ -164,11 +162,7 @@ def calculate_diabatic_correction_above(
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
-        yasuda_stability_parameter1: Parameter to approximate diabatic correction
-            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
-        yasuda_stability_parameter2: Parameter to approximate diabatic correction
-            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
-        yasuda_stability_parameter3: Parameter to approximate diabatic correction
+        yasuda_stability_parameters: Parameters to approximate diabatic correction
             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
         diabatic_heat_momentum_ratio: Factor that relates diabatic correction
             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
@@ -189,9 +183,9 @@ def calculate_diabatic_correction_above(
         * friction_velocity
     )
 
-    stable_condition = yasuda_stability_parameter1 * np.log(1 - stability)
-    unstable_condition = -yasuda_stability_parameter2 * np.log(
-        (1 + np.sqrt(1 - yasuda_stability_parameter3 * stability)) / 2
+    stable_condition = yasuda_stability_parameters[0] * np.log(1 - stability)
+    unstable_condition = -yasuda_stability_parameters[1] * np.log(
+        (1 + np.sqrt(1 - yasuda_stability_parameters[2] * stability)) / 2
     )
 
     diabatic_correction_heat = np.where(
@@ -551,19 +545,19 @@ def calculate_wind_profile(
         leaf_area_index=leaf_area_index_sum,
         zero_plane_displacement=zero_plane_displacement,
         substrate_surface_drag_coefficient=(
-            AbioticConsts.substrate_surface_drag_coefficient
+            abiotic_constants.substrate_surface_drag_coefficient
         ),
         roughness_element_drag_coefficient=(
-            AbioticConsts.roughness_element_drag_coefficient
+            abiotic_constants.roughness_element_drag_coefficient
         ),
         roughness_sublayer_depth_parameter=(
-            AbioticConsts.roughness_sublayer_depth_parameter
+            abiotic_constants.roughness_sublayer_depth_parameter
         ),
         max_ratio_wind_to_friction_velocity=(
-            AbioticConsts.max_ratio_wind_to_friction_velocity
+            abiotic_constants.max_ratio_wind_to_friction_velocity
         ),
-        min_roughness_length=AbioticConsts.min_roughness_length,
-        von_karman_constant=CoreConsts.von_karmans_constant,
+        min_roughness_length=abiotic_constants.min_roughness_length,
+        von_karman_constant=core_constants.von_karmans_constant,
     )
 
     friction_velocity_uncorrected = calculate_fricition_velocity(
@@ -583,12 +577,10 @@ def calculate_wind_profile(
         friction_velocity=friction_velocity_uncorrected,
         wind_heights=wind_layer_heights,
         zero_plane_displacement=zero_plane_displacement,
-        celsius_to_kelvin=CoreConsts.zero_Celsius,
-        von_karmans_constant=CoreConsts.von_karmans_constant,
-        yasuda_stability_parameter1=AbioticConsts.yasuda_stability_parameter1,
-        yasuda_stability_parameter2=AbioticConsts.yasuda_stability_parameter2,
-        yasuda_stability_parameter3=AbioticConsts.yasuda_stability_parameter3,
-        diabatic_heat_momentum_ratio=AbioticConsts.diabatic_heat_momentum_ratio,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+        von_karmans_constant=core_constants.von_karmans_constant,
+        yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
+        diabatic_heat_momentum_ratio=abiotic_constants.diabatic_heat_momentum_ratio,
     )
 
     friction_velocity = calculate_fricition_velocity(
@@ -616,7 +608,7 @@ def calculate_wind_profile(
         max_relative_turbulence_intensity=(
             abiotic_constants.max_relative_turbulence_intensity
         ),
-        increasing_with_height=AbioticConsts.turbulence_sign,
+        increasing_with_height=abiotic_constants.turbulence_sign,
     )
 
     attennuation_coefficient = calculate_wind_attenuation_coefficient(
