@@ -1,17 +1,7 @@
 """The :mod:`~virtual_ecosystem.models.abiotic.abiotic_model` module creates a
 :class:`~virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel`
-class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At
-present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the Virtual Ecosystem
-model develops. The factory method
-:func:`~virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel.from_config`
-exists in a more complete state, and unpacks a small number of parameters from our
-currently pretty minimal configuration dictionary. These parameters are then used to
-generate a class instance. If errors crop here when converting the information from the
-config dictionary to the required types they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled by
-downstream functions so that all model configuration failures can be reported as one.
+class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
+This implements the full complexity abiotic model.
 
 TODO There are currently a number of unresolved/not implemented processes which require
 further advancement in other models of the Virtual Ecosystem or potentially some changes
@@ -95,8 +85,6 @@ class AbioticModel(
 
         self.model_constants = model_constants
         """Set of constants for the abiotic model."""
-        self.core_constants = core_components.core_constants
-        """Set of universal constants that are used across all models."""
 
     @classmethod
     def from_config(
@@ -190,9 +178,12 @@ class AbioticModel(
         )
 
         # Update data object
-        self.data.add_from_dict(output_dict=initial_microclimate)
-        self.data.add_from_dict(output_dict=initial_canopy_and_soil)
-        self.data.add_from_dict(output_dict=initial_conductivities)
+        for output_dict in (
+            initial_microclimate,
+            initial_canopy_and_soil,
+            initial_conductivities,
+        ):
+            self.data.add_from_dict(output_dict=output_dict)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""

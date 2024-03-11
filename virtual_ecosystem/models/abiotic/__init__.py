@@ -18,8 +18,9 @@ Each of the abiotic sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.abiotic.wind` submodule calculates the
   above- and within-canopy wind profiles for the Virtual Ecosystem. These profiles will
-  determine the exchange of heat, water, and :math:`CO_{2}` between soil and atmosphere
-  below the canopy as well as the exchange with the atmsophere above the canopy.
+  determine the exchange of heat, water, and :math:`\ce{CO_{2}}` between soil and
+  atmosphere below the canopy as well as the exchange with the atmsophere above the
+  canopy.
 
 * The :mod:`~virtual_ecosystem.models.abiotic.energy_balance` submodule calculates the
   energy balance of the Virtual Ecosystem. The module returns vertical profiles of air
@@ -32,7 +33,10 @@ Each of the abiotic sub-modules has its own API reference page:
   surface.
 
 * The :mod:`~virtual_ecosystem.models.abiotic.conductivities` submodule calculates
-  the conductivities for the energy balance of the Virtual Ecosystem.
+  the conductivities for the energy balance of the Virtual Ecosystem. Conductivities
+  describe how well heat or vapour are transferred by a medium such as air, water, or
+  leaves in mol m-2 s-1. We consider heat conductivity by turbulent convection in air,
+  leaf-air heat conductivity, and leaf-air vapour conductivity.
 """  # noqa: D205, D415
 
 from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel  # noqa: F401
