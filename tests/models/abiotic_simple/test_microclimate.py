@@ -298,6 +298,8 @@ def test_interpolate_soil_temperature(dummy_climate_data):
         layer_heights=data["layer_heights"],
         surface_temperature=surface_temperature,
         mean_annual_temperature=data["mean_annual_temperature"],
+        upper_bound=50.0,
+        lower_bound=-10.0,
     )
 
     exp_output = DataArray(

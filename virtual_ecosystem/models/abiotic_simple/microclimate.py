@@ -93,8 +93,7 @@ def run_microclimate(
 
     # interpolate atmospheric profiles
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
-        upper_bound_attr = f"{var}_max"
-        lower_bound_attr = f"{var}_min"
+        lower, upper, gradient = getattr(bounds, var)
 
         output[var] = log_interpolation(
             data=data,
@@ -102,9 +101,9 @@ def run_microclimate(
             leaf_area_index_sum=leaf_area_index_sum,
             layer_roles=layer_roles,
             layer_heights=data["layer_heights"],
-            upper_bound=getattr(bounds, upper_bound_attr),
-            lower_bound=getattr(bounds, lower_bound_attr),
-            gradient=getattr(constants, f"{var}_gradient"),
+            upper_bound=upper,
+            lower_bound=lower,
+            gradient=gradient,
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
@@ -126,14 +125,15 @@ def run_microclimate(
     )
 
     # Calculate soil temperatures
+    lower, upper = getattr(bounds, "soil_temperature")
     soil_temperature_only = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=output["air_temperature"].isel(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
-        upper_bound=getattr(bounds, "soil_temperature_max"),
-        lower_bound=getattr(bounds, "soil_temperature_min"),
+        upper_bound=upper,
+        lower_bound=lower,
     )
 
     # add above-ground vertical layers back
@@ -277,8 +277,8 @@ def interpolate_soil_temperature(
     layer_heights: DataArray,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
-    upper_bound: float = getattr(AbioticSimpleBounds, "soil_temperature_max"),
-    lower_bound: float = getattr(AbioticSimpleBounds, "soil_temperature_min"),
+    upper_bound: float,
+    lower_bound: float,
 ) -> DataArray:
     """Interpolate soil temperature using logarithmic function.
 
