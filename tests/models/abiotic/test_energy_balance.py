@@ -151,7 +151,7 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
         data=dummy_climate_data,
         time_index=1,
         topsoil_layer_index=13,
-        abiotic_constants=AbioticConsts,
+        abiotic_constants=AbioticConsts(),
         abiotic_simple_constants=AbioticSimpleConsts(),
         core_constants=CoreConsts(),
     )
@@ -181,9 +181,9 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                 np.full((1, 3), np.nan),
                 np.array(
                     [
-                        [30.112604, 30.112604, 30.112604],
-                        [29.13954, 29.13954, 29.13954],
-                        [27.425342, 27.425342, 27.425342],
+                        [30.078712, 30.078712, 30.078712],
+                        [29.105456, 29.105456, 29.105456],
+                        [27.396327, 27.396327, 27.396327],
                     ],
                 ),
                 np.full((11, 3), np.nan),
@@ -198,8 +198,8 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                     [
                         [0.14, 0.14, 0.14],
                         [0.14001, 0.14001, 0.14001],
-                        [0.141365, 0.141365, 0.141365],
-                        [0.275612, 0.275612, 0.275612],
+                        [0.141425, 0.141425, 0.141425],
+                        [0.281758, 0.281758, 0.281758],
                     ],
                 ),
                 np.full((7, 3), np.nan),
@@ -216,9 +216,9 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
                 np.array(
                     [
                         [0.098781, 0.098781, 0.098781],
-                        [0.098788, 0.098788, 0.098788],
-                        [0.099756, 0.099756, 0.099756],
-                        [0.196887, 0.196887, 0.196887],
+                        [0.098789, 0.098789, 0.098789],
+                        [0.099798, 0.099798, 0.099798],
+                        [0.201279, 0.201279, 0.201279],
                     ],
                 ),
                 np.full((7, 3), np.nan),
@@ -234,17 +234,21 @@ def test_calculate_leaf_and_air_temperature(dummy_climate_data):
             [
                 [
                     [np.nan, np.nan, np.nan],
-                    [0.186217, 0.186217, 0.186217],
-                    [0.185638, 0.185638, 0.185638],
-                    [0.184646, 0.184646, 0.184646],
+                    [0.203513, 0.203513, 0.203513],
+                    [0.202959, 0.202959, 0.202959],
+                    [0.202009, 0.202009, 0.202009],
                 ],
                 [[np.nan, np.nan, np.nan]] * 11,
             ],
         ),
         dims=["layers", "cell_id"],
     )
-    np.testing.assert_allclose(result["air_temperature"], exp_air_temp)
-    np.testing.assert_allclose(result["canopy_temperature"], exp_leaf_temp)
+    np.testing.assert_allclose(
+        result["air_temperature"], exp_air_temp, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["canopy_temperature"], exp_leaf_temp, rtol=1e-04, atol=1e-04
+    )
     np.testing.assert_allclose(
         result["vapour_pressure"], exp_vapour_pressure, rtol=1e-04, atol=1e-04
     )

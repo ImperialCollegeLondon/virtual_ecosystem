@@ -261,10 +261,8 @@ def calculate_leaf_air_heat_conductivity(
     characteristic_dimension_leaf: NDArray[np.float32],
     temperature_difference: NDArray[np.float32],
     molar_density_air: NDArray[np.float32],
-    kinematic_viscosity_parameter1: float,
-    kinematic_viscosity_parameter2: float,
-    thermal_diffusivity_parameter1: float,
-    thermal_diffusivity_parameter2: float,
+    kinematic_viscosity_parameters: list[float],
+    thermal_diffusivity_parameters: list[float],
     grashof_parameter: float,
     forced_conductance_parameter: float,
     positive_free_conductance_parameter: float,
@@ -300,10 +298,8 @@ def calculate_leaf_air_heat_conductivity(
         temperature_difference: Estimate of temperature differences of surface and air,
             e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
         molar_density_air: Molar density of air, [mol m-3]
-        kinematic_viscosity_parameter1: Parameter in calculation of kinematic viscosity
-        kinematic_viscosity_parameter2: Parameter in calculation of kinematic viscosity
-        thermal_diffusivity_parameter1: Parameter in calculation of thermal diffusivity
-        thermal_diffusivity_parameter2: Parameter in calculation of thermal diffusivity
+        kinematic_viscosity_parameters: Parameters in calculation of kinematic viscosity
+        thermal_diffusivity_parameters: Parameters in calculation of thermal diffusivity
         grashof_parameter: Parameter in calculation of Grashof number
         forced_conductance_parameter: Parameter in calculation of forced conductance
         positive_free_conductance_parameter: Parameter in calculation of free
@@ -317,10 +313,12 @@ def calculate_leaf_air_heat_conductivity(
 
     temperature_k = temperature + 273.15
     kinematic_viscosity = (
-        kinematic_viscosity_parameter1 * temperature_k - kinematic_viscosity_parameter2
+        kinematic_viscosity_parameters[0] * temperature_k
+        - kinematic_viscosity_parameters[1]
     ) / 10**6
     thermal_diffusivity = (
-        thermal_diffusivity_parameter1 * temperature_k - thermal_diffusivity_parameter2
+        thermal_diffusivity_parameters[0] * temperature_k
+        - thermal_diffusivity_parameters[1]
     ) / 10**6
     grashof_number = (
         grashof_parameter
@@ -491,10 +489,8 @@ def calculate_current_conductivities(
             data["canopy_temperature"] - data["air_temperature"]
         ).to_numpy(),
         molar_density_air=data["molar_density_air"].to_numpy(),
-        kinematic_viscosity_parameter1=abiotic_constants.kinematic_viscosity_parameter1,
-        kinematic_viscosity_parameter2=abiotic_constants.kinematic_viscosity_parameter1,
-        thermal_diffusivity_parameter1=abiotic_constants.thermal_diffusivity_parameter1,
-        thermal_diffusivity_parameter2=abiotic_constants.thermal_diffusivity_parameter2,
+        kinematic_viscosity_parameters=abiotic_constants.kinematic_viscosity_parameters,
+        thermal_diffusivity_parameters=abiotic_constants.thermal_diffusivity_parameters,
         grashof_parameter=abiotic_constants.grashof_parameter,
         forced_conductance_parameter=abiotic_constants.forced_conductance_parameter,
         positive_free_conductance_parameter=(

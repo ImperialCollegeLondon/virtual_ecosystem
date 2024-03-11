@@ -212,21 +212,16 @@ class AbioticConsts(ConstantsDataclass):
     volume_to_weight_conversion: float = 1000.0
     """Factor to convert between soil volume and weight in kilograms."""
 
-    kinematic_viscosity_parameter1: float = 0.0908
-    """Parameter in calculation of kinematic viscosity
+    kinematic_viscosity_parameters: list[float] = field(
+        default_factory=lambda: [0.0908, 11.531]
+    )
+    """Parameters in calculation of kinematic viscosity
     :cite:p:`campbell_introduction_2012`.
     """
 
-    kinematic_viscosity_parameter2: float = 11.531
-    """Parameter in calculation of kinematic viscosity
-    :cite:p:`campbell_introduction_2012`.
-    """
-    thermal_diffusivity_parameter1: float = 0.1285
-    """Parameter in calculation of thermal diffusivity
-    :cite:p:`campbell_introduction_2012`.
-    """
-
-    thermal_diffusivity_parameter2: float = 16.247
+    thermal_diffusivity_parameters: list[float] = field(
+        default_factory=lambda: [0.1285, 16.247]
+    )
     """Parameter in calculation of thermal diffusivity
     :cite:p:`campbell_introduction_2012`.
     """

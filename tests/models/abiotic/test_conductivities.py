@@ -197,6 +197,7 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
         calculate_leaf_air_heat_conductivity,
     )
 
+    abiotic_consts = AbioticConsts()
     result = calculate_leaf_air_heat_conductivity(
         temperature=dummy_climate_data["air_temperature"].to_numpy(),
         wind_speed=dummy_climate_data["wind_speed"].to_numpy(),
@@ -206,17 +207,15 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
             - dummy_climate_data["air_temperature"]
         ).to_numpy(),
         molar_density_air=dummy_climate_data["molar_density_air"].to_numpy(),
-        kinematic_viscosity_parameter1=AbioticConsts.kinematic_viscosity_parameter1,
-        kinematic_viscosity_parameter2=AbioticConsts.kinematic_viscosity_parameter2,
-        thermal_diffusivity_parameter1=AbioticConsts.thermal_diffusivity_parameter1,
-        thermal_diffusivity_parameter2=AbioticConsts.thermal_diffusivity_parameter2,
-        grashof_parameter=AbioticConsts.grashof_parameter,
-        forced_conductance_parameter=AbioticConsts.forced_conductance_parameter,
+        kinematic_viscosity_parameters=abiotic_consts.kinematic_viscosity_parameters,
+        thermal_diffusivity_parameters=abiotic_consts.thermal_diffusivity_parameters,
+        grashof_parameter=abiotic_consts.grashof_parameter,
+        forced_conductance_parameter=abiotic_consts.forced_conductance_parameter,
         positive_free_conductance_parameter=(
-            AbioticConsts.positive_free_conductance_parameter
+            abiotic_consts.positive_free_conductance_parameter
         ),
         negative_free_conductance_parameter=(
-            AbioticConsts.negative_free_conductance_parameter
+            abiotic_consts.negative_free_conductance_parameter
         ),
     )
 
@@ -259,7 +258,7 @@ def test_calculate_current_conductivities(dummy_climate_data):
         data=dummy_climate_data,
         characteristic_dimension_leaf=0.01,
         von_karmans_constant=CoreConsts.von_karmans_constant,
-        abiotic_constants=AbioticConsts,
+        abiotic_constants=AbioticConsts(),
     )
     exp_gt = np.concatenate(
         [
@@ -282,9 +281,9 @@ def test_calculate_current_conductivities(dummy_climate_data):
         [
             [
                 [np.nan, np.nan, np.nan],
-                [0.186217, 0.186217, 0.186217],
-                [0.185638, 0.185638, 0.185638],
-                [0.184646, 0.184646, 0.184646],
+                [0.203513, 0.203513, 0.203513],
+                [0.202959, 0.202959, 0.202959],
+                [0.202009, 0.202009, 0.202009],
             ],
             [[np.nan, np.nan, np.nan]] * 11,
         ]
@@ -293,9 +292,9 @@ def test_calculate_current_conductivities(dummy_climate_data):
         [
             [
                 [np.nan, np.nan, np.nan],
-                [0.188558, 0.188558, 0.188558],
-                [0.187965, 0.187965, 0.187965],
-                [0.186947, 0.186947, 0.186947],
+                [0.206312, 0.206312, 0.206312],
+                [0.205743, 0.205743, 0.205743],
+                [0.204766, 0.204766, 0.204766],
             ],
             [[np.nan, np.nan, np.nan]] * 11,
         ]
