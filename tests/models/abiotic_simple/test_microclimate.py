@@ -218,7 +218,10 @@ def test_calculate_vapour_pressure_deficit():
 def test_run_microclimate(dummy_climate_data, fixture_core_components):
     """Test interpolation of all variables."""
 
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import (
+        AbioticSimpleBounds,
+        AbioticSimpleConsts,
+    )
     from virtual_ecosystem.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data
@@ -237,6 +240,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         layer_roles=fixture_core_components.layer_structure.layer_roles,
         time_index=0,
         constants=AbioticSimpleConsts(),
+        bounds=AbioticSimpleBounds(),
     )
 
     exp_air_temperature = xr.concat(
@@ -294,6 +298,8 @@ def test_interpolate_soil_temperature(dummy_climate_data):
         layer_heights=data["layer_heights"],
         surface_temperature=surface_temperature,
         mean_annual_temperature=data["mean_annual_temperature"],
+        upper_bound=50.0,
+        lower_bound=-10.0,
     )
 
     exp_output = DataArray(
