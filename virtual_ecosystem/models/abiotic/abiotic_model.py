@@ -50,7 +50,10 @@ from virtual_ecosystem.models.abiotic import (
 )
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple import microclimate
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.models.abiotic_simple.constants import (
+    AbioticSimpleBounds,
+    AbioticSimpleConsts,
+)
 
 
 class AbioticModel(
@@ -155,7 +158,7 @@ class AbioticModel(
             layer_roles=self.layer_structure.layer_roles,
             time_index=0,
             constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
-            Bounds=microclimate.Bounds,
+            bounds=AbioticSimpleBounds(),
         )
 
         initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
