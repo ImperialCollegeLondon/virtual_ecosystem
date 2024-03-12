@@ -207,17 +207,15 @@ class AnimalCommunity:
                 self.birth(cohort)
 
     def forage_community(self) -> None:
-        """This function needs to organize the foraging of animal cohorts.
+        """This function organizes the foraging of animal cohorts.
 
-        It should loop over every animal cohort in the community and call the
-        collect_prey and forage_cohort functions. This will create a list of suitable
-        trophic resources and then action foraging on those resources. Details of
-        mass transfer are handled inside forage_cohort and its helper functions.
-        This will sooner be expanded to include functions for handling scavenging
-        and soil consumption behaviors specifically.
+        It loops over every animal cohort in the community and calls the
+        forage_cohort function with a list of suitable trophic resources. This action
+        initiates foraging for those resources, with mass transfer details handled
+        internally by forage_cohort and its helper functions. Future expansions may
+        include functions for handling scavenging and soil consumption behaviors.
 
-        TODO Remove excess die_cohort related checks
-
+        Cohorts with no remaining individuals post-foraging are marked for death.
         """
         # Generate the plant resources for foraging.
         plant_community: PlantResources = PlantResources(
@@ -229,20 +227,20 @@ class AnimalCommunity:
         plant_list = [plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
-            if (
-                consumer_cohort.individuals == 0
-            ):  # temporary while finalizing die_cohort placements
-                continue
-
+            # Prepare the prey list for the consumer cohort
             prey_list = self.collect_prey(consumer_cohort)
-            food_choice = consumer_cohort.forage_cohort(
+
+            # Initiate foraging for the consumer cohort with the prepared resources
+            consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                # carcass_pool=self.carcass_pool,
                 excrement_pool=self.excrement_pool,
+                carcass_pool=self.carcass_pool,
             )
-            if isinstance(food_choice, AnimalCohort) and food_choice.individuals == 0:
-                self.die_cohort(food_choice)
+
+            # Check if the cohort has been depleted to zero individuals post-foraging
+            if consumer_cohort.individuals == 0:
+                self.die_cohort(consumer_cohort)
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.

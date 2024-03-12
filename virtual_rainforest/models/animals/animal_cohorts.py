@@ -188,60 +188,68 @@ class AnimalCohort:
         ) * carcass_mass
         carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
 
-    def get_eaten(self, predator: Consumer, carcass_pool: DecayPool) -> float:
-        """This function handles AnimalCohorts being subject to predation.
-
-        Note: AnimalCohort mass_current is mean per individual mass within the
-            cohort. Mass is not lost from mass_current from a predation event but the
-            number of individuals in the cohort is reduced.
-
-        Currently, this function is in an inbetween state where mass is removed from
-        the animal cohort but it is recieved by the litter pool as energy. This will be
-        fixed once the litter pools are updated for mass.
-
-        TODO: Rework after update litter pools for mass
+    def update_carcass_pool(
+        self, actual_consumed_mass: float, predator: Consumer, carcass_pool: DecayPool
+    ) -> None:
+        """Updates the carcass pool based on consumed mass and predator's efficiency.
 
         Args:
-            predator: The AnimalCohort preying on the eaten cohort.
-            carcass_pool: The resident pool of animal carcasses to which the remains of
-              dead individuals are delivered.
-
-        Returns:
-            A float of the mass value of the lost individuals after digestive
-                efficiencies are accounted for.
-
+            actual_consumed_mass: The total mass consumed from the prey cohort.
+            predator: The predator consuming the cohort.
+            carcass_pool: The pool to which remains of eaten individuals are delivered.
         """
-        # Calculate the number of individuals that can be eaten based on intake rate
-        # Here we assume predators can consume prey mass equivalent to daily intake
-        number_eaten = min(
-            ceil((predator.intake_rate * predator.individuals) / self.mass_current),
-            self.individuals,
+        # Adjust the mass for predator's mechanical efficiency to calculate carcass mass
+        carcass_mass = actual_consumed_mass * (
+            1 - predator.functional_group.mechanical_efficiency
         )
 
-        # Calculate the mass gain from eating prey
-        # Here we assume all eaten mass is converted to consumer mass
-        prey_mass = min(
-            (
-                number_eaten
-                * self.mass_current
-                * self.functional_group.mechanical_efficiency
-            ),
-            self.mass_current,
-        )
-
-        # Reduce the number of individuals in the prey cohort
-        self.individuals -= number_eaten
-        # Calculate excess from deficits of efficiency, which flows to the carcass pool
-        carcass_mass = prey_mass * (1 - self.functional_group.mechanical_efficiency)
-
-        # Split this mass between carcass decay, and scavengeable carcasses
+        # Update the carcass pool with the remainder
         carcass_pool.scavengeable_energy += (
             1 - self.decay_fraction_carcasses
         ) * carcass_mass
         carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
 
-        # return the net mass gain of predation
-        return prey_mass * predator.functional_group.conversion_efficiency
+    def get_eaten(
+        self,
+        potential_consumed_mass: float,
+        predator: Consumer,
+        carcass_pool: DecayPool,
+    ) -> float:
+        """Adjusts individuals from the prey cohort based on the consumed mass.
+
+        TODO: implement predator mechanical efficiency (if we want to use it)
+
+        Args:
+            consumed_mass: The mass intended to be consumed by the predator.
+            predator: The predator consuming the cohort.
+            carcass_pool: The pool to which remains of eaten individuals are delivered.
+
+        Returns:
+            The actual mass consumed by the predator, closely matching consumed_mass.
+        """
+        individual_mass = (
+            self.mass_current
+        )  # Mass of an average individual in the cohort
+        max_individuals_eaten = ceil(potential_consumed_mass / individual_mass)
+        actual_individuals_eaten = min(max_individuals_eaten, self.individuals)
+
+        # Calculate the mass represented by the individuals actually eaten
+        actual_killed_mass = actual_individuals_eaten * individual_mass
+
+        # Calculate excess mass if actual_consumed_mass exceeds intended consumed_mass
+        excess_mass = max(0, actual_killed_mass - potential_consumed_mass)
+
+        # calculate the actual amount of mass consumed by the predator
+        actual_consumed_mass = actual_killed_mass - excess_mass
+
+        # Update the number of individuals in the prey cohort
+        self.individuals -= actual_individuals_eaten
+
+        # Update the carcass pool with any excess mass
+        if excess_mass > 0:
+            self.update_carcass_pool(excess_mass, predator, carcass_pool)
+
+        return actual_consumed_mass
 
     def calculate_alpha(self) -> float:
         """Calculate search efficiency.
@@ -393,13 +401,47 @@ class AnimalCohort:
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
-    def delta_mass_predation(self, animal_list: Sequence[AnimalCohort]) -> float:
+    def calculate_consumed_mass_predation(self, target_cohort: AnimalCohort) -> float:
+        """Calculates the mass to be consumed from a  prey cohort by the predator.
+
+        This method utilizes the F_i_j_individual method to determine the rate at which
+        the target cohort is consumed, and then calculates the actual mass to be
+        consumed based on this rate and other model parameters.
+
+        Args:
+            target_cohort: The prey cohort from which mass will be consumed.
+
+        Returns:
+            The mass to be consumed from the target cohort by the predator (in kg).
+        """
+        F = self.F_i_j_individual(
+            [target_cohort], target_cohort
+        )  # Note: Adjusting this call may be necessary
+        delta_t = 30.0  # days, TODO: Replace with actual reference or model parameter
+
+        # Calculate the consumed mass based on Mad. formula for delta_mass_predation
+        consumed_mass = (
+            target_cohort.mass_current
+            * target_cohort.individuals
+            * (
+                1
+                - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+            )
+        )
+
+        return consumed_mass
+
+    def delta_mass_predation(
+        self,
+        animal_list: Sequence[AnimalCohort],
+        excrement_pool: DecayPool,
+        carcass_pool: CarcassPool,
+    ) -> float:
         """This method handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation
 
-        TODO: Replace A_cell, delta_t values with actual reference
-        TODO: I think this'll need an animal call to remove the plant mass that is eaten
+        TODO: Replace delta_t values with actual reference
         TODO: add epsilon conversion efficiency
 
         Args:
@@ -410,117 +452,102 @@ class AnimalCohort:
             The change in mass experienced by the predator.
         """
 
-        delta_mass_pred = 0.0  # initialize at zero
+        total_consumed_mass = 0.0  # Initialize the total consumed mass
 
         for cohort in animal_list:
-            F = self.F_i_j_individual(animal_list, cohort)
-            delta_t = 30.0  # days
+            # Calculate the mass to be consumed from this cohort
+            consumed_mass = self.calculate_consumed_mass_predation(cohort)
+            # Call get_eaten on the prey cohort to update its mass and individuals
+            actual_consumed_mass = cohort.get_eaten(consumed_mass, self, carcass_pool)
+            # Update total mass gained by the predator
+            total_consumed_mass += actual_consumed_mass
 
-            delta_mass_pred += (
-                cohort.mass_current
-                * cohort.individuals
-                * (
-                    1
-                    - exp(
-                        -(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t)
-                    )
-                )
-            )
+        # Process waste generated from predation, separate from herbivory b/c diff waste
+        self.excrete(excrement_pool, total_consumed_mass)
+        return total_consumed_mass
 
-        return delta_mass_pred
+    def calculate_consumed_mass_herbivory(
+        self, plant_list: Sequence[Resource], target_plant: Resource
+    ) -> float:
+        """Calculates the mass to be consumed from a plant resource by the herbivore.
 
-    def delta_mass_herbivory(self, plant_list: Sequence[Resource]) -> float:
-        """This method handles mass assimilation from herbivory.
-
-        This is Madingley's delta_assimilation_mass_herbivory
-
-        TODO: Replace A_cell, delta_t values with actual reference
-        TODO: I think this'll need a plant call to remove the plant mass that is eaten
-        TODO: add epsilon conversion efficiency
-
+        This method utilizes the F_i_k method to determine the rate at which the target
+        plant is consumed, and then calculates the actual mass to be consumed based on
+        this rate and other model parameters.
 
         Args:
-            plant_list: A sequence of plant pools that can be consumed by the herbivore.
+            target_plant: The plant resource from which mass will be consumed.
 
         Returns:
-            The change in mass experienced by the herbivore.
-
-
+            The mass to be consumed from the target plant by the herbivore (in kg).
         """
+        F = self.F_i_k(plant_list, target_plant)  # Adjusting this call as necessary
+        delta_t = 30.0  # days, TODO: Replace with actual reference or model parameter
 
-        delta_mass_herb = 0.0  # initialize at zero
+        consumed_mass = target_plant.mass_current * (
+            1 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+        )
+        return consumed_mass
+
+    def delta_mass_herbivory(
+        self, plant_list: Sequence[Resource], excrement_pool: DecayPool
+    ) -> float:
+        """This method handles mass assimilation from herbivory."""
+        total_consumed_mass = 0.0  # Initialize the total consumed mass
 
         for plant in plant_list:
-            B = plant.mass_current
-            F = self.F_i_k(plant_list, plant)
-            delta_t = 30.0  # days
+            # Calculate the mass to be consumed from this plant
+            consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
+            # Update the plant resource's state based on consumed mass
+            actual_consumed_mass = plant.get_eaten(consumed_mass, self, excrement_pool)
+            # Update total mass gained by the herbivore
+            total_consumed_mass += actual_consumed_mass
 
-            delta_mass_herb += B * (
-                1
-                - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
-            )
-
-        return delta_mass_herb
+        return total_consumed_mass
 
     def forage_cohort(
         self,
         plant_list: Sequence[Resource],
         animal_list: Sequence[AnimalCohort],
-        # carcass_pool: DecayPool,
         excrement_pool: DecayPool,
-    ) -> float:
-        """This function handles selection of resources from a list of options.
-
-        Currently, this function is passed a list of plant or animal resources from
-        AnimalCommunity.forage_community and performs a simple random uniform selection.
-        After this, excrete is called to pass excess waste to the excrement pool.
-        Later this function will involve more complex weightings of prey options.
-
-        Madingley's detla_mass = delta_mass_herbivory + delta_mass_predation is in here
-
-        TODO: Fix the occasional division by zero bug in eat and then remove Optional
-        TODO: ensure mass is lost from resources
-        TODO: ensure mass flows to carcass pools
-        TODO: make new test once other methods are resolved
+        carcass_pool: CarcassPool,
+    ) -> None:
+        """This function handles selection of resources from a list for consumption.
 
         Args:
-            plant_list: A list of plant cohorts available for herbivory.
+            plant_list: A list of plant resources available for herbivory.
             animal_list: A list of animal cohorts available for predation.
-            carcass_pool: A CarcassPool object representing available carcasses.
-            excrement_pool: A pool representing the excrement in the grid cell
+            excrement_pool: A pool representing the excrement in the grid cell.
+            carcass_pool: A pool representing the carcasses in the grid cell.
 
         Return:
-            A float value of the change in consumer mass.
+            A float value of the net change in consumer mass due to foraging.
         """
-
         if self.individuals == 0:
             LOGGER.warning("No individuals in cohort to forage.")
-            return 0.0
+            return
 
-        delta_mass = 0.0
+        # Herbivore diet
+        if self.functional_group.diet == DietType.HERBIVORE and plant_list:
+            consumed_mass = self.delta_mass_herbivory(
+                plant_list, excrement_pool
+            )  # Directly modifies the plant mass
+            self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 
-        try:
-            if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-                delta_mass = self.delta_mass_herbivory(plant_list)
-                # i need an efficiency step here to get the
-                # i need an eat call here that adds mass to consumer
-                # I need a get_eaten call here that removes mass from the resource
-                self.excrete(excrement_pool, delta_mass)  # Move excrete call here
+        # Carnivore diet
+        elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
+            # Calculate the mass gained from predation
+            consumed_mass = self.delta_mass_predation(
+                animal_list, excrement_pool, carcass_pool
+            )
+            # Update the predator's mass with the total gained mass
+            self.eat(consumed_mass)
 
-            elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-                delta_mass = self.delta_mass_predation(animal_list)
-                # i need an efficiency step here to get the
-                # i need an eat call here that adds mass to consumer
-                # I need a get_eaten call here that removes mass from the resource
-                self.excrete(excrement_pool, delta_mass)  # Move excrete call here
-
-            else:
-                LOGGER.info("No food available.")
-
-        except ValueError as e:
-            raise e
-
-        return delta_mass
+        else:
+            # No appropriate food sources for the diet type
+            raise ValueError(
+                f"No appropriate foods available for {self.functional_group.diet} diet."
+            )
 
     def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
@@ -549,41 +576,31 @@ class AnimalCohort:
 
         return theta
 
-    def eat(self, food: Resource, pool: DecayPool) -> float:
-        """This function handles the mass transfer of a trophic interaction.
+    def eat(self, mass_consumed: float) -> None:
+        """Handles the mass gain from consuming food.
 
-        Currently, all this does is call the food's get_eaten method and pass the
-        returned mass value to the consumer.
+        This method updates the consumer's mass based on the amount of food consumed.
+        It assumes the `mass_consumed` has already been calculated and processed
+        through `get_eaten`.
 
         Args:
-            food: An object of a Resource class (currently: AnimalCohort, Plant
-                  Community)
-            pool: An object of a DecayPool class, which could represent depositional
-                  pools like soil or carcass pools.
+            mass_consumed: The mass consumed by this consumer, calculated externally.
 
         Returns:
-            The amount of consumed mass so it can be used to determine waste output.
-
+            The amount of consumed mass, adjusted for efficiency and used for waste
+            output.
         """
-        # Check if self.individuals is greater than zero
         if self.individuals == 0:
-            return 0.0
+            return
 
-        if self is food:
-            raise ValueError("The food and the consumer are the same object.")
-
-        # get the per-individual energetic gain from the bulk value
-        mass_consumed = food.get_eaten(self, pool) / self.individuals
-
+        # Adjust mass gain based on the consumer's current mass and reproductive
+        # threshold
         if self.is_below_mass_threshold(
             self.constants.flow_to_reproductive_mass_threshold
         ):
-            # if current mass equals or exceeds standard adult mass, gains to repro mass
-            self.mass_current += mass_consumed
+            self.mass_current += mass_consumed  # Gains to reproductive or body mass
         else:
-            # otherwise, gains flow to non-reproductive body mass.
             self.reproductive_mass += mass_consumed
-        return mass_consumed  # for passing to excrete
 
     def is_below_mass_threshold(self, mass_threshold: float) -> bool:
         """Check if cohort's total mass is below a certain threshold.
