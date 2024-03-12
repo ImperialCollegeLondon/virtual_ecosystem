@@ -4,13 +4,27 @@ authors = [
   "David Orme <d.orme@imperial.ac.uk>",
   "Jacob Cook <j.cook17@imperial.ac.uk>",
   "Vivienne Groner <v.groner@imperial.ac.uk>",
-  "Taran Rallings <r.tallings@imperial.ac.uk>",
+  "Taran Rallings <t.rallings@imperial.ac.uk>",
   "Olivia Daniel <olivia.daniel08@imperial.ac.uk>",
+  "Jaideep Joshi <joshi@iiasa.ac.at>",
+  "Anna Rallings <a.rallings@imperial.ac.uk>",
+  "Priyanga Amarasekare <pamarasekare@gmail.com>",
+  "Diego Alonso Alvarez <d.alonso-alvarez@imperial.ac.uk>",
+  "Alex Dewar <a.dewar@imperial.ac.uk>",
 ]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Topic :: Scientific/Engineering",
+]
+description = """An holistic ecosystem simulation model."""
+homepage = "https://virtual-ecosystem.readthedocs.io/"
+license = "BSD-3-Clause"
 name = "virtual_ecosystem"
 readme = "README.md"
 repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a6"
+version = "0.1.1a4"
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
