@@ -1,6 +1,8 @@
 name: Publishing
 
-on: [release]
+on: 
+  release:
+  workflow_dispatch:
 
 jobs:
   # First, run the standard test suite
