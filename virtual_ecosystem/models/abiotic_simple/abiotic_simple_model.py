@@ -29,7 +29,10 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic_simple import microclimate
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.models.abiotic_simple.constants import (
+    AbioticSimpleBounds,
+    AbioticSimpleConsts,
+)
 
 
 class AbioticSimpleModel(
@@ -39,11 +42,6 @@ class AbioticSimpleModel(
     required_init_vars=(  # TODO add temporal axis
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
-        ("atmospheric_co2_ref", ("spatial",)),
-        ("mean_annual_temperature", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("layer_heights", ("spatial",)),
     ),
     vars_updated=(
         "air_temperature",
@@ -75,6 +73,8 @@ class AbioticSimpleModel(
         """A Data instance providing access to the shared simulation data."""
         self.model_constants = model_constants
         """Set of constants for the abiotic simple model"""
+        self.bounds = AbioticSimpleBounds()
+        """Upper and lower bounds for abiotic variables."""
 
     @classmethod
     def from_config(
@@ -157,6 +157,7 @@ class AbioticSimpleModel(
             layer_roles=self.layer_structure.layer_roles,
             time_index=time_index,
             constants=self.model_constants,
+            bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)
 
