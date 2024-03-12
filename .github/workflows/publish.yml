@@ -2,12 +2,16 @@ name: Publishing
 
 on: 
   release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
-  # First, run the standard test suite
+  # First, run the standard test suite - for this to work correctly, the workflow needs
+  # to inherit the organisation secrets used to authenticate to CodeCov.
+  # https://github.com/actions/runner/issues/1413
   test:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   # Next, build the package wheel and source releases and add them to the release assets
   build-wheel:
