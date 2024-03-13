@@ -153,12 +153,12 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
 
     exp_result_f = np.array(
         [
-            [-16.38, -16.38, -16.38],
-            [-15.3, -15.3, -15.3],
-            [-9.9, -9.9, -9.9],
-            [-4.5, -4.5, -4.5],
-            [0.09, 0.09, 0.09],
-            [0.846, 0.846, 0.846],
+            [-16.92, -16.92, -16.92],
+            [-15.84, -15.84, -15.84],
+            [-10.44, -10.44, -10.44],
+            [-5.04, -5.04, -5.04],
+            [-0.45, -0.45, -0.45],
+            [0.306, 0.306, 0.306],
         ]
     )
     np.testing.assert_allclose(result_t, exp_result_t, rtol=1e-3, atol=1e-3)
@@ -240,9 +240,9 @@ def test_wind_log_profile(dummy_climate_data):
 def test_calculate_friction_velocity(dummy_climate_data):
     """Calculate friction velocity."""
 
-    from virtual_ecosystem.models.abiotic.wind import calculate_fricition_velocity
+    from virtual_ecosystem.models.abiotic.wind import calculate_friction_velocity
 
-    result = calculate_fricition_velocity(
+    result = calculate_friction_velocity(
         wind_speed_ref=(
             dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
         ),

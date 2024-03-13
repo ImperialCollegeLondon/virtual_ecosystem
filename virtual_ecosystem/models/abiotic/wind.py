@@ -27,11 +27,11 @@ def calculate_zero_plane_displacement(
 ) -> NDArray[np.float32]:
     """Calculate zero plane displacement height, [m].
 
-    The zero plane displacement height of a vegetated surface is the height at which the
-    wind speed would go to zero if the logarithmic wind profile was maintained from the
-    outer flow all the way down to the surface (that is, in the absence of the
-    vegetation when the value is set to zero). Implementation after
-    :cite:t:`maclean_microclimc_2021`.
+    The zero displacement height (d) is a concept used in micrometeorology to describe
+    the flow of air near the ground or over surfaces like a forest canopy or crops. It
+    represents the height above the actual ground where the wind speed is theoretically
+    reduced to zero due to the obstruction caused by the roughness elements (like trees
+    or buildings). Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         canopy_height: Canopy height, [m]
@@ -256,19 +256,14 @@ def generate_relative_turbulence_intensity(
         relative turbulence intensity for each node, dimensionless
     """
 
-    if increasing_with_height:
-        turbulence_intensity = (
-            min_relative_turbulence_intensity
-            + (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
-            * layer_heights
-        )
-    else:
-        turbulence_intensity = (
-            max_relative_turbulence_intensity
-            - (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
-            * layer_heights
-        )
-    return turbulence_intensity
+    direction = 1 if increasing_with_height else -1
+
+    return (
+        min_relative_turbulence_intensity
+        + direction
+        * (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
+        * layer_heights
+    )
 
 
 def calculate_wind_attenuation_coefficient(
@@ -334,7 +329,7 @@ def wind_log_profile(
     return np.nan_to_num(wind_profile, nan=1).squeeze()
 
 
-def calculate_fricition_velocity(
+def calculate_friction_velocity(
     wind_speed_ref: NDArray[np.float32],
     reference_height: float | NDArray[np.float32],
     zeroplane_displacement: NDArray[np.float32],
@@ -560,7 +555,7 @@ def calculate_wind_profile(
         von_karman_constant=core_constants.von_karmans_constant,
     )
 
-    friction_velocity_uncorrected = calculate_fricition_velocity(
+    friction_velocity_uncorrected = calculate_friction_velocity(
         wind_speed_ref=wind_speed_ref,
         reference_height=wind_reference_height,
         zeroplane_displacement=zero_plane_displacement,
@@ -583,7 +578,7 @@ def calculate_wind_profile(
         diabatic_heat_momentum_ratio=abiotic_constants.diabatic_heat_momentum_ratio,
     )
 
-    friction_velocity = calculate_fricition_velocity(
+    friction_velocity = calculate_friction_velocity(
         wind_speed_ref=wind_speed_ref,
         reference_height=wind_reference_height,
         zeroplane_displacement=zero_plane_displacement,
