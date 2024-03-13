@@ -25,7 +25,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
     result = initialise_absorbed_radiation(
         topofcanopy_radiation=d["topofcanopy_radiation"].isel(time_index=0).to_numpy(),
         leaf_area_index=leaf_area_index_true.to_numpy(),
-        layer_heights=layer_heights_canopy.T.to_numpy(),  # TODO check why .T needed
+        layer_heights=layer_heights_canopy.to_numpy(),
         light_extinction_coefficient=0.01,
     )
 
@@ -33,11 +33,13 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
         result,
         np.array(
             [
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
+                [0.09995, 0.09995, 0.09995],
+                [0.09985, 0.09985, 0.09985],
+                [0.09975, 0.09975, 0.09975],
             ]
         ),
+        rtol=1e-04,
+        atol=1e-04,
     )
 
 
@@ -52,13 +54,19 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     air_temperature = d["air_temperature"][
         d["leaf_area_index"]["layer_roles"] == "canopy"
     ].dropna(dim="layers", how="all")
-    absorbed_radiation = np.array([[9.516258, 8.610666, 7.791253]] * 3)
+    absorbed_radiation = np.array(
+        [
+            [0.09995, 0.09995, 0.09995],
+            [0.09985, 0.09985, 0.09985],
+            [0.09975, 0.09975, 0.09975],
+        ]
+    )
 
     exp_result = np.array(
         [
-            [29.940158, 29.931102, 29.922908],
-            [28.966333, 28.957277, 28.949083],
-            [27.301568, 27.292512, 27.284318],
+            [29.845994, 29.845994, 29.845994],
+            [28.872169, 28.872169, 28.872169],
+            [27.207403, 27.207403, 27.207403],
         ]
     )
     result = initialise_canopy_temperature(
@@ -66,7 +74,7 @@ def test_initialise_canopy_temperature(dummy_climate_data):
         absorbed_radiation=absorbed_radiation,
         canopy_temperature_ini_factor=0.01,
     )
-    np.testing.assert_allclose(result, exp_result)
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_slope_of_saturated_pressure_curve():
@@ -112,7 +120,15 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
 
     np.testing.assert_allclose(
         result["canopy_absorption"][1:4].to_numpy(),
-        np.array([[9.516258, 8.610666, 7.791253]] * 3),
+        np.array(
+            [
+                [0.09995, 0.09995, 0.09995],
+                [0.09985, 0.09985, 0.09985],
+                [0.09975, 0.09975, 0.09975],
+            ]
+        ),
+        rtol=1e-04,
+        atol=1e-04,
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))

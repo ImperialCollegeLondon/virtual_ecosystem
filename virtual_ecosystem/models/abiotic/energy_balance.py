@@ -1,9 +1,14 @@
 r"""The ``models.abiotic.energy_balance`` module calculates the energy balance for the
 Virtual Ecosystem. Given that the time increments of the model are an hour or longer,
 we can assume that below-canopy heat and vapour exchange attain steady state and heat
-storage in the canopy does not need to be simulated explicitly. Under steady-state,
-the balance equation for the leaves in each canopy layer is as follows (after
-:cite:t:`maclean_microclimc_2021`):
+storage in the canopy does not need to be simulated explicitly.
+(For application where very fine-temporal resolution data might be needed, heat and
+vapour exchange must be modelled as transient processes, and heat storage by the canopy,
+and the exchange of heat between different layers of the canopy, must be considered
+explicitly, see :cite:t:`maclean_microclimc_2021`. This is currently not implemented.)
+
+Under steady-state, the balance equation for the leaves in each canopy layer is as
+follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
     R_{abs} - R_{em} - H - \lambda E
@@ -75,19 +80,17 @@ def initialise_absorbed_radiation(
         Shortwave radiation absorbed by canopy layers, [W m-2]
     """
 
-    absorbed_radiation = np.zeros_like(leaf_area_index)
-    penetrating_radiation = np.zeros_like(leaf_area_index)
-    layer_depths = np.abs(np.diff(layer_heights, axis=1, append=0))
-    for i in range(len(layer_heights[0])):
-        penetrating_radiation[:, i] = topofcanopy_radiation * (
-            np.exp(
-                -light_extinction_coefficient
-                * leaf_area_index[:, i]
-                * layer_depths[:, i]
-            )
+    layer_depths = np.abs(np.diff(layer_heights, axis=0, append=0))
+    layer_extinction = np.exp(-0.01 * light_extinction_coefficient * layer_depths)
+    cumulative_extinction = np.cumprod(layer_extinction, axis=0)
+    penetrating_radiation = cumulative_extinction * topofcanopy_radiation
+    absorbed_radiation = np.abs(
+        np.diff(
+            penetrating_radiation,
+            prepend=np.expand_dims(topofcanopy_radiation, axis=0),
+            axis=0,
         )
-        absorbed_radiation[:, i] = topofcanopy_radiation - penetrating_radiation[:, i]
-        topofcanopy_radiation -= topofcanopy_radiation - penetrating_radiation[:, i]
+    )
 
     return absorbed_radiation
 
@@ -163,7 +166,7 @@ def initialise_canopy_and_soil_fluxes(
     initial_absorbed_radiation = initialise_absorbed_radiation(
         topofcanopy_radiation=topofcanopy_radiation.to_numpy(),
         leaf_area_index=leaf_area_index_true.to_numpy(),
-        layer_heights=layer_heights_canopy.T.to_numpy(),  # TODO check if .T is needed
+        layer_heights=layer_heights_canopy.to_numpy(),
         light_extinction_coefficient=light_extinction_coefficient,
     )
 

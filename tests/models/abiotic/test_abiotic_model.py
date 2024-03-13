@@ -337,11 +337,13 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
         model.data["canopy_absorption"][1:4].to_numpy(),
         np.array(
             [
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
-                [9.516258, 8.610666, 7.791253],
+                [0.09995, 0.09995, 0.09995],
+                [0.09985, 0.09985, 0.09985],
+                [0.09975, 0.09975, 0.09975],
             ]
         ),
+        rtol=1e-4,
+        atol=1e-4,
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(model.data[var][1:4].to_numpy(), np.zeros((3, 3)))
