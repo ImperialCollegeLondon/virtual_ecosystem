@@ -217,10 +217,8 @@ class AnimalCohort:
     ) -> float:
         """Adjusts individuals from the prey cohort based on the consumed mass.
 
-        TODO: implement predator mechanical efficiency (if we want to use it)
-
         Args:
-            consumed_mass: The mass intended to be consumed by the predator.
+            potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
             carcass_pool: The pool to which remains of eaten individuals are delivered.
 
@@ -236,18 +234,19 @@ class AnimalCohort:
         # Calculate the mass represented by the individuals actually eaten
         actual_killed_mass = actual_individuals_eaten * individual_mass
 
-        # Calculate excess mass if actual_consumed_mass exceeds intended consumed_mass
-        excess_mass = max(0, actual_killed_mass - potential_consumed_mass)
+        # Calculate the actual amount of mass consumed by the predator
+        actual_consumed_mass = min(actual_killed_mass, potential_consumed_mass)
 
-        # calculate the actual amount of mass consumed by the predator
-        actual_consumed_mass = actual_killed_mass - excess_mass
+        # Calculate the amount of mass that goes into carcass pool
+        carcass_mass = (actual_killed_mass - actual_consumed_mass) + (
+            actual_consumed_mass * (1 - predator.functional_group.mechanical_efficiency)
+        )
 
         # Update the number of individuals in the prey cohort
         self.individuals -= actual_individuals_eaten
 
-        # Update the carcass pool with any excess mass
-        if excess_mass > 0:
-            self.update_carcass_pool(excess_mass, predator, carcass_pool)
+        # Update the carcass pool with carcass mass
+        self.update_carcass_pool(carcass_mass, predator, carcass_pool)
 
         return actual_consumed_mass
 

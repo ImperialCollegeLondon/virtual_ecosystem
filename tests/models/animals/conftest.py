@@ -158,7 +158,7 @@ def herbivore_cohort_instance(herbivore_functional_group_instance, constants_ins
 
 
 @pytest.fixture
-def excrement_instance():
+def excrement_pool_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_rainforest.models.animals.decay import ExcrementPool
 
