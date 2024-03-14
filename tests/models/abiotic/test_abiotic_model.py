@@ -381,24 +381,33 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     model.update(time_index=0)
 
-    friction_velocity_exp = np.array(
+    friction_velocity_exp = np.concatenate(
         [
-            [0.162293, 0.163096, 0.163727],
-            [0.162776, 0.163333, 0.163774],
-            [0.165103, 0.164498, 0.164007],
-            [0.167306, 0.16563, 0.164239],
-            [0.169096, 0.166569, 0.164435],
-            [0.169385, 0.166722, 0.164467],
+            [
+                [0.162293, 0.163096, 0.163727],
+                [0.162776, 0.163333, 0.163774],
+                [0.165103, 0.164498, 0.164007],
+                [0.167306, 0.16563, 0.164239],
+            ],
+            [[np.nan, np.nan, np.nan]] * 7,
+            [
+                [0.169096, 0.166569, 0.164435],
+                [0.169385, 0.166722, 0.164467],
+            ],
+            [[np.nan, np.nan, np.nan]] * 2,
         ]
     )
-    wind_speed_exp = np.array(
+    wind_speed_exp = np.concatenate(
         [
-            [1.106333, 1.10686, 1.107273],
-            [1.097423, 1.097945, 1.098355],
-            [1.053935, 1.054437, 1.05483],
-            [1.012171, 1.012653, 1.013031],
-            [0.977975, 0.97844, 0.978806],
-            [0.972455, 0.972918, 0.973281],
+            [
+                [1.106333, 1.10686, 1.107273],
+                [1.097423, 1.097945, 1.098355],
+                [1.050605, 1.051105, 1.051498],
+                [0.961219, 0.961676, 0.962035],
+            ],
+            [[np.nan, np.nan, np.nan]] * 7,
+            [[0.910395, 0.910828, 0.911168], [0.902285, 0.902714, 0.903051]],
+            [[np.nan, np.nan, np.nan]] * 2,
         ]
     )
 
@@ -409,13 +418,13 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     )
     np.testing.assert_allclose(
         model.data["friction_velocity"],
-        DataArray(np.concatenate((friction_velocity_exp, np.full((9, 3), np.nan)))),
+        DataArray(friction_velocity_exp),
         rtol=1e-3,
         atol=1e-3,
     )
     np.testing.assert_allclose(
         model.data["wind_speed_canopy"],
-        DataArray(np.concatenate((wind_speed_exp, np.full((9, 3), np.nan)))),
+        DataArray(wind_speed_exp),
         rtol=1e-3,
         atol=1e-3,
     )

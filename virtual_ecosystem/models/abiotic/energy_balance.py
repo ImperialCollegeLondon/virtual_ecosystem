@@ -81,7 +81,9 @@ def initialise_absorbed_radiation(
     """
 
     layer_depths = np.abs(np.diff(layer_heights, axis=0, append=0))
-    layer_extinction = np.exp(-0.01 * light_extinction_coefficient * layer_depths)
+    layer_extinction = np.exp(
+        -0.01 * light_extinction_coefficient * layer_depths * leaf_area_index
+    )
     cumulative_extinction = np.cumprod(layer_extinction, axis=0)
     penetrating_radiation = cumulative_extinction * topofcanopy_radiation
     absorbed_radiation = np.abs(

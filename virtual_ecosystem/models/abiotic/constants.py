@@ -116,7 +116,7 @@ class AbioticConsts(ConstantsDataclass):
     TODO this is not representative of a rainforest environment and needs to be
     adjusted."""
 
-    min_wind_speed_above_canopy: float = 0.55
+    min_wind_speed_above_canopy: float = 0.1
     """Minimum wind speed above the canopy, [m s-1].
 
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""

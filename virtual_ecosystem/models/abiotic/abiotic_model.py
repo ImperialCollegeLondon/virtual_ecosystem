@@ -207,6 +207,14 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
         """
 
+        # select canopy layers that are non nan TODO model to LayerStructure
+        true_canopy_layers_n = len(
+            self.data["leaf_area_index"][
+                self.data["leaf_area_index"]["layer_roles"] == "canopy"
+            ].dropna(dim="layers", how="all")
+        )
+        empty_canopy_layers = self.layer_structure.canopy_layers - true_canopy_layers_n
+
         # Wind profiles
         wind_update_inputs: dict[str, DataArray] = {}
 
@@ -248,11 +256,14 @@ class AbioticModel(
             var_out = DataArray(
                 np.concatenate(
                     (
-                        wind_update[var],
+                        wind_update[var][0 : (true_canopy_layers_n + 1)],
+                        np.full((empty_canopy_layers, self.data.grid.n_cells), np.nan),
+                        wind_update[var][
+                            (true_canopy_layers_n + 1) : (len(wind_update[var]) + 1)
+                        ],
                         np.full(
                             (
-                                len(self.layer_structure.layer_roles)
-                                - len(wind_update[var]),
+                                len(self.layer_structure.soil_layers),
                                 self.data.grid.n_cells,
                             ),
                             np.nan,

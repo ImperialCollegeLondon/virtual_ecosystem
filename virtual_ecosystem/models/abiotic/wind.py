@@ -299,7 +299,14 @@ def calculate_wind_attenuation_coefficient(
         ),
     )
 
-    return np.nan_to_num(intermediate_coefficient, nan=0).squeeze()
+    attenuation_coefficient = np.nan_to_num(intermediate_coefficient, nan=0).squeeze()
+    return np.concatenate(
+        [
+            [[0.0, 0.0, 0.0]],
+            attenuation_coefficient,
+            [attenuation_coefficient[-1]] * 2,  # add lowest value to below canopy layer
+        ]
+    )
 
 
 def wind_log_profile(
@@ -326,7 +333,7 @@ def wind_log_profile(
         + diabatic_correction_momentum,
     )
 
-    return np.nan_to_num(wind_profile, nan=1).squeeze()
+    return np.squeeze(wind_profile)
 
 
 def calculate_friction_velocity(
@@ -424,7 +431,6 @@ def calculate_wind_canopy(
     wind_layer_heights: NDArray[np.float32],
     canopy_height: NDArray[np.float32],
     attenuation_coefficient: NDArray[np.float32],
-    min_windspeed_below_canopy: float,
 ) -> NDArray[np.float32]:
     """Calculate wind speed in a multi-layer canopy, [m s-1].
 
@@ -444,11 +450,10 @@ def calculate_wind_canopy(
         wind speed at height of canopy node, [m s-1]
     """
 
-    return np.nan_to_num(
-        top_of_canopy_wind_speed
-        * np.exp(attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)),
-        nan=min_windspeed_below_canopy,
-    ).squeeze()
+    zero_displacement = top_of_canopy_wind_speed * np.exp(
+        attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)
+    )
+    return zero_displacement
 
 
 def calculate_wind_profile(
@@ -527,7 +532,7 @@ def calculate_wind_profile(
         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
 
-    leaf_area_index_sum = leaf_area_index.sum(axis=1)
+    leaf_area_index_sum = np.nansum(leaf_area_index, axis=0)
 
     zero_plane_displacement = calculate_zero_plane_displacement(
         canopy_height=canopy_height,
@@ -613,7 +618,6 @@ def calculate_wind_profile(
         drag_coefficient=abiotic_constants.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
-
     wind_speed_above_canopy = calculate_wind_above_canopy(
         friction_velocity=friction_velocity[0],
         wind_height_above=wind_height_above,
@@ -629,8 +633,7 @@ def calculate_wind_profile(
         top_of_canopy_wind_speed=wind_speed_above_canopy,
         wind_layer_heights=wind_layer_heights,
         canopy_height=canopy_height,
-        attenuation_coefficient=attennuation_coefficient[0],
-        min_windspeed_below_canopy=abiotic_constants.min_windspeed_below_canopy,
+        attenuation_coefficient=attennuation_coefficient,
     )
     output["wind_speed_canopy"] = wind_speed_canopy
 
