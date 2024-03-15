@@ -14,10 +14,10 @@ kernelspec:
   name: vr_python3
 ---
 
-# API for the {mod}`~virtual_rainforest.models.animals.animal_communities` module
+# API for the {mod}`~virtual_ecosystem.models.animals.animal_communities` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.animals.animal_communities
+.. automodule:: virtual_ecosystem.models.animals.animal_communities
     :autosummary:
     :members:
     :exclude-members: model_name

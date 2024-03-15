@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ from virtual_rainforest.models.hydrology.constants import HydroConsts
 def test_calculate_soil_evaporation(wind, dens_air, latvap):
     """Test soil evaporation with float and DataArray."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         calculate_soil_evaporation,
     )
 
@@ -60,7 +60,7 @@ def test_find_lowest_neighbour(dummy_climate_data):
 
     from math import sqrt
 
-    from virtual_rainforest.models.hydrology.above_ground import find_lowest_neighbour
+    from virtual_ecosystem.models.hydrology.above_ground import find_lowest_neighbour
 
     data = dummy_climate_data
     data.grid.set_neighbours(distance=sqrt(data.grid.cell_area))
@@ -76,7 +76,7 @@ def test_find_lowest_neighbour(dummy_climate_data):
 def test_find_upstream_cells():
     """Test that upstream cells are ientified correctly."""
 
-    from virtual_rainforest.models.hydrology.above_ground import find_upstream_cells
+    from virtual_ecosystem.models.hydrology.above_ground import find_upstream_cells
 
     lowest = [1, 2, 2, 5, 7, 7, 7, 7]
     exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
@@ -107,7 +107,7 @@ def test_find_upstream_cells():
 def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
     """Test."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         accumulate_horizontal_flow,
     )
 
@@ -155,8 +155,8 @@ def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries)
 def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries):
     """Test that function gets correct neighbours."""
 
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.hydrology.above_ground import calculate_drainage_map
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
 
     elevation = np.array(
         [
@@ -201,8 +201,8 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
 def test_estimate_interception():
     """Test."""
-    from virtual_rainforest.models.hydrology.above_ground import calculate_interception
-    from virtual_rainforest.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     precip = np.array([0, 20, 100])
     lai = np.array([0, 2, 10])
@@ -223,7 +223,7 @@ def test_estimate_interception():
 
 def test_distribute_monthly_rainfall():
     """Test that randomly generated numbers are reproducible."""
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         distribute_monthly_rainfall,
     )
 
@@ -239,7 +239,7 @@ def test_distribute_monthly_rainfall():
 def test_calculate_bypass_flow():
     """Test."""
 
-    from virtual_rainforest.models.hydrology.above_ground import calculate_bypass_flow
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_bypass_flow
 
     top_sm = np.array([20, 50, 80])
     top_sm_sat = np.array([100, 100, 100])
@@ -254,7 +254,7 @@ def test_calculate_bypass_flow():
 def test_convert_mm_flow_to_m3_per_second():
     """Test channel flow conversion."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         convert_mm_flow_to_m3_per_second,
     )
 
@@ -274,9 +274,7 @@ def test_convert_mm_flow_to_m3_per_second():
 def test_calculate_surface_runoff():
     """Test surface runoff function."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
-        calculate_surface_runoff,
-    )
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_surface_runoff
 
     exp_result = np.array([50, 0, 50])
     result = calculate_surface_runoff(

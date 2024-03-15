@@ -10,14 +10,14 @@ kernelspec:
   name: python3
 ---
 
-# Welcome to the Virtual Rainforest
+# Welcome to the Virtual Ecosystem
 
-This repository is the home for the development of the Virtual Rainforest. The Virtual
-Rainforest is a project to develop a simulation of all of the major processes involved
-in a real rainforest including the:
+This repository is the home for the development of the Virtual Ecosystem. The Virtual
+Ecosystem is a project to develop a simulation of all of the major processes involved
+in a real ecosystem including the:
 
 - growth and demographic processes of the primary producers within the forest,
-- microclimatic processes within and around the rainforest,
+- microclimatic processes within and around the ecosystem,
 - hydrological processes within the canopy, soil and drainage networks,
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
@@ -61,17 +61,18 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: The Virtual Rainforest
+  :caption: The Virtual Ecosystem
 
-  virtual_rainforest/module_overview.md
-  virtual_rainforest/usage.md
-  virtual_rainforest/main_simulation.md
-  virtual_rainforest/constants.md
-  virtual_rainforest/soil/soil_details.md
-  virtual_rainforest/core/grid.md
-  virtual_rainforest/core/data.md
-  virtual_rainforest/core/axes.md
-  virtual_rainforest/core/config.md
+  virtual_ecosystem/module_overview.md
+  virtual_ecosystem/usage.md
+  virtual_ecosystem/example_data.md
+  virtual_ecosystem/main_simulation.md
+  virtual_ecosystem/constants.md
+  virtual_ecosystem/soil/soil_details.md
+  virtual_ecosystem/core/grid.md
+  virtual_ecosystem/core/data.md
+  virtual_ecosystem/core/axes.md
+  virtual_ecosystem/core/config.md
 ```
 
 ```{eval-rst}
@@ -89,6 +90,7 @@ team.
   File readers <api/core/readers.md>
   Core axes <api/core/axes.md>
   Base Model <api/core/base_model.md>
+  Core Components <api/core/core_components.md>
   Core Constants <api/core/constants.md>
   Constants Classes <api/core/constants_class.md>
   Constants Loader <api/core/constants_loader.md>
@@ -99,6 +101,7 @@ team.
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
   Soil Carbon <api/soil/carbon.md>
+  Soil Environmental Factors <api/soil/env_factors.md>
   Soil Constants <api/soil/constants.md>
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
@@ -124,8 +127,8 @@ team.
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>
   Litter Constants <api/litter/constants.md>
-  
-  
+  Plants Model <api/plants/plants_model.md>
+  Plants Structures <api/plants/plant_structures.md>
 ```
 
 ```{eval-rst}
@@ -133,7 +136,7 @@ team.
   :maxdepth: 4
   :caption: Command line tools
 
-  command_line_tools/vr_run.md
+  command_line_tools/ve_run.md
 ```
 
 ```{eval-rst}
@@ -154,16 +157,10 @@ team.
 ```{eval-rst}
 .. toctree::
   :maxdepth: 4
-  :caption: Data recipes
+  :caption: Climate data resources
 
   Overview climate data <data_recipes/climate_data_recipes.md>
   Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
-  Create dummy climate data <data_recipes/ERA5_preprocessing_example.md>
-  Create dummy soil data <data_recipes/soil_dummy.md>
-  Create dummy litter data <data_recipes/litter_dummy.md>
-  Create dummy plant data <data_recipes/plant_dummy.md>
-  Create dummy elevation data <data_recipes/create_dummy_elevation.md>
-  Create dummy surface runoff data <data_recipes/runoff_dummy.md>
 ```
 
 ```{eval-rst}

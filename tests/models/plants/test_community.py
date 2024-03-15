@@ -79,9 +79,9 @@ from tests.conftest import log_check
 def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log):
     """Test the data handling of the plants __init__."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 
@@ -97,7 +97,7 @@ def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log):
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
             assert len(plants_obj) == 4
-            cids = set([0, 1, 2, 3])
+            cids = {0, 1, 2, 3}
             assert set(plants_obj.keys()) == cids
             for cid in cids:
                 assert len(plants_obj[cid]) == 1

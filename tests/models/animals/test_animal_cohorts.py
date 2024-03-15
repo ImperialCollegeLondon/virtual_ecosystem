@@ -7,7 +7,7 @@ from numpy import isclose, timedelta64
 @pytest.fixture
 def predator_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
+    from virtual_ecosystem.models.animals.functional_group import (
         import_functional_groups,
     )
 
@@ -20,7 +20,7 @@ def predator_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def predator_cohort_instance(predator_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         predator_functional_group_instance, 10000.0, 1, 10, constants_instance
@@ -30,7 +30,7 @@ def predator_cohort_instance(predator_functional_group_instance, constants_insta
 @pytest.fixture
 def ectotherm_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
+    from virtual_ecosystem.models.animals.functional_group import (
         import_functional_groups,
     )
 
@@ -43,7 +43,7 @@ def ectotherm_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def ectotherm_cohort_instance(ectotherm_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         ectotherm_functional_group_instance, 100.0, 1, 10, constants_instance
@@ -53,7 +53,7 @@ def ectotherm_cohort_instance(ectotherm_functional_group_instance, constants_ins
 @pytest.fixture
 def prey_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         herbivore_functional_group_instance, 100.0, 1, 10, constants_instance
@@ -63,7 +63,7 @@ def prey_cohort_instance(herbivore_functional_group_instance, constants_instance
 @pytest.fixture
 def carcass_pool_instance():
     """Fixture for an carcass pool used in tests."""
-    from virtual_rainforest.models.animals.decay import CarcassPool
+    from virtual_ecosystem.models.animals.decay import CarcassPool
 
     return CarcassPool(0.0, 0.0)
 
@@ -94,7 +94,7 @@ class TestAnimalCohort:
         constants_instance,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
         with pytest.raises(error_type):
             AnimalCohort(
@@ -396,7 +396,7 @@ class TestAnimalCohort:
 
         # Mock the random.binomial call
         mocker.patch(
-            "virtual_rainforest.models.animals.animal_cohorts.random.binomial",
+            "virtual_ecosystem.models.animals.animal_cohorts.random.binomial",
             return_value=expected_deaths,
         )
         # Keep a copy of initial individuals to validate number_of_deaths

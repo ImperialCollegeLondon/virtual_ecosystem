@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
+
 from logging import DEBUG
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pytest
@@ -9,7 +10,7 @@ from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.logger import LOGGER
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -18,7 +19,7 @@ LOGGER.setLevel(DEBUG)
 def log_check(
     caplog: pytest.LogCaptureFixture,
     expected_log: tuple[tuple],
-    subset: Optional[slice] = None,
+    subset: slice | None = None,
 ) -> None:
     """Helper function to check that the captured log is as expected.
 
@@ -74,7 +75,7 @@ def reset_module_registry():
     before tests start, so that the correct registration of modules within tests is
     enforced.
     """
-    from virtual_rainforest.core.registry import MODULE_REGISTRY
+    from virtual_ecosystem.core.registry import MODULE_REGISTRY
 
     MODULE_REGISTRY.clear()
 
@@ -89,7 +90,7 @@ def fixture_square_grid():
     A 10 x 10 grid of 1 hectare cells, with non-zero origin.
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(
         grid_type="square",
@@ -110,7 +111,7 @@ def fixture_square_grid_simple():
     A 2 x 2 grid centred on x=1,1,2,2 y=1,2,1,2
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(
         grid_type="square",
@@ -128,7 +129,7 @@ def fixture_square_grid_simple():
 def fixture_data(fixture_square_grid_simple):
     """A Data instance fixture for use in testing."""
 
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.data import Data
 
     data = Data(fixture_square_grid_simple)
 
@@ -141,19 +142,111 @@ def fixture_data(fixture_square_grid_simple):
 @pytest.fixture
 def data_instance():
     """Creates an empty data instance."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid()
     return Data(grid)
 
 
 @pytest.fixture
-def dummy_carbon_data(layer_roles_fixture):
+def fixture_config():
+    """Simple configuration fixture for use in tests."""
+
+    from virtual_ecosystem.core.config import Config
+
+    cfg_string = """
+        [core]
+        [core.grid]
+        cell_nx = 10
+        cell_ny = 10
+        [core.timing]
+        start_date = "2020-01-01"
+        update_interval = "2 weeks"
+        run_length = "50 years"
+        [core.data_output_options]
+        save_initial_state = true
+        save_final_state = true
+        out_initial_file_name = "model_at_start.nc"
+        out_final_file_name = "model_at_end.nc"
+
+        [core.layers]
+        canopy_layers = 10
+        soil_layers = [-0.25, -1.0]
+        above_canopy_height_offset = 2.0
+        surface_layer_height = 0.1
+        subcanopy_layer_height = 1.5
+
+        [plants]
+        a_plant_integer = 12
+        [[plants.ftypes]]
+        pft_name = "shrub"
+        max_height = 1.0
+        [[plants.ftypes]]
+        pft_name = "broadleaf"
+        max_height = 50.0
+
+        [[animals.functional_groups]]
+        name = "carnivorous_bird"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        birth_mass = 0.1
+        adult_mass = 1.0
+        [[animals.functional_groups]]
+        name = "herbivorous_bird"
+        taxa = "bird"
+        diet = "herbivore"
+        metabolic_type = "endothermic"
+        birth_mass = 0.05
+        adult_mass = 0.5
+        [[animals.functional_groups]]
+        name = "carnivorous_mammal"
+        taxa = "mammal"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        birth_mass = 4.0
+        adult_mass = 40.0
+        [[animals.functional_groups]]
+        name = "herbivorous_mammal"
+        taxa = "mammal"
+        diet = "herbivore"
+        metabolic_type = "endothermic"
+        birth_mass = 1.0
+        adult_mass = 10.0
+        [[animals.functional_groups]]
+        name = "carnivorous_insect"
+        taxa = "insect"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        birth_mass = 0.001
+        adult_mass = 0.01
+        [[animals.functional_groups]]
+        name = "herbivorous_insect"
+        taxa = "insect"
+        diet = "herbivore"
+        metabolic_type = "ectothermic"
+        birth_mass = 0.0005
+        adult_mass = 0.005
+        """
+
+    return Config(cfg_strings=cfg_string)
+
+
+@pytest.fixture
+def fixture_core_components(fixture_config):
+    """A CoreComponents instance for use in testing."""
+    from virtual_ecosystem.core.core_components import CoreComponents
+
+    return CoreComponents(fixture_config)
+
+
+@pytest.fixture
+def dummy_carbon_data(fixture_core_components):
     """Creates a dummy carbon data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(cell_nx=4, cell_ny=1)
@@ -172,12 +265,22 @@ def dummy_carbon_data(layer_roles_fixture):
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["soil_c_pool_pom"] = DataArray([0.1, 1.0, 0.7, 0.35], dims=["cell_id"])
     """Particulate organic matter pool (kg C m^-3)"""
+    data["soil_enzyme_pom"] = DataArray(
+        [0.022679, 0.009576, 0.050051, 0.003010], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down particulate organic matter (kg C m^-3)"""
+    data["soil_enzyme_maom"] = DataArray(
+        [0.0356, 0.0117, 0.02509, 0.00456], dims=["cell_id"]
+    )
+    """Soil enzyme that breaks down mineral associated organic matter (kg C m^-3)"""
     data["pH"] = DataArray([3.0, 7.5, 9.0, 5.7], dims=["cell_id"])
     data["bulk_density"] = DataArray([1350.0, 1800.0, 1000.0, 1500.0], dims=["cell_id"])
-    data["percent_clay"] = DataArray([80.0, 30.0, 10.0, 90.0], dims=["cell_id"])
+    data["clay_fraction"] = DataArray([0.8, 0.3, 0.1, 0.9], dims=["cell_id"])
     data["litter_C_mineralisation_rate"] = DataArray(
         [0.00212106, 0.00106053, 0.00049000, 0.0055], dims=["cell_id"]
     )
+    # Data for average vertical flow
+    data["vertical_flow"] = DataArray([0.1, 0.5, 2.5, 1.59], dims=["cell_id"])
 
     # The layer dependant data has to be handled separately
     data["soil_moisture"] = xr.concat(
@@ -186,7 +289,7 @@ def dummy_carbon_data(layer_roles_fixture):
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray(
-                [[0.472467929, 0.399900047, 0.256053640, 0.153616897]],
+                [[0.9304620050, 0.787549327, 0.504263188, 0.302527807]],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
@@ -196,11 +299,13 @@ def dummy_carbon_data(layer_roles_fixture):
     data["soil_moisture"] = data["soil_moisture"].assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
-    # TODO - Eventually this should replace the dummy soil moisture entirely
     data["matric_potential"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
@@ -213,7 +318,10 @@ def dummy_carbon_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -233,7 +341,10 @@ def dummy_carbon_data(layer_roles_fixture):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -243,22 +354,22 @@ def dummy_carbon_data(layer_roles_fixture):
 
 
 @pytest.fixture
-def top_soil_layer_index(layer_roles_fixture):
+def top_soil_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return next(i for i, v in enumerate(layer_roles_fixture) if v == "soil")
+    return fixture_core_components.layer_structure.layer_roles.index("soil")
 
 
 @pytest.fixture
-def surface_layer_index(layer_roles_fixture):
+def surface_layer_index(fixture_core_components):
     """The index of the top soil layer in the data fixtures."""
-    return next(i for i, v in enumerate(layer_roles_fixture) if v == "surface")
+    return fixture_core_components.layer_structure.layer_roles.index("surface")
 
 
 @pytest.fixture
 def new_axis_validators():
     """Create new axis validators to test methods and registration."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import AxisValidator
+    from virtual_ecosystem.core.grid import Grid
 
     # Create a new subclass.
     class TestAxis(AxisValidator):
@@ -288,21 +399,11 @@ def new_axis_validators():
 
 
 @pytest.fixture
-def layer_roles_fixture():
-    """Create list of layer roles for 10 canopy layers and 2 soil layers."""
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
-        set_layer_roles,
-    )
-
-    return set_layer_roles(10, [-0.5, -1.0])
-
-
-@pytest.fixture
-def dummy_climate_data(layer_roles_fixture):
+def dummy_climate_data(fixture_core_components):
     """Creates a dummy climate data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(
@@ -345,7 +446,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="evapotranspiration",
@@ -356,7 +460,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="leaf_area_index",
@@ -371,7 +478,10 @@ def dummy_climate_data(layer_roles_fixture):
         dims=["layers", "cell_id"],
         coords={
             "layers": np.arange(15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         },
         name="layer_heights",
@@ -402,7 +512,10 @@ def dummy_climate_data(layer_roles_fixture):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -433,7 +546,10 @@ def dummy_climate_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -463,7 +579,10 @@ def dummy_climate_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles[0:15],
+            ),
             "cell_id": data.grid.cell_id,
         }
     )

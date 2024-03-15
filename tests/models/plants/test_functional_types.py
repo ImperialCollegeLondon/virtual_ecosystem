@@ -6,7 +6,7 @@ This module tests the functionality of the plant functional types submodule.
 
 def test_plant_functional_type():
     """Simple test of PlantFunctionalType dataclass."""
-    from virtual_rainforest.models.plants.functional_types import PlantFunctionalType
+    from virtual_ecosystem.models.plants.functional_types import PlantFunctionalType
 
     pft = PlantFunctionalType(pft_name="tree", max_height=12.0)
 
@@ -16,7 +16,7 @@ def test_plant_functional_type():
 
 def test_flora__init__():
     """Simple test of Flora __init__."""
-    from virtual_rainforest.models.plants.functional_types import (
+    from virtual_ecosystem.models.plants.functional_types import (
         Flora,
         PlantFunctionalType,
     )
@@ -32,12 +32,12 @@ def test_flora__init__():
     assert tuple(flora.keys()) == ("shrub", "broadleaf")
 
 
-def test_plant_functional_types_from_config(plants_config):
+def test_plant_functional_types_from_config(fixture_config):
     """Simple test of Flora from_config factory method."""
 
-    from virtual_rainforest.models.plants.functional_types import Flora
+    from virtual_ecosystem.models.plants.functional_types import Flora
 
-    flora = Flora.from_config(plants_config)
+    flora = Flora.from_config(fixture_config)
 
     assert len(flora) == 2
     assert tuple(flora.keys()) == ("shrub", "broadleaf")

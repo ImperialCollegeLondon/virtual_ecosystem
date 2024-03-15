@@ -1,81 +1,77 @@
 """Test module for main.py (and associated functionality).
 
-This module tests both the main simulation function `vr_run` and the other functions
+This module tests both the main simulation function `ve_run` and the other functions
 defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
-import numpy as np
-import pint
 import pytest
 
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
-from virtual_rainforest.main import vr_run
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.main import ve_run
 
 from .conftest import log_check
 
+INITIALISATION_LOG = [
+    (INFO, "Initialising models: soil"),
+    (INFO, "Initialised soil.SoilConsts from config"),
+    (
+        INFO,
+        "Information required to initialise the soil model successfully extracted.",
+    ),
+    (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+    (DEBUG, "soil model: required var 'pH' checked"),
+    (DEBUG, "soil model: required var 'bulk_density' checked"),
+    (DEBUG, "soil model: required var 'clay_fraction' checked"),
+]
+
 
 @pytest.mark.parametrize(
-    "cfg_strings,update_interval,output,raises,expected_log_entries",
+    "cfg_strings,output,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("7 days"),
-            "SoilModel(update_interval = 7 day)",
+            '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
+            "SoilModel(update_interval=604800 seconds)",
             does_not_raise(),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-                (DEBUG, "soil model: required var 'pH' checked"),
-                (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'percent_clay' checked"),
-            ),
+            tuple(INITIALISATION_LOG),
             id="valid config",
         ),
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("1 minute"),
+            '[core.timing]\nupdate_interval = "1 minute"\n[soil]\n',
             None,
             pytest.raises(InitialisationError),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (ERROR, "The update interval is shorter than the model's lower bound"),
-                (CRITICAL, "Configuration failed for models: soil"),
+            tuple(
+                INITIALISATION_LOG
+                + [
+                    (
+                        ERROR,
+                        "The update interval is faster than the soil "
+                        "lower bound of 30 minute.",
+                    ),
+                    (CRITICAL, "Configuration failed for models: soil"),
+                ],
             ),
             id="update interval too short",
         ),
         pytest.param(
-            "[core]\n[soil]\n",
-            pint.Quantity("1 year"),
+            '[core.timing]\nupdate_interval = "1 year"\n[soil]\n',
             None,
             pytest.raises(InitialisationError),
-            (
-                (INFO, "Initialising models: soil"),
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the soil model successfully "
-                    "extracted.",
-                ),
-                (ERROR, "The update interval is longer than the model's upper bound"),
-                (CRITICAL, "Configuration failed for models: soil"),
+            tuple(
+                INITIALISATION_LOG
+                + [
+                    (
+                        ERROR,
+                        "The update interval is slower than the soil "
+                        "upper bound of 3 month.",
+                    ),
+                    (CRITICAL, "Configuration failed for models: soil"),
+                ],
             ),
             id="update interval too long",
         ),
@@ -85,27 +81,28 @@ def test_initialise_models(
     caplog,
     dummy_carbon_data,
     cfg_strings,
-    update_interval,
     output,
     raises,
     expected_log_entries,
 ):
     """Test the function that initialises the models."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.main import initialise_models
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
     config = Config(cfg_strings=cfg_strings)
+    core_components = CoreComponents(config)
     caplog.clear()
 
     with raises:
         models = initialise_models(
             config=config,
             data=dummy_carbon_data,
+            core_components=core_components,
             models=config.model_classes,
-            update_interval=update_interval,
         )
 
         if output is None:
@@ -137,168 +134,34 @@ def test_initialise_models(
             """,
             (
                 (
-                    CRITICAL,
-                    "Units for core.timing.update_interval are not valid time units: "
-                    "0.5 martian days",
+                    ERROR,
+                    "Invalid units for core.timing.update_interval: 0.5 martian days",
                 ),
             ),
             id="bad_config_data_one",
         ),
     ],
 )
-def test_vr_run_model_issues(caplog, config_content, expected_log_entries):
-    """Test the main `vr_run` function handles bad model configurations correctly.
+def test_ve_run_model_issues(caplog, config_content, expected_log_entries):
+    """Test the main `ve_run` function handles bad model configurations correctly.
 
     Note that some of this is also safeguarded by the config validation. Unknown model
     names should not pass schema validation, but incorrect config data can still pass
     schema validation.
     """
 
-    with pytest.raises(InitialisationError):
-        vr_run(cfg_strings=config_content)
+    with pytest.raises(ConfigurationError):
+        ve_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
-
-
-@pytest.mark.parametrize(
-    "config,output,raises,expected_log_entries",
-    [
-        pytest.param(
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "10 minutes",
-                        "run_length": "30 years",
-                    }
-                }
-            },
-            {
-                "start_time": np.datetime64("2020-01-01"),
-                "update_interval": np.timedelta64(10, "m"),
-                "update_interval_as_quantity": pint.Quantity("10 minutes"),
-                "end_time": np.datetime64("2049-12-31T12:00"),
-            },
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Virtual Rainforest simulation will run from 2020-01-01 until "
-                    "2049-12-31T12:00:00. This is a run length of 946728000 seconds, "
-                    "the user requested 946728000 seconds",
-                ),
-            ),
-            id="timing correct",
-        ),
-        pytest.param(
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "10 minutes",
-                        "run_length": "1 minute",
-                    }
-                }
-            },
-            {},  # Fails so no output to check
-            pytest.raises(InitialisationError),
-            (
-                (
-                    CRITICAL,
-                    "Models will never update as the update interval (600 seconds) is "
-                    "larger than the run length (60 seconds)",
-                ),
-            ),
-            id="run length < update interval",
-        ),
-        pytest.param(
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "10 minutes",
-                        "run_length": "7 short days",
-                    }
-                }
-            },
-            {},  # Fails so no output to check
-            pytest.raises(InitialisationError),
-            (
-                (
-                    CRITICAL,
-                    "Units for core.timing.run_length are not valid time units: 7 short"
-                    " days",
-                ),
-            ),
-            id="invalid run length units",
-        ),
-        pytest.param(
-            {
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "10 long minutes",
-                        "run_length": "30 years",
-                    }
-                }
-            },
-            {},  # Fails so no output to check
-            pytest.raises(InitialisationError),
-            (
-                (
-                    CRITICAL,
-                    "Units for core.timing.update_interval are not valid time units: 10"
-                    " long minutes",
-                ),
-            ),
-            id="invalid update_interval units",
-        ),
-        pytest.param(
-            {  # update_interval missing units
-                "core": {
-                    "timing": {
-                        "start_date": "2020-01-01",
-                        "update_interval": "7",
-                        "run_length": "30 years",
-                    }
-                },
-            },
-            {},  # Fails so no output to check
-            pytest.raises(InitialisationError),
-            (
-                (
-                    CRITICAL,
-                    "Units for core.timing.update_interval are not valid time units: 7",
-                ),
-            ),
-            id="model_time_step missing units",
-        ),
-    ],
-)
-def test_extract_timing_details(caplog, config, output, raises, expected_log_entries):
-    """Test that function to extract main loop timing works as intended."""
-    from virtual_rainforest.main import extract_timing_details
-
-    with raises:
-        (
-            current_time,
-            update_interval,
-            update_interval_as_quantity,
-            end_time,
-        ) = extract_timing_details(config)
-        assert end_time == output["end_time"]
-        assert update_interval == output["update_interval"]
-        assert current_time == output["start_time"]
-        assert update_interval_as_quantity == output["update_interval_as_quantity"]
-
-    log_check(caplog=caplog, expected_log=expected_log_entries)
 
 
 @pytest.mark.parametrize(
     "cfg_strings,method,raises,model_keys,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n[abiotic_simple]",
+            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n"
+            "[abiotic_simple.depends]\ninit=[]\n",
             "init",
             does_not_raise(),
             ["abiotic_simple", "soil"],
@@ -362,8 +225,8 @@ def test_get_model_sequence(
 ):
     """Test the function that sets the model sequence."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.main import _get_model_sequence
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.main import _get_model_sequence
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,

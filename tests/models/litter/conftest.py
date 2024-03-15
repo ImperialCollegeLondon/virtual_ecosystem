@@ -6,11 +6,30 @@ from xarray import DataArray, concat
 
 
 @pytest.fixture
-def dummy_litter_data(layer_roles_fixture):
+def fixture_litter_model(dummy_litter_data):
+    """Create a litter model fixture based on the dummy litter data."""
+
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
+
+    # Build the config object
+    config = Config(
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"
+    )
+    core_components = CoreComponents(config)
+
+    return LitterModel.from_config(
+        data=dummy_litter_data, core_components=core_components, config=config
+    )
+
+
+@pytest.fixture
+def dummy_litter_data(fixture_core_components):
     """Creates a dummy litter data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(cell_nx=3, cell_ny=1)
@@ -61,7 +80,10 @@ def dummy_litter_data(layer_roles_fixture):
         .assign_coords(
             {
                 "layers": np.arange(0, 15),
-                "layer_roles": ("layers", layer_roles_fixture),
+                "layer_roles": (
+                    "layers",
+                    fixture_core_components.layer_structure.layer_roles,
+                ),
                 "cell_id": data.grid.cell_id,
             }
         )
@@ -83,7 +105,10 @@ def dummy_litter_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )
@@ -113,7 +138,10 @@ def dummy_litter_data(layer_roles_fixture):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": ("layers", layer_roles_fixture[0:15]),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
             "cell_id": data.grid.cell_id,
         }
     )

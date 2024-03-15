@@ -4,199 +4,117 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
-import pint
 import pytest
 import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
+
+# Global set of messages from model required var checks
+MODEL_VAR_CHECK_LOG = [
+    (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
+]
 
 
 @pytest.mark.parametrize(
     "raises,expected_log_entries",
     [
-        (
-            does_not_raise(),
-            (
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'air_temperature_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'relative_humidity_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'mean_annual_temperature' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'leaf_area_index' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'layer_heights' checked",
-                ),
-            ),
-        ),
+        (does_not_raise(), tuple(MODEL_VAR_CHECK_LOG)),
     ],
 )
 def test_abiotic_simple_model_initialization(
     caplog,
     dummy_climate_data,
+    fixture_core_components,
     raises,
     expected_log_entries,
-    layer_roles_fixture,
 ):
     """Test `AbioticSimpleModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import (
+        AbioticSimpleBounds,
+        AbioticSimpleConsts,
+    )
 
     with raises:
         # Initialize model
         model = AbioticSimpleModel(
-            dummy_climate_data,
-            pint.Quantity("1 week"),
-            soil_layers=[-0.5, -1.0],
-            canopy_layers=10,
+            data=dummy_climate_data,
+            core_components=fixture_core_components,
             constants=AbioticSimpleConsts(),
         )
 
         # In cases where it passes then checks that the object has the right properties
         assert isinstance(model, BaseModel)
         assert model.model_name == "abiotic_simple"
-        assert repr(model) == "AbioticSimpleModel(update_interval = 1 week)"
-        assert model.layer_roles == layer_roles_fixture
+        assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
+        assert model.bounds == AbioticSimpleBounds()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
-    "cfg_string,time_interval,relative_humid,raises,expected_log_entries",
+    "cfg_string,satvap1,raises,expected_log_entries",
     [
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            pint.Quantity("1 week"),
-            5.4,
+            0.61078,
             does_not_raise(),
-            (
-                (INFO, "Initialised abiotic_simple.AbioticSimpleConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the abiotic simple model "
-                    "successfully extracted.",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'air_temperature_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'relative_humidity_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'mean_annual_temperature' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'leaf_area_index' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'layer_heights' checked",
-                ),
+            tuple(
+                [
+                    (
+                        INFO,
+                        "Initialised abiotic_simple.AbioticSimpleConsts from config",
+                    ),
+                    (
+                        INFO,
+                        "Information required to initialise the abiotic simple model "
+                        "successfully extracted.",
+                    ),
+                ]
+                + MODEL_VAR_CHECK_LOG,
             ),
             id="default_config",
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "relative_humidity_gradient = 10.2\n",
-            pint.Quantity("1 week"),
+            "saturation_vapour_pressure_factor1 = 10.2\n",
             10.2,
             does_not_raise(),
-            (
-                (INFO, "Initialised abiotic_simple.AbioticSimpleConsts from config"),
-                (
-                    INFO,
-                    "Information required to initialise the abiotic simple model "
-                    "successfully extracted.",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'air_temperature_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'relative_humidity_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_pressure_ref' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'atmospheric_co2_ref' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'mean_annual_temperature' "
-                    "checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'leaf_area_index' checked",
-                ),
-                (
-                    DEBUG,
-                    "abiotic_simple model: required var 'layer_heights' checked",
-                ),
+            tuple(
+                [
+                    (
+                        INFO,
+                        "Initialised abiotic_simple.AbioticSimpleConsts from config",
+                    ),
+                    (
+                        INFO,
+                        "Information required to initialise the abiotic simple model "
+                        "successfully extracted.",
+                    ),
+                ]
+                + MODEL_VAR_CHECK_LOG,
             ),
             id="modified_config_correct",
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "relative_humidity_grad = 10.2\n",
-            None,
+            "saturation_vapour_pressure_factorx = 10.2\n",
             None,
             pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
                     "Unknown names supplied for AbioticSimpleConsts: "
-                    "relative_humidity_grad",
+                    "saturation_vapour_pressure_factorx",
                 ),
                 (INFO, "Valid names are: "),
                 (
@@ -213,35 +131,30 @@ def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
     cfg_string,
-    time_interval,
-    relative_humid,
+    satvap1,
     raises,
     expected_log_entries,
-    layer_roles_fixture,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
-    # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
-    # Build the config object
+    # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
+    core_components = CoreComponents(config)
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AbioticSimpleModel.from_config(
-            dummy_climate_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_climate_data,
+            core_components=core_components,
+            config=config,
         )
-        assert model.layer_roles == layer_roles_fixture
-        assert model.update_interval == time_interval
-        assert model.constants.relative_humidity_gradient == relative_humid
+        assert model.model_constants.saturation_vapour_pressure_factor1 == satvap1
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -249,31 +162,26 @@ def test_generate_abiotic_simple_model(
 
 def test_setup(
     dummy_climate_data,
-    layer_roles_fixture,
 ):
     """Test set up and update."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
-    # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
-
-    # Build the config object
+    # Build the config object and core components
     config = Config(
         cfg_strings="[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n"
     )
+    core_components = CoreComponents(config)
 
     # initialise model
     model = AbioticSimpleModel.from_config(
-        dummy_climate_data,
-        config,
-        pint.Quantity(config["core"]["timing"]["update_interval"]),
+        data=dummy_climate_data,
+        core_components=core_components,
+        config=config,
     )
-    assert model.layer_roles == layer_roles_fixture
-    assert model.update_interval == pint.Quantity("1 week")
 
     model.setup()
 
@@ -286,7 +194,7 @@ def test_setup(
                 "layers": np.arange(0, 15),
                 "layer_roles": (
                     "layers",
-                    model.layer_roles,
+                    core_components.layer_structure.layer_roles,
                 ),
                 "cell_id": [0, 1, 2],
             },
@@ -333,7 +241,7 @@ def test_setup(
             "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                model.layer_roles,
+                core_components.layer_structure.layer_roles,
             ),
             "cell_id": [0, 1, 2],
         },

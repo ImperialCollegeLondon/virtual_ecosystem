@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `core` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.core
+.. automodule:: virtual_ecosystem.core
 ```

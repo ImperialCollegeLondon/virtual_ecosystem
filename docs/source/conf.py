@@ -22,11 +22,11 @@ import sphinxcontrib.bibtex.plugin
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
-import virtual_rainforest as vr
+import virtual_ecosystem as ve
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
-# the virtual_rainforest package itself do not needed to be included here, providing
+# the virtual_ecosystem package itself do not needed to be included here, providing
 # sphinx is run within the poetry shell. RTD runs sphinx-build in the same directory
 # as this conf.py file, where we currently run it from the parent `docs` folder.
 
@@ -37,12 +37,12 @@ else:
     sys.path.append("source/development/documentation")
 
 
-version = vr.__version__
+version = ve.__version__
 release = version
 
 # -- Project information -----------------------------------------------------
 
-project = "Virtual Rainforest"
+project = "Virtual Ecosystem"
 copyright = (
     "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
     "Jaideep Joshi, Taran Rallings, Vivienne Groner"
@@ -106,10 +106,20 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
+    # HACK - core_components docstrings are being odd.
+    ("py:class", "np.timedelta64"),
+    ("py:class", "np.datetime64"),
+    ("py:class", "InitVar"),
+    ("py:class", "Quantity"),
+    ("py:class", "numpy._typing._array_like._ScalarType_co"),
     # TODO - Delete this once Vivienne has merged this feature into develop
-    ("py:class", "virtual_rainforest.models.abiotic.energy_balance.EnergyBalance"),
+    ("py:class", "virtual_ecosystem.models.abiotic.energy_balance.EnergyBalance"),
     # Something off about JSONSchema intersphinx mapping?
-    ("py:obj", "virtual_rainforest.core.schema.ValidatorWithDefaults.ID_OF"),
+    ("py:obj", "virtual_ecosystem.core.schema.ValidatorWithDefaults.ID_OF"),
+    # HACK - sphinx seems to thing GRID_STRUCTURE_SIG is a tuple not a type alias
+    ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.__repr__"),
+    ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.count"),
+    ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),

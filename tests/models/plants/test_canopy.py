@@ -8,7 +8,7 @@ import pytest
 from numpy import ndarray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_generate_canopy_model(plants_data, flora):
@@ -17,8 +17,8 @@ def test_generate_canopy_model(plants_data, flora):
     # TODO - the functionality in this function does nothing at the moment, so this
     #        method just tests data handling
 
-    from virtual_rainforest.models.plants.canopy import generate_canopy_model
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import generate_canopy_model
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     communities = PlantCommunities(plants_data, flora)
 
@@ -60,8 +60,8 @@ def test_generate_canopy_model(plants_data, flora):
 def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp_log):
     """Test the function to turn PlantsCommunities into canopy arrays."""
 
-    from virtual_rainforest.models.plants.canopy import build_canopy_arrays
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import build_canopy_arrays
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
@@ -88,15 +88,15 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
             log_check(caplog, exp_log)
 
 
-def test_initialise_canopy_layers(caplog, plants_data):
+def test_initialise_canopy_layers(plants_data, fixture_core_components):
     """Test the function to initialise canopy layers in the data object."""
 
-    from virtual_rainforest.models.plants.canopy import initialise_canopy_layers
+    from virtual_ecosystem.models.plants.canopy import initialise_canopy_layers
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
     data = initialise_canopy_layers(
-        plants_data, n_canopy_layers=10, soil_layers=[-0.5, -1.0]
+        data=plants_data, layer_structure=fixture_core_components.layer_structure
     )
 
     # Set up expectations
@@ -130,3 +130,10 @@ def test_initialise_canopy_layers(caplog, plants_data):
 
             assert key in data[layer].coords
             assert len(data[layer].coords[key]) == exp_n
+
+    # Specifically for layer heights, check that the fixed layer heights are as expected
+    assert np.allclose(
+        data["layer_heights"].mean(dim="cell_id").to_numpy(),
+        np.array([np.nan] * 11 + [1.5, 0.1, -0.25, -1.0]),
+        equal_nan=True,
+    )

@@ -6,7 +6,7 @@ from logging import CRITICAL, INFO
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -17,16 +17,16 @@ from virtual_rainforest.core.exceptions import ConfigurationError
             "core",
             "CoreConsts",
             does_not_raise(),
-            123.4,
+            0.25,
             ((INFO, "Initialised core.CoreConsts from config"),),
             id="default_values",
         ),
         pytest.param(
-            "[core.constants.CoreConsts]\nplaceholder=432.1",
+            "[core.constants.CoreConsts]\ndepth_of_active_soil_layer=1.5",
             "core",
             "CoreConsts",
             does_not_raise(),
-            432.1,
+            1.5,
             ((INFO, "Initialised core.CoreConsts from config"),),
             id="configured_value",
         ),
@@ -75,12 +75,12 @@ def test_load_constants(
 
     from scipy import constants  # type: ignore
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.core.constants_loader import load_constants
-    from virtual_rainforest.core.registry import register_module
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.core.constants_loader import load_constants
+    from virtual_ecosystem.core.registry import register_module
 
-    register_module("virtual_rainforest.core")
+    register_module("virtual_ecosystem.core")
     # Artificially create a configuration that omits the soil module. The soil module
     # should be registered by the config creation, but trap what happens if the config
     # doesn't match to the registered modules.
@@ -96,7 +96,7 @@ def test_load_constants(
             assert isinstance(constants_instance, CoreConsts)
             # The unconfigurable zero_Celsius should take the default value
             assert constants_instance.zero_Celsius == constants.zero_Celsius
-            # Check the placeholder constant has been configured
-            assert constants_instance.placeholder == exp_val
+            # Check the depth_of_active_soil_layer constant has been configured
+            assert constants_instance.depth_of_active_soil_layer == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)

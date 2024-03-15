@@ -11,10 +11,10 @@ jupytext:
 ---
 
 
-# Docstring style for the Virtual Rainforest package
+# Docstring style for the Virtual Ecosystem package
 
 The code below shows the docstring style that we have adopted for the Virtual
-Rainforest, including notes on why we have adopted particular docstring conventions.
+Ecosystem, including notes on why we have adopted particular docstring conventions.
 We use the
 [`autodoc`](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html)
 extension to `sphinx` to convert the docstrings in code modules into rendered HTML.
