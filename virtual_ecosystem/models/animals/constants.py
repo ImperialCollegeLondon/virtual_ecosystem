@@ -152,11 +152,11 @@ class AnimalConsts(ConstantsDataclass):
     """Fraction of the resource stock that is available to any one herbivore cohort."""
 
     b_herb = 0.7  # ( ),b_herb)
-    """Herbivore: Exponent of the power-law function relating the handling time of
+    """Herbivore exponent of the power-law function relating the handling time of
       autotroph matter to herbivore mass."""
 
     b_pred = 0.05  # Toy Values
-    """Carnivore: Exponent of the power-law relationship between the handling time of
+    """Carnivore exponent of the power-law relationship between the handling time of
       prey and the ratio of prey to predator body mass."""
 
     M_herb_ref = 1.0  # M_herb_ref [Madingley] g
