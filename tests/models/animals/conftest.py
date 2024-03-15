@@ -183,7 +183,7 @@ def plant_instance(plant_data_instance, constants_instance):
 @pytest.fixture
 def plant_list_instance(plant_data_instance, constants_instance):
     """Fixture providing a list of plant resources."""
-    from virtual_rainforest.models.animals.plant_resources import PlantResources
+    from virtual_ecosystem.models.animals.plant_resources import PlantResources
 
     return [
         PlantResources(
@@ -201,7 +201,7 @@ def plant_list_instance(plant_data_instance, constants_instance):
 @pytest.fixture
 def animal_list_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture providing a list of animal cohorts."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
     return [
         AnimalCohort(

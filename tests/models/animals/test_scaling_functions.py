@@ -253,7 +253,7 @@ def test_natural_mortality_scaling_invalid_terms():
 def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
     """Testing effective search rate calculation for various herbivore body masses."""
 
-    from virtual_rainforest.models.animals.scaling_functions import alpha_i_k
+    from virtual_ecosystem.models.animals.scaling_functions import alpha_i_k
 
     calculated_search_rate = alpha_i_k(alpha_0_herb, mass)
     assert calculated_search_rate == pytest.approx(expected_search_rate, rel=1e-6)
@@ -275,7 +275,7 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 def test_k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass):
     """Testing the potential biomass eaten calculation for various scenarios."""
 
-    from virtual_rainforest.models.animals.scaling_functions import k_i_k
+    from virtual_ecosystem.models.animals.scaling_functions import k_i_k
 
     calculated_biomass = k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell)
     assert calculated_biomass == pytest.approx(expected_biomass, rel=1e-6)
@@ -318,7 +318,7 @@ def test_H_i_k(
     h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception
 ):
     """Testing the handling time calculation for various herbivore masses."""
-    from virtual_rainforest.models.animals.scaling_functions import H_i_k
+    from virtual_ecosystem.models.animals.scaling_functions import H_i_k
 
     if expect_exception:
         with pytest.raises(ZeroDivisionError):
@@ -354,7 +354,7 @@ def test_theta_opt_i(
     # Mock np.random.normal to return a controlled random value
     mocker.patch.object(np.random, "normal", return_value=random_value)
 
-    from virtual_rainforest.models.animals.scaling_functions import theta_opt_i
+    from virtual_ecosystem.models.animals.scaling_functions import theta_opt_i
 
     result = theta_opt_i(theta_opt_min_f, theta_opt_f, sigma_opt_f)
     assert result == expected
@@ -383,7 +383,7 @@ def test_w_bar_i_j(
     expect_exception,
 ):
     """Testing the success probability  for various predator-prey mass ratios."""
-    from virtual_rainforest.models.animals.scaling_functions import w_bar_i_j
+    from virtual_ecosystem.models.animals.scaling_functions import w_bar_i_j
 
     if expect_exception:
         with pytest.raises((ZeroDivisionError, ValueError)):
@@ -413,7 +413,7 @@ def test_w_bar_i_j(
 )
 def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
     """Testing the effective search rate calculation for various inputs."""
-    from virtual_rainforest.models.animals.scaling_functions import alpha_i_j
+    from virtual_ecosystem.models.animals.scaling_functions import alpha_i_j
 
     calculated_search_rate = alpha_i_j(alpha_0_pred, mass, w_bar_i_j)
     assert calculated_search_rate == pytest.approx(expected_search_rate, rel=1e-6)
@@ -432,7 +432,7 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
 )
 def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
     """Testing the calculation of potential prey items eaten."""
-    from virtual_rainforest.models.animals.scaling_functions import k_i_j
+    from virtual_ecosystem.models.animals.scaling_functions import k_i_j
 
     # Handle special case where division by zero might occur
     if A_cell == 0:
@@ -469,7 +469,7 @@ def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
 )
 def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time):
     """Testing the handling time calculation for various predator-prey interactions."""
-    from virtual_rainforest.models.animals.scaling_functions import H_i_j
+    from virtual_ecosystem.models.animals.scaling_functions import H_i_j
 
     # Handle special case where division by zero might occur
     if M_i_t == 0:

@@ -419,7 +419,7 @@ class TestAnimalCohort:
         from unittest.mock import patch
 
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.alpha_i_k",
+            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_k",
             return_value=0.1,
         ) as mock_alpha:
             alpha = herbivore_cohort_instance.calculate_alpha()
@@ -438,7 +438,7 @@ class TestAnimalCohort:
 
         alpha = 0.1  # Assume this is the calculated search efficiency
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.k_i_k",
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
             return_value=20.0,
         ) as mock_k:
             biomass = herbivore_cohort_instance.calculate_potential_consumed_biomass(
@@ -461,10 +461,10 @@ class TestAnimalCohort:
 
         alpha = 0.1  # Assume this is the calculated search efficiency
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.k_i_k",
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
             return_value=20.0,
         ), patch(
-            "virtual_rainforest.models.animals.scaling_functions.H_i_k",
+            "virtual_ecosystem.models.animals.scaling_functions.H_i_k",
             return_value=0.2,
         ):
             total_handling_time = (
@@ -490,19 +490,19 @@ class TestAnimalCohort:
 
         with patch(
             (
-                "virtual_rainforest.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animals.animal_cohorts."
                 "AnimalCohort.calculate_alpha"
             ),
             return_value=0.1,
         ) as mock_alpha, patch(
             (
-                "virtual_rainforest.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animals.animal_cohorts."
                 "AnimalCohort.calculate_potential_consumed_biomass"
             ),
             return_value=20.0,
         ) as mock_potential_biomass, patch(
             (
-                "virtual_rainforest.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animals.animal_cohorts."
                 "AnimalCohort.calculate_total_handling_time_for_herbivory"
             ),
             return_value=40.4,
@@ -525,7 +525,7 @@ class TestAnimalCohort:
 
         # Mocking the theta_opt_i function from the scaling_functions module
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.theta_opt_i",
+            "virtual_ecosystem.models.animals.scaling_functions.theta_opt_i",
             return_value=0.5,
         ) as mock_theta_opt:
             result = herbivore_cohort_instance.calculate_theta_opt_i()
@@ -548,11 +548,11 @@ class TestAnimalCohort:
 
         # Patch both calculate_theta_opt_i and w_bar_i_j for isolation
         with patch(
-            "virtual_rainforest.models.animals.animal_cohorts."
+            "virtual_ecosystem.models.animals.animal_cohorts."
             "AnimalCohort.calculate_theta_opt_i",
             return_value=0.7,
         ) as mock_theta_opt, patch(
-            "virtual_rainforest.models.animals.scaling_functions.w_bar_i_j",
+            "virtual_ecosystem.models.animals.scaling_functions.w_bar_i_j",
             return_value=0.6,
         ) as mock_w_bar:
             result = herbivore_cohort_instance.calculate_predation_success_probability(
@@ -581,7 +581,7 @@ class TestAnimalCohort:
 
         # Mock the alpha_i_j function to isolate and control its output
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.alpha_i_j",
+            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_j",
             return_value=0.8,
         ) as mock_alpha_i_j:
             result = herbivore_cohort_instance.calculate_predation_search_rate(
@@ -607,7 +607,7 @@ class TestAnimalCohort:
 
         # Mock the k_i_j function to control its output
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.k_i_j",
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_j",
             return_value=15.0,
         ) as mock_k_i_j:
             result = herbivore_cohort_instance.calculate_potential_prey_consumed(
@@ -636,7 +636,7 @@ class TestAnimalCohort:
 
         # Mock the H_i_j function to control its output
         with patch(
-            "virtual_rainforest.models.animals.scaling_functions.H_i_j",
+            "virtual_ecosystem.models.animals.scaling_functions.H_i_j",
             return_value=2.5,
         ) as mock_H_i_j:
             result = (
@@ -756,7 +756,7 @@ class TestAnimalCohort:
 
         from unittest.mock import patch
 
-        from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
         with patch.object(
             predator_cohort_instance,
@@ -787,7 +787,7 @@ class TestAnimalCohort:
         """Test mass assimilation calculation from herbivory."""
         from unittest.mock import patch
 
-        from virtual_rainforest.models.animals.plant_resources import PlantResources
+        from virtual_ecosystem.models.animals.plant_resources import PlantResources
 
         # Mock the calculate_consumed_mass_herbivory method
         with patch.object(
