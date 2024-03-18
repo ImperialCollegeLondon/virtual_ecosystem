@@ -53,7 +53,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         name="leaf_vapour_conductivity",
     )
 
-    leaf_air_values = np.repeat(  # TODO there should be only 3 values
+    leaf_air_values = np.repeat(
         a=[np.nan, 0.133762, 0.152571, 0.171379, np.nan],
         repeats=[1, 1, 1, 1, 11],
     )

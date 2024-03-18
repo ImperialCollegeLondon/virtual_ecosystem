@@ -21,10 +21,11 @@ def interpolate_along_heights(
 
     This function can be used to lineraly interpolate atmospheric or soil variables such
     as temperature or humidity for a set of user specified heights based on the top and
-    bottom values.
+    bottom values. Note that the start value has to be the surface and the end value has
+    to be above ground.
 
     Args:
-        start_height: Starting heights of the interpolation range, [m]
+        start_height: Starting heights of the interpolation range, [m].
         end_height: Ending heights of the interpolation range, [m]
         target_heights: Array of target heights with the first column representing
             heights and subsequent columns representing additional dimensions, here
