@@ -89,16 +89,20 @@ class AnimalCohort:
         self.decay_fraction_carcasses: float = self.constants.decay_fraction_carcasses
         """The fraction of carcass biomass which decays before it gets consumed."""
 
-    def metabolize(self, temperature: float, dt: timedelta64) -> None:
+    def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce mass_current through basal metabolism.
 
         TODO: Implement distinction between field and basal rates.
         TODO: Implement proportion of day active.
         TODO: clean up units
+        TODO: implement distinction between metabolic waste flow to atmosphere vs urea
 
         Args:
             temperature: Current air temperature (K)
             dt: Number of days over which the metabolic costs should be calculated.
+
+        Returns:
+            The mass of metabolic waste produced.
 
         """
 
@@ -109,14 +113,20 @@ class AnimalCohort:
             raise ValueError("mass_current cannot be negative.")
 
         #  kg/day metabolic rate * number of days
-        mass_metabolized = sf.metabolic_rate(
+        potential_mass_metabolized = sf.metabolic_rate(
             self.mass_current,
             temperature,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
         ) * float(dt / timedelta64(1, "D"))
 
-        self.mass_current -= min(self.mass_current, mass_metabolized)
+        actual_mass_metabolized = min(self.mass_current, potential_mass_metabolized)
+
+        self.mass_current -= actual_mass_metabolized
+
+        # returns total metabolic waste from cohort to animal_communities for tracking
+        # in data object
+        return actual_mass_metabolized * self.individuals
 
     def excrete(
         self,
