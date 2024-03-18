@@ -403,7 +403,8 @@ def calculate_leaf_and_air_temperature(
         time_index=time_index
     )
 
-    # Get indexes for maximum number of canopy layers that are not nan
+    # Get indexes for maximum number of canopy layers that are not NaN
+    # This subset can change over time as vegetation grows/ is removed
     true_canopy_indexes = (
         data["leaf_area_index"][data["leaf_area_index"]["layer_roles"] == "canopy"]
         .dropna(dim="layers", how="all")

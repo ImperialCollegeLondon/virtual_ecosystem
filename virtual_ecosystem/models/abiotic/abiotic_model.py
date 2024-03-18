@@ -207,7 +207,8 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
         """
 
-        # select canopy layers that are non nan TODO model to LayerStructure
+        # select canopy layers that are non NaN
+        # This number can change over time as vegetation grows/ is removed
         true_canopy_layers_n = len(
             self.data["leaf_area_index"][
                 self.data["leaf_area_index"]["layer_roles"] == "canopy"
