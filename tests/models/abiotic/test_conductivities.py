@@ -86,7 +86,7 @@ def test_interpolate_along_heights(dummy_climate_data):
     atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
     result = interpolate_along_heights(
         start_height=layer_heights[-3].to_numpy(),
-        end_height=layer_heights[-0].to_numpy(),
+        end_height=layer_heights[0].to_numpy(),
         target_heights=(layer_heights[atmosphere_layers.indexes].to_numpy()),
         start_value=50.0,
         end_value=20.0,
@@ -118,7 +118,7 @@ def test_interpolate_along_heights_arrays(dummy_climate_data):
     atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
     result = interpolate_along_heights(
         start_height=layer_heights[-3].to_numpy(),
-        end_height=layer_heights[-0].to_numpy(),
+        end_height=layer_heights[0].to_numpy(),
         target_heights=(layer_heights[atmosphere_layers.indexes].to_numpy()),
         start_value=np.repeat(50.0, 3),
         end_value=np.repeat(20.0, 3),

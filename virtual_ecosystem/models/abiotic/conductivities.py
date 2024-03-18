@@ -258,7 +258,7 @@ def calculate_air_heat_conductivity_canopy(
 def calculate_leaf_air_heat_conductivity(
     temperature: NDArray[np.float32],
     wind_speed: NDArray[np.float32],
-    characteristic_dimension_leaf: NDArray[np.float32],
+    characteristic_dimension_leaf: float | NDArray[np.float32],
     temperature_difference: NDArray[np.float32],
     molar_density_air: NDArray[np.float32],
     kinematic_viscosity_parameters: list[float],
@@ -293,8 +293,9 @@ def calculate_leaf_air_heat_conductivity(
     Args:
         temperature: Temperature, [C]
         wind_speed: Wind speed, [m s-1]
-        characteristic_dimension_leaf: chacteristic dimension of leaf, typically around
-            0.7 * leaf width, [m]
+        characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
+            0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
+            value per grid cell, or a 3D-array with one value for each layer.
         temperature_difference: Estimate of temperature differences of surface and air,
             e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
         molar_density_air: Molar density of air, [mol m-3]
@@ -383,7 +384,7 @@ def calculate_leaf_vapour_conductivity(
 
 def calculate_current_conductivities(
     data: Data,
-    characteristic_dimension_leaf: NDArray[np.float32],
+    characteristic_dimension_leaf: float | NDArray[np.float32],
     von_karmans_constant: float,
     abiotic_constants: AbioticConsts,
 ) -> dict[str, NDArray[np.float32]]:
@@ -410,7 +411,9 @@ def calculate_current_conductivities(
     * adiabatic_correction_heat: Adiabatic correction for heat
 
     Args:
-        characteristic_dimension_leaf: Characteristic dimension of leaf
+        characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
+            0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
+            value per grid cell, or a 3D-array with one value for each layer.
         von_karmans_constant: Von Karman constant
         abiotic_constants: set of abiotic constants
 
