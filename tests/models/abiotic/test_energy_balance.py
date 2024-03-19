@@ -160,46 +160,43 @@ def test_calculate_leaf_and_air_temperature(
 ):
     """Test updating leaf and air temperature."""
 
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import LayerStructure
     from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_leaf_and_air_temperature,
     )
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
-    # from virtual_ecosystem.core.core_components import LayerStructure
-    # from virtual_ecosystem.core.config import Config
-    # cfg_string = """
-    #     [core]
-    #     [core.grid]
-    #     cell_nx = 10
-    #     cell_ny = 10
-    #     [core.timing]
-    #     start_date = "2020-01-01"
-    #     update_interval = "2 weeks"
-    #     run_length = "50 years"
-    #     [core.data_output_options]
-    #     save_initial_state = true
-    #     save_final_state = true
-    #     out_initial_file_name = "model_at_start.nc"
-    #     out_final_file_name = "model_at_end.nc"
-    #     [core.layers]
-    #     canopy_layers = 10
-    #     soil_layers = [-0.25, -1.0]
-    #     above_canopy_height_offset = 2.0
-    #     surface_layer_height = 0.1
-    #     subcanopy_layer_height = 1.5
-    #     """
-    # config = Config(cfg_strings=cfg_string)
-    # layer_structure = LayerStructure(config=config)
+    cfg_string = """
+        [core]
+        [core.grid]
+        cell_nx = 3
+        cell_ny = 1
+        [core.timing]
+        start_date = "2020-01-01"
+        update_interval = "2 weeks"
+        run_length = "50 years"
+        [core.data_output_options]
+        save_initial_state = true
+        save_final_state = true
+        out_initial_file_name = "model_at_start.nc"
+        out_final_file_name = "model_at_end.nc"
+        [core.layers]
+        canopy_layers = 10
+        soil_layers = [-0.25, -1.0]
+        above_canopy_height_offset = 2.0
+        surface_layer_height = 0.1
+        subcanopy_layer_height = 1.5
+        """
+    config = Config(cfg_strings=cfg_string)
+    layer_structure = LayerStructure(config=config)
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
         topsoil_layer_index=13,
         true_canopy_layers_n=3,
-        # layer_structure=layer_structure,
-        canopy_layers=10,
-        soil_layers=[0.25, 1.5],
-        n_layers=15,
+        layer_structure=layer_structure,
         abiotic_constants=AbioticConsts(),
         abiotic_simple_constants=AbioticSimpleConsts(),
         core_constants=CoreConsts(),

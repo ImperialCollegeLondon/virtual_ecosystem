@@ -42,8 +42,7 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
-
-# from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.conductivities import (
     calculate_current_conductivities,
@@ -81,13 +80,19 @@ def initialise_absorbed_radiation(
     Returns:
         Shortwave radiation absorbed by canopy layers, [W m-2]
     """
-
+    # Calculate the depth of each layer, [m]
     layer_depths = np.abs(np.diff(layer_heights, axis=0, append=0))
+
+    # Calculate the light extinction for each layer
     layer_extinction = np.exp(
         -0.01 * light_extinction_coefficient * layer_depths * leaf_area_index
     )
+
+    # Calculate how much light penetrates through the canopy, [W m-2]
     cumulative_extinction = np.cumprod(layer_extinction, axis=0)
     penetrating_radiation = cumulative_extinction * topofcanopy_radiation
+
+    # Calculate how much light is absorbed in each layer, [W m-2]
     absorbed_radiation = np.abs(
         np.diff(
             penetrating_radiation,
@@ -147,6 +152,7 @@ def initialise_canopy_and_soil_fluxes(
     """
 
     output = {}
+
     # select canopy layers with leaf area index != nan
     leaf_area_index_true = leaf_area_index[
         leaf_area_index["layer_roles"] == "canopy"
@@ -166,7 +172,7 @@ def initialise_canopy_and_soil_fluxes(
         name="canopy_absorption",
     )
 
-    # calculate absorbed radiation
+    # Calculate absorbed radiation
     initial_absorbed_radiation = initialise_absorbed_radiation(
         topofcanopy_radiation=topofcanopy_radiation.to_numpy(),
         leaf_area_index=leaf_area_index_true.to_numpy(),
@@ -178,7 +184,7 @@ def initialise_canopy_and_soil_fluxes(
     absorbed_radiation[layer_heights_canopy.indexes] = initial_absorbed_radiation
     output["canopy_absorption"] = absorbed_radiation
 
-    # Initialize canopy temperature
+    # Initialize canopy temperature DataArray
     canopy_temperature = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -271,10 +277,7 @@ def calculate_leaf_and_air_temperature(
     time_index: int,
     topsoil_layer_index: int,
     true_canopy_layers_n: int,
-    # layer_structure: LayerStructure,
-    canopy_layers: int,
-    soil_layers: list[float],
-    n_layers: int,
+    layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
     abiotic_simple_constants: AbioticSimpleConsts,
     core_constants: CoreConsts,
@@ -383,6 +386,8 @@ def calculate_leaf_and_air_temperature(
         data: Instance of data object
         time_index: Time index
         topsoil_layer_index: Index of top soil layer
+        true_canopy_layers_n: Maximum number of canopy layers that are not NaN
+        layer_structure: Instance of LayerStructure that countains details about layers
         abiotic_constants: Set of abiotic constants
         abiotic_simple_constants: Set of abiotic constants
         core_constants: Set of core constants
@@ -394,7 +399,7 @@ def calculate_leaf_and_air_temperature(
 
     output = {}
 
-    # Select variables for current time step
+    # Select variables for current time step and relevant layers
     topsoil_temperature = data["soil_temperature"][topsoil_layer_index]
     topsoil_moisture = data["soil_moisture"][topsoil_layer_index]
     air_temperature_ref = data["air_temperature_ref"].isel(time_index=time_index)
@@ -404,7 +409,7 @@ def calculate_leaf_and_air_temperature(
     )
 
     # Get indexes for maximum number of canopy layers that are not NaN
-    # This subset can change over time as vegetation grows/ is removed
+    # This subset can change over time as vegetation grows or is removed
     true_canopy_indexes = (
         data["leaf_area_index"][data["leaf_area_index"]["layer_roles"] == "canopy"]
         .dropna(dim="layers", how="all")
@@ -540,13 +545,14 @@ def calculate_leaf_and_air_temperature(
             air_temperature_ref.to_numpy(),
             new_air_temperature,
             np.full(
-                # (layer_structure.canopy_layers-true_canopy_layers_n,data.grid.n_cells)
-                (canopy_layers - true_canopy_layers_n, data.grid.n_cells),
+                (
+                    layer_structure.canopy_layers - true_canopy_layers_n,
+                    data.grid.n_cells,
+                ),
                 np.nan,
             ),
             below_canopy_temperature,
-            # np.full((len(layer_structure.soil_layers), data.grid.n_cells), np.nan),
-            np.full((len(soil_layers), data.grid.n_cells), np.nan),
+            np.full((len(layer_structure.soil_layers), data.grid.n_cells), np.nan),
         ]
     )
     output["air_temperature"] = DataArray(
@@ -561,8 +567,7 @@ def calculate_leaf_and_air_temperature(
                 new_canopy_temperature,
                 np.full(
                     (
-                        # layer_structure.n_layers-true_canopy_layers_n - 1,
-                        n_layers - true_canopy_layers_n - 1,
+                        layer_structure.n_layers - true_canopy_layers_n - 1,
                         data.grid.n_cells,
                     ),
                     np.nan,
