@@ -12,7 +12,6 @@ to the vertical layer structure:
 * adjust for soil moisture default in mm (once updated in hydrology model)
 * coordinate latent heat flux/evapotranspiration processes between plants and abiotic
 * add soil fluxes to lower atmosphere (might need to drop 'subcanopy' layer)
-* return updated fluxes to data object
 * introducte 'metaconstants' to support sharing of constants between models
 * add self.model_timing.update_interval in seconds as input to soil balance
 * expand tests to cover different atmospheric conditions
@@ -308,20 +307,20 @@ class AbioticModel(
             core_consts=self.core_constants,
         )
 
-        soil_output = {}
-        var_list = [
-            "soil_absorption",
-            "longwave_emission_soil",
-            "sensible_heat_flux_soil",
-            "latent_heat_flux_soil",
-            "ground_heat_flux",
-        ]
-        for var in var_list:
-            soil_output[var] = DataArray(
+        soil_output = {
+            var: DataArray(
                 soil_heat_balance[var],
                 dims="cell_id",
                 coords={"cell_id": self.data.grid.cell_id},
             )
+            for var in (
+                "soil_absorption",
+                "longwave_emission_soil",
+                "sensible_heat_flux_soil",
+                "latent_heat_flux_soil",
+                "ground_heat_flux",
+            )
+        }
         self.data["soil_temperature"][topsoil_layer_index] = soil_heat_balance[
             "new_surface_temperature"
         ]

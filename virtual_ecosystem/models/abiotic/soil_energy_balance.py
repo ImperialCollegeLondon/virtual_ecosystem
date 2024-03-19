@@ -1,24 +1,16 @@
 r"""The ``models.abiotic.soil_energy_balance`` module calculates the soil energy balance
 for the Virtual Ecosystem.
 
-In the soil, heat storage is almost always significant. Thus, Fourier's Law is combined
-with the continuity equation to obtain a time dependant differential equation that
-describes soil temperature as a function of depth and time. A numerical solution can be
-achieved by dividing the soil into discrete layers. Each layer is assigned a node,
-:math:`i`, at depth, :math:`z_{i}`, and with heat storage, :math:`C_{h_{i}}`, and nodes
-are numbered sequentially downward such that node :math:`i+1` represents the
-node for the soil layer immediately below. Conductivity, :math:`k_{i}`, represents
-conductivity between nodes :math:`i` and :math:`i+1`. The energy balance equation for
-node :math:`i` is then given by
+The first part of this module determines the energy balance at the surface.
+:func:`~virtual_ecosystem.models.abiotic.soil_energy_balance.calculate_soil_heat_balance`
+calculates how incoming solar radiation that reaches the surface is partitioned in
+sensible, latent, and ground heat flux. Further, longwave emission is calculated and the
+topsoil temperature is updated.
 
-.. math::
-    \kappa_{i}(T_{i+1} - T_{i})- \kappa_{i-1}(T_{i} - T_{i-1})
-    = \frac{C_{h_{i}}(T_{i}^{j+1} - T_{i}^{j})(z_{i+1} - z_{i-1})}{2 \Delta t}
-
-where :math:`\Delta t` is the time increment, conductance,
-:math:`\kappa_{i}=k_{i}/(z_{i+1} - z_{i})`, and superscript :math:`j` indicates the
-time at which temperature is determined. This equation can be re-arranged and solved for
-:math:`T_{j+1}` by Gaussian elimination using the Thomas algorithm.
+The second part determines the soil temperature profile at different depths. We
+divide the soil into discrete layers to numerically solve the time-dependent
+differential equation that describes soil temperature as a function of depth
+and time (see TODO THIS FUNCTION for details).
 """  # noqa: D205, D415
 
 import numpy as np
@@ -44,8 +36,7 @@ def calculate_soil_absorption(
     below the canopy is typically quite small (<5%).
 
     Args:
-        shortwave_radiation_surface: Shortwave radiation that reaches the surface,
-            [W m-2]
+        shortwave_radiation_surface: Shortwave radiation that reaches surface, [W m-2]
         surface_albedo: Surface albedo, dimensionless.
 
     Returns:
@@ -160,7 +151,7 @@ def update_surface_temperature(
     shortwave radiation, emission of longwave radiation, and surface fluxes. This
     process usually happens in the top few centimeters of the soil column, which is much
     less than the thickness of the upper soil layer of the current layer implementation.
-    In the simulation flow, we therefor set the topsoil layer depth to 0.05, TODO merge
+    In the simulation flow, we therefore set the topsoil layer depth to 0.05, TODO merge
     this into temperature profile.
 
     Args:
@@ -177,11 +168,15 @@ def update_surface_temperature(
     Returns:
         topsoil temperature
     """
+    # Calculate the mass of the soil that is absorbing the radiation
     topsoil_mass = surface_layer_depth * grid_cell_area * volume_to_weight_conversion
 
+    # Convert radiation to energy stored in soil in Kelvin
     temperature_change = (surface_net_radiation * update_interval) / (
         topsoil_mass * specific_heat_capacity_soil
     )
+
+    # Add temperature change to current top soil temperature
     return topsoil_temperature + temperature_change
 
 
@@ -194,7 +189,10 @@ def calculate_soil_heat_balance(
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate soil heat balance.
 
-    * calculate soil absorption (RN * (1-albedo))
+    This function performs a series of calculations to solve the energy balance at the
+    surface at the interface between soil and atmoshere:
+
+    * calculate soil absorption (:math:`R_{N{} * (1-albedo)`)
     * calculate sensible heat flux (convective flux from soil to atmosphere above)
     * calculate latent heat flux (conversion of soil evaporation)
     * calculate ground heat flux (conductive flux)
@@ -205,8 +203,7 @@ def calculate_soil_heat_balance(
 
     * soil_temperature: Soil temperature
     * air_temperature: Air temperature
-    * shortwave_radiation_surface: Shortwave radiation that reaches the surface below
-        the canopy, [W m-2]
+    * shortwave_radiation_surface: Shortwave radiation that reaches surface, [W m-2]
     * soil_evaporation: Soil evaporation, [mm]
     * soil_emissivity: Soil emissivity, dimensionless
     * surface_albedo: Surface albedo, dimensionless
@@ -218,8 +215,7 @@ def calculate_soil_heat_balance(
     * surface_layer_depth: Topsoil layer depth, [m]
     * grid_cell_area: Grid cell area, [m2]
     * specific_heat_capacity_soil: Soil specific heat capacity, [J kg-1 K-1]
-    * volume_to_weight_conversion: Factor to convert between soil volume and weight in
-        kilograms
+    * volume_to_weight_conversion: Factor to convert between soil volume and weight [kg]
 
     Args:
         data: instance if a data object
@@ -235,12 +231,15 @@ def calculate_soil_heat_balance(
 
     output = {}
 
+    # Calculate soil absorption of shortwave radiation, [W m-2]
     soil_absorption = calculate_soil_absorption(
         shortwave_radiation_surface=data["shortwave_radiation_surface"].to_numpy(),
         surface_albedo=abiotic_consts.surface_albedo,
     )
     output["soil_absorption"] = soil_absorption
 
+    # Calculate longwave emission from topsoil, [W m-2]; note that this is the soil
+    # temperature of the previous time step
     longwave_emission_soil = calculate_longwave_emission(
         temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
         emissivity=abiotic_consts.soil_emissivity,
@@ -248,6 +247,7 @@ def calculate_soil_heat_balance(
     )
     output["longwave_emission_soil"] = longwave_emission_soil
 
+    # Calculate sensible heat flux from soil to lowest atmosphere layer, [W m-2]
     sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
         air_temperature_surface=(
             data["air_temperature"][topsoil_layer_index - 1].to_numpy()
@@ -259,6 +259,7 @@ def calculate_soil_heat_balance(
     )
     output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
 
+    # Convert soil evaporation to latent heat flux to lowest atmosphere layer, [W m-2]
     latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=data["soil_evaporation"].to_numpy(),
         latent_heat_vapourisation=(
@@ -267,6 +268,8 @@ def calculate_soil_heat_balance(
     )
     output["latent_heat_flux_soil"] = latent_heat_flux_soil
 
+    # Determine ground heat flux as the difference as
+    # incoming radiation -  sensible and latent heat flux - longwave emission
     ground_heat_flux = calculate_ground_heat_flux(
         soil_absorbed_radiation=soil_absorption,
         topsoil_longwave_emission=longwave_emission_soil,
@@ -275,6 +278,7 @@ def calculate_soil_heat_balance(
     )
     output["ground_heat_flux"] = ground_heat_flux
 
+    # Calculate net surface radiation, [W m-2]
     surface_net_radiation = (
         data["shortwave_radiation_surface"].to_numpy()
         - longwave_emission_soil
@@ -283,6 +287,7 @@ def calculate_soil_heat_balance(
         - ground_heat_flux
     )
 
+    # Update surface temperature, [C]
     new_surface_temperature = update_surface_temperature(
         topsoil_temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
         surface_net_radiation=surface_net_radiation,
@@ -295,3 +300,22 @@ def calculate_soil_heat_balance(
     output["new_surface_temperature"] = new_surface_temperature
 
     return output
+
+
+# def calculate_soil_temnperature_profile():
+#     r"""
+#     Each layer
+#     is assigned a node, :math:`i`, at depth, :math:`z_{i}`, and with heat storage,
+#     :math:`C_{h_{i}}`, and nodes are numbered sequentially downward such that node
+#    :math:`i+1` represents the node for the soil layer immediately below. Conductivity,
+#     :math:`k_{i}`, represents conductivity between nodes :math:`i` and :math:`i+1`.
+#     The energy balance equation for node :math:`i` is then given by
+
+#     .. math::
+#         \kappa_{i}(T_{i+1} - T_{i})- \kappa_{i-1}(T_{i} - T_{i-1})
+#         = \frac{C_{h_{i}}(T_{i}^{j+1} - T_{i}^{j})(z_{i+1} - z_{i-1})}{2 \Delta t}
+
+#     where :math:`\Delta t` is the time increment, conductance,
+#     :math:`\kappa_{i}=k_{i}/(z_{i+1} - z_{i})`, and superscript :math:`j` indicates
+#     the time at which temperature is determined. This equation can be re-arranged and
+#     solved for :math:`T_{j+1}` by Gaussian elimination using the Thomas algorithm."""
