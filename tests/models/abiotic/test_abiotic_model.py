@@ -347,7 +347,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(model.data[var][1:4].to_numpy(), np.zeros((3, 3)))
-        np.testing.assert_allclose(model.data[var][12].to_numpy(), np.zeros(3))
+        np.testing.assert_allclose(model.data[var][13].to_numpy(), np.zeros(3))
 
 
 @pytest.mark.parametrize(

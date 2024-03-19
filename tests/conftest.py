@@ -574,7 +574,23 @@ def dummy_climate_data(fixture_core_components):
         coords=full_coordinates,
     )
     data["sensible_heat_flux_topofcanopy"] = DataArray([100, 50, 10], dims=["cell_id"])
+    data["sensible_heat_flux_soil"] = DataArray([1, 1, 1], dims=["cell_id"])
+    data["latent_heat_flux_soil"] = DataArray([1, 1, 1], dims=["cell_id"])
     data["friction_velocity"] = DataArray([12, 5, 2], dims=["cell_id"])
+    sensible_heat_flux = np.repeat(a=[0.0, np.nan, 0.0, np.nan], repeats=[4, 9, 1, 1])
+    data["sensible_heat_flux"] = DataArray(
+        np.broadcast_to(sensible_heat_flux, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="sensible_heat_flux",
+        coords=full_coordinates,
+    )
+    latent_heat_flux = np.repeat(a=[0.0, np.nan, 0.0, np.nan], repeats=[4, 9, 1, 1])
+    data["latent_heat_flux"] = DataArray(
+        np.broadcast_to(latent_heat_flux, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        name="latent_heat_flux",
+        coords=full_coordinates,
+    )
     molar_density_air = np.repeat(a=[38.0, np.nan, 38.0, np.nan], repeats=[4, 7, 2, 2])
     data["molar_density_air"] = DataArray(
         np.broadcast_to(molar_density_air, (3, 15)).T,

@@ -128,6 +128,8 @@ def initialise_canopy_and_soil_fluxes(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
     layer_heights: DataArray,
+    true_canopy_indexes: NDArray[np.integer],
+    topsoil_layer_index: int,
     light_extinction_coefficient: float,
     canopy_temperature_ini_factor: float,
 ) -> dict[str, DataArray]:
@@ -142,6 +144,9 @@ def initialise_canopy_and_soil_fluxes(
         topofcanopy_radiation: Top of canopy radiation, [W m-2]
         leaf_area_index: Leaf area index, [m m-2]
         layer_heights: Layer heights, [m]
+        true_canopy_indexes: Indexes of canopy layers that are not NaN (maximum extent
+            to capture all depths even if grid cells have different number of layers)
+        topsoil_layer_index: Index of topsoil layer
         light_extinction_coefficient: Light extinction coefficient for canopy
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
@@ -154,15 +159,9 @@ def initialise_canopy_and_soil_fluxes(
     output = {}
 
     # select canopy layers with leaf area index != nan
-    leaf_area_index_true = leaf_area_index[
-        leaf_area_index["layer_roles"] == "canopy"
-    ].dropna(dim="layers", how="all")
-    layer_heights_canopy = layer_heights[
-        leaf_area_index["layer_roles"] == "canopy"
-    ].dropna(dim="layers", how="all")
-    air_temperature_canopy = air_temperature[
-        leaf_area_index["layer_roles"] == "canopy"
-    ].dropna(dim="layers", how="all")
+    leaf_area_index_true = leaf_area_index[true_canopy_indexes]
+    layer_heights_canopy = layer_heights[true_canopy_indexes]
+    air_temperature_canopy = air_temperature[true_canopy_indexes]
 
     # Initialize absorbed radiation DataArray
     absorbed_radiation = DataArray(
@@ -198,7 +197,7 @@ def initialise_canopy_and_soil_fluxes(
         absorbed_radiation=initial_absorbed_radiation,
         canopy_temperature_ini_factor=canopy_temperature_ini_factor,
     )
-    canopy_temperature[layer_heights_canopy.indexes] = initial_canopy_temperature
+    canopy_temperature[true_canopy_indexes] = initial_canopy_temperature
     output["canopy_temperature"] = canopy_temperature
 
     # Initialise sensible heat flux with zeros and write in output dict
@@ -208,8 +207,8 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="sensible_heat_flux",
     )
-    sensible_heat_flux[layer_heights_canopy.indexes] = 0
-    sensible_heat_flux[layer_heights["layer_roles"] == "surface"] = 0
+    sensible_heat_flux[true_canopy_indexes] = 0
+    sensible_heat_flux[topsoil_layer_index] = 0
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Initialise latent heat flux with zeros and write in output dict
@@ -222,7 +221,7 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="ground_heat_flux",
     )
-    ground_heat_flux[layer_heights["layer_roles"] == "surface"] = 0
+    ground_heat_flux[topsoil_layer_index] = 0
     output["ground_heat_flux"] = ground_heat_flux
 
     return output
@@ -276,6 +275,7 @@ def calculate_leaf_and_air_temperature(
     data: Data,
     time_index: int,
     topsoil_layer_index: int,
+    true_canopy_indexes: NDArray[np.integer],
     true_canopy_layers_n: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
@@ -386,6 +386,7 @@ def calculate_leaf_and_air_temperature(
         data: Instance of data object
         time_index: Time index
         topsoil_layer_index: Index of top soil layer
+        true_canopy_indexes: indexes of canopy layers that are not NaN
         true_canopy_layers_n: Maximum number of canopy layers that are not NaN
         layer_structure: Instance of LayerStructure that countains details about layers
         abiotic_constants: Set of abiotic constants
@@ -406,14 +407,6 @@ def calculate_leaf_and_air_temperature(
     vapour_pressure_ref = data["vapour_pressure_ref"].isel(time_index=time_index)
     atmospheric_pressure_ref = data["atmospheric_pressure_ref"].isel(
         time_index=time_index
-    )
-
-    # Get indexes for maximum number of canopy layers that are not NaN
-    # This subset can change over time as vegetation grows or is removed
-    true_canopy_indexes = (
-        data["leaf_area_index"][data["leaf_area_index"]["layer_roles"] == "canopy"]
-        .dropna(dim="layers", how="all")
-        .indexes["layers"]
     )
 
     # Calculate vapour pressures
@@ -634,6 +627,19 @@ def calculate_leaf_and_air_temperature(
             coords=data["air_temperature"].coords,
             name=var,
         )
+
+    # Return latent and sensible heat flux from canopy
+    sensible_heat_flux = data["sensible_heat_flux"].copy()
+    sensible_heat_flux_canopy = b_H * delta_canopy_temperature
+    sensible_heat_flux[topsoil_layer_index] = data["sensible_heat_flux_soil"]
+    sensible_heat_flux[true_canopy_indexes] = sensible_heat_flux_canopy
+    output["sensible_heat_flux_canopy"] = sensible_heat_flux
+
+    latent_heat_flux = data["latent_heat_flux"].copy()
+    latent_heat_flux_canopy = a_L + b_L * delta_canopy_temperature
+    latent_heat_flux[topsoil_layer_index] = data["latent_heat_flux_soil"]
+    latent_heat_flux[true_canopy_indexes] = latent_heat_flux_canopy
+    output["latent_heat_flux_canopy"] = latent_heat_flux
 
     return output
 

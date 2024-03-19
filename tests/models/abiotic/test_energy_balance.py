@@ -98,6 +98,13 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         initialise_canopy_and_soil_fluxes,
     )
 
+    true_canopy_indexes = (
+        dummy_climate_data["leaf_area_index"][
+            dummy_climate_data["leaf_area_index"]["layer_roles"] == "canopy"
+        ]
+        .dropna(dim="layers", how="all")
+        .indexes["layers"]
+    )
     result = initialise_canopy_and_soil_fluxes(
         air_temperature=dummy_climate_data["air_temperature"],
         topofcanopy_radiation=(
@@ -105,6 +112,8 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         ),
         leaf_area_index=dummy_climate_data["leaf_area_index"],
         layer_heights=dummy_climate_data["layer_heights"],
+        true_canopy_indexes=true_canopy_indexes,
+        topsoil_layer_index=13,
         light_extinction_coefficient=0.01,
         canopy_temperature_ini_factor=0.01,
     )
@@ -132,7 +141,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))
-        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros(3))
+        np.testing.assert_allclose(result[var][13].to_numpy(), np.zeros(3))
 
 
 def test_calculate_longwave_emission():
@@ -191,10 +200,18 @@ def test_calculate_leaf_and_air_temperature(
     config = Config(cfg_strings=cfg_string)
     layer_structure = LayerStructure(config=config)
 
+    true_canopy_indexes = (
+        dummy_climate_data["leaf_area_index"][
+            dummy_climate_data["leaf_area_index"]["layer_roles"] == "canopy"
+        ]
+        .dropna(dim="layers", how="all")
+        .indexes["layers"]
+    )
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
         topsoil_layer_index=13,
+        true_canopy_indexes=true_canopy_indexes,
         true_canopy_layers_n=3,
         layer_structure=layer_structure,
         abiotic_constants=AbioticConsts(),
@@ -301,6 +318,43 @@ def test_calculate_leaf_and_air_temperature(
         ),
         dims=["layers", "cell_id"],
     )
+    exp_sens_heat = DataArray(
+        np.concatenate(
+            [
+                np.array(
+                    [
+                        [0, 0, 0],
+                        [1.398342, 1.398342, 1.398342],
+                        [1.397875, 1.397875, 1.397875],
+                        [1.1278, 1.1278, 1.1278],
+                    ],
+                ),
+                np.full((9, 3), np.nan),
+                [[1, 1, 1]],
+                np.full((1, 3), np.nan),
+            ],
+        ),
+        dims=["layers", "cell_id"],
+    )
+    exp_latent_heat = DataArray(
+        np.concatenate(
+            [
+                np.array(
+                    [
+                        [0, 0, 0],
+                        [8.330052, 8.330052, 8.330052],
+                        [8.32997, 8.32997, 8.32997],
+                        [8.646973, 8.646973, 8.646973],
+                    ],
+                ),
+                np.full((9, 3), np.nan),
+                [[1, 1, 1]],
+                np.full((1, 3), np.nan),
+            ],
+        ),
+        dims=["layers", "cell_id"],
+    )
+
     np.testing.assert_allclose(
         result["air_temperature"], exp_air_temp, rtol=1e-04, atol=1e-04
     )
@@ -315,6 +369,12 @@ def test_calculate_leaf_and_air_temperature(
     )
     np.testing.assert_allclose(
         result["leaf_vapour_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["sensible_heat_flux_canopy"], exp_sens_heat, rtol=1e-04, atol=1e-04
+    )
+    np.testing.assert_allclose(
+        result["latent_heat_flux_canopy"], exp_latent_heat, rtol=1e-04, atol=1e-04
     )
 
 

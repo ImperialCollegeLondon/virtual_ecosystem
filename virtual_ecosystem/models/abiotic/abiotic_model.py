@@ -124,6 +124,19 @@ class AbioticModel(
         self.data object.
         """
 
+        # TODO This selection of layers should be included in LayerStructure at the
+        # start of the simulation and updated at each time step (except topsoil index)
+        # At the moment this is duplicated in update() and other parts of the Virtual
+        # Ecosystem
+        true_canopy_indexes = (
+            self.data["leaf_area_index"][
+                self.data["leaf_area_index"]["layer_roles"] == "canopy"
+            ]
+            .dropna(dim="layers", how="all")
+            .indexes["layers"]
+        )
+        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
+
         # Calculate vapour pressure deficit at reference height for all time steps
         simple_constants = AbioticSimpleConsts()
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
@@ -148,7 +161,7 @@ class AbioticModel(
             data=self.data,
             layer_roles=self.layer_structure.layer_roles,
             time_index=0,
-            constants=AbioticSimpleConsts(),  # TODO sort out when constants revised
+            constants=simple_constants,  # TODO sort out when constants revised
             bounds=AbioticSimpleBounds(),
         )
 
@@ -157,6 +170,8 @@ class AbioticModel(
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
             layer_heights=self.data["layer_heights"],
+            true_canopy_indexes=true_canopy_indexes,
+            topsoil_layer_index=topsoil_layer_index,
             light_extinction_coefficient=(
                 self.model_constants.light_extinction_coefficient
             ),
@@ -207,14 +222,20 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
         """
 
-        # select canopy layers that are non NaN
-        # This number can change over time as vegetation grows/ is removed
-        true_canopy_layers_n = len(
+        # TODO This selection of layers should be included in LayerStructure at the
+        # start of the simulation and updated at each time step (except topsoil index)
+        # At the moment this is duplicated in setup() and other parts of the Virtual
+        # Ecosystem
+        true_canopy_indexes = (
             self.data["leaf_area_index"][
                 self.data["leaf_area_index"]["layer_roles"] == "canopy"
-            ].dropna(dim="layers", how="all")
+            ]
+            .dropna(dim="layers", how="all")
+            .indexes["layers"]
         )
+        true_canopy_layers_n = len(true_canopy_indexes)
         empty_canopy_layers = self.layer_structure.canopy_layers - true_canopy_layers_n
+        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
         # Wind profiles
         wind_update_inputs: dict[str, DataArray] = {}
@@ -279,8 +300,6 @@ class AbioticModel(
         self.data.add_from_dict(output_dict=wind_output)
 
         # Soil energy balance
-        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
-
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
             topsoil_layer_index=topsoil_layer_index,
@@ -289,7 +308,7 @@ class AbioticModel(
             core_consts=self.core_constants,
         )
 
-        soil_output = {}  # TODO add these variables to combined flux variables
+        soil_output = {}
         var_list = [
             "soil_absorption",
             "longwave_emission_soil",
@@ -308,14 +327,15 @@ class AbioticModel(
         ]
         self.data.add_from_dict(output_dict=soil_output)
 
-        # TODO Update soil temperatures
+        # TODO Update lower soil temperatures
 
-        # Update air temperature, leaf temperature and vapour pressure deficit
-        # TODO return sensible and latent heat flux
+        # Update air temperature, leaf temperature, vapour pressure, vapour pressure
+        # deficit and turbulent fluxes
         new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
             data=self.data,
             time_index=time_index,
             topsoil_layer_index=self.layer_structure.layer_roles.index("soil"),
+            true_canopy_indexes=true_canopy_indexes,
             true_canopy_layers_n=true_canopy_layers_n,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
