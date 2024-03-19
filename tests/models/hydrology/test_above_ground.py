@@ -215,9 +215,7 @@ def test_estimate_interception():
     result = calculate_interception(
         leaf_area_index=lai,
         precipitation=precip,
-        intercept_param_1=HydroConsts.intercept_param_1,
-        intercept_param_2=HydroConsts.intercept_param_2,
-        intercept_param_3=HydroConsts.intercept_param_3,
+        intercept_parameters=HydroConsts.intercept_parameters,
         veg_density_param=HydroConsts.veg_density_param,
     )
 

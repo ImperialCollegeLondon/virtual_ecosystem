@@ -74,22 +74,10 @@ class HydroConsts(ConstantsDataclass):
     At the moment, this is set as an arbitrary value, but could be used in the future to
     flag flood events."""
 
-    intercept_param_1: float = 0.935
-    """Interception parameter 1.
+    intercept_parameters: tuple[float, float, float] = (0.935, 0.498, 0.00575)
+    """Interception parameters.
 
-    Parameter in equation that estimates maximum canopy interception capacity after
-    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
-
-    intercept_param_2: float = 0.498
-    """Interception parameter 2.
-
-    Parameter in equation that estimates maximum canopy interception capacity after
-    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
-
-    intercept_param_3: float = 0.00575
-    """Interception parameter 3.
-
-    Parameter in equation that estimates maximum canopy interception capacity after
+    Parameters in equation that estimates maximum canopy interception capacity after
     :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     veg_density_param: float = 0.046

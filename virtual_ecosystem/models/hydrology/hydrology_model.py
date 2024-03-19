@@ -433,9 +433,7 @@ class HydrologyModel(
             interception = above_ground.calculate_interception(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 precipitation=hydro_input["current_precipitation"][:, day],
-                intercept_param_1=self.model_constants.intercept_param_1,
-                intercept_param_2=self.model_constants.intercept_param_2,
-                intercept_param_3=self.model_constants.intercept_param_3,
+                intercept_parameters=self.model_constants.intercept_parameters,
                 veg_density_param=self.model_constants.veg_density_param,
             )
 

@@ -227,9 +227,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 def calculate_interception(
     leaf_area_index: NDArray[np.float32],
     precipitation: NDArray[np.float32],
-    intercept_param_1: float,
-    intercept_param_2: float,
-    intercept_param_3: float,
+    intercept_parameters: tuple[float, float, float],
     veg_density_param: float,
 ) -> NDArray[np.float32]:
     r"""Estimate canopy interception.
@@ -280,9 +278,9 @@ def calculate_interception(
     """
 
     capacity = (
-        intercept_param_1
-        + intercept_param_2 * leaf_area_index
-        - intercept_param_3 * leaf_area_index**2
+        intercept_parameters[0]
+        + intercept_parameters[1] * leaf_area_index
+        - intercept_parameters[2] * leaf_area_index**2
     )
     max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
 
