@@ -21,7 +21,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
-from numpy import array, timedelta64
+from numpy import array, timedelta64, zeros
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -43,6 +43,7 @@ class AnimalModel(
     vars_updated=(
         "decomposed_excrement",
         "decomposed_carcasses",
+        "animal_respiration",
     ),
 ):
     """A class describing the animal model.
@@ -170,7 +171,23 @@ class AnimalModel(
         )
 
     def setup(self) -> None:
-        """Function to set up the animal model."""
+        """Method to setup the animal model specific data variables."""
+        # the array should have one value for each animal community
+        n_communities = len(self.data.grid.cell_id)
+
+        # Initialize total_animal_respiration as a DataArray with a single dimension:
+        # cell_id
+        total_animal_respiration = DataArray(
+            zeros(
+                n_communities
+            ),  # Filled with zeros to start with no carbon production.
+            dims=["cell_id"],
+            coords={"cell_id": self.data.grid.cell_id},
+            name="total_animal_respiration",
+        )
+
+        # Add total_animal_respiration to the Data object.
+        self.data["total_animal_respiration"] = total_animal_respiration
 
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""

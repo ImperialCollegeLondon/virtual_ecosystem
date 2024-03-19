@@ -96,7 +96,7 @@ class AnimalCohort:
         self.decay_fraction_carcasses: float = self.constants.decay_fraction_carcasses
         """The fraction of carcass biomass which decays before it gets consumed."""
 
-    def metabolize(self, temperature: float, dt: timedelta64) -> None:
+    def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce mass_current through basal metabolism.
 
         TODO: Implement distinction between field and basal rates.
@@ -124,6 +124,8 @@ class AnimalCohort:
         ) * float(dt / timedelta64(1, "D"))
 
         self.mass_current -= min(self.mass_current, mass_metabolized)
+
+        return 1.0  # standin
 
     def excrete(
         self,

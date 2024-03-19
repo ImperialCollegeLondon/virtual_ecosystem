@@ -13,6 +13,7 @@ from itertools import chain
 from random import choice
 
 from numpy import timedelta64
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -276,7 +277,8 @@ class AnimalCommunity:
 
         """
         for cohort in self.all_animal_cohorts:
-            cohort.metabolize(temperature, dt)
+            metabolic_waste_mass = cohort.metabolize(temperature, dt)
+            self.data["animal_respiration"] += DataArray(metabolic_waste_mass)
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.
