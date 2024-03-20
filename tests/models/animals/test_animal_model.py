@@ -9,6 +9,26 @@ import pytest
 from tests.conftest import log_check
 
 
+@pytest.fixture
+def prepared_animal_model_instance(
+    plant_climate_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Animal model instance in which setup has already been run."""
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data=plant_climate_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+    model.setup()  # Ensure setup is called
+    return model
+
+
 def test_animal_model_initialization(
     plant_climate_data_instance,
     fixture_core_components,
@@ -79,6 +99,7 @@ def test_animal_model_initialization(
                     "Information required to initialise the animal model successfully "
                     "extracted.",
                 ),
+                (INFO, "Adding data array for 'total_animal_respiration'"),
                 (INFO, "Adding data array for 'decomposed_excrement'"),
                 (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
@@ -198,19 +219,12 @@ def test_update_method_sequence(
 
 
 def test_update_method_time_index_argument(
-    plant_climate_data_instance, fixture_core_components, functional_group_list_instance
+    prepared_animal_model_instance,
 ):
     """Test update to ensure the time index argument does not create an error."""
-    from virtual_ecosystem.models.animals.animal_model import AnimalModel
-
-    model = AnimalModel(
-        data=plant_climate_data_instance,
-        core_components=fixture_core_components,
-        functional_groups=functional_group_list_instance,
-    )
 
     time_index = 5
-    model.update(time_index=time_index)
+    prepared_animal_model_instance.update(time_index=time_index)
 
     assert True
 
@@ -276,3 +290,38 @@ def test_calculate_litter_additions(functional_group_list_instance):
         ],
         0.0,
     )
+
+
+def test_setup_initializes_total_animal_respiration(
+    prepared_animal_model_instance,
+):
+    """Test that the setup method initializes the total_animal_respiration variable."""
+    import numpy as np
+    from xarray import DataArray
+
+    # Check if 'total_animal_respiration' is in the data object
+    assert (
+        "total_animal_respiration" in prepared_animal_model_instance.data
+    ), "'total_animal_respiration' should be initialized in the data object."
+
+    # Retrieve the total_animal_respiration DataArray from the model's data object
+    total_animal_respiration = prepared_animal_model_instance.data[
+        "total_animal_respiration"
+    ]
+
+    # Check that total_animal_respiration is an instance of xarray.DataArray
+    assert isinstance(
+        total_animal_respiration, DataArray
+    ), "'total_animal_respiration' should be an instance of xarray.DataArray."
+
+    # Check the initial values of total_animal_respiration are all zeros
+    assert np.all(
+        total_animal_respiration.values == 0
+    ), "Initial values of 'total_animal_respiration' should be all zeros."
+
+    # Optionally, you can also check the dimensions and coordinates
+    # This is useful if your setup method is supposed to initialize the data variable
+    # with specific dimensions or coordinates based on your model's structure
+    assert (
+        "cell_id" in total_animal_respiration.dims
+    ), "'cell_id' should be a dimension of 'total_animal_respiration'."

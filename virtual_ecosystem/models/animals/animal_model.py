@@ -163,12 +163,16 @@ class AnimalModel(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        return cls(
+        model = cls(
             data=data,
             core_components=core_components,
             functional_groups=functional_groups,
             model_constants=model_constants,
         )
+
+        model.setup()  # initialize data variables
+
+        return model
 
     def setup(self) -> None:
         """Method to setup the animal model specific data variables."""
@@ -188,6 +192,9 @@ class AnimalModel(
 
         # Add total_animal_respiration to the Data object.
         self.data["total_animal_respiration"] = total_animal_respiration
+
+        # Debugging output
+        print("Data variables after setup:", list(self.data.data.data_vars))
 
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
