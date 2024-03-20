@@ -4,6 +4,7 @@ import pkgutil
 from dataclasses import dataclass, field
 from importlib import import_module
 
+import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -170,8 +171,6 @@ def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
 
 def verify_variables_axis() -> None:
     """Verify that all required variables have valid, available axis."""
-    import virtual_ecosystem.core.axes as axes
-
     for var in RUN_VARIABLES_REGISTRY.values():
         unknown_axes = set(var.axis).difference(axes.AXIS_VALIDATORS)
 

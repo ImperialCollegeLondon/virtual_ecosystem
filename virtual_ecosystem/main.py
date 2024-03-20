@@ -12,7 +12,7 @@ from typing import Any
 
 from tqdm import tqdm
 
-import virtual_ecosystem.core.variables as variables
+from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files

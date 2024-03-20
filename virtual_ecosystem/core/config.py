@@ -17,6 +17,7 @@ from typing import Any
 import tomli_w
 from jsonschema import FormatChecker
 
+from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
@@ -450,7 +451,6 @@ class Config(dict):
         using the :meth:`~virtual_ecosystem.core.schema.merge_schemas` function to
         generate a single validation schema for model configuration.
         """
-        import virtual_ecosystem.core.data.variable as variables
 
         # Extract the requested modules, which are the top-level config keys.
         requested_modules: list[str] = list(self.keys())
