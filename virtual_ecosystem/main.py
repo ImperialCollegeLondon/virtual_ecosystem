@@ -174,6 +174,7 @@ def ve_run(
     if progress:
         print("* Loading configuration")
 
+    variables.register_all_variables()
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )

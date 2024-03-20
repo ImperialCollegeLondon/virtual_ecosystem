@@ -1,12 +1,11 @@
 """Module for all variables."""
 
+import pkgutil
 from dataclasses import dataclass, field
 from importlib import import_module
-from inspect import getmembers
 
-import virtual_rainforest.core.axes as axes
-import virtual_rainforest.core.base_model as base_model
-from virtual_rainforest.core.logger import LOGGER
+import virtual_ecosystem.core.base_model as base_model
+from virtual_ecosystem.core.logger import LOGGER
 
 
 @dataclass
@@ -15,6 +14,8 @@ class Variable:
 
     name: str
     """Name of the variable. Must be unique."""
+    model_name: str
+    """Name of the model defining the variable."""
     description: str
     """Description of what the variable represents."""
     units: str
@@ -41,12 +42,7 @@ class Variable:
                 f"Variable {self.name} already in the known variables registry."
             )
 
-        LOGGER.info(
-            "Variable registered for %s: %s ",
-            self.__module__,
-            self.name,
-        )
-
+        LOGGER.info(f"Variable registered for model '{self.model_name}': {self.name}")
         KNOWN_VARIABLES[self.name] = self
 
 
@@ -57,25 +53,20 @@ KNOWN_VARIABLES: dict[str, Variable] = {}
 """The global known variable registry."""
 
 
-def register_variables(module_name: str) -> None:
-    """Register known variables in the module.
+def register_all_variables() -> None:
+    """Registers all variables provided by the models."""
+    import virtual_ecosystem.models as models
 
-    As variables are global, they are registered in the global KNOWN_VARIABLES registry
-    rather than on a per-module basis.
+    for mod in pkgutil.iter_modules(models.__path__):
+        if not mod.ispkg:
+            continue
 
-    Args:
-        module_name: The name of the module to register variables for.
-
-    Raises:
-        ValueError: If a variable is already in the known variables registry.
-    """
-    try:
-        variables_submodule = import_module(f"{module_name}.variables")
-    except ModuleNotFoundError:
-        LOGGER.info("No variables registered for %s.", module_name)
-        return
-
-    list(getmembers(variables_submodule))
+        try:
+            import_module(f"{models.__name__}.{mod.name}.variables")
+        except ImportError:
+            LOGGER.debug(
+                f"No 'variables' module found for model {models.__name__}.{mod.name}."
+            )
 
 
 def _initialise_variables(models: list[type[base_model.BaseModel]]) -> None:
@@ -179,6 +170,8 @@ def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
 
 def verify_variables_axis() -> None:
     """Verify that all required variables have valid, available axis."""
+    import virtual_ecosystem.core.axes as axes
+
     for var in RUN_VARIABLES_REGISTRY.values():
         unknown_axes = set(var.axis).difference(axes.AXIS_VALIDATORS)
 
