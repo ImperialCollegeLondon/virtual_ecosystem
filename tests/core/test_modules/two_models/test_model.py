@@ -1,6 +1,6 @@
 """A test module to test module registration."""
 
-from virtual_rainforest.core.base_model import BaseModel
+from virtual_ecosystem.core.base_model import BaseModel
 
 
 class ATestModel1(

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from tests.conftest import log_check, record_found_in_log
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -139,7 +139,7 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 )
 def test_config_merge(dest, source, exp_result, exp_conflicts):
     """Checks configuration merge and validation function."""
-    from virtual_rainforest.core.config import config_merge
+    from virtual_ecosystem.core.config import config_merge
 
     result, conflicts = config_merge(dest, source)
 
@@ -229,7 +229,7 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
 )
 def test_Config_init(cfg_paths, cfg_strings, expected_cfg_paths, raises, err_msg):
     """Tests the normalisation and startup of Config instance init."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Just check normalisation and error conditions, no processing
     with raises as err:
@@ -298,7 +298,7 @@ def test_Config_collect_config_paths(
     expected_log_entries,
 ):
     """Checks errors for missing config files."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     caplog.clear()
 
@@ -336,7 +336,7 @@ def test_Config_load_config_toml(
     caplog, shared_datadir, cfg_paths, expected_exception, expected_log_entries
 ):
     """Check errors for incorrectly formatted config files."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually resolve the config paths to toml files
     cfg = Config([shared_datadir / p for p in cfg_paths], auto=False)
@@ -371,7 +371,7 @@ def test_Config_load_config_toml_string(
     caplog, shared_datadir, cfg_paths, expected_exception, expected_log_entries
 ):
     """Check errors for incorrectly formatted cfg_strings."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually run the load process
     with open(Path(shared_datadir) / cfg_paths) as cfg_file:
@@ -452,7 +452,7 @@ def test_Config_build_config_paths(
     caplog, content, expected_exception, expected_log_entries
 ):
     """Check building merged config from loaded content from paths."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
     cfg = Config(cfg_paths=["path/not/used"], auto=False)
@@ -489,7 +489,7 @@ def test_Config_build_config_paths(
 )
 def test_Config_build_config_string(caplog, cfg_strings):
     """Check building merged config from loaded content from a string."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
     cfg = Config(cfg_strings=cfg_strings, auto=False)
@@ -537,7 +537,7 @@ def test_Config_build_config_string(caplog, cfg_strings):
             None,
             (
                 CRITICAL,
-                "Unknown module - registration failed: virtual_rainforest.models.pants",
+                "Unknown module - registration failed: virtual_ecosystem.models.pants",
             ),
             id="core_modules_include_unknown",
         ),
@@ -547,7 +547,7 @@ def test_Config_build_schema(
     caplog, cfg_strings, expected_exception, find_log_entry, last_log_entry
 ):
     """Test the build_schema method of Config."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Build a config that tests schema validation
     cfg = Config(cfg_strings=cfg_strings, auto=False)
@@ -644,7 +644,7 @@ def test_Config_validate_config(
     caplog, cfg_strings, expected_exception, expected_log_entries
 ):
     """Test the validate_config method of Config."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     # Get a Config object with a built schema and config, ready for validation
     cfg = Config(cfg_strings=cfg_strings, auto=False)
@@ -669,7 +669,7 @@ def test_Config_validate_config(
 )
 def test_Config_init_auto(caplog, shared_datadir, file_path):
     """Checks that auto validation passes as expected."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     Config(shared_datadir / file_path, auto=True)
 
@@ -713,7 +713,7 @@ def test_Config_init_auto(caplog, shared_datadir, file_path):
 )
 def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries):
     """Checks that auto validation passes as expected."""
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     cfg = Config(shared_datadir / "all_config.toml", auto=auto)
     caplog.clear()
@@ -782,7 +782,7 @@ def test__resolve_config_paths(
     This is using tmpdir to get an OS appropriate base file path - the location is not
     used for any actual file IO.
     """
-    from virtual_rainforest.core.config import _resolve_config_paths
+    from virtual_ecosystem.core.config import _resolve_config_paths
 
     # Get the config path to be used
     execution_root = Path(tmpdir)

@@ -12,22 +12,22 @@ jupytext:
 
 # Documentation system overview
 
-The Virtual Rainforest project is documented using the
+The Virtual Ecosystem project is documented using the
 [`sphinx`](https://www.sphinx-doc.org/en/master/) document generation system. This
 includes documentation to:
 
-* present the scientific background underpinning the `virtual_rainforest` package,
+* present the scientific background underpinning the `virtual_ecosystem` package,
 * provide tutorials in using the package,
 * demonstrate how to use the package components in more detail, and
 * technical details of the application program interface (API) of the underlying code.
 
 The project makes use of the following technologies within `sphinx` to structure the
 documentation content and then render that content as the [project
-website](https://virtual-rainforest.readthedocs.io/).
+website](https://virtual-ecosystem.readthedocs.io/).
 
 ## Sphinx build process
 
-The documentation sources for `virtual_rainforest` are stored in the `docs/source`
+The documentation sources for `virtual_ecosystem` are stored in the `docs/source`
 directory along with the `sphinx` configuration file `conf.py`. As noted below, the
 `sphinx` build process will need to run and build Jupyter notebooks. This requires the
 extra setup step shown below and [explained
@@ -64,7 +64,7 @@ for the [RST format](https://docutils.sourceforge.io/rst.html).
 ## Jupyter Notebooks
 
 In addition to static content, both 'tutorial' and 'how to' pages can contain actual
-Python code demonstrating how to use the components of the `virtual_rainforest` package.
+Python code demonstrating how to use the components of the `virtual_ecosystem` package.
 These pages are written using [Jupyter](https://jupyter.org/) notebooks. These notebooks
 can be worked on interactively by developers using [`jupyter`](https://jupyter.org/) and
 can also be run by `sphinx`, using the [`myst-nb`
@@ -80,7 +80,7 @@ Jupyter notebooks in the documentation.
 
 ## Docstrings
 
-All of the code provided in the `virtual_rainforest` package should be extensively
+All of the code provided in the `virtual_ecosystem` package should be extensively
 documented in place using docstrings. We use the
 [`napoleon` extension](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/) to
 `sphinx` to provide a more legible docstring style. We also use the [`autodoc`

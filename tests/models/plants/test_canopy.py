@@ -8,7 +8,7 @@ import pytest
 from numpy import ndarray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_generate_canopy_model(plants_data, flora):
@@ -17,8 +17,8 @@ def test_generate_canopy_model(plants_data, flora):
     # TODO - the functionality in this function does nothing at the moment, so this
     #        method just tests data handling
 
-    from virtual_rainforest.models.plants.canopy import generate_canopy_model
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import generate_canopy_model
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     communities = PlantCommunities(plants_data, flora)
 
@@ -60,8 +60,8 @@ def test_generate_canopy_model(plants_data, flora):
 def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp_log):
     """Test the function to turn PlantsCommunities into canopy arrays."""
 
-    from virtual_rainforest.models.plants.canopy import build_canopy_arrays
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import build_canopy_arrays
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
@@ -91,7 +91,7 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
 def test_initialise_canopy_layers(plants_data, fixture_core_components):
     """Test the function to initialise canopy layers in the data object."""
 
-    from virtual_rainforest.models.plants.canopy import initialise_canopy_layers
+    from virtual_ecosystem.models.plants.canopy import initialise_canopy_layers
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.

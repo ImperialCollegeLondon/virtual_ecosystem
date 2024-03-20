@@ -10,7 +10,7 @@ from xarray import DataArray
 
 # An import of LOGGER is required for INFO logging events to be visible to tests
 # This can be removed as soon as a script that imports logger is imported
-from virtual_rainforest.core.logger import LOGGER
+from virtual_ecosystem.core.logger import LOGGER
 
 # Class uses DEBUG
 LOGGER.setLevel(DEBUG)
@@ -75,7 +75,7 @@ def reset_module_registry():
     before tests start, so that the correct registration of modules within tests is
     enforced.
     """
-    from virtual_rainforest.core.registry import MODULE_REGISTRY
+    from virtual_ecosystem.core.registry import MODULE_REGISTRY
 
     MODULE_REGISTRY.clear()
 
@@ -90,7 +90,7 @@ def fixture_square_grid():
     A 10 x 10 grid of 1 hectare cells, with non-zero origin.
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(
         grid_type="square",
@@ -111,7 +111,7 @@ def fixture_square_grid_simple():
     A 2 x 2 grid centred on x=1,1,2,2 y=1,2,1,2
     """
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(
         grid_type="square",
@@ -129,7 +129,7 @@ def fixture_square_grid_simple():
 def fixture_data(fixture_square_grid_simple):
     """A Data instance fixture for use in testing."""
 
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.data import Data
 
     data = Data(fixture_square_grid_simple)
 
@@ -142,8 +142,8 @@ def fixture_data(fixture_square_grid_simple):
 @pytest.fixture
 def data_instance():
     """Creates an empty data instance."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid()
     return Data(grid)
@@ -153,7 +153,7 @@ def data_instance():
 def fixture_config():
     """Simple configuration fixture for use in tests."""
 
-    from virtual_rainforest.core.config import Config
+    from virtual_ecosystem.core.config import Config
 
     cfg_string = """
         [core]
@@ -236,7 +236,7 @@ def fixture_config():
 @pytest.fixture
 def fixture_core_components(fixture_config):
     """A CoreComponents instance for use in testing."""
-    from virtual_rainforest.core.core_components import CoreComponents
+    from virtual_ecosystem.core.core_components import CoreComponents
 
     return CoreComponents(fixture_config)
 
@@ -245,8 +245,8 @@ def fixture_core_components(fixture_config):
 def dummy_carbon_data(fixture_core_components):
     """Creates a dummy carbon data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(cell_nx=4, cell_ny=1)
@@ -368,8 +368,8 @@ def surface_layer_index(fixture_core_components):
 @pytest.fixture
 def new_axis_validators():
     """Create new axis validators to test methods and registration."""
-    from virtual_rainforest.core.axes import AxisValidator
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.axes import AxisValidator
+    from virtual_ecosystem.core.grid import Grid
 
     # Create a new subclass.
     class TestAxis(AxisValidator):
@@ -402,8 +402,8 @@ def new_axis_validators():
 def dummy_climate_data(fixture_core_components):
     """Creates a dummy climate data object for use in tests."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(

@@ -9,8 +9,8 @@ from xarray import DataArray
 @pytest.fixture
 def plant_data_instance():
     """Fixture returning a simple data instance containing plant resource data."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Populate data with a layers x cell id layer_leaf_mass array
     data = Data(grid=Grid(cell_nx=3, cell_ny=3))
@@ -27,8 +27,8 @@ def plant_data_instance():
 def plant_climate_data_instance(fixture_core_components):
     """Fixture returning a combination of plant and air temperature data."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
     grid = Grid(
@@ -82,7 +82,7 @@ def plant_climate_data_instance(fixture_core_components):
 @pytest.fixture
 def constants_instance():
     """Fixture for an instance of animal constants."""
-    from virtual_rainforest.models.animals.constants import AnimalConsts
+    from virtual_ecosystem.models.animals.constants import AnimalConsts
 
     return AnimalConsts()
 
@@ -90,7 +90,7 @@ def constants_instance():
 @pytest.fixture
 def functional_group_list_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
+    from virtual_ecosystem.models.animals.functional_group import (
         import_functional_groups,
     )
 
@@ -109,7 +109,7 @@ def animal_model_instance(
 ):
     """Fixture for an animal model object used in tests."""
 
-    from virtual_rainforest.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     return AnimalModel(
         data=data_instance,
@@ -127,7 +127,7 @@ def animal_community_instance(
     constants_instance,
 ):
     """Fixture for an animal community used in tests."""
-    from virtual_rainforest.models.animals.animal_communities import AnimalCommunity
+    from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
 
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
@@ -142,7 +142,7 @@ def animal_community_instance(
 @pytest.fixture
 def herbivore_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_rainforest.models.animals.functional_group import (
+    from virtual_ecosystem.models.animals.functional_group import (
         import_functional_groups,
     )
 
@@ -155,7 +155,7 @@ def herbivore_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def herbivore_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_rainforest.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
@@ -165,7 +165,7 @@ def herbivore_cohort_instance(herbivore_functional_group_instance, constants_ins
 @pytest.fixture
 def excrement_instance():
     """Fixture for a soil pool used in tests."""
-    from virtual_rainforest.models.animals.decay import ExcrementPool
+    from virtual_ecosystem.models.animals.decay import ExcrementPool
 
     return ExcrementPool(100000.0, 0.0)
 
@@ -173,7 +173,7 @@ def excrement_instance():
 @pytest.fixture
 def plant_instance(plant_data_instance, constants_instance):
     """Fixture for a plant community used in tests."""
-    from virtual_rainforest.models.animals.plant_resources import PlantResources
+    from virtual_ecosystem.models.animals.plant_resources import PlantResources
 
     return PlantResources(
         data=plant_data_instance, cell_id=4, constants=constants_instance

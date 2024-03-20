@@ -9,17 +9,12 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_pressure_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
-    (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
-    (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
 ]
 
 
@@ -37,11 +32,14 @@ def test_abiotic_simple_model_initialization(
     expected_log_entries,
 ):
     """Test `AbioticSimpleModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_rainforest.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import (
+        AbioticSimpleBounds,
+        AbioticSimpleConsts,
+    )
 
     with raises:
         # Initialize model
@@ -55,17 +53,18 @@ def test_abiotic_simple_model_initialization(
         assert isinstance(model, BaseModel)
         assert model.model_name == "abiotic_simple"
         assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
+        assert model.bounds == AbioticSimpleBounds()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
-    "cfg_string,relative_humid,raises,expected_log_entries",
+    "cfg_string,satvap1,raises,expected_log_entries",
     [
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            5.4,
+            0.61078,
             does_not_raise(),
             tuple(
                 [
@@ -86,7 +85,7 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "relative_humidity_gradient = 10.2\n",
+            "saturation_vapour_pressure_factor1 = 10.2\n",
             10.2,
             does_not_raise(),
             tuple(
@@ -108,14 +107,14 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "relative_humidity_grad = 10.2\n",
+            "saturation_vapour_pressure_factorx = 10.2\n",
             None,
             pytest.raises(ConfigurationError),
             (
                 (
                     ERROR,
                     "Unknown names supplied for AbioticSimpleConsts: "
-                    "relative_humidity_grad",
+                    "saturation_vapour_pressure_factorx",
                 ),
                 (INFO, "Valid names are: "),
                 (
@@ -132,14 +131,14 @@ def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data,
     cfg_string,
-    relative_humid,
+    satvap1,
     raises,
     expected_log_entries,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
@@ -155,7 +154,7 @@ def test_generate_abiotic_simple_model(
             core_components=core_components,
             config=config,
         )
-        assert model.model_constants.relative_humidity_gradient == relative_humid
+        assert model.model_constants.saturation_vapour_pressure_factor1 == satvap1
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -165,9 +164,9 @@ def test_setup(
     dummy_climate_data,
 ):
     """Test set up and update."""
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.abiotic_simple.abiotic_simple_model import (
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 

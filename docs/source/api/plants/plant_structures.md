@@ -14,7 +14,7 @@ kernelspec:
   name: vr_python3
 ---
 
-# Plant structures for the {mod}`~virtual_rainforest.models.plants` module
+# Plant structures for the {mod}`~virtual_ecosystem.models.plants` module
 
 This page documents three submodules of the `plants` module:
 
@@ -23,26 +23,26 @@ This page documents three submodules of the `plants` module:
    with different diameters at breast height within a grid cell.
 3. The canopy structure generated in a grid cell by the plant community.
 
-## The plant {mod}`~virtual_rainforest.models.plants.functional_types` module
+## The plant {mod}`~virtual_ecosystem.models.plants.functional_types` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants.functional_types
+.. automodule:: virtual_ecosystem.models.plants.functional_types
     :autosummary:
     :members:
 ```
 
-## The plants {mod}`~virtual_rainforest.models.plants.community` module
+## The plants {mod}`~virtual_ecosystem.models.plants.community` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants.community
+.. automodule:: virtual_ecosystem.models.plants.community
     :autosummary:
     :members:
 ```
 
-## The plants {mod}`~virtual_rainforest.models.plants.canopy` module
+## The plants {mod}`~virtual_ecosystem.models.plants.canopy` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants.canopy
+.. automodule:: virtual_ecosystem.models.plants.canopy
     :autosummary:
     :members:
 ```

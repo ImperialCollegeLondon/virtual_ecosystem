@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `animals` modules
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.animals
+.. automodule:: virtual_ecosystem.models.animals
 ```

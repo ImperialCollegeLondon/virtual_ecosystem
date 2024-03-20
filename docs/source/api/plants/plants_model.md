@@ -17,24 +17,24 @@ kernelspec:
 # API documentation for the plants model
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants
+.. automodule:: virtual_ecosystem.models.plants
     :autosummary:
     :members:
 ```
 
-## The {mod}`~virtual_rainforest.models.plants.plants_model` module
+## The {mod}`~virtual_ecosystem.models.plants.plants_model` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants.plants_model
+.. automodule:: virtual_ecosystem.models.plants.plants_model
     :autosummary:
     :members:
     :exclude-members: model_name
 ```
 
-## The plants {mod}`~virtual_rainforest.models.plants.constants` module
+## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.models.plants.constants
+.. automodule:: virtual_ecosystem.models.plants.constants
     :autosummary:
     :members:
 ```

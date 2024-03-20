@@ -17,5 +17,5 @@ kernelspec:
 # API reference for `example_data` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.example_data
+.. automodule:: virtual_ecosystem.example_data
 ```

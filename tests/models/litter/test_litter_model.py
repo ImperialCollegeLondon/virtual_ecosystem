@@ -9,16 +9,16 @@ import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 
 def test_litter_model_initialization(
     caplog, dummy_litter_data, fixture_core_components
 ):
     """Test `LitterModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     model = LitterModel(
         data=dummy_litter_data,
@@ -56,10 +56,10 @@ def test_litter_model_initialization(
 
 def test_litter_model_initialization_no_data(caplog, fixture_core_components):
     """Test `LitterModel` initialization fails when all data is missing."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     caplog.clear()
 
@@ -128,8 +128,8 @@ def test_litter_model_initialization_bad_pool_bounds(
     caplog, dummy_litter_data, fixture_core_components
 ):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
@@ -155,8 +155,8 @@ def test_litter_model_initialization_bad_lignin_bounds(
     caplog, dummy_litter_data, fixture_core_components
 ):
     """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
         # Make four cell grid
@@ -286,9 +286,9 @@ def test_generate_litter_model(
 ):
     """Test that the function to initialise the litter model behaves as expected."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.core_components import CoreComponents
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
