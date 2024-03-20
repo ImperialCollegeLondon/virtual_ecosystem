@@ -1,8 +1,12 @@
 """Module for all variables."""
 
+import inspect
 import pkgutil
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from importlib import import_module
+from pathlib import Path
+
+import tomli_w
 
 import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
@@ -68,6 +72,55 @@ def register_all_variables() -> None:
             LOGGER.debug(
                 f"No 'variables' module found for model {models.__name__}.{mod.name}."
             )
+
+
+def _discover_all_variables_usage() -> None:
+    """Discover the usage of variables in the models."""
+    import virtual_ecosystem.models as models
+
+    models_found = []
+    for mod in pkgutil.iter_modules(models.__path__):
+        if not mod.ispkg:
+            continue
+
+        try:
+            module = import_module(f"{models.__name__}.{mod.name}.{mod.name}_model")
+        except ImportError:
+            LOGGER.warning(
+                f"No model file found for model {models.__name__}.{mod.name}."
+            )
+            continue
+
+        models_found.extend(
+            [
+                obj
+                for _, obj in inspect.getmembers(module)
+                if inspect.isclass(obj)
+                and issubclass(obj, base_model.BaseModel)
+                and obj is not base_model.BaseModel
+            ]
+        )
+
+    setup_variables(models_found)
+
+
+def output_known_variables(output_file: Path) -> None:
+    """Output the known variables to a file.
+
+    For the variables to be output, the variables must be registered and the usage of
+    the variables must be discovered, assigning the appropriate models to the variables.
+
+    Args:
+        output_file: The file to output the known variables to.
+    """
+    register_all_variables()
+    _discover_all_variables_usage()
+    vars = {
+        var.name: asdict(var)
+        for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
+    }
+    with open(output_file, "bw") as f:
+        tomli_w.dump(vars, f)
 
 
 def _initialise_variables(models: list[type[base_model.BaseModel]]) -> None:
