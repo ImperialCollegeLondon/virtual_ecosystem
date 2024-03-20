@@ -16,6 +16,7 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
+import virtual_ecosystem.core.variables as variables
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -178,6 +179,9 @@ def register_module(module_name: str) -> None:
                 module_name,
                 class_name,
             )
+
+    # Register the known variables associated to this module
+    variables.register_variables(module_name)
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
