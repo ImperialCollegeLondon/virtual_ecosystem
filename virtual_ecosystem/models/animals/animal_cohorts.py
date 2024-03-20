@@ -102,6 +102,7 @@ class AnimalCohort:
         TODO: Implement distinction between field and basal rates.
         TODO: Implement proportion of day active.
         TODO: clean up units
+        TODO: Distinguish between uric and respiratory metabolic wastes
 
         Args:
             temperature: Current air temperature (K)
@@ -123,9 +124,11 @@ class AnimalCohort:
             self.functional_group.metabolic_type,
         ) * float(dt / timedelta64(1, "D"))
 
-        self.mass_current -= min(self.mass_current, mass_metabolized)
+        metabolic_loss = min(self.mass_current, mass_metabolized)
 
-        return 1.0  # standin
+        self.mass_current -= metabolic_loss
+
+        return metabolic_loss
 
     def excrete(
         self,
