@@ -30,6 +30,7 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
 from virtual_ecosystem.models.animals.constants import AnimalConsts
 from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
@@ -76,6 +77,8 @@ class AnimalModel(
         self._setup_grid_neighbors()
         """Determine grid square adjacency."""
 
+        self.functional_groups = functional_groups
+        """List of functional groups in the model."""
         self.communities: dict[int, AnimalCommunity] = {}
         """Set empty dict for populating with communities."""
         self.model_constants = model_constants
@@ -176,6 +179,8 @@ class AnimalModel(
 
     def setup(self) -> None:
         """Method to setup the animal model specific data variables."""
+
+        # animal respiration data variable
         # the array should have one value for each animal community
         n_communities = len(self.data.grid.cell_id)
 
@@ -193,8 +198,31 @@ class AnimalModel(
         # Add total_animal_respiration to the Data object.
         self.data["total_animal_respiration"] = total_animal_respiration
 
+        # Population density data variable
+        functional_group_names = [fg.name for fg in self.functional_groups]
+
+        # Assuming self.communities is a dict with community_id as keys
+        community_ids = list(self.communities.keys())
+
+        # Create a multi-dimensional array for population densities
+        population_densities = DataArray(
+            zeros((len(community_ids), len(functional_group_names)), dtype=float),
+            dims=["community_id", "functional_group_id"],
+            coords={
+                "community_id": community_ids,
+                "functional_group_id": functional_group_names,
+            },
+            name="population_densities",
+        )
+
+        # Add to Data object
+        self.data["population_densities"] = population_densities
+
+        # initialize values
+        self.update_population_densities()
+
         # Debugging output
-        print("Data variables after setup:", list(self.data.data.data_vars))
+        # print("Data variables after setup:", list(self.data.data.data_vars))
 
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
@@ -228,6 +256,9 @@ class AnimalModel(
 
         # Update the litter pools
         self.data.add_from_dict(additions_to_litter)
+
+        # Update population densities
+        self.update_population_densities()
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
@@ -263,3 +294,37 @@ class AnimalModel(
                 dims="cell_id",
             ),
         }
+
+    def update_population_densities(self) -> None:
+        """Updates the densities for each functional group in each community."""
+
+        for community_id, community in self.communities.items():
+            for fg_name, cohorts in community.animal_cohorts.items():
+                for cohort in cohorts:  # Now correctly iterating over each cohort
+                    # Calculate the population density for the cohort
+                    population_density = self.calculate_density_for_cohort(cohort)
+
+                    # Update the corresponding entry in the data variable
+                    self.data["population_densities"].loc[
+                        {"community_id": community_id, "functional_group_id": fg_name}
+                    ] = population_density
+
+    def calculate_density_for_cohort(self, cohort: AnimalCohort) -> float:
+        """Calculate the population density for a cohort within a specific community.
+
+        TODO: This will need to be modified for multi-grid occupancy.
+
+        Args:
+            cohort: The AnimalCohort object for which to calculate the density.
+            community_id: The identifier for the community where the cohort resides.
+
+        Returns:
+            The population density of the cohort within the community (individuals/m2).
+        """
+        # Retrieve the area of the community where the cohort resides
+        community_area = self.data.grid.cell_area
+
+        # Calculate the population density
+        population_density = cohort.individuals / community_area
+
+        return population_density

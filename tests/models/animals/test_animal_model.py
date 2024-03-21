@@ -100,6 +100,7 @@ def test_animal_model_initialization(
                     "extracted.",
                 ),
                 (INFO, "Adding data array for 'total_animal_respiration'"),
+                (INFO, "Adding data array for 'population_densities'"),
                 (INFO, "Adding data array for 'decomposed_excrement'"),
                 (INFO, "Adding data array for 'decomposed_carcasses'"),
             ),
@@ -164,25 +165,13 @@ def test_get_community_by_key(animal_model_instance):
 
 
 def test_update_method_sequence(
-    plant_climate_data_instance,
-    fixture_core_components,
-    functional_group_list_instance,
-    constants_instance,
+    prepared_animal_model_instance,
 ):
     """Test update to ensure it runs the community methods in order.
 
     As a bonus this test checks that the litter output pools have all been created.
     """
     from unittest.mock import MagicMock
-
-    from virtual_ecosystem.models.animals.animal_model import AnimalModel
-
-    model = AnimalModel(
-        data=plant_climate_data_instance,
-        core_components=fixture_core_components,
-        functional_groups=functional_group_list_instance,
-        model_constants=constants_instance,
-    )
 
     # Mock all the methods that are supposed to be called by update
     method_names = [
@@ -197,12 +186,12 @@ def test_update_method_sequence(
 
     mock_methods = {}
     for method_name in method_names:
-        for community in model.communities.values():
+        for community in prepared_animal_model_instance.communities.values():
             mock_method = MagicMock(name=method_name)
             setattr(community, method_name, mock_method)
             mock_methods[method_name] = mock_method
 
-    model.update(time_index=0)
+    prepared_animal_model_instance.update(time_index=0)
 
     # Collect the call sequence
     call_sequence = []
@@ -214,8 +203,8 @@ def test_update_method_sequence(
     assert call_sequence == method_names
     # Check that excrement and carcass data is created, all elements are zero as no
     # actual updates have occurred
-    assert np.allclose(model.data["decomposed_excrement"], 0.0)
-    assert np.allclose(model.data["decomposed_carcasses"], 0.0)
+    assert np.allclose(prepared_animal_model_instance.data["decomposed_excrement"], 0.0)
+    assert np.allclose(prepared_animal_model_instance.data["decomposed_carcasses"], 0.0)
 
 
 def test_update_method_time_index_argument(
@@ -325,3 +314,110 @@ def test_setup_initializes_total_animal_respiration(
     assert (
         "cell_id" in total_animal_respiration.dims
     ), "'cell_id' should be a dimension of 'total_animal_respiration'."
+
+
+def test_population_density_initialization(
+    prepared_animal_model_instance,
+):
+    """Test the initialization of the population density data variable."""
+
+    # Check that 'population_densities' is in the data
+    assert (
+        "population_densities" in prepared_animal_model_instance.data.data.data_vars
+    ), "'population_densities' data variable not found in Data object after setup."
+
+    # Retrieve the population densities data variable
+    population_densities = prepared_animal_model_instance.data["population_densities"]
+
+    # Check dimensions
+    expected_dims = ["community_id", "functional_group_id"]
+    assert all(
+        dim in population_densities.dims for dim in expected_dims
+    ), f"Expected dimensions {expected_dims} not found in 'population_densities'."
+
+    # Check coordinates
+    # you should adjust according to actual community IDs and functional group names
+    expected_community_ids = list(prepared_animal_model_instance.communities.keys())
+    expected_functional_group_names = [
+        fg.name for fg in prepared_animal_model_instance.functional_groups
+    ]
+    assert (
+        population_densities.coords["community_id"].values.tolist()
+        == expected_community_ids
+    ), "Community IDs in 'population_densities' do not match expected values."
+    assert (
+        population_densities.coords["functional_group_id"].values.tolist()
+        == expected_functional_group_names
+    ), "Functional group names in 'population_densities' do not match expected values."
+
+    # Assuming densities have been updated, check if densities are greater than or equal
+    # to zero
+    assert np.all(
+        population_densities.values >= 0
+    ), "Population densities should be greater than or equal to zero."
+
+
+def test_update_population_densities(prepared_animal_model_instance):
+    """Test that the update_population_densities method correctly updates."""
+
+    # Set up expected densities
+    expected_densities = {}
+
+    # For simplicity in this example, assume we manually calculate expected densities
+    # based on your cohort setup logic. In practice, you would calculate these
+    # based on your specific test setup conditions.
+    for community_id, community in prepared_animal_model_instance.communities.items():
+        expected_densities[community_id] = {}
+        for fg_name, cohorts in community.animal_cohorts.items():
+            total_individuals = sum(cohort.individuals for cohort in cohorts)
+            community_area = prepared_animal_model_instance.data.grid.cell_area
+            density = total_individuals / community_area
+            expected_densities[community_id][fg_name] = density
+
+    # Run the method under test
+    prepared_animal_model_instance.update_population_densities()
+
+    # Retrieve the updated population densities data variable
+    population_densities = prepared_animal_model_instance.data["population_densities"]
+
+    # Verify updated densities match expected values
+    for community_id in expected_densities:
+        for fg_name in expected_densities[community_id]:
+            calculated_density = population_densities.sel(
+                community_id=community_id, functional_group_id=fg_name
+            ).item()
+            expected_density = expected_densities[community_id][fg_name]
+            assert calculated_density == pytest.approx(expected_density), (
+                f"Mismatch in density for community {community_id} and FG{fg_name}. "
+                f"Expected: {expected_density}, Found: {calculated_density}"
+            )
+
+
+def test_calculate_density_for_cohort(prepared_animal_model_instance):
+    """Test the calculate_density_for_cohort method."""
+    from unittest.mock import MagicMock
+
+    from pytest import approx
+
+    # Mock an AnimalCohort instance with a known number of individuals
+    mock_cohort = MagicMock()
+    mock_cohort.individuals = 100  # Example number of individuals
+
+    # Set a known community area in the model's data.grid.cell_area
+    prepared_animal_model_instance.data.grid.cell_area = 2000  # Example area in m2
+
+    # Expected density = individuals / area
+    expected_density = (
+        mock_cohort.individuals / prepared_animal_model_instance.data.grid.cell_area
+    )
+
+    # Calculate density using the method under test
+    calculated_density = prepared_animal_model_instance.calculate_density_for_cohort(
+        mock_cohort
+    )
+
+    # Assert the calculated density matches the expected density
+    assert calculated_density == approx(expected_density), (
+        f"Calculated density ({calculated_density}) "
+        f"did not match expected density ({expected_density})."
+    )
