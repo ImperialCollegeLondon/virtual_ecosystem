@@ -31,9 +31,11 @@ class Variable:
     """Axes the variable is defined on."""
     initialised_by: str = field(default_factory=str, init=False)
     """Model that initialised the variable."""
+    required_init_by: list[str] = field(default_factory=list, init=False)
+    """Models that requires the variable to be initialised."""
     updated_by: list[str] = field(default_factory=list, init=False)
     """Models that update the variable."""
-    used_by: list[str] = field(default_factory=list, init=False)
+    required_update_by: list[str] = field(default_factory=list, init=False)
     """Models that use the variable."""
 
     def __post_init__(self) -> None:
@@ -123,7 +125,7 @@ def output_known_variables(output_file: Path) -> None:
         tomli_w.dump(vars, f)
 
 
-def _initialise_variables(models: list[type[base_model.BaseModel]]) -> None:
+def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> None:
     """Initialise the runtime variable registry.
 
     Args:
@@ -134,25 +136,23 @@ def _initialise_variables(models: list[type[base_model.BaseModel]]) -> None:
             registry or if it is already initialised by another model.
     """
     for model in models:
-        for v in model.required_init_vars:
-            # TODO In the future, var will be a string, so this won't be necessary
-            var_name = v[0]
-            if var_name not in KNOWN_VARIABLES:
+        for var in model.vars_initialised:
+            if var not in KNOWN_VARIABLES:
                 raise ValueError(
-                    f"Variable {var_name} required by {model.model_name} is not in the"
+                    f"Variable {var} required by {model.model_name} is not in the"
                     " known variables registry."
                 )
-            if var_name in RUN_VARIABLES_REGISTRY:
+            if var in RUN_VARIABLES_REGISTRY:
                 raise ValueError(
-                    f"Variable {var_name} already in registry, initialised by"
-                    f"{RUN_VARIABLES_REGISTRY[var_name].initialised_by}."
+                    f"Variable {var} already in registry, initialised by"
+                    f"{RUN_VARIABLES_REGISTRY[var].initialised_by}."
                 )
 
-            KNOWN_VARIABLES[var_name].initialised_by = model.model_name
-            RUN_VARIABLES_REGISTRY[var_name] = KNOWN_VARIABLES[var_name]
+            KNOWN_VARIABLES[var].initialised_by = model.model_name
+            RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
 
 
-def _verify_updated_by(models: list[type[base_model.BaseModel]]) -> None:
+def _collect_updated_by_vars(models: list[type[base_model.BaseModel]]) -> None:
     """Verify that all variables updated by models are in the runtime registry.
 
     Args:
@@ -182,8 +182,8 @@ def _verify_updated_by(models: list[type[base_model.BaseModel]]) -> None:
             RUN_VARIABLES_REGISTRY[var].updated_by.append(model.model_name)
 
 
-def _verify_used_by(models: list[type[base_model.BaseModel]]) -> None:
-    """Verify that all variables used by models are in the runtime registry.
+def _collect_required_update_vars(models: list[type[base_model.BaseModel]]) -> None:
+    """Verify that all variables required by the update methods are in the registry.
 
     Args:
         models: The list of models to check.
@@ -193,7 +193,7 @@ def _verify_used_by(models: list[type[base_model.BaseModel]]) -> None:
             registry or the runtime registry.
     """
     for model in models:
-        for var in model.vars_used:
+        for var in model.required_update_vars:
             if var not in KNOWN_VARIABLES:
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} is not in the known"
@@ -202,9 +202,37 @@ def _verify_used_by(models: list[type[base_model.BaseModel]]) -> None:
             if var not in RUN_VARIABLES_REGISTRY:
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} is not initialised"
-                    " by any model."
+                    " by any model neither provided as input."
                 )
-            RUN_VARIABLES_REGISTRY[var].used_by.append(model.model_name)
+            RUN_VARIABLES_REGISTRY[var].required_update_by.append(model.model_name)
+
+
+def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> None:
+    """Verify that all variables required by the init methods are in the registry.
+
+    Args:
+        models: The list of models to check.
+
+    Raises:
+        ValueError: If a variable required by a model is not in the known variables
+            registry or the runtime registry.
+    """
+    for model in models:
+        for v in model.required_init_vars:
+            # TODO In the future, var will be a string, so this won't be necessary
+            var = v[0]
+            if var not in KNOWN_VARIABLES:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} is not in the known"
+                    " variables registry."
+                )
+            if var not in RUN_VARIABLES_REGISTRY:
+                raise ValueError(
+                    f"Variable {var} required by {model.model_name} during "
+                    "initialisation is not initialised by any model neither provided as"
+                    "input."
+                )
+            RUN_VARIABLES_REGISTRY[var].required_init_by.append(model.model_name)
 
 
 def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
@@ -217,9 +245,10 @@ def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
         ValueError: If a variable required by a model is not in the known variables
             registry or the runtime registry.
     """
-    _initialise_variables(models)
-    _verify_updated_by(models)
-    _verify_used_by(models)
+    _collect_initialise_by_vars(models)
+    _collect_required_init_vars(models)
+    _collect_updated_by_vars(models)
+    _collect_required_update_vars(models)
 
 
 def verify_variables_axis() -> None:
@@ -229,7 +258,7 @@ def verify_variables_axis() -> None:
 
         if unknown_axes:
             to_raise = ValueError(
-                f"Variable {var.name} uses unknown core: {','.join(unknown_axes)}"
+                f"Variable {var.name} uses unknown axis: {','.join(unknown_axes)}"
             )
             LOGGER.error(to_raise)
             raise to_raise

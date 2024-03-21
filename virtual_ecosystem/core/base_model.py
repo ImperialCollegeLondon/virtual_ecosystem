@@ -171,11 +171,19 @@ class BaseModel(ABC):
     indeed initialised by another model, and therefore will be available.
     """
 
-    vars_used: tuple[str, ...]
-    """Variables that are used by the model.
+    required_update_vars: tuple[str, ...]
+    """Variables that are required by the update method of the model.
 
-    This is used to verify that all variables used by the model are being initialised
-    by another model, and therefore will be available.
+    These variables should have been initialised by another model or loaded from
+    external sources, but in either case they will be available in the data object.
+    """
+
+    vars_initialised: tuple[str, ...]
+    """Variables that are initialised by the model.
+
+    These are the variables that are initialised by the model and stored in the data
+    object when running the setup method and that will be available for other models to
+    use in their own setup or update methods.
     """
 
     def __init__(
