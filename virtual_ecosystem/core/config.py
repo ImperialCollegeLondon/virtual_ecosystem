@@ -17,7 +17,6 @@ from typing import Any
 import tomli_w
 from jsonschema import FormatChecker
 
-from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
@@ -477,9 +476,6 @@ class Config(dict):
         for module in requested_modules:
             all_schemas[module] = MODULE_REGISTRY[module].schema
             self.model_classes[module] = MODULE_REGISTRY[module].model
-
-        # Setup the variables for the requested modules
-        variables.setup_variables(list(self.model_classes.values()))
 
         # Merge the schemas into a single combined schema
         self.merged_schema = merge_schemas(all_schemas)

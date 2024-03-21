@@ -2,9 +2,11 @@
 
 import inspect
 import pkgutil
+from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
 from importlib import import_module
 from pathlib import Path
+from typing import cast
 
 import tomli_w
 
@@ -103,7 +105,7 @@ def _discover_all_variables_usage() -> None:
             ]
         )
 
-    setup_variables(models_found)
+    setup_variables(models_found, [])
 
 
 def output_known_variables(output_file: Path) -> None:
@@ -235,16 +237,40 @@ def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> Non
             RUN_VARIABLES_REGISTRY[var].required_init_by.append(model.model_name)
 
 
-def setup_variables(models: list[type[base_model.BaseModel]]) -> None:
+def _collect_initial_data_vars(vars: list[str]) -> None:
+    """Collects the variables defined in the data object.
+
+    Args:
+        vars: The list of variables defined in the data object.
+    """
+    for var in vars:
+        if var not in KNOWN_VARIABLES:
+            raise ValueError(f"Variable {var} defined in data object is not known.")
+
+        if var in RUN_VARIABLES_REGISTRY:
+            raise ValueError(
+                f"Variable {var} already in registry, initialised by"
+                f"{RUN_VARIABLES_REGISTRY[var].initialised_by}."
+            )
+
+        KNOWN_VARIABLES[var].initialised_by = "data"
+        RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
+
+
+def setup_variables(
+    models: list[type[base_model.BaseModel]], data_vars: list[Hashable]
+) -> None:
     """Setup the runtime variable registry, running some validation.
 
     Args:
         models: The list of models to setup the registry for.
+        data_vars: The list of variables defined in the data object.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
             registry or the runtime registry.
     """
+    _collect_initial_data_vars(cast(list[str], data_vars))
     _collect_initialise_by_vars(models)
     _collect_required_init_vars(models)
     _collect_updated_by_vars(models)

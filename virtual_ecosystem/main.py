@@ -198,6 +198,11 @@ def ve_run(
     if progress:
         print("* Initial data loaded")
 
+    # Setup the variables for the requested modules and verify consistency
+    variables.setup_variables(
+        list(config.model_classes.values()), list(data.data.keys())
+    )
+
     # Verify that all variables have the correct axis
     variables.verify_variables_axis()
 
