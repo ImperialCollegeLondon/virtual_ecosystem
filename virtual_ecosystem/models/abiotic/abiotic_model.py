@@ -15,6 +15,7 @@ to the vertical layer structure:
 * introducte 'metaconstants' to support sharing of constants between models
 * add self.model_timing.update_interval in seconds as input to soil balance
 * expand tests to cover different atmospheric conditions
+* expand use of LayerStructure and shape for more compact concatenating
 
 """  # noqa: D205, D415
 
@@ -235,6 +236,12 @@ class AbioticModel(
         true_canopy_layers_n = len(true_canopy_indexes)
         empty_canopy_layers = self.layer_structure.canopy_layers - true_canopy_layers_n
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
+        true_aboveground_rows = list(range(0, true_canopy_layers_n + 1)) + list(
+            range(
+                true_canopy_layers_n + empty_canopy_layers + 1,
+                true_canopy_layers_n + empty_canopy_layers + 3,
+            )
+        )
 
         # Wind profiles
         wind_update_inputs: dict[str, DataArray] = {}
@@ -274,23 +281,11 @@ class AbioticModel(
         wind_output["wind_speed_above_canopy"] = wind_speed_above_canopy
 
         for var in ["wind_speed_canopy", "friction_velocity"]:
+            # Might make sense to store the shape and use np.full(shape, np.nan)
+            var_data = np.full_like(self.data["leaf_area_index"], np.nan)
+            var_data[true_aboveground_rows, :] = wind_update[var]
             var_out = DataArray(
-                np.concatenate(
-                    (
-                        wind_update[var][0 : (true_canopy_layers_n + 1)],
-                        np.full((empty_canopy_layers, self.data.grid.n_cells), np.nan),
-                        wind_update[var][
-                            (true_canopy_layers_n + 1) : (len(wind_update[var]) + 1)
-                        ],
-                        np.full(
-                            (
-                                len(self.layer_structure.soil_layers),
-                                self.data.grid.n_cells,
-                            ),
-                            np.nan,
-                        ),
-                    ),
-                ),
+                var_data,
                 dims=self.data["layer_heights"].dims,
                 coords=self.data["layer_heights"].coords,
             )

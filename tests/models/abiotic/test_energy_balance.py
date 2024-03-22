@@ -31,13 +31,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
 
     np.testing.assert_allclose(
         result,
-        np.array(
-            [
-                [0.09995, 0.09995, 0.09995],
-                [0.09985, 0.09985, 0.09985],
-                [0.09975, 0.09975, 0.09975],
-            ]
-        ),
+        np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3]),
         rtol=1e-04,
         atol=1e-04,
     )
@@ -54,21 +48,9 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     air_temperature = d["air_temperature"][
         d["leaf_area_index"]["layer_roles"] == "canopy"
     ].dropna(dim="layers", how="all")
-    absorbed_radiation = np.array(
-        [
-            [0.09995, 0.09995, 0.09995],
-            [0.09985, 0.09985, 0.09985],
-            [0.09975, 0.09975, 0.09975],
-        ]
-    )
+    absorbed_radiation = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
 
-    exp_result = np.array(
-        [
-            [29.845994, 29.845994, 29.845994],
-            [28.872169, 28.872169, 28.872169],
-            [27.207403, 27.207403, 27.207403],
-        ]
-    )
+    exp_result = np.array([[29.845994] * 3, [28.872169] * 3, [27.207403] * 3])
     result = initialise_canopy_temperature(
         air_temperature=air_temperature,
         absorbed_radiation=absorbed_radiation,
@@ -129,13 +111,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
 
     np.testing.assert_allclose(
         result["canopy_absorption"][1:4].to_numpy(),
-        np.array(
-            [
-                [0.09995, 0.09995, 0.09995],
-                [0.09985, 0.09985, 0.09985],
-                [0.09975, 0.09975, 0.09975],
-            ]
-        ),
+        np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3]),
         rtol=1e-04,
         atol=1e-04,
     )
@@ -152,16 +128,11 @@ def test_calculate_longwave_emission():
     )
 
     result = calculate_longwave_emission(
-        temperature=np.array([290.0, 290.0, 290.0]),
+        temperature=np.repeat(290.0, 3),
         emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
-    np.testing.assert_allclose(
-        result,
-        np.array([320.843847, 320.843847, 320.843847]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+    np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_leaf_and_air_temperature(
@@ -222,18 +193,9 @@ def test_calculate_leaf_and_air_temperature(
     exp_air_temp = DataArray(
         np.concatenate(
             (
-                np.array(
-                    [
-                        [30.0, 30.0, 30.0],
-                        [29.999967, 29.999967, 29.999967],
-                        [29.995428, 29.995428, 29.995428],
-                        [29.504507, 29.504507, 29.504507],
-                    ],
-                ),
+                np.array([[30.0] * 3, [29.99996] * 3, [29.99542] * 3, [29.50450] * 3]),
                 np.full((7, 3), np.nan),
-                np.array(
-                    [[21.425606, 21.425606, 21.425606], [20.09504, 20.09504, 20.09504]]
-                ),
+                np.array([[21.425606] * 3, [20.09504] * 3]),
                 np.full((2, 3), np.nan),
             ),
         ),
@@ -244,13 +206,7 @@ def test_calculate_leaf_and_air_temperature(
         np.concatenate(
             (
                 np.full((1, 3), np.nan),
-                np.array(
-                    [
-                        [30.078712, 30.078712, 30.078712],
-                        [29.105456, 29.105456, 29.105456],
-                        [27.396327, 27.396327, 27.396327],
-                    ],
-                ),
+                np.array([[30.078712] * 3, [29.105456] * 3, [27.396327] * 3]),
                 np.full((11, 3), np.nan),
             ),
         ),
@@ -259,21 +215,9 @@ def test_calculate_leaf_and_air_temperature(
     exp_vapour_pressure = DataArray(
         np.concatenate(
             (
-                np.array(
-                    [
-                        [0.14, 0.14, 0.14],
-                        [0.14001, 0.14001, 0.14001],
-                        [0.141425, 0.141425, 0.141425],
-                        [0.281758, 0.281758, 0.281758],
-                    ],
-                ),
+                np.array([[0.14] * 3, [0.14001] * 3, [0.141425] * 3, [0.281758] * 3]),
                 np.full((7, 3), np.nan),
-                np.array(
-                    [
-                        [0.228266, 0.228266, 0.228266],
-                        [0.219455, 0.219455, 0.219455],
-                    ]
-                ),
+                np.array([[0.228266] * 3, [0.219455] * 3]),
                 np.full((2, 3), np.nan),
             ),
         ),
@@ -284,20 +228,10 @@ def test_calculate_leaf_and_air_temperature(
         np.concatenate(
             (
                 np.array(
-                    [
-                        [0.098781, 0.098781, 0.098781],
-                        [0.098789, 0.098789, 0.098789],
-                        [0.099798, 0.099798, 0.099798],
-                        [0.201279, 0.201279, 0.201279],
-                    ],
+                    [[0.098781] * 3, [0.098789] * 3, [0.099798] * 3, [0.201279] * 3]
                 ),
                 np.full((7, 3), np.nan),
-                np.array(
-                    [
-                        [0.200826, 0.200826, 0.200826],
-                        [0.200064, 0.200064, 0.200064],
-                    ]
-                ),
+                np.array([[0.200826] * 3, [0.200064] * 3]),
                 np.full((2, 3), np.nan),
             ),
         ),
@@ -307,12 +241,7 @@ def test_calculate_leaf_and_air_temperature(
     exp_gv = DataArray(
         np.concatenate(
             [
-                [
-                    [np.nan, np.nan, np.nan],
-                    [0.203513, 0.203513, 0.203513],
-                    [0.202959, 0.202959, 0.202959],
-                    [0.202009, 0.202009, 0.202009],
-                ],
+                [[np.nan] * 3, [0.203513] * 3, [0.202959] * 3, [0.202009] * 3],
                 [[np.nan, np.nan, np.nan]] * 11,
             ],
         ),
@@ -321,14 +250,7 @@ def test_calculate_leaf_and_air_temperature(
     exp_sens_heat = DataArray(
         np.concatenate(
             [
-                np.array(
-                    [
-                        [0, 0, 0],
-                        [1.398342, 1.398342, 1.398342],
-                        [1.397875, 1.397875, 1.397875],
-                        [1.1278, 1.1278, 1.1278],
-                    ],
-                ),
+                np.array([[0] * 3, [1.398342] * 3, [1.397875] * 3, [1.1278] * 3]),
                 np.full((9, 3), np.nan),
                 [[1, 1, 1]],
                 np.full((1, 3), np.nan),
@@ -339,14 +261,7 @@ def test_calculate_leaf_and_air_temperature(
     exp_latent_heat = DataArray(
         np.concatenate(
             [
-                np.array(
-                    [
-                        [0, 0, 0],
-                        [8.330052, 8.330052, 8.330052],
-                        [8.32997, 8.32997, 8.32997],
-                        [8.646973, 8.646973, 8.646973],
-                    ],
-                ),
+                np.array([[0] * 3, [8.330052] * 3, [8.32997] * 3, [8.646973] * 3]),
                 np.full((9, 3), np.nan),
                 [[1, 1, 1]],
                 np.full((1, 3), np.nan),

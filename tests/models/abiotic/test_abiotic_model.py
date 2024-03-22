@@ -273,7 +273,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
     np.testing.assert_allclose(
         model.data["soil_temperature"][12:15],
         DataArray(
-            [[np.nan, np.nan, np.nan], [20.712458, 20.712458, 20.712458], [20, 20, 20]],
+            [[np.nan] * 3, [20.712458] * 3, [20.0] * 3],
             dims=["layers", "cell_id"],
             coords={
                 "layers": [12, 13, 14],
@@ -287,20 +287,12 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
     exp_temperature = xr.concat(
         [
             DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.91965, 29.91965, 29.91965],
-                    [29.414851, 29.414851, 29.414851],
-                    [28.551891, 28.551891, 28.551891],
-                ],
+                [[30.03] * 3, [29.91965] * 3, [29.414851] * 3, [28.551891] * 3],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
             DataArray(
-                [
-                    [26.19, 26.19, 26.19],
-                    [22.81851, 22.81851, 22.81851],
-                ],
+                [[26.19] * 3, [22.81851] * 3],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
@@ -309,10 +301,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
     ).assign_coords(
         {
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                model.layer_structure.layer_roles,
-            ),
+            "layer_roles": ("layers", model.layer_structure.layer_roles),
             "cell_id": [0, 1, 2],
         },
     )
@@ -335,13 +324,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
 
     np.testing.assert_allclose(
         model.data["canopy_absorption"][1:4].to_numpy(),
-        np.array(
-            [
-                [0.09995, 0.09995, 0.09995],
-                [0.09985, 0.09985, 0.09985],
-                [0.09975, 0.09975, 0.09975],
-            ]
-        ),
+        np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3]),
         rtol=1e-4,
         atol=1e-4,
     )
@@ -381,35 +364,25 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     model.update(time_index=0)
 
-    friction_velocity_exp = np.concatenate(
-        [
-            [
-                [0.162293, 0.163096, 0.163727],
-                [0.162776, 0.163333, 0.163774],
-                [0.165103, 0.164498, 0.164007],
-                [0.167306, 0.16563, 0.164239],
-            ],
-            [[np.nan, np.nan, np.nan]] * 7,
-            [
-                [0.169096, 0.166569, 0.164435],
-                [0.169385, 0.166722, 0.164467],
-            ],
-            [[np.nan, np.nan, np.nan]] * 2,
-        ]
-    )
-    wind_speed_exp = np.concatenate(
-        [
-            [
-                [1.106333, 1.10686, 1.107273],
-                [1.097423, 1.097945, 1.098355],
-                [1.050605, 1.051105, 1.051498],
-                [0.961219, 0.961676, 0.962035],
-            ],
-            [[np.nan, np.nan, np.nan]] * 7,
-            [[0.910395, 0.910828, 0.911168], [0.902285, 0.902714, 0.903051]],
-            [[np.nan, np.nan, np.nan]] * 2,
-        ]
-    )
+    friction_velocity_exp = np.full((15, 3), np.nan)
+    friction_velocity_exp[[0, 1, 2, 3, 11, 12], :] = [
+        [0.162293, 0.163096, 0.163727],
+        [0.162776, 0.163333, 0.163774],
+        [0.165103, 0.164498, 0.164007],
+        [0.167306, 0.16563, 0.164239],
+        [0.169096, 0.166569, 0.164435],
+        [0.169385, 0.166722, 0.164467],
+    ]
+
+    wind_speed_exp = np.full((15, 3), np.nan)
+    wind_speed_exp[[0, 1, 2, 3, 11, 12], :] = [
+        [1.106333, 1.10686, 1.107273],
+        [1.097423, 1.097945, 1.098355],
+        [1.050605, 1.051105, 1.051498],
+        [0.961219, 0.961676, 0.962035],
+        [0.910395, 0.910828, 0.911168],
+        [0.902285, 0.902714, 0.903051],
+    ]
 
     wind_above_exp = np.array([1.106333, 1.10686, 1.107273])
 
@@ -433,7 +406,7 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         np.concatenate(
             [
                 [[np.nan, np.nan, np.nan]] * 13,
-                [[20.713125, 20.712525, 20.712458], [20.0, 20.0, 20.0]],
+                [[20.713125, 20.712525, 20.712458], [20.0] * 3],
             ],
             axis=0,
         ),
@@ -449,12 +422,7 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     exp_gv = DataArray(
         np.concatenate(
             [
-                [
-                    [np.nan, np.nan, np.nan],
-                    [0.203513, 0.203513, 0.203513],
-                    [0.202959, 0.202959, 0.202959],
-                    [0.202009, 0.202009, 0.202009],
-                ],
+                [[np.nan] * 3, [0.203513] * 3, [0.202959] * 3, [0.202009] * 3],
                 [[np.nan, np.nan, np.nan]] * 11,
             ],
         ),

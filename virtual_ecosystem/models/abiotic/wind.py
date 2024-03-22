@@ -569,6 +569,7 @@ def calculate_wind_profile(
         von_karmans_constant=core_constants.von_karmans_constant,
     )
 
+    # TODO select above layer (psi) and add function for factor below canopy (phi)
     diabatic_correction_above = calculate_diabatic_correction_above(
         molar_density_air=molar_density_air,
         specific_heat_air=specific_heat_air,
