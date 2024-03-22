@@ -61,19 +61,27 @@ The steps of the process are:
 ## Create the GitHub release
 
 The head of the `main` branch is now at the commit that will be released as version
-`X.Y.Z`. The process for making that release is:
+`X.Y.Z`. The starting point is to **go to the [draft new release
+page](https://github.com/ImperialCollegeLondon/virtual_ecosystem/releases/new)**. The
+creation of a new release is basically attaching notes and files to a specific commit on
+a target branch. The steps are:
 
-1. **Tag the commit on the `main` branch**. You should tag the commit as `vX.Y.Z` - you
-   can either create the tag directly on GitHub or use `git tag vX.Y.Z` and then push
-   the tag using `git push --tags`.
+1. On that release page, the **release target** dropdown should essentially always be
+   set to `main`: the whole point in this branch is to act as a release branch.
 
-1. On Github, **go to the [draft new release
-   page](https://github.com/ImperialCollegeLondon/virtual_ecosystem/releases/new)** and
-   choose the new tag from the drop down menu. You can create release notes
-   automatically - this is basically a list of the commits being added since the last
-   release - and can also set the version as a pre-release. This is different from
-   having an explicit release version number (e.g. `X.Y.Za1`) - it is just a marker used
-   on GitHub.
+1. You need to provide a tag for the commit to be released - so you need to **tag the
+   commit on the `main` branch** using the format `vX.Y.Z`. You can:
+
+   * Create the tag locally using `git tag vX.Y.Z` and then push the tag using `git push
+     --tags`. You can then select the existing tag from the drop down on the release
+     page.
+   * Alternatively, you can simply type the tag name into that drop down and the tag
+     will be created alongside the draft release.
+
+1. You can create release notes automatically - this is basically a list of the commits
+   being added since the last release - and can also set the version as a pre-release.
+   This is different from having an explicit release version number (e.g. `X.Y.Za1`) -
+   it is just a marker used on GitHub.
 
    At this point, you can either save the draft or simply publish it. It is probably
    good practice to save the draft and then have a discussion with the other developers
