@@ -15,7 +15,7 @@ Each of the abiotic sub-modules has its own API reference page:
   soil temperature profiles.
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.constants` submodule provides a
-  set of dataclasses containing the constants required by the broader abiotic model.
+  set of dataclasses containing the constants required by the broader soil model.
 
 """  # noqa: D205, D415
 

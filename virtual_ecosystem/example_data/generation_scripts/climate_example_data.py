@@ -107,14 +107,9 @@ dataset_renamed["atmospheric_co2_ref"] = DataArray(
     np.full_like(dataset_renamed["air_temperature_ref"], 400),
     dims=["time", "latitude", "longitude"],
 )
-dataset_renamed["wind_speed_ref"] = DataArray(
-    np.full_like(dataset_renamed["air_temperature_ref"], 0.1),
-    dims=["time", "latitude", "longitude"],
-)
 dataset_renamed["mean_annual_temperature"] = dataset_renamed[
     "air_temperature_ref"
 ].mean(dim="time")
-
 
 # 8. Change coordinates to x-y in meters
 # The following code segment changes the coordinate names from `longitude/latitude` to

@@ -20,9 +20,6 @@ var_name = "atmospheric_co2_ref"
 [[core.data.variable]]
 file = "../data/example_climate_data.nc"
 var_name = "mean_annual_temperature"
-[[core.data.variable]]
-file = "../data/example_climate_data.nc"
-var_name = "wind_speed_ref"
 
 # Elevation
 [[core.data.variable]]

@@ -104,16 +104,16 @@ def test_convert_soil_moisture_to_water_potential(dummy_climate_data):
     np.testing.assert_allclose(actual_potentials, expected_potentials)
 
 
-def test_update_groundwater_storage(dummy_climate_data):
+def test_update_groundwater_storge(dummy_climate_data):
     """Test the update_groundwater_storage() function."""
 
     from virtual_ecosystem.models.hydrology.below_ground import (
-        update_groundwater_storage,
+        update_groundwater_storge,
     )
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     data = dummy_climate_data
-    result = update_groundwater_storage(
+    result = update_groundwater_storge(
         groundwater_storage=np.array(data["groundwater_storage"]),
         vertical_flow_to_groundwater=np.array([2, 4, 5]),
         bypass_flow=np.array([2, 4, 5]),

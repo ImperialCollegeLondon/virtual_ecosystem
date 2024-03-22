@@ -64,7 +64,7 @@ def test_abiotic_simple_model_initialization(
     [
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            [0.61078, 7.5, 237.3],
+            0.61078,
             does_not_raise(),
             tuple(
                 [
@@ -85,8 +85,8 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "saturation_vapour_pressure_factors = [1.0, 2.0, 3.0]\n",
-            [1.0, 2.0, 3.0],
+            "saturation_vapour_pressure_factor1 = 10.2\n",
+            10.2,
             does_not_raise(),
             tuple(
                 [
@@ -107,7 +107,7 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "saturation_vapour_pressure_factorx = [1.0, 2.0, 3.0]\n",
+            "saturation_vapour_pressure_factorx = 10.2\n",
             None,
             pytest.raises(ConfigurationError),
             (
@@ -154,7 +154,7 @@ def test_generate_abiotic_simple_model(
             core_components=core_components,
             config=config,
         )
-        assert model.model_constants.saturation_vapour_pressure_factors == satvap1
+        assert model.model_constants.saturation_vapour_pressure_factor1 == satvap1
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
