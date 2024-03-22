@@ -11,7 +11,7 @@ from tests.conftest import log_check
 
 @pytest.fixture
 def prepared_animal_model_instance(
-    plant_climate_data_instance,
+    animal_data_for_model_instance,
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
@@ -20,7 +20,7 @@ def prepared_animal_model_instance(
     from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
-        data=plant_climate_data_instance,
+        data=animal_data_for_model_instance,
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
@@ -30,7 +30,7 @@ def prepared_animal_model_instance(
 
 
 def test_animal_model_initialization(
-    plant_climate_data_instance,
+    animal_data_for_model_instance,
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
@@ -41,7 +41,7 @@ def test_animal_model_initialization(
 
     # Initialize model
     model = AnimalModel(
-        data=plant_climate_data_instance,
+        data=animal_data_for_model_instance,
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
@@ -110,7 +110,7 @@ def test_animal_model_initialization(
 )
 def test_generate_animal_model(
     caplog,
-    plant_climate_data_instance,
+    animal_data_for_model_instance,
     config_string,
     raises,
     expected_log_entries,
@@ -128,7 +128,7 @@ def test_generate_animal_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AnimalModel.from_config(
-            data=plant_climate_data_instance,
+            data=animal_data_for_model_instance,
             core_components=core_components,
             config=config,
         )
@@ -138,6 +138,9 @@ def test_generate_animal_model(
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
+
+    for record in caplog.records:
+        print(f"Level: {record.levelname}, Message: {record.message}")
 
 
 def test_get_community_by_key(animal_model_instance):

@@ -86,6 +86,8 @@ class AnimalModel(
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
+        self.setup()
+        """Initialize the data variables used by the animal model."""
 
     def _setup_grid_neighbors(self) -> None:
         """Set up grid neighbors for the model.
@@ -172,8 +174,6 @@ class AnimalModel(
             functional_groups=functional_groups,
             model_constants=model_constants,
         )
-
-        model.setup()  # initialize data variables
 
         return model
 
