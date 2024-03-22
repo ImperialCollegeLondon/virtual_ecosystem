@@ -44,7 +44,7 @@ class AnimalModel(
     vars_updated=(
         "decomposed_excrement",
         "decomposed_carcasses",
-        "animal_respiration",
+        "total_animal_respiration",
     ),
 ):
     """A class describing the animal model.
