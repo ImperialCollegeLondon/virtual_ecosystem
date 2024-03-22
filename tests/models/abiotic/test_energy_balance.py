@@ -29,12 +29,8 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
         light_extinction_coefficient=0.01,
     )
 
-    np.testing.assert_allclose(
-        result,
-        np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+    exp_result = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
 def test_initialise_canopy_temperature(dummy_climate_data):
@@ -50,12 +46,13 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     ].dropna(dim="layers", how="all")
     absorbed_radiation = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
 
-    exp_result = np.array([[29.845994] * 3, [28.872169] * 3, [27.207403] * 3])
     result = initialise_canopy_temperature(
         air_temperature=air_temperature,
         absorbed_radiation=absorbed_radiation,
         canopy_temperature_ini_factor=0.01,
     )
+    exp_result = np.array([[29.845994] * 3, [28.872169] * 3, [27.207403] * 3])
+
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -100,6 +97,8 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         canopy_temperature_ini_factor=0.01,
     )
 
+    exp_abs = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
+
     for var in [
         "canopy_temperature",
         "sensible_heat_flux",
@@ -110,10 +109,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         assert var in result
 
     np.testing.assert_allclose(
-        result["canopy_absorption"][1:4].to_numpy(),
-        np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3]),
-        rtol=1e-04,
-        atol=1e-04,
+        result["canopy_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))
@@ -190,85 +186,33 @@ def test_calculate_leaf_and_air_temperature(
         core_constants=CoreConsts(),
     )
 
-    exp_air_temp = DataArray(
-        np.concatenate(
-            (
-                np.array([[30.0] * 3, [29.99996] * 3, [29.99542] * 3, [29.50450] * 3]),
-                np.full((7, 3), np.nan),
-                np.array([[21.425606] * 3, [20.09504] * 3]),
-                np.full((2, 3), np.nan),
-            ),
-        ),
-        dims=["layers", "cell_id"],
-    )
+    exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    t_vals = [30.0, 29.99996, 29.99542, 29.50450, 21.425606, 20.09504]
+    exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
-    exp_leaf_temp = DataArray(
-        np.concatenate(
-            (
-                np.full((1, 3), np.nan),
-                np.array([[30.078712] * 3, [29.105456] * 3, [27.396327] * 3]),
-                np.full((11, 3), np.nan),
-            ),
-        ),
-        dims=["layers", "cell_id"],
-    )
-    exp_vapour_pressure = DataArray(
-        np.concatenate(
-            (
-                np.array([[0.14] * 3, [0.14001] * 3, [0.141425] * 3, [0.281758] * 3]),
-                np.full((7, 3), np.nan),
-                np.array([[0.228266] * 3, [0.219455] * 3]),
-                np.full((2, 3), np.nan),
-            ),
-        ),
-        dims=["layers", "cell_id"],
-    )
+    exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    tl_vals = [30.078712, 29.105456, 27.396327]
+    exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
 
-    exp_vpd = DataArray(
-        np.concatenate(
-            (
-                np.array(
-                    [[0.098781] * 3, [0.098789] * 3, [0.099798] * 3, [0.201279] * 3]
-                ),
-                np.full((7, 3), np.nan),
-                np.array([[0.200826] * 3, [0.200064] * 3]),
-                np.full((2, 3), np.nan),
-            ),
-        ),
-        dims=["layers", "cell_id"],
-    )
+    exp_vp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    vp_vals = [0.14, 0.14001, 0.141425, 0.281758, 0.228266, 0.219455]
+    exp_vp.T[..., [0, 1, 2, 3, 11, 12]] = vp_vals
 
-    exp_gv = DataArray(
-        np.concatenate(
-            [
-                [[np.nan] * 3, [0.203513] * 3, [0.202959] * 3, [0.202009] * 3],
-                [[np.nan, np.nan, np.nan]] * 11,
-            ],
-        ),
-        dims=["layers", "cell_id"],
-    )
-    exp_sens_heat = DataArray(
-        np.concatenate(
-            [
-                np.array([[0] * 3, [1.398342] * 3, [1.397875] * 3, [1.1278] * 3]),
-                np.full((9, 3), np.nan),
-                [[1, 1, 1]],
-                np.full((1, 3), np.nan),
-            ],
-        ),
-        dims=["layers", "cell_id"],
-    )
-    exp_latent_heat = DataArray(
-        np.concatenate(
-            [
-                np.array([[0] * 3, [8.330052] * 3, [8.32997] * 3, [8.646973] * 3]),
-                np.full((9, 3), np.nan),
-                [[1, 1, 1]],
-                np.full((1, 3), np.nan),
-            ],
-        ),
-        dims=["layers", "cell_id"],
-    )
+    exp_vpd = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    vpd_vals = [0.098781, 0.098789, 0.099798, 0.201279, 0.200826, 0.200064]
+    exp_vpd.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
+
+    exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    gv_vals = [0.203513, 0.202959, 0.202009]
+    exp_gv.T[..., [1, 2, 3]] = gv_vals
+
+    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    sens_heat_vals = [0.0, 1.398342, 1.397875, 1.1278, 1.0]
+    exp_sens_heat.T[..., [0, 1, 2, 3, 13]] = sens_heat_vals
+
+    exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    lat_heat_vals = [0.0, 8.330052, 8.32997, 8.646973, 1.0]
+    exp_latent_heat.T[..., [0, 1, 2, 3, 13]] = lat_heat_vals
 
     np.testing.assert_allclose(
         result["air_temperature"], exp_air_temp, rtol=1e-04, atol=1e-04
@@ -277,7 +221,7 @@ def test_calculate_leaf_and_air_temperature(
         result["canopy_temperature"], exp_leaf_temp, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["vapour_pressure"], exp_vapour_pressure, rtol=1e-04, atol=1e-04
+        result["vapour_pressure"], exp_vp, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
         result["vapour_pressure_deficit"], exp_vpd, rtol=1e-04, atol=1e-04

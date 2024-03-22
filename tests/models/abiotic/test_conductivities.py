@@ -91,14 +91,9 @@ def test_interpolate_along_heights(dummy_climate_data):
         start_value=50.0,
         end_value=20.0,
     )
-    exp_result = np.concatenate(
-        [
-            [[20.0] * 3, [21.88087774] * 3, [31.28526646] * 3, [40.68965517] * 3],
-            [[np.nan, np.nan, np.nan]] * 7,
-            [[48.68338558] * 3, [50.0] * 3],
-        ],
-        axis=0,
-    )
+    exp_result = np.full((13, 3), np.nan)
+    row_vals = [20.0, 21.88087774, 31.28526646, 40.68965517, 48.68338558, 50.0]
+    exp_result.T[..., [0, 1, 2, 3, 11, 12]] = row_vals
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -118,14 +113,9 @@ def test_interpolate_along_heights_arrays(dummy_climate_data):
         start_value=np.repeat(50.0, 3),
         end_value=np.repeat(20.0, 3),
     )
-    exp_result = np.concatenate(
-        [
-            [[20.0] * 3, [21.88087774] * 3, [31.28526646] * 3, [40.68965517] * 3],
-            [[np.nan, np.nan, np.nan]] * 7,
-            [[48.68338558] * 3, [50.0] * 3],
-        ],
-        axis=0,
-    )
+    exp_result = np.full((13, 3), np.nan)
+    row_vals = [20.0, 21.88087774, 31.28526646, 40.68965517, 48.68338558, 50.0]
+    exp_result.T[..., [0, 1, 2, 3, 11, 12]] = row_vals
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -208,14 +198,10 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
             abiotic_consts.negative_free_conductance_parameter
         ),
     )
+    exp_result = np.full((15, 3), np.nan)
+    row_vals = [0.065242, 0.065062, 0.064753]
+    exp_result.T[..., [1, 2, 3]] = row_vals
 
-    exp_result = np.concatenate(
-        [
-            [[np.nan, np.nan, np.nan]],
-            [[0.065242] * 3, [0.065062] * 3, [0.064753] * 3],
-            [[np.nan, np.nan, np.nan]] * 11,
-        ]
-    )
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -246,34 +232,22 @@ def test_calculate_current_conductivities(dummy_climate_data):
         von_karmans_constant=CoreConsts.von_karmans_constant,
         abiotic_constants=AbioticConsts(),
     )
-    exp_gt = np.concatenate(
-        [
-            [[7.056348e02] * 3, [6.514515e04] * 3, [4.714156e02] * 3, [4.169318] * 3],
-            [[np.nan, np.nan, np.nan]] * 8,
-            [[589.115653] * 3, [455.163607] * 3, [np.nan] * 3],
-        ]
-    )
 
-    exp_gv = np.concatenate(
-        [
-            [[np.nan] * 3, [0.203513] * 3, [0.202959] * 3, [0.202009] * 3],
-            [[np.nan, np.nan, np.nan]] * 11,
-        ]
-    )
-    exp_gha = np.concatenate(
-        [
-            [[np.nan] * 3, [0.206312] * 3, [0.205743] * 3, [0.204766] * 3],
-            [[np.nan, np.nan, np.nan]] * 11,
-        ]
-    )
+    exp_gt = np.full((15, 3), np.nan)
+    gt_vals = [7.056348e02, 6.514515e04, 4.714156e02, 4.169318, 589.115653, 455.163607]
+    exp_gt.T[..., [0, 1, 2, 3, 12, 13]] = gt_vals
 
-    exp_gtr = np.concatenate(
-        [
-            [[np.nan] * 3, [6.514515e04] * 3, [4.678095e02] * 3, [4.114899] * 3],
-            [[np.nan, np.nan, np.nan]] * 8,
-            [[59.602899] * 3, [20.156303] * 3, [np.nan] * 3],
-        ]
-    )
+    exp_gv = np.full((15, 3), np.nan)
+    gv_vals = [0.203513, 0.202959, 0.202009]
+    exp_gv.T[..., [1, 2, 3]] = gv_vals
+
+    exp_gha = np.full((15, 3), np.nan)
+    gha_vals = [0.206312, 0.205743, 0.204766]
+    exp_gha.T[..., [1, 2, 3]] = gha_vals
+
+    exp_gtr = np.full((15, 3), np.nan)
+    gtr_vals = [6.514515e04, 4.678095e02, 4.114899, 59.602899, 20.156303]
+    exp_gtr.T[..., [1, 2, 3, 12, 13]] = gtr_vals
 
     np.testing.assert_allclose(
         result["air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04

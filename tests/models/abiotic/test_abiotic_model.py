@@ -291,10 +291,7 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [[26.19] * 3, [22.81851] * 3],
-                dims=["layers", "cell_id"],
-            ),
+            DataArray([[26.19] * 3, [22.81851] * 3], dims=["layers", "cell_id"]),
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
         ],
         dim="layers",
