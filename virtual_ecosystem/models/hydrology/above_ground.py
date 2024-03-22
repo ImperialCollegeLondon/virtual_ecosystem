@@ -2,6 +2,8 @@
 processes for the Virtual Ecosystem. At the moment, this includes rain water
 interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
+
+TODO change temperatures to Kelvin
 """  # noqa: D205, D415
 
 from math import sqrt
@@ -21,14 +23,14 @@ def calculate_soil_evaporation(
     soil_moisture_residual: float | NDArray[np.float32],
     soil_moisture_capacity: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
-    wind_speed: float | NDArray[np.float32],
+    wind_speed_surface: NDArray[np.float32],
     celsius_to_kelvin: float,
     density_air: float | NDArray[np.float32],
     latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
-    heat_transfer_coefficient: float,
+    soil_surface_heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
-) -> NDArray[np.float32]:
+) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
@@ -60,19 +62,21 @@ def calculate_soil_evaporation(
         soil_moisture: Volumetric relative water content, [unitless]
         soil_moisture_residual: residual soil moisture, [unitless]
         soil_moisture_capacity: soil moisture capacity, [unitless]
-        wind_speed: wind speed at reference height, [m s-1]
+        wind_speed_surface: wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
-        latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
+        latent_heat_vapourisation: latent heat of vapourisation, [MJ kg-1]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
-        heat_transfer_coefficient: heat transfer coefficient of air
+        soil_surface_heat_transfer_coefficient: heat transfer coefficient between soil
+            and air, [W m-2 K-1]
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
 
     Returns:
-        soil evaporation, [mm]
+        soil evaporation, [mm] and aerodynamic resistance near the surface
     """
 
+    output = {}
     # Convert temperature to Kelvin
     temperature_k = temperature + celsius_to_kelvin
 
@@ -98,16 +102,20 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = heat_transfer_coefficient / wind_speed**2
+    aerodynamic_resistance = (
+        1 / wind_speed_surface**2
+    ) * soil_surface_heat_transfer_coefficient
+    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # Return surface evaporation, [mm]
-    return (evaporative_flux / latent_heat_vapourisation).squeeze() * np.exp(
-        -extinction_coefficient_global_radiation * leaf_area_index
-    )
+    output["soil_evaporation"] = (  # Return surface evaporation, [mm]
+        evaporative_flux / latent_heat_vapourisation
+    ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+
+    return output
 
 
 def find_lowest_neighbour(
@@ -219,9 +227,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 def calculate_interception(
     leaf_area_index: NDArray[np.float32],
     precipitation: NDArray[np.float32],
-    intercept_param_1: float,
-    intercept_param_2: float,
-    intercept_param_3: float,
+    intercept_parameters: tuple[float, float, float],
     veg_density_param: float,
 ) -> NDArray[np.float32]:
     r"""Estimate canopy interception.
@@ -272,9 +278,9 @@ def calculate_interception(
     """
 
     capacity = (
-        intercept_param_1
-        + intercept_param_2 * leaf_area_index
-        - intercept_param_3 * leaf_area_index**2
+        intercept_parameters[0]
+        + intercept_parameters[1] * leaf_area_index
+        - intercept_parameters[2] * leaf_area_index**2
     )
     max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
 

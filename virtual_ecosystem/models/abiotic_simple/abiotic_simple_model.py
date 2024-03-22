@@ -13,6 +13,8 @@ generate a class instance. If errors crop here when converting the information f
 config dictionary to the required types they are caught and then logged, and at the end
 of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
+
+TODO update temperatures to Kelvin
 """  # noqa: D205, D415
 
 from __future__ import annotations
@@ -131,13 +133,20 @@ class AbioticSimpleModel(
         )
 
         # calculate vapour pressure deficit at reference height for all time steps
-        self.data["vapour_pressure_deficit_ref"] = (
-            microclimate.calculate_vapour_pressure_deficit(
-                temperature=self.data["air_temperature_ref"],
-                relative_humidity=self.data["relative_humidity_ref"],
-                constants=self.model_constants,
-            ).rename("vapour_pressure_deficit_ref")
+        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            saturation_vapour_pressure_factors=(
+                self.model_constants.saturation_vapour_pressure_factors
+            ),
         )
+        self.data["vapour_pressure_deficit_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure_deficit"]
+        ).rename("vapour_pressure_deficit_ref")
+
+        self.data["vapour_pressure_ref"] = (
+            vapour_pressure_and_deficit["vapour_pressure"]
+        ).rename("vapour_pressure_ref")
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""

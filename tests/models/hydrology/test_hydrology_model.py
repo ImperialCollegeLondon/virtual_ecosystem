@@ -19,6 +19,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "hydrology model: required var 'relative_humidity_ref' checked"),
     (DEBUG, "hydrology model: required var 'atmospheric_pressure_ref' checked"),
     (DEBUG, "hydrology model: required var 'elevation' checked"),
+    (DEBUG, "hydrology model: required var 'wind_speed_ref' checked"),
 ]
 
 
@@ -281,7 +282,7 @@ def test_setup(
                     dims=["layers", "cell_id"],
                 ),
                 DataArray(
-                    [[0.52002, 0.520263, 0.520006], [0.455899, 0.456052, 0.455858]],
+                    [[0.134124, 0.134166, 0.134109], [0.419694, 0.4197, 0.419698]],
                     dims=["layers", "cell_id"],
                 ),
             ],
@@ -296,8 +297,8 @@ def test_setup(
                 ),
                 DataArray(
                     [
-                        [-201.975325, -201.197219, -202.071172],
-                        [-549.007624, -547.513334, -549.340899],
+                        [-1.532961e07, -1.536408e07, -1.528976e07],
+                        [-1.250262e03, -1.250131e03, -1.250172e03],
                     ],
                     dims=["layers", "cell_id"],
                 ),
@@ -305,28 +306,23 @@ def test_setup(
             dim="layers",
         ).assign_coords(model.data["layer_heights"].coords)
 
-        exp_surf_prec = DataArray(
-            [177.121093, 177.118977, 177.121364],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
         exp_runoff = DataArray(
             [0.0, 0.0, 0.0],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_vertical_flow = DataArray(
-            [1.111498, 1.114365, 1.11434],
+            [0.69471, 0.695691, 0.695682],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_soil_evap = DataArray(
-            [16.433136, 16.433136, 16.433136],
+            [345.1148, 344.759928, 345.15422],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
         exp_total_discharge = DataArray(
-            [0, 1423, 2846],
+            [0, 20925, 42201],
             dims=["cell_id"],
             coords={"cell_id": [0, 1, 2]},
         )
@@ -337,14 +333,8 @@ def test_setup(
         )
 
         np.testing.assert_allclose(
-            model.data["precipitation_surface"],
-            exp_surf_prec,
-            rtol=1e-4,
-            atol=1e-4,
-        )
-        np.testing.assert_allclose(
-            model.data["soil_moisture"],
-            exp_soil_moisture,
+            model.data["soil_moisture"][13:15],
+            exp_soil_moisture[13:15],
             rtol=1e-4,
             atol=1e-4,
         )
@@ -379,8 +369,8 @@ def test_setup(
             atol=1e-4,
         )
         np.testing.assert_allclose(
-            model.data["matric_potential"],
-            exp_matric_pot,
+            model.data["matric_potential"][13:15],
+            exp_matric_pot[13:15],
             rtol=1e-4,
             atol=1e-4,
         )
@@ -406,27 +396,46 @@ def test_setup_hydrology_input_current_timestep(
 ):
     """Test that correct values are selected for current time step."""
 
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import (
         setup_hydrology_input_current_timestep,
     )
 
+    dummy_climate_data["wind_speed"] = (
+        DataArray(dummy_climate_data["wind_speed_ref"].isel(time_index=0))
+        .expand_dims("layers")
+        .rename("wind_speed")
+        .assign_coords(
+            coords={
+                "layers": [
+                    fixture_core_components.layer_structure.layer_roles.index("surface")
+                ],
+                "layer_roles": ("layers", ["surface"]),
+                "cell_id": [0, 1, 2],
+            },
+        )
+    )
+    constants = AbioticConsts()
     result = setup_hydrology_input_current_timestep(
         data=dummy_climate_data,
-        time_index=1,
+        time_index=0,
+        surface_layer_index=12,
         days=30,
         seed=42,
-        layer_roles=fixture_core_components.layer_structure.layer_roles,
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
-        meters_to_mm=1000,
+        core_constants=CoreConsts,
+        latent_heat_vap_equ_factors=constants.latent_heat_vap_equ_factors,
     )
 
     # Check if all variables were created
     var_list = [
         "current_precipitation",
-        "subcanopy_temperature",
-        "subcanopy_humidity",
-        "subcanopy_pressure",
+        "surface_temperature",
+        "surface_humidity",
+        "surface_pressure",
+        "surface_wind_speed",
         "leaf_area_index_sum"
         "current_evapotranspiration"
         "soil_layer_heights"
@@ -445,15 +454,15 @@ def test_setup_hydrology_input_current_timestep(
     # check if climate values are selected correctly
     np.testing.assert_allclose(
         np.sum(result["current_precipitation"], axis=1),
-        (dummy_climate_data["precipitation"].isel(time_index=1)).to_numpy(),
+        (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
     )
     np.testing.assert_allclose(
-        result["subcanopy_temperature"], dummy_climate_data["air_temperature"][11]
+        result["surface_temperature"], dummy_climate_data["air_temperature"][12]
     )
     np.testing.assert_allclose(
-        result["subcanopy_humidity"], dummy_climate_data["relative_humidity"][11]
+        result["surface_humidity"], dummy_climate_data["relative_humidity"][12]
     )
     np.testing.assert_allclose(
-        result["subcanopy_pressure"],
-        (dummy_climate_data["atmospheric_pressure_ref"].isel(time_index=1)).to_numpy(),
+        result["surface_pressure"],
+        (dummy_climate_data["atmospheric_pressure_ref"].isel(time_index=0)).to_numpy(),
     )
