@@ -896,12 +896,6 @@ def test_Data_add_from_dict(dummy_climate_data):
     from virtual_ecosystem.core.data import Data
 
     var_dict = {
-        "air_temperature": DataArray(
-            np.full((3, 3), 20),
-            dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature_ref"].coords,
-            name="air_temperature_ref",
-        ),
         "mean_annual_temperature": DataArray(
             np.full((3), 40),
             dims=["cell_id"],
@@ -918,15 +912,6 @@ def test_Data_add_from_dict(dummy_climate_data):
 
     Data.add_from_dict(dummy_climate_data, var_dict)
 
-    xr.testing.assert_allclose(
-        dummy_climate_data["air_temperature"],
-        DataArray(
-            np.full((3, 3), 20),
-            dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature"].coords,
-            name="air_temperature",
-        ),
-    )
     xr.testing.assert_allclose(
         dummy_climate_data["mean_annual_temperature"],
         DataArray(

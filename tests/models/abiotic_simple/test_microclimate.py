@@ -115,15 +115,13 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     )
 
     data = dummy_climate_data
-
-    # Extract saturation factors from constants
     constants = AbioticSimpleConsts()
-
+    # Extract saturation factors from constants
     result = calculate_saturation_vapour_pressure(
         data["air_temperature_ref"].isel(time_index=0),
-        factor1=constants.saturation_vapour_pressure_factor1,
-        factor2=constants.saturation_vapour_pressure_factor2,
-        factor3=constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=(
+            constants.saturation_vapour_pressure_factors
+        ),
     )
 
     exp_output = DataArray(
@@ -189,8 +187,13 @@ def test_calculate_vapour_pressure_deficit():
         dim="layers",
     )
 
+    constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
-        temperature, rel_humidity, constants=AbioticSimpleConsts()
+        temperature=temperature,
+        relative_humidity=rel_humidity,
+        saturation_vapour_pressure_factors=(
+            constants.saturation_vapour_pressure_factors
+        ),
     )
     exp_output = xr.concat(
         [
@@ -212,7 +215,7 @@ def test_calculate_vapour_pressure_deficit():
         ],
         dim="layers",
     )
-    xr.testing.assert_allclose(result, exp_output)
+    xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
 def test_run_microclimate(dummy_climate_data, fixture_core_components):
@@ -226,15 +229,6 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     data = dummy_climate_data
 
-    data["atmospheric_pressure"] = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords=data["layer_heights"].coords,
-        name="atmospheric_pressure",
-    )
-    data["atmospheric_co2"] = (
-        data["atmospheric_pressure"].copy().rename("atmospheric_co2")
-    )
     result = run_microclimate(
         data=data,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
@@ -271,7 +265,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_atmospheric_pressure = xr.concat(
         [
             DataArray(
-                np.full((13, 3), 96),
+                np.full((13, 3), 96.0),
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),

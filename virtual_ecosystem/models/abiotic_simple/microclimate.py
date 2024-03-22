@@ -8,6 +8,8 @@ Soil temperature is interpolated between the surface layer and the soil temperat
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
+
+TODO change tenperatures to Kelvin
 """  # noqa: D205, D415
 
 import numpy as np
@@ -218,7 +220,8 @@ def log_interpolation(
 
 
 def calculate_saturation_vapour_pressure(
-    temperature: DataArray, factor1: float, factor2: float, factor3: float
+    temperature: DataArray,
+    saturation_vapour_pressure_factors: list[float],
 ) -> DataArray:
     r"""Calculate saturation vapour pressure.
 
@@ -229,15 +232,14 @@ def calculate_saturation_vapour_pressure(
     where :math:`T` is temperature in degree C .
 
     Args:
-        temperature: air temperature, [C]
-        factor1: factor 1 in saturation vapour pressure calculation
-        factor2: factor 2 in saturation vapour pressure calculation
-        factor3: factor 3 in saturation vapour pressure calculation
+        temperature: Air temperature, [C]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
 
     Returns:
         saturation vapour pressure, [kPa]
     """
-
+    factor1, factor2, factor3 = saturation_vapour_pressure_factors
     return DataArray(
         factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
     ).rename("saturation_vapour_pressure")
@@ -246,9 +248,9 @@ def calculate_saturation_vapour_pressure(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    constants: AbioticSimpleConsts,
-) -> DataArray:
-    """Calculate vapour pressure deficit.
+    saturation_vapour_pressure_factors: list[float],
+) -> dict[str, DataArray]:
+    """Calculate vapour pressure and vapour pressure deficit.
 
     Vapor pressure deficit is defined as the difference between saturated vapour
     pressure and actual vapour pressure.
@@ -256,21 +258,24 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        constants: Set of constants for the abiotic simple model
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
 
     Return:
-        vapour pressure deficit, [kPa]
+        vapour pressure, [kPa], vapour pressure deficit, [kPa]
     """
 
+    output = {}
     saturation_vapour_pressure = calculate_saturation_vapour_pressure(
         temperature,
-        factor1=constants.saturation_vapour_pressure_factor1,
-        factor2=constants.saturation_vapour_pressure_factor2,
-        factor3=constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
     )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
-
-    return saturation_vapour_pressure - actual_vapour_pressure
+    output["vapour_pressure"] = actual_vapour_pressure
+    output["vapour_pressure_deficit"] = (
+        saturation_vapour_pressure - actual_vapour_pressure
+    )
+    return output
 
 
 def interpolate_soil_temperature(
