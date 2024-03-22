@@ -160,6 +160,7 @@ team.
   API Generation <development/documentation/api_generation.md>
   Core Design <development/design/core.md>
   Adding New Models <development/defining_new_models.md>
+  Package Releases <development/package_releases.md>
 ```
 
 ```{eval-rst}
