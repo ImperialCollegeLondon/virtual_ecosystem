@@ -663,7 +663,7 @@ class HydrologyModel(
         # (currently only one value per month, will be average with daily input)
         for var in ["latent_heat_vapourisation", "molar_density_air"]:
             soil_hydrology[var] = DataArray(
-                np.mean(daily_lists[var]),
+                hydro_input[var],
                 dims=self.data["layer_heights"].dims,
                 coords=self.data["layer_heights"].coords,
             )
