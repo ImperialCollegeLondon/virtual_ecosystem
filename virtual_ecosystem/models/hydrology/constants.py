@@ -55,32 +55,17 @@ class HydroConsts(ConstantsDataclass):
     movement of water and indicates the direction in which water will flow.
     """
 
-    seconds_to_day: float = 86400
-    """Factor to convert variable unit from seconds to day."""
-
     nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
     :cite:p:`van_genuchten_closed-form_1980`."""
 
-    meters_to_mm: float = 1000
-    """Factor to convert variable unit from meters to millimeters."""
+    soil_surface_heat_transfer_coefficient: float = 12.5
+    """Heat transfer coefficient from soil to atmosphere above, [W m-2 K-1].
 
-    celsius_to_kelvin: float = 273.15
-    """Factor to convert variable unit from Celsius to Kelvin."""
-
-    density_air: float = 1.225
-    """Density of air under standard atmosphere, [kg m-3]"""
-
-    latent_heat_vapourisation: float = 2.45
-    """Latent heat of vapourisation under standard atmosphere, [MJ kg-1]"""
-
-    gas_constant_water_vapour: float = 461.51
-    """Gas constant for water vapour, [J kg-1 K-1]"""
-
-    heat_transfer_coefficient: float = 12.5
-    """Heat transfer coefficient, :cite:p:`van_de_griend_bare_1994` """
+    :cite:p:`van_de_griend_bare_1994`.
+    """
 
     stream_flow_capacity: float = 5000.0
     """Stream flow capacity, [mm per timestep].
@@ -89,22 +74,10 @@ class HydroConsts(ConstantsDataclass):
     At the moment, this is set as an arbitrary value, but could be used in the future to
     flag flood events."""
 
-    intercept_param_1: float = 0.935
-    """Interception parameter 1.
+    intercept_parameters: tuple[float, float, float] = (0.935, 0.498, 0.00575)
+    """Interception parameters.
 
-    Parameter in equation that estimates maximum canopy interception capacity after
-    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
-
-    intercept_param_2: float = 0.498
-    """Interception parameter 2.
-
-    Parameter in equation that estimates maximum canopy interception capacity after
-    :cite:t:`von_hoyningen-huene_interzeption_1981`."""
-
-    intercept_param_3: float = 0.00575
-    """Interception parameter 3.
-
-    Parameter in equation that estimates maximum canopy interception capacity after
+    Parameters in equation that estimates maximum canopy interception capacity after
     :cite:t:`von_hoyningen-huene_interzeption_1981`."""
 
     veg_density_param: float = 0.046

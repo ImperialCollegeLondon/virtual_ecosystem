@@ -106,7 +106,15 @@ team.
   Abiotic Simple Overview <api/abiotic_simple.md>
   Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
   Abiotic Simple Microclimate <api/abiotic_simple/microclimate.md>
-  Abiotic Simple Constants <api/abiotic_simple/abiotic_constants.md>
+  Abiotic Simple Constants <api/abiotic_simple/abiotic_simple_constants.md>
+  Abiotic Mechanistic Overview <api/abiotic.md>
+  Abiotic Mechanistic Model <api/abiotic/abiotic_model.md>
+  Abiotic Mechanistic Constants <api/abiotic/abiotic_constants.md>
+  Abiotic Mechanistic Tools <api/abiotic/abiotic_tools.md>
+  Abiotic Mechanistic Wind <api/abiotic/wind.md>
+  Abiotic Mechanistic Energy Balance <api/abiotic/energy_balance.md>
+  Abiotic Mechanistic Soil Energy Balance <api/abiotic/soil_energy_balance.md>
+  Abiotic Mechanistic Conductivities <api/abiotic/conductivities.md>
   Hydrology Overview <api/hydrology.md>
   Hydrology Model <api/hydrology/hydrology_model.md>
   Hydrology Above-ground <api/hydrology/above_ground.md>
@@ -152,6 +160,7 @@ team.
   API Generation <development/documentation/api_generation.md>
   Core Design <development/design/core.md>
   Adding New Models <development/defining_new_models.md>
+  Package Releases <development/package_releases.md>
 ```
 
 ```{eval-rst}

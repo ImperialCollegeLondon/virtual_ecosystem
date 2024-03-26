@@ -4,7 +4,7 @@ containing parameters  required by the broader
 in that they should not be changed during a particular simulation.
 """  # noqa: D205, D415
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
@@ -13,12 +13,10 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class AbioticSimpleConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
-    saturation_vapour_pressure_factor1: float = 0.61078
-    """Factor 1 for saturation vapour pressure calculation."""
-    saturation_vapour_pressure_factor2: float = 7.5
-    """Factor 2 for saturation vapour pressure calculation."""
-    saturation_vapour_pressure_factor3: float = 237.3
-    """Factor 3 for saturation vapour pressure calculation."""
+    saturation_vapour_pressure_factors: list[float] = field(
+        default_factory=lambda: [0.61078, 7.5, 237.3]
+    )
+    """Factors for saturation vapour pressure calculation."""
 
 
 @dataclass(frozen=True)
