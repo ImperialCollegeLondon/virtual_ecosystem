@@ -198,20 +198,13 @@ class AnimalCohort:
         ) * carcass_mass
         carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
 
-    def update_carcass_pool(
-        self, actual_consumed_mass: float, predator: Consumer, carcass_pool: DecayPool
-    ) -> None:
+    def update_carcass_pool(self, carcass_mass: float, carcass_pool: DecayPool) -> None:
         """Updates the carcass pool based on consumed mass and predator's efficiency.
 
         Args:
-            actual_consumed_mass: The total mass consumed from the prey cohort.
-            predator: The predator consuming the cohort.
+            carcass_mass: The total mass consumed from the prey cohort.
             carcass_pool: The pool to which remains of eaten individuals are delivered.
         """
-        # Adjust the mass for predator's mechanical efficiency to calculate carcass mass
-        carcass_mass = actual_consumed_mass * (
-            1 - predator.functional_group.mechanical_efficiency
-        )
 
         # Update the carcass pool with the remainder
         carcass_pool.scavengeable_energy += (
@@ -256,7 +249,7 @@ class AnimalCohort:
         self.individuals -= actual_individuals_eaten
 
         # Update the carcass pool with carcass mass
-        self.update_carcass_pool(carcass_mass, predator, carcass_pool)
+        self.update_carcass_pool(carcass_mass, carcass_pool)
 
         return actual_consumed_mass
 
@@ -314,22 +307,21 @@ class AnimalCohort:
             for all available plant resources.
         """
 
-        total_handling_t = 0.0
         phi = self.functional_group.constants.phi_herb_t
         A_cell = 1.0  # temporary
-        for plant in plant_list:
-            total_handling_t += sf.k_i_k(
-                alpha, phi, plant.mass_current, A_cell
-            ) + sf.H_i_k(
+        return sum(
+            sf.k_i_k(alpha, phi, plant.mass_current, A_cell)
+            + sf.H_i_k(
                 self.constants.h_herb_0,
                 self.constants.M_herb_ref,
                 self.mass_current,
                 self.constants.b_herb,
             )
-        return total_handling_t
+            for plant in plant_list
+        )
 
     def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
-        """Refactored method to determine instantaneous herbivory rate on plant k.
+        """Method to determine instantaneous herbivory rate on plant k.
 
         This method integrates the calculated search efficiency, potential consumed
         biomass of the target plant, and the total handling time for all available
@@ -337,7 +329,8 @@ class AnimalCohort:
         the cohort.
 
         Args:
-            plant_list: A list of plant cohorts available for herbivory by the cohort.
+            plant_list: A sequence of plant resources available for consumption by the
+                 cohort.
             target_plant: The specific plant resource being targeted by the herbivore
                  cohort for consumption.
 
@@ -355,7 +348,13 @@ class AnimalCohort:
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
     def calculate_theta_opt_i(self) -> float:
-        """Calculate the optimal predation param based on predator-prey mass ratio."""
+        """Calculate the optimal predation param based on predator-prey mass ratio.
+
+        Returns:
+            Float value of the optimal predation parameter for use in calculating the
+            probability of a predation event being successful.
+
+        """
         return sf.theta_opt_i(
             self.constants.theta_opt_min_f,
             self.constants.theta_opt_f,
@@ -363,7 +362,15 @@ class AnimalCohort:
         )
 
     def calculate_predation_success_probability(self, M_target: float) -> float:
-        """Calculate the probability of a successful predation event."""
+        """Calculate the probability of a successful predation event.
+
+        Args:
+            M_target: the body mass of the animal cohort being targeted for predation.
+
+        Returns:
+            A float value of the probability that a predation event is successful.
+
+        """
         M_i = self.mass_current
         theta_opt_i = self.calculate_theta_opt_i()
         return sf.w_bar_i_j(
@@ -374,58 +381,91 @@ class AnimalCohort:
         )
 
     def calculate_predation_search_rate(self, w_bar: float) -> float:
-        """Calculate the search rate of the predator for preying."""
+        """Calculate the search rate of the predator.
+
+        Args:
+            w_bar: Probability of successfully capturing prey.
+
+        Returns:
+            A float value of the search rate in ha/day
+
+        """
         return sf.alpha_i_j(self.constants.alpha_0_pred, self.mass_current, w_bar)
 
     def calculate_potential_prey_consumed(
         self, alpha: float, theta_i_j: float
     ) -> float:
-        """Calculate the potential number of prey consumed."""
-        N_i = self.individuals
-        A_cell = 1.0  # temporary
-        return sf.k_i_j(alpha, N_i, A_cell, theta_i_j)
+        """Calculate the potential number of prey consumed.
 
-    def calculate_total_handling_time_for_predation(self, alpha: float) -> float:
-        """Calculate the total handling time for preying on available animal cohorts."""
-        M_i = self.mass_current
+        Args:
+            alpha: the predation search rate
+            theta_i_j: The cumulative density of organisms with a mass lying within the
+              same predator specific mass bin.
+
+        Returns:
+            The potential number of prey items consumed.
+
+        """
+        A_cell = 1.0  # temporary
+        return sf.k_i_j(alpha, self.individuals, A_cell, theta_i_j)
+
+    def calculate_total_handling_time_for_predation(self) -> float:
+        """Calculate the total handling time for preying on available animal cohorts.
+
+        Returns:
+            A float value of handling time in days.
+
+        """
         return sf.H_i_j(
             self.constants.h_pred_0,
             self.constants.M_pred_ref,
-            M_i,
+            self.mass_current,
             self.constants.b_pred,
         )
 
     def F_i_j_individual(
-        self, animal_list: Sequence[AnimalCohort], target_animal: AnimalCohort
+        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
     ) -> float:
-        """Refactored method to determine instantaneous predation rate on cohort j."""
-        M_target = target_animal.mass_current
-        w_bar = self.calculate_predation_success_probability(M_target)
+        """Method to determine instantaneous predation rate on cohort j.
+
+        Args:
+            animal_list: A sequence of animal cohorts that can be consumed by the
+                predator.
+            target_cohort: The prey cohort from which mass will be consumed.
+
+        Returns:
+            Float fraction of target cohort consumed per day.
+
+
+        """
+        w_bar = self.calculate_predation_success_probability(target_cohort.mass_current)
         alpha = self.calculate_predation_search_rate(w_bar)
         theta_i_j = self.theta_i_j(animal_list)  # Assumes implementation of theta_i_j
         k_target = self.calculate_potential_prey_consumed(alpha, theta_i_j)
-        total_handling_t = self.calculate_total_handling_time_for_predation(alpha)
+        total_handling_t = self.calculate_total_handling_time_for_predation()
         N_i = self.individuals
-        N_target = target_animal.individuals
+        N_target = target_cohort.individuals
 
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
-    def calculate_consumed_mass_predation(self, target_cohort: AnimalCohort) -> float:
-        """Calculates the mass to be consumed from a  prey cohort by the predator.
+    def calculate_consumed_mass_predation(
+        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
+    ) -> float:
+        """Calculates the mass to be consumed from a prey cohort by the predator.
 
         This method utilizes the F_i_j_individual method to determine the rate at which
         the target cohort is consumed, and then calculates the actual mass to be
         consumed based on this rate and other model parameters.
 
         Args:
+            animal_list: A sequence of animal cohorts that can be consumed by the
+                predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
         Returns:
             The mass to be consumed from the target cohort by the predator (in kg).
         """
-        F = self.F_i_j_individual(
-            [target_cohort], target_cohort
-        )  # Note: Adjusting this call may be necessary
+        F = self.F_i_j_individual(animal_list, target_cohort)
         delta_t = 30.0  # days, TODO: Replace with actual reference or model parameter
 
         # Calculate the consumed mass based on Mad. formula for delta_mass_predation
@@ -465,7 +505,7 @@ class AnimalCohort:
 
         for cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
-            consumed_mass = self.calculate_consumed_mass_predation(cohort)
+            consumed_mass = self.calculate_consumed_mass_predation(animal_list, cohort)
             # Call get_eaten on the prey cohort to update its mass and individuals
             actual_consumed_mass = cohort.get_eaten(consumed_mass, self, carcass_pool)
             # Update total mass gained by the predator
@@ -501,7 +541,16 @@ class AnimalCohort:
     def delta_mass_herbivory(
         self, plant_list: Sequence[Resource], excrement_pool: DecayPool
     ) -> float:
-        """This method handles mass assimilation from herbivory."""
+        """This method handles mass assimilation from herbivory.
+
+        Args:
+            plant_list: A sequence of plant resources available for herbivory.
+            excrement_pool: A pool representing the excrement in the grid cell.
+
+        Returns:
+            A float of the total plant mass consumed by the animal cohort in g.
+
+        """
         total_consumed_mass = 0.0  # Initialize the total consumed mass
 
         for plant in plant_list:
@@ -524,8 +573,8 @@ class AnimalCohort:
         """This function handles selection of resources from a list for consumption.
 
         Args:
-            plant_list: A list of plant resources available for herbivory.
-            animal_list: A list of animal cohorts available for predation.
+            plant_list: A sequence of plant resources available for herbivory.
+            animal_list: A sequence of animal cohorts available for predation.
             excrement_pool: A pool representing the excrement in the grid cell.
             carcass_pool: A pool representing the carcasses in the grid cell.
 
@@ -577,13 +626,12 @@ class AnimalCohort:
             The float value of theta.
         """
         A_cell = 1.0  # temporary
-        theta = 0.0
 
-        for cohort in animal_list:
-            if self.mass_current == cohort.mass_current:
-                theta += cohort.individuals / A_cell
-
-        return theta
+        return sum(
+            cohort.individuals / A_cell
+            for cohort in animal_list
+            if self.mass_current == cohort.mass_current
+        )
 
     def eat(self, mass_consumed: float) -> None:
         """Handles the mass gain from consuming food.

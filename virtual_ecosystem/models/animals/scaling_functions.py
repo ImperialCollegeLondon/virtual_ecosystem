@@ -275,7 +275,6 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
     Madingley
 
-
     Args:
         alpha_0_herb: Effective rate per unit body mass at which a herbivore searches
           its environment.
@@ -291,8 +290,6 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
 def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
     """The potential biomass (g) of plant k eaten by cohort i, per day.
-
-    TODO: Finish docstring
 
     Madingley
 
@@ -344,12 +341,14 @@ def theta_opt_i(
     Madingley
 
     Args:
-        theta_opt_min_f:
-        theta_opt_f:
-        sigma_opt_f
+        theta_opt_min_f: The minimum optimal prey-predator body mass ratio.
+        theta_opt_f: The mean optimal prey-predator body mass ratio, from which actual
+          cohort optima are drawn.
+        sigma_opt_f: The standard deviation of optimal predator-prey mass ratios among
+          cohorts.
 
     Returns:
-        A float measure of the optimum ration.
+        A float measure of the optimum ratio.
 
     """
 
@@ -416,10 +415,12 @@ def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> fl
     Madingley
 
     Args:
-        alpha_i_j: .
-        N_i_t:
-        A_cell:
-        theta_i_j:
+        alpha_i_j: Rate at which an individual predator searches its environment and
+          kills prey.
+        N_i_t: Number of consumer individuals.
+        A_cell: The area of a grid cell.
+        theta_i_j: The cumulative density of organisms with a mass lying within the
+              same predator specific mass bin.
 
     Returns:
         Potential number of prey items eaten off j by i [integer number of individuals]
