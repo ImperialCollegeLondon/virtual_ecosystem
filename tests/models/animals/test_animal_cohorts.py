@@ -631,18 +631,13 @@ class TestAnimalCohort:
         """Test total handling time calculation for predation."""
         from unittest.mock import patch
 
-        # Example predation search rate
-        alpha = 0.8
-
         # Mock the H_i_j function to control its output
         with patch(
             "virtual_ecosystem.models.animals.scaling_functions.H_i_j",
             return_value=2.5,
         ) as mock_H_i_j:
             result = (
-                herbivore_cohort_instance.calculate_total_handling_time_for_predation(
-                    alpha
-                )
+                herbivore_cohort_instance.calculate_total_handling_time_for_predation()
             )
 
             # Verify that H_i_j was called with the correct parameters
@@ -660,37 +655,41 @@ class TestAnimalCohort:
 
     def test_F_i_j_individual(self, predator_cohort_instance, animal_list_instance):
         """Test instantaneous predation rate calculation on a selected target cohort."""
+
         from unittest.mock import patch
 
         # Selecting a target animal from the provided animal list instance
         target_animal = animal_list_instance[0]
 
-        # Mock all component methods used in F_i_j_individual to isolate logic.
-        with patch.object(
-            predator_cohort_instance,
+        # Corrected Mocks
+        with patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
             "calculate_predation_success_probability",
             return_value=0.5,
-        ) as mock_success_prob, patch.object(
-            predator_cohort_instance,
+        ) as mock_success_prob, patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
             "calculate_predation_search_rate",
             return_value=0.8,
-        ) as mock_search_rate, patch.object(
-            predator_cohort_instance, "theta_i_j", return_value=0.7
-        ) as mock_theta_i_j, patch.object(
-            predator_cohort_instance,
+        ) as mock_search_rate, patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort.theta_i_j",
+            return_value=0.7,
+        ) as mock_theta_i_j, patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
             "calculate_potential_prey_consumed",
             return_value=10,
-        ) as mock_potential_prey, patch.object(
-            predator_cohort_instance,
+        ) as mock_potential_prey, patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
             "calculate_total_handling_time_for_predation",
             return_value=2,
         ) as mock_total_handling:
+
             # Execute the method under test
             rate = predator_cohort_instance.F_i_j_individual(
                 animal_list_instance, target_animal
             )
 
             # Verify each mocked method was called with expected arguments
+            mock_total_handling.assert_called_once()
             mock_success_prob.assert_called_once_with(target_animal.mass_current)
             mock_search_rate.assert_called_once_with(
                 0.5
@@ -699,9 +698,6 @@ class TestAnimalCohort:
             mock_potential_prey.assert_called_once_with(
                 0.8, 0.7
             )  # alpha from mock_search_rate, theta_i_j from mock_theta_i_j
-            mock_total_handling.assert_called_once_with(
-                0.8
-            )  # alpha from mock_search_rate
 
             # Calculate the expected rate based on the mocked return values and assert
             N_i = predator_cohort_instance.individuals
