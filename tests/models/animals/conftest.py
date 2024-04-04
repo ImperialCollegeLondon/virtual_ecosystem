@@ -188,13 +188,8 @@ def plant_list_instance(plant_data_instance, constants_instance):
     return [
         PlantResources(
             data=plant_data_instance, cell_id=4, constants=constants_instance
-        ),
-        PlantResources(
-            data=plant_data_instance, cell_id=4, constants=constants_instance
-        ),
-        PlantResources(
-            data=plant_data_instance, cell_id=4, constants=constants_instance
-        ),
+        )
+        for idx in range(3)
     ]
 
 
@@ -206,11 +201,6 @@ def animal_list_instance(herbivore_functional_group_instance, constants_instance
     return [
         AnimalCohort(
             herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
-        ),
-        AnimalCohort(
-            herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
-        ),
-        AnimalCohort(
-            herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
-        ),
+        )
+        for idx in range(3)
     ]
