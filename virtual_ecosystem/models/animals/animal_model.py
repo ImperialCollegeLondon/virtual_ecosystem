@@ -201,7 +201,7 @@ class AnimalModel(
             community.inflict_natural_mortality_community(
                 self.update_interval_timedelta
             )
-            community.die_cohort_community()
+            community.remove_dead_cohort_community()
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the

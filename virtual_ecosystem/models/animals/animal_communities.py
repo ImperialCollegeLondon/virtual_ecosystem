@@ -139,11 +139,8 @@ class AnimalCommunity:
                 destination = self.get_destination(destination_key)
                 self.migrate(cohort, destination)
 
-    def die_cohort(self, cohort: AnimalCohort) -> None:
-        """The function to change the cohort status from alive to dead.
-
-        This method is a computation question, not a scientific one. The science is in
-        the various methods that call die_cohort after a mortality inflicting event.
+    def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
+        """Remove a dead cohort from a community.
 
         Args:
             cohort: The AnimalCohort instance that has lost all individuals.
@@ -157,10 +154,10 @@ class AnimalCommunity:
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def die_cohort_community(self) -> None:
-        """This handles die_cohort for all cohorts in a community."""
+    def remove_dead_cohort_community(self) -> None:
+        """This handles remove_dead_cohort for all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            self.die_cohort(cohort)
+            self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
@@ -240,7 +237,7 @@ class AnimalCommunity:
 
             # Check if the cohort has been depleted to zero individuals post-foraging
             if consumer_cohort.individuals == 0:
-                self.die_cohort(consumer_cohort)
+                self.remove_dead_cohort(consumer_cohort)
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
@@ -314,4 +311,4 @@ class AnimalCommunity:
         for cohort in self.all_animal_cohorts:
             cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
             if cohort.individuals <= 0:
-                self.die_cohort(cohort)
+                self.remove_dead_cohort(cohort)

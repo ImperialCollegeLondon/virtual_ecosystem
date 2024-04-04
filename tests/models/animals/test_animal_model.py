@@ -170,7 +170,7 @@ def test_update_method_sequence(
         "birth_community",
         "metabolize_community",
         "inflict_natural_mortality_community",
-        "die_cohort_community",
+        "remove_dead_cohort_community",
         "increase_age_community",
     ]
 
