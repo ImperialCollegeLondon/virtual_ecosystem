@@ -1,0 +1,28 @@
+{
+    "type": "object",
+    "properties": {
+        "abiotic": {
+            "description": "Configuration settings for the abiotic model",
+            "type": "object",
+            "properties": {
+                "constants": {
+                    "description": "Constants for the abiotic model",
+                    "type": "object",
+                    "properties": {
+                        "AbioticConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "AbioticConsts"
+                    ]
+                }
+            },
+            "default": {},
+            "required": []
+        }
+    },
+    "required": [
+        "abiotic"
+    ]
+}
