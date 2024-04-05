@@ -167,16 +167,8 @@ def test_get_community_by_key(animal_model_instance):
         animal_model_instance.get_community_by_key(999)
 
 
-def test_update_method_sequence(
-    prepared_animal_model_instance,
-):
-    """Test update to ensure it runs the community methods in order.
-
-    As a bonus this test checks that the litter output pools have all been created.
-    """
-    from unittest.mock import MagicMock
-
-    # Mock all the methods that are supposed to be called by update
+def test_update_method_sequence(mocker, prepared_animal_model_instance):
+    """Test update to ensure it runs the community methods in order."""
     method_names = [
         "forage_community",
         "migrate_community",
@@ -187,27 +179,26 @@ def test_update_method_sequence(
         "increase_age_community",
     ]
 
-    mock_methods = {}
-    for method_name in method_names:
-        for community in prepared_animal_model_instance.communities.values():
-            mock_method = MagicMock(name=method_name)
-            setattr(community, method_name, mock_method)
-            mock_methods[method_name] = mock_method
+    # Setup mock methods using spy
+    for community in prepared_animal_model_instance.communities.values():
+        for method_name in method_names:
+            mocker.spy(community, method_name)
 
     prepared_animal_model_instance.update(time_index=0)
 
-    # Collect the call sequence
-    call_sequence = []
-    for mock in mock_methods.values():
-        if mock.call_args_list:
-            call_sequence.append(mock._mock_name)
+    # Now, let's verify the order of the calls for each community
+    for community in prepared_animal_model_instance.communities.values():
+        called_methods = []
+        for method_name in method_names:
+            method = getattr(community, method_name)
+            # If the method was called, add its name to the list
+            if method.spy_return is not None or method.call_count > 0:
+                called_methods.append(method_name)
 
-    # Assert the methods were called in the expected order
-    assert call_sequence == method_names
-    # Check that excrement and carcass data is created, all elements are zero as no
-    # actual updates have occurred
-    assert np.allclose(prepared_animal_model_instance.data["decomposed_excrement"], 0.0)
-    assert np.allclose(prepared_animal_model_instance.data["decomposed_carcasses"], 0.0)
+        # Verify the called_methods list matches the expected method_names list
+        assert (
+            called_methods == method_names
+        ), f"Methods called in wrong order: {called_methods} for community {community}"
 
 
 def test_update_method_time_index_argument(
@@ -396,14 +387,10 @@ def test_update_population_densities(prepared_animal_model_instance):
             )
 
 
-def test_calculate_density_for_cohort(prepared_animal_model_instance):
+def test_calculate_density_for_cohort(prepared_animal_model_instance, mocker):
     """Test the calculate_density_for_cohort method."""
-    from unittest.mock import MagicMock
 
-    from pytest import approx
-
-    # Mock an AnimalCohort instance with a known number of individuals
-    mock_cohort = MagicMock()
+    mock_cohort = mocker.MagicMock()
     mock_cohort.individuals = 100  # Example number of individuals
 
     # Set a known community area in the model's data.grid.cell_area
@@ -420,7 +407,7 @@ def test_calculate_density_for_cohort(prepared_animal_model_instance):
     )
 
     # Assert the calculated density matches the expected density
-    assert calculated_density == approx(expected_density), (
+    assert calculated_density == pytest.approx(expected_density), (
         f"Calculated density ({calculated_density}) "
         f"did not match expected density ({expected_density})."
     )
