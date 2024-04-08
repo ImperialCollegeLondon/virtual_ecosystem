@@ -128,7 +128,7 @@ class AnimalConsts(ConstantsDataclass):
     flow_to_reproductive_mass_threshold: float = (
         1.0  # Threshold of trophic flow to reproductive mass
     )
-    dispersal_mass_threshold: float = 0.75  # Threshold for dispersal
+    dispersal_mass_threshold: float = 0.8  # Threshold for dispersal
     energy_percentile_threshold: float = 0.5  # Threshold for initiating migration
     decay_fraction_excrement: float = 0.5  # Decay fraction for excrement
     decay_fraction_carcasses: float = 0.2  # Decay fraction for carcasses
@@ -208,6 +208,23 @@ class AnimalConsts(ConstantsDataclass):
     """Intercept of the relationship between monthly temperature variability and the
     optimal temperature relative to annual mean temperature, for terrestrial
     ectothermic functional groups."""
+
+    # Madingley dispersal parameters
+
+    M_disp_ref = 1.0  # M_disp_ref [Madingley] [g]
+    """The reference mass for calculating diffusive juvenile dispersal in grams."""
+
+    V_disp = 0.0278  # V_disp [Madingley] [km/month]
+    """Diffusive dispersal speed on an individual of body-mass equal to M_disp_ref
+      in km/month."""
+
+    o_disp = 0.48  # o_disp [Madingley] [unitless]
+    """Power law exponent for the scaling relationship between body-mass and dispersal
+    distance as mediated by a reference mass, M_disp_ref."""
+
+    beta_responsive_bodymass = 0.8  # Beta_responsive_bodymass [unitless]
+    """Ratio of current body-mass to adult body-mass at which starvation-response
+    dispersal is attempted."""
 
 
 DECAY_FRACTION_EXCREMENT: float = 0.5

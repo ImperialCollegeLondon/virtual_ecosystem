@@ -116,10 +116,11 @@ class AnimalCommunity:
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
-        Travel distance is not currently a function of body-size or locomotion.
+        Travel distance is not currently a function of body-size or locomotion for
+        starvation dispersal.
 
-        TODO: Implement juvenile dispersal.
-        TODO: Implement low-density trigger.
+        TODO: Implement low-density trigger. [might not actually do this, requires
+                cohort merging.]
 
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
@@ -135,6 +136,11 @@ class AnimalCommunity:
         for cohort in self.all_animal_cohorts:
             if cohort.is_below_mass_threshold(self.constants.dispersal_mass_threshold):
                 # Random walk destination from the neighbouring keys
+                destination_key = choice(self.neighbouring_keys)
+                destination = self.get_destination(destination_key)
+                self.migrate(cohort, destination)
+
+            if cohort.age == 0.0 and cohort.migrate_juvenile_probability():
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
                 self.migrate(cohort, destination)
@@ -184,16 +190,16 @@ class AnimalCommunity:
         # reduce reproductive mass by amount used to generate offspring
         parent_cohort.reproductive_mass = 0.0
 
-        # add a new cohort of the parental type to the community
-        self.animal_cohorts[parent_cohort.name].append(
-            AnimalCohort(
-                parent_cohort.functional_group,
-                parent_cohort.functional_group.birth_mass,
-                0.0,
-                number_offspring,
-                self.constants,
-            )
+        offspring_cohort = AnimalCohort(
+            parent_cohort.functional_group,
+            parent_cohort.functional_group.birth_mass,
+            0.0,
+            number_offspring,
+            self.constants,
         )
+
+        # add a new cohort of the parental type to the community
+        self.animal_cohorts[parent_cohort.name].append(offspring_cohort)
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""

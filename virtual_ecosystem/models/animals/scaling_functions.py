@@ -442,9 +442,9 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
         h_pred_0: Time that it would take a predator of body mass equal to the reference
           mass, to handle a prey individual of body mass equal to one gram.
         M_ref: Reference body mass.
-        M_i_t: Current predator mass
+        M_i_t: Current predator mass.
         b_pred: Exponent of the power-law function relating the handling time of
-          prey to predator mass
+          prey to predator mass.
 
     Returns:
         A float of the handling time (days).
@@ -452,3 +452,25 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
     """
 
     return h_pred_0 * ((M_ref / M_i_t) ** b_pred) * M_i_t
+
+
+def juvenile_dispersal_speed(
+    current_mass: float, V_disp: float, M_disp_ref: float, o_disp: float
+) -> float:
+    """Dispersal speed of cohorts during diffusive natal dispersal event [km/month].
+
+    Madingley
+
+    Args:
+        current_mass:
+        V_disp: Diffusive dispersal speed on an individual with reference body-mass.
+        M_disp_ref: A reference body-mass.
+        o_disp: The power-law exponent for the mass-dispersal speed scaling
+          relationship.
+
+    Returns:
+        The dispersal speed of a juvenile cohort in km/month.
+
+    """
+
+    return V_disp * (current_mass / M_disp_ref) ** o_disp

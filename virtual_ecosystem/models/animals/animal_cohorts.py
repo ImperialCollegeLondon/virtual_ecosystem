@@ -9,7 +9,7 @@ Notes:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from math import ceil, exp
+from math import ceil, exp, sqrt
 
 from numpy import random, timedelta64
 
@@ -679,7 +679,7 @@ class AnimalCohort:
     def inflict_natural_mortality(
         self, carcass_pool: CarcassPool, number_days: float
     ) -> None:
-        """The function to cause natural mortality in a cohort.
+        """Inflicts natural mortality in a cohort.
 
         TODO Find a more efficient structure so we aren't recalculating the
         time_step_mortality. Probably pass through the initialized timestep size to the
@@ -703,3 +703,33 @@ class AnimalCohort:
         )
 
         self.die_individual(number_of_deaths, carcass_pool)
+
+    def migrate_juvenile_probability(self) -> float:
+        """The probability that a juvenile cohort will migrate to a new grid cell.
+
+        TODO: This does not hold for diagonal moves.
+
+        Following Madingley's assumption that the probability of juvenile dispersal is
+        equal to the proportion of the cohort individuals that would arrive in the
+        neighboring cell after one full timestep's movement.
+
+        Assuming cohort individuals are homogenously distributed within a grid cell and
+        that the move is non-diagonal, the probability is then equal to the ratio of
+        dispersal speed to the side-length of a grid cell.
+
+        Returns:
+            The probability of diffusive natal dispersal to a neighboring grid cell.
+
+        """
+
+        A_cell = 1.0  #
+        grid_side = sqrt(A_cell)
+        velocity = sf.juvenile_dispersal_speed(
+            self.mass_current,
+            self.constants.V_disp,
+            self.constants.M_disp_ref,
+            self.constants.o_disp,
+        )
+        probability_of_dispersal = velocity / grid_side
+
+        return random.random() < probability_of_dispersal
