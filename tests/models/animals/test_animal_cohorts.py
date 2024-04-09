@@ -974,3 +974,56 @@ class TestAnimalCohort:
             predator_cohort_instance.forage_cohort(
                 [], [], excrement_pool_instance, carcass_pool_instance
             )
+
+    @pytest.mark.parametrize(
+        "mass_current, V_disp, M_disp_ref, o_disp, random_value, expected_migration",
+        [
+            pytest.param(
+                10.0, 0.03, 1.0, 1.0, 0.05, True, id="high_speed_likely_migration"
+            ),
+            pytest.param(
+                10.0, 0.01, 1.0, 1.0, 0.01, True, id="low_speed_unlikely_migration"
+            ),
+            pytest.param(10.0, 0.0278, 1.0, 1.0, 0.8, False, id="equal_probability"),
+            pytest.param(0.0, 0.0278, 1.0, 1.0, 0.005, False, id="zero_mass"),
+            pytest.param(
+                10.0, 0.0, 1.0, 1.0, 0.0, False, id="zero_velocity_no_migration"
+            ),
+        ],
+    )
+    def test_migrate_juvenile_probability(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        mass_current,
+        V_disp,
+        M_disp_ref,
+        o_disp,
+        random_value,
+        expected_migration,
+    ):
+        """Test the probability of juvenile cohort migration."""
+
+        # Mock `random.random()` to return a fixed value
+        mocker.patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.random.random",
+            return_value=random_value,
+        )
+
+        # Calculate expected dispersal speed
+        expected_dispersal_speed = V_disp * (mass_current / M_disp_ref) ** o_disp
+
+        # Mock the `juvenile_dispersal_speed` to return our expected dispersal speed
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions."
+            "juvenile_dispersal_speed",
+            return_value=expected_dispersal_speed,
+        )
+
+        # Execute the method under test
+        actual_migration = herbivore_cohort_instance.migrate_juvenile_probability()
+
+        # Compare actual migration outcome to expected outcome
+        assert (
+            actual_migration == expected_migration
+        ), f"Expected random to be {expected_migration}, but got {actual_migration}."
