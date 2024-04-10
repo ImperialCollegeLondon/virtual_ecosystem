@@ -500,6 +500,8 @@ class AnimalCohort:
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
                          predator.
+            excrement_pool: A pool representing the excrement in the grid cell.
+            carcass_pool: A pool representing the animal carcasses in the grid cell.
 
         Returns:
             The change in mass experienced by the predator.
@@ -529,6 +531,8 @@ class AnimalCohort:
         this rate and other model parameters.
 
         Args:
+            plant_list: A sequence of plant resources that can be consumed by the
+                herbivore.
             target_plant: The plant resource from which mass will be consumed.
 
         Returns:
