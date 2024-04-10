@@ -218,7 +218,10 @@ class AnimalCohort:
         predator: Consumer,
         carcass_pool: DecayPool,
     ) -> float:
-        """Adjusts individuals from the prey cohort based on the consumed mass.
+        """Removes individuals according to mass demands of a predation event.
+
+        It finds the smallest whole number of prey required to satisfy the predators
+        mass demands and caps at then caps it at the available population.
 
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
@@ -228,30 +231,31 @@ class AnimalCohort:
         Returns:
             The actual mass consumed by the predator, closely matching consumed_mass.
         """
-        individual_mass = (
-            self.mass_current
-        )  # Mass of an average individual in the cohort
-        max_individuals_eaten = ceil(potential_consumed_mass / individual_mass)
-        actual_individuals_eaten = min(max_individuals_eaten, self.individuals)
 
-        # Calculate the mass represented by the individuals actually eaten
-        actual_killed_mass = actual_individuals_eaten * individual_mass
+        # Mass of an average individual in the cohort
+        individual_mass = self.mass_current
+
+        max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
+        actual_individuals_killed = min(max_individuals_killed, self.individuals)
+
+        # Calculate the mass represented by the individuals actually killed
+        actual_mass_killed = actual_individuals_killed * individual_mass
 
         # Calculate the actual amount of mass consumed by the predator
-        actual_consumed_mass = min(actual_killed_mass, potential_consumed_mass)
+        actual_mass_consumed = min(actual_mass_killed, potential_consumed_mass)
 
         # Calculate the amount of mass that goes into carcass pool
-        carcass_mass = (actual_killed_mass - actual_consumed_mass) + (
-            actual_consumed_mass * (1 - predator.functional_group.mechanical_efficiency)
+        carcass_mass = (actual_mass_killed - actual_mass_consumed) + (
+            actual_mass_consumed * (1 - predator.functional_group.mechanical_efficiency)
         )
 
         # Update the number of individuals in the prey cohort
-        self.individuals -= actual_individuals_eaten
+        self.individuals -= actual_individuals_killed
 
         # Update the carcass pool with carcass mass
         self.update_carcass_pool(carcass_mass, carcass_pool)
 
-        return actual_consumed_mass
+        return actual_mass_consumed
 
     def calculate_alpha(self) -> float:
         """Calculate search efficiency.
