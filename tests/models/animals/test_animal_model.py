@@ -175,7 +175,7 @@ def test_update_method_sequence(mocker, prepared_animal_model_instance):
         "birth_community",
         "metabolize_community",
         "inflict_natural_mortality_community",
-        "die_cohort_community",
+        "remove_dead_cohort_community",
         "increase_age_community",
     ]
 

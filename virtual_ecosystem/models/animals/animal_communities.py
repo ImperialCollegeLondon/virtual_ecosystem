@@ -27,6 +27,10 @@ from virtual_ecosystem.models.animals.scaling_functions import damuths_law
 class AnimalCommunity:
     """This is a class for the animal community of a grid cell.
 
+    This class manages the animal cohorts present in a grid cell and provides methods
+    that need to loop over all cohorts, move cohorts to new grids, or manage an
+    interaction between two cohorts.
+
     Args:
         functional_groups: A list of FunctionalGroup objects
         data: The core data object
@@ -88,6 +92,9 @@ class AnimalCommunity:
         generated. So the more functional groups that are made, the denser the animal
         community will be. This function will need to be reworked dramatically later on.
 
+        Currently, the number of individuals in a cohort is handled using Damuth's Law,
+        which only holds for mammals.
+
         """
         for functional_group in self.functional_groups:
             individuals = damuths_law(
@@ -108,6 +115,8 @@ class AnimalCommunity:
 
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
+
+        Travel distance is not currently a function of body-size or locomotion.
 
         TODO: Implement juvenile dispersal.
         TODO: Implement low-density trigger.
@@ -130,8 +139,8 @@ class AnimalCommunity:
                 destination = self.get_destination(destination_key)
                 self.migrate(cohort, destination)
 
-    def die_cohort(self, cohort: AnimalCohort) -> None:
-        """The function to change the cohort status from alive to dead.
+    def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
+        """Remove a dead cohort from a community.
 
         Args:
             cohort: The AnimalCohort instance that has lost all individuals.
@@ -145,10 +154,10 @@ class AnimalCommunity:
         elif not cohort.is_alive:
             LOGGER.exception("An animal cohort which is dead cannot die.")
 
-    def die_cohort_community(self) -> None:
-        """This handles die_cohort for all cohorts in a community."""
+    def remove_dead_cohort_community(self) -> None:
+        """This handles remove_dead_cohort for all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            self.die_cohort(cohort)
+            self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
@@ -156,6 +165,8 @@ class AnimalCommunity:
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and mass=birth_mass.
+
+        The science here follows Madingley.
 
         TODO: Implement juvenile dispersal.
         TODO: Check whether madingley discards excess reproductive mass
@@ -193,17 +204,15 @@ class AnimalCommunity:
                 self.birth(cohort)
 
     def forage_community(self) -> None:
-        """This function needs to organize the foraging of animal cohorts.
+        """This function organizes the foraging of animal cohorts.
 
-        It should loop over every animal cohort in the community and call the
-        collect_prey and forage_cohort functions. This will create a list of suitable
-        trophic resources and then action foraging on those resources. Details of
-        mass transfer are handled inside forage_cohort and its helper functions.
-        This will sooner be expanded to include functions for handling scavenging
-        and soil consumption behaviors specifically.
+        It loops over every animal cohort in the community and calls the
+        forage_cohort function with a list of suitable trophic resources. This action
+        initiates foraging for those resources, with mass transfer details handled
+        internally by forage_cohort and its helper functions. Future expansions may
+        include functions for handling scavenging and soil consumption behaviors.
 
-        TODO Remove excess die_cohort related checks
-
+        Cohorts with no remaining individuals post-foraging are marked for death.
         """
         # Generate the plant resources for foraging.
         plant_community: PlantResources = PlantResources(
@@ -215,20 +224,20 @@ class AnimalCommunity:
         plant_list = [plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
-            if (
-                consumer_cohort.individuals == 0
-            ):  # temporary while finalizing die_cohort placements
-                continue
-
+            # Prepare the prey list for the consumer cohort
             prey_list = self.collect_prey(consumer_cohort)
-            food_choice = consumer_cohort.forage_cohort(
+
+            # Initiate foraging for the consumer cohort with the prepared resources
+            consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                carcass_pool=self.carcass_pool,
                 excrement_pool=self.excrement_pool,
+                carcass_pool=self.carcass_pool,
             )
-            if isinstance(food_choice, AnimalCohort) and food_choice.individuals == 0:
-                self.die_cohort(food_choice)
+
+            # Check if the cohort has been depleted to zero individuals post-foraging
+            if consumer_cohort.individuals == 0:
+                self.remove_dead_cohort(consumer_cohort)
 
     def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
@@ -310,4 +319,4 @@ class AnimalCommunity:
         for cohort in self.all_animal_cohorts:
             cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
             if cohort.individuals <= 0:
-                self.die_cohort(cohort)
+                self.remove_dead_cohort(cohort)
