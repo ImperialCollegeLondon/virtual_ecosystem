@@ -429,7 +429,7 @@ def calculate_current_conductivities(
         height_above_canopy=data["layer_heights"].isel(layers=0).to_numpy(),
         zero_displacement_height=data["zero_displacement_height"].to_numpy(),
         canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
-        friction_velocity=data["friction_velocity"][0].to_numpy(),
+        friction_velocity=data["friction_velocity"].to_numpy(),
         molar_density_air=data["molar_density_air"][0].to_numpy(),
         diabatic_correction_heat=data["diabatic_correction_heat_canopy"].to_numpy(),
         von_karmans_constant=von_karmans_constant,

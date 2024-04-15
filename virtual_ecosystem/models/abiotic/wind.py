@@ -404,7 +404,7 @@ def wind_log_profile(
     return np.squeeze(wind_profile)
 
 
-def calculate_friction_velocity(
+def calculate_friction_velocity_reference_height(
     wind_speed_ref: NDArray[np.float32],
     reference_height: float | NDArray[np.float32],
     zeroplane_displacement: NDArray[np.float32],
@@ -428,7 +428,7 @@ def calculate_friction_velocity(
             boundary.
 
     Returns:
-        friction velocity
+        Friction velocity, [m s-1]
     """
 
     wind_profile_reference = wind_log_profile(
@@ -632,7 +632,7 @@ def calculate_wind_profile(
         von_karman_constant=core_constants.von_karmans_constant,
     )
 
-    friction_velocity_uncorrected = calculate_friction_velocity(
+    friction_velocity_uncorrected = calculate_friction_velocity_reference_height(
         wind_speed_ref=wind_speed_ref,
         reference_height=wind_reference_height,
         zeroplane_displacement=zero_plane_displacement,
@@ -643,20 +643,22 @@ def calculate_wind_profile(
 
     # TODO select above layer (psi) and add function for factor below canopy (phi)
     diabatic_correction_above = calculate_diabatic_correction_above(
-        molar_density_air=molar_density_air,
-        specific_heat_air=specific_heat_air,
-        temperature=air_temperature,
+        molar_density_air=molar_density_air[0],
+        specific_heat_air=specific_heat_air[0],
+        temperature=air_temperature[0],
         sensible_heat_flux=sensible_heat_flux_topofcanopy,
         friction_velocity=friction_velocity_uncorrected,
-        wind_heights=wind_layer_heights,
+        wind_heights=wind_layer_heights[0],
         zero_plane_displacement=zero_plane_displacement,
         celsius_to_kelvin=core_constants.zero_Celsius,
         von_karmans_constant=core_constants.von_karmans_constant,
         yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
         diabatic_heat_momentum_ratio=abiotic_constants.diabatic_heat_momentum_ratio,
     )
+    output["diabatic_correction_heat_above"] = diabatic_correction_above["psi_h"]
+    output["diabatic_correction_momentum_above"] = diabatic_correction_above["psi_m"]
 
-    friction_velocity = calculate_friction_velocity(
+    friction_velocity = calculate_friction_velocity_reference_height(
         wind_speed_ref=wind_speed_ref,
         reference_height=wind_reference_height,
         zeroplane_displacement=zero_plane_displacement,
@@ -696,15 +698,14 @@ def calculate_wind_profile(
     )
 
     wind_speed_above_canopy = calculate_wind_above_canopy(
-        friction_velocity=friction_velocity[0],
+        friction_velocity=friction_velocity,
         wind_height_above=wind_height_above,
         zeroplane_displacement=zero_plane_displacement,
         roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=diabatic_correction_above["psi_m"][0],
+        diabatic_correction_momentum=diabatic_correction_above["psi_m"],
         von_karmans_constant=core_constants.von_karmans_constant,
         min_wind_speed_above_canopy=abiotic_constants.min_wind_speed_above_canopy,
     )
-    output["wind_speed_above_canopy"] = wind_speed_above_canopy
 
     wind_speed_canopy = calculate_wind_canopy(
         top_of_canopy_wind_speed=wind_speed_above_canopy,
@@ -712,7 +713,7 @@ def calculate_wind_profile(
         canopy_height=canopy_height,
         attenuation_coefficient=attennuation_coefficient,
     )
-    output["wind_speed_canopy"] = wind_speed_canopy
+    output["wind_speed"] = wind_speed_canopy
 
     # Calculate diabatic correction factors for heat and momentum below canopy
     # (required for the calculation of conductivities)

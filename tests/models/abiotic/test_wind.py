@@ -261,41 +261,24 @@ def test_wind_log_profile(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_friction_velocity(dummy_climate_data):
+def test_calculate_friction_velocity_reference_height(dummy_climate_data):
     """Calculate friction velocity."""
 
-    from virtual_ecosystem.models.abiotic.wind import calculate_friction_velocity
-
-    diab_correction = np.array(
-        [
-            [2.559252e-03, 6.408841e-04, 2.114025e-04],
-            [2.400240e-03, 4.493814e-04, 1.156502e-04],
-            [1.604362e-03, -5.105855e-04, -3.646170e-04],
-            [0.000806, -0.001479, -0.00085],
-            [1.227214e-04, -2.333545e-03, -1.279214e-03],
-            [8.364645e-06, -2.525923e-03, -1.378067e-03],
-        ]
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_friction_velocity_reference_height,
     )
-    result = calculate_friction_velocity(
+
+    result = calculate_friction_velocity_reference_height(
         wind_speed_ref=(
             dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
         ),
-        reference_height=(dummy_climate_data.data["canopy_height"] + 10).to_numpy(),
+        reference_height=(dummy_climate_data["layer_heights"][1] + 10).to_numpy(),
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
-        diabatic_correction_momentum=diab_correction,
+        diabatic_correction_momentum=np.array([0.063098, 0.0149, 0.004855]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
     )
-    exp_result = np.array(
-        [
-            [0.051185, 0.163836, 0.147595],
-            [0.051186, 0.163849, 0.1476],
-            [0.051191, 0.163914, 0.147626],
-            [0.051191, 0.163914, 0.147626],
-            [0.051185, 0.163836, 0.147595],
-            [0.051186, 0.163849, 0.1476],
-        ],
-    )
+    exp_result = np.array([0.051108, 0.171817, 0.155922])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
@@ -373,7 +356,7 @@ def test_calculate_wind_profile(dummy_climate_data):
 
     wind_update = calculate_wind_profile(
         canopy_height=dummy_climate_data["canopy_height"].to_numpy(),
-        wind_height_above=(dummy_climate_data["canopy_height"] + 15).to_numpy(),
+        wind_height_above=(dummy_climate_data["canopy_height"] + 2).to_numpy(),
         wind_layer_heights=input_dict["layer_heights"].to_numpy(),
         leaf_area_index=input_dict["leaf_area_index"].to_numpy(),
         air_temperature=input_dict["air_temperature"].to_numpy(),
@@ -385,35 +368,21 @@ def test_calculate_wind_profile(dummy_climate_data):
         core_constants=CoreConsts(),
     )
 
-    friction_velocity_exp = np.array(
-        [
-            [0.014257, 0.818637, 1.638679],
-            [0.01508, 0.81887, 1.638726],
-            [0.017479, 0.820036, 1.638959],
-            [0.019081, 0.821194, 1.639192],
-            [0.02021, 0.822174, 1.63939],
-            [0.020383, 0.822336, 1.639422],
-        ],
-    )
+    friction_velocity_exp = np.array([0.014257, 0.818637, 1.638679])
     wind_speed_exp = np.array(
         [
-            [0.109341, 5.536364, 11.07365],
-            [0.10846, 5.491774, 10.984462],
-            [0.103833, 5.257489, 10.515853],
-            [0.094999, 4.810177, 9.621155],
-            [0.089976, 4.555839, 9.112435],
-            [0.089175, 4.515257, 9.031265],
+            [0.1, 3.66403, 7.325766],
+            [0.099195, 3.63452, 7.266764],
+            [0.094963, 3.479467, 6.956756],
+            [0.086883, 3.183431, 6.364869],
+            [0.082289, 3.015107, 6.028326],
+            [0.081556, 2.988249, 5.974628],
         ]
     )
 
-    wind_above_exp = np.array([0.109341, 5.536364, 11.07365])
-
-    np.testing.assert_allclose(
-        wind_update["wind_speed_above_canopy"], wind_above_exp, rtol=1e-3, atol=1e-3
-    )
     np.testing.assert_allclose(
         wind_update["friction_velocity"], friction_velocity_exp, rtol=1e-3, atol=1e-3
     )
     np.testing.assert_allclose(
-        wind_update["wind_speed_canopy"], wind_speed_exp, rtol=1e-3, atol=1e-3
+        wind_update["wind_speed"], wind_speed_exp, rtol=1e-3, atol=1e-3
     )

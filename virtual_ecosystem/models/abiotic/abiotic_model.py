@@ -273,22 +273,24 @@ class AbioticModel(
         )  # TODO wind height above in constants, cross-check with reference heights
 
         wind_output = {}
-        wind_speed_above_canopy = DataArray(
-            wind_update["wind_speed_above_canopy"],
-            dims="cell_id",
-            coords={"cell_id": self.data.grid.cell_id},
-        )
-        wind_output["wind_speed_above_canopy"] = wind_speed_above_canopy
 
-        for var in ["wind_speed_canopy", "friction_velocity"]:
-            # Might make sense to store the shape and use np.full(shape, np.nan)
-            var_data = np.full_like(self.data["leaf_area_index"], np.nan)
-            var_data[true_aboveground_rows, :] = wind_update[var]
-            var_out = DataArray(
-                var_data,
-                dims=self.data["layer_heights"].dims,
-                coords=self.data["layer_heights"].coords,
-            )
+        # Might make sense to store the shape and use np.full(shape, np.nan)
+        wind_speed_data = np.full_like(self.data["leaf_area_index"], np.nan)
+        wind_speed_data[true_aboveground_rows, :] = wind_update["wind_speed"]
+        wind_output["wind_speed"] = DataArray(
+            wind_speed_data,
+            dims=self.data["layer_heights"].dims,
+            coords=self.data["layer_heights"].coords,
+        )
+
+        for var in [
+            "friction_velocity",
+            "diabatic_correction_heat_above",
+            "diabatic_correction_momentum_above",
+            "diabatic_correction_heat_canopy",
+            "diabatic_correction_momentum_canopy",
+        ]:
+            var_out = DataArray(wind_update[var], dims="cell_id")
             wind_output[var] = var_out
 
         self.data.add_from_dict(output_dict=wind_output)

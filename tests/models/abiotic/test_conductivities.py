@@ -132,14 +132,16 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
             dummy_climate_data["zero_displacement_height"].to_numpy()
         ),
         canopy_height=dummy_climate_data["layer_heights"][1],
-        friction_velocity=dummy_climate_data["friction_velocity"][0].to_numpy(),
+        friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
         molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
         diabatic_correction_heat=(
             dummy_climate_data["diabatic_correction_heat_above"].to_numpy()
         ),
         von_karmans_constant=CoreConsts.von_karmans_constant,
     )
-    np.testing.assert_allclose(result, np.repeat(523.39996, 3), rtol=1e-04, atol=1e-04)
+    np.testing.assert_allclose(
+        result, np.array([523.39996, 218.083317, 87.233327]), rtol=1e-04, atol=1e-04
+    )
 
 
 def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
@@ -234,8 +236,9 @@ def test_calculate_current_conductivities(dummy_climate_data):
     )
 
     exp_gt = np.full((15, 3), np.nan)
-    gt_vals = [1.46096e02, 1.95435e03, 1.414247e01, 0.125081, 17.67347, 13.654908]
-    exp_gt.T[..., [0, 1, 2, 3, 12, 13]] = gt_vals
+    exp_gt[0, :] = np.array([1.460964e02, 6.087350e01, 2.434940e01])
+    gt_vals = [1.95435e03, 1.414247e01, 0.125081, 17.67347, 13.654908]
+    exp_gt.T[..., [1, 2, 3, 12, 13]] = gt_vals
 
     exp_gv = np.full((15, 3), np.nan)
     gv_vals = [0.203513, 0.202959, 0.202009]
