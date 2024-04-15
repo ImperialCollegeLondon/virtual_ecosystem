@@ -361,7 +361,7 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     model.update(time_index=0)
 
-    friction_velocity_exp = np.array([0.162293, 0.163096, 0.163727])
+    friction_velocity_exp = np.repeat(0.161295, 3)
     np.testing.assert_allclose(
         model.data["friction_velocity"],
         DataArray(friction_velocity_exp),
@@ -371,19 +371,19 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     wind_speed_exp = np.full((15, 3), np.nan)
     wind_speed_exp[[0, 1, 2, 3, 11, 12], :] = [
-        [1.106333, 1.101408, 1.097574],
-        [1.097423, 1.092537, 1.088734],
-        [1.050605, 1.045929, 1.0422872],
-        [0.961219, 0.95694, 0.953609],
-        [0.910395, 0.906342, 0.903186],
-        [0.902285, 0.898268, 0.895141],
+        [0.727122, 0.727122, 0.727122],
+        [0.727122, 0.727122, 0.727122],
+        [0.694472, 0.694472, 0.694472],
+        [0.634445, 0.634445, 0.634445],
+        [0.598726, 0.598726, 0.598726],
+        [0.593039, 0.593039, 0.593039],
     ]
-    # np.testing.assert_allclose(
-    #     model.data["wind_speed"],
-    #     DataArray(wind_speed_exp),
-    #     rtol=1e-3,
-    #     atol=1e-3,
-    # )
+    np.testing.assert_allclose(
+        model.data["wind_speed"],
+        DataArray(wind_speed_exp),
+        rtol=1e-3,
+        atol=1e-3,
+    )
 
     exp_new_soiltemp = DataArray(
         np.concatenate(
@@ -402,20 +402,20 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         atol=1e-04,
     )
 
-    # exp_gv = DataArray(
-    #     np.concatenate(
-    #         [
-    #             [[np.nan, np.nan, np.nan]],
-    #             [
-    #                 [0.653805, 0.652412, 0.651325],
-    #                 [0.639434, 0.638069, 0.637005],
-    #                 [0.611323, 0.610016, 0.608996],
-    #             ],
-    #             [[np.nan, np.nan, np.nan]] * 11,
-    #         ],
-    #     ),
-    #     dims=["layers", "cell_id"],
-    # )
-    # np.testing.assert_allclose(
-    #     model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
-    # )
+    exp_gv = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [0.536538, 0.536538, 0.536538],
+                    [0.524057, 0.524057, 0.524057],
+                    [0.500483, 0.500483, 0.500483],
+                ],
+                [[np.nan, np.nan, np.nan]] * 11,
+            ],
+        ),
+        dims=["layers", "cell_id"],
+    )
+    np.testing.assert_allclose(
+        model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
+    )

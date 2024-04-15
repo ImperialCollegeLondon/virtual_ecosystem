@@ -485,7 +485,6 @@ def dummy_climate_data(fixture_core_components):
         coords=full_coordinates,
         name="layer_heights",
     )
-    data["canopy_height"] = DataArray([32, 32, 32], dims=["cell_id"])
 
     # Microclimate and energy balance
     wind_speed = np.repeat(a=[0.1, np.nan, 0.1, np.nan], repeats=[4, 7, 2, 2])
