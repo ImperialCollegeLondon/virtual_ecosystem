@@ -27,7 +27,7 @@ def calculate_zero_plane_displacement(
 ) -> NDArray[np.float32]:
     """Calculate zero plane displacement height, [m].
 
-    The zero displacement height (d) is a concept used in micrometeorology to describe
+    The zero plane displacement height is a concept used in micrometeorology to describe
     the flow of air near the ground or over surfaces like a forest canopy or crops. It
     represents the height above the actual ground where the wind speed is theoretically
     reduced to zero due to the obstruction caused by the roughness elements (like trees
@@ -40,7 +40,7 @@ def calculate_zero_plane_displacement(
             :cite:p:`raupach_simplified_1994`
 
     Returns:
-        zero place displacement height, [m]
+        Zero plane displacement height, [m]
     """
 
     # Select grid cells where vegetation is present
@@ -48,12 +48,12 @@ def calculate_zero_plane_displacement(
 
     # Calculate zero displacement height
     scale_displacement = np.sqrt(zero_plane_scaling_parameter * displacement)
-    zero_place_displacement = (
+    zero_plane_displacement = (
         (1 - (1 - np.exp(-scale_displacement)) / scale_displacement) * canopy_height,
     )
 
     # No displacement in absence of vegetation
-    return np.nan_to_num(zero_place_displacement, nan=0.0).squeeze()
+    return np.nan_to_num(zero_plane_displacement, nan=0.0).squeeze()
 
 
 def calculate_roughness_length_momentum(
@@ -92,16 +92,16 @@ def calculate_roughness_length_momentum(
             boundary.
 
     Returns:
-        momentum roughness length, [m]
+        Momentum roughness length, [m]
     """
 
-    # calculate ratio of wind velocity to friction velocity
+    # Calculate ratio of wind velocity to friction velocity
     ratio_wind_to_friction_velocity = np.sqrt(
         substrate_surface_drag_coefficient
         + (roughness_element_drag_coefficient * leaf_area_index) / 2
     )
 
-    # if the ratio of wind velocity to friction velocity is larger than the set maximum,
+    # If the ratio of wind velocity to friction velocity is larger than the set maximum,
     # set the value to set maximum
     set_maximum_ratio = np.where(
         ratio_wind_to_friction_velocity > max_ratio_wind_to_friction_velocity,
@@ -109,13 +109,13 @@ def calculate_roughness_length_momentum(
         ratio_wind_to_friction_velocity,
     )
 
-    # calculate initial roughness length
+    # Calculate initial roughness length
     initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
         -von_karman_constant * (1 / set_maximum_ratio)
         - roughness_sublayer_depth_parameter
     )
 
-    # if roughness smaller than the substrate surface drag coefficient, set to value to
+    # If roughness smaller than the substrate surface drag coefficient, set to value to
     # the substrate surface drag coefficient
     roughness_length = np.where(
         initial_roughness_length < substrate_surface_drag_coefficient,
@@ -168,7 +168,7 @@ def calculate_diabatic_correction_above(
             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
 
     Returns:
-        diabatic correction factors for heat (psi_h) and momentum (psi_m) transfer
+        Diabatic correction factors for heat (psi_h) and momentum (psi_m) transfer
     """
 
     # calculate atmospheric stability
@@ -222,7 +222,7 @@ def calculate_mean_mixing_length(
         mixing_length_factor: Factor in calculation of mean mixing length, dimensionless
 
     Returns:
-        mixing length for canopy air transport, [m]
+        Mixing length for canopy air transport, [m]
     """
 
     mean_mixing_length = (
@@ -244,16 +244,16 @@ def generate_relative_turbulence_intensity(
     Agricultural Meteorology, 13: 419-425. TODO adjust default to environment
 
     Args:
-        layer_heights: heights of above ground layers, [m]
-        min_relative_turbulence_intensity: minimum relative turbulence intensity,
+        layer_heights: Heights of above ground layers, [m]
+        min_relative_turbulence_intensity: Minimum relative turbulence intensity,
             dimensionless
-        max_relative_turbulence_intensity: maximum relative turbulence intensity,
+        max_relative_turbulence_intensity: Maximum relative turbulence intensity,
             dimensionless
-        increasing_with_height: increasing logical indicating whether turbulence
+        increasing_with_height: Increasing logical indicating whether turbulence
             intensity increases (TRUE) or decreases (FALSE) with height
 
     Returns:
-        relative turbulence intensity for each node, dimensionless
+        Relative turbulence intensity for each node, dimensionless
     """
 
     direction = 1 if increasing_with_height else -1
@@ -281,13 +281,13 @@ def calculate_wind_attenuation_coefficient(
 
     Args:
         canopy_height: Canopy height, [m]
-        leaf_area_index: Total leaf area index, [m m-1]
+        leaf_area_index: Leaf area index, [m m-1]
         mean_mixing_length: Mixing length for canopy air transport, [m]
         drag_coefficient: Drag coefficient, dimensionless
         relative_turbulence_intensity: Relative turbulence intensity, dimensionless
 
     Returns:
-        wind attenuation coefficient, dimensionless
+        Wind attenuation coefficient, dimensionless
     """
 
     intermediate_coefficient = (
