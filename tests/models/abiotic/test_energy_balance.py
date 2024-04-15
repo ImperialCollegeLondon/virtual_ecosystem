@@ -230,10 +230,10 @@ def test_calculate_leaf_and_air_temperature(
         result["leaf_vapour_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["sensible_heat_flux_canopy"], exp_sens_heat, rtol=1e-04, atol=1e-04
+        result["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["latent_heat_flux_canopy"], exp_latent_heat, rtol=1e-04, atol=1e-04
+        result["latent_heat_flux"], exp_latent_heat, rtol=1e-04, atol=1e-04
     )
 
 
