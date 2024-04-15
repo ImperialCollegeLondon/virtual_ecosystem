@@ -178,7 +178,13 @@ class AnimalModel(
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to step the animal model through time.
 
-        Currently this is a toy implementation.
+        Temporary solution.
+
+        This method sets the order of operations for the animal module. In nature, these
+        events would be simultaneous. The ordering within the method is less a question
+        of the science and more a question of computational logic and stability.
+
+
 
         Args:
             time_index: The index representing the current time step in the data object.
@@ -195,7 +201,7 @@ class AnimalModel(
             community.inflict_natural_mortality_community(
                 self.update_interval_timedelta
             )
-            community.die_cohort_community()
+            community.remove_dead_cohort_community()
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the

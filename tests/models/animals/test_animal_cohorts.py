@@ -61,13 +61,14 @@ def prey_cohort_instance(herbivore_functional_group_instance, constants_instance
 
 
 @pytest.fixture
-def carcass_instance():
+def carcass_pool_instance():
     """Fixture for an carcass pool used in tests."""
     from virtual_ecosystem.models.animals.decay import CarcassPool
 
     return CarcassPool(0.0, 0.0)
 
 
+@pytest.mark.usefixtures("mocker")
 class TestAnimalCohort:
     """Test AnimalCohort class."""
 
@@ -173,7 +174,7 @@ class TestAnimalCohort:
     def test_excrete(
         self,
         herbivore_cohort_instance,
-        excrement_instance,
+        excrement_pool_instance,
         scav_initial,
         scav_final,
         decomp_initial,
@@ -181,11 +182,11 @@ class TestAnimalCohort:
         consumed_energy,
     ):
         """Testing excrete() for varying soil energy levels."""
-        excrement_instance.scavengeable_energy = scav_initial
-        excrement_instance.decomposed_energy = decomp_initial
-        herbivore_cohort_instance.excrete(excrement_instance, consumed_energy)
-        assert excrement_instance.scavengeable_energy == scav_final
-        assert excrement_instance.decomposed_energy == decomp_final
+        excrement_pool_instance.scavengeable_energy = scav_initial
+        excrement_pool_instance.decomposed_energy = decomp_initial
+        herbivore_cohort_instance.excrete(excrement_pool_instance, consumed_energy)
+        assert excrement_pool_instance.scavengeable_energy == scav_final
+        assert excrement_pool_instance.decomposed_energy == decomp_final
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -224,135 +225,105 @@ class TestAnimalCohort:
         number_dead,
         initial_pop,
         final_pop,
-        carcass_instance,
+        carcass_pool_instance,
         initial_carcass,
         final_carcass,
         decomp_carcass,
     ):
         """Testing death."""
         herbivore_cohort_instance.individuals = initial_pop
-        carcass_instance.scavengeable_energy = initial_carcass
-        herbivore_cohort_instance.die_individual(number_dead, carcass_instance)
+        carcass_pool_instance.scavengeable_energy = initial_carcass
+        herbivore_cohort_instance.die_individual(number_dead, carcass_pool_instance)
         assert herbivore_cohort_instance.individuals == final_pop
-        assert carcass_instance.scavengeable_energy == final_carcass
-        assert carcass_instance.decomposed_energy == decomp_carcass
+        assert carcass_pool_instance.scavengeable_energy == final_carcass
+        assert carcass_pool_instance.decomposed_energy == decomp_carcass
 
     def test_get_eaten(
-        self, prey_cohort_instance, predator_cohort_instance, carcass_instance
+        self, prey_cohort_instance, predator_cohort_instance, carcass_pool_instance
     ):
-        """Testing get_eaten.
-
-        Currently, this just tests rough execution. As the model gets paramterized,
-        these tests will be expanded to specific values.
-        """
-
+        """Test the get_eaten method for accuracy in updating prey and carcass pool."""
+        potential_consumed_mass = 100  # Set a potential consumed mass for testing
         initial_individuals = prey_cohort_instance.individuals
-        initial_scavengeable_energy = carcass_instance.scavengeable_energy
+        initial_mass_current = prey_cohort_instance.mass_current
+        initial_carcass_scavengeable_energy = carcass_pool_instance.scavengeable_energy
+        initial_carcass_decomposed_energy = carcass_pool_instance.decomposed_energy
 
-        # Execution
-        prey_cohort_instance.get_eaten(predator_cohort_instance, carcass_instance)
+        # Execute the get_eaten method with test parameters
+        actual_consumed_mass = prey_cohort_instance.get_eaten(
+            potential_consumed_mass, predator_cohort_instance, carcass_pool_instance
+        )
+
+        # Assertions to check if individuals were correctly removed and carcass pool
+        # updated
+        assert (
+            prey_cohort_instance.individuals < initial_individuals
+        ), "Prey cohort should have fewer individuals."
+        assert (
+            prey_cohort_instance.mass_current == initial_mass_current
+        ), "Prey cohort should have the same total mass."
+        assert (
+            actual_consumed_mass <= potential_consumed_mass
+        ), "Actual consumed mass should be less than/equal to potential consumed mass."
+        assert (
+            carcass_pool_instance.scavengeable_energy
+            > initial_carcass_scavengeable_energy
+        ), "Carcass pool's scavengeable energy should increase."
+        assert (
+            carcass_pool_instance.decomposed_energy > initial_carcass_decomposed_energy
+        ), "Carcass pool's decomposed energy should increase."
+
+    @pytest.mark.parametrize(
+        "below_threshold,expected_mass_current_increase,"
+        "expected_reproductive_mass_increase",
+        [
+            (
+                0.5,
+                100,
+                0,
+            ),  # Scenario where the current total mass is below the threshold
+            (
+                1.5,
+                0,
+                100,
+            ),  # Scenario where the current total mass is above the threshold
+        ],
+    )
+    def test_eat(
+        self,
+        herbivore_cohort_instance,
+        below_threshold,
+        expected_mass_current_increase,
+        expected_reproductive_mass_increase,
+    ):
+        """Testing eat method adjusting for the mass threshold."""
+        mass_consumed = 100  # Define a test mass consumed
+
+        # Set up the instance to reflect the test scenario
+        adult_mass = 200  # Assume an adult mass for calculation
+        herbivore_cohort_instance.functional_group.adult_mass = adult_mass
+        total_mass = adult_mass * below_threshold
+        herbivore_cohort_instance.mass_current = (
+            total_mass * 0.8
+        )  # 80% towards current mass
+        herbivore_cohort_instance.reproductive_mass = (
+            total_mass * 0.2
+        )  # 20% towards reproductive mass
+
+        initial_mass_current = herbivore_cohort_instance.mass_current
+        initial_reproductive_mass = herbivore_cohort_instance.reproductive_mass
+
+        # Execute the eat method
+        herbivore_cohort_instance.eat(mass_consumed)
 
         # Assertions
-        assert prey_cohort_instance.individuals < initial_individuals
-        assert carcass_instance.scavengeable_energy > initial_scavengeable_energy
-        assert carcass_instance.decomposed_energy > 0.0
-
-    def test_forage_cohort(
-        self, predator_cohort_instance, prey_cohort_instance, mocker
-    ):
-        """Testing forage_cohort."""
-        # Setup
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animals.animal_traits import DietType
-        from virtual_ecosystem.models.animals.decay import CarcassPool, ExcrementPool
-        from virtual_ecosystem.models.animals.plant_resources import PlantResources
-
-        # Mocking the eat method of AnimalCohort
-        mock_eat = mocker.patch.object(AnimalCohort, "eat")
-
-        # Instances
-        plant_list_instance = [mocker.MagicMock(spec=PlantResources)]
-        animal_list_instance = [
-            mocker.MagicMock(spec=AnimalCohort) for _ in range(3)
-        ]  # Assuming 3 animal cohorts
-        carcass_pool_instance = mocker.MagicMock(spec=CarcassPool)
-        excrement_pool_instance = mocker.MagicMock(spec=ExcrementPool)
-        excrement_pool_instance.scavengeable_energy = 0
-        excrement_pool_instance.decomposed_energy = 0
-
-        animal_cohort_instances = [predator_cohort_instance, prey_cohort_instance]
-
-        for animal_cohort_instance in animal_cohort_instances:
-            # Execution
-            animal_cohort_instance.forage_cohort(
-                plant_list=plant_list_instance,
-                animal_list=animal_list_instance,
-                carcass_pool=carcass_pool_instance,
-                excrement_pool=excrement_pool_instance,
-            )
-
-            # Assertions
-            if animal_cohort_instance.functional_group.diet == DietType.HERBIVORE:
-                mock_eat.assert_called_with(
-                    plant_list_instance[0], excrement_pool_instance
-                )  # Assuming just one plant instance for simplicity
-            elif animal_cohort_instance.functional_group.diet == DietType.CARNIVORE:
-                # Ensure eat was called for each animal in the list
-                assert len(mock_eat.call_args_list) == 1
-                for call in mock_eat.call_args_list:
-                    # Ensure each call had a single AnimalCohort and the CarcassPool
-                    args, _ = call
-                    assert args[0] in animal_list_instance
-                    assert args[1] == carcass_pool_instance
-
-            # Reset mock_eat for next iteration
-            mock_eat.reset_mock()
-
-    def test_eat(self, herbivore_cohort_instance, mocker):
-        """Testing eat."""
-        from virtual_ecosystem.models.animals.protocols import Pool, Resource
-
-        mock_food = mocker.MagicMock(spec=Resource)
-        mock_pool = mocker.MagicMock(spec=Pool)
-
-        # Common Setup
-        herbivore_cohort_instance.individuals = 10
-        mock_mass_return = 100
-        mock_food.get_eaten.return_value = mock_mass_return
-
-        # Scenario 1: Test mass_current is updated when below threshold
-        herbivore_cohort_instance.mass_current = 0  # Resetting for test
-        herbivore_cohort_instance.reproductive_mass = 0  # Resetting for test
-        herbivore_cohort_instance.is_below_mass_threshold = mocker.MagicMock(
-            return_value=True
-        )
-
-        # Execution
-        herbivore_cohort_instance.eat(mock_food, mock_pool)
-
-        # Assertions for Scenario 1
         assert (
             herbivore_cohort_instance.mass_current
-            == mock_mass_return / herbivore_cohort_instance.individuals
-        )
-        assert herbivore_cohort_instance.reproductive_mass == 0
-
-        # Scenario 2: Test reproductive_mass is updated when above threshold
-        herbivore_cohort_instance.mass_current = 0  # Resetting for test
-        herbivore_cohort_instance.reproductive_mass = 0  # Resetting for test
-        herbivore_cohort_instance.is_below_mass_threshold = mocker.MagicMock(
-            return_value=False
-        )
-
-        # Execution
-        herbivore_cohort_instance.eat(mock_food, mock_pool)
-
-        # Assertions for Scenario 2
+            == initial_mass_current + expected_mass_current_increase
+        ), "Current mass did not increase as expected."
         assert (
             herbivore_cohort_instance.reproductive_mass
-            == mock_mass_return / herbivore_cohort_instance.individuals
-        )
-        assert herbivore_cohort_instance.mass_current == 0
+            == initial_reproductive_mass + expected_reproductive_mass_increase
+        ), "Reproductive mass did not increase as expected."
 
     def test_is_below_mass_threshold(
         self, herbivore_cohort_instance, constants_instance
@@ -402,7 +373,7 @@ class TestAnimalCohort:
     def test_inflict_natural_mortality(
         self,
         herbivore_cohort_instance,
-        carcass_instance,
+        carcass_pool_instance,
         mocker,
         initial_individuals,
         number_days,
@@ -434,7 +405,7 @@ class TestAnimalCohort:
 
         # Call the inflict_natural_mortality method
         herbivore_cohort_instance.inflict_natural_mortality(
-            carcass_instance, number_days
+            carcass_pool_instance, number_days
         )
 
         # Verify the number_of_deaths and remaining individuals
@@ -442,3 +413,564 @@ class TestAnimalCohort:
             herbivore_cohort_instance.individuals
             == initial_individuals_copy - expected_deaths
         )
+
+    @pytest.mark.parametrize(
+        "alpha_0_herb, mass_current, expected_alpha",
+        [
+            pytest.param(1.0e-11, 50, 5e-10, id="base rate and mass"),
+            pytest.param(2.0e-11, 100, 2e-9, id="increased rate and mass"),
+            pytest.param(5.0e-12, 25, 1.25e-10, id="decreased rate and mass"),
+            pytest.param(2.0e-11, 25, 5e-10, id="high rate, low mass"),
+            pytest.param(5.0e-12, 100, 5e-10, id="low rate, high mass"),
+        ],
+    )
+    def test_calculate_alpha(
+        self,
+        mocker,
+        alpha_0_herb,
+        mass_current,
+        expected_alpha,
+        herbivore_functional_group_instance,
+    ):
+        """Testing for calculate alpha."""
+        # Assuming necessary imports and setup based on previous examples
+        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animals.constants import AnimalConsts
+
+        # Mock the scaling function to control its return value
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_k",
+            return_value=expected_alpha,
+        )
+
+        # Setup constants and functional group mock
+        constants = AnimalConsts()
+        functional_group_mock = herbivore_functional_group_instance
+
+        # Initialize the AnimalCohort instance with test parameters
+        cohort_instance = AnimalCohort(
+            functional_group=functional_group_mock,
+            mass=mass_current,
+            age=1.0,  # Example age
+            individuals=1,  # Example number of individuals
+            constants=constants,
+        )
+
+        # Execute the method under test
+        result = cohort_instance.calculate_alpha()
+
+        # Assert that the result matches the expected outcome for the given scenario
+        assert (
+            result == expected_alpha
+        ), f"Failed scenario: alpha_0_herb={alpha_0_herb}, mass_current={mass_current}"
+
+    @pytest.mark.parametrize(
+        "alpha, mass_current, phi_herb_t, expected_biomass",
+        [
+            pytest.param(1.0e-11, 100, 0.1, 1, id="low_alpha_high_mass"),
+            pytest.param(2.0e-11, 100, 0.2, 2, id="high_alpha_high_mass"),
+            pytest.param(1.0e-11, 0.1, 0.1, 3, id="low_alpha_low_mass"),
+            pytest.param(2.0e-11, 0.1, 0.2, 4, id="high_alpha_low_mass"),
+        ],
+    )
+    def test_calculate_potential_consumed_biomass(
+        self, mocker, alpha, mass_current, phi_herb_t, expected_biomass
+    ):
+        """Testing for calculate_potential_consumed_biomass."""
+        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animals.animal_traits import DietType
+        from virtual_ecosystem.models.animals.protocols import Resource
+
+        # Mock the target plant
+        target_plant = mocker.MagicMock(spec=Resource, mass_current=mass_current)
+
+        # Mock k_i_k to return the expected_biomass
+        k_i_k_mock = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
+            return_value=expected_biomass,
+        )
+
+        # Setup functional group mock to provide phi_herb_t
+        functional_group_mock = mocker.MagicMock()
+        functional_group_mock.diet = DietType("herbivore")
+        functional_group_mock.constants.phi_herb_t = phi_herb_t
+
+        # Initialize the AnimalCohort instance with mocked functional group
+        cohort_instance = AnimalCohort(
+            functional_group=functional_group_mock,
+            mass=100.0,  # Arbitrary value since mass is not directly used in this test
+            age=1.0,  # Arbitrary value
+            individuals=1,  # Arbitrary value
+            constants=mocker.MagicMock(),
+        )
+
+        # Execute the method under test
+        result = cohort_instance.calculate_potential_consumed_biomass(
+            target_plant, alpha
+        )
+
+        # Verify that the result matches the expected outcome for the given scenario
+        assert result == expected_biomass, (
+            f"Failed scenario: alpha={alpha}, mass_current={mass_current}, "
+            f"phi_herb_t={phi_herb_t}"
+        )
+
+        # verify that k_i_k was called with the correct parameters
+        A_cell = 1.0
+        k_i_k_mock.assert_called_once_with(alpha, phi_herb_t, mass_current, A_cell)
+
+    def calculate_total_handling_time_for_herbivory(
+        self, mocker, herbivore_cohort_instance, plant_list_instance
+    ):
+        """Test aggregation of handling times across all available plant resources."""
+
+        alpha = 0.1  # Assume this is the calculated search efficiency
+        with mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
+            return_value=20.0,
+        ), mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.H_i_k",
+            return_value=0.2,
+        ):
+            total_handling_time = (
+                herbivore_cohort_instance.calculate_total_handling_time_for_herbivory(
+                    plant_list_instance, alpha
+                )
+            )
+            # Assert based on expected behavior; this will need to be adjusted based on
+            # number of plants and their handling times
+            expected_handling_time = sum(
+                [20.2 for _ in plant_list_instance]
+            )  # Simplified; adjust calculation as needed
+            assert total_handling_time == pytest.approx(
+                expected_handling_time, rel=1e-6
+            )
+
+    @pytest.mark.parametrize(
+        "alpha, potential_biomass, total_handling_time, plant_biomass, "
+        "cohort_size, expected_rate, scenario_id",
+        [
+            pytest.param(
+                0.1,
+                20.0,
+                40.4,
+                100,
+                10,
+                "expected_rate_calculation_1",
+                "low_alpha_high_mass",
+            ),
+            pytest.param(
+                0.2,
+                30.0,
+                20.2,
+                200,
+                5,
+                "expected_rate_calculation_2",
+                "high_alpha_high_mass",
+            ),
+        ],
+    )
+    def test_F_i_k(
+        self,
+        mocker,
+        alpha,
+        potential_biomass,
+        total_handling_time,
+        plant_biomass,
+        cohort_size,
+        expected_rate,
+        scenario_id,
+        herbivore_cohort_instance,
+    ):
+        """Test for F_i_k."""
+        from virtual_ecosystem.models.animals.protocols import Resource
+
+        # Mock the target plant with specified biomass
+        target_plant = mocker.MagicMock(spec=Resource, mass_current=plant_biomass)
+        plant_list = [target_plant]  # Simplified plant list for testing
+
+        # Mock internal method calls
+        mocker.patch.object(
+            herbivore_cohort_instance, "calculate_alpha", return_value=alpha
+        )
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_potential_consumed_biomass",
+            return_value=potential_biomass,
+        )
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_total_handling_time_for_herbivory",
+            return_value=total_handling_time,
+        )
+
+        # Execute the method under test
+        rate = herbivore_cohort_instance.F_i_k(plant_list, target_plant)
+
+        N = herbivore_cohort_instance.individuals
+        k = potential_biomass
+        B_k = plant_biomass
+        total_handling_t = total_handling_time
+
+        calculated_expected_rate = N * (k / (1 + total_handling_t)) * (1 / B_k)
+
+        # Assert that the rate matches the expected output
+        assert rate == pytest.approx(calculated_expected_rate, rel=1e-6), (
+            f"The calculated rate does not match"
+            f"the expected rate for scenario {scenario_id}"
+        )
+
+    def test_calculate_theta_opt_i(self, mocker, herbivore_cohort_instance):
+        """Test calculate_theta_opt_i."""
+        theta_opt_i_mock = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.theta_opt_i",
+            return_value=0.5,  # Mocked return value to simulate `theta_opt_i` behavior
+        )
+        result = herbivore_cohort_instance.calculate_theta_opt_i()
+
+        # Assert the result matches the mocked return value
+        assert (
+            result == 0.5
+        ), "The result does not match the expected return value from sf.theta_opt_i"
+
+        # Assert sf.theta_opt_i was called with the correct parameters
+        theta_opt_i_mock.assert_called_once_with(
+            herbivore_cohort_instance.constants.theta_opt_min_f,
+            herbivore_cohort_instance.constants.theta_opt_f,
+            herbivore_cohort_instance.constants.sigma_opt_f,
+        )
+
+    def test_calculate_predation_success_probability(
+        self, mocker, herbivore_cohort_instance
+    ):
+        """Test successful predation probability calculation."""
+
+        target_mass = 50.0  # Example target mass
+
+        mock_theta_opt_i = mocker.patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort"
+            ".calculate_theta_opt_i",
+            return_value=0.7,
+        )
+
+        mock_w_bar = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.w_bar_i_j",
+            return_value=0.6,
+        )
+
+        result = herbivore_cohort_instance.calculate_predation_success_probability(
+            target_mass
+        )
+
+        # Ensure calculate_theta_opt_i is called within the method
+        mock_theta_opt_i.assert_called_once()
+
+        # Verify that w_bar_i_j was called with the correct parameters
+        mock_w_bar.assert_called_once_with(
+            herbivore_cohort_instance.mass_current,
+            target_mass,
+            0.7,  # Expected theta_opt_i from mocked
+            herbivore_cohort_instance.constants.sigma_opt_pred_prey,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 0.6, "Expected predation success probability not returned."
+
+    def test_calculate_predation_search_rate(self, mocker, herbivore_cohort_instance):
+        """Test predation search rate calculation."""
+
+        success_probability = 0.5  # Example success probability
+
+        mock_alpha_i_j = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_j",
+            return_value=0.8,
+        )
+
+        result = herbivore_cohort_instance.calculate_predation_search_rate(
+            success_probability
+        )
+
+        # Verify that alpha_i_j was called with the correct parameters
+        mock_alpha_i_j.assert_called_once_with(
+            herbivore_cohort_instance.constants.alpha_0_pred,
+            herbivore_cohort_instance.mass_current,
+            success_probability,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 0.8, "Expected predation search rate not returned."
+
+    def test_calculate_potential_prey_consumed(self, mocker, herbivore_cohort_instance):
+        """Test calculation of potential number of prey consumed."""
+
+        alpha = 0.8  # Example search rate
+        theta_i_j = 0.7  # Example predation parameter
+
+        mock_k_i_j = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.k_i_j",
+            return_value=15.0,
+        )
+
+        result = herbivore_cohort_instance.calculate_potential_prey_consumed(
+            alpha, theta_i_j
+        )
+
+        # Verify that k_i_j was called with the correct parameters
+        mock_k_i_j.assert_called_once_with(
+            alpha,
+            herbivore_cohort_instance.individuals,
+            1.0,
+            theta_i_j,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 15.0, "Expected potential prey consumed not returned."
+
+    def test_calculate_total_handling_time_for_predation(
+        self, mocker, herbivore_cohort_instance
+    ):
+        """Test total handling time calculation for predation."""
+
+        mock_H_i_j = mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.H_i_j", return_value=2.5
+        )
+
+        result = herbivore_cohort_instance.calculate_total_handling_time_for_predation()
+
+        # Verify that H_i_j was called with the correct parameters
+        mock_H_i_j.assert_called_once_with(
+            herbivore_cohort_instance.constants.h_pred_0,
+            herbivore_cohort_instance.constants.M_pred_ref,
+            herbivore_cohort_instance.mass_current,
+            herbivore_cohort_instance.constants.b_pred,
+        )
+
+        # Asserting the result matches the mocked return value
+        assert result == 2.5, "Expected total handling time for predation not returned."
+
+    def test_F_i_j_individual(
+        self, mocker, predator_cohort_instance, animal_list_instance
+    ):
+        """Test instantaneous predation rate calculation on a selected target cohort."""
+
+        target_animal = animal_list_instance[0]
+
+        # Mock methods using the mocker fixture
+        mock_success_prob = mocker.patch(
+            (
+                "virtual_ecosystem.models.animals.animal_cohorts."
+                "AnimalCohort.calculate_predation_success_probability"
+            ),
+            return_value=0.5,
+        )
+        mock_search_rate = mocker.patch(
+            (
+                "virtual_ecosystem.models.animals.animal_cohorts."
+                "AnimalCohort.calculate_predation_search_rate"
+            ),
+            return_value=0.8,
+        )
+        mock_theta_i_j = mocker.patch(
+            (
+                "virtual_ecosystem.models.animals.animal_cohorts."
+                "AnimalCohort.theta_i_j"
+            ),
+            return_value=0.7,
+        )
+        mock_potential_prey = mocker.patch(
+            (
+                "virtual_ecosystem.models.animals.animal_cohorts."
+                "AnimalCohort.calculate_potential_prey_consumed"
+            ),
+            return_value=10,
+        )
+        mock_total_handling = mocker.patch(
+            (
+                "virtual_ecosystem.models.animals.animal_cohorts."
+                "AnimalCohort.calculate_total_handling_time_for_predation"
+            ),
+            return_value=2,
+        )
+
+        # Execute the method under test
+        rate = predator_cohort_instance.F_i_j_individual(
+            animal_list_instance, target_animal
+        )
+
+        # Verify each mocked method was called with expected arguments
+        mock_success_prob.assert_called_once_with(target_animal.mass_current)
+        mock_search_rate.assert_called_once_with(0.5)
+        mock_theta_i_j.assert_called_once_with(animal_list_instance)
+        mock_potential_prey.assert_called_once_with(0.8, 0.7)
+        mock_total_handling.assert_called_once()
+
+        # Calculate the expected rate based on the mocked return values and assert
+        N_i = predator_cohort_instance.individuals
+        N_target = target_animal.individuals
+        expected_rate = N_i * (10 / (1 + 2)) * (1 / N_target)
+        assert rate == pytest.approx(
+            expected_rate
+        ), "F_i_j_individual did not return the expected predation rate."
+
+    def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
+        """Test theta_i_j."""
+        # TODO change this A_cell to call it from its real plant in the data
+        A_cell = 1.0  # Define A_cell value used in method implementation
+
+        # Execute the method under test
+        theta = predator_cohort_instance.theta_i_j(animal_list_instance)
+
+        # Calculate expected theta value considering A_cell
+        expected_theta = (
+            sum(
+                cohort.individuals
+                for cohort in animal_list_instance
+                if cohort.mass_current == predator_cohort_instance.mass_current
+            )
+            / A_cell
+        )
+
+        assert theta == expected_theta
+
+    @pytest.mark.parametrize(
+        "consumed_mass, expected_total_consumed_mass",
+        [
+            (100.0, 300.0),  # Assuming three cohorts each consuming 100.0 units
+        ],
+    )
+    def test_delta_mass_predation(
+        self,
+        mocker,
+        predator_cohort_instance,
+        animal_list_instance,
+        excrement_pool_instance,
+        carcass_pool_instance,
+        consumed_mass,
+        expected_total_consumed_mass,
+    ):
+        """Test the delta_mass_predation.
+
+        The expected total consumed mass is 300 because there are three cohorts in the
+        animal cohort instance.
+        """
+
+        # Mock calculate_consumed_mass_predation to return a specific consumed mass
+        mocker.patch.object(
+            predator_cohort_instance,
+            "calculate_consumed_mass_predation",
+            return_value=consumed_mass,
+        )
+
+        # Mock AnimalCohort.get_eaten to simulate consumption behavior
+        mocker.patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort.get_eaten",
+            return_value=consumed_mass,
+        )
+
+        # Mock predator_cohort_instance.excrete to verify its call
+        mock_excrete = mocker.patch.object(predator_cohort_instance, "excrete")
+
+        total_consumed_mass = predator_cohort_instance.delta_mass_predation(
+            animal_list_instance, excrement_pool_instance, carcass_pool_instance
+        )
+
+        # Check if the total consumed mass matches the expected value
+        assert (
+            total_consumed_mass == expected_total_consumed_mass
+        ), "Total consumed mass should match expected value."
+
+        # Ensure excrete was called with the correct total consumed mass
+        mock_excrete.assert_called_once_with(
+            excrement_pool_instance, total_consumed_mass
+        )
+
+    def test_delta_mass_herbivory(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        plant_list_instance,
+        excrement_pool_instance,
+    ):
+        """Test mass assimilation calculation from herbivory."""
+
+        # Mock the calculate_consumed_mass_herbivory method
+        mock_calculate_consumed_mass_herbivory = mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_consumed_mass_herbivory",
+            side_effect=lambda plant_list, plant: 10.0,
+            # Assume 10.0 kg mass consumed from each plant for simplicity
+        )
+
+        # Mock the PlantResources.get_eaten method
+        mock_get_eaten = mocker.patch(
+            "virtual_ecosystem.models.animals.plant_resources.PlantResources.get_eaten",
+            side_effect=lambda consumed_mass, herbivore, excrement_pool: consumed_mass,
+        )
+
+        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
+            plant_list_instance, excrement_pool_instance
+        )
+
+        # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
+        assert mock_calculate_consumed_mass_herbivory.call_count == len(
+            plant_list_instance
+        )
+        assert mock_get_eaten.call_count == len(plant_list_instance)
+
+        # Calculate the expected total consumed mass based on the number of plants
+        expected_delta_mass = 10.0 * len(plant_list_instance)
+
+        # Assert the calculated delta_mass_herb matches the expected value
+        assert delta_mass == pytest.approx(
+            expected_delta_mass
+        ), "Calculated change in mass due to herbivory did not match expected value."
+
+    def test_forage_cohort(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        plant_list_instance,
+        animal_list_instance,
+        excrement_pool_instance,
+        carcass_pool_instance,
+    ):
+        """Test foraging behavior for different diet types."""
+
+        # Mocking the delta_mass_herbivory and delta_mass_predation methods
+        mock_delta_mass_herbivory = mocker.patch.object(
+            herbivore_cohort_instance, "delta_mass_herbivory", return_value=100
+        )
+        mock_delta_mass_predation = mocker.patch.object(
+            predator_cohort_instance, "delta_mass_predation", return_value=200
+        )
+        mock_eat_herbivore = mocker.patch.object(herbivore_cohort_instance, "eat")
+        mock_eat_predator = mocker.patch.object(predator_cohort_instance, "eat")
+
+        # Test herbivore diet
+        herbivore_cohort_instance.forage_cohort(
+            plant_list_instance, [], excrement_pool_instance, carcass_pool_instance
+        )
+        mock_delta_mass_herbivory.assert_called_once_with(
+            plant_list_instance, excrement_pool_instance
+        )
+        mock_eat_herbivore.assert_called_once_with(100)
+
+        # Test carnivore diet
+        predator_cohort_instance.forage_cohort(
+            [], animal_list_instance, excrement_pool_instance, carcass_pool_instance
+        )
+        mock_delta_mass_predation.assert_called_once_with(
+            animal_list_instance, excrement_pool_instance, carcass_pool_instance
+        )
+        mock_eat_predator.assert_called_once_with(200)
+
+        # Test for error on inappropriate food source
+        with pytest.raises(ValueError):
+            herbivore_cohort_instance.forage_cohort(
+                [], [], excrement_pool_instance, carcass_pool_instance
+            )
+        with pytest.raises(ValueError):
+            predator_cohort_instance.forage_cohort(
+                [], [], excrement_pool_instance, carcass_pool_instance
+            )
