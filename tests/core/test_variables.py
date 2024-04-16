@@ -216,3 +216,34 @@ def test_collect_required_update_vars(known_variables, run_variables):
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_update_by == [
         "TestModel"
     ]
+
+
+def test_collect_required_init_vars(known_variables, run_variables):
+    """Test the _collect_required_init_vars function."""
+    from virtual_ecosystem.core import variables
+
+    class TestModel:
+        model_name = "TestModel"
+        required_init_vars = [("test_var",)]
+
+    with pytest.raises(ValueError, match="not in the known variables registry."):
+        variables._collect_required_init_vars([TestModel])
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    with pytest.raises(ValueError, match="is not initialised"):
+        variables._collect_required_init_vars([TestModel])
+
+    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
+    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+
+    variables._collect_required_init_vars([TestModel])
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_init_by == [
+        "TestModel"
+    ]
