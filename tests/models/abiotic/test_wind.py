@@ -127,20 +127,25 @@ def test_calculate_mean_mixing_length(dummy_climate_data):
     )
 
 
-def test_generate_relative_turbulence_intensity(dummy_climate_data):
-    """Test relative turbulence intensity."""
+def test_generate_relative_turbulence_intensity():
+    """Test relative turbulence intensity for different true layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         generate_relative_turbulence_intensity,
     )
 
-    layer_heights = (
-        dummy_climate_data["layer_heights"]
-        .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
-        .dropna(dim="layers")
+    layer_heights = np.array(
+        [
+            [32.0, 32.0, 32.0],
+            [30.0, 30.0, 30.0],
+            [20.0, 20.0, np.nan],
+            [10.0, np.nan, np.nan],
+            [1.5, 1.5, 1.5],
+            [0.1, 0.1, 0.1],
+        ]
     )
     result_t = generate_relative_turbulence_intensity(
-        layer_heights=layer_heights.to_numpy(),
+        layer_heights=layer_heights,
         min_relative_turbulence_intensity=0.36,
         max_relative_turbulence_intensity=0.9,
         increasing_with_height=True,
@@ -150,14 +155,14 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
         [
             [17.64, 17.64, 17.64],
             [16.56, 16.56, 16.56],
-            [11.16, 11.16, 11.166],
-            [5.76, 5.76, 5.76],
+            [11.16, 11.16, np.nan],
+            [5.76, np.nan, np.nan],
             [1.17, 1.17, 1.17],
             [0.414, 0.414, 0.414],
         ]
     )
     result_f = generate_relative_turbulence_intensity(
-        layer_heights=layer_heights.to_numpy(),
+        layer_heights=layer_heights,
         min_relative_turbulence_intensity=0.36,
         max_relative_turbulence_intensity=0.9,
         increasing_with_height=False,
@@ -167,8 +172,8 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data):
         [
             [-16.92, -16.92, -16.92],
             [-15.84, -15.84, -15.84],
-            [-10.44, -10.44, -10.44],
-            [-5.04, -5.04, -5.04],
+            [-10.44, -10.44, np.nan],
+            [-5.04, np.nan, np.nan],
             [-0.45, -0.45, -0.45],
             [0.306, 0.306, 0.306],
         ]

@@ -213,8 +213,11 @@ def calculate_diabatic_correction_canopy(
 
     This function calculates the diabatic correction factors for heat and momentum used
     in adjustment of wind profiles and calculation of turbulent conductivity within the
-    canopy. Implementation after :cite:t:`maclean_microclimc_2021`.
+    canopy. Implementation after :cite:t:`maclean_microclimc_2021`. Note that at the
+    moment, the function returns a mean value for the whole canopy and below.
+
     TODO add parameters to abiotic.constants
+
     Args:
         air_temperature: Air temperature, [C]
         wind_speed: Wind speed, [m s-1]

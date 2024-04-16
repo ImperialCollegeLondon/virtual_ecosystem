@@ -96,6 +96,8 @@ class AbioticModel(
 
         self.model_constants = model_constants
         """Set of constants for the abiotic model."""
+        self.simple_constants = AbioticSimpleConsts()
+        """Set of constants for simple abiotic model."""  # TODO metaconstants
 
     @classmethod
     def from_config(
@@ -149,13 +151,12 @@ class AbioticModel(
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        self.simple_constants = AbioticSimpleConsts()
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
             saturation_vapour_pressure_factors=(
                 self.simple_constants.saturation_vapour_pressure_factors
-            ),  # TODO sort out when constants revised
+            ),
         )
         self.data["vapour_pressure_deficit_ref"] = (
             vapour_pressure_and_deficit["vapour_pressure_deficit"]
@@ -172,7 +173,7 @@ class AbioticModel(
             data=self.data,
             layer_roles=self.layer_structure.layer_roles,
             time_index=0,
-            constants=self.simple_constants,  # TODO sort out when constants revised
+            constants=self.simple_constants,
             bounds=AbioticSimpleBounds(),
         )
 
