@@ -23,6 +23,18 @@ def known_variables():
     variables.KNOWN_VARIABLES.update(vars_bkp)
 
 
+@pytest.fixture
+def run_variables():
+    """Fixture to reset the run variables after each test."""
+    from virtual_ecosystem.core import variables
+
+    vars_bkp = variables.RUN_VARIABLES_REGISTRY.copy()
+    variables.RUN_VARIABLES_REGISTRY.clear()
+    yield variables.RUN_VARIABLES_REGISTRY
+    variables.RUN_VARIABLES_REGISTRY.clear()
+    variables.RUN_VARIABLES_REGISTRY.update(vars_bkp)
+
+
 def test_register_variable(known_variables):
     """Test the register_variable function."""
     from virtual_ecosystem.core import variables
@@ -108,3 +120,31 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     assert len(data) == 1
     var.axis = list(var.axis)
     assert data["test_var"] == asdict(var)
+
+
+def test_collect_initialise_by_vars(known_variables, run_variables):
+    """Test the _collect_initialise_by_vars function."""
+    from virtual_ecosystem.core import variables
+
+    class TestModel:
+        model_name = "TestModel"
+        vars_initialised = ("test_var",)
+
+    with pytest.raises(ValueError, match="not in the known variables registry."):
+        variables._collect_initialise_by_vars([TestModel])
+
+    variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    variables._collect_initialise_by_vars([TestModel])
+
+    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by == "TestModel"
+
+    with pytest.raises(ValueError, match="already in registry"):
+        variables._collect_initialise_by_vars([TestModel])
