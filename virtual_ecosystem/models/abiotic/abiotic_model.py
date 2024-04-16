@@ -64,6 +64,17 @@ class AbioticModel(
         "conductivity_from_ref_height",
         "leaf_air_heat_conductivity",
         "leaf_vapour_conductivity",
+        "wind_speed",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "soil_absorption",
+        "longwave_emission_soil",
     ),
 ):
     """A class describing the abiotic model.
@@ -138,12 +149,12 @@ class AbioticModel(
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        simple_constants = AbioticSimpleConsts()
+        self.simple_constants = AbioticSimpleConsts()
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
             saturation_vapour_pressure_factors=(
-                simple_constants.saturation_vapour_pressure_factors
+                self.simple_constants.saturation_vapour_pressure_factors
             ),  # TODO sort out when constants revised
         )
         self.data["vapour_pressure_deficit_ref"] = (
@@ -161,7 +172,7 @@ class AbioticModel(
             data=self.data,
             layer_roles=self.layer_structure.layer_roles,
             time_index=0,
-            constants=simple_constants,  # TODO sort out when constants revised
+            constants=self.simple_constants,  # TODO sort out when constants revised
             bounds=AbioticSimpleBounds(),
         )
 
@@ -260,7 +271,7 @@ class AbioticModel(
             wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
             leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
             air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
-            atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy()[0],
+            atmospheric_pressure=self.data["atmospheric_pressure"][0].to_numpy(),
             sensible_heat_flux_topofcanopy=(
                 self.data["sensible_heat_flux"][1].to_numpy()
             ),
@@ -273,7 +284,7 @@ class AbioticModel(
             ).to_numpy(),
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,
-        )  # TODO wind height above in constants, cross-check with reference heights
+        )  # TODO wind height above in constants, cross-check with LayerStructure setup
 
         wind_output = {}
 
@@ -333,12 +344,12 @@ class AbioticModel(
         new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
             data=self.data,
             time_index=time_index,
-            topsoil_layer_index=self.layer_structure.layer_roles.index("soil"),
+            topsoil_layer_index=topsoil_layer_index,
             true_canopy_indexes=true_canopy_indexes,
             true_canopy_layers_n=true_canopy_layers_n,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
-            abiotic_simple_constants=AbioticSimpleConsts(),
+            abiotic_simple_constants=self.simple_constants,
             core_constants=self.core_constants,
         )
         self.data.add_from_dict(output_dict=new_microclimate)
