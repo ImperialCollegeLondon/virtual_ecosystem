@@ -155,8 +155,10 @@ class TestAnimalCommunity:
             ]
         )
 
-    def test_die_cohort(self, animal_cohort_instance, animal_community_instance):
-        """Testing die_cohort."""
+    def test_remove_dead_cohort(
+        self, animal_cohort_instance, animal_community_instance
+    ):
+        """Testing remove_dead_cohort."""
         animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
             animal_cohort_instance
         )
@@ -165,7 +167,7 @@ class TestAnimalCommunity:
             in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
         assert animal_cohort_instance.is_alive
-        animal_community_instance.die_cohort(animal_cohort_instance)
+        animal_community_instance.remove_dead_cohort(animal_cohort_instance)
         assert not animal_cohort_instance.is_alive
         assert (
             animal_cohort_instance
