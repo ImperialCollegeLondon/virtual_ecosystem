@@ -312,7 +312,7 @@ def setup_variables(
 def verify_variables_axis() -> None:
     """Verify that all required variables have valid, available axis."""
     for var in RUN_VARIABLES_REGISTRY.values():
-        unknown_axes = set(var.axis).difference(axes.AXIS_VALIDATORS)
+        unknown_axes = sorted(set(var.axis).difference(axes.AXIS_VALIDATORS.keys()))
 
         if unknown_axes:
             to_raise = ValueError(

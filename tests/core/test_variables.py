@@ -35,6 +35,18 @@ def run_variables():
     variables.RUN_VARIABLES_REGISTRY.update(vars_bkp)
 
 
+@pytest.fixture
+def axis_validators():
+    """Fixture to reset the axis validators after each test."""
+    import virtual_ecosystem.core.axes as axes
+
+    vars_bkp = axes.AXIS_VALIDATORS.copy()
+    axes.AXIS_VALIDATORS.clear()
+    yield axes.AXIS_VALIDATORS
+    axes.AXIS_VALIDATORS.clear()
+    axes.AXIS_VALIDATORS.update(vars_bkp)
+
+
 def test_register_variable(known_variables):
     """Test the register_variable function."""
     from virtual_ecosystem.core import variables
@@ -178,9 +190,9 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
     variables._collect_updated_by_vars([TestModel])
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == ["TestModel"]
 
-    variables._collect_initialise_by_vars([TestModel])
+    variables._collect_updated_by_vars([TestModel])
     assert caplog.records[-1].levelname == "WARNING"
-    assert "is already updated" in caplog.get_records[-1].message
+    assert "is already updated" in caplog.records[-1].message
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == [
         "TestModel",
         "TestModel",
@@ -293,3 +305,30 @@ def test_setup_variables(mocker):
     variables._collect_required_init_vars.assert_called_once_with([TestModel])
     variables._collect_updated_by_vars.assert_called_once_with([TestModel])
     variables._collect_required_update_vars.assert_called_once_with([TestModel])
+
+
+def test_verify_variables_axis(known_variables, run_variables, axis_validators):
+    """Test the verify_variables_axis function."""
+    from virtual_ecosystem.core import variables
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
+
+    with pytest.raises(ValueError, match="uses unknown axis: x,y,z"):
+        variables.verify_variables_axis()
+
+    axis_validators["x"] = lambda x: x
+
+    with pytest.raises(ValueError, match="uses unknown axis: y,z"):
+        variables.verify_variables_axis()
+
+    axis_validators["y"] = lambda x: x
+    axis_validators["z"] = lambda x: x
+
+    variables.verify_variables_axis()
