@@ -1,4 +1,4 @@
-"""Variables associated to the plans modudle."""
+"""Variables associated to the plans module."""
 
 import virtual_ecosystem.core.variables as variables
 
