@@ -247,3 +247,27 @@ def test_collect_required_init_vars(known_variables, run_variables):
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_init_by == [
         "TestModel"
     ]
+
+
+def test_collect_initial_data_vars(known_variables, run_variables):
+    """Test the _collect_initial_data_vars function."""
+    from virtual_ecosystem.core import variables
+
+    with pytest.raises(ValueError, match="defined in data object is not known"):
+        variables._collect_initial_data_vars(["test_var"])
+
+    variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    variables._collect_initial_data_vars(["test_var"])
+
+    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by == "data"
+
+    with pytest.raises(ValueError, match="already in registry"):
+        variables._collect_initial_data_vars(["test_var"])
