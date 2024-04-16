@@ -1,6 +1,14 @@
 """Tests for the virtual_ecosystem.core.variables module."""
 
+import sys
+from dataclasses import asdict
+
 import pytest
+
+if sys.version_info[:2] >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 @pytest.fixture
@@ -71,3 +79,32 @@ def test_discover_all_variables_usage(known_variables, mocker):
     assert len(args[0]) > 0
     assert all(issubclass(x, base_model.BaseModel) for x in args[0])
     assert args[1] == []
+
+
+def test_output_known_variables(known_variables, mocker, tmpdir):
+    """Test the output_known_variables function."""
+    from virtual_ecosystem.core import variables
+
+    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
+    mocker.patch("virtual_ecosystem.core.variables._discover_all_variables_usage")
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+    path = tmpdir / "variables.json"
+
+    variables.output_known_variables(path)
+
+    variables.register_all_variables.assert_called_once()
+    variables._discover_all_variables_usage.assert_called_once()
+    assert path.exists()
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+
+    assert len(data) == 1
+    var.axis = list(var.axis)
+    assert data["test_var"] == asdict(var)
