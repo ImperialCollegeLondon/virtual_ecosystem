@@ -337,6 +337,37 @@ def generate_relative_turbulence_intensity(
     )
 
 
+def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Find last valid value in array for each column.
+
+    This function looks for the last valid value in each column of a 2-dimensional
+    array. If the previous value is nan, it moved up the array. If all values are nan,
+    the value is set to nan, too.
+
+    Args:
+        array: Two-dimesional array for which last valid values should be found
+
+    Returns:
+        Array that contains last valid values
+    """
+    # Initialize an empty list to store the last valid value from each column
+    new_row = []
+
+    # Loop through each column
+    for column in range(array.shape[1]):
+        # Scan from the last row to the first in the current column
+        for i in range(array.shape[0] - 1, -1, -1):
+            if not np.isnan(array[i, column]):
+                # Append the last valid value found in the column to the new_row list
+                new_row.append(array[i, column])
+                break
+        else:
+            # If no valid value is found in the column, append NaN
+            new_row.append(np.nan)
+
+    return np.array(new_row)
+
+
 def calculate_wind_attenuation_coefficient(
     canopy_height: NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
@@ -370,12 +401,16 @@ def calculate_wind_attenuation_coefficient(
         ),
     )
 
-    attenuation_coefficient = np.nan_to_num(intermediate_coefficient, nan=0).squeeze()
+    attenuation_coefficient = np.squeeze(intermediate_coefficient)
+    attenuation_coefficient_below = find_last_valid_row(attenuation_coefficient)
+
+    # Combine all layers; above the canopy is set to zero and below canopy layers are
+    # set to the last valid canopy value
     return np.concatenate(
         [
-            [[0.0, 0.0, 0.0]],
+            [np.repeat(0.0, len(mean_mixing_length))],
             attenuation_coefficient,
-            [attenuation_coefficient[-1]] * 2,  # add lowest value to below canopy layer
+            [attenuation_coefficient_below] * 2,
         ]
     )
 

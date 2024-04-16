@@ -1,6 +1,7 @@
 """Test module for abiotic.wind.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -182,30 +183,56 @@ def test_generate_relative_turbulence_intensity():
     np.testing.assert_allclose(result_f, exp_result_f, rtol=1e-3, atol=1e-3)
 
 
+@pytest.mark.parametrize(
+    "input_array, expected",
+    [
+        (np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), np.array([4.0, 5.0, 6.0])),
+        (
+            np.array([[1.0, np.nan, 3.0], [4.0, 5.0, np.nan], [np.nan, 8.0, 9.0]]),
+            np.array([4.0, 8.0, 9.0]),
+        ),
+        (
+            np.array([[np.nan, 2.0, np.nan], [np.nan, 5.0, np.nan]]),
+            np.array([np.nan, 5.0, np.nan]),
+        ),
+        (np.array([[np.nan, 2.0, 3.0]]), np.array([np.nan, 2.0, 3.0])),
+        (
+            np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]),
+            np.array([np.nan, np.nan, np.nan]),
+        ),
+    ],
+)
+def test_find_last_valid_row(input_array, expected):
+    """Test that last true value is selected for each column."""
+
+    from virtual_ecosystem.models.abiotic.wind import find_last_valid_row
+
+    result = find_last_valid_row(input_array)
+    np.testing.assert_allclose(result, expected)
+
+
 def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
-    """Test wind attenuation coefficient with and without vegetation."""
+    """Test wind attenuation coefficient with different canopy layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_wind_attenuation_coefficient,
     )
 
-    leaf_area_index = (
-        dummy_climate_data["leaf_area_index"]
-        .where(dummy_climate_data["leaf_area_index"].layer_roles != "soil")
-        .dropna(dim="layers")
+    leaf_area_index = np.array(
+        [[1.0, 1.0, 1.0], [1.0, 1.0, np.nan], [1.0, np.nan, np.nan]]
     )
     relative_turbulence_intensity = np.array(
         [
             [17.64, 17.64, 17.64],
             [16.56, 16.56, 16.56],
-            [11.16, 11.16, 11.166],
-            [5.76, 5.76, 5.76],
+            [11.16, 11.16, np.nan],
+            [5.76, np.nan, np.nan],
             [1.17, 1.17, 1.17],
             [0.414, 0.414, 0.414],
         ]
     )
     result = calculate_wind_attenuation_coefficient(
-        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        canopy_height=dummy_climate_data.data["layer_heights"][1].to_numpy(),
         leaf_area_index=leaf_area_index,
         mean_mixing_length=np.array([1.35804, 1.401984, 0.925228]),
         drag_coefficient=AbioticConsts.drag_coefficient,
@@ -216,10 +243,10 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
         [
             [0.0, 0.0, 0.0],
             [0.12523, 0.121305, 0.183812],
-            [0.133398, 0.129216, 0.1958],
-            [0.197945, 0.191741, 0.290385],
-            [0.197945, 0.191741, 0.290385],
-            [0.197945, 0.191741, 0.290385],
+            [0.133398, 0.129216, np.nan],
+            [0.197945, np.nan, np.nan],
+            [0.197945, 0.129216, 0.183812],
+            [0.197945, 0.129216, 0.183812],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
