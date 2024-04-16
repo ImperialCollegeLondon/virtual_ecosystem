@@ -28,7 +28,14 @@
                 },
                 "uniqueItems": true
             }
-        }
+        },
+        "required": [
+            "name",
+            "description",
+            "unit",
+            "variable_type",
+            "axis"
+        ]
     },
     "minItems": 1,
     "uniqueItems": true
