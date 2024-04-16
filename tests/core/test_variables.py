@@ -161,7 +161,7 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
     with pytest.raises(ValueError, match="not in the known variables registry."):
         variables._collect_updated_by_vars([TestModel])
 
-    variables.Variable(
+    var = variables.Variable(
         name="test_var",
         description="Test variable",
         unit="m",
@@ -172,6 +172,7 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
     with pytest.raises(ValueError, match="is not initialised"):
         variables._collect_updated_by_vars([TestModel])
 
+    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
     variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
 
     variables._collect_updated_by_vars([TestModel])
@@ -183,4 +184,35 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == [
         "TestModel",
         "TestModel",
+    ]
+
+
+def test_collect_required_update_vars(known_variables, run_variables):
+    """Test the _collect_required_update_vars function."""
+    from virtual_ecosystem.core import variables
+
+    class TestModel:
+        model_name = "TestModel"
+        required_update_vars = ("test_var",)
+
+    with pytest.raises(ValueError, match="not in the known variables registry."):
+        variables._collect_required_update_vars([TestModel])
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    with pytest.raises(ValueError, match="is not initialised"):
+        variables._collect_required_update_vars([TestModel])
+
+    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
+    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+
+    variables._collect_required_update_vars([TestModel])
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_update_by == [
+        "TestModel"
     ]
