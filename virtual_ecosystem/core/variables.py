@@ -21,13 +21,11 @@ class Variable:
 
     name: str
     """Name of the variable. Must be unique."""
-    model_name: str
-    """Name of the model defining the variable."""
     description: str
     """Description of what the variable represents."""
-    units: str
-    """Unites the variable should be represented in."""
-    var_type: str
+    unit: str
+    """Units the variable should be represented in."""
+    variable_type: str
     """Type of the variable."""
     axis: tuple[str, ...]
     """Axes the variable is defined on."""
@@ -51,7 +49,6 @@ class Variable:
                 f"Variable {self.name} already in the known variables registry."
             )
 
-        LOGGER.info(f"Variable registered for model '{self.model_name}': {self.name}")
         KNOWN_VARIABLES[self.name] = self
 
 
