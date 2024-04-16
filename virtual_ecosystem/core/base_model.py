@@ -290,6 +290,8 @@ class BaseModel(ABC):
     ) -> tuple[tuple[str, tuple[str, ...]], ...]:
         """Check the required_init_vars property is valid.
 
+        TODO: Remove. Validation is performed at runtime in the variables side.
+
         Args:
             required_init_vars: The
                 :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`
@@ -437,6 +439,8 @@ class BaseModel(ABC):
     def _check_vars_updated(cls, vars_updated: tuple[str, ...]) -> tuple[str, ...]:
         """Check that vars_updated is valid.
 
+        TODO: Remove. Validation is performed at runtime in the variables side.
+
         Returns:
             The provided value if valid.
         """
@@ -450,6 +454,7 @@ class BaseModel(ABC):
         model_update_bounds: tuple[str, str],
         required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
         vars_updated: tuple[str, ...],
+        required_update_vars: tuple[str, ...] = (),
         vars_initialised: tuple[str, ...] = (),
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
@@ -475,7 +480,8 @@ class BaseModel(ABC):
             ):
                 ...
 
-        TODO: Make vars_initialised a required argument, even if just ().
+        TODO: Make vars_initialised and required_update_vars a required argument, even
+        if just ().
 
         Args:
             model_name: The model name to be used
@@ -499,6 +505,7 @@ class BaseModel(ABC):
             cls.model_update_bounds = cls._check_model_update_bounds(
                 model_update_bounds=model_update_bounds
             )
+            cls.required_update_vars = required_update_vars
             cls.vars_initialised = vars_initialised
 
         except (NotImplementedError, TypeError, ValueError) as excep:
