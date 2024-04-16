@@ -1,18 +1,27 @@
 """Module for all variables."""
 
 import inspect
+import json
 import pkgutil
+import sys
 from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
-from importlib import import_module
+from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
 
 import tomli_w
+from jsonschema import FormatChecker
 
 import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.schema import ValidatorWithDefaults
+
+if sys.version_info[:2] >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 @dataclass
@@ -61,18 +70,19 @@ KNOWN_VARIABLES: dict[str, Variable] = {}
 
 def register_all_variables() -> None:
     """Registers all variables provided by the models."""
-    import virtual_ecosystem.models as models
+    with (resources.files("virtual_ecosystem") / "data_variables.toml").open("rb") as f:
+        known_vars = tomllib.load(f).get("variable", [])
 
-    for mod in pkgutil.iter_modules(models.__path__):
-        if not mod.ispkg:
-            continue
+    with (resources.files("virtual_ecosystem.core") / "variables_schema.json").open(
+        "r"
+    ) as f:
+        schema = json.load(f)
 
-        try:
-            import_module(f"{models.__name__}.{mod.name}.variables")
-        except ImportError:
-            LOGGER.debug(
-                f"No 'variables' module found for model {models.__name__}.{mod.name}."
-            )
+    val = ValidatorWithDefaults(schema, format_checker=FormatChecker())
+    val.validate(known_vars)
+
+    for var in known_vars:
+        Variable(**var)
 
 
 def _discover_all_variables_usage() -> None:
