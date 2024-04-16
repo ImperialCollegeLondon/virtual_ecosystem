@@ -148,3 +148,39 @@ def test_collect_initialise_by_vars(known_variables, run_variables):
 
     with pytest.raises(ValueError, match="already in registry"):
         variables._collect_initialise_by_vars([TestModel])
+
+
+def test_collect_updated_by_vars(known_variables, run_variables, caplog):
+    """Test the _collect_updated_by_vars function."""
+    from virtual_ecosystem.core import variables
+
+    class TestModel:
+        model_name = "TestModel"
+        vars_updated = ("test_var",)
+
+    with pytest.raises(ValueError, match="not in the known variables registry."):
+        variables._collect_updated_by_vars([TestModel])
+
+    variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    with pytest.raises(ValueError, match="is not initialised"):
+        variables._collect_updated_by_vars([TestModel])
+
+    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+
+    variables._collect_updated_by_vars([TestModel])
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == ["TestModel"]
+
+    variables._collect_initialise_by_vars([TestModel])
+    assert caplog.records[-1].levelname == "WARNING"
+    assert "is already updated" in caplog.get_records[-1].message
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == [
+        "TestModel",
+        "TestModel",
+    ]
