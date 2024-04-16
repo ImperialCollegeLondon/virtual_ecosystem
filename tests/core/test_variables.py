@@ -271,3 +271,25 @@ def test_collect_initial_data_vars(known_variables, run_variables):
 
     with pytest.raises(ValueError, match="already in registry"):
         variables._collect_initial_data_vars(["test_var"])
+
+
+def test_setup_variables(mocker):
+    """Test the _collect_initial_data_vars function."""
+    from virtual_ecosystem.core import variables
+
+    mocker.patch("virtual_ecosystem.core.variables._collect_initial_data_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_initialise_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_required_init_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_required_update_vars")
+
+    class TestModel:
+        pass
+
+    variables.setup_variables([TestModel], ["test_var"])
+
+    variables._collect_initial_data_vars.assert_called_once_with(["test_var"])
+    variables._collect_initialise_by_vars.assert_called_once_with([TestModel])
+    variables._collect_required_init_vars.assert_called_once_with([TestModel])
+    variables._collect_updated_by_vars.assert_called_once_with([TestModel])
+    variables._collect_required_update_vars.assert_called_once_with([TestModel])
