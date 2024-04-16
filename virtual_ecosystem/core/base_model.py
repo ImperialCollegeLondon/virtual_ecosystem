@@ -450,6 +450,7 @@ class BaseModel(ABC):
         model_update_bounds: tuple[str, str],
         required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
         vars_updated: tuple[str, ...],
+        vars_initialised: tuple[str, ...] = (),
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -474,6 +475,8 @@ class BaseModel(ABC):
             ):
                 ...
 
+        TODO: Make vars_initialised a required argument, even if just ().
+
         Args:
             model_name: The model name to be used
             model_update_bounds: Bounds on update intervals handled by the model
@@ -496,6 +499,7 @@ class BaseModel(ABC):
             cls.model_update_bounds = cls._check_model_update_bounds(
                 model_update_bounds=model_update_bounds
             )
+            cls.vars_initialised = vars_initialised
 
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(
