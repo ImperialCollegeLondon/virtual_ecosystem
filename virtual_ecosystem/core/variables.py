@@ -1,4 +1,29 @@
-"""Module for all variables."""
+"""Module for all variables.
+
+Variables are defined in the `data_variables.toml` file, in the root folder of
+`virtual_ecosystem `, which is loaded at runtime and validated. Variables are then
+registered in the `KNOWN_VARIABLES` registry. The usage of the variables is then
+discovered by checking the models for the different methods that the variables are
+used (initialisation, update, etc.).
+
+The variables actually used by the models in a run are then registered in the global
+`RUN_VARIABLES_REGISTRY` registry. The subset of the variables are checked to ensure
+the consistency of the simulation (eg. all variables required by a model are initialised
+by another model, all axis needed by the variables are defined, etc.).
+
+To add a new variable, simply edit the `data_variables.toml` file and add the variable
+as:
+
+.. code-block:: toml
+
+    [[variable]]
+    name = "variable_name"
+    description = "Description of the variable."
+    unit = "Unit of the variable."
+    variable_type = "Type of the variable."
+    axis = ["axis1", "axis2"]
+
+"""
 
 import inspect
 import json
@@ -239,7 +264,7 @@ def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> Non
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} during "
                     "initialisation is not initialised by any model neither provided as"
-                    "input."
+                    " input."
                 )
             RUN_VARIABLES_REGISTRY[var].required_init_by.append(model.model_name)
 
