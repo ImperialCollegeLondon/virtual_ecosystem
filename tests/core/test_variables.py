@@ -357,3 +357,12 @@ def test_get_variable(known_variables, run_variables):
     variables.RUN_VARIABLES_REGISTRY["test_var"] = var
     result = variables.get_variable("test_var")
     assert result == var
+
+
+def test_to_camel_case():
+    """Test the to_camel_case function."""
+    from virtual_ecosystem.core.variables import to_camel_case
+
+    assert to_camel_case("abiotic") == "Abiotic"
+    assert to_camel_case("abiotic_simple") == "AbioticSimple"
+    assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"

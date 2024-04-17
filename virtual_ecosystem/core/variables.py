@@ -51,7 +51,7 @@ else:
 
 
 def to_camel_case(snake_str: str) -> str:
-    """Convert a snake case string to camel case.
+    """Convert a snake_case string to CamelCase.
 
     Args:
         snake_str: The snake case string to convert.
