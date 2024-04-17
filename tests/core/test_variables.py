@@ -332,3 +332,28 @@ def test_verify_variables_axis(known_variables, run_variables, axis_validators):
     axis_validators["z"] = lambda x: x
 
     variables.verify_variables_axis()
+
+
+def test_get_variable(known_variables, run_variables):
+    """Test the get_variable function."""
+    from virtual_ecosystem.core import variables
+
+    with pytest.raises(KeyError, match="not a known variable."):
+        variables.get_variable("test_var")
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    with pytest.raises(
+        KeyError, match="not initialised by any model or provided as input data"
+    ):
+        variables.get_variable("test_var")
+
+    variables.RUN_VARIABLES_REGISTRY["test_var"] = var
+    result = variables.get_variable("test_var")
+    assert result == var

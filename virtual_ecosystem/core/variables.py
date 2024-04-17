@@ -324,3 +324,28 @@ def verify_variables_axis() -> None:
             )
             LOGGER.error(to_raise)
             raise to_raise
+
+
+def get_variable(name: str) -> Variable:
+    """Get the variable by name.
+
+    Args:
+        name: The name of the variable to get.
+
+    Returns:
+        The variable with the given name.
+
+    Raises:
+        KeyError: If the variable is not in the run variables registry, whether known
+        or unknown to Virtual Ecosystem.
+    """
+    if var := RUN_VARIABLES_REGISTRY.get(name):
+        return var
+
+    if name in KNOWN_VARIABLES:
+        raise KeyError(
+            f"Variable '{name}' is a known variable but is not initialised by any model"
+            " or provided as input data in this run."
+        )
+    else:
+        raise KeyError(f"Variable '{name}' is not a known variable.")
