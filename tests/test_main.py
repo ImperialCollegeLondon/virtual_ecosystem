@@ -142,13 +142,15 @@ def test_initialise_models(
         ),
     ],
 )
-def test_ve_run_model_issues(caplog, config_content, expected_log_entries):
+def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocker):
     """Test the main `ve_run` function handles bad model configurations correctly.
 
     Note that some of this is also safeguarded by the config validation. Unknown model
     names should not pass schema validation, but incorrect config data can still pass
     schema validation.
     """
+    # TODO: Once models are adapted, this can be removed
+    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
 
     with pytest.raises(ConfigurationError):
         ve_run(cfg_strings=config_content)
