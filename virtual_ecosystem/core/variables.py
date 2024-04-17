@@ -97,7 +97,9 @@ KNOWN_VARIABLES: dict[str, Variable] = {}
 
 def register_all_variables() -> None:
     """Registers all variables provided by the models."""
-    with (resources.files("virtual_ecosystem") / "data_variables.toml").open("rb") as f:
+    with open(
+        str(resources.files("virtual_ecosystem") / "data_variables.toml"), "rb"
+    ) as f:
         known_vars = tomllib.load(f).get("variable", [])
 
     with (resources.files("virtual_ecosystem.core") / "variables_schema.json").open(
