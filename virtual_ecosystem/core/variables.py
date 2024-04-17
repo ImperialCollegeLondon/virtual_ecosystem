@@ -23,6 +23,8 @@ as:
     variable_type = "Type of the variable."
     axis = ["axis1", "axis2"]
 
+where `axis1` and `axis2` are the name of axis validators defined
+on :mod:`~virtual_ecosystem.core.axes`.
 """
 
 import inspect
