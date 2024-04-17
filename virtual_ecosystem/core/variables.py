@@ -27,7 +27,6 @@ where `axis1` and `axis2` are the name of axis validators defined
 on :mod:`~virtual_ecosystem.core.axes`.
 """
 
-import inspect
 import json
 import pkgutil
 import sys
@@ -49,6 +48,18 @@ if sys.version_info[:2] >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
+
+
+def to_camel_case(snake_str: str) -> str:
+    """Convert a snake case string to camel case.
+
+    Args:
+        snake_str: The snake case string to convert.
+
+    Returns:
+        The camel case string.
+    """
+    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 
 @dataclass
@@ -131,15 +142,15 @@ def _discover_all_variables_usage() -> None:
             )
             continue
 
-        models_found.extend(
-            [
-                obj
-                for _, obj in inspect.getmembers(module)
-                if inspect.isclass(obj)
-                and issubclass(obj, base_model.BaseModel)
-                and obj is not base_model.BaseModel
-            ]
-        )
+        mod_class_name = to_camel_case(mod.name) + "Model"
+        if hasattr(module, mod_class_name):
+            models_found.append(getattr(module, mod_class_name))
+        else:
+            LOGGER.warning(
+                f"No model class '{mod_class_name}' found in module "
+                f"'{models.__name__}.{mod.name}.{mod.name}_model'."
+            )
+            continue
 
     setup_variables(models_found, [])
 
