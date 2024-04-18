@@ -15,3 +15,7 @@ visit the [API documentaton](api/core/variables.md) section.
    :file: ../variables.csv
    :header-rows: 1
 ```
+
+```{eval-rst}
+.. include:: ../variables.rst
+```

@@ -186,6 +186,27 @@ def output_known_variables(output_file: Path) -> None:
     pd.DataFrame.from_dict(vars, orient="index").set_index("name", drop=True).to_csv(
         output_file
     )
+    out = []
+    for i, v in enumerate(vars.values()):
+        title = f"{i+1}- {v['name']}"
+        out.append(title)
+        out.append(f"{'=' * len(title)}")
+        out.append("")
+
+        data = list(zip(v.keys(), [str(v) for v in v.values()]))
+        keywidth = max(len(key) for key in v.keys())
+        valwidth = max(len(str(value)) for value in v.values())
+        colsizes = (keywidth, valwidth)
+        formatter = " ".join("{:<%d}" % c for c in colsizes)
+        rowsformatted = [formatter.format(*row) for row in data]
+        header = formatter.format(*["=" * c for c in colsizes])
+
+        out.append(header)
+        out.extend(rowsformatted)
+        out.append(header)
+        out.append("")
+
+    Path(output_file).with_suffix(".rst").write_text("\n".join(out))
 
 
 def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> None:
