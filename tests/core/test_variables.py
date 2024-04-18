@@ -1,14 +1,14 @@
 """Tests for the virtual_ecosystem.core.variables module."""
 
 import sys
-from dataclasses import asdict
 
+import pandas as pd  # type: ignore
 import pytest
 
 if sys.version_info[:2] >= (3, 11):
     import tomllib
 else:
-    import tomli as tomllib
+    import tomli as tomllib  # noqa: F401
 
 
 @pytest.fixture
@@ -114,14 +114,14 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
 
     variables._discover_models.return_value = []
 
-    var = variables.Variable(
+    variables.Variable(
         name="test_var",
         description="Test variable",
         unit="m",
         variable_type="float",
         axis=("x", "y", "z"),
     )
-    path = tmpdir / "variables.json"
+    path = tmpdir / "variables.csv"
 
     variables.output_known_variables(path)
 
@@ -134,12 +134,9 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     variables._collect_required_update_vars.assert_called_once_with([])
     assert path.exists()
 
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
-
+    data = pd.read_csv(path)
     assert len(data) == 1
-    var.axis = list(var.axis)
-    assert data["test_var"] == asdict(var)
+    assert data["name"].iloc[0] == "test_var"
 
 
 def test_collect_initialise_by_vars(known_variables, run_variables):

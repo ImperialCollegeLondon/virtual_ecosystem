@@ -36,7 +36,7 @@ from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from jsonschema import FormatChecker
 
 import virtual_ecosystem.core.axes as axes
@@ -183,8 +183,8 @@ def output_known_variables(output_file: Path) -> None:
         var.name: asdict(var)
         for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
     }
-    pd.DataFrame.from_dict(vars, orient="index").drop(columns="name").to_csv(
-        output_file.with_suffix(".csv")
+    pd.DataFrame.from_dict(vars, orient="index").set_index("name", drop=True).to_csv(
+        output_file
     )
 
 

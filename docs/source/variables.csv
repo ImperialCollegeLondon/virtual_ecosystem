@@ -1,4 +1,4 @@
-,description,unit,variable_type,axis,initialised_by,required_init_by,updated_by,required_update_by
+name,description,unit,variable_type,axis,initialised_by,required_init_by,updated_by,required_update_by
 aerodynamic_resistance_surface,Aerodynamic resistance at surface,,,[],None,[],['hydrology'],[]
 air_heat_conductivity,Air heat conductivity,,,[],None,[],['abiotic'],[]
 air_temperature,Air temperature profile,C,,[],None,[],"['abiotic', 'abiotic_simple']",[]
