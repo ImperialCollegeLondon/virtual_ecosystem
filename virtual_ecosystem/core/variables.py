@@ -36,7 +36,7 @@ from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
 
-import tomli_w
+import pandas as pd
 from jsonschema import FormatChecker
 
 import virtual_ecosystem.core.axes as axes
@@ -183,8 +183,9 @@ def output_known_variables(output_file: Path) -> None:
         var.name: asdict(var)
         for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
     }
-    with open(output_file, "bw") as f:
-        tomli_w.dump(vars, f)
+    pd.DataFrame.from_dict(vars, orient="index").drop(columns="name").to_csv(
+        output_file.with_suffix(".csv")
+    )
 
 
 def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> None:

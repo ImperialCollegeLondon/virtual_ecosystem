@@ -14,6 +14,7 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # Import Matplotlib to avoid this message in notebooks:
 # "Matplotlib is building the font cache; this may take a moment."
@@ -23,6 +24,7 @@ from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
+from virtual_ecosystem.core import variables
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
@@ -39,6 +41,11 @@ else:
 
 version = ve.__version__
 release = version
+
+# Update the variables file
+varfile = Path(__file__).parent / "variables.csv"
+variables.output_known_variables(varfile)
+
 
 # -- Project information -----------------------------------------------------
 

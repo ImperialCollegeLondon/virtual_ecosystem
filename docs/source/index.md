@@ -68,6 +68,7 @@ team.
   virtual_ecosystem/example_data.md
   virtual_ecosystem/main_simulation.md
   virtual_ecosystem/constants.md
+  virtual_ecosystem/variables.md
   virtual_ecosystem/soil/soil_details.md
   virtual_ecosystem/core/grid.md
   virtual_ecosystem/core/data.md
@@ -97,6 +98,7 @@ team.
   Schema <api/core/schema.md>
   Module Registry <api/core/registry.md>
   Utility functions <api/core/utils.md>
+  Variables <api/core/variables.md>
   Custom exceptions <api/core/exceptions.md>
   Soil Overview <api/soil.md>
   Soil Model <api/soil/soil_model.md>
@@ -121,16 +123,16 @@ team.
   Hydrology Below-ground <api/hydrology/below_ground.md>
   Hydrology Constants <api/hydrology/constants.md>
   Animal Overview <api/animals>
-  Animal Model <api/animals/animal_model.md> 
-  Animal Communities <api/animals/animal_communities.md> 
+  Animal Model <api/animals/animal_model.md>
+  Animal Communities <api/animals/animal_communities.md>
   Animal Protocols <api/animals/protocols.md>
-  Animal Cohorts <api/animals/animal_cohorts.md> 
-  Animal Functional Groups <api/animals/functional_group.md> 
+  Animal Cohorts <api/animals/animal_cohorts.md>
+  Animal Functional Groups <api/animals/functional_group.md>
   Animal Traits <api/animals/animal_traits.md>
-  Animal Scaling Functions <api/animals/scaling_functions.md> 
-  Animal Constants <api/animals/constants.md> 
-  Animal Decay <api/animals/decay.md> 
-  Animal Plant Resources <api/animals/plant_resources.md> 
+  Animal Scaling Functions <api/animals/scaling_functions.md>
+  Animal Constants <api/animals/constants.md>
+  Animal Decay <api/animals/decay.md>
+  Animal Plant Resources <api/animals/plant_resources.md>
   Litter Overview <api/litter.md>
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>
