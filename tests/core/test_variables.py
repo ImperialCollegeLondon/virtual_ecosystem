@@ -92,17 +92,13 @@ def test_register_all_variables(known_variables):
     assert len(variables.KNOWN_VARIABLES) > 0
 
 
-def test_discover_all_variables_usage(known_variables, mocker):
+def test_discover_models(known_variables):
     """Test the discover_all_variables_usage function."""
     from virtual_ecosystem.core import base_model, variables
 
-    mocker.patch("virtual_ecosystem.core.variables.setup_variables")
-    variables._discover_all_variables_usage()
-    variables.setup_variables.assert_called_once()
-    args = variables.setup_variables.call_args[0]
-    assert len(args[0]) > 0
-    assert all(issubclass(x, base_model.BaseModel) for x in args[0])
-    assert args[1] == []
+    models = variables._discover_models()
+    assert len(models) > 0
+    assert all(issubclass(x, base_model.BaseModel) for x in models)
 
 
 def test_output_known_variables(known_variables, mocker, tmpdir):
@@ -110,7 +106,13 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     from virtual_ecosystem.core import variables
 
     mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
-    mocker.patch("virtual_ecosystem.core.variables._discover_all_variables_usage")
+    mocker.patch("virtual_ecosystem.core.variables._discover_models")
+    mocker.patch("virtual_ecosystem.core.variables._collect_initialise_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_required_init_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_required_update_vars")
+
+    variables._discover_models.return_value = []
 
     var = variables.Variable(
         name="test_var",
@@ -123,9 +125,15 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
 
     variables.output_known_variables(path)
 
+    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
     variables.register_all_variables.assert_called_once()
-    variables._discover_all_variables_usage.assert_called_once()
+    variables._discover_models.assert_called_once()
+    variables._collect_initialise_by_vars.assert_called_once_with([])
+    variables._collect_required_init_vars.assert_called_once_with([])
+    variables._collect_updated_by_vars.assert_called_once_with([])
+    variables._collect_required_update_vars.assert_called_once_with([])
     assert path.exists()
+
     with open(path, "rb") as f:
         data = tomllib.load(f)
 

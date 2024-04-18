@@ -76,7 +76,7 @@ class Variable:
     """Type of the variable."""
     axis: tuple[str, ...]
     """Axes the variable is defined on."""
-    initialised_by: str = field(default_factory=str, init=False)
+    initialised_by: str = field(default="None", init=False)
     """Model that initialised the variable."""
     required_init_by: list[str] = field(default_factory=list, init=False)
     """Models that requires the variable to be initialised."""
@@ -125,8 +125,8 @@ def register_all_variables() -> None:
         Variable(**var)
 
 
-def _discover_all_variables_usage() -> None:
-    """Discover the usage of variables in the models."""
+def _discover_models() -> list[type[base_model.BaseModel]]:
+    """Discover all the models in Virtual Ecosystem."""
     import virtual_ecosystem.models as models
 
     models_found = []
@@ -152,7 +152,7 @@ def _discover_all_variables_usage() -> None:
             )
             continue
 
-    setup_variables(models_found, [])
+    return models_found
 
 
 def output_known_variables(output_file: Path) -> None:
@@ -165,7 +165,20 @@ def output_known_variables(output_file: Path) -> None:
         output_file: The file to output the known variables to.
     """
     register_all_variables()
-    _discover_all_variables_usage()
+
+    models = _discover_models()
+    _collect_initialise_by_vars(models)
+
+    # Add any variables that are not yet in the run registry to account for those
+    # that would have been initialised by the data object.
+    for name, var in KNOWN_VARIABLES.items():
+        if name not in RUN_VARIABLES_REGISTRY:
+            RUN_VARIABLES_REGISTRY[name] = var
+
+    _collect_required_init_vars(models)
+    _collect_updated_by_vars(models)
+    _collect_required_update_vars(models)
+
     vars = {
         var.name: asdict(var)
         for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)

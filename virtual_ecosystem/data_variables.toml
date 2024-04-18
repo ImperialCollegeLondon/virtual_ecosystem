@@ -481,3 +481,209 @@ description = "Rate of decomposed carcass biomass flow from animals into litter"
 unit = "kg C m^-3 day^-1"
 variable_type = ""
 axis = []
+
+# BELOW TO BE CHECKED
+
+
+[[variable]]
+name = "lignin_above_structural"
+description = "Lignin content of above ground structural litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "lignin_below_structural"
+description = "Lignin content of above ground structural litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "lignin_woody"
+description = "Lignin content of woody litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_cell_id"
+description = "Cell ID of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_pft"
+description = "Plant functional type of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_n"
+description = "Number of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_dbh"
+description = "Diameter at breast height of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "photosynthetic_photon_flux_density"
+description = "Photosynthetic photon flux density"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "clay_fraction"
+description = "Fraction of clay in soil"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "vapour_pressure"
+description = "Vapour pressure"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "vapour_pressure_deficit"
+description = "Vapour pressure deficit"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "air_heat_conductivity"
+description = "Air heat conductivity"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "conductivity_from_ref_height"
+description = "Conductivity from reference height"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "leaf_air_heat_conductivity"
+description = "Leaf air heat conductivity"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "leaf_vapour_conductivity"
+description = "Leaf vapour conductivity"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "latent_heat_vapourisation"
+description = "Latent heat of vapourisation"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "aerodynamic_resistance_surface"
+description = "Aerodynamic resistance at surface"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "subsurface_flow_accumulated"
+description = "Accumulated subsurface flow"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "matric_potential"
+description = "Matric potential"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "groundwater_storage"
+description = "Groundwater Storage"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "river_discharge_rate"
+description = "River discharge rate"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "total_river_discharge"
+description = "Total river discharge"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "subsurface_flow"
+description = "Surface flow"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "baseflow"
+description = "Base flow"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_fapar"
+description = "layer_fapar"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_leaf_mass"
+description = "layer_leaf_mass"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_absorbed_irradiation"
+description = "layer_absorbed_irradiation"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_enzyme_pom"
+description = "soil_enzyme_pom"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_enzyme_maom"
+description = "soil_enzyme_maom"
+unit = ""
+variable_type = ""
+axis = []
