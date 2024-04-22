@@ -168,14 +168,13 @@ class AnimalModel(
             "Information required to initialise the animal model successfully "
             "extracted."
         )
-        model = cls(
+
+        return cls(
             data=data,
             core_components=core_components,
             functional_groups=functional_groups,
             model_constants=model_constants,
         )
-
-        return model
 
     def setup(self) -> None:
         """Method to setup the animal model specific data variables."""
@@ -306,14 +305,18 @@ class AnimalModel(
 
         for community_id, community in self.communities.items():
             for fg_name, cohorts in community.animal_cohorts.items():
-                for cohort in cohorts:  # Now correctly iterating over each cohort
+                # Initialize the population density of the functional group
+                fg_density = 0.0
+                for cohort in cohorts:
                     # Calculate the population density for the cohort
-                    population_density = self.calculate_density_for_cohort(cohort)
+                    fg_density += self.calculate_density_for_cohort(cohort)
 
-                    # Update the corresponding entry in the data variable
-                    self.data["population_densities"].loc[
-                        {"community_id": community_id, "functional_group_id": fg_name}
-                    ] = population_density
+                # Update the corresponding entry in the data variable
+                # This update should happen once per functional group after summing
+                # all cohort densities
+                self.data["population_densities"].loc[
+                    {"community_id": community_id, "functional_group_id": fg_name}
+                ] = fg_density
 
     def calculate_density_for_cohort(self, cohort: AnimalCohort) -> float:
         """Calculate the population density for a cohort within a specific community.
