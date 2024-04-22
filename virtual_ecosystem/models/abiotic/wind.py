@@ -123,6 +123,8 @@ def calculate_roughness_length_momentum(
         initial_roughness_length,
     )
 
+    # If roughness length in nan, zero or below sero, set to minimum value
+    roughness_length = np.nan_to_num(roughness_length, nan=min_roughness_length)
     return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
 
 
@@ -449,6 +451,7 @@ def calculate_friction_velocity_reference_height(
     roughness_length_momentum: NDArray[np.float32],
     diabatic_correction_momentum: float | NDArray[np.float32],
     von_karmans_constant: float,
+    min_friction_velocity: float,
 ) -> NDArray[np.float32]:
     """Calculate friction velocity from wind speed at reference height, [m s-1].
 
@@ -464,6 +467,7 @@ def calculate_friction_velocity_reference_height(
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        min_friction_velocity: Minimum friction velocity, [m s-1]
 
     Returns:
         Friction velocity, [m s-1]
@@ -476,7 +480,13 @@ def calculate_friction_velocity_reference_height(
         diabatic_correction_momentum=diabatic_correction_momentum,
     )
 
-    return von_karmans_constant * (wind_speed_ref / wind_profile_reference)
+    friction_velocity = von_karmans_constant * (wind_speed_ref / wind_profile_reference)
+
+    return np.where(
+        friction_velocity < min_friction_velocity,
+        min_friction_velocity,
+        friction_velocity,
+    )
 
 
 def calculate_wind_above_canopy(
@@ -681,6 +691,7 @@ def calculate_wind_profile(
         roughness_length_momentum=roughness_length_momentum,
         diabatic_correction_momentum=0.0,
         von_karmans_constant=core_constants.von_karmans_constant,
+        min_friction_velocity=abiotic_constants.min_friction_velocity,
     )
 
     # Calculate diabatic correction factor above canopy (Psi)
@@ -708,6 +719,7 @@ def calculate_wind_profile(
         roughness_length_momentum=roughness_length_momentum,
         diabatic_correction_momentum=diabatic_correction_above["psi_m"],
         von_karmans_constant=core_constants.von_karmans_constant,
+        min_friction_velocity=abiotic_constants.min_friction_velocity,
     )
     output["friction_velocity"] = friction_velocity
 

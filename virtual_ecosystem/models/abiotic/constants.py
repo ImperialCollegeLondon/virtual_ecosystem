@@ -131,6 +131,9 @@ class AbioticConsts(ConstantsDataclass):
     min_windspeed_below_canopy: float = 0.001
     """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
+    min_friction_velocity: float = 0.001
+    """Minimum friction velocity, [m s-1]."""
+
     min_roughness_length: float = 0.05
     """Minimum roughness length, [m].
 

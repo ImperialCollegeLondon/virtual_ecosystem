@@ -309,6 +309,7 @@ def test_calculate_friction_velocity_reference_height(dummy_climate_data):
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
         diabatic_correction_momentum=np.array([0.063098, 0.0149, 0.004855]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
+        min_friction_velocity=0.001,
     )
     exp_result = np.array([0.051108, 0.171817, 0.155922])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
