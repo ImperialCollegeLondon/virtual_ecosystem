@@ -134,7 +134,7 @@ class AbioticConsts(ConstantsDataclass):
     min_friction_velocity: float = 0.001
     """Minimum friction velocity, [m s-1]."""
 
-    min_roughness_length: float = 0.05
+    min_roughness_length: float = 0.01
     """Minimum roughness length, [m].
 
     The minimum roughness length represents the lowest height at which the surface

@@ -14,11 +14,11 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0, 3, 7]),
+        leaf_area_index=np.array([0.0, np.nan, 7.0]),
         zero_plane_scaling_parameter=7.5,
     )
 
-    np.testing.assert_allclose(result, np.array([0.0, 23.730524, 25.86256]))
+    np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256]))
 
 
 def test_calculate_roughness_length_momentum(dummy_climate_data):
@@ -30,18 +30,18 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
 
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0, 3, 7]),
-        zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
+        leaf_area_index=np.array([np.nan, 0.0, 7]),
+        zero_plane_displacement=np.array([0.0, 0.0, 27.58673]),
         substrate_surface_drag_coefficient=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
         max_ratio_wind_to_friction_velocity=0.3,
-        min_roughness_length=0.05,
+        min_roughness_length=0.01,
         von_karman_constant=CoreConsts.von_karmans_constant,
     )
 
     np.testing.assert_allclose(
-        result, np.array([0.01666, 1.018727, 0.524479]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.01666, 0.524479]), rtol=1e-3, atol=1e-3
     )
 
 
