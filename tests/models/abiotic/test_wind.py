@@ -262,16 +262,7 @@ def test_wind_log_profile(dummy_climate_data):
         .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
         .dropna(dim="layers")
     )
-    diab_correction = np.array(
-        [
-            [0.105164, 0.024834, 0.008092],
-            [0.098124, 0.017318, 0.004415],
-            [0.063971, -0.019159, -0.013736],
-            [0.031387, -0.054092, -0.031592],
-            [0.004686, -0.083544, -0.047034],
-            [0.000318, -0.090006, -0.050539],
-        ]
-    )
+    diab_correction = np.array([0.105164, 0.024834, 0.008092])
     result = wind_log_profile(
         height=layer_heights.to_numpy(),
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
@@ -282,11 +273,11 @@ def test_wind_log_profile(dummy_climate_data):
     exp_result = np.array(
         [
             [7.645442, 1.551228, 1.534468],
-            [7.573863, 1.188368, 0.927158],
-            [7.134245, np.nan, np.nan],
-            [6.408514, np.nan, np.nan],
-            [4.484693, np.nan, np.nan],
-            [1.772275, np.nan, np.nan],
+            [7.580903, 1.195884, 0.930835],
+            [7.175438, np.nan, np.nan],
+            [6.482291, np.nan, np.nan],
+            [4.585171, np.nan, np.nan],
+            [1.877121, np.nan, np.nan],
         ]
     )
 
@@ -341,21 +332,25 @@ def test_calculate_wind_canopy(dummy_climate_data):
 
     attenuation_coeff = np.array(
         [
-            [0.133579, 0.129392, 0.196066],
-            [0.142291, 0.137831, 0.208853],
-            [0.211141, 0.204523, 0.309744],
-            [0.211141, 0.204523, 0.309744],
-            [0.211141, 0.204523, 0.309744],
+            [0.12523, 0.121305, 0.183812],
+            [0.133398, 0.129216, np.nan],
+            [0.197945, np.nan, np.nan],
+            [0.197945, 0.129216, 0.183812],
+            [0.197945, 0.129216, 0.183812],
         ]
     )
-    layer_heights = (
-        dummy_climate_data["layer_heights"]
-        .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
-        .dropna(dim="layers")
+    layer_heights = np.array(
+        [
+            [30.0, 30.0, 30.0],
+            [20.0, 20.0, np.nan],
+            [10.0, np.nan, np.nan],
+            [1.5, 1.5, 1.5],
+            [0.1, 0.1, 0.1],
+        ]
     )
     result = calculate_wind_canopy(
         top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233]),
-        wind_layer_heights=layer_heights[1:6].to_numpy(),
+        wind_layer_heights=layer_heights,
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
         attenuation_coefficient=attenuation_coeff,
     )
@@ -363,10 +358,10 @@ def test_calculate_wind_canopy(dummy_climate_data):
     exp_result = np.array(
         [
             [0.5, 5.590124, 10.750233],
-            [0.476838, 5.339104, 10.027284],
-            [0.434349, 4.877598, 8.744557],
-            [0.409126, 4.602983, 8.009839],
-            [0.405115, 4.559259, 7.894892],
+            [0.478254, 5.354458, np.nan],
+            [0.438187, np.nan, np.nan],
+            [0.414288, 4.944354, 9.027776],
+            [0.410478, 4.914629, 8.950668],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)

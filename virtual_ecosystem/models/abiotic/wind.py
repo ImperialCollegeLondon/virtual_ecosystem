@@ -425,6 +425,9 @@ def wind_log_profile(
 ) -> NDArray[np.float32]:
     """Calculate logarithmic wind profile.
 
+    Note that this function can return NaN, this is not corrected here because it might
+    cause division by zero later on in the work flow.
+
     Args:
         height: Array of heights for which wind speed is calculated, [m]
         zeroplane_displacement: Height above ground within the canopy where the wind
@@ -441,7 +444,7 @@ def wind_log_profile(
         + diabatic_correction_momentum,
     )
 
-    return np.squeeze(wind_profile)
+    return np.where(wind_profile == 0.0, np.nan, wind_profile).squeeze()
 
 
 def calculate_friction_velocity_reference_height(
