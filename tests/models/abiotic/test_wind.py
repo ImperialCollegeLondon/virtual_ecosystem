@@ -321,7 +321,7 @@ def test_calculate_wind_above_canopy(dummy_climate_data):
 
     result = calculate_wind_above_canopy(
         friction_velocity=np.array([0.0, 0.819397, 1.423534]),
-        wind_height_above=(dummy_climate_data["layer_heights"][0]).to_numpy(),
+        wind_height_above=(dummy_climate_data["layer_heights"][0:2]).to_numpy(),
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
         diabatic_correction_momentum=np.array([0.003, 0.026, 0.013]),
@@ -329,7 +329,7 @@ def test_calculate_wind_above_canopy(dummy_climate_data):
         min_wind_speed_above_canopy=0.55,
     )
 
-    exp_result = np.array([0.55, 3.180068, 5.478385])
+    exp_result = np.array([[0.55, 3.180068, 5.478385], [0.55, 2.452148, 3.330154]])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
@@ -340,7 +340,6 @@ def test_calculate_wind_canopy(dummy_climate_data):
 
     attenuation_coeff = np.array(
         [
-            [0, 0, 0],
             [0.133579, 0.129392, 0.196066],
             [0.142291, 0.137831, 0.208853],
             [0.211141, 0.204523, 0.309744],
@@ -355,14 +354,13 @@ def test_calculate_wind_canopy(dummy_climate_data):
     )
     result = calculate_wind_canopy(
         top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233]),
-        wind_layer_heights=layer_heights.to_numpy(),
+        wind_layer_heights=layer_heights[1:6].to_numpy(),
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
         attenuation_coefficient=attenuation_coeff,
     )
 
     exp_result = np.array(
         [
-            [0.5, 5.590124, 10.750233],
             [0.5, 5.590124, 10.750233],
             [0.476838, 5.339104, 10.027284],
             [0.434349, 4.877598, 8.744557],
@@ -388,7 +386,7 @@ def test_calculate_wind_profile(dummy_climate_data):
 
     wind_update = calculate_wind_profile(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        wind_height_above=(dummy_climate_data["layer_heights"][0]).to_numpy(),
+        wind_height_above=(dummy_climate_data["layer_heights"][0:2]).to_numpy(),
         wind_layer_heights=input_dict["layer_heights"].to_numpy(),
         leaf_area_index=input_dict["leaf_area_index"].to_numpy(),
         air_temperature=input_dict["air_temperature"].to_numpy(),
@@ -404,11 +402,11 @@ def test_calculate_wind_profile(dummy_climate_data):
     wind_speed_exp = np.array(
         [
             [0.1, 3.637217, 7.271537],
-            [0.1, 3.637217, 7.271537],
-            [0.09551, 3.473897, 6.945028],
-            [0.087254, 3.173628, 6.344729],
-            [0.082342, 2.994956, 5.987527],
-            [0.08156, 2.966508, 5.930654],
+            [0.1, 3.079637, 6.155193],
+            [0.09551, 2.941354, 5.87881],
+            [0.087254, 2.687116, 5.37067],
+            [0.082342, 2.535834, 5.068307],
+            [0.08156, 2.511747, 5.020165],
         ]
     )
 

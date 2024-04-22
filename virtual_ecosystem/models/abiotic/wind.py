@@ -502,7 +502,10 @@ def calculate_wind_above_canopy(
 
     Args:
         friction_velocity: friction velocity, [m s-1]
-        wind_height_above: Height above canopy for which wind speed is required, [m]
+        wind_height_above: Heights above canopy for which wind speed is required, [m].
+            For use in the calculation of the full wind profiles, this typically
+            includes two values: the height of the first layer ('above') and the first
+            canopy layer which corresponds to the canopy height.
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
@@ -544,7 +547,7 @@ def calculate_wind_canopy(
 
     Args:
         top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m s-1]
-        wind_layer_heights: Heights of canopy layer nodes, [m]
+        wind_layer_heights: Heights of canopy layers, [m]
         canopy_height: Height to top of canopy layer, [m]
         attenuation_coefficient: Mean attenuation coefficient based on the profile
             calculated by
@@ -553,7 +556,7 @@ def calculate_wind_canopy(
             vegetation, [m/s]. This value is set to avoid dividion by zero.
 
     Returns:
-        wind speed at height of canopy node, [m s-1]
+        wind speed at height of canopy layers, [m s-1]
     """
 
     zero_displacement = top_of_canopy_wind_speed * np.exp(
@@ -603,8 +606,11 @@ def calculate_wind_profile(
 
     Args:
         canopy_height: Canopy height, [m]
-        wind_height_above: Height above canopy for which wind speed is required, [m]
-        wind_layer_heights: Heights of canopy layer nodes, [m]
+        wind_height_above: Heights above canopy for which wind speed is required, [m].
+            For use in the calculation of the full wind profiles, this typically
+            includes two values: the height of the first layer ('above') and the first
+            canopy layer which corresponds to the canopy height.
+        wind_layer_heights: Layer heights above ground, [m]
         leaf_area_index: Leaf area index, [m m-1]
         air_temperature: Air temperature, [C]
         atmospheric_pressure: Atmospheric pressure, [kPa]
@@ -621,8 +627,6 @@ def calculate_wind_profile(
     """
 
     output = {}
-
-    # TODO adjust wind to 2m above canopy?
 
     # Calculate molar density of air, [mol m-3]
     molar_density_air = calculate_molar_density_air(
@@ -679,7 +683,7 @@ def calculate_wind_profile(
         von_karmans_constant=core_constants.von_karmans_constant,
     )
 
-    # TODO select above layer (psi) and add function for factor below canopy (phi)
+    # Calculate diabatic correction factor above canopy (Psi)
     diabatic_correction_above = calculate_diabatic_correction_above(
         molar_density_air=molar_density_air[0],
         specific_heat_air=specific_heat_air[0],
@@ -696,6 +700,7 @@ def calculate_wind_profile(
     output["diabatic_correction_heat_above"] = diabatic_correction_above["psi_h"]
     output["diabatic_correction_momentum_above"] = diabatic_correction_above["psi_m"]
 
+    # Update friction velocity with diabatic correction factor
     friction_velocity = calculate_friction_velocity_reference_height(
         wind_speed_ref=wind_speed_ref,
         reference_height=wind_reference_height,
@@ -735,6 +740,7 @@ def calculate_wind_profile(
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
 
+    # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
     wind_speed_above_canopy = calculate_wind_above_canopy(
         friction_velocity=friction_velocity,
         wind_height_above=wind_height_above,
@@ -745,12 +751,16 @@ def calculate_wind_profile(
         min_wind_speed_above_canopy=abiotic_constants.min_wind_speed_above_canopy,
     )
 
+    # Calculate wind speed in and below canopy, [m s-1]
     wind_speed_canopy = calculate_wind_canopy(
-        top_of_canopy_wind_speed=wind_speed_above_canopy,
+        top_of_canopy_wind_speed=wind_speed_above_canopy[1],
         wind_layer_heights=wind_layer_heights,
         canopy_height=canopy_height,
         attenuation_coefficient=attennuation_coefficient,
     )
+
+    # Combine wind speed above and in canopy to full profile
+    wind_speed_canopy[0:2] = wind_speed_above_canopy
     output["wind_speed"] = wind_speed_canopy
 
     # Calculate diabatic correction factors for heat and momentum below canopy
