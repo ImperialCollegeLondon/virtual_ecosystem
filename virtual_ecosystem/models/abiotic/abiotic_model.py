@@ -268,7 +268,7 @@ class AbioticModel(
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["layer_heights"][1].to_numpy(),
-            wind_height_above=self.data["layer_heights"][0].to_numpy(),
+            wind_height_above=self.data["layer_heights"][0:2].to_numpy(),
             wind_layer_heights=wind_update_inputs["layer_heights"].to_numpy(),
             leaf_area_index=wind_update_inputs["leaf_area_index"].to_numpy(),
             air_temperature=wind_update_inputs["air_temperature"].to_numpy(),
