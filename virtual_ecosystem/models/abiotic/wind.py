@@ -15,6 +15,7 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     calculate_molar_density_air,
     calculate_specific_heat_air,
+    find_last_valid_row,
 )
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
@@ -336,37 +337,6 @@ def generate_relative_turbulence_intensity(
         * (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
         * layer_heights
     )
-
-
-def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
-    """Find last valid value in array for each column.
-
-    This function looks for the last valid value in each column of a 2-dimensional
-    array. If the previous value is nan, it moved up the array. If all values are nan,
-    the value is set to nan, too.
-
-    Args:
-        array: Two-dimesional array for which last valid values should be found
-
-    Returns:
-        Array that contains last valid values
-    """
-    # Initialize an empty list to store the last valid value from each column
-    new_row = []
-
-    # Loop through each column
-    for column in range(array.shape[1]):
-        # Scan from the last row to the first in the current column
-        for i in range(array.shape[0] - 1, -1, -1):
-            if not np.isnan(array[i, column]):
-                # Append the last valid value found in the column to the new_row list
-                new_row.append(array[i, column])
-                break
-        else:
-            # If no valid value is found in the column, append NaN
-            new_row.append(np.nan)
-
-    return np.array(new_row)
 
 
 def calculate_wind_attenuation_coefficient(
