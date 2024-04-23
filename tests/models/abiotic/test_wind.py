@@ -338,42 +338,58 @@ def test_calculate_wind_canopy(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_profile(dummy_climate_data):
+def test_calculate_wind_profile():
     """Test full update of wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
-    input_dict = {}
-    for var in ["layer_heights", "air_temperature", "leaf_area_index"]:
-        input_dict[var] = (
-            dummy_climate_data.data[var]
-            .where(dummy_climate_data.data[var].layer_roles != "soil")
-            .dropna(dim="layers")
-        )
+    leaf_area_index = np.array(
+        [[1.0, 1.0, 1.0], [1.0, 1.0, np.nan], [1.0, np.nan, np.nan]]
+    )
+    layer_heights = np.array(
+        [
+            [32.0, 32.0, 32.0],
+            [30.0, 30.0, 30.0],
+            [20.0, 20.0, np.nan],
+            [10.0, np.nan, np.nan],
+            [1.5, 1.5, 1.5],
+            [0.1, 0.1, 0.1],
+        ]
+    )
+    air_temperature = np.array(
+        [
+            [30.0, 30.0, 30.0],
+            [29.844995, 29.844995, 29.844995],
+            [28.87117, 28.87117, np.nan],
+            [27.206405, np.nan, np.nan],
+            [22.65, 22.65, 22.65],
+            [16.145945, 16.145945, 16.145945],
+        ]
+    )
 
     wind_update = calculate_wind_profile(
-        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        wind_height_above=(dummy_climate_data["layer_heights"][0:2]).to_numpy(),
-        wind_layer_heights=input_dict["layer_heights"].to_numpy(),
-        leaf_area_index=input_dict["leaf_area_index"].to_numpy(),
-        air_temperature=input_dict["air_temperature"].to_numpy(),
+        canopy_height=layer_heights[1],
+        wind_height_above=layer_heights[0:2],
+        wind_layer_heights=layer_heights,
+        leaf_area_index=leaf_area_index,
+        air_temperature=air_temperature,
         atmospheric_pressure=np.array([96.0, 96.0, 96.0]),
         sensible_heat_flux_topofcanopy=np.array([100.0, 50.0, 10.0]),
         wind_speed_ref=np.array([0.1, 5.0, 10.0]),
-        wind_reference_height=(dummy_climate_data["layer_heights"][1] + 10).to_numpy(),
+        wind_reference_height=(layer_heights[1] + 10),
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
     )
 
-    friction_velocity_exp = np.array([0.012793, 0.805523, 1.612758])
+    friction_velocity_exp = np.array([0.012793, 0.84372, 1.811774])
     wind_speed_exp = np.array(
         [
-            [0.1, 3.637217, 7.271537],
-            [0.1, 3.079637, 6.155193],
-            [0.09551, 2.941354, 5.87881],
-            [0.087254, 2.687116, 5.37067],
-            [0.082342, 2.535834, 5.068307],
-            [0.08156, 2.511747, 5.020165],
+            [0.1, 3.719967, 7.722811],
+            [0.1, 3.226327, 6.915169],
+            [0.09551, 3.106107, np.nan],
+            [0.087254, np.nan, np.nan],
+            [0.082342, 2.895383, 6.414144],
+            [0.08156, 2.880031, 6.39049],
         ]
     )
 
