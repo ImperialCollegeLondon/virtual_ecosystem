@@ -263,3 +263,12 @@ class AbioticConsts(ConstantsDataclass):
         default_factory=lambda: [4.87, 67.8, 5.42]
     )
     """Factors in calculation of logarithmic wind profile above canopy."""
+
+    richardson_bounds: list[float] = field(default_factory=lambda: [0.15, -0.1120323])
+    """Minimum and maximum value for Richardson number."""
+
+    stable_wind_shear_slope: float = 4.7
+    """Wind shear slope under stable conditions after Gourdiaan (1977)."""
+
+    stable_temperature_gradient_intercept: float = 0.74
+    """Temperature gradient intercept under stable conditions after Goudriaan (1977)."""

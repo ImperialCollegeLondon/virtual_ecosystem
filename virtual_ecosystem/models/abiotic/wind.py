@@ -209,23 +209,37 @@ def calculate_diabatic_correction_canopy(
     wind_speed: NDArray[np.float32],
     layer_heights: NDArray[np.float32],
     mean_mixing_length: NDArray[np.float32],
+    stable_temperature_gradient_intercept: float,
+    stable_wind_shear_slope: float,
+    yasuda_stability_parameters: list[float],
+    richardson_bounds: list[float],
     gravity: float,
+    celsius_to_kelvin: float,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate diabatic correction factors for momentum and heat in canopy.
 
     This function calculates the diabatic correction factors for heat and momentum used
     in adjustment of wind profiles and calculation of turbulent conductivity within the
-    canopy. Implementation after :cite:t:`maclean_microclimc_2021`. Note that at the
-    moment, the function returns a mean value for the whole canopy and below.
+    canopy. Implementation after :cite:t:`maclean_microclimc_2021`.
 
-    TODO add parameters to abiotic.constants
+    From :cite:t:`goudriaan_crop_1977` it is assumed that :math:`\Phi_{H}` remains
+    relatively constant within the canopy. Thus, the function returns a mean value for
+    the whole canopy and below.
 
     Args:
         air_temperature: Air temperature, [C]
         wind_speed: Wind speed, [m s-1]
         layer_heights: Layer heights, [m]
         mean_mixing_length: Mean mixing length, [m]
+        stable_temperature_gradient_intercept: Temperature gradient intercept under
+            stable athmospheric conditions after :cite:t:`goudriaan_crop_1977`.
+        stable_wind_shear_slope: Wind shear slope under stable atmospheric conditions
+            after :cite:t:`goudriaan_crop_1977`.
+        richardson_bounds: Minimum and maximum value for Richardson number
+        yasuda_stability_parameters: Parameters to approximate diabatic correction
+            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
         gravity: Newtonian constant of gravitation, [m s-1]
+        celsius_to_kelvin: Factor to convert between Celsius and Kelvin
 
     Returns:
         diabatic correction factor for momentum :math:`\Phi_{M}` and heat
@@ -238,7 +252,7 @@ def calculate_diabatic_correction_canopy(
     temperature_gradient = temperature_differences / height_differences
 
     # Calculate mean temperature in Kelvin
-    mean_temperature_kelvin = np.mean(air_temperature, axis=0) + 273.15
+    mean_temperature_kelvin = np.mean(air_temperature, axis=0) + celsius_to_kelvin
     mean_wind_speed = np.mean(wind_speed, axis=0)
 
     # Calculate Richardson number
@@ -247,24 +261,33 @@ def calculate_diabatic_correction_canopy(
         * temperature_gradient
         * (mean_mixing_length / mean_wind_speed) ** 2
     )
-    richardson_number[richardson_number > 0.15] = 0.15
-    richardson_number[richardson_number <= -0.1120323] = -0.112032
+    richardson_number[richardson_number > richardson_bounds[0]] = richardson_bounds[0]
+    richardson_number[richardson_number <= richardson_bounds[1]] = richardson_bounds[1]
 
     # Calculate stability term
+    stability_factor = (
+        4
+        * stable_wind_shear_slope
+        * (1 - stable_temperature_gradient_intercept)
+        / (stable_temperature_gradient_intercept) ** 2
+    )
     stability_term = (
-        0.74 * (1 + 8.926 * richardson_number) ** 0.5
-        + 2 * 4.7 * richardson_number
-        - 0.74
-    ) / (2 * 4.7 * (1 - 4.7 * richardson_number))
+        stable_temperature_gradient_intercept
+        * (1 + stability_factor * richardson_number) ** 0.5
+        + 2 * stable_wind_shear_slope * richardson_number
+        - stable_temperature_gradient_intercept
+    ) / (
+        2 * stable_wind_shear_slope * (1 - stable_wind_shear_slope * richardson_number)
+    )
     sel = np.where(temperature_gradient <= 0)  # Unstable conditions
     stability_term[sel] = richardson_number[sel]
 
     # Initialize phi_m and phi_h with values for stable conditions
-    phi_m = 1 + (6 * stability_term) / (1 + stability_term)
+    phi_m = 1 + (yasuda_stability_parameters[0] * stability_term) / (1 + stability_term)
     phi_h = phi_m.copy()
 
     # Adjust for unstable conditions
-    phi_m[sel] = 1 / (1 - 16 * stability_term[sel]) ** 0.25
+    phi_m[sel] = 1 / (1 - yasuda_stability_parameters[2] * stability_term[sel]) ** 0.25
     phi_h[sel] = phi_m[sel] ** 2
 
     # Calculate mean values across the vertical axis for phi_m and phi_h
@@ -601,6 +624,8 @@ def calculate_wind_profile(
             the atmosphere, [W m-2],
         wind_speed_ref: Wind speed at reference height, [m s-1]
         wind_reference_height: Reference height for wind measurement, [m]
+        diabatic_correction_parameters: Set of parameters for diabatic correction
+            calculations in canopy
         abiotic_constants: Specific constants for the abiotic model
         core_constants: Universal constants shared across all models
 
@@ -755,7 +780,14 @@ def calculate_wind_profile(
         wind_speed=wind_speed_canopy,
         layer_heights=wind_layer_heights,
         mean_mixing_length=mean_mixing_length,
+        stable_temperature_gradient_intercept=(
+            abiotic_constants.stable_temperature_gradient_intercept
+        ),
+        stable_wind_shear_slope=abiotic_constants.stable_wind_shear_slope,
+        yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
+        richardson_bounds=abiotic_constants.richardson_bounds,
         gravity=core_constants.gravity,
+        celsius_to_kelvin=core_constants.zero_Celsius,
     )
     output["diabatic_correction_heat_canopy"] = diabatic_correction_canopy["phi_h"]
     output["diabatic_correction_momentum_canopy"] = diabatic_correction_canopy["phi_m"]

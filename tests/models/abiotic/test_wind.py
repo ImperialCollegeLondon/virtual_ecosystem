@@ -82,6 +82,8 @@ def test_calculate_diabatic_correction_canopy(dummy_climate_data):
         calculate_diabatic_correction_canopy,
     )
 
+    abiotic_consts = AbioticConsts()
+    core_consts = CoreConsts()
     air_temperature = (
         dummy_climate_data["air_temperature"]
         .where(dummy_climate_data["air_temperature"].layer_roles != "soil")
@@ -102,7 +104,12 @@ def test_calculate_diabatic_correction_canopy(dummy_climate_data):
         wind_speed=wind_speed.to_numpy(),
         layer_heights=layer_heights.to_numpy(),
         mean_mixing_length=dummy_climate_data["mean_mixing_length"].to_numpy(),
-        gravity=CoreConsts.gravity,
+        stable_temperature_gradient_intercept=7.4,
+        stable_wind_shear_slope=4.7,
+        yasuda_stability_parameters=abiotic_consts.yasuda_stability_parameters,
+        richardson_bounds=abiotic_consts.richardson_bounds,
+        gravity=core_consts.gravity,
+        celsius_to_kelvin=core_consts.zero_Celsius,
     )
     exp_result_h = np.array([1.0, 1.0, 1.0])
     exp_result_m = np.array([1.0, 1.0, 1.0])
