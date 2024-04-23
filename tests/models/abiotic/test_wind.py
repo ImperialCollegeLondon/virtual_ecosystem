@@ -306,14 +306,14 @@ def test_calculate_friction_velocity_reference_height(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_above_canopy(dummy_climate_data):
+def test_calculate_wind_above_canopy():
     """Wind speed above canopy."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_above_canopy
 
     result = calculate_wind_above_canopy(
         friction_velocity=np.array([0.0, 0.819397, 1.423534]),
-        wind_height_above=(dummy_climate_data["layer_heights"][0:2]).to_numpy(),
+        wind_height_above=np.array([[2.0, 32.0, 32.0], [np.nan, 30.0, 30.0]]),
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
         diabatic_correction_momentum=np.array([0.003, 0.026, 0.013]),
@@ -321,7 +321,7 @@ def test_calculate_wind_above_canopy(dummy_climate_data):
         min_wind_speed_above_canopy=0.55,
     )
 
-    exp_result = np.array([[0.55, 3.180068, 5.478385], [0.55, 2.452148, 3.330154]])
+    exp_result = np.array([[0.55, 3.180068, 5.478385], [np.nan, 2.452148, 3.330154]])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 

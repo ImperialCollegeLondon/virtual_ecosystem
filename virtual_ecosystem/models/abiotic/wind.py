@@ -3,7 +3,6 @@ Virtual Ecosystem. The wind profile determines the exchange of heat, water, and
 :math:`CO_{2}` between soil and atmosphere below the canopy as well as the exchange with
 the atmosphere above the canopy.
 
-TODO: add sanity checks, errors and logging
 TODO replace leaf area index by plant area index when we have more info about vertical
 distribution of leaf and woody parts
 TODO change temperatures to Kelvin
@@ -528,6 +527,7 @@ def calculate_wind_above_canopy(
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
+        min_wind_speed_above_canopy: Minimum wind speed above canopy, [m s-1]
 
     Returns:
         wind speed at required heights above canopy, [m s-1]
