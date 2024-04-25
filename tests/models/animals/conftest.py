@@ -24,7 +24,7 @@ def plant_data_instance():
 
 
 @pytest.fixture
-def plant_climate_data_instance(fixture_core_components):
+def animal_data_for_model_instance(fixture_core_components):
     """Fixture returning a combination of plant and air temperature data."""
 
     from virtual_ecosystem.core.data import Data
@@ -34,46 +34,84 @@ def plant_climate_data_instance(fixture_core_components):
     grid = Grid(
         grid_type="square",
         cell_nx=3,
-        cell_ny=1,
+        cell_ny=3,
     )
     data = Data(grid)
 
-    leaf_mass = np.full((15, 3), fill_value=np.nan)
+    leaf_mass = np.full(
+        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
+        fill_value=np.nan,
+    )
     leaf_mass[1:4, :] = 10000
     data["layer_leaf_mass"] = xarray.DataArray(
         data=leaf_mass, dims=["layers", "cell_id"]
     )
-    data["air_temperature"] = xarray.concat(
-        [
-            DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.844995, 29.844995, 29.844995],
-                    [28.87117, 28.87117, 28.87117],
-                    [27.206405, 27.206405, 27.206405],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [22.65, 22.65, 22.65],
-                    [16.145945, 16.145945, 16.145945],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles[0:15],
-            ),
-            "cell_id": data.grid.cell_id,
-        }
+
+    # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
+    air_temperature_values = np.full(
+        (1, grid.n_cells), 25.0
+    )  # All cells at 25.0 for one time step or layer
+    air_temperature = DataArray(
+        air_temperature_values,
+        dims=[
+            "time_or_layer",
+            "cell_id",
+        ],  # Adjust dimension names as appropriate for your model
+        coords={
+            "time_or_layer": [0],  # Assuming a single time step or layer for simplicity
+            "cell_id": grid.cell_id,
+        },
+    )
+    data["air_temperature"] = air_temperature
+
+    return data
+
+
+@pytest.fixture
+def animal_data_for_community_instance(fixture_core_components):
+    """Fixture returning a combination of plant and air temperature data."""
+
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+
+    # Setup the data object with four cells.
+    grid = Grid(
+        grid_type="square",
+        cell_nx=3,
+        cell_ny=3,
+    )
+    data = Data(grid)
+
+    leaf_mass = np.full(
+        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
+        fill_value=np.nan,
+    )
+    leaf_mass[1:4, :] = 10000
+    data["layer_leaf_mass"] = xarray.DataArray(
+        data=leaf_mass, dims=["layers", "cell_id"]
+    )
+
+    # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
+    air_temperature_values = np.full(
+        (1, grid.n_cells), 25.0
+    )  # All cells at 25.0 for one time step or layer
+    air_temperature = DataArray(
+        air_temperature_values,
+        dims=[
+            "time_or_layer",
+            "cell_id",
+        ],  # Adjust dimension names as appropriate for your model
+        coords={
+            "time_or_layer": [0],  # Assuming a single time step or layer for simplicity
+            "cell_id": grid.cell_id,
+        },
+    )
+    data["air_temperature"] = air_temperature
+
+    # Initialize total_animal_respiration with zeros for each cell
+    total_animal_respiration = np.zeros(len(grid.cell_id))
+    data["total_animal_respiration"] = DataArray(
+        total_animal_respiration, dims=["cell_id"], coords={"cell_id": grid.cell_id}
     )
 
     return data
@@ -123,7 +161,7 @@ def animal_model_instance(
 def animal_community_instance(
     functional_group_list_instance,
     animal_model_instance,
-    plant_data_instance,
+    animal_data_for_community_instance,
     constants_instance,
 ):
     """Fixture for an animal community used in tests."""
@@ -131,7 +169,7 @@ def animal_community_instance(
 
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
-        data=plant_data_instance,
+        data=animal_data_for_community_instance,
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
         get_destination=animal_model_instance.get_community_by_key,
