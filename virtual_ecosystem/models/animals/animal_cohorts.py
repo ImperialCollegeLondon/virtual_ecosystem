@@ -95,7 +95,7 @@ class AnimalCohort:
         TODO: Implement distinction between field and basal rates.
         TODO: Implement proportion of day active.
         TODO: clean up units
-        TODO: implement distinction between metabolic waste flow to atmosphere vs urea
+        TODO: Distinguish between uric and respiratory metabolic wastes
 
         Args:
             temperature: Current air temperature (K)

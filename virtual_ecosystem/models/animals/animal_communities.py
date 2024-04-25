@@ -284,8 +284,16 @@ class AnimalCommunity:
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
+        total_metabolic_waste = 0.0
         for cohort in self.all_animal_cohorts:
-            cohort.metabolize(temperature, dt)
+            metabolic_waste_mass = cohort.metabolize(temperature, dt)
+            total_metabolic_waste += metabolic_waste_mass
+
+        # Update the total_animal_respiration for this community using community_key.
+
+        self.data["total_animal_respiration"].loc[
+            {"cell_id": self.community_key}
+        ] += total_metabolic_waste
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.
