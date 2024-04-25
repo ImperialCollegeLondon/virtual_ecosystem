@@ -1,6 +1,7 @@
 """Test module for abiotic.wind.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -75,46 +76,50 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
     np.testing.assert_allclose(result["psi_m"], exp_result_m, rtol=1e-4, atol=1e-4)
 
 
-def test_calculate_diabatic_correction_canopy(dummy_climate_data):
-    """Test calculate diabatic correction factors for canopy."""
+@pytest.mark.parametrize(
+    "air_temperature, wind_speed, expected_phi_m, expected_phi_h",
+    [
+        # Stable conditions (temperature increasing with height)
+        (
+            np.array([[15.0, 16.0], [14.5, 15.5]]),
+            np.array([[2.1, 2.1], [2.0, 2.0]]),
+            np.array([1.000389, 1.000388]),
+            np.array([1.000389, 1.000388]),
+        ),
+        # Unstable conditions (temperature decreasing with height)
+        (
+            np.array([[15.0, 16.0], [16.0, 17.0]]),
+            np.array([[2.0, 2.0], [3.0, 3.0]]),
+            np.array([0.999685, 0.999686]),
+            np.array([0.999685, 0.999686]),
+        ),
+    ],
+)
+def test_canopy_correction_conditions(
+    air_temperature, wind_speed, expected_phi_m, expected_phi_h
+):
+    """Test diabatic correction canopy for stable and unstable conditions."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_diabatic_correction_canopy,
     )
 
-    abiotic_consts = AbioticConsts()
-    core_consts = CoreConsts()
-    air_temperature = (
-        dummy_climate_data["air_temperature"]
-        .where(dummy_climate_data["air_temperature"].layer_roles != "soil")
-        .dropna(dim="layers")
+    results = calculate_diabatic_correction_canopy(
+        air_temperature,
+        wind_speed,
+        layer_heights=np.array([[20, 20], [10, 10]]),
+        mean_mixing_length=np.array([[1.6, 1.6], [1.5, 1.5]]),
+        stable_temperature_gradient_intercept=0.5,
+        stable_wind_shear_slope=0.1,
+        yasuda_stability_parameters=[0.2, 0.3, 0.4],
+        richardson_bounds=[0.1, -0.1],
+        gravity=9.81,
+        celsius_to_kelvin=273.15,
     )
-    layer_heights = (
-        dummy_climate_data["layer_heights"]
-        .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
-        .dropna(dim="layers")
-    )
-    wind_speed = (
-        dummy_climate_data["wind_speed"]
-        .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
-        .dropna(dim="layers")
-    )
-    result = calculate_diabatic_correction_canopy(
-        air_temperature=air_temperature.to_numpy(),
-        wind_speed=wind_speed.to_numpy(),
-        layer_heights=layer_heights.to_numpy(),
-        mean_mixing_length=dummy_climate_data["mean_mixing_length"].to_numpy(),
-        stable_temperature_gradient_intercept=7.4,
-        stable_wind_shear_slope=4.7,
-        yasuda_stability_parameters=abiotic_consts.yasuda_stability_parameters,
-        richardson_bounds=abiotic_consts.richardson_bounds,
-        gravity=core_consts.gravity,
-        celsius_to_kelvin=core_consts.zero_Celsius,
-    )
-    exp_result_h = np.array([1.0, 1.0, 1.0])
-    exp_result_m = np.array([1.0, 1.0, 1.0])
-    np.testing.assert_allclose(result["phi_h"], exp_result_h, rtol=1e-4, atol=1e-4)
-    np.testing.assert_allclose(result["phi_m"], exp_result_m, rtol=1e-4, atol=1e-4)
+
+    # Assert results
+    np.testing.assert_allclose(results["phi_m"], expected_phi_m, rtol=1e-4, atol=1e-4)
+    np.testing.assert_allclose(results["phi_h"], expected_phi_h, rtol=1e-4, atol=1e-4)
 
 
 def test_calculate_mean_mixing_length(dummy_climate_data):

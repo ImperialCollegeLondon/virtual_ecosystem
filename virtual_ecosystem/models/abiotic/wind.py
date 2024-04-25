@@ -220,11 +220,11 @@ def calculate_diabatic_correction_canopy(
 
     This function calculates the diabatic correction factors for heat and momentum used
     in adjustment of wind profiles and calculation of turbulent conductivity within the
-    canopy. Implementation after :cite:t:`maclean_microclimc_2021`.
-
-    From :cite:t:`goudriaan_crop_1977` it is assumed that :math:`\Phi_{H}` remains
+    canopy. Momentum and heat correction factors should be greater than or equal to 1
+    under stable conditions and smaller than 1 under unstable conditions. From
+    :cite:t:`goudriaan_crop_1977` it is assumed that :math:`\Phi_{H}` remains
     relatively constant within the canopy. Thus, the function returns a mean value for
-    the whole canopy and below.
+    the whole canopy and below. Implementation after :cite:t:`maclean_microclimc_2021`.
 
     Args:
         air_temperature: Air temperature, [C]
