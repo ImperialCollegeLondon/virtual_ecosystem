@@ -38,7 +38,10 @@ def animal_data_for_model_instance(fixture_core_components):
     )
     data = Data(grid)
 
-    leaf_mass = np.full((15, 9), fill_value=np.nan)
+    leaf_mass = np.full(
+        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
+        fill_value=np.nan,
+    )
     leaf_mass[1:4, :] = 10000
     data["layer_leaf_mass"] = xarray.DataArray(
         data=leaf_mass, dims=["layers", "cell_id"]
@@ -46,7 +49,7 @@ def animal_data_for_model_instance(fixture_core_components):
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
-        (1, len(grid.cell_id)), 25.0
+        (1, grid.n_cells), 25.0
     )  # All cells at 25.0 for one time step or layer
     air_temperature = DataArray(
         air_temperature_values,
@@ -79,7 +82,10 @@ def animal_data_for_community_instance(fixture_core_components):
     )
     data = Data(grid)
 
-    leaf_mass = np.full((15, 9), fill_value=np.nan)
+    leaf_mass = np.full(
+        (fixture_core_components.layer_structure.n_layers, grid.n_cells),
+        fill_value=np.nan,
+    )
     leaf_mass[1:4, :] = 10000
     data["layer_leaf_mass"] = xarray.DataArray(
         data=leaf_mass, dims=["layers", "cell_id"]
@@ -87,7 +93,7 @@ def animal_data_for_community_instance(fixture_core_components):
 
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
-        (1, len(grid.cell_id)), 25.0
+        (1, grid.n_cells), 25.0
     )  # All cells at 25.0 for one time step or layer
     air_temperature = DataArray(
         air_temperature_values,
