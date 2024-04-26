@@ -7,7 +7,7 @@ import pytest
 def animal_community_destination_instance(
     functional_group_list_instance,
     animal_model_instance,
-    plant_data_instance,
+    animal_data_for_community_instance,
     constants_instance,
 ):
     """Fixture for an animal community used in tests."""
@@ -15,7 +15,7 @@ def animal_community_destination_instance(
 
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
-        data=plant_data_instance,
+        data=animal_data_for_community_instance,
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
         get_destination=animal_model_instance.get_community_by_key,
