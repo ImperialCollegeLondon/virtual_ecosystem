@@ -462,7 +462,8 @@ def juvenile_dispersal_speed(
     Madingley
 
     Args:
-        current_mass:
+        current_mass: The mass of an individual of the cohort during the current time
+            step [kg].
         V_disp: Diffusive dispersal speed on an individual with reference body-mass.
         M_disp_ref: A reference body-mass.
         o_disp: The power-law exponent for the mass-dispersal speed scaling
