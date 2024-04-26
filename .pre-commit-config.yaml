@@ -22,11 +22,11 @@ repos:
     rev: "v1.9.0"
     hooks:
       - id: mypy
-        additional_dependencies: [types-jsonschema, xarray]
+        additional_dependencies: [types-jsonschema, xarray, types-tabulate]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.39.0
     hooks:
-    - id: markdownlint
+      - id: markdownlint
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.15.2
     hooks:

@@ -2,7 +2,6 @@
 
 import sys
 
-import pandas as pd  # type: ignore
 import pytest
 
 if sys.version_info[:2] >= (3, 11):
@@ -121,7 +120,7 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
         variable_type="float",
         axis=("x", "y", "z"),
     )
-    path = tmpdir / "variables.csv"
+    path = tmpdir / "variables.rst"
 
     variables.output_known_variables(path)
 
@@ -134,9 +133,8 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     variables._collect_required_update_vars.assert_called_once_with([])
     assert path.exists()
 
-    data = pd.read_csv(path)
-    assert len(data) == 1
-    assert data["name"].iloc[0] == "test_var"
+    with open(path) as f:
+        assert "test_var" in f.read()
 
 
 def test_collect_initialise_by_vars(known_variables, run_variables):
@@ -371,3 +369,50 @@ def test_to_camel_case():
     assert to_camel_case("abiotic") == "Abiotic"
     assert to_camel_case("abiotic_simple") == "AbioticSimple"
     assert to_camel_case("abiotic_super_simple") == "AbioticSuperSimple"
+
+
+def test_format_variables_list():
+    """Test the _format_varriables_list function."""
+    from virtual_ecosystem.core.variables import _format_varriables_list
+
+    vars = {
+        "var1": {
+            "name": "Variable 1",
+            "description": "Description 1",
+            "unit": "m",
+            "variable_type": "float",
+            "axis": ("x", "y", "z"),
+        },
+        "var2": {
+            "name": "Variable 2",
+            "description": "Description 2",
+            "unit": "s",
+            "variable_type": "int",
+            "axis": ("x", "y"),
+        },
+    }
+
+    expected_output = """1- Variable 1
+=============
+
+=============  ===============
+name           Variable 1
+description    Description 1
+unit           m
+variable_type  float
+axis           ('x', 'y', 'z')
+=============  ===============
+
+2- Variable 2
+=============
+
+=============  =============
+name           Variable 2
+description    Description 2
+unit           s
+variable_type  int
+axis           ('x', 'y')
+=============  =============
+"""
+
+    assert _format_varriables_list(vars) == expected_output

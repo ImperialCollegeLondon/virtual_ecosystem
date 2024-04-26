@@ -43,7 +43,7 @@ version = ve.__version__
 release = version
 
 # Update the variables file
-varfile = Path(__file__).parent / "variables.csv"
+varfile = Path(__file__).parent / "variables.rst"
 variables.output_known_variables(varfile)
 
 

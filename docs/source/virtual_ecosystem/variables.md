@@ -11,11 +11,5 @@ by one or another of the existing models. For instructions on how to add new var
 visit the [API documentaton](api/core/variables.md) section.
 
 ```{eval-rst}
-.. csv-table:: Variables
-   :file: ../variables.csv
-   :header-rows: 1
-```
-
-```{eval-rst}
 .. include:: ../variables.rst
 ```

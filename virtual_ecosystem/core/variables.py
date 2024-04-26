@@ -36,8 +36,8 @@ from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
 
-import pandas as pd  # type: ignore
 from jsonschema import FormatChecker
+from tabulate import tabulate
 
 import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
@@ -183,30 +183,30 @@ def output_known_variables(output_file: Path) -> None:
         var.name: asdict(var)
         for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
     }
-    pd.DataFrame.from_dict(vars, orient="index").set_index("name", drop=True).to_csv(
-        output_file
-    )
+
+    Path(output_file).with_suffix(".rst").write_text(_format_varriables_list(vars))
+
+
+def _format_varriables_list(vars: dict[str, dict]) -> str:
+    """Format the variables list for the RST output.
+
+    Args:
+        vars: The variables to format.
+
+    Returns:
+        The flist of variables and atrributes formated as a sequence of tables
+        in RST format.
+    """
     out = []
     for i, v in enumerate(vars.values()):
         title = f"{i+1}- {v['name']}"
         out.append(title)
         out.append(f"{'=' * len(title)}")
         out.append("")
-
-        data = list(zip(v.keys(), [str(v) for v in v.values()]))
-        keywidth = max(len(key) for key in v.keys())
-        valwidth = max(len(str(value)) for value in v.values())
-        colsizes = (keywidth, valwidth)
-        formatter = " ".join("{:<%d}" % c for c in colsizes)
-        rowsformatted = [formatter.format(*row) for row in data]
-        header = formatter.format(*["=" * c for c in colsizes])
-
-        out.append(header)
-        out.extend(rowsformatted)
-        out.append(header)
+        out.append(tabulate(list(zip(v.keys(), v.values())), tablefmt="rst"))
         out.append("")
 
-    Path(output_file).with_suffix(".rst").write_text("\n".join(out))
+    return "\n".join(out)
 
 
 def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> None:
