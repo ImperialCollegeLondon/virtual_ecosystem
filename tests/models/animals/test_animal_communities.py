@@ -167,7 +167,6 @@ class TestAnimalCommunity:
     ):
         """Test migration of cohorts for both starving and juvenile conditions."""
 
-        # Set up the cohort's properties based on the parameters
         cohort = animal_cohort_instance
         cohort.age = age
         cohort.mass_current = cohort.functional_group.adult_mass * mass_ratio
