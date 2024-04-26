@@ -609,12 +609,6 @@ class AnimalCohort:
             # Update the predator's mass with the total gained mass
             self.eat(consumed_mass)
 
-        else:
-            # No appropriate food sources for the diet type
-            raise ValueError(
-                f"No appropriate foods available for {self.functional_group.diet} diet."
-            )
-
     def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
 

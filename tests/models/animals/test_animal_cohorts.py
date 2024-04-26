@@ -965,16 +965,6 @@ class TestAnimalCohort:
         )
         mock_eat_predator.assert_called_once_with(200)
 
-        # Test for error on inappropriate food source
-        with pytest.raises(ValueError):
-            herbivore_cohort_instance.forage_cohort(
-                [], [], excrement_pool_instance, carcass_pool_instance
-            )
-        with pytest.raises(ValueError):
-            predator_cohort_instance.forage_cohort(
-                [], [], excrement_pool_instance, carcass_pool_instance
-            )
-
     @pytest.mark.parametrize(
         "mass_current, V_disp, M_disp_ref, o_disp, random_value, expected_migration",
         [
