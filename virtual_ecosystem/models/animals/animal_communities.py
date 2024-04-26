@@ -132,7 +132,13 @@ class AnimalCommunity:
         destination.animal_cohorts[migrant.name].append(migrant)
 
     def migrate_community(self) -> None:
-        """This handles migrating all cohorts in a community."""
+        """This handles migrating all cohorts in a community.
+
+        This migration method initiates migration for two reasons:
+        1) The cohort is starving and needs to move for a chance at resource access
+        2) An initial migration event immediately after birth.
+
+        """
         for cohort in self.all_animal_cohorts:
             if cohort.is_below_mass_threshold(self.constants.dispersal_mass_threshold):
                 # Random walk destination from the neighbouring keys
@@ -140,7 +146,7 @@ class AnimalCommunity:
                 destination = self.get_destination(destination_key)
                 self.migrate(cohort, destination)
 
-            if cohort.age == 0.0 and cohort.migrate_juvenile_probability():
+            elif cohort.age == 0.0 and cohort.migrate_juvenile_probability():
                 destination_key = choice(self.neighbouring_keys)
                 destination = self.get_destination(destination_key)
                 self.migrate(cohort, destination)
