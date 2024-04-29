@@ -60,8 +60,10 @@ class TestAnimalCommunity:
             "herbivorous_bird",
             "carnivorous_mammal",
             "herbivorous_mammal",
-            "carnivorous_insect",
-            "herbivorous_insect",
+            "carnivorous_insect_iteroparous",
+            "herbivorous_insect_iteroparous",
+            "carnivorous_insect_semelparous",
+            "herbivorous_insect_semelparous",
         ]
 
     def test_all_animal_cohorts_property(
@@ -219,7 +221,13 @@ class TestAnimalCommunity:
         )
         assert animal_cohort_instance.is_alive
         animal_community_instance.remove_dead_cohort(animal_cohort_instance)
+        assert (
+            animal_cohort_instance
+            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
+        )
+        animal_cohort_instance.is_alive = False
         assert not animal_cohort_instance.is_alive
+        animal_community_instance.remove_dead_cohort(animal_cohort_instance)
         assert (
             animal_cohort_instance
             not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
