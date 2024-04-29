@@ -159,12 +159,11 @@ class AnimalCommunity:
 
         """
 
-        if cohort.is_alive:
-            cohort.is_alive = False
+        if not cohort.is_alive:
             # LOGGER.debug("An animal cohort has died")
             self.animal_cohorts[cohort.name].remove(cohort)
-        elif not cohort.is_alive:
-            LOGGER.exception("An animal cohort which is dead cannot die.")
+        elif cohort.is_alive:
+            LOGGER.exception("An animal cohort which is alive cannot be removed.")
 
     def remove_dead_cohort_community(self) -> None:
         """This handles remove_dead_cohort for all cohorts in a community."""
@@ -180,7 +179,6 @@ class AnimalCommunity:
 
         The science here follows Madingley.
 
-        TODO: Implement juvenile dispersal.
         TODO: Check whether madingley discards excess reproductive mass
 
         Args:
@@ -188,9 +186,23 @@ class AnimalCommunity:
             AnimalCohort.
 
         """
-        number_offspring = int(
-            (parent_cohort.reproductive_mass * parent_cohort.individuals)
-            / parent_cohort.functional_group.birth_mass
+        # semelparous organisms use a portion of their non-reproductive mass to make
+        # offspring and then they die
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            non_reproductive_mass_loss = (
+                parent_cohort.mass_current
+                * parent_cohort.functional_group.semelparity_mass_loss
+            )
+            parent_cohort.mass_current -= non_reproductive_mass_loss
+        else:
+            non_reproductive_mass_loss = 0.0
+
+        number_offspring = (
+            int(
+                (parent_cohort.reproductive_mass + non_reproductive_mass_loss)
+                / parent_cohort.functional_group.birth_mass
+            )
+            * parent_cohort.individuals
         )
 
         # reduce reproductive mass by amount used to generate offspring
@@ -206,6 +218,9 @@ class AnimalCommunity:
 
         # add a new cohort of the parental type to the community
         self.animal_cohorts[parent_cohort.name].append(offspring_cohort)
+
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            self.remove_dead_cohort(parent_cohort)
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""

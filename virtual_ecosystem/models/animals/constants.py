@@ -226,6 +226,9 @@ class AnimalConsts(ConstantsDataclass):
     """Ratio of current body-mass to adult body-mass at which starvation-response
     dispersal is attempted."""
 
+    # Madingley reproductive parameters
+    semelparity_mass_loss = 0.2  # Toy value until I find the real one
+
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
