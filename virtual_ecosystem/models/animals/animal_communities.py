@@ -160,7 +160,6 @@ class AnimalCommunity:
         """
 
         if not cohort.is_alive:
-            # LOGGER.debug("An animal cohort has died")
             self.animal_cohorts[cohort.name].remove(cohort)
         elif cohort.is_alive:
             LOGGER.exception("An animal cohort which is alive cannot be removed.")
@@ -191,9 +190,10 @@ class AnimalCommunity:
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             non_reproductive_mass_loss = (
                 parent_cohort.mass_current
-                * parent_cohort.functional_group.semelparity_mass_loss
+                * parent_cohort.constants.semelparity_mass_loss
             )
             parent_cohort.mass_current -= non_reproductive_mass_loss
+            parent_cohort.is_alive = False
         else:
             non_reproductive_mass_loss = 0.0
 
