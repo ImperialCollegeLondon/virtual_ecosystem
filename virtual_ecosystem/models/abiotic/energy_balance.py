@@ -369,7 +369,8 @@ def calculate_leaf_and_air_temperature(
     * air_temperature_ref: Air temperature at reference height 2m above canopy, [C]
     * vapour_pressure_ref: vapour pressure at reference height 2m above canopy, [kPa]
     * soil_temperature: Soil temperature, [C]
-    * soil_moisture: Relative soil moisture, dimensionless
+    * soil_moisture: Soil moisture, [mm]
+    * layer_heights: Layer heights, [mm]
     * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
     * air_temperature: Air temperature, [C]
     * canopy_temperature: Leaf temperature, [C]
@@ -402,7 +403,11 @@ def calculate_leaf_and_air_temperature(
 
     # Select variables for current time step and relevant layers
     topsoil_temperature = data["soil_temperature"][topsoil_layer_index]
-    topsoil_moisture = data["soil_moisture"][topsoil_layer_index]
+    topsoil_moisture = (
+        data["soil_moisture"][topsoil_layer_index]
+        / -data["layer_heights"][topsoil_layer_index]
+        / 100
+    )
     air_temperature_ref = data["air_temperature_ref"].isel(time_index=time_index)
     vapour_pressure_ref = data["vapour_pressure_ref"].isel(time_index=time_index)
     atmospheric_pressure_ref = data["atmospheric_pressure_ref"].isel(

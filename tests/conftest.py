@@ -708,7 +708,9 @@ def dummy_climate_data(fixture_core_components):
     data["soil_moisture"] = xr.concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(np.full((2, 3), 0.20), dims=["layers", "cell_id"]),
+            DataArray(
+                [[5.0, 5.0, 5.0], [500.0, 500.0, 500.0]], dims=["layers", "cell_id"]
+            ),
         ],
         dim="layers",
     )

@@ -187,19 +187,19 @@ def test_calculate_leaf_and_air_temperature(
     )
 
     exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    t_vals = [30.0, 29.99996, 29.99542, 29.50450, 21.425606, 20.09504]
+    t_vals = [30.0, 29.999984, 29.997765, 29.750162, 21.462524, 20.097502]
     exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
     exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    tl_vals = [30.078712, 29.105456, 27.396327]
+    tl_vals = [30.078712, 29.10546, 27.395564]
     exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
 
     exp_vp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vp_vals = [0.14, 0.14001, 0.141425, 0.281758, 0.228266, 0.219455]
+    vp_vals = [0.14, 0.14001, 0.141337, 0.275872, 0.134382, 0.111077]
     exp_vp.T[..., [0, 1, 2, 3, 11, 12]] = vp_vals
 
     exp_vpd = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vpd_vals = [0.098781, 0.098789, 0.099798, 0.201279, 0.200826, 0.200064]
+    vpd_vals = [0.098781, 0.098788, 0.09973, 0.195867, 0.118112, 0.101256]
     exp_vpd.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
 
     exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
@@ -207,11 +207,11 @@ def test_calculate_leaf_and_air_temperature(
     exp_gv.T[..., [1, 2, 3]] = gv_vals
 
     exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    sens_heat_vals = [0.0, 1.398342, 1.397875, 1.1278, 1.0]
+    sens_heat_vals = [0.0, 1.398342, 1.3979, 1.123268, 1.0]
     exp_sens_heat.T[..., [0, 1, 2, 3, 13]] = sens_heat_vals
 
     exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    lat_heat_vals = [0.0, 8.330052, 8.32997, 8.646973, 1.0]
+    lat_heat_vals = [0.0, 8.330051, 8.329929, 8.651111, 1.0]
     exp_latent_heat.T[..., [0, 1, 2, 3, 13]] = lat_heat_vals
 
     np.testing.assert_allclose(
