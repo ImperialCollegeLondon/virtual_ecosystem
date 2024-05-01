@@ -89,7 +89,7 @@ def test_setup_hydrology_input_current_timestep(
         (dummy_climate_data["atmospheric_pressure_ref"].isel(time_index=0)).to_numpy(),
     )
     np.testing.assert_allclose(
-        result["soil_moisture_true"], DataArray(np.full((2, 3), 50.0))
+        result["soil_moisture_mm"], DataArray(np.full((2, 3), 50.0))
     )
 
 
@@ -106,5 +106,5 @@ def test_initialise_soil_moisture_mm(fixture_core_components):
         n_cells=4,
         initial_soil_moisture=0.5,
     )
-    exp_result = np.array([[5.0, 5.0, 5.0, 5.0], [50.0, 50.0, 50.0, 50.0]])
+    exp_result = DataArray([[5.0, 5.0, 5.0, 5.0], [50.0, 50.0, 50.0, 50.0]])
     np.testing.assert_allclose(result[13:15], exp_result)

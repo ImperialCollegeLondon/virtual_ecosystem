@@ -4,6 +4,7 @@
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -132,7 +133,7 @@ def setup_hydrology_input_current_timestep(
     output["top_soil_moisture_residual_mm"] = (
         soil_moisture_residual * soil_layer_thickness[0]
     )
-    output["soil_moisture_true"] = (  # drop above ground layers
+    output["soil_moisture_mm"] = (  # drop above ground layers
         data["soil_moisture"].isel(layers=data["layer_roles"] == "soil")
     ).to_numpy()
 
@@ -153,7 +154,7 @@ def initialise_soil_moisture_mm(
     layer_structure: LayerStructure,
     n_cells: int,
     initial_soil_moisture: float | NDArray[np.float32],
-) -> NDArray[np.float32]:
+) -> DataArray:
     """Initialise soil moisture in mm.
 
     Args:
@@ -186,7 +187,16 @@ def initialise_soil_moisture_mm(
     )
 
     # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
-    return np.broadcast_to(
-        soil_moisture_values * layer_thickness_array,
-        (n_cells, layer_structure.n_layers),
-    ).T
+    return DataArray(
+        np.broadcast_to(
+            soil_moisture_values * layer_thickness_array,
+            (n_cells, layer_structure.n_layers),
+        ).T,
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(layer_structure.n_layers),
+            "layer_roles": ("layers", layer_structure.layer_roles),
+            "cell_id": np.arange(n_cells),
+        },
+        name="soil_moisture",
+    )
