@@ -193,6 +193,7 @@ class AnimalCommunity:
                 * parent_cohort.constants.semelparity_mass_loss
             )
             parent_cohort.mass_current -= non_reproductive_mass_loss
+            # kill the semelparous parent cohort
             parent_cohort.is_alive = False
         else:
             non_reproductive_mass_loss = 0.0
