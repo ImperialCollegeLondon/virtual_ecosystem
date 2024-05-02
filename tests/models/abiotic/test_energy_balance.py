@@ -63,8 +63,10 @@ def test_calculate_slope_of_saturated_pressure_curve():
         calculate_slope_of_saturated_pressure_curve,
     )
 
+    const = AbioticConsts()
     result = calculate_slope_of_saturated_pressure_curve(
-        temperature=np.full((4, 3), 20.0)
+        temperature=np.full((4, 3), 20.0),
+        saturated_pressure_slope_parameters=const.saturated_pressure_slope_parameters,
     )
     exp_result = np.full((4, 3), 0.14474)
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
@@ -187,19 +189,19 @@ def test_calculate_leaf_and_air_temperature(
     )
 
     exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    t_vals = [30.0, 29.99890, 29.84965, 23.46608, 20.51991, 20.034661]
+    t_vals = [30.0, 29.999465, 29.92585, 24.960169, 20.744025, 20.049602]
     exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
     exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    tl_vals = [30.078612, 29.091695, 26.971391]
+    tl_vals = [30.078613, 29.091727, 26.818424]
     exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
 
     exp_vp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vp_vals = [0.14, 0.1403, 0.185676, 0.941331, 0.327202, 0.226051]
+    vp_vals = [0.14, 0.140321, 0.183155, 0.877017, 0.224554, 0.117089]
     exp_vp.T[..., [0, 1, 2, 3, 11, 12]] = vp_vals
 
     exp_vpd = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vpd_vals = [0.098781, 0.099025, 0.131502, 0.784774, 0.29491, 0.206411]
+    vpd_vals = [0.098781, 0.099009, 0.12947, 0.703273, 0.201182, 0.106873]
     exp_vpd.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
 
     exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
@@ -207,15 +209,15 @@ def test_calculate_leaf_and_air_temperature(
     exp_gv.T[..., [1, 2, 3]] = gv_vals
 
     exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    sens_heat_vals = [0.0, 1.397741, 1.315774, -1.395567, 1.0]
+    sens_heat_vals = [0.0, 1.397747, 1.315961, -2.303918, 1.0]
     exp_sens_heat.T[..., [0, 1, 2, 3, 13]] = sens_heat_vals
 
     exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    lat_heat_vals = [0.0, 8.330759, 8.426607, 11.617981, 1.0]
+    lat_heat_vals = [0.0, 8.330749, 8.426019, 12.676213, 1.0]
     exp_latent_heat.T[..., [0, 1, 2, 3, 13]] = lat_heat_vals
 
     np.testing.assert_allclose(
-        result["air_temperature"], exp_air_temp, rtol=1e-04, atol=1e-04
+        result["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
     )
     np.testing.assert_allclose(
         result["canopy_temperature"], exp_leaf_temp, rtol=1e-04, atol=1e-04

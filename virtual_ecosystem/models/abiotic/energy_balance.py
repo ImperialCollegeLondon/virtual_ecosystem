@@ -252,22 +252,30 @@ def calculate_longwave_emission(
 
 def calculate_slope_of_saturated_pressure_curve(
     temperature: NDArray[np.float32],
+    saturated_pressure_slope_parameters: list[float],
 ) -> NDArray[np.float32]:
     r"""Calculate slope of the saturated pressure curve.
 
-    TODO move factors to constants, most of them share with simple_abiotic_model
-
     Args:
         temperature: Temperature, [C]
+        saturated_pressure_slope_parameters: List of parameters to calcualte
+            the slope of the saturated vapour pressure curve
 
     Returns:
         Slope of the saturated pressure curve, :math:`\Delta_{v}`
     """
 
     return (
-        4098
-        * (0.6108 * np.exp(17.27 * temperature / (temperature + 237.3)))
-        / (temperature + 237.3) ** 2
+        saturated_pressure_slope_parameters[0]
+        * (
+            saturated_pressure_slope_parameters[1]
+            * np.exp(
+                saturated_pressure_slope_parameters[2]
+                * temperature
+                / (temperature + saturated_pressure_slope_parameters[3])
+            )
+        )
+        / (temperature + saturated_pressure_slope_parameters[3]) ** 2
     )
 
 
@@ -369,7 +377,8 @@ def calculate_leaf_and_air_temperature(
     * air_temperature_ref: Air temperature at reference height 2m above canopy, [C]
     * vapour_pressure_ref: vapour pressure at reference height 2m above canopy, [kPa]
     * soil_temperature: Soil temperature, [C]
-    * soil_moisture: Relative soil moisture, dimensionless
+    * soil_moisture: Soil moisture, [mm]
+    * layer_heights: Layer heights, [mm]
     * atmospheric_pressure_ref: Atmospheric pressure at reference height, [kPa]
     * air_temperature: Air temperature, [C]
     * canopy_temperature: Leaf temperature, [C]
@@ -402,7 +411,11 @@ def calculate_leaf_and_air_temperature(
 
     # Select variables for current time step and relevant layers
     topsoil_temperature = data["soil_temperature"][topsoil_layer_index]
-    topsoil_moisture = data["soil_moisture"][topsoil_layer_index]
+    topsoil_moisture = (
+        data["soil_moisture"][topsoil_layer_index]
+        / -data["layer_heights"][topsoil_layer_index]
+        / 100
+    )
     air_temperature_ref = data["air_temperature_ref"].isel(time_index=time_index)
     vapour_pressure_ref = data["vapour_pressure_ref"].isel(time_index=time_index)
     atmospheric_pressure_ref = data["atmospheric_pressure_ref"].isel(
@@ -460,7 +473,10 @@ def calculate_leaf_and_air_temperature(
 
     # Factors from vapour pressure linearisation
     delta_v_ref = calculate_slope_of_saturated_pressure_curve(
-        air_temperature_ref.to_numpy()
+        air_temperature_ref.to_numpy(),
+        saturated_pressure_slope_parameters=(
+            abiotic_constants.saturated_pressure_slope_parameters
+        ),
     )
 
     a_E, b_E = vapour_pressure_linearisation(
