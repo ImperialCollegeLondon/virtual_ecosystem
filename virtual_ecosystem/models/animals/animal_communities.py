@@ -167,7 +167,9 @@ class AnimalCommunity:
     def remove_dead_cohort_community(self) -> None:
         """This handles remove_dead_cohort for all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            self.remove_dead_cohort(cohort)
+            if cohort.individuals <= 0:
+                cohort.is_alive = False
+                self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
@@ -336,8 +338,8 @@ class AnimalCommunity:
     def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
 
-        TODO Replace the number_of_days format with a passthrough of the initialized
-        dt straight to the scaling function that sets the cohort rates.
+        This includes background mortality, starvation, and, for mature cohorts,
+        senescence.
 
         Args:
             dt: Number of days over which the metabolic costs should be calculated.
@@ -345,6 +347,7 @@ class AnimalCommunity:
         """
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.all_animal_cohorts:
-            cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
+            cohort.total_non_predation_mortality(number_of_days)
             if cohort.individuals <= 0:
+                cohort.is_alive = False
                 self.remove_dead_cohort(cohort)

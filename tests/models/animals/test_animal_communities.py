@@ -253,9 +253,7 @@ class TestAnimalCommunity:
         # Setup initial conditions
         parent_cohort_name = animal_cohort_instance.name
         animal_cohort_instance.functional_group.reproductive_type = reproductive_type
-        animal_cohort_instance.functional_group.birth_mass = (
-            2  # Assuming a specific birth mass
-        )
+        animal_cohort_instance.functional_group.birth_mass = 2
         animal_cohort_instance.mass_current = initial_mass
         animal_cohort_instance.individuals = 10
 
@@ -268,7 +266,6 @@ class TestAnimalCommunity:
             animal_community_instance.animal_cohorts[parent_cohort_name]
         )
 
-        # Call the birth method
         animal_community_instance.birth(animal_cohort_instance)
 
         # Assertions
@@ -477,31 +474,48 @@ class TestAnimalCommunity:
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
 
+    @pytest.mark.parametrize(
+        "days",
+        [
+            pytest.param(1, id="one_day"),
+            pytest.param(5, id="five_days"),
+            pytest.param(10, id="ten_days"),
+        ],
+    )
     def test_inflict_natural_mortality_community(
-        self, animal_community_instance, mocker
+        self, animal_community_instance, mocker, days
     ):
         """Testing natural mortality infliction for the entire community."""
         from numpy import timedelta64
 
-        # Create a time delta (for example, 5 days)
-        dt = timedelta64(5, "D")
+        dt = timedelta64(days, "D")
 
         animal_community_instance.populate_community()
 
-        # Iterate over the animal cohorts within the community
-        for cohorts in animal_community_instance.animal_cohorts.values():
-            for cohort in cohorts:
-                # Mock the cohort's inflict_natural_mortality method
-                cohort.inflict_natural_mortality = mocker.MagicMock()
+        # Mock the total_non_predation_mortality method
+        mock_mortality = mocker.patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
+            "total_non_predation_mortality"
+        )
 
         # Call the community method to inflict natural mortality
         animal_community_instance.inflict_natural_mortality_community(dt)
 
-        # Check that the inflict_natural_mortality method was called correctly for each
-        # #cohort
         number_of_days = float(dt / timedelta64(1, "D"))
+
+        # Assert the total_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
-                cohort.inflict_natural_mortality.assert_called_once_with(
-                    animal_community_instance.carcass_pool, number_of_days
-                )
+                mock_mortality.assert_called_with(number_of_days)
+
+        # Check if cohorts with no individuals left are flagged as not alive
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                if cohort.individuals <= 0:
+                    assert (
+                        not cohort.is_alive
+                    ), "Cohort with no individuals should be marked as not alive"
+                    assert (
+                        cohort
+                        not in animal_community_instance.animal_cohorts[cohort.name]
+                    ), "Dead cohort should be removed from the community"

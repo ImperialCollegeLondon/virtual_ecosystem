@@ -46,7 +46,6 @@ class AnimalCohort:
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
         """The functional type name of the animal cohort."""
-        """The average mass of an individual in the animal cohort [kg]."""
         self.mass_current = mass
         """The current average body mass of an individual [kg]."""
         self.age = age
@@ -61,6 +60,12 @@ class AnimalCohort:
         """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
+        self.is_mature: bool = False
+        """Whether the cohort has reached adult body-mass."""
+        self.time_to_maturity: float = 0.0
+        """The amount of time [days] between birth and adult body-mass."""
+        self.time_since_maturity: float = 0.0
+        """The amount of time [days] since reaching adult body-mass."""
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
 
@@ -158,13 +163,25 @@ class AnimalCohort:
         )
 
     def increase_age(self, dt: timedelta64) -> None:
-        """The function to modify cohort age as time passes.
+        """The function to modify cohort age as time passes and flag maturity.
 
         Args:
             dt: The amount of time that should be added to cohort age.
 
         """
-        self.age += float(dt / timedelta64(1, "D"))
+
+        dt_float = float(dt / timedelta64(1, "D"))
+
+        self.age += dt_float
+
+        if self.is_mature is True:
+            self.time_since_maturity += dt_float
+        elif (
+            self.is_mature is False
+            and self.mass_current >= self.functional_group.adult_mass
+        ):
+            self.is_mature = True
+            self.time_to_maturity = self.age
 
     def die_individual(self, number_dead: int, carcass_pool: CarcassPool) -> None:
         """The function to reduce the number of individuals in the cohort through death.
@@ -735,3 +752,41 @@ class AnimalCohort:
         probability_of_dispersal = velocity / grid_side
 
         return random.random() < probability_of_dispersal
+
+    def total_non_predation_mortality(self, dt: float) -> None:
+        """Combine background, senescence, and starvation mortalities."""
+
+        pop_size = self.individuals
+        mass_current = self.mass_current
+
+        t_to_maturity = self.time_to_maturity
+        t_since_maturity = self.time_since_maturity
+        mass_max = self.functional_group.adult_mass  # this might not be only solution
+
+        u_bg = sf.background_mortality(
+            self.constants.u_bg
+        )  # constant background mortality
+
+        if self.is_mature is True:
+            # senescence mortality is only experienced by mature adults.
+            u_se = sf.senescence_mortality(
+                self.constants.lambda_se, t_to_maturity, t_since_maturity
+            )  # senesence mortality
+        elif self.is_mature is False:
+            u_se = 0.0
+
+        u_st = sf.starvation_mortality(
+            self.constants.lambda_max,
+            self.constants.J_st,
+            self.constants.zeta_st,
+            mass_current,
+            mass_max,
+        )  # starvation mortality
+        u_t = u_bg + u_se + u_st
+
+        # Calculate the total number of dead individuals
+        # TODO: the use of ceil here might have unintended outcomes, keep an eye on it
+        number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
+
+        # Remove the dead individuals from the cohort
+        self.individuals -= number_dead

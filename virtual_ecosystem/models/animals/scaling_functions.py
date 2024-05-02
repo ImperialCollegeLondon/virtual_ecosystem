@@ -241,7 +241,7 @@ def prey_group_selection(
 
 
 def natural_mortality_scaling(mass: float, terms: tuple) -> float:
-    """The function to determine the natural mortality rate of animal cohorts.
+    """Determine the natural mortality rate of animal cohorts.
 
     Relationship from: Dureuil & Froese 2021
 
@@ -266,6 +266,76 @@ def natural_mortality_scaling(mass: float, terms: tuple) -> float:
     daily_mortality_prob = 1 - exp(-daily_mortality_rate)
 
     return daily_mortality_prob
+
+
+def background_mortality(u_bg: float) -> float:
+    """Constant background rate of wastebasket mortality.
+
+    This function does nothing but return a constant at the moment.
+    I am leaving it in so there is a clear way to alter the assumptions about
+    background mortality as we move into testing and validation.
+
+    Args:
+        u_bg: The constant of background mortality [day^-1].
+
+    Returns:
+        The background rate of mortality faced by a cohort [day^-1].
+
+    """
+
+    return u_bg
+
+
+def senescence_mortality(
+    lambda_se: float, t_to_maturity: float, t_since_maturity: float
+) -> float:
+    """Age-based mortality.
+
+    Args:
+        lambda_se: The instantaneous rate of senescence mortality at point of maturity
+                    [day^-1].
+        t_to_maturity: The time it took the cohort to reach maturity [days].
+        t_since_maturity: The time elapsed since the cohort reached maturity [days].
+
+    Returns:
+        The rate of senescence mortality faced by an animal cohort [day^-1].
+
+    """
+
+    t_pm = t_to_maturity  # time it took to reach maturity
+    t_bm = t_since_maturity  # time since maturity
+
+    u_se = lambda_se * exp(t_pm / t_bm)
+
+    return u_se
+
+
+def starvation_mortality(
+    lambda_max: float, J_st: float, zeta_st: float, mass_current: float, mass_max: float
+) -> float:
+    """Mortality from body-mass loss.
+
+    Args:
+        lambda_max: The maximum possible instantaneous fractional starvation mortality
+            rate. [day^-1]
+        J_st: Determines the inflection point of the logistic function describing ratio
+            of the realised mortality rate to the maximum rate. [unitless]
+        zeta_st:The scaling of the logistic function describing the ratio of the
+            realised mortality rate to the maximum rate. [unitless]
+        mass_current: The current mass of the animal cohort [kg].
+        mass_max: The maximum body mass ever achieved by individuals of this type [kg].
+
+    Returns:
+        The rate of mortality from starvation based on current body-mass. [day^-1]
+
+    """
+
+    M_i_t = mass_current
+    M_i_max = mass_max
+
+    u_st = lambda_max / (1 + exp(-(M_i_t - J_st * M_i_max) / (zeta_st * M_i_max)))
+
+    return u_st
 
 
 def alpha_i_k(alpha_0_herb: float, mass: float) -> float:

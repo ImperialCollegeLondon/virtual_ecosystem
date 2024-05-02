@@ -191,6 +191,7 @@ def fixture_config():
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.1
         adult_mass = 1.0
         [[animals.functional_groups]]
@@ -198,6 +199,7 @@ def fixture_config():
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.05
         adult_mass = 0.5
         [[animals.functional_groups]]
@@ -205,6 +207,7 @@ def fixture_config():
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 4.0
         adult_mass = 40.0
         [[animals.functional_groups]]
@@ -212,6 +215,7 @@ def fixture_config():
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 1.0
         adult_mass = 10.0
         [[animals.functional_groups]]
@@ -219,6 +223,7 @@ def fixture_config():
         taxa = "insect"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_type = "semelparous"
         birth_mass = 0.001
         adult_mass = 0.01
         [[animals.functional_groups]]
@@ -226,6 +231,7 @@ def fixture_config():
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.0005
         adult_mass = 0.005
         """

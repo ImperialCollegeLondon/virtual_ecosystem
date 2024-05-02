@@ -49,7 +49,7 @@ class FunctionalGroup:
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
-        """The reproductive type of the functional grou."""
+        """The reproductive type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
