@@ -63,8 +63,10 @@ def test_calculate_slope_of_saturated_pressure_curve():
         calculate_slope_of_saturated_pressure_curve,
     )
 
+    const = AbioticConsts()
     result = calculate_slope_of_saturated_pressure_curve(
-        temperature=np.full((4, 3), 20.0)
+        temperature=np.full((4, 3), 20.0),
+        saturated_pressure_slope_parameters=const.saturated_pressure_slope_parameters,
     )
     exp_result = np.full((4, 3), 0.14474)
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)

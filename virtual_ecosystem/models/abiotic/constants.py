@@ -248,3 +248,8 @@ class AbioticConsts(ConstantsDataclass):
 
     leaf_emissivity: float = 0.8
     """Leaf emissivity, dimensionless."""
+
+    saturated_pressure_slope_parameters: list[float] = field(
+        default_factory=lambda: [4098.0, 0.6108, 17.27, 237.3]
+    )
+    """List of parameters to calcualte the slope of saturated vapour pressure curve."""
