@@ -73,7 +73,7 @@ def calculate_soil_carbon_updates(
             organic matter [kg C m^-3]
         pH: pH values for each soil grid cell [unitless]
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
-        soil_moisture: relative water content for each soil grid cell [unitless]
+        soil_moisture: amount of water contained by each soil layer [mm]
         soil_water_potential: Soil water potential for each grid cell [kPa]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         clay_fraction: The clay fraction for each soil grid cell [unitless]
@@ -123,7 +123,6 @@ def calculate_soil_carbon_updates(
         vertical_flow_rate=vertical_flow_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
-        soil_layer_thickness=core_constants.depth_of_active_soil_layer,
     )
     pom_decomposition_rate = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_pom,
