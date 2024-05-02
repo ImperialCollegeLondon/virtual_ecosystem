@@ -289,7 +289,7 @@ def dummy_carbon_data(fixture_core_components):
             # At present the soil model only uses the top soil layer, so this is the
             # only one with real test values in
             DataArray(
-                [[0.9304620050, 0.787549327, 0.504263188, 0.302527807]],
+                [[232.61550125, 196.88733175, 126.065797, 75.63195175]],
                 dims=["layers", "cell_id"],
             ),
             DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
@@ -708,7 +708,9 @@ def dummy_climate_data(fixture_core_components):
     data["soil_moisture"] = xr.concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(np.full((2, 3), 0.20), dims=["layers", "cell_id"]),
+            DataArray(
+                [[5.0, 5.0, 5.0], [500.0, 500.0, 500.0]], dims=["layers", "cell_id"]
+            ),
         ],
         dim="layers",
     )

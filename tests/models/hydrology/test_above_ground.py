@@ -204,7 +204,7 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
     log_check(caplog, expected_log_entries)
 
 
-def test_estimate_interception():
+def test_calculate_interception():
     """Test."""
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
