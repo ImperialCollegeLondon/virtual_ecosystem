@@ -8,9 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable, Iterable
 from itertools import chain
-from random import choice, random
 
 from numpy import timedelta64
 
@@ -143,13 +143,14 @@ class AnimalCommunity:
             migrate = cohort.is_below_mass_threshold(
                 self.constants.dispersal_mass_threshold
             ) or (
-                cohort.age == 0.0 and random() <= cohort.migrate_juvenile_probability()
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
             )
 
             if not migrate:
                 return
 
-            destination_key = choice(self.neighbouring_keys)
+            destination_key = random.choice(self.neighbouring_keys)
             destination = self.get_destination(destination_key)
             self.migrate(cohort, destination)
 
