@@ -966,54 +966,52 @@ class TestAnimalCohort:
         mock_eat_predator.assert_called_once_with(200)
 
     @pytest.mark.parametrize(
-        "mass_current, V_disp, M_disp_ref, o_disp, random_value, expected_migration",
+        "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
         [
-            pytest.param(
-                10.0, 0.03, 1.0, 1.0, 0.05, True, id="high_speed_likely_migration"
-            ),
-            pytest.param(
-                10.0, 0.01, 1.0, 1.0, 0.01, True, id="low_speed_unlikely_migration"
-            ),
-            pytest.param(10.0, 0.0278, 1.0, 1.0, 0.8, False, id="equal_probability"),
-            pytest.param(0.0, 0.0278, 1.0, 1.0, 0.005, False, id="zero_mass"),
-            pytest.param(
-                10.0, 0.0, 1.0, 1.0, 0.0, False, id="zero_velocity_no_migration"
-            ),
+            pytest.param(10, 0.5, 10, 0.5, 0.5, id="normal_case"),
+            pytest.param(10, 1.5, 10, 0.5, 1.0, id="cap_at_1"),
+            pytest.param(10, 0, 10, 0.5, 0, id="zero_velocity"),
+            pytest.param(0, 0.5, 10, 0.5, 0, id="zero_mass"),
         ],
     )
     def test_migrate_juvenile_probability(
         self,
         mocker,
-        herbivore_cohort_instance,
         mass_current,
         V_disp,
         M_disp_ref,
         o_disp,
-        random_value,
-        expected_migration,
+        expected_probability,
+        herbivore_cohort_instance,
     ):
-        """Test the probability of juvenile cohort migration."""
+        """Test the calculation of juvenile migration probability."""
+        from math import sqrt
 
-        # Mock `random.random()` to return a fixed value
-        mocker.patch(
-            "virtual_ecosystem.models.animals.animal_cohorts.random.random",
-            return_value=random_value,
+        # Assign test-specific values to the cohort instance
+        cohort = herbivore_cohort_instance
+        cohort.mass_current = mass_current
+        cohort.constants = mocker.MagicMock(
+            V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
         )
 
-        # Calculate expected dispersal speed
-        expected_dispersal_speed = V_disp * (mass_current / M_disp_ref) ** o_disp
-
-        # Mock the `juvenile_dispersal_speed` to return our expected dispersal speed
+        # Mock juvenile_dispersal_speed
+        mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
             "virtual_ecosystem.models.animals.scaling_functions."
             "juvenile_dispersal_speed",
-            return_value=expected_dispersal_speed,
+            return_value=mocked_velocity,
         )
 
-        # Execute the method under test
-        actual_migration = herbivore_cohort_instance.migrate_juvenile_probability()
+        # Calculate expected probability
+        A_cell = 1.0
+        grid_side = sqrt(A_cell)
+        calculated_probability = mocked_velocity / grid_side
+        expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
 
-        # Compare actual migration outcome to expected outcome
+        # Call the method under test
+        probability_of_dispersal = cohort.migrate_juvenile_probability()
+
+        # Assertion to check if the method returns the correct probability
         assert (
-            actual_migration == expected_migration
-        ), f"Expected random to be {expected_migration}, but got {actual_migration}."
+            probability_of_dispersal == expected_probability
+        ), "The probability calculated did not match the expected probability."

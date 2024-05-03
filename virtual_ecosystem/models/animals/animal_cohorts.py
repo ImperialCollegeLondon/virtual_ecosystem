@@ -709,7 +709,7 @@ class AnimalCohort:
     def migrate_juvenile_probability(self) -> float:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
-        TODO: This does not hold for diagonal moves.
+        TODO: This does not hold for diagonal moves or non-square grids.
 
         Following Madingley's assumption that the probability of juvenile dispersal is
         equal to the proportion of the cohort individuals that would arrive in the
@@ -719,12 +719,22 @@ class AnimalCohort:
         that the move is non-diagonal, the probability is then equal to the ratio of
         dispersal speed to the side-length of a grid cell.
 
+        A homogenously distributed cohort with a partial presence in a grid cell will
+        have a proportion of its individuals in the new grid cell equal to the
+        proportion the new grid cell that it occupies (A_new / A_cell). This proportion
+        will be equal to the cohorts velocity (V) multiplied by the elapsed time (t)
+        multiplied by the length of one side of a grid cell (L) (V*t*L) (t is assumed
+        to be 1 here). The area of the square grid cell is the square of the length of
+        one side. The proportion of individuals in the new cell is then:
+        A_new / A_cell = (V * 1 * L) / (L * L) = V / L
+        [m2   / m2     = (m/d * d * m) / (m * m) = m / m = unitless ]
+
         Returns:
             The probability of diffusive natal dispersal to a neighboring grid cell.
 
         """
 
-        A_cell = 1.0  #
+        A_cell = 1.0  # TODO: update this to actual grid reference
         grid_side = sqrt(A_cell)
         velocity = sf.juvenile_dispersal_speed(
             self.mass_current,
@@ -732,6 +742,8 @@ class AnimalCohort:
             self.constants.M_disp_ref,
             self.constants.o_disp,
         )
+
+        # not a true probability as can be > 1, reduced to 1.0 in return statement
         probability_of_dispersal = velocity / grid_side
 
-        return random.random() < probability_of_dispersal
+        return probability_of_dispersal if probability_of_dispersal <= 1.0 else 1.0
