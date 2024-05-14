@@ -39,6 +39,7 @@ def test_abiotic_model_initialization(
         expected_log=(
             (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
             (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+            (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
         ),
     )
 
@@ -75,6 +76,10 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "abiotic model: init data missing required var 'relative_humidity_ref'",
             ),
+            (
+                ERROR,
+                "abiotic model: init data missing required var 'topofcanopy_radiation'",
+            ),
             (ERROR, "abiotic model: error checking required_init_vars, see log."),
         ),
     )
@@ -96,6 +101,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
             ),
             id="default_config",
         ),
@@ -113,6 +119,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
             ),
             id="modified_config_correct",
         ),
@@ -177,6 +184,7 @@ def test_generate_abiotic_model(
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
                 (
                     ERROR,
                     "The update interval is slower than the abiotic upper "

@@ -53,6 +53,7 @@ class AbioticModel(
     required_init_vars=(
         ("air_temperature_ref", ("spatial",)),
         ("relative_humidity_ref", ("spatial",)),
+        ("topofcanopy_radiation", ("spatial",)),
     ),
     vars_updated=(
         "air_temperature",
@@ -149,6 +150,21 @@ class AbioticModel(
             .indexes["layers"]
         )
         topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
+
+        # create soil temperature array
+        self.data["soil_temperature"] = DataArray(
+            np.full(
+                (self.layer_structure.n_layers, self.data.grid.n_cells),
+                np.nan,
+            ),
+            dims=["layers", "cell_id"],
+            coords={
+                "layers": np.arange(0, self.layer_structure.n_layers),
+                "layer_roles": ("layers", self.layer_structure.layer_roles),
+                "cell_id": self.data.grid.cell_id,
+            },
+            name="soil_temperature",
+        )
 
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
