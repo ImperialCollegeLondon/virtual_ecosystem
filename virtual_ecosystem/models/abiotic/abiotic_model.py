@@ -227,6 +227,7 @@ class AbioticModel(
         * soil energy balance
         * conductivities
         * canopy energy balance for each layer
+        * TODO representation of turbulent fluxes is inconsistent
         * TODO add all soil fluxes to atmosphere
         * TODO update soil temperatures
 

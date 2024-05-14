@@ -414,7 +414,7 @@ def calculate_leaf_and_air_temperature(
     topsoil_moisture = (
         data["soil_moisture"][topsoil_layer_index]
         / -data["layer_heights"][topsoil_layer_index]
-        / 100
+        / core_constants.meters_to_mm
     )
     air_temperature_ref = data["air_temperature_ref"].isel(time_index=time_index)
     vapour_pressure_ref = data["vapour_pressure_ref"].isel(time_index=time_index)

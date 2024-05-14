@@ -419,3 +419,50 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     np.testing.assert_allclose(
         model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
     )
+
+    exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    t_vals = [30.0, 29.999943, 29.992298, 29.623399, 22.049666, 20.802228]
+    exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
+
+    np.testing.assert_allclose(
+        model.data["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
+    )
+
+    exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    tl_vals = [28.787061, 28.290299, 28.15982]
+    exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
+
+    np.testing.assert_allclose(
+        model.data["canopy_temperature"], exp_leaf_temp, rtol=1e-03, atol=1e-03
+    )
+
+    # TODO fix fluxes from soil
+    # exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    # lat_heat_vals = [27.916181, 27.386375, 15.775225, 1]
+    # exp_latent_heat.T[..., [1, 2, 3, 13]] = lat_heat_vals
+    exp_latent_heat = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [27.916181, 27.916181, 27.916181],
+                    [27.386375, 27.386375, 27.386375],
+                    [15.775225, 15.775225, 15.775225],
+                ],
+                [[np.nan, np.nan, np.nan]] * 9,
+                [[2.254, 22.54, 225.4]],
+                [[np.nan, np.nan, np.nan]],
+            ]
+        )
+    )
+    np.testing.assert_allclose(
+        model.data["latent_heat_flux"], exp_latent_heat, rtol=1e-04, atol=1e-04
+    )
+
+    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    sens_heat_vals = [-16.814787, -16.29302, -5.416152, -185.669563]
+    exp_sens_heat.T[..., [1, 2, 3, 13]] = sens_heat_vals
+
+    np.testing.assert_allclose(
+        model.data["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
+    )
