@@ -746,4 +746,4 @@ class AnimalCohort:
         # not a true probability as can be > 1, reduced to 1.0 in return statement
         probability_of_dispersal = velocity / grid_side
 
-        return probability_of_dispersal if probability_of_dispersal <= 1.0 else 1.0
+        return min(1.0, probability_of_dispersal)
