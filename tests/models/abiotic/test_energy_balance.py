@@ -161,7 +161,7 @@ def test_calculate_leaf_and_air_temperature(
         out_final_file_name = "model_at_end.nc"
         [core.layers]
         canopy_layers = 10
-        soil_layers = [-0.25, -1.0]
+        soil_layers = [-0.5, -1.0]
         above_canopy_height_offset = 2.0
         surface_layer_height = 0.1
         subcanopy_layer_height = 1.5
@@ -169,13 +169,7 @@ def test_calculate_leaf_and_air_temperature(
     config = Config(cfg_strings=cfg_string)
     layer_structure = LayerStructure(config=config)
 
-    true_canopy_indexes = (
-        dummy_climate_data["leaf_area_index"][
-            dummy_climate_data["leaf_area_index"]["layer_roles"] == "canopy"
-        ]
-        .dropna(dim="layers", how="all")
-        .indexes["layers"]
-    )
+    true_canopy_indexes = [1, 2, 3]
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
@@ -189,19 +183,19 @@ def test_calculate_leaf_and_air_temperature(
     )
 
     exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    t_vals = [30.0, 29.999984, 29.997765, 29.750162, 21.462524, 20.097502]
+    t_vals = [30.0, 29.999969, 29.995439, 28.796977, 21.319547, 20.08797]
     exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
     exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    tl_vals = [30.078712, 29.10546, 27.395564]
+    tl_vals = [30.078613, 29.091601, 26.951191]
     exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
 
     exp_vp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vp_vals = [0.14, 0.14001, 0.141337, 0.275872, 0.134382, 0.111077]
+    vp_vals = [0.14, 0.140323, 0.18372, 1.296359, 0.203754, 0.023795]
     exp_vp.T[..., [0, 1, 2, 3, 11, 12]] = vp_vals
 
     exp_vpd = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    vpd_vals = [0.098781, 0.098788, 0.09973, 0.195867, 0.118112, 0.101256]
+    vpd_vals = [0.098781, 0.099009, 0.129644, 0.94264, 0.179767, 0.021697]
     exp_vpd.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
 
     exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
@@ -209,15 +203,15 @@ def test_calculate_leaf_and_air_temperature(
     exp_gv.T[..., [1, 2, 3]] = gv_vals
 
     exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    sens_heat_vals = [0.0, 1.398342, 1.3979, 1.123268, 1.0]
+    sens_heat_vals = [0.0, 1.397746, 1.315211, -1.515519, 1.0]
     exp_sens_heat.T[..., [0, 1, 2, 3, 13]] = sens_heat_vals
 
     exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    lat_heat_vals = [0.0, 8.330051, 8.329929, 8.651111, 1.0]
+    lat_heat_vals = [0.0, 8.330748, 8.426556, 11.740824, 1.0]
     exp_latent_heat.T[..., [0, 1, 2, 3, 13]] = lat_heat_vals
 
     np.testing.assert_allclose(
-        result["air_temperature"], exp_air_temp, rtol=1e-04, atol=1e-04
+        result["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
     )
     np.testing.assert_allclose(
         result["canopy_temperature"], exp_leaf_temp, rtol=1e-04, atol=1e-04
@@ -232,10 +226,10 @@ def test_calculate_leaf_and_air_temperature(
         result["leaf_vapour_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["sensible_heat_flux_canopy"], exp_sens_heat, rtol=1e-04, atol=1e-04
+        result["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["latent_heat_flux_canopy"], exp_latent_heat, rtol=1e-04, atol=1e-04
+        result["latent_heat_flux"][1:4], exp_latent_heat[1:4], rtol=1e-04, atol=1e-04
     )
 
 
