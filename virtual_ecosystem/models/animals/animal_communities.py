@@ -8,9 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable, Iterable
 from itertools import chain
-from random import choice
 
 from numpy import timedelta64
 
@@ -140,16 +140,19 @@ class AnimalCommunity:
 
         """
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_mass_threshold(self.constants.dispersal_mass_threshold):
-                # Random walk destination from the neighbouring keys
-                destination_key = choice(self.neighbouring_keys)
-                destination = self.get_destination(destination_key)
-                self.migrate(cohort, destination)
+            migrate = cohort.is_below_mass_threshold(
+                self.constants.dispersal_mass_threshold
+            ) or (
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
+            )
 
-            elif cohort.age == 0.0 and cohort.migrate_juvenile_probability():
-                destination_key = choice(self.neighbouring_keys)
-                destination = self.get_destination(destination_key)
-                self.migrate(cohort, destination)
+            if not migrate:
+                return
+
+            destination_key = random.choice(self.neighbouring_keys)
+            destination = self.get_destination(destination_key)
+            self.migrate(cohort, destination)
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Remove a dead cohort from a community.

@@ -1,6 +1,7 @@
 """Test abiotic_tools.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -63,3 +64,31 @@ def test_calculate_latent_heat_vapourisation():
     exp_result = np.array([[2442.447596] * 3, [2453.174942] * 3, [2457.589459] * 3])
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-5, atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "input_array, expected",
+    [
+        (np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), np.array([4.0, 5.0, 6.0])),
+        (
+            np.array([[1.0, np.nan, 3.0], [4.0, 5.0, np.nan], [np.nan, 8.0, 9.0]]),
+            np.array([4.0, 8.0, 9.0]),
+        ),
+        (
+            np.array([[np.nan, 2.0, np.nan], [np.nan, 5.0, np.nan]]),
+            np.array([np.nan, 5.0, np.nan]),
+        ),
+        (np.array([[np.nan, 2.0, 3.0]]), np.array([np.nan, 2.0, 3.0])),
+        (
+            np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]),
+            np.array([np.nan, np.nan, np.nan]),
+        ),
+    ],
+)
+def test_find_last_valid_row(input_array, expected):
+    """Test that last true value is selected for each column."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import find_last_valid_row
+
+    result = find_last_valid_row(input_array)
+    np.testing.assert_allclose(result, expected)
