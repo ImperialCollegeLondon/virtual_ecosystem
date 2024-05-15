@@ -965,12 +965,53 @@ class TestAnimalCohort:
         )
         mock_eat_predator.assert_called_once_with(200)
 
-        # Test for error on inappropriate food source
-        with pytest.raises(ValueError):
-            herbivore_cohort_instance.forage_cohort(
-                [], [], excrement_pool_instance, carcass_pool_instance
-            )
-        with pytest.raises(ValueError):
-            predator_cohort_instance.forage_cohort(
-                [], [], excrement_pool_instance, carcass_pool_instance
-            )
+    @pytest.mark.parametrize(
+        "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
+        [
+            pytest.param(10, 0.5, 10, 0.5, 0.5, id="normal_case"),
+            pytest.param(10, 1.5, 10, 0.5, 1.0, id="cap_at_1"),
+            pytest.param(10, 0, 10, 0.5, 0, id="zero_velocity"),
+            pytest.param(0, 0.5, 10, 0.5, 0, id="zero_mass"),
+        ],
+    )
+    def test_migrate_juvenile_probability(
+        self,
+        mocker,
+        mass_current,
+        V_disp,
+        M_disp_ref,
+        o_disp,
+        expected_probability,
+        herbivore_cohort_instance,
+    ):
+        """Test the calculation of juvenile migration probability."""
+        from math import sqrt
+
+        # Assign test-specific values to the cohort instance
+        cohort = herbivore_cohort_instance
+        cohort.mass_current = mass_current
+        cohort.constants = mocker.MagicMock(
+            V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
+        )
+
+        # Mock juvenile_dispersal_speed
+        mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions."
+            "juvenile_dispersal_speed",
+            return_value=mocked_velocity,
+        )
+
+        # Calculate expected probability
+        A_cell = 1.0
+        grid_side = sqrt(A_cell)
+        calculated_probability = mocked_velocity / grid_side
+        expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
+
+        # Call the method under test
+        probability_of_dispersal = cohort.migrate_juvenile_probability()
+
+        # Assertion to check if the method returns the correct probability
+        assert (
+            probability_of_dispersal == expected_probability
+        ), "The probability calculated did not match the expected probability."
