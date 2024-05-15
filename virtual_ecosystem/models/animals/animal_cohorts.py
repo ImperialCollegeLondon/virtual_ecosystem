@@ -726,7 +726,7 @@ class AnimalCohort:
         multiplied by the length of one side of a grid cell (L) (V*t*L) (t is assumed
         to be 1 here). The area of the square grid cell is the square of the length of
         one side. The proportion of individuals in the new cell is then:
-        A_new / A_cell = (V * 1 * L) / (L * L) = V / L
+        A_new / A_cell = (V * T * L) / (L * L) = ((L/T) * T * L) / (L * L ) = dimensionless
         [m2   / m2     = (m/d * d * m) / (m * m) = m / m = unitless ]
 
         Returns:
