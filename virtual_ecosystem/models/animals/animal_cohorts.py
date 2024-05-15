@@ -726,8 +726,9 @@ class AnimalCohort:
         multiplied by the length of one side of a grid cell (L) (V*t*L) (t is assumed
         to be 1 here). The area of the square grid cell is the square of the length of
         one side. The proportion of individuals in the new cell is then:
-        A_new / A_cell = (V * 1 * L) / (L * L) = V / L
-        [m2   / m2     = (m/d * d * m) / (m * m) = m / m = unitless ]
+        A_new / A_cell = (V * T * L) / (L * L) = ((L/T) * T * L) / (L * L ) =
+            dimensionless
+        [m2   / m2     = (m/d * d * m) / (m * m) = m / m = dimensionless ]
 
         Returns:
             The probability of diffusive natal dispersal to a neighboring grid cell.
@@ -746,4 +747,4 @@ class AnimalCohort:
         # not a true probability as can be > 1, reduced to 1.0 in return statement
         probability_of_dispersal = velocity / grid_side
 
-        return probability_of_dispersal if probability_of_dispersal <= 1.0 else 1.0
+        return min(1.0, probability_of_dispersal)
