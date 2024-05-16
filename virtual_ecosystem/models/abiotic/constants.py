@@ -14,6 +14,13 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""
 
+    wind_reference_height: float = 10.0
+    """Reference height for wind speed above the canopy.
+    The reference height for horizontal wind is typically 10m above ground compared to
+    2m for other atmospheric variables such as temperature and relative humidity. We
+    assume here that the reference height is above the canopy, please check the input
+    data carefully and be aware of limitations."""
+
     specific_heat_equ_factors: list[float] = field(
         default_factory=lambda: [2e-05, 0.0002]
     )
@@ -124,7 +131,10 @@ class AbioticConsts(ConstantsDataclass):
     min_windspeed_below_canopy: float = 0.001
     """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
-    min_roughness_length: float = 0.05
+    min_friction_velocity: float = 0.001
+    """Minimum friction velocity, [m s-1]."""
+
+    min_roughness_length: float = 0.01
     """Minimum roughness length, [m].
 
     The minimum roughness length represents the lowest height at which the surface
@@ -248,3 +258,22 @@ class AbioticConsts(ConstantsDataclass):
 
     leaf_emissivity: float = 0.8
     """Leaf emissivity, dimensionless."""
+
+    saturated_pressure_slope_parameters: list[float] = field(
+        default_factory=lambda: [4098.0, 0.6108, 17.27, 237.3]
+    )
+    """List of parameters to calcualte the slope of saturated vapour pressure curve."""
+
+    wind_profile_parameters: list[float] = field(
+        default_factory=lambda: [4.87, 67.8, 5.42]
+    )
+    """Factors in calculation of logarithmic wind profile above canopy."""
+
+    richardson_bounds: list[float] = field(default_factory=lambda: [0.15, -0.1120323])
+    """Minimum and maximum value for Richardson number."""
+
+    stable_wind_shear_slope: float = 4.7
+    """Wind shear slope under stable conditions after Gourdiaan (1977)."""
+
+    stable_temperature_gradient_intercept: float = 0.74
+    """Temperature gradient intercept under stable conditions after Goudriaan (1977)."""

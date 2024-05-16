@@ -184,8 +184,9 @@ def accumulate_horizontal_flow(
         accumulated (sub-)surface flow, [mm]
     """
 
+    current_flow_true = np.nan_to_num(current_flow, nan=0.0)
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
-        previous_accumulated_flow[cell_id] += np.sum(current_flow[upstream_ids])
+        previous_accumulated_flow[cell_id] += np.sum(current_flow_true[upstream_ids])
 
     if (previous_accumulated_flow < 0.0).any():
         to_raise = ValueError("The accumulated flow should not be negative!")

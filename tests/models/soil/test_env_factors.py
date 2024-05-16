@@ -215,7 +215,6 @@ def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
 
 def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
     """Test calculation of solute leaching rates."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import calculate_leaching_rate
 
@@ -227,7 +226,6 @@ def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
         vertical_flow_rate=vertical_flow_per_day,
         soil_moisture=dummy_carbon_data["soil_moisture"][top_soil_layer_index],
         solubility_coefficient=SoilConsts.solubility_coefficient_lmwc,
-        soil_layer_thickness=CoreConsts.depth_of_active_soil_layer,
     )
 
     assert np.allclose(expected_rate, actual_rate)

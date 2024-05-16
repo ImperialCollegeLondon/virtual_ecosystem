@@ -39,6 +39,7 @@ def test_abiotic_model_initialization(
         expected_log=(
             (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
             (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+            (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
         ),
     )
 
@@ -75,6 +76,10 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "abiotic model: init data missing required var 'relative_humidity_ref'",
             ),
+            (
+                ERROR,
+                "abiotic model: init data missing required var 'topofcanopy_radiation'",
+            ),
             (ERROR, "abiotic model: error checking required_init_vars, see log."),
         ),
     )
@@ -96,6 +101,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
             ),
             id="default_config",
         ),
@@ -113,6 +119,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
             ),
             id="modified_config_correct",
         ),
@@ -177,6 +184,7 @@ def test_generate_abiotic_model(
                 ),
                 (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
                 (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
                 (
                     ERROR,
                     "The update interval is slower than the abiotic upper "
@@ -361,39 +369,25 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     model.update(time_index=0)
 
-    friction_velocity_exp = np.full((15, 3), np.nan)
-    friction_velocity_exp[[0, 1, 2, 3, 11, 12], :] = [
-        [0.162293, 0.163096, 0.163727],
-        [0.162776, 0.163333, 0.163774],
-        [0.165103, 0.164498, 0.164007],
-        [0.167306, 0.16563, 0.164239],
-        [0.169096, 0.166569, 0.164435],
-        [0.169385, 0.166722, 0.164467],
-    ]
-
-    wind_speed_exp = np.full((15, 3), np.nan)
-    wind_speed_exp[[0, 1, 2, 3, 11, 12], :] = [
-        [1.106333, 1.10686, 1.107273],
-        [1.097423, 1.097945, 1.098355],
-        [1.050605, 1.051105, 1.051498],
-        [0.961219, 0.961676, 0.962035],
-        [0.910395, 0.910828, 0.911168],
-        [0.902285, 0.902714, 0.903051],
-    ]
-
-    wind_above_exp = np.array([1.106333, 1.10686, 1.107273])
-
-    np.testing.assert_allclose(
-        model.data["wind_speed_above_canopy"], wind_above_exp, rtol=1e-3, atol=1e-3
-    )
+    friction_velocity_exp = np.repeat(0.161295, 3)
     np.testing.assert_allclose(
         model.data["friction_velocity"],
         DataArray(friction_velocity_exp),
         rtol=1e-3,
         atol=1e-3,
     )
+
+    wind_speed_exp = np.full((15, 3), np.nan)
+    wind_speed_exp[[0, 1, 2, 3, 11, 12], :] = [
+        [0.727122, 0.727122, 0.727122],
+        [0.615474, 0.615474, 0.615474],
+        [0.587838, 0.587838, 0.587838],
+        [0.537028, 0.537028, 0.537028],
+        [0.506793, 0.506793, 0.506793],
+        [0.50198, 0.50198, 0.50198],
+    ]
     np.testing.assert_allclose(
-        model.data["wind_speed_canopy"],
+        model.data["wind_speed"],
         DataArray(wind_speed_exp),
         rtol=1e-3,
         atol=1e-3,
@@ -419,7 +413,12 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     exp_gv = DataArray(
         np.concatenate(
             [
-                [[np.nan] * 3, [0.203513] * 3, [0.202959] * 3, [0.202009] * 3],
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [0.495047, 0.495047, 0.495047],
+                    [0.483498, 0.483498, 0.483498],
+                    [0.46169, 0.46169, 0.46169],
+                ],
                 [[np.nan, np.nan, np.nan]] * 11,
             ],
         ),
@@ -427,4 +426,51 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     )
     np.testing.assert_allclose(
         model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
+    )
+
+    exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    t_vals = [30.0, 29.999943, 29.992298, 29.623399, 22.049666, 20.802228]
+    exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
+
+    np.testing.assert_allclose(
+        model.data["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
+    )
+
+    exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    tl_vals = [28.787061, 28.290299, 28.15982]
+    exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
+
+    np.testing.assert_allclose(
+        model.data["canopy_temperature"], exp_leaf_temp, rtol=1e-03, atol=1e-03
+    )
+
+    # TODO fix fluxes from soil
+    # exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    # lat_heat_vals = [27.916181, 27.386375, 15.775225, 1]
+    # exp_latent_heat.T[..., [1, 2, 3, 13]] = lat_heat_vals
+    exp_latent_heat = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [27.916181, 27.916181, 27.916181],
+                    [27.386375, 27.386375, 27.386375],
+                    [15.775225, 15.775225, 15.775225],
+                ],
+                [[np.nan, np.nan, np.nan]] * 9,
+                [[2.254, 22.54, 225.4]],
+                [[np.nan, np.nan, np.nan]],
+            ]
+        )
+    )
+    np.testing.assert_allclose(
+        model.data["latent_heat_flux"], exp_latent_heat, rtol=1e-04, atol=1e-04
+    )
+
+    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    sens_heat_vals = [-16.814787, -16.29302, -5.416152, -185.669563]
+    exp_sens_heat.T[..., [1, 2, 3, 13]] = sens_heat_vals
+
+    np.testing.assert_allclose(
+        model.data["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
     )
