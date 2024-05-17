@@ -248,8 +248,6 @@ class AnimalConsts(ConstantsDataclass):
     """The scaling of the logistic function describing the ratio of the realised
     mortality rate to the maximum rate."""
 
-    instant_senescence = 0.1  # toy value
-
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
