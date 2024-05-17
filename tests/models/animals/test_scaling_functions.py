@@ -355,22 +355,7 @@ def test_senescence_mortality(
 def test_starvation_mortality(
     lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality, param_id
 ):
-    """Test the calculation of starvation mortality based on body mass.
-
-    Args:
-        lambda_max (float): The maximum possible instantaneous fractional starvation
-         mortality rate.
-        J_st (float): Determines the inflection point of the logistic function
-         describing the ratio of the realised mortality rate to the maximum rate.
-        zeta_st (float): The scaling of the logistic function describing the ratio of
-                         realised mortality rate to the maximum rate.
-        mass_current (float): The current mass of the animal cohort.
-        mass_max (float): The maximum body mass ever achieved by individuals of this
-         type.
-        expected_mortality (float): The expected mortality rate.
-        param_id (str): Identifier for the test case.
-
-    """
+    """Test the calculation of starvation mortality based on body mass."""
     from virtual_ecosystem.models.animals.scaling_functions import starvation_mortality
 
     # Diagnostics
