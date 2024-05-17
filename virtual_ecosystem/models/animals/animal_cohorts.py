@@ -769,7 +769,13 @@ class AnimalCohort:
     def inflict_non_predation_mortality(
         self, dt: float, carcass_pool: CarcassPool
     ) -> None:
-        """Inflict combined background, senescence, and starvation mortalities."""
+        """Inflict combined background, senescence, and starvation mortalities.
+
+        Args:
+            dt: The time passed in the timestep (days).
+            carcass_pool: The local carcass pool to which dead individuals go.
+
+        """
 
         pop_size = self.individuals
         mass_current = self.mass_current
