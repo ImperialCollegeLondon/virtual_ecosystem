@@ -1,7 +1,5 @@
 """Test module for scaling_functions.py."""
 
-from math import exp
-
 import pytest
 
 
@@ -278,24 +276,18 @@ def test_background_mortality(input_value, expected_output):
 @pytest.mark.parametrize(
     "lambda_se, t_to_maturity, t_since_maturity, expected_mortality",
     [
-        pytest.param(0.01, 100, 50, 0.07389056, id="typical_case"),
-        pytest.param(0.01, 50, 100, 0.01648721, id="more_since_than_to"),
+        pytest.param(0.01, 100, 50, 0.01648721, id="typical_case"),
+        pytest.param(0.01, 50, 100, 0.07389056, id="more_since_than_to"),
         pytest.param(0.0, 100, 50, 0.0, id="zero_senescence_rate"),
         pytest.param(
             0.01,
             0,
             100,
-            0.01,
+            None,
             id="zero_time_to_maturity",
-        ),
-        pytest.param(
-            0.01,
-            100,
-            0,
-            0.0,
-            id="zero_time_since_maturity",
             marks=pytest.mark.xfail(reason="Division by zero"),
         ),
+        pytest.param(0.01, 100, 0, 0.01, id="zero_time_since_maturity"),
     ],
 )
 def test_senescence_mortality(
@@ -303,61 +295,89 @@ def test_senescence_mortality(
 ):
     """Test the calculation of senescence mortality rate."""
 
-    # Calculate mortality using the imported function from your module
     from virtual_ecosystem.models.animals.scaling_functions import senescence_mortality
 
-    result = senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
-    assert result == pytest.approx(
-        expected_mortality
-    ), "The calculated mortality did not match the expected value."
+    if t_to_maturity == 0:
+        with pytest.raises(ZeroDivisionError):
+            senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
+    else:
+        result = senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
+        assert result == pytest.approx(
+            expected_mortality
+        ), "The calculated mortality did not match the expected value."
 
 
 @pytest.mark.parametrize(
-    "lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality",
+    "lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality, param_id",
     [
         pytest.param(
-            0.1,
-            0.5,
+            1.0,
+            0.6,
             0.05,
             50,
             100,
-            0.1 / (1 + exp(-((50 - 0.5 * 100) / (0.05 * 100)))),
-            id="normal_case",
+            0.880797077,
+            "half_mass_case",
+            id="half_mass_case",
         ),
         pytest.param(
-            0.1,
-            0.5,
+            1.0,
+            0.6,
             0.05,
             0,
             100,
-            0.1 / (1 + exp(-((0 - 0.5 * 100) / (0.05 * 100)))),
+            0.999993855,
+            "zero_mass",
             id="zero_mass",
         ),
         pytest.param(
-            0.1,
-            0.5,
+            1.0,
+            0.6,
             0.05,
             100,
             100,
-            0.1 / (1 + exp(-((100 - 0.5 * 100) / (0.05 * 100)))),
+            0.00033535,
+            "mass_equals_max",
             id="mass_equals_max",
         ),
         pytest.param(
-            0.1,
-            0.5,
+            1.0,
+            0.6,
             0.05,
             200,
             100,
-            0.1 / (1 + exp(-((200 - 0.5 * 100) / (0.05 * 100)))),
+            0.0,
+            "mass_exceeds_max",
             id="mass_exceeds_max",
         ),
     ],
 )
 def test_starvation_mortality(
-    lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality
+    lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality, param_id
 ):
-    """Test the calculation of starvation mortality based on body mass."""
+    """Test the calculation of starvation mortality based on body mass.
+
+    Args:
+        lambda_max (float): The maximum possible instantaneous fractional starvation
+         mortality rate.
+        J_st (float): Determines the inflection point of the logistic function
+         describing the ratio of the realised mortality rate to the maximum rate.
+        zeta_st (float): The scaling of the logistic function describing the ratio of
+                         realised mortality rate to the maximum rate.
+        mass_current (float): The current mass of the animal cohort.
+        mass_max (float): The maximum body mass ever achieved by individuals of this
+         type.
+        expected_mortality (float): The expected mortality rate.
+        param_id (str): Identifier for the test case.
+
+    """
     from virtual_ecosystem.models.animals.scaling_functions import starvation_mortality
+
+    # Diagnostics
+    print(
+        f"Testing with: lambda_max={lambda_max}, J_st={J_st}, zeta_st={zeta_st}, "
+        f"mass_current={mass_current}, mass_max={mass_max}, param_id={param_id}"
+    )
 
     # Call the function with provided parameters
     mortality_rate = starvation_mortality(
@@ -365,9 +385,16 @@ def test_starvation_mortality(
     )
 
     # Assert that the returned mortality rate matches the expected mortality rate
-    assert mortality_rate == pytest.approx(
-        expected_mortality
-    ), "The calculated starvation mortality does not match the expected value."
+    assert mortality_rate == pytest.approx(expected_mortality), (
+        f"Test {param_id}: The calculated starvation mortality {mortality_rate} does"
+        f" not match the expected value {expected_mortality}."
+    )
+
+    # Diagnostics
+    print(
+        f"Test {param_id} passed: Calculated mortality rate: {mortality_rate}, "
+        f"Expected mortality rate: {expected_mortality}"
+    )
 
 
 @pytest.mark.parametrize(

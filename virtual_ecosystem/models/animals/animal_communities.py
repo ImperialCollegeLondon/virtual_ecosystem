@@ -350,7 +350,7 @@ class AnimalCommunity:
         """
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.all_animal_cohorts:
-            cohort.total_non_predation_mortality(number_of_days)
+            cohort.total_non_predation_mortality(number_of_days, self.carcass_pool)
             if cohort.individuals <= 0:
                 cohort.is_alive = False
                 self.remove_dead_cohort(cohort)

@@ -766,7 +766,9 @@ class AnimalCohort:
 
         return min(1.0, probability_of_dispersal)
 
-    def total_non_predation_mortality(self, dt: float) -> None:
+    def total_non_predation_mortality(
+        self, dt: float, carcass_pool: CarcassPool
+    ) -> None:
         """Combine background, senescence, and starvation mortalities."""
 
         pop_size = self.individuals
@@ -802,4 +804,4 @@ class AnimalCohort:
         number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
 
         # Remove the dead individuals from the cohort
-        self.individuals -= number_dead
+        self.die_individual(number_dead, carcass_pool)

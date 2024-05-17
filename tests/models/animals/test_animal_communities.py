@@ -483,7 +483,7 @@ class TestAnimalCommunity:
         ],
     )
     def test_inflict_natural_mortality_community(
-        self, animal_community_instance, mocker, days
+        self, mocker, animal_community_instance, days
     ):
         """Testing natural mortality infliction for the entire community."""
         from numpy import timedelta64
@@ -506,7 +506,9 @@ class TestAnimalCommunity:
         # Assert the total_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
-                mock_mortality.assert_called_with(number_of_days)
+                mock_mortality.assert_called_with(
+                    number_of_days, animal_community_instance.carcass_pool
+                )
 
         # Check if cohorts with no individuals left are flagged as not alive
         for cohorts in animal_community_instance.animal_cohorts.values():

@@ -291,6 +291,13 @@ def senescence_mortality(
 ) -> float:
     """Age-based mortality.
 
+    Madingley describes the equation as exp(time_to_maturity/time_since_maturity) but I
+    suspect this is an error and that it should be inverted. If, for example, it took
+    1000 days to reach maturity and the cohort had been mature for 1 day, then the
+    instantaneous rate of senescence mortality would be lambda_se * exp(1000/1). This
+    would also mean that the rate of senescence would decrease over time. Therefore, I
+    have inverted the relationship below.
+
     Args:
         lambda_se: The instantaneous rate of senescence mortality at point of maturity
                     [day^-1].
@@ -305,7 +312,7 @@ def senescence_mortality(
     t_pm = t_to_maturity  # time it took to reach maturity
     t_bm = t_since_maturity  # time since maturity
 
-    u_se = lambda_se * exp(t_pm / t_bm)
+    u_se = lambda_se * exp(t_bm / t_pm)
 
     return u_se
 
@@ -314,6 +321,9 @@ def starvation_mortality(
     lambda_max: float, J_st: float, zeta_st: float, mass_current: float, mass_max: float
 ) -> float:
     """Mortality from body-mass loss.
+
+    There is a error in the madingley paper that does not follow their source code. The
+    paper uses exp(k) instead of exp(-k).
 
     Args:
         lambda_max: The maximum possible instantaneous fractional starvation mortality
@@ -332,8 +342,8 @@ def starvation_mortality(
 
     M_i_t = mass_current
     M_i_max = mass_max
-
-    u_st = lambda_max / (1 + exp(-(M_i_t - J_st * M_i_max) / (zeta_st * M_i_max)))
+    k = -(M_i_t - J_st * M_i_max) / (zeta_st * M_i_max)  # extra step to follow source
+    u_st = lambda_max / (1 + exp(-k))
 
     return u_st
 

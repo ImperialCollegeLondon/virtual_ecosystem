@@ -1015,3 +1015,131 @@ class TestAnimalCohort:
         assert (
             probability_of_dispersal == expected_probability
         ), "The probability calculated did not match the expected probability."
+
+    @pytest.mark.parametrize(
+        "is_mature, u_bg, lambda_se, t_to_maturity, t_since_maturity, lambda_max, J_st,"
+        "zeta_st, mass_current, mass_max, dt, expected_dead",
+        [
+            pytest.param(
+                True,
+                0.001,
+                0.003,
+                365,
+                30,
+                1.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                30,
+                13,
+                id="mature_with_all_mortalities",
+            ),
+            pytest.param(
+                False,
+                0.001,
+                0.003,
+                365,
+                30,
+                1.0,
+                0.6,
+                0.05,
+                600,
+                600,
+                30,
+                4,
+                id="immature_without_senescence",
+            ),
+        ],
+    )
+    def test_total_non_predation_mortality(
+        self,
+        mocker,
+        is_mature,
+        u_bg,
+        lambda_se,
+        t_to_maturity,
+        t_since_maturity,
+        lambda_max,
+        J_st,
+        zeta_st,
+        mass_current,
+        mass_max,
+        dt,
+        expected_dead,
+        predator_cohort_instance,
+        carcass_pool_instance,
+    ):
+        """Test the calculation of total non-predation mortality in a cohort."""
+        from math import ceil, exp
+
+        import virtual_ecosystem.models.animals.scaling_functions as sf
+
+        # Use the predator cohort instance and set initial individuals to 100
+        cohort = predator_cohort_instance
+        cohort.individuals = 100  # Set initial individuals count
+        cohort.is_mature = is_mature
+        cohort.mass_current = mass_current
+        cohort.time_to_maturity = t_to_maturity
+        cohort.time_since_maturity = t_since_maturity
+        cohort.functional_group.adult_mass = mass_max
+
+        # Mocking the mortality functions to return predefined values
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.background_mortality",
+            return_value=u_bg,
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.senescence_mortality",
+            return_value=(
+                lambda_se * exp(t_since_maturity / t_to_maturity) if is_mature else 0.0
+            ),
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animals.scaling_functions.starvation_mortality",
+            return_value=(
+                lambda_max
+                / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))
+            ),
+        )
+
+        # Diagnostics
+        print(f"Initial individuals: {cohort.individuals}")
+
+        # Run the method
+        cohort.total_non_predation_mortality(dt, carcass_pool_instance)
+
+        # Calculate expected number of deaths inside the test
+        u_bg_value = sf.background_mortality(u_bg)
+        u_se_value = (
+            sf.senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
+            if is_mature
+            else 0.0
+        )
+        u_st_value = sf.starvation_mortality(
+            lambda_max, J_st, zeta_st, mass_current, mass_max
+        )
+        u_t = u_bg_value + u_se_value + u_st_value
+
+        number_dead = ceil(100 * (1 - exp(-u_t * dt)))
+
+        # Diagnostics
+        print(
+            f"background: {u_bg_value},"
+            f"senescence: {u_se_value},"
+            f"starvation: {u_st_value}"
+        )
+        print(f"Calculated total mortality rate: {u_t}")
+        print(
+            f"Calculated number dead: {number_dead},"
+            f"Expected number dead: {expected_dead}"
+        )
+        print(
+            f"Remaining individuals: {cohort.individuals},"
+            f"Expected remaining: {100 - expected_dead}"
+        )
+
+        # Verify
+        assert (
+            cohort.individuals == 100 - expected_dead
+        ), "The calculated number of dead individuals doesn't match the expected value."
