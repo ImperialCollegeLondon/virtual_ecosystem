@@ -338,7 +338,7 @@ class AnimalCommunity:
         for cohort in self.all_animal_cohorts:
             cohort.increase_age(dt)
 
-    def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
+    def inflict_non_predation_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
 
         This includes background mortality, starvation, and, for mature cohorts,
@@ -350,7 +350,7 @@ class AnimalCommunity:
         """
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.all_animal_cohorts:
-            cohort.total_non_predation_mortality(number_of_days, self.carcass_pool)
+            cohort.inflict_non_predation_mortality(number_of_days, self.carcass_pool)
             if cohort.individuals <= 0:
                 cohort.is_alive = False
                 self.remove_dead_cohort(cohort)

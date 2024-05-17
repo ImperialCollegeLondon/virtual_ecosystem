@@ -766,10 +766,10 @@ class AnimalCohort:
 
         return min(1.0, probability_of_dispersal)
 
-    def total_non_predation_mortality(
+    def inflict_non_predation_mortality(
         self, dt: float, carcass_pool: CarcassPool
     ) -> None:
-        """Combine background, senescence, and starvation mortalities."""
+        """Inflict combined background, senescence, and starvation mortalities."""
 
         pop_size = self.individuals
         mass_current = self.mass_current

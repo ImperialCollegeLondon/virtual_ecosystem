@@ -1052,7 +1052,7 @@ class TestAnimalCohort:
             ),
         ],
     )
-    def test_total_non_predation_mortality(
+    def test_inflict_non_predation_mortality(
         self,
         mocker,
         is_mature,
@@ -1107,7 +1107,7 @@ class TestAnimalCohort:
         print(f"Initial individuals: {cohort.individuals}")
 
         # Run the method
-        cohort.total_non_predation_mortality(dt, carcass_pool_instance)
+        cohort.inflict_non_predation_mortality(dt, carcass_pool_instance)
 
         # Calculate expected number of deaths inside the test
         u_bg_value = sf.background_mortality(u_bg)

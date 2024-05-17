@@ -482,7 +482,7 @@ class TestAnimalCommunity:
             pytest.param(10, id="ten_days"),
         ],
     )
-    def test_inflict_natural_mortality_community(
+    def test_inflict_non_predation_mortality_community(
         self, mocker, animal_community_instance, days
     ):
         """Testing natural mortality infliction for the entire community."""
@@ -492,18 +492,18 @@ class TestAnimalCommunity:
 
         animal_community_instance.populate_community()
 
-        # Mock the total_non_predation_mortality method
+        # Mock the inflict_non_predation_mortality method
         mock_mortality = mocker.patch(
             "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
-            "total_non_predation_mortality"
+            "inflict_non_predation_mortality"
         )
 
         # Call the community method to inflict natural mortality
-        animal_community_instance.inflict_natural_mortality_community(dt)
+        animal_community_instance.inflict_non_predation_mortality_community(dt)
 
         number_of_days = float(dt / timedelta64(1, "D"))
 
-        # Assert the total_non_predation_mortality method was called for each cohort
+        # Assert the inflict_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
                 mock_mortality.assert_called_with(

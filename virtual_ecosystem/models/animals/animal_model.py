@@ -249,7 +249,7 @@ class AnimalModel(
                 float(self.data["air_temperature"][0][community.community_key].values),
                 self.update_interval_timedelta,
             )
-            community.inflict_natural_mortality_community(
+            community.inflict_non_predation_mortality_community(
                 self.update_interval_timedelta
             )
             community.remove_dead_cohort_community()
