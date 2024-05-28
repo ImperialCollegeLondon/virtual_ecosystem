@@ -397,7 +397,7 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         np.concatenate(
             [
                 [[np.nan, np.nan, np.nan]] * 13,
-                [[20.713125, 20.712525, 20.712458], [20.0] * 3],
+                [[20.713167, 20.708367, 20.707833], [20.0] * 3],
             ],
             axis=0,
         ),
@@ -415,9 +415,9 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
             [
                 [[np.nan, np.nan, np.nan]],
                 [
-                    [0.495047, 0.495047, 0.495047],
-                    [0.483498, 0.483498, 0.483498],
-                    [0.46169, 0.46169, 0.46169],
+                    [0.496563, 0.496563, 0.496563],
+                    [0.485763, 0.485763, 0.485763],
+                    [0.465142, 0.465142, 0.465142],
                 ],
                 [[np.nan, np.nan, np.nan]] * 11,
             ],
@@ -445,17 +445,14 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     )
 
     # TODO fix fluxes from soil
-    # exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    # lat_heat_vals = [27.916181, 27.386375, 15.775225, 1]
-    # exp_latent_heat.T[..., [1, 2, 3, 13]] = lat_heat_vals
     exp_latent_heat = DataArray(
         np.concatenate(
             [
                 [[np.nan, np.nan, np.nan]],
                 [
-                    [27.916181, 27.916181, 27.916181],
-                    [27.386375, 27.386375, 27.386375],
-                    [15.775225, 15.775225, 15.775225],
+                    [28.07077, 28.07077, 28.07077],
+                    [27.568713, 27.568715, 27.568716],
+                    [16.006245, 16.006317, 16.006325],
                 ],
                 [[np.nan, np.nan, np.nan]] * 9,
                 [[2.254, 22.54, 225.4]],
@@ -467,10 +464,21 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         model.data["latent_heat_flux"], exp_latent_heat, rtol=1e-04, atol=1e-04
     )
 
-    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    sens_heat_vals = [-16.814787, -16.29302, -5.416152, -185.669563]
-    exp_sens_heat.T[..., [1, 2, 3, 13]] = sens_heat_vals
-
+    exp_sens_heat = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [-16.970825, -16.970825, -16.970825],
+                    [-16.47644, -16.47644, -16.47644],
+                    [-5.637158, -5.637226, -5.637233],
+                ],
+                [[np.nan, np.nan, np.nan]] * 9,
+                [[-192.074608, -192.074608, -192.074608]],
+                [[np.nan, np.nan, np.nan]],
+            ]
+        )
+    )
     np.testing.assert_allclose(
         model.data["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
     )
