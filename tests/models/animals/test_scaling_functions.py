@@ -462,3 +462,31 @@ def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time):
         assert calculated_handling_time == pytest.approx(
             expected_handling_time, rel=1e-6
         )
+
+
+@pytest.mark.parametrize(
+    "current_mass, V_disp, M_disp_ref, o_disp, expected_speed",
+    [
+        pytest.param(1.0, 10.0, 1.0, 1.0, 10.0, id="reference_mass"),
+        pytest.param(0.5, 10.0, 1.0, 1.0, 5.0, id="half_reference_mass"),
+        pytest.param(2.0, 10.0, 1.0, 1.0, 20.0, id="double_reference_mass"),
+        pytest.param(1.0, 20.0, 1.0, 1.0, 20.0, id="double_speed"),
+        pytest.param(1.0, 10.0, 1.0, 0.5, 10.0, id="sqrt_scaling"),
+        pytest.param(
+            4.0, 10.0, 2.0, 0.5, 14.142135, id="sqrt_scaling_with_different_ref"
+        ),
+        pytest.param(0.0, 10.0, 1.0, 1.0, 0.0, id="zero_mass"),
+    ],
+)
+def test_juvenile_dispersal_speed(
+    current_mass, V_disp, M_disp_ref, o_disp, expected_speed
+):
+    """Testing the juvenile dispersal speed calculation for various scenarios."""
+    from virtual_ecosystem.models.animals.scaling_functions import (
+        juvenile_dispersal_speed,
+    )
+
+    calculated_speed = juvenile_dispersal_speed(
+        current_mass, V_disp, M_disp_ref, o_disp
+    )
+    assert calculated_speed == pytest.approx(expected_speed, rel=1e-6)

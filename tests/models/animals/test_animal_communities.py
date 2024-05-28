@@ -115,45 +115,96 @@ class TestAnimalCommunity:
             ]
         )
 
+    @pytest.mark.parametrize(
+        "mass_ratio, age, probability_output, should_migrate",
+        [
+            (0.5, 5.0, False, True),  # Starving non-juvenile, should migrate
+            (
+                1.0,
+                0.0,
+                False,
+                False,
+            ),  # Well-fed juvenile, low probability, should not migrate
+            (
+                1.0,
+                0.0,
+                True,
+                True,
+            ),  # Well-fed juvenile, high probability, should migrate
+            (
+                0.5,
+                0.0,
+                True,
+                True,
+            ),  # Starving juvenile, high probability, should migrate
+            (
+                0.5,
+                0.0,
+                False,
+                True,
+            ),  # Starving juvenile, low probability, should migrate due to starvation
+            (1.0, 5.0, False, False),  # Well-fed non-juvenile, should not migrate
+        ],
+        ids=[
+            "starving_non_juvenile",
+            "well_fed_juvenile_low_prob",
+            "well_fed_juvenile_high_prob",
+            "starving_juvenile_high_prob",
+            "starving_juvenile_low_prob",
+            "well_fed_non_juvenile",
+        ],
+    )
     def test_migrate_community(
         self,
+        mocker,
         animal_community_instance,
         animal_community_destination_instance,
         animal_cohort_instance,
-        mocker,
+        mass_ratio,
+        age,
+        probability_output,
+        should_migrate,
     ):
-        """Test migration of cohorts below the mass threshold."""
+        """Test migration of cohorts for both starving and juvenile conditions."""
 
-        # Mock the get_destination callable in this specific test context.
+        cohort = animal_cohort_instance
+        cohort.age = age
+        cohort.mass_current = cohort.functional_group.adult_mass * mass_ratio
+
+        # Mock the get_destination callable to return a specific community.
         mocker.patch.object(
             animal_community_instance,
             "get_destination",
             return_value=animal_community_destination_instance,
         )
 
-        # Create a low mass cohort and append it to the source community.
-        low_mass_cohort = animal_cohort_instance
-        low_mass_cohort.mass_current = low_mass_cohort.functional_group.adult_mass / 2
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            low_mass_cohort
+        # Append cohort to the source community
+        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(cohort)
+
+        # Mock `migrate_juvenile_probability` to control juvenile migration logic
+        mocker.patch.object(
+            cohort, "migrate_juvenile_probability", return_value=probability_output
         )
 
         # Perform the migration
         animal_community_instance.migrate_community()
 
-        # Check that the cohort has been removed from the source community
-        assert (
-            low_mass_cohort
-            not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-        )
-
-        # Check that the cohort has been added to the destination community
-        assert (
-            low_mass_cohort
-            in animal_community_destination_instance.animal_cohorts[
-                "herbivorous_mammal"
-            ]
-        )
+        # Check migration outcome based on expected results
+        if should_migrate:
+            assert (
+                cohort
+                not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
+            )
+            assert (
+                cohort
+                in animal_community_destination_instance.animal_cohorts[
+                    "herbivorous_mammal"
+                ]
+            )
+        else:
+            assert (
+                cohort in animal_community_instance.animal_cohorts["herbivorous_mammal"]
+            )
 
     def test_remove_dead_cohort(
         self, animal_cohort_instance, animal_community_instance

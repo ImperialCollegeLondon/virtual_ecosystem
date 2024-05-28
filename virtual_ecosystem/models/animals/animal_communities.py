@@ -8,9 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable, Iterable
 from itertools import chain
-from random import choice
 
 from numpy import timedelta64
 
@@ -116,10 +116,11 @@ class AnimalCommunity:
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
-        Travel distance is not currently a function of body-size or locomotion.
+        Travel distance is not currently a function of body-size or locomotion for
+        starvation dispersal.
 
-        TODO: Implement juvenile dispersal.
-        TODO: Implement low-density trigger.
+        TODO: Implement low-density trigger. [might not actually do this, requires
+                cohort merging.]
 
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
@@ -131,13 +132,27 @@ class AnimalCommunity:
         destination.animal_cohorts[migrant.name].append(migrant)
 
     def migrate_community(self) -> None:
-        """This handles migrating all cohorts in a community."""
+        """This handles migrating all cohorts in a community.
+
+        This migration method initiates migration for two reasons:
+        1) The cohort is starving and needs to move for a chance at resource access
+        2) An initial migration event immediately after birth.
+
+        """
         for cohort in self.all_animal_cohorts:
-            if cohort.is_below_mass_threshold(self.constants.dispersal_mass_threshold):
-                # Random walk destination from the neighbouring keys
-                destination_key = choice(self.neighbouring_keys)
-                destination = self.get_destination(destination_key)
-                self.migrate(cohort, destination)
+            migrate = cohort.is_below_mass_threshold(
+                self.constants.dispersal_mass_threshold
+            ) or (
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
+            )
+
+            if not migrate:
+                return
+
+            destination_key = random.choice(self.neighbouring_keys)
+            destination = self.get_destination(destination_key)
+            self.migrate(cohort, destination)
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
         """Remove a dead cohort from a community.
@@ -184,16 +199,16 @@ class AnimalCommunity:
         # reduce reproductive mass by amount used to generate offspring
         parent_cohort.reproductive_mass = 0.0
 
-        # add a new cohort of the parental type to the community
-        self.animal_cohorts[parent_cohort.name].append(
-            AnimalCohort(
-                parent_cohort.functional_group,
-                parent_cohort.functional_group.birth_mass,
-                0.0,
-                number_offspring,
-                self.constants,
-            )
+        offspring_cohort = AnimalCohort(
+            parent_cohort.functional_group,
+            parent_cohort.functional_group.birth_mass,
+            0.0,
+            number_offspring,
+            self.constants,
         )
+
+        # add a new cohort of the parental type to the community
+        self.animal_cohorts[parent_cohort.name].append(offspring_cohort)
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
