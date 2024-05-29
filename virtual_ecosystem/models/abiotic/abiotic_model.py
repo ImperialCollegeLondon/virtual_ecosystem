@@ -61,7 +61,7 @@ class AbioticModel(
         "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
-        "air_heat_conductivity",
+        "air_conductivity",
         "conductivity_from_ref_height",
         "leaf_air_heat_conductivity",
         "leaf_vapour_conductivity",
@@ -76,6 +76,8 @@ class AbioticModel(
         "ground_heat_flux",
         "soil_absorption",
         "longwave_emission_soil",
+        "molar_density_air",
+        "specific_heat_air",
     ),
 ):
     """A class describing the abiotic model.
