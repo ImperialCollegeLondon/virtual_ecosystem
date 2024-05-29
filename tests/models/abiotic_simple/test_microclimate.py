@@ -5,13 +5,14 @@ import xarray as xr
 from xarray import DataArray
 
 
-def test_log_interpolation(dummy_climate_data, fixture_core_components):
+def test_log_interpolation(
+    dummy_climate_data, fixture_core_components, fixture_empty_array
+):
     """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
 
     data = dummy_climate_data
-
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # temperature
@@ -26,18 +27,7 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
         gradient=-2.45,
     )
 
-    exp_air_temp = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": [0, 1, 2],
-        },
-    )
+    exp_air_temp = fixture_empty_array
     t_vals = [30.0, 29.844995, 28.87117, 27.206405, 22.65, 16.145945]
     exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
     xr.testing.assert_allclose(result, exp_air_temp)
@@ -54,33 +44,23 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
         gradient=5.4,
     )
 
-    exp_humidity = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": [0, 1, 2],
-        },
-    )
+    exp_humidity = fixture_empty_array
     humidity_vals = [90.0, 90.341644, 92.488034, 96.157312, 100.0, 100.0]
     exp_humidity.T[..., [0, 1, 2, 3, 11, 12]] = humidity_vals
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
 
-def test_ragged_log_interpolation(dummy_climate_data, fixture_core_components):
+def test_ragged_log_interpolation(
+    dummy_climate_data, fixture_core_components, fixture_empty_array
+):
     """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
 
     data = dummy_climate_data
-
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
-    layer_heights = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    layer_heights = fixture_empty_array
     layer_heights[[0, 1, 2, 3, 11, 12], :] = [
         [32.0, 32.0, 32.0],
         [30.0, 30.0, 30.0],
@@ -102,18 +82,7 @@ def test_ragged_log_interpolation(dummy_climate_data, fixture_core_components):
         gradient=-2.45,
     )
 
-    exp_air_temp = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": [0, 1, 2],
-        },
-    )
+    exp_air_temp = fixture_empty_array
     exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
         [30.0, 30.0, 30.0],
         [29.844995, 29.844995, 29.844995],
@@ -151,7 +120,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     xr.testing.assert_allclose(result, exp_output)
 
 
-def test_calculate_vapour_pressure_deficit():
+def test_calculate_vapour_pressure_deficit(fixture_empty_array):
     """Test calculation of VPD."""
 
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
@@ -159,52 +128,12 @@ def test_calculate_vapour_pressure_deficit():
         calculate_vapour_pressure_deficit,
     )
 
-    temperature = xr.concat(
-        [
-            DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.844995, 29.844995, 29.844995],
-                    [28.87117, 28.87117, 28.87117],
-                    [27.206405, 27.206405, 27.206405],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [22.65, 22.65, 22.65],
-                    [16.145945, 16.145945, 16.145945],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    )
-    rel_humidity = xr.concat(
-        [
-            DataArray(
-                [
-                    [90.0, 90.0, 90.0],
-                    [88.5796455, 88.5796455, 88.5796455],
-                    [79.65622765, 79.65622765, 79.65622765],
-                    [64.40154408, 64.40154408, 64.40154408],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [22.65, 22.65, 22.65],
-                    [0, 0, 0],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    )
+    temperature = fixture_empty_array
+    t_vals = [30.0, 29.844995, 28.87117, 27.206405, 22.65, 16.145945]
+    temperature.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
+    rel_humidity = fixture_empty_array
+    humidity_vals = [90.0, 90.341644, 92.488034, 96.157312, 100.0, 100.0]
+    rel_humidity.T[..., [0, 1, 2, 3, 11, 12]] = humidity_vals
 
     constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
@@ -214,30 +143,64 @@ def test_calculate_vapour_pressure_deficit():
             constants.saturation_vapour_pressure_factors
         ),
     )
-    exp_output = xr.concat(
-        [
-            DataArray(
-                [
-                    [0.141727, 0.141727, 0.141727],
-                    [0.161233, 0.161233, 0.161233],
-                    [0.280298, 0.280298, 0.280298],
-                    [0.470266, 0.470266, 0.470266],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [[0.90814, 0.90814, 0.90814], [0.984889, 0.984889, 0.984889]],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    )
+    exp_output = fixture_empty_array
+    vpd_vals = [0.480333, 0.466561, 0.375935, 0.204072, 0.0, 0.0]
+    exp_output.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
+
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
-def test_run_microclimate(dummy_climate_data, fixture_core_components):
+def test_ragged_calculate_vapour_pressure_deficit(fixture_empty_array):
+    """Test calculation of VPD with different number of canopy layers."""
+
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.microclimate import (
+        calculate_vapour_pressure_deficit,
+    )
+
+    temperature = fixture_empty_array
+    temperature[[0, 1, 2, 3, 11, 12], :] = [
+        [30.0, 30.0, 30.0],
+        [29.844995, 29.844995, 29.844995],
+        [28.87117, 28.87117, np.nan],
+        [27.206405, np.nan, np.nan],
+        [22.65, 22.65, 22.65],
+        [16.145945, 16.145945, 16.145945],
+    ]
+
+    rel_humidity = fixture_empty_array
+    rel_humidity[[0, 1, 2, 3, 11, 12], :] = [
+        [90.0, 90.0, 90.0],
+        [90.341644, 90.341644, 90.341644],
+        [92.488034, 92.488034, np.nan],
+        [96.157312, np.nan, np.nan],
+        [100.0, 100.0, 100.0],
+        [100.0, 100.0, 100.0],
+    ]
+
+    constants = AbioticSimpleConsts()
+    result = calculate_vapour_pressure_deficit(
+        temperature=temperature,
+        relative_humidity=rel_humidity,
+        saturation_vapour_pressure_factors=(
+            constants.saturation_vapour_pressure_factors
+        ),
+    )
+    exp_output = fixture_empty_array
+    exp_output[[0, 1, 2, 3, 11, 12], :] = [
+        [0.480333, 0.480333, 0.480333],
+        [0.466561, 0.466561, 0.466561],
+        [0.375935, 0.375935, np.nan],
+        [0.204072, np.nan, np.nan],
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+    ]
+    xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
+
+
+def test_run_microclimate(
+    dummy_climate_data, fixture_core_components, fixture_empty_array
+):
     """Test interpolation of all variables."""
 
     from virtual_ecosystem.models.abiotic_simple.constants import (
@@ -256,42 +219,23 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         bounds=AbioticSimpleBounds(),
     )
 
-    exp_air_temperature = xr.concat(
-        [
-            DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.91965, 29.91965, 29.91965],
-                    [29.414851, 29.414851, 29.414851],
-                    [28.551891, 28.551891, 28.551891],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [26.19, 26.19, 26.19],
-                    [22.81851, 22.81851, 22.81851],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result["air_temperature"], exp_air_temperature)
+    exp_air_temp = fixture_empty_array
+    exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
+        [30.0, 30.0, 30.0],
+        [29.91965, 29.91965, 29.91965],
+        [29.414851, 29.414851, 29.414851],
+        [28.551891, 28.551891, 28.551891],
+        [26.19, 26.19, 26.19],
+        [22.81851, 22.81851, 22.81851],
+    ]
+    xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
 
-    exp_atmospheric_pressure = xr.concat(
-        [
-            DataArray(
-                np.full((13, 3), 96.0),
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
+    soil_values = DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"])
+    pressure_values = DataArray(np.full((13, 3), 96.0), dims=["layers", "cell_id"])
+    exp_pressure = xr.concat(
+        [pressure_values, soil_values], dim="layers"
     ).assign_coords(data["layer_heights"].coords)
-    xr.testing.assert_allclose(result["atmospheric_pressure"], exp_atmospheric_pressure)
+    xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
 
 def test_interpolate_soil_temperature(dummy_climate_data):
@@ -303,10 +247,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
 
     data = dummy_climate_data
 
-    surface_temperature = DataArray(
-        [22.0, 22, 22],
-        dims="cell_id",
-    )
+    surface_temperature = DataArray([22.0, 22.0, 22.0], dims="cell_id")
     result = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=surface_temperature,

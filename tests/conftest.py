@@ -140,6 +140,24 @@ def fixture_data(fixture_square_grid_simple):
 
 
 @pytest.fixture
+def fixture_empty_array(fixture_core_components):
+    """An empty array to construct full layer structure."""
+
+    return DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(0, 15),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
+            "cell_id": [0, 1, 2],
+        },
+    )
+
+
+@pytest.fixture
 def data_instance():
     """Creates an empty data instance."""
     from virtual_ecosystem.core.data import Data
