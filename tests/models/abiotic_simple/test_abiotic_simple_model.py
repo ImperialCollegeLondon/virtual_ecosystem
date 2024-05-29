@@ -184,7 +184,6 @@ def test_setup(
     )
 
     model.setup()
-
     xr.testing.assert_allclose(
         model.data["soil_temperature"],
         DataArray(
@@ -192,59 +191,44 @@ def test_setup(
             dims=["layers", "cell_id"],
             coords={
                 "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    core_components.layer_structure.layer_roles,
-                ),
+                "layer_roles": ("layers", core_components.layer_structure.layer_roles),
                 "cell_id": [0, 1, 2],
             },
         ),
     )
+
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
             np.full((3, 3), 0.141727),
             dims=["cell_id", "time_index"],
-            coords={
-                "cell_id": [0, 1, 2],
-            },
+            coords={"cell_id": [0, 1, 2]},
         ),
     )
 
     # Run the update step
     model.update(time_index=0)
 
-    exp_temperature = xr.concat(
-        [
-            DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.91965, 29.91965, 29.91965],
-                    [29.414851, 29.414851, 29.414851],
-                    [28.551891, 28.551891, 28.551891],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [26.19, 26.19, 26.19],
-                    [22.81851, 22.81851, 22.81851],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
+    for var in [
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ]:
+        assert var in model.data
+
+    exp_air_temp = DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords={
             "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                core_components.layer_structure.layer_roles,
-            ),
+            "layer_roles": ("layers", core_components.layer_structure.layer_roles),
             "cell_id": [0, 1, 2],
         },
     )
+    t_vals = [30.0, 29.91965, 29.414851, 28.551891, 26.19, 22.81851]
+    exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
-    xr.testing.assert_allclose(dummy_climate_data["air_temperature"], exp_temperature)
+    xr.testing.assert_allclose(dummy_climate_data["air_temperature"], exp_air_temp)
