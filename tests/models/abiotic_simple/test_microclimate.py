@@ -26,39 +26,21 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
         gradient=-2.45,
     )
 
-    exp_output = xr.concat(
-        [
-            DataArray(
-                [
-                    [30.0, 30.0, 30.0],
-                    [29.844995, 29.844995, 29.844995],
-                    [28.87117, 28.87117, 28.87117],
-                    [27.206405, 27.206405, 27.206405],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [22.65, 22.65, 22.65],
-                    [16.145945, 16.145945, 16.145945],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
+    exp_air_temp = DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords={
             "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                fixture_core_components.layer_structure.layer_roles[0:15],
+                fixture_core_components.layer_structure.layer_roles,
             ),
-            "cell_id": data.grid.cell_id,
-        }
+            "cell_id": [0, 1, 2],
+        },
     )
-    xr.testing.assert_allclose(result, exp_output)
+    t_vals = [30.0, 29.844995, 28.87117, 27.206405, 22.65, 16.145945]
+    exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
+    xr.testing.assert_allclose(result, exp_air_temp)
 
     # relative humidity
     result_hum = log_interpolation(
@@ -71,39 +53,76 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
         lower_bound=0,
         gradient=5.4,
     )
-    exp_humidity = xr.concat(
-        [
-            DataArray(
-                [
-                    [90.0, 90.0, 90.0],
-                    [90.341644, 90.341644, 90.341644],
-                    [92.488034, 92.488034, 92.488034],
-                    [96.157312, 96.157312, 96.157312],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((7, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(
-                [
-                    [100, 100, 100],
-                    [100, 100, 100],
-                ],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
+
+    exp_humidity = DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords={
             "layers": np.arange(0, 15),
             "layer_roles": (
                 "layers",
-                fixture_core_components.layer_structure.layer_roles[0:15],
+                fixture_core_components.layer_structure.layer_roles,
             ),
-            "cell_id": data.grid.cell_id,
-        }
+            "cell_id": [0, 1, 2],
+        },
     )
+    humidity_vals = [90.0, 90.341644, 92.488034, 96.157312, 100.0, 100.0]
+    exp_humidity.T[..., [0, 1, 2, 3, 11, 12]] = humidity_vals
     xr.testing.assert_allclose(result_hum, exp_humidity)
+
+
+def test_ragged_log_interpolation(dummy_climate_data, fixture_core_components):
+    """Test interpolation for temperature and humidity non-negative."""
+
+    from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
+
+    data = dummy_climate_data
+
+    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
+
+    layer_heights = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    layer_heights[[0, 1, 2, 3, 11, 12], :] = [
+        [32.0, 32.0, 32.0],
+        [30.0, 30.0, 30.0],
+        [20.0, 20.0, np.nan],
+        [10.0, np.nan, np.nan],
+        [1.5, 1.5, 1.5],
+        [0.1, 0.1, 0.1],
+    ]
+
+    # temperature
+    result = log_interpolation(
+        data=data,
+        reference_data=data["air_temperature_ref"].isel(time_index=0),
+        leaf_area_index_sum=leaf_area_index_sum,
+        layer_roles=fixture_core_components.layer_structure.layer_roles,
+        layer_heights=layer_heights,
+        upper_bound=80,
+        lower_bound=0,
+        gradient=-2.45,
+    )
+
+    exp_air_temp = DataArray(
+        np.full((15, 3), np.nan),
+        dims=["layers", "cell_id"],
+        coords={
+            "layers": np.arange(0, 15),
+            "layer_roles": (
+                "layers",
+                fixture_core_components.layer_structure.layer_roles,
+            ),
+            "cell_id": [0, 1, 2],
+        },
+    )
+    exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
+        [30.0, 30.0, 30.0],
+        [29.844995, 29.844995, 29.844995],
+        [28.87117, 28.87117, np.nan],
+        [27.206405, np.nan, np.nan],
+        [22.65, 22.65, 22.65],
+        [16.145945, 16.145945, 16.145945],
+    ]
+    xr.testing.assert_allclose(result, exp_air_temp)
 
 
 def test_calculate_saturation_vapour_pressure(dummy_climate_data):
