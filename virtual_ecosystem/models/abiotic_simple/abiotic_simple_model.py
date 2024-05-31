@@ -42,14 +42,26 @@ class AbioticSimpleModel(
     model_name="abiotic_simple",
     model_update_bounds=("1 day", "1 month"),
     required_init_vars=(  # TODO add temporal axis
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
+        ("air_temperature_mean_ref", ("spatial",)),
+        ("air_temperature_min_ref", ("spatial",)),
+        ("air_temperature_max_ref", ("spatial",)),
+        ("relative_humidity_mean_ref", ("spatial",)),
+        ("relative_humidity_min_ref", ("spatial",)),
+        ("relative_humidity_max_ref", ("spatial",)),
     ),
     vars_updated=(
-        "air_temperature",
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "soil_temperature",
+        "air_temperature_mean",
+        "air_temperature_min",
+        "air_temperature_max",
+        "relative_humidity_mean",
+        "relative_humidity_min",
+        "relative_humidity_max",
+        "vapour_pressure_deficit_mean",
+        "vapour_pressure_deficit_min",
+        "vapour_pressure_deficit_max",
+        "soil_temperature_mean",
+        "soil_temperature_min",
+        "soil_temperature_max",
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
@@ -118,6 +130,7 @@ class AbioticSimpleModel(
         """
 
         # create soil temperature array
+        # TODO this will become unnecessary once we have the new layer structure
         self.data["soil_temperature"] = DataArray(
             np.full(
                 (self.layer_structure.n_layers, self.data.grid.n_cells),
@@ -133,20 +146,18 @@ class AbioticSimpleModel(
         )
 
         # calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
-            temperature=self.data["air_temperature_ref"],
-            relative_humidity=self.data["relative_humidity_ref"],
-            saturation_vapour_pressure_factors=(
-                self.model_constants.saturation_vapour_pressure_factors
-            ),
-        )
-        self.data["vapour_pressure_deficit_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure_deficit"]
-        ).rename("vapour_pressure_deficit_ref")
 
-        self.data["vapour_pressure_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure"]
-        ).rename("vapour_pressure_ref")
+        for stat in ["mean", "min", "max"]:
+            output_stat = microclimate.calculate_vapour_pressure_deficit(
+                temperature=self.data["air_temperature_" + stat + "_ref"],
+                relative_humidity=self.data["relative_humidity_" + stat + "_ref"],
+                saturation_vapour_pressure_factors=(
+                    self.model_constants.saturation_vapour_pressure_factors
+                ),
+            )
+            for var in ["vapour_pressure_deficit", "vapour_pressure"]:
+                new_name = var + "_" + stat + "_ref"
+                self.data[new_name] = (output_stat[var]).rename(new_name)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
