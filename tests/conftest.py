@@ -417,7 +417,7 @@ def new_axis_validators():
 
 
 @pytest.fixture
-def dummy_climate_data(fixture_core_components):
+def dummy_climate_data(fixture_core_components, fixture_empty_array):
     """Creates a dummy climate data object for use in tests."""
 
     from virtual_ecosystem.core.data import Data
@@ -592,16 +592,16 @@ def dummy_climate_data(fixture_core_components):
         dim="layers",
     ).assign_coords(full_coordinates)
 
-    data["soil_temperature"] = xr.concat(
-        [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
-        dim="dim_0",
-    )
-
-    data["soil_temperature"] = (
-        data["soil_temperature"]
-        .rename({"dim_0": "layers", "dim_1": "cell_id"})
-        .assign_coords(full_coordinates)
-    )
+    soil_temperature = fixture_empty_array.copy()
+    soil_temperature[[13, 14], :] = [[20.0, 20.0, 20.0], [20.0, 20.0, 20.0]]
+    data["soil_temperature"] = soil_temperature
+    data["soil_temperature_mean"] = soil_temperature.copy()
+    soil_temperature_min = fixture_empty_array.copy()
+    soil_temperature_min[[13, 14], :] = [[17.0, 17.0, 17], [17.0, 17.0, 17]]
+    data["soil_temperature_min"] = soil_temperature_min
+    soil_temperature_max = fixture_empty_array.copy()
+    soil_temperature_max[[13, 14], :] = [[23.0, 23.0, 23], [23.0, 23.0, 23.0]]
+    data["soil_temperature_max"] = soil_temperature_max
 
     data["relative_humidity"] = xr.concat(
         [
@@ -962,6 +962,13 @@ def dummy_climate_data_ragged(fixture_core_components, fixture_empty_array):
     soil_temperature = fixture_empty_array.copy()
     soil_temperature[[13, 14], :] = [[20.0, 20.0, 20.0], [20.0, 20.0, 20.0]]
     data["soil_temperature"] = soil_temperature
+    data["soil_temperature_mean"] = soil_temperature.copy()
+    soil_temperature_min = fixture_empty_array.copy()
+    soil_temperature_min[[13, 14], :] = [[17.0, 17.0, 17], [17.0, 17.0, 17]]
+    data["soil_temperature_min"] = soil_temperature_min
+    soil_temperature_max = fixture_empty_array.copy()
+    soil_temperature_max[[13, 14], :] = [[23.0, 23.0, 23], [23.0, 23.0, 23.0]]
+    data["soil_temperature_max"] = soil_temperature_max
 
     rel_humidity = fixture_empty_array.copy()
     rel_humidity[[0, 1, 2, 3, 11, 12], :] = [

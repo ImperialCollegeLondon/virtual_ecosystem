@@ -42,8 +42,7 @@ class AbioticSimpleBounds(ConstantsDataclass):
         -0.08,
         -2.45,
     )
-    """Bounds and gradients for air temperature, [C].
-    """
+    """Bounds and gradients for air temperature, [C]."""
 
     relative_humidity: tuple[float, float, float, float, float] = (
         0.0,
@@ -63,11 +62,5 @@ class AbioticSimpleBounds(ConstantsDataclass):
     )
     """Bounds and gradients for vapour pressure deficit, [kPa]."""
 
-    soil_temperature: tuple[float, float, float, float, float] = (
-        -25.0,
-        50.0,
-        -0.825,
-        -0.37,
-        -1.28,
-    )
+    soil_temperature: tuple[float, float] = (-25.0, 50.0)
     """Bounds for soil temperature, [C]."""

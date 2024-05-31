@@ -129,29 +129,29 @@ def run_microclimate(
     )
 
     # Calculate soil temperatures TODO select layer by name
-    lower, upper, gradient_mean, gradient_min, gradient_max = getattr(
-        bounds, "soil_temperature"
-    )
-    soil_temperature_only = interpolate_soil_temperature(
-        layer_heights=data["layer_heights"],
-        surface_temperature=output["air_temperature_mean"].isel(
-            layers=len(layer_roles) - layer_roles.count("soil") - 1
-        ),
-        mean_annual_temperature=data["mean_annual_temperature"],
-        upper_bound=upper,
-        lower_bound=lower,
-    )
+    lower, upper = getattr(bounds, "soil_temperature")
 
-    # add above-ground vertical layers back
-    output["soil_temperature"] = xr.concat(
-        [
-            data["soil_temperature"].isel(
-                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
+    for stat in ["_mean", "_min", "_max"]:
+        soil_temperature_only = interpolate_soil_temperature(
+            layer_heights=data["layer_heights"],
+            surface_temperature=output["air_temperature" + stat].isel(
+                layers=len(layer_roles) - layer_roles.count("soil") - 1
             ),
-            soil_temperature_only,
-        ],
-        dim="layers",
-    )
+            mean_annual_temperature=data["mean_annual_temperature"],
+            upper_bound=upper,
+            lower_bound=lower,
+        )
+
+        # add above-ground vertical layers back
+        output["soil_temperature" + stat] = xr.concat(
+            [
+                data["soil_temperature" + stat].isel(
+                    layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
+                ),
+                soil_temperature_only,
+            ],
+            dim="layers",
+        )
 
     return output
 

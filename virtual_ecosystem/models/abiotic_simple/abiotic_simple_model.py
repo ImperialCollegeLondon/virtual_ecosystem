@@ -130,27 +130,25 @@ class AbioticSimpleModel(
         """
 
         # create soil temperature array
-        # TODO this will become unnecessary once we have the new layer structure
-        self.data["soil_temperature"] = DataArray(
-            np.full(
-                (self.layer_structure.n_layers, self.data.grid.n_cells),
-                np.nan,
-            ),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, self.layer_structure.n_layers),
-                "layer_roles": ("layers", self.layer_structure.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
+        for stat in ["_mean", "_min", "_max"]:
+            self.data["soil_temperature" + stat] = DataArray(
+                np.full(
+                    (self.layer_structure.n_layers, self.data.grid.n_cells),
+                    np.nan,
+                ),
+                dims=["layers", "cell_id"],
+                coords={
+                    "layers": np.arange(0, self.layer_structure.n_layers),
+                    "layer_roles": ("layers", self.layer_structure.layer_roles),
+                    "cell_id": self.data.grid.cell_id,
+                },
+                name="soil_temperature" + stat,
+            )
 
-        # calculate vapour pressure deficit at reference height for all time steps
-
-        for stat in ["mean", "min", "max"]:
+            # calculate vapour pressure deficit at reference height for all time steps
             output_stat = microclimate.calculate_vapour_pressure_deficit(
-                temperature=self.data["air_temperature_" + stat + "_ref"],
-                relative_humidity=self.data["relative_humidity_" + stat + "_ref"],
+                temperature=self.data["air_temperature" + stat + "_ref"],
+                relative_humidity=self.data["relative_humidity" + stat + "_ref"],
                 saturation_vapour_pressure_factors=(
                     self.model_constants.saturation_vapour_pressure_factors
                 ),

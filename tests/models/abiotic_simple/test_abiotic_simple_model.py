@@ -198,12 +198,12 @@ def test_setup(dummy_climate_data_ragged, fixture_empty_array):
             "cell_id": [0, 1, 2],
         },
     )
-    xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+    xr.testing.assert_allclose(model.data["soil_temperature_mean"], exp_soil_temp)
 
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_mean_ref"],
         DataArray(
-            np.full((3, 3), 0.141727),
+            np.full((3, 3), 0.14),
             dims=["cell_id", "time_index"],
             coords={"cell_id": [0, 1, 2]},
         ),
@@ -232,7 +232,9 @@ def test_setup(dummy_climate_data_ragged, fixture_empty_array):
         "vapour_pressure_deficit_mean",
         "vapour_pressure_deficit_min",
         "vapour_pressure_deficit_max",
-        "soil_temperature",
+        "soil_temperature_mean",
+        "soil_temperature_min",
+        "soil_temperature_max",
         "atmospheric_pressure",
         "atmospheric_co2",
     ]:
