@@ -164,7 +164,7 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup(dummy_climate_data_ragged):  # , fixture_empty_array):
+def test_setup(dummy_climate_data_ragged, fixture_empty_array):
     """Test set up and update."""
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -220,28 +220,34 @@ def test_setup(dummy_climate_data_ragged):  # , fixture_empty_array):
         assert var in model.data
 
     # Run the update step
-    # model.update(time_index=0)
+    model.update(time_index=0)
 
-    # for var in [
-    #     "air_temperature",
-    #     "relative_humidity",
-    #     "vapour_pressure_deficit",
-    #     "soil_temperature",
-    #     "atmospheric_pressure",
-    #     "atmospheric_co2",
-    # ]:
-    #     assert var in model.data
+    for var in [
+        "air_temperature_mean",
+        "air_temperature_min",
+        "air_temperature_max",
+        "relative_humidity_mean",
+        "relative_humidity_min",
+        "relative_humidity_max",
+        "vapour_pressure_deficit_mean",
+        "vapour_pressure_deficit_min",
+        "vapour_pressure_deficit_max",
+        "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ]:
+        assert var in model.data
 
-    # exp_air_temp = fixture_empty_array.copy()
-    # exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
-    #     [30.0, 30.0, 30.0],
-    #     [29.91965, 29.946434, 29.973217],
-    #     [29.414851, 29.609901, np.nan],
-    #     [28.551891, np.nan, np.nan],
-    #     [26.19, 27.46, 28.73],
-    #     [22.81851, 25.21234, 27.60617],
-    # ]
+    exp_air_temp = fixture_empty_array.copy()
+    exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
+        [30.0, 30.0, 30.0],
+        [29.91965, 29.946434, 29.973217],
+        [29.414851, 29.609901, np.nan],
+        [28.551891, np.nan, np.nan],
+        [26.19, 27.46, 28.73],
+        [22.81851, 25.21234, 27.60617],
+    ]
 
-    # xr.testing.assert_allclose(
-    #     dummy_climate_data_ragged["air_temperature"], exp_air_temp
-    # )
+    xr.testing.assert_allclose(
+        dummy_climate_data_ragged["air_temperature_mean"], exp_air_temp
+    )

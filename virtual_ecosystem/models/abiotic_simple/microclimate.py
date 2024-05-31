@@ -87,7 +87,6 @@ def run_microclimate(
         atmospheric :math:`\ce{CO2}` [ppm]
     """
 
-    # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
     # sum leaf area index over all canopy layers
@@ -95,42 +94,47 @@ def run_microclimate(
 
     # interpolate atmospheric profiles
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
-        lower, upper, gradient = getattr(bounds, var)
+        lower, upper, gradient_mean, gradient_min, gradient_max = getattr(bounds, var)
 
-        output[var] = log_interpolation(
-            data=data,
-            reference_data=data[var + "_ref"].isel(time_index=time_index),
-            leaf_area_index_sum=leaf_area_index_sum,
-            layer_roles=layer_roles,
-            layer_heights=data["layer_heights"],
-            upper_bound=upper,
-            lower_bound=lower,
-            gradient=gradient,
-        ).rename(var)
+        for stat, gradient in zip(
+            ["_mean", "_min", "_max"], [gradient_mean, gradient_min, gradient_max]
+        ):
+            output[var + stat] = log_interpolation(
+                data=data,
+                reference_data=data[var + stat + "_ref"].isel(time_index=time_index),
+                leaf_area_index_sum=leaf_area_index_sum,
+                layer_roles=layer_roles,
+                layer_heights=data["layer_heights"],
+                upper_bound=upper,
+                lower_bound=lower,
+                gradient=gradient,
+            ).rename(var + stat)
 
-    # Mean atmospheric pressure profile, [kPa]
+    # Mean atmospheric pressure profile, [kPa] TODO where !isnan
     output["atmospheric_pressure"] = (
         (data["atmospheric_pressure_ref"])
         .isel(time_index=time_index)
-        .where(output["air_temperature"].coords["layer_roles"] != "soil")
+        .where(output["air_temperature_mean"].coords["layer_roles"] != "soil")
         .rename("atmospheric_pressure")
         .T
     )
 
-    # Mean atmospheric C02 profile, [ppm]
+    # Mean atmospheric C02 profile, [ppm] TODO where !isnan
     output["atmospheric_co2"] = (
         data["atmospheric_co2_ref"]
         .isel(time_index=0)
-        .where(output["air_temperature"].coords["layer_roles"] != "soil")
+        .where(output["air_temperature_mean"].coords["layer_roles"] != "soil")
         .rename("atmospheric_co2")
         .T
     )
 
-    # Calculate soil temperatures
-    lower, upper = getattr(bounds, "soil_temperature")
+    # Calculate soil temperatures TODO select layer by name
+    lower, upper, gradient_mean, gradient_min, gradient_max = getattr(
+        bounds, "soil_temperature"
+    )
     soil_temperature_only = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
-        surface_temperature=output["air_temperature"].isel(
+        surface_temperature=output["air_temperature_mean"].isel(
             layers=len(layer_roles) - layer_roles.count("soil") - 1
         ),
         mean_annual_temperature=data["mean_annual_temperature"],

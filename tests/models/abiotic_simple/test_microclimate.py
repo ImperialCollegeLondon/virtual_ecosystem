@@ -18,7 +18,7 @@ def test_log_interpolation(
     # temperature
     result = log_interpolation(
         data=data,
-        reference_data=data["air_temperature_ref"].isel(time_index=0),
+        reference_data=data["air_temperature_mean_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
         layer_heights=data["layer_heights"],
@@ -35,7 +35,7 @@ def test_log_interpolation(
     # relative humidity
     result_hum = log_interpolation(
         data=data,
-        reference_data=data["relative_humidity_ref"].isel(time_index=0),
+        reference_data=data["relative_humidity_mean_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
         layer_heights=data["layer_heights"],
@@ -63,7 +63,7 @@ def test_ragged_log_interpolation(
     # temperature
     result = log_interpolation(
         data=data,
-        reference_data=data["air_temperature_ref"].isel(time_index=0),
+        reference_data=data["air_temperature_mean_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
         layer_heights=data["layer_heights"],
@@ -96,7 +96,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     constants = AbioticSimpleConsts()
     # Extract saturation factors from constants
     result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0),
+        data["air_temperature_mean_ref"].isel(time_index=0),
         saturation_vapour_pressure_factors=(
             constants.saturation_vapour_pressure_factors
         ),
@@ -201,7 +201,7 @@ def test_run_microclimate(
         [26.19, 26.19, 26.19],
         [22.81851, 22.81851, 22.81851],
     ]
-    xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
+    xr.testing.assert_allclose(result["air_temperature_mean"], exp_air_temp)
 
     soil_values = DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"])
     pressure_values = DataArray(np.full((13, 3), 96.0), dims=["layers", "cell_id"])
@@ -241,7 +241,7 @@ def test_run_microclimate_ragged(
         [26.19, 27.46, 28.73],
         [22.81851, 25.21234, 27.60617],
     ]
-    xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
+    xr.testing.assert_allclose(result["air_temperature_mean"], exp_air_temp)
 
     soil_values = DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"])
     pressure_values = DataArray(np.full((13, 3), 96.0), dims=["layers", "cell_id"])

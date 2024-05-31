@@ -439,6 +439,18 @@ def dummy_climate_data(fixture_core_components):
         np.full((3, 3), 30.0),
         dims=["cell_id", "time_index"],
     )
+    data["air_temperature_mean_ref"] = DataArray(
+        np.full((3, 3), 30.0),
+        dims=["cell_id", "time_index"],
+    )
+    data["air_temperature_min_ref"] = DataArray(
+        np.full((3, 3), 25.0),
+        dims=["cell_id", "time_index"],
+    )
+    data["air_temperature_max_ref"] = DataArray(
+        np.full((3, 3), 35.0),
+        dims=["cell_id", "time_index"],
+    )
     data["wind_speed_ref"] = DataArray(
         np.full((3, 3), 1.0),
         dims=["time_index", "cell_id"],
@@ -451,12 +463,48 @@ def dummy_climate_data(fixture_core_components):
         np.full((3, 3), 90.0),
         dims=["cell_id", "time_index"],
     )
+    data["relative_humidity_mean_ref"] = DataArray(
+        np.full((3, 3), 90.0),
+        dims=["cell_id", "time_index"],
+    )
+    data["relative_humidity_min_ref"] = DataArray(
+        np.full((3, 3), 85.0),
+        dims=["cell_id", "time_index"],
+    )
+    data["relative_humidity_max_ref"] = DataArray(
+        np.full((3, 3), 95.0),
+        dims=["cell_id", "time_index"],
+    )
     data["vapour_pressure_deficit_ref"] = DataArray(
         np.full((3, 3), 0.14),
         dims=["cell_id", "time_index"],
     )
+    data["vapour_pressure_deficit_mean_ref"] = DataArray(
+        np.full((3, 3), 0.14),
+        dims=["cell_id", "time_index"],
+    )
+    data["vapour_pressure_deficit_min_ref"] = DataArray(
+        np.full((3, 3), 0.10),
+        dims=["cell_id", "time_index"],
+    )
+    data["vapour_pressure_deficit_max_ref"] = DataArray(
+        np.full((3, 3), 0.18),
+        dims=["cell_id", "time_index"],
+    )
     data["vapour_pressure_ref"] = DataArray(
         np.full((3, 3), 0.14),
+        dims=["cell_id", "time_index"],
+    )
+    data["vapour_pressure_mean_ref"] = DataArray(
+        np.full((3, 3), 0.14),
+        dims=["cell_id", "time_index"],
+    )
+    data["vapour_pressure_min_ref"] = DataArray(
+        np.full((3, 3), 0.10),
+        dims=["cell_id", "time_index"],
+    )
+    data["vapour_pressure_max_ref"] = DataArray(
+        np.full((3, 3), 0.18),
         dims=["cell_id", "time_index"],
     )
     data["atmospheric_pressure_ref"] = DataArray(
