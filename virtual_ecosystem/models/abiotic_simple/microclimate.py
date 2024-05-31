@@ -128,16 +128,20 @@ def run_microclimate(
         .T
     )
 
-    # Calculate soil temperatures TODO select layer by name
+    # Calculate soil temperatures
     lower, upper = getattr(bounds, "soil_temperature")
-
+    soil_temperature_only = {}
     for stat in ["_mean", "_min", "_max"]:
-        soil_temperature_only = interpolate_soil_temperature(
+        soil_temperature_only[stat] = interpolate_soil_temperature(
             layer_heights=data["layer_heights"],
-            surface_temperature=output["air_temperature" + stat].isel(
-                layers=len(layer_roles) - layer_roles.count("soil") - 1
+            surface_temperature=(
+                output["air_temperature" + stat].isel(
+                    (data["layer_heights"].coords["layer_roles"] == "surface").indexes
+                )
             ),
-            mean_annual_temperature=data["mean_annual_temperature"],
+            mean_annual_temperature=data["mean_annual_temperature"].isel(
+                time_index=time_index
+            ),
             upper_bound=upper,
             lower_bound=lower,
         )
@@ -148,7 +152,7 @@ def run_microclimate(
                 data["soil_temperature" + stat].isel(
                     layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
                 ),
-                soil_temperature_only,
+                soil_temperature_only[stat],
             ],
             dim="layers",
         )

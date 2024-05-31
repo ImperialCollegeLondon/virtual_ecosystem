@@ -435,95 +435,38 @@ def dummy_climate_data(fixture_core_components, fixture_empty_array):
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_mean_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_min_ref"] = DataArray(
-        np.full((3, 3), 25.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_max_ref"] = DataArray(
-        np.full((3, 3), 35.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_mean_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_min_ref"] = DataArray(
-        np.full((3, 3), 85.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_max_ref"] = DataArray(
-        np.full((3, 3), 95.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_mean_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_min_ref"] = DataArray(
-        np.full((3, 3), 0.10),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_max_ref"] = DataArray(
-        np.full((3, 3), 0.18),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_mean_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_min_ref"] = DataArray(
-        np.full((3, 3), 0.10),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_max_ref"] = DataArray(
-        np.full((3, 3), 0.18),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "air_temperature_mean_ref": 30.0,
+        "air_temperature_min_ref": 25.0,
+        "air_temperature_max_ref": 35.0,
+        "wind_speed_ref": 1.0,
+        "mean_annual_temperature": 20.0,
+        "relative_humidity_ref": 90.0,
+        "relative_humidity_mean_ref": 90.0,
+        "relative_humidity_min_ref": 85.0,
+        "relative_humidity_max_ref": 95.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_deficit_mean_ref": 0.14,
+        "vapour_pressure_deficit_min_ref": 0.10,
+        "vapour_pressure_deficit_max_ref": 0.18,
+        "vapour_pressure_ref": 0.14,
+        "vapour_pressure_mean_ref": 0.14,
+        "vapour_pressure_min_ref": 0.10,
+        "vapour_pressure_max_ref": 0.18,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
 
     # Simulation data
     full_coordinates = {
@@ -811,95 +754,38 @@ def dummy_climate_data_ragged(fixture_core_components, fixture_empty_array):
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_mean_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_min_ref"] = DataArray(
-        np.full((3, 3), 25.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["air_temperature_max_ref"] = DataArray(
-        np.full((3, 3), 35.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_mean_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_min_ref"] = DataArray(
-        np.full((3, 3), 85.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["relative_humidity_max_ref"] = DataArray(
-        np.full((3, 3), 95.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_mean_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_min_ref"] = DataArray(
-        np.full((3, 3), 0.10),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_max_ref"] = DataArray(
-        np.full((3, 3), 0.18),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_mean_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_min_ref"] = DataArray(
-        np.full((3, 3), 0.10),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_max_ref"] = DataArray(
-        np.full((3, 3), 0.18),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "air_temperature_mean_ref": 30.0,
+        "air_temperature_min_ref": 25.0,
+        "air_temperature_max_ref": 35.0,
+        "wind_speed_ref": 1.0,
+        "mean_annual_temperature": 20.0,
+        "relative_humidity_ref": 90.0,
+        "relative_humidity_mean_ref": 90.0,
+        "relative_humidity_min_ref": 85.0,
+        "relative_humidity_max_ref": 95.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_deficit_mean_ref": 0.14,
+        "vapour_pressure_deficit_min_ref": 0.10,
+        "vapour_pressure_deficit_max_ref": 0.18,
+        "vapour_pressure_ref": 0.14,
+        "vapour_pressure_mean_ref": 0.14,
+        "vapour_pressure_min_ref": 0.10,
+        "vapour_pressure_max_ref": 0.18,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
 
     # Simulation data
     full_coordinates = {
