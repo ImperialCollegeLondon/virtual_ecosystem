@@ -535,16 +535,16 @@ def dummy_climate_data(fixture_core_components, fixture_empty_array):
         dim="layers",
     ).assign_coords(full_coordinates)
 
-    soil_temperature = fixture_empty_array.copy()
-    soil_temperature[[13, 14], :] = [[20.0, 20.0, 20.0], [20.0, 20.0, 20.0]]
-    data["soil_temperature"] = soil_temperature
-    data["soil_temperature_mean"] = soil_temperature.copy()
-    soil_temperature_min = fixture_empty_array.copy()
-    soil_temperature_min[[13, 14], :] = [[17.0, 17.0, 17], [17.0, 17.0, 17]]
-    data["soil_temperature_min"] = soil_temperature_min
-    soil_temperature_max = fixture_empty_array.copy()
-    soil_temperature_max[[13, 14], :] = [[23.0, 23.0, 23], [23.0, 23.0, 23.0]]
-    data["soil_temperature_max"] = soil_temperature_max
+    soil_temperature_values = {
+        "soil_temperature": 20.0,
+        "soil_temperature_mean": 20.0,
+        "soil_temperature_min": 17.0,
+        "soil_temperature_max": 23.0,
+    }
+    for var, value in soil_temperature_values.items():
+        temp_array = fixture_empty_array.copy()
+        temp_array[[13, 14], :] = np.full((2, 3), value)
+        data[var] = temp_array
 
     data["relative_humidity"] = xr.concat(
         [
@@ -845,16 +845,16 @@ def dummy_climate_data_ragged(fixture_core_components, fixture_empty_array):
     ]
     data["air_temperature"] = air_temp
 
-    soil_temperature = fixture_empty_array.copy()
-    soil_temperature[[13, 14], :] = [[20.0, 20.0, 20.0], [20.0, 20.0, 20.0]]
-    data["soil_temperature"] = soil_temperature
-    data["soil_temperature_mean"] = soil_temperature.copy()
-    soil_temperature_min = fixture_empty_array.copy()
-    soil_temperature_min[[13, 14], :] = [[17.0, 17.0, 17], [17.0, 17.0, 17]]
-    data["soil_temperature_min"] = soil_temperature_min
-    soil_temperature_max = fixture_empty_array.copy()
-    soil_temperature_max[[13, 14], :] = [[23.0, 23.0, 23], [23.0, 23.0, 23.0]]
-    data["soil_temperature_max"] = soil_temperature_max
+    soil_temperature_values = {
+        "soil_temperature": 20.0,
+        "soil_temperature_mean": 20.0,
+        "soil_temperature_min": 17.0,
+        "soil_temperature_max": 23.0,
+    }
+    for var, value in soil_temperature_values.items():
+        temp_array = fixture_empty_array.copy()
+        temp_array[[13, 14], :] = np.full((2, 3), value)
+        data[var] = temp_array
 
     rel_humidity = fixture_empty_array.copy()
     rel_humidity[[0, 1, 2, 3, 11, 12], :] = [
