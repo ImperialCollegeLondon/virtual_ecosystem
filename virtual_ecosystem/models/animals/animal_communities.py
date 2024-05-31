@@ -162,17 +162,17 @@ class AnimalCommunity:
 
         """
 
-        if cohort.is_alive:
-            cohort.is_alive = False
-            # LOGGER.debug("An animal cohort has died")
+        if not cohort.is_alive:
             self.animal_cohorts[cohort.name].remove(cohort)
-        elif not cohort.is_alive:
-            LOGGER.exception("An animal cohort which is dead cannot die.")
+        elif cohort.is_alive:
+            LOGGER.exception("An animal cohort which is alive cannot be removed.")
 
     def remove_dead_cohort_community(self) -> None:
         """This handles remove_dead_cohort for all cohorts in a community."""
         for cohort in chain.from_iterable(self.animal_cohorts.values()):
-            self.remove_dead_cohort(cohort)
+            if cohort.individuals <= 0:
+                cohort.is_alive = False
+                self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
@@ -183,7 +183,6 @@ class AnimalCommunity:
 
         The science here follows Madingley.
 
-        TODO: Implement juvenile dispersal.
         TODO: Check whether madingley discards excess reproductive mass
 
         Args:
@@ -191,9 +190,24 @@ class AnimalCommunity:
             AnimalCohort.
 
         """
-        number_offspring = int(
-            (parent_cohort.reproductive_mass * parent_cohort.individuals)
-            / parent_cohort.functional_group.birth_mass
+        # semelparous organisms use a portion of their non-reproductive mass to make
+        # offspring and then they die
+        non_reproductive_mass_loss = 0.0
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            non_reproductive_mass_loss = (
+                parent_cohort.mass_current
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+            parent_cohort.mass_current -= non_reproductive_mass_loss
+            # kill the semelparous parent cohort
+            parent_cohort.is_alive = False
+
+        number_offspring = (
+            int(
+                (parent_cohort.reproductive_mass + non_reproductive_mass_loss)
+                / parent_cohort.functional_group.birth_mass
+            )
+            * parent_cohort.individuals
         )
 
         # reduce reproductive mass by amount used to generate offspring
@@ -209,6 +223,9 @@ class AnimalCommunity:
 
         # add a new cohort of the parental type to the community
         self.animal_cohorts[parent_cohort.name].append(offspring_cohort)
+
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            self.remove_dead_cohort(parent_cohort)
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
@@ -320,11 +337,11 @@ class AnimalCommunity:
         for cohort in self.all_animal_cohorts:
             cohort.increase_age(dt)
 
-    def inflict_natural_mortality_community(self, dt: timedelta64) -> None:
+    def inflict_non_predation_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
 
-        TODO Replace the number_of_days format with a passthrough of the initialized
-        dt straight to the scaling function that sets the cohort rates.
+        This includes background mortality, starvation, and, for mature cohorts,
+        senescence.
 
         Args:
             dt: Number of days over which the metabolic costs should be calculated.
@@ -332,6 +349,7 @@ class AnimalCommunity:
         """
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.all_animal_cohorts:
-            cohort.inflict_natural_mortality(self.carcass_pool, number_of_days)
+            cohort.inflict_non_predation_mortality(number_of_days, self.carcass_pool)
             if cohort.individuals <= 0:
+                cohort.is_alive = False
                 self.remove_dead_cohort(cohort)
