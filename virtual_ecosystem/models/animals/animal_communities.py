@@ -192,6 +192,7 @@ class AnimalCommunity:
         """
         # semelparous organisms use a portion of their non-reproductive mass to make
         # offspring and then they die
+        non_reproductive_mass_loss = 0.0
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             non_reproductive_mass_loss = (
                 parent_cohort.mass_current
@@ -200,8 +201,6 @@ class AnimalCommunity:
             parent_cohort.mass_current -= non_reproductive_mass_loss
             # kill the semelparous parent cohort
             parent_cohort.is_alive = False
-        else:
-            non_reproductive_mass_loss = 0.0
 
         number_offspring = (
             int(

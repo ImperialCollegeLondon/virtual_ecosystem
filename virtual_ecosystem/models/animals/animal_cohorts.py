@@ -788,7 +788,8 @@ class AnimalCohort:
             self.constants.u_bg
         )  # constant background mortality
 
-        if self.is_mature is True:
+        u_se = 0.0
+        if self.is_mature:
             # senescence mortality is only experienced by mature adults.
             u_se = sf.senescence_mortality(
                 self.constants.lambda_se, t_to_maturity, t_since_maturity
