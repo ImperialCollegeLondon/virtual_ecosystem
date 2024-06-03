@@ -36,6 +36,7 @@ diet = "carnivore"
 metabolic_type = "endothermic"
 birth_mass = 0.1
 adult_mass = 1.0
+reproductive_type = "iteroparous"
 
 [[animals.functional_groups]]
 name = "herbivorous_bird"
@@ -44,6 +45,7 @@ diet = "herbivore"
 metabolic_type = "endothermic"
 birth_mass = 0.05
 adult_mass = 0.5
+reproductive_type = "iteroparous"
 
 [[animals.functional_groups]]
 name = "carnivorous_mammal"
@@ -52,6 +54,7 @@ diet = "carnivore"
 metabolic_type = "endothermic"
 birth_mass = 4.0
 adult_mass = 40.0
+reproductive_type = "iteroparous"
 
 [[animals.functional_groups]]
 name = "herbivorous_mammal"
@@ -60,6 +63,7 @@ diet = "herbivore"
 metabolic_type = "endothermic"
 birth_mass = 1.0
 adult_mass = 10.0
+reproductive_type = "iteroparous"
 
 [[animals.functional_groups]]
 name = "carnivorous_insect"
@@ -68,6 +72,7 @@ diet = "carnivore"
 metabolic_type = "ectothermic"
 birth_mass = 0.001
 adult_mass = 0.01
+reproductive_type = "iteroparous"
 
 [[animals.functional_groups]]
 name = "herbivorous_insect"
@@ -76,3 +81,4 @@ diet = "herbivore"
 metabolic_type = "ectothermic"
 birth_mass = 0.0005
 adult_mass = 0.005
+reproductive_type = "semelparous"

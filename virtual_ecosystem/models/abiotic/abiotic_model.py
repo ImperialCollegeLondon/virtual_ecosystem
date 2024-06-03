@@ -61,7 +61,7 @@ class AbioticModel(
         "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
-        "air_heat_conductivity",
+        "air_conductivity",
         "conductivity_from_ref_height",
         "leaf_air_heat_conductivity",
         "leaf_vapour_conductivity",
@@ -76,6 +76,8 @@ class AbioticModel(
         "ground_heat_flux",
         "soil_absorption",
         "longwave_emission_soil",
+        "molar_density_air",
+        "specific_heat_air",
     ),
 ):
     """A class describing the abiotic model.
@@ -307,13 +309,14 @@ class AbioticModel(
         wind_output = {}
 
         # Might make sense to store the shape and use np.full(shape, np.nan)
-        wind_speed_data = np.full_like(self.data["leaf_area_index"], np.nan)
-        wind_speed_data[true_aboveground_rows, :] = wind_update["wind_speed"]
-        wind_output["wind_speed"] = DataArray(
-            wind_speed_data,
-            dims=self.data["layer_heights"].dims,
-            coords=self.data["layer_heights"].coords,
-        )
+        for var in ["wind_speed", "molar_density_air", "specific_heat_air"]:
+            var_out = np.full_like(self.data["leaf_area_index"], np.nan)
+            var_out[true_aboveground_rows, :] = wind_update[var]
+            wind_output[var] = DataArray(
+                var_out,
+                dims=self.data["layer_heights"].dims,
+                coords=self.data["layer_heights"].coords,
+            )
 
         for var in [
             "friction_velocity",
@@ -322,14 +325,15 @@ class AbioticModel(
             "diabatic_correction_heat_canopy",
             "diabatic_correction_momentum_canopy",
         ]:
-            var_out = DataArray(wind_update[var], dims="cell_id")
-            wind_output[var] = var_out
+            var_out = wind_update[var]
+            wind_output[var] = DataArray(var_out, dims="cell_id")
 
         self.data.add_from_dict(output_dict=wind_output)
 
         # Soil energy balance
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
+            time_index=time_index,
             topsoil_layer_index=topsoil_layer_index,
             update_interval=43200,  # TODO self.model_timing.update_interval
             abiotic_consts=self.model_constants,

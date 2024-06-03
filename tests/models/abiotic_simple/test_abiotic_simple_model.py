@@ -30,7 +30,7 @@ MODEL_VAR_CHECK_LOG = [
 )
 def test_abiotic_simple_model_initialization(
     caplog,
-    dummy_climate_data_ragged,
+    dummy_climate_data_varying_canopy,
     fixture_core_components,
     raises,
     expected_log_entries,
@@ -48,7 +48,7 @@ def test_abiotic_simple_model_initialization(
     with raises:
         # Initialize model
         model = AbioticSimpleModel(
-            data=dummy_climate_data_ragged,
+            data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             constants=AbioticSimpleConsts(),
         )
@@ -133,7 +133,7 @@ def test_abiotic_simple_model_initialization(
 )
 def test_generate_abiotic_simple_model(
     caplog,
-    dummy_climate_data_ragged,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     satvap1,
     raises,
@@ -154,7 +154,7 @@ def test_generate_abiotic_simple_model(
     # Check whether model is initialised (or not) as expected
     with raises:
         model = AbioticSimpleModel.from_config(
-            data=dummy_climate_data_ragged,
+            data=dummy_climate_data_varying_canopy,
             core_components=core_components,
             config=config,
         )
@@ -164,7 +164,7 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup(dummy_climate_data_ragged, fixture_empty_array):
+def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
     """Test set up and update."""
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -180,7 +180,7 @@ def test_setup(dummy_climate_data_ragged, fixture_empty_array):
 
     # initialise model
     model = AbioticSimpleModel.from_config(
-        data=dummy_climate_data_ragged,
+        data=dummy_climate_data_varying_canopy,
         core_components=core_components,
         config=config,
     )
@@ -213,9 +213,9 @@ def test_setup(dummy_climate_data_ragged, fixture_empty_array):
         "vapour_pressure_deficit_mean_ref",
         "vapour_pressure_deficit_min_ref",
         "vapour_pressure_deficit_max_ref",
-        "vapour_pressure_deficit_ref",
-        "vapour_pressure_deficit_ref",
-        "vapour_pressure_deficit_ref",
+        "vapour_pressure_mean_ref",
+        "vapour_pressure_min_ref",
+        "vapour_pressure_max_ref",
     ]:
         assert var in model.data
 
@@ -251,5 +251,5 @@ def test_setup(dummy_climate_data_ragged, fixture_empty_array):
     ]
 
     xr.testing.assert_allclose(
-        dummy_climate_data_ragged["air_temperature_mean"], exp_air_temp
+        dummy_climate_data_varying_canopy["air_temperature_mean"], exp_air_temp
     )

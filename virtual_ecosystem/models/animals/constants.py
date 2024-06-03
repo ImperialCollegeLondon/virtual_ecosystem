@@ -226,6 +226,28 @@ class AnimalConsts(ConstantsDataclass):
     """Ratio of current body-mass to adult body-mass at which starvation-response
     dispersal is attempted."""
 
+    # Madingley reproductive parameters
+    semelparity_mass_loss = 0.5  # chi [Madingley] [unitless]
+    """The proportion of non-reproductive mass lost in semelparous reproduction."""
+
+    # Madingley mortality parameters
+    u_bg = 10.0**-3.0  # u_bg [Madingley] [day^-1]
+    """The constant background mortality faced by all animals."""
+
+    lambda_se = 3.0 * 10.0**-3.0  # lambda_se [Madingley] [day^-1]
+    """The instantaneous rate of senescence mortality at the point of maturity."""
+
+    lambda_max = 1.0  # lambda_max [Madingley] [day^-1]
+    """The maximum possible instantaneous fractional starvation mortality rate."""
+
+    J_st = 0.6  # J_st [Madingley] [unitless]
+    """Determines the inflection point of the logistic function describing ratio of the
+    realised mortality rate to the maximum rate."""
+
+    zeta_st = 0.05  # zeta_st [Madingley] [unitless]
+    """The scaling of the logistic function describing the ratio of the realised
+    mortality rate to the maximum rate."""
+
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].

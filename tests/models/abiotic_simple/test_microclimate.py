@@ -50,14 +50,14 @@ def test_log_interpolation(
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
 
-def test_ragged_log_interpolation(
-    dummy_climate_data_ragged, fixture_core_components, fixture_empty_array
+def test_varying_canopy_log_interpolation(
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_empty_array
 ):
     """Test interpolation for temperature and humidity non-negative."""
 
     from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
 
-    data = dummy_climate_data_ragged
+    data = dummy_climate_data_varying_canopy
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # temperature
@@ -140,8 +140,8 @@ def test_calculate_vapour_pressure_deficit(fixture_empty_array):
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
-def test_ragged_calculate_vapour_pressure_deficit(
-    fixture_empty_array, dummy_climate_data_ragged
+def test_varying_canopy_calculate_vapour_pressure_deficit(
+    fixture_empty_array, dummy_climate_data_varying_canopy
 ):
     """Test calculation of VPD with different number of canopy layers."""
 
@@ -150,7 +150,7 @@ def test_ragged_calculate_vapour_pressure_deficit(
         calculate_vapour_pressure_deficit,
     )
 
-    data = dummy_climate_data_ragged
+    data = dummy_climate_data_varying_canopy
     constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature"],
@@ -211,10 +211,10 @@ def test_run_microclimate(
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
 
-def test_run_microclimate_ragged(
-    dummy_climate_data_ragged, fixture_core_components, fixture_empty_array
+def test_run_microclimate_varying_canopy(
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_empty_array
 ):
-    """Test interpolation of all variables with ragged arrays."""
+    """Test interpolation of all variables with varying canopy arrays."""
 
     from virtual_ecosystem.models.abiotic_simple.constants import (
         AbioticSimpleBounds,
@@ -222,7 +222,7 @@ def test_run_microclimate_ragged(
     )
     from virtual_ecosystem.models.abiotic_simple.microclimate import run_microclimate
 
-    data = dummy_climate_data_ragged
+    data = dummy_climate_data_varying_canopy
 
     result = run_microclimate(
         data=data,
