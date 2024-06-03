@@ -182,6 +182,7 @@ def update_surface_temperature(
 
 def calculate_soil_heat_balance(
     data: Data,
+    time_index: int,
     topsoil_layer_index: int,
     update_interval: Quantity,
     abiotic_consts: AbioticConsts,
@@ -219,6 +220,7 @@ def calculate_soil_heat_balance(
 
     Args:
         data: instance if a data object
+        time_index: time index
         update_interval: Update interval, [s]
         AbioticConsts: set of constants specific to abiotic model
         CoreConsts: set of constants that are shared across the model
@@ -232,11 +234,15 @@ def calculate_soil_heat_balance(
     output = {}
 
     # Calculate soil absorption of shortwave radiation, [W m-2]
+    shortwave_radiation_surface = data["topofcanopy_radiation"].isel(
+        time_index=time_index
+    ) - (data["canopy_absorption"].sum())
     soil_absorption = calculate_soil_absorption(
-        shortwave_radiation_surface=data["shortwave_radiation_surface"].to_numpy(),
+        shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
         surface_albedo=abiotic_consts.surface_albedo,
     )
     output["soil_absorption"] = soil_absorption
+    output["shortwave_radiation_surface"] = shortwave_radiation_surface.to_numpy()
 
     # Calculate longwave emission from topsoil, [W m-2]; note that this is the soil
     # temperature of the previous time step
