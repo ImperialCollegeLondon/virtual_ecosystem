@@ -764,7 +764,7 @@ def dummy_climate_data_ragged(fixture_core_components, fixture_empty_array):
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
 
-    # Setup the data object with four cells.
+    # Setup the data object with three cells.
     grid = Grid(
         grid_type="square",
         cell_nx=3,
