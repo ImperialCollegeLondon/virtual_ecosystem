@@ -480,6 +480,13 @@ def dummy_climate_data(fixture_core_components):
         coords=full_coordinates,
         name="leaf_area_index",
     )
+    canopy_absorption = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
+    data["canopy_absorption"] = DataArray(
+        np.broadcast_to(canopy_absorption, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="canopy_absorption",
+    )
 
     layer_heights = np.repeat(
         a=[32.0, 30.0, 20.0, 10.0, np.nan, 1.5, 0.1, -0.5, -1.0],
