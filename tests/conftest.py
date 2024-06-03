@@ -758,7 +758,7 @@ def dummy_climate_data(fixture_core_components):
 
 # dummy climate data with different number of canopy layers
 @pytest.fixture
-def dummy_climate_data_ragged(fixture_core_components, fixture_empty_array):
+def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_array):
     """Creates a dummy climate data object for use in tests."""
 
     from virtual_ecosystem.core.data import Data
