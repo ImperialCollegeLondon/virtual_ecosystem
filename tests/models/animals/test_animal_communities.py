@@ -60,8 +60,10 @@ class TestAnimalCommunity:
             "herbivorous_bird",
             "carnivorous_mammal",
             "herbivorous_mammal",
-            "carnivorous_insect",
-            "herbivorous_insect",
+            "carnivorous_insect_iteroparous",
+            "herbivorous_insect_iteroparous",
+            "carnivorous_insect_semelparous",
+            "herbivorous_insect_semelparous",
         ]
 
     def test_all_animal_cohorts_property(
@@ -219,47 +221,87 @@ class TestAnimalCommunity:
         )
         assert animal_cohort_instance.is_alive
         animal_community_instance.remove_dead_cohort(animal_cohort_instance)
+        assert (
+            animal_cohort_instance
+            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
+        )
+        animal_cohort_instance.is_alive = False
         assert not animal_cohort_instance.is_alive
+        animal_community_instance.remove_dead_cohort(animal_cohort_instance)
         assert (
             animal_cohort_instance
             not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
         )
 
+    @pytest.mark.parametrize(
+        "reproductive_type, initial_mass, expected_offspring",
+        [
+            pytest.param("iteroparous", 10, 1, id="iteroparous_survival"),
+            pytest.param("semelparous", 10, 1, id="semelparous_death"),
+        ],
+    )
     def test_birth(
-        self, animal_community_instance, animal_cohort_instance, constants_instance
+        self,
+        reproductive_type,
+        initial_mass,
+        expected_offspring,
+        animal_community_instance,
+        animal_cohort_instance,
     ):
-        """Test the birth method in AnimalCommunity."""
+        """Test the birth method in AnimalCommunity under various conditions."""
 
         # Setup initial conditions
         parent_cohort_name = animal_cohort_instance.name
-        animal_community_instance.animal_cohorts[parent_cohort_name].append(
+        animal_cohort_instance.functional_group.reproductive_type = reproductive_type
+        animal_cohort_instance.functional_group.birth_mass = 2
+        animal_cohort_instance.mass_current = initial_mass
+        animal_cohort_instance.individuals = 10
+
+        # Prepare the community
+        animal_community_instance.animal_cohorts[parent_cohort_name] = [
             animal_cohort_instance
-        )
-        initial_cohort_count = len(
+        ]
+
+        number_cohorts = len(
             animal_community_instance.animal_cohorts[parent_cohort_name]
         )
 
-        # Set the reproductive mass of the parent cohort to ensure it can reproduce
-        required_mass_for_birth = (
-            animal_cohort_instance.functional_group.adult_mass
-            * constants_instance.birth_mass_threshold
-            - animal_cohort_instance.functional_group.adult_mass
-        )
-
-        animal_cohort_instance.reproductive_mass = required_mass_for_birth
-
-        # Call the birth method
         animal_community_instance.birth(animal_cohort_instance)
 
         # Assertions
-        # 1. Check that a new cohort is added
-        new_cohort_count = len(
-            animal_community_instance.animal_cohorts[parent_cohort_name]
-        )
-        assert new_cohort_count == initial_cohort_count + 1
+        # 1. Check for changes in the parent cohort based on reproductive type
+        if reproductive_type == "semelparous":
+            # The parent should be removed if it dies
+            assert (
+                animal_cohort_instance
+                not in animal_community_instance.animal_cohorts[parent_cohort_name]
+            )
+        else:
+            # Reproductive mass should be reset
+            assert animal_cohort_instance.reproductive_mass == 0
+            # The parent should still be present in the community
+            assert (
+                animal_cohort_instance
+                in animal_community_instance.animal_cohorts[parent_cohort_name]
+            )
 
-        # 2. Check that the reproductive mass of the parent cohort is reduced to 0
-        assert animal_cohort_instance.reproductive_mass == 0
+        # 2. Check that the offspring were added if reproduction occurred
+
+        if expected_offspring and reproductive_type == "semelparous":
+            assert (
+                len(animal_community_instance.animal_cohorts[parent_cohort_name])
+                == number_cohorts
+            )
+        elif expected_offspring and reproductive_type == "iteroparous":
+            assert (
+                len(animal_community_instance.animal_cohorts[parent_cohort_name])
+                == number_cohorts + 1
+            )
+        else:
+            assert (
+                len(animal_community_instance.animal_cohorts[parent_cohort_name])
+                == number_cohorts
+            )
 
     def test_birth_community(self, animal_community_instance, constants_instance):
         """Test the thresholding behavior of birth_community."""
@@ -432,31 +474,50 @@ class TestAnimalCommunity:
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
 
-    def test_inflict_natural_mortality_community(
-        self, animal_community_instance, mocker
+    @pytest.mark.parametrize(
+        "days",
+        [
+            pytest.param(1, id="one_day"),
+            pytest.param(5, id="five_days"),
+            pytest.param(10, id="ten_days"),
+        ],
+    )
+    def test_inflict_non_predation_mortality_community(
+        self, mocker, animal_community_instance, days
     ):
         """Testing natural mortality infliction for the entire community."""
         from numpy import timedelta64
 
-        # Create a time delta (for example, 5 days)
-        dt = timedelta64(5, "D")
+        dt = timedelta64(days, "D")
 
         animal_community_instance.populate_community()
 
-        # Iterate over the animal cohorts within the community
-        for cohorts in animal_community_instance.animal_cohorts.values():
-            for cohort in cohorts:
-                # Mock the cohort's inflict_natural_mortality method
-                cohort.inflict_natural_mortality = mocker.MagicMock()
+        # Mock the inflict_non_predation_mortality method
+        mock_mortality = mocker.patch(
+            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
+            "inflict_non_predation_mortality"
+        )
 
         # Call the community method to inflict natural mortality
-        animal_community_instance.inflict_natural_mortality_community(dt)
+        animal_community_instance.inflict_non_predation_mortality_community(dt)
 
-        # Check that the inflict_natural_mortality method was called correctly for each
-        # #cohort
         number_of_days = float(dt / timedelta64(1, "D"))
+
+        # Assert the inflict_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
-                cohort.inflict_natural_mortality.assert_called_once_with(
-                    animal_community_instance.carcass_pool, number_of_days
+                mock_mortality.assert_called_with(
+                    number_of_days, animal_community_instance.carcass_pool
                 )
+
+        # Check if cohorts with no individuals left are flagged as not alive
+        for cohorts in animal_community_instance.animal_cohorts.values():
+            for cohort in cohorts:
+                if cohort.individuals <= 0:
+                    assert (
+                        not cohort.is_alive
+                    ), "Cohort with no individuals should be marked as not alive"
+                    assert (
+                        cohort
+                        not in animal_community_instance.animal_cohorts[cohort.name]
+                    ), "Dead cohort should be removed from the community"

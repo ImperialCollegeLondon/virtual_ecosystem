@@ -209,6 +209,7 @@ def fixture_config():
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.1
         adult_mass = 1.0
         [[animals.functional_groups]]
@@ -216,6 +217,7 @@ def fixture_config():
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.05
         adult_mass = 0.5
         [[animals.functional_groups]]
@@ -223,6 +225,7 @@ def fixture_config():
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 4.0
         adult_mass = 40.0
         [[animals.functional_groups]]
@@ -230,6 +233,7 @@ def fixture_config():
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 1.0
         adult_mass = 10.0
         [[animals.functional_groups]]
@@ -237,6 +241,7 @@ def fixture_config():
         taxa = "insect"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_type = "semelparous"
         birth_mass = 0.001
         adult_mass = 0.01
         [[animals.functional_groups]]
@@ -244,6 +249,7 @@ def fixture_config():
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_type = "iteroparous"
         birth_mass = 0.0005
         adult_mass = 0.005
         """
@@ -491,6 +497,13 @@ def dummy_climate_data(fixture_core_components):
         dims=["layers", "cell_id"],
         coords=full_coordinates,
         name="leaf_area_index",
+    )
+    canopy_absorption = np.repeat(a=[np.nan, 1.0, np.nan], repeats=[1, 3, 11])
+    data["canopy_absorption"] = DataArray(
+        np.broadcast_to(canopy_absorption, (3, 15)).T,
+        dims=["layers", "cell_id"],
+        coords=full_coordinates,
+        name="canopy_absorption",
     )
 
     layer_heights = np.repeat(
