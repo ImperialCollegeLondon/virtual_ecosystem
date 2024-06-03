@@ -26,3 +26,10 @@ class TaxaType(Enum):
     MAMMAL = "mammal"
     BIRD = "bird"
     INSECT = "insect"
+
+
+class ReproductiveType(Enum):
+    """Enumeration for reproductive types."""
+
+    SEMELPAROUS = "semelparous"
+    ITEROPAROUS = "iteroparous"

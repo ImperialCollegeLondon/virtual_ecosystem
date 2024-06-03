@@ -67,6 +67,7 @@ def test_animal_model_initialization(
             taxa = "bird"
             diet = "carnivore"
             metabolic_type = "endothermic"
+            reproductive_type = "iteroparous"
             birth_mass = 0.1
             adult_mass = 1.0
             [[animals.functional_groups]]
@@ -74,6 +75,7 @@ def test_animal_model_initialization(
             taxa = "bird"
             diet = "herbivore"
             metabolic_type = "endothermic"
+            reproductive_type = "iteroparous"
             birth_mass = 0.05
             adult_mass = 0.5
             [[animals.functional_groups]]
@@ -81,6 +83,7 @@ def test_animal_model_initialization(
             taxa = "mammal"
             diet = "carnivore"
             metabolic_type = "endothermic"
+            reproductive_type = "iteroparous"
             birth_mass = 4.0
             adult_mass = 40.0
             [[animals.functional_groups]]
@@ -88,6 +91,7 @@ def test_animal_model_initialization(
             taxa = "mammal"
             diet = "herbivore"
             metabolic_type = "endothermic"
+            reproductive_type = "iteroparous"
             birth_mass = 1.0
             adult_mass = 10.0
             """,
@@ -174,7 +178,7 @@ def test_update_method_sequence(mocker, prepared_animal_model_instance):
         "migrate_community",
         "birth_community",
         "metabolize_community",
-        "inflict_natural_mortality_community",
+        "inflict_non_predation_mortality_community",
         "remove_dead_cohort_community",
         "increase_age_community",
     ]
