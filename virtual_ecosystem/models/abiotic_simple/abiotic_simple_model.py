@@ -53,6 +53,25 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
+    required_update_vars=(
+        "air_temperature_ref",
+        "relative_humidity_ref",
+        "vapour_pressure_deficit_ref",
+        "atmospheric_pressure_ref",
+        "atmospheric_co2_ref",
+        "leaf_area_index",
+        "layer_heights",
+    ),
+    vars_initialised=(
+        "soil_temperature",
+        "vapour_pressure_ref",
+        "vapour_pressure_deficit_ref",
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ),
 ):
     """A class describing the abiotic simple model.
 
