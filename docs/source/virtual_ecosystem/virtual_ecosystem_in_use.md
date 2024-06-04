@@ -1,16 +1,18 @@
 ---
 jupytext:
-  formats: ipynb,md:myst
+  formats: md:myst
   text_representation:
     extension: .md
     format_name: myst
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: python3
+  display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
+
+
 
 # The Virtual Ecosystem model
 
@@ -24,7 +26,7 @@ package, which supplies a set of example data files and a simple model configura
 to run a simulation. The following command line arguments set up the example data
 directory in Linux, Mac or Windows Subsystem for Linux (WSL).
 
-```{code-cell} python3
+```{code-cell} ipython3
 import pathlib
 
 import matplotlib.pyplot as plt
@@ -33,11 +35,12 @@ import numpy as np
 import xarray
 ```
 
-```{code-cell} python3
+```{code-cell} ipython3
+%%bash
 # Remove any existing VE data directory in the /tmp/ directory
-! rm -r /tmp/ve_example
+rm -r /tmp/ve_example
 # Install the example data directory from the Virtual Ecosystem package
-! ve_run --install-example /tmp/
+ve_run --install-example /tmp/
 ```
 
 The `ve_example` directory contains the following files. These include:
@@ -47,7 +50,7 @@ The `ve_example` directory contains the following files. These include:
 * the `generation_scripts` directory containing example recipes for generating files, and
 * the `out` directory, which will be used to store model outputs.
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Get a generator of files in the example directory
 example_files = (p for p in pathlib.Path("/tmp/ve_example/").rglob("*") if p.is_file())
 
@@ -62,7 +65,7 @@ Now the example data and configuration have been set up, the `ve_run` command ca
 used to execute a Virtual Ecosystem simulation. The `progress` option shows the progress
 of the simulation through the various modelling stages.
 
-```{code-cell} bash
+```{code-cell} ipython3
 %%bash
 ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
@@ -73,7 +76,7 @@ ve_run /tmp/ve_example/config \
 The log file is very long and shows the process of running the model. The code below
 shows the start and end lines from the log to give and idea of what it contains.
 
-```{code-cell} python
+```{code-cell} ipython3
 # Open and read the log
 with open("/tmp/ve_example/out/logfile.log") as log:
     log_entries = log.readlines()
@@ -100,7 +103,7 @@ The Virtual Ecosystem writes out a number of data files:
 
 These files are written to the standard NetCDF data file format.
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Load the generated data files
 initial_state = xarray.load_dataset("/tmp/ve_example/out/initial_state.nc")
 continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
@@ -113,7 +116,7 @@ The `initial_state.nc` file contains all of the data required to start up the mo
 For some variables - such as elevation and soil pH - this just provides the initial or
 constant values across the grid cells to be calculated.
 
-```{code-cell} python3
+```{code-cell} ipython3
 extent = [
     float(initial_state.x.min()),
     float(initial_state.x.max()),
@@ -140,7 +143,7 @@ plt.tight_layout();
 For some variables, it may be useful to visualise spatial structure in 3 dimensions.
 The obvious candidate is elevation.
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Extract the elevation data for a 3D plot
 top = initial_state["elevation"].to_numpy()
 x = continuous_data["x"].to_numpy()
@@ -149,7 +152,7 @@ bottom = np.zeros_like(top)
 width = depth = 90
 ```
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Make a 3D barplot of the elevation
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(projection="3d")
@@ -167,11 +170,11 @@ For other variables, such as air temperature and precipitation, the initial data
 also provides time series data across the grid cells that are used to force the
 simulation across the configured time period.
 
-```{code-cell} python3
+```{code-cell} ipython3
 initial_state
 ```
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Make two side by side plots
 fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 5))
 
@@ -199,7 +202,7 @@ dimensional structure of the vertical layers within the simulation.
 
 Using the soil carbon  held as **mineral-associated organic matter** as an example:
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Make three side by side plots
 fig, axes = plt.subplots(ncols=3, figsize=(10, 5))
 
@@ -226,7 +229,7 @@ plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45);
 The plot below shows the **mineral-associated organic matter** data as a time series
 showing the values in each cell across time.
 
-```{code-cell} python3
+```{code-cell} ipython3
 plt.plot(continuous_data["time_index"], continuous_data["soil_c_pool_maom"])
 plt.xlabel("Time step")
 plt.ylabel("Soil carbon as MAOM");
@@ -237,7 +240,7 @@ plt.ylabel("Soil carbon as MAOM");
 The Virtual Ecosystem creates a vertical dimension that is used to record canopy
 heights and soil depths across the grid.
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Extract the x and y location of the grid cell centres and layer heights
 # for all observations at a given time step.
 time_index = 0
@@ -262,7 +265,7 @@ z_3d = continuous_data["layer_heights"][time_index].to_numpy().flatten()
 temp_vals = continuous_data["air_temperature"][time_index].to_numpy().flatten()
 ```
 
-```{code-cell} python3
+```{code-cell} ipython3
 # Generate a 3 dimensional plot of layer heights showing temperature.
 
 fig = plt.figure(figsize=(10, 8))
