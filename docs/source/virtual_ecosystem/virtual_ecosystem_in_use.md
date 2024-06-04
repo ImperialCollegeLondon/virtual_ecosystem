@@ -62,17 +62,18 @@ Now the example data and configuration have been set up, the `ve_run` command ca
 used to execute a Virtual Ecosystem simulation. The `progress` option shows the progress
 of the simulation through the various modelling stages.
 
-```{code-cell} python3
-! ve_run /tmp/ve_example/config \
+```{code-cell} bash
+%%bash
+ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
     --logfile /tmp/ve_example/out/logfile.log \
-    --progress
+    --progress \
 ```
 
 The log file is very long and shows the process of running the model. The code below
 shows the start and end lines from the log to give and idea of what it contains.
 
-```{code-cell} python3
+```{code-cell} python
 # Open and read the log
 with open("/tmp/ve_example/out/logfile.log") as log:
     log_entries = log.readlines()
