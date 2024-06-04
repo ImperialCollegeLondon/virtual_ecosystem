@@ -65,6 +65,7 @@ team.
 
   virtual_ecosystem/module_overview.md
   virtual_ecosystem/usage.md
+  virtual_ecosystem/virtual_ecosystem_in_use.md
   virtual_ecosystem/example_data.md
   virtual_ecosystem/main_simulation.md
   virtual_ecosystem/constants.md
