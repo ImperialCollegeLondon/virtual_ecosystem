@@ -644,6 +644,7 @@ def calculate_wind_profile(
         standard_pressure=core_constants.standard_pressure,
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
+    output["molar_density_air"] = molar_density_air
 
     # Calculate specific heat of air, [J mol-1 K-1]
     specific_heat_air = calculate_specific_heat_air(
@@ -651,6 +652,7 @@ def calculate_wind_profile(
         molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
+    output["specific_heat_air"] = specific_heat_air
 
     # Calculate the total leaf area index, [m2 m-2]
     leaf_area_index_sum = np.nansum(leaf_area_index, axis=0)
