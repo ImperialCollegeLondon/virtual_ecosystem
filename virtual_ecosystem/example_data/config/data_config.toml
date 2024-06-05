@@ -58,6 +58,9 @@ file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_necromass"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_pom"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
