@@ -279,7 +279,7 @@ def construct_full_soil_model(
     return calculate_soil_carbon_updates(
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
-        soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
+        soil_moisture=data["soil_moisture_mean"][top_soil_layer_index].to_numpy(),
         soil_water_potential=data["matric_potential_mean"][
             top_soil_layer_index
         ].to_numpy(),

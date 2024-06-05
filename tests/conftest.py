@@ -307,7 +307,7 @@ def dummy_carbon_data(fixture_core_components):
     data["vertical_flow"] = DataArray([0.1, 0.5, 2.5, 1.59], dims=["cell_id"])
 
     # The layer dependant data has to be handled separately
-    data["soil_moisture"] = xr.concat(
+    data["soil_moisture_mean"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
@@ -320,7 +320,7 @@ def dummy_carbon_data(fixture_core_components):
         ],
         dim="layers",
     )
-    data["soil_moisture"] = data["soil_moisture"].assign_coords(
+    data["soil_moisture_mean"] = data["soil_moisture_mean"].assign_coords(
         {
             "layers": np.arange(0, 15),
             "layer_roles": (

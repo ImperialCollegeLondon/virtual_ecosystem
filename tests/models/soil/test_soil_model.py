@@ -353,7 +353,7 @@ def test_order_independance(
     not_pools = [
         "pH",
         "bulk_density",
-        "soil_moisture",
+        "soil_moisture_mean",
         "matric_potential_mean",
         "vertical_flow",
         "soil_temperature_mean",

@@ -228,7 +228,7 @@ def test_calculate_leaching_rate(dummy_carbon_data, top_soil_layer_index):
     actual_rate = calculate_leaching_rate(
         solute_density=dummy_carbon_data["soil_c_pool_lmwc"],
         vertical_flow_rate=vertical_flow_per_day,
-        soil_moisture=dummy_carbon_data["soil_moisture"][top_soil_layer_index],
+        soil_moisture=dummy_carbon_data["soil_moisture_mean"][top_soil_layer_index],
         solubility_coefficient=SoilConsts.solubility_coefficient_lmwc,
     )
 

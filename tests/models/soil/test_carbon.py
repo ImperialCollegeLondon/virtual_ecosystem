@@ -37,7 +37,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
-        soil_moisture=dummy_carbon_data["soil_moisture"][
+        soil_moisture=dummy_carbon_data["soil_moisture_mean"][
             top_soil_layer_index
         ].to_numpy(),
         soil_water_potential=dummy_carbon_data["matric_potential_mean"][
