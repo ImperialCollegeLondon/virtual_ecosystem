@@ -102,9 +102,6 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
     )
 
     data = dummy_climate_data
-    data["shortwave_radiation_surface"] = DataArray(
-        np.array([100, 10, 0]), dims="cell_id"
-    )
     data["soil_evaporation"] = DataArray(np.array([0.001, 0.01, 0.1]), dims="cell_id")
     data["molar_density_air"] = DataArray(
         np.full((15, 3), 38), dims=["layers", "cell_id"]
@@ -119,6 +116,7 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
 
     result = calculate_soil_heat_balance(
         data=data,
+        time_index=0,
         topsoil_layer_index=13,
         update_interval=43200,
         abiotic_consts=AbioticConsts,
@@ -137,7 +135,7 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
     variables = [var for var in result if var not in var_list]
     assert variables
 
-    np.testing.assert_allclose(result["soil_absorption"], np.array([87.5, 8.75, 0.0]))
+    np.testing.assert_allclose(result["soil_absorption"], np.repeat(79.625, 3))
     np.testing.assert_allclose(
         result["longwave_emission_soil"],
         np.repeat(0.007258, 3),
@@ -158,7 +156,7 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
     )
     np.testing.assert_allclose(
         result["ground_heat_flux"],
-        np.array([81.841, -17.195, -228.805]),
+        np.array([73.966007, 53.680007, -149.179993]),
         rtol=1e-04,
         atol=1e-04,
     )

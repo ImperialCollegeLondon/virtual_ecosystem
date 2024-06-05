@@ -8,6 +8,7 @@ import pandas as pd
 from virtual_ecosystem.models.animals.animal_traits import (
     DietType,
     MetabolicType,
+    ReproductiveType,
     TaxaType,
 )
 from virtual_ecosystem.models.animals.constants import AnimalConsts
@@ -32,6 +33,7 @@ class FunctionalGroup:
         taxa: str,
         diet: str,
         metabolic_type: str,
+        reproductive_type: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -45,7 +47,9 @@ class FunctionalGroup:
         self.diet = DietType(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
-        """The metabolic type of the functional group"""
+        """The metabolic type of the functional group."""
+        self.reproductive_type = ReproductiveType(reproductive_type)
+        """The reproductive type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -114,6 +118,7 @@ def import_functional_groups(
             row.taxa,
             row.diet,
             row.metabolic_type,
+            row.reproductive_type,
             row.birth_mass,
             row.adult_mass,
             constants=constants,

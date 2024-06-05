@@ -117,6 +117,7 @@ nitpick_ignore = [
     ("py:class", "np.timedelta64"),
     ("py:class", "np.datetime64"),
     ("py:class", "InitVar"),
+    ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
     # TODO - Delete this once Vivienne has merged this feature into develop
