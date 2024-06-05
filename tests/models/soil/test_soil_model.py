@@ -229,6 +229,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
+    end_necromass = [0.058, 0.015, 0.093, 0.105]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -238,6 +239,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
             soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
+            soil_c_pool_necromass=DataArray(end_necromass, dims="cell_id"),
         )
     )
 
@@ -251,6 +253,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
     assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_necromass"], end_necromass)
 
 
 @pytest.mark.parametrize(
@@ -273,6 +276,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     pom=DataArray(
                         [0.12397575, 1.00508662, 0.7389913, 0.35583206], dims="cell_id"
                     ),
+                    necromass=DataArray([0.058, 0.015, 0.093, 0.105], dims="cell_id"),
                     enzyme_pom=DataArray(
                         [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
                     ),
@@ -317,6 +321,7 @@ def test_integrate_soil_model(
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
         assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
         assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
+        assert np.allclose(new_pools["soil_c_pool_necromass"], final_pools["necromass"])
         assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
         assert np.allclose(new_pools["soil_enzyme_maom"], final_pools["enzyme_maom"])
 
@@ -413,6 +418,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         1.02354410e-2,
         7.85372753e-2,
         1.16756409e-2,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
         1.17571917e-8,
         1.67442231e-8,
         1.83311362e-9,

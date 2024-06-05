@@ -276,11 +276,11 @@ def dummy_carbon_data(fixture_core_components):
     grid = Grid(cell_nx=4, cell_ny=1)
     data = Data(grid)
 
-    # The required data is now added. This includes the four carbon pools: mineral
+    # The required data is now added. This includes the five carbon pools: mineral
     # associated organic matter, low molecular weight carbon, microbial carbon and
-    # particulate organic matter. It also includes various factors of the physical
-    # environment: pH, bulk density, soil moisture, soil temperature, percentage clay in
-    # soil.
+    # particulate organic matter, microbial necromass. It also includes various factors
+    # of the physical environment: pH, bulk density, soil moisture, soil temperature,
+    # percentage clay in soil.
     data["soil_c_pool_lmwc"] = DataArray([0.05, 0.02, 0.1, 0.005], dims=["cell_id"])
     """Low molecular weight carbon pool (kg C m^-3)"""
     data["soil_c_pool_maom"] = DataArray([2.5, 1.7, 4.5, 0.5], dims=["cell_id"])
@@ -289,6 +289,10 @@ def dummy_carbon_data(fixture_core_components):
     """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["soil_c_pool_pom"] = DataArray([0.1, 1.0, 0.7, 0.35], dims=["cell_id"])
     """Particulate organic matter pool (kg C m^-3)"""
+    data["soil_c_pool_necromass"] = DataArray(
+        [0.058, 0.015, 0.093, 0.105], dims=["cell_id"]
+    )
+    """Microbial biomass (carbon) pool (kg C m^-3)"""
     data["soil_enzyme_pom"] = DataArray(
         [0.022679, 0.009576, 0.050051, 0.003010], dims=["cell_id"]
     )

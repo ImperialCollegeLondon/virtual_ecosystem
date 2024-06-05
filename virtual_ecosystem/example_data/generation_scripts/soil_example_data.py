@@ -35,6 +35,10 @@ microbial_C_values = 0.0015 + 0.0035 * (gradient) / (64)
 # Generate a range of plausible values (0.1-1.0) for the POM pool [kg C m^-3].
 pom_values = 0.1 + 0.9 * (gradient) / (64)
 
+# Generate a range of plausible values (0.00015-0.0005) for the microbial necromass pool
+# [kg C m^-3].
+necromass_values = 0.00015 + 0.00035 * (gradient) / (64)
+
 # Generate a range of plausible values (0.01-0.5) for the POM enzyme pool [kg C m^-3].
 pom_enzyme_values = 0.01 + 0.49 * (gradient) / (64)
 
@@ -51,6 +55,7 @@ example_soil_data = Dataset(
         soil_c_pool_maom=(["x", "y"], maom_values),
         soil_c_pool_microbe=(["x", "y"], microbial_C_values),
         soil_c_pool_pom=(["x", "y"], pom_values),
+        soil_c_pool_necromass=(["x", "y"], necromass_values),
         soil_enzyme_pom=(["x", "y"], pom_enzyme_values),
         soil_enzyme_maom=(["x", "y"], maom_enzyme_values),
     ),

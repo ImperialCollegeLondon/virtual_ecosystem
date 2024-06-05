@@ -42,6 +42,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_maom: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     soil_c_pool_pom: NDArray[np.float32],
+    soil_c_pool_necromass: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
@@ -67,6 +68,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
+        soil_c_pool_necromass: Microbial necromass pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
         soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
@@ -177,6 +179,9 @@ def calculate_soil_carbon_updates(
         mineralisation_rate
         + biomass_losses.necromass_decay_to_pom
         - pom_decomposition_rate
+    )
+    delta_pools_ordered["soil_c_pool_necromass"] = np.zeros(
+        soil_c_pool_necromass.size, dtype=np.float32
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover

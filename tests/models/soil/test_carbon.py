@@ -19,6 +19,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         "soil_c_pool_maom": [-1.28996257e-3, 2.35822401e-3, 1.5570399e-3, 1.2082886e-5],
         "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
         "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
+        "soil_c_pool_necromass": [0.0, 0.0, 0.0, 0.0],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
     }
@@ -33,6 +34,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
+        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"].to_numpy(),
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"].to_numpy(),
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
         pH=dummy_carbon_data["pH"],
