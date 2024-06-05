@@ -14,7 +14,7 @@ settings:
   output_matplotlib_strings: remove
 ---
 
-# The Virtual Ecosystem model
+# Using the Virtual Ecosystem
 
 The code below is a brief demonstration of the Virtual Ecosystem model in operation.
 The workflow of the model is:

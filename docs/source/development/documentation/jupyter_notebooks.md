@@ -58,14 +58,16 @@ executing any code, and we need to ensure two things.
 
 - The selected kernel needs to point to a virtual environment including the
   `virtual_ecosystem` package and dependencies, and
-- the kernel should be available consistent across supported Python versions,
+- the kernel should be available consistently across supported Python versions,
   developer machines, GitHub runners used for testing and also within the ReadTheDocs
   build environment.
 
 Fortunately, when `poetry run` or `poetry shell` are used, the `jupyter` kernels are
-updated to set the `python3` kernel to the active `poetry` virtual environment. This
-should ensure that Jupyter is invoked in the correct environment on all platforms. We
-can check this by running the following:
+updated to set the `python3` kernel to point to the active `poetry` virtual environment.
+This ensures that Jupyter is invoked in the correct environment on all platforms. We can
+check this by running the following, which shows the `python3` kernel pointing to the
+`python3` kernel Virtual Ecosystem virtual environment: that path will vary between
+machines but `poetry` will ensure that the link is set correctly.
 
 ```zsh
 % poetry run jupyter kernelspec list
