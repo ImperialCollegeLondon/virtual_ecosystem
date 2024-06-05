@@ -294,10 +294,13 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
     with pytest.raises(TypeError) as err:
         _ = InitVarModel(data=data_instance, core_components=fixture_core_components)
 
-    assert (
-        str(err.value) == "Can't instantiate abstract class InitVarModel with "
-        "abstract methods cleanup, from_config, setup, spinup, update"
-    )
+    # Note python version specific exception messages:
+    # - Can't instantiate abstract class InitVarModel with abstract methods cleanup,
+    #   from_config, setup, spinup, update
+    # versus
+    # - Can't instantiate abstract class InitVarModel without an implementation for
+    #   abstract methods 'cleanup', 'from_config', 'setup', 'spinup', 'update'
+    assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 
 @pytest.mark.parametrize(
