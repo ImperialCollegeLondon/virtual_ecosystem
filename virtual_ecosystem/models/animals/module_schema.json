@@ -23,6 +23,9 @@
                             "metabolic_type": {
                                 "type": "string"
                             },
+                            "reproductive_type": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
@@ -35,6 +38,7 @@
                             "taxa",
                             "diet",
                             "metabolic_type",
+                            "reproductive_type",
                             "birth_mass",
                             "adult_mass"
                         ]

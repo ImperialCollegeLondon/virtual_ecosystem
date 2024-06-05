@@ -5,6 +5,7 @@ name = "carnivorous_bird"
 taxa = "bird"
 diet = "carnivore"
 metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
 birth_mass = 0.1
 adult_mass = 1.0
 
@@ -13,6 +14,7 @@ name = "herbivorous_bird"
 taxa = "bird"
 diet = "herbivore"
 metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
 birth_mass = 0.05
 adult_mass = 0.5
 
@@ -21,6 +23,7 @@ name = "carnivorous_mammal"
 taxa = "mammal"
 diet = "carnivore"
 metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
 birth_mass = 4.0
 adult_mass = 40.0
 
@@ -29,6 +32,7 @@ name = "herbivorous_mammal"
 taxa = "mammal"
 diet = "herbivore"
 metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
 birth_mass = 1.0
 adult_mass = 10.0
 
@@ -37,6 +41,7 @@ name = "carnivorous_insect"
 taxa = "insect"
 diet = "carnivore"
 metabolic_type = "ectothermic"
+reproductive_type = "iteroparous"
 birth_mass = 0.001
 adult_mass = 0.01
 
@@ -45,5 +50,6 @@ name = "herbivorous_insect"
 taxa = "insect"
 diet = "herbivore"
 metabolic_type = "ectothermic"
+reproductive_type = "semelparous"
 birth_mass = 0.0005
 adult_mass = 0.005

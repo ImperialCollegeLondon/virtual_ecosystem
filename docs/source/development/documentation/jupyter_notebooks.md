@@ -53,74 +53,27 @@ currently active `poetry` virtual environment:
 The `jupyter` system can be setup to run notebooks in a number of different languages
 and even different environments of the same language. Each option is setup as a
 **kernel**, which is basically a pointer to a particular programming environment or
-virtual environment.
+virtual environment. Each notebook should specify which kernel is to be used when
+executing any code, and we need to ensure two things.
 
-To make sure that `virtual_ecosystem` project notebooks are always built using the
-correct virtual environment on all systems (including developer machines, ReadTheDocs
-and Github Actions), this project requires that `jupyter` is set up to use the virtual
-environment created by `poetry` under the `vr_python3` kernel name. There is a good
-discussion of the background for this
-[here](https://janakiev.com/blog/jupyter-virtual-envs/).
+- The selected kernel needs to point to a virtual environment including the
+  `virtual_ecosystem` package and dependencies, and
+- the kernel should be available consistently across supported Python versions,
+  developer machines, GitHub runners used for testing and also within the ReadTheDocs
+  build environment.
 
-In order to install that kernel, run the following line:
-
-```zsh
-poetry run python -m ipykernel install --user --name=vr_python3
-```
-
-When you run `jupyter-lab` now, you should be able to select the `vr_python3` kernel to
-run the code cells. That command is doing some subtle and important things:
-
-- Python is being run in the active `poetry` virtual environment (`poetry run`).
-- The active `python` environment is then being installed as a kernel specification.
-- It is being installed into a location that is available for the user from anywhere
-  they run `jupyter` (`--user`).
-- It is being installed with the name `vr_python3` (`--name vr_python3`).
-
-The choice of kernel name is **important** because `jupyter` uses the kernel specified
-in the notebook metadata and we want it to be stable. The kernel name:
-
-- needs to point to a virtual environment including the `virtual_ecosystem` package
-  and dependencies, and
-- should be consistent across supported Python versions and developer machines.
-
-The options are:
-
-- By default, it would be installed as `python3`, which is way too generic.
-- The `poetry` venv name contains a hash (e.g. `Laomc1u4`) which uniquely identifies the
-  project directory and helps `poetry` track the project-specific venvs. This is a
-  **spectacularly bad** kernel name because files would change as they are run on
-  different developer machines.
-- Using the `vr_python3` name is hopefully unique and should be a stable pointer to a
-  venv that includes  the `virtual_ecosystem` package and dependencies.
-
-Just to point to the gory details, there is now a `kernelspec` called `vr_python3`. That
-is just a pointer to a JSON file that points to the machine-specific venv location.
+Fortunately, when `poetry run` or `poetry shell` are used, the `jupyter` kernels are
+updated to set the `python3` kernel to point to the active `poetry` virtual environment.
+This ensures that Jupyter is invoked in the correct environment on all platforms. We can
+check this by running the following, which shows the `python3` kernel pointing to the
+`python3` kernel Virtual Ecosystem virtual environment: that path will vary between
+machines but `poetry` will ensure that the link is set correctly.
 
 ```zsh
-% jupyter kernelspec list
+% poetry run jupyter kernelspec list
 Available kernels:
-  ir            /Users/dorme/Library/Jupyter/kernels/ir
-  julia-1.0     /Users/dorme/Library/Jupyter/kernels/julia-1.0
-  vr_python3    /Users/dorme/Library/Jupyter/kernels/vr_python3
-```
-
-```zsh
-% cat /Users/dorme/Library/Jupyter/kernels/vr_python3/kernel.json
-{
- "argv": [
-  "/Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10/bin/python",
-  "-m",
-  "ipykernel_launcher",
-  "-f",
-  "{connection_file}"
- ],
- "display_name": "vr_python3",
- "language": "python",
- "metadata": {
-  "debugger": true
- }
-}%
+  ir                 /Users/dorme/Library/Jupyter/kernels/ir
+  python3            /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-In6MogPy-py3.11/share/jupyter/kernels/python3
 ```
 
 ## Notebook formats
@@ -155,7 +108,7 @@ with some really useful features.
 
 To be used with `jupytext`, MyST Markdown files need to include a YAML preamble at the
 very top of the file. This is used to set document metadata about the Markdown variety
-and also code execution data like the `jupyter` kernel. This is where the `vr_python3`
+and also code execution data like the `jupyter` kernel. This is where the `python3`
 kernel name is set.
 
 ```yaml
@@ -170,9 +123,9 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: vr_python3
+  display_name: Python 3 (ipykernel)
   language: python
-  name: vr_python3
+  name: python3
 ---
 ```
 
@@ -181,7 +134,7 @@ header:
 
 ```zsh
 % jupytext --set-format md:myst simple.md
-% jupytext --set-kernel vr_python3  simple.md
+% jupytext --set-kernel python3  simple.md
 ```
 
 There **is a downside** to using Markdown notebooks. The `.ipynb` format includes the
@@ -194,8 +147,7 @@ GitHub.
 In summary:
 
 - We only commit notebooks in MyST Markdown format
-- Notebooks should use the `vr_python3` kernel, so that they will hopefully run on any
-  machine that has set up the `kernelspec` correctly.
+- Notebooks should use the `python3` kernel.
 - GitHub will render the markdown and code cells correctly but none of the executed
   outputs will be shown.
 - However, the notebooks **will be executed** by the `sphinx` documentation system,

@@ -369,6 +369,33 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
 
     model.update(time_index=0)
 
+    # Check that updated vars are in data object
+    for var in [
+        "air_temperature",
+        "canopy_temperature",
+        "soil_temperature",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "air_conductivity",
+        "conductivity_from_ref_height",
+        "leaf_air_heat_conductivity",
+        "leaf_vapour_conductivity",
+        "wind_speed",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "soil_absorption",
+        "longwave_emission_soil",
+        "molar_density_air",
+        "specific_heat_air",
+    ]:
+        assert var in model.data
+
     friction_velocity_exp = np.repeat(0.161295, 3)
     np.testing.assert_allclose(
         model.data["friction_velocity"],
@@ -377,15 +404,10 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         atol=1e-3,
     )
 
-    wind_speed_exp = np.full((15, 3), np.nan)
-    wind_speed_exp[[0, 1, 2, 3, 11, 12], :] = [
-        [0.727122, 0.727122, 0.727122],
-        [0.615474, 0.615474, 0.615474],
-        [0.587838, 0.587838, 0.587838],
-        [0.537028, 0.537028, 0.537028],
-        [0.506793, 0.506793, 0.506793],
-        [0.50198, 0.50198, 0.50198],
-    ]
+    wind_speed_exp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    wind_vals = [0.727122, 0.615474, 0.587838, 0.537028, 0.506793, 0.50198]
+    wind_speed_exp.T[..., [0, 1, 2, 3, 11, 12]] = wind_vals
+
     np.testing.assert_allclose(
         model.data["wind_speed"],
         DataArray(wind_speed_exp),
@@ -397,12 +419,13 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         np.concatenate(
             [
                 [[np.nan, np.nan, np.nan]] * 13,
-                [[20.713125, 20.712525, 20.712458], [20.0] * 3],
+                [[20.713167, 20.708367, 20.707833], [20.0] * 3],
             ],
             axis=0,
         ),
         dims=["layers", "cell_id"],
     )
+
     np.testing.assert_allclose(
         model.data["soil_temperature"],
         exp_new_soiltemp,
@@ -410,20 +433,10 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         atol=1e-04,
     )
 
-    exp_gv = DataArray(
-        np.concatenate(
-            [
-                [[np.nan, np.nan, np.nan]],
-                [
-                    [0.495047, 0.495047, 0.495047],
-                    [0.483498, 0.483498, 0.483498],
-                    [0.46169, 0.46169, 0.46169],
-                ],
-                [[np.nan, np.nan, np.nan]] * 11,
-            ],
-        ),
-        dims=["layers", "cell_id"],
-    )
+    exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    gv_vals = [0.496563, 0.485763, 0.465142]
+    exp_gv.T[..., [1, 2, 3]] = gv_vals
+
     np.testing.assert_allclose(
         model.data["leaf_vapour_conductivity"], exp_gv, rtol=1e-03, atol=1e-03
     )
@@ -445,17 +458,14 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
     )
 
     # TODO fix fluxes from soil
-    # exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    # lat_heat_vals = [27.916181, 27.386375, 15.775225, 1]
-    # exp_latent_heat.T[..., [1, 2, 3, 13]] = lat_heat_vals
     exp_latent_heat = DataArray(
         np.concatenate(
             [
                 [[np.nan, np.nan, np.nan]],
                 [
-                    [27.916181, 27.916181, 27.916181],
-                    [27.386375, 27.386375, 27.386375],
-                    [15.775225, 15.775225, 15.775225],
+                    [28.07077, 28.07077, 28.07077],
+                    [27.568713, 27.568715, 27.568716],
+                    [16.006245, 16.006317, 16.006325],
                 ],
                 [[np.nan, np.nan, np.nan]] * 9,
                 [[2.254, 22.54, 225.4]],
@@ -467,10 +477,21 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         model.data["latent_heat_flux"], exp_latent_heat, rtol=1e-04, atol=1e-04
     )
 
-    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
-    sens_heat_vals = [-16.814787, -16.29302, -5.416152, -185.669563]
-    exp_sens_heat.T[..., [1, 2, 3, 13]] = sens_heat_vals
-
+    exp_sens_heat = DataArray(
+        np.concatenate(
+            [
+                [[np.nan, np.nan, np.nan]],
+                [
+                    [-16.970825, -16.970825, -16.970825],
+                    [-16.47644, -16.47644, -16.47644],
+                    [-5.637158, -5.637226, -5.637233],
+                ],
+                [[np.nan, np.nan, np.nan]] * 9,
+                [[-192.074608, -192.074608, -192.074608]],
+                [[np.nan, np.nan, np.nan]],
+            ]
+        )
+    )
     np.testing.assert_allclose(
         model.data["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
     )

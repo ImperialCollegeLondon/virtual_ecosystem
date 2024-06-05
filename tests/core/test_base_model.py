@@ -374,16 +374,16 @@ def test_check_required_init_vars(
         vars_updated=[],
     ):
         def setup(self) -> None:
-            return super().setup()
+            pass
 
         def spinup(self) -> None:
-            return super().spinup()
+            pass
 
         def update(self, time_index: int, **kwargs: Any) -> None:
-            return super().update(time_index)
+            pass
 
         def cleanup(self) -> None:
-            return super().cleanup()
+            pass
 
         @classmethod
         def from_config(
@@ -489,16 +489,16 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
         vars_updated=[],
     ):
         def setup(self) -> None:
-            return super().setup()
+            pass
 
         def spinup(self) -> None:
-            return super().spinup()
+            pass
 
         def update(self, time_index: int, **kwargs: Any) -> None:
-            return super().update(time_index)
+            pass
 
         def cleanup(self) -> None:
-            return super().cleanup()
+            pass
 
         @classmethod
         def from_config(
