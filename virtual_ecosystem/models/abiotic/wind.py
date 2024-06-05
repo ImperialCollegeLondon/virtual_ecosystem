@@ -642,7 +642,7 @@ def calculate_wind_profile(
         core_constants: Universal constants shared across all models
 
     Returns:
-        Dictionnary that contains wind related outputs
+        Dictionary that contains wind related outputs
     """
 
     output = {}
