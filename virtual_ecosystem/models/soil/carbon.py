@@ -164,7 +164,6 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
         + biomass_losses.necromass_decay_to_lmwc
-        + pom_enzyme_turnover
         + maom_decomposition_to_lmwc
         - microbial_uptake
         - labile_carbon_leaching
@@ -180,8 +179,8 @@ def calculate_soil_carbon_updates(
         + biomass_losses.necromass_decay_to_pom
         - pom_decomposition_rate
     )
-    delta_pools_ordered["soil_c_pool_necromass"] = np.zeros(
-        soil_c_pool_necromass.size, dtype=np.float32
+    delta_pools_ordered["soil_c_pool_necromass"] = (
+        pom_enzyme_turnover + maom_enzyme_turnover
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
