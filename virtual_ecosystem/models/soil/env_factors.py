@@ -101,7 +101,7 @@ def calculate_temperature_effect_on_microbes(
     Args:
         soil_temperature: The temperature of the soil [C]
         activation_energy: Energy of activation [J mol^-1]
-        soil_temperature: The reference temperature of the Arrhenius equation [C]
+        reference_temperature: The reference temperature of the Arrhenius equation [C]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
@@ -257,7 +257,7 @@ def calculate_clay_impact_on_necromass_decay(
 
     Args:
         clay_fraction: The fraction of the soil which is clay [unitless]
-        sorption_exponent: Controls the impact that differences in soil clay content
+        decay_exponent: Controls the impact that differences in soil clay content
             have on the proportion of necromass that decays to LMWC [unitless]
 
     Returns:

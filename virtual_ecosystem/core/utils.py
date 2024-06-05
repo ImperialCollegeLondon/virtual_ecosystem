@@ -130,7 +130,7 @@ def set_layer_roles(
         LOGGER.error(to_raise)
         raise to_raise
 
-    if not all([isinstance(v, (float, int)) for v in soil_layers]):
+    if not all([isinstance(v, float | int) for v in soil_layers]):
         to_raise = InitialisationError("The soil layer depths are not all numeric.")
         LOGGER.error(to_raise)
         raise to_raise

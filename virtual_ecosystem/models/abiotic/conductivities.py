@@ -69,7 +69,7 @@ def initialise_conductivities(
     conductivity between the ground and the lowest canopy node.
 
     Args:
-        layer_height: layer heights, [m]
+        layer_heights: layer heights, [m]
         initial_air_conductivity: Initial value for heat conductivity by turbulent
             convection in air, [mol m-2 s-1]
         top_leaf_vapour_conductivity: Initial leaf vapour conductivity at the top of the
@@ -412,6 +412,7 @@ def calculate_current_conductivities(
     * diabatic_correction_heat: Diabatic correction for heat in canopy
 
     Args:
+        data: The core data object.
         characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
             0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
             value per grid cell, or a 3D-array with one value for each layer.

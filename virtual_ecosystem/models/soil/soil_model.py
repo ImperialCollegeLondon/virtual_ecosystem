@@ -150,6 +150,7 @@ class SoilModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            kwargs: Further arguments to the update method.
         """
 
         # Find carbon pool updates by integration
@@ -221,8 +222,9 @@ class SoilModel(
         # Check if integration failed
         if not output.success:
             LOGGER.error(
-                "Integration of soil module failed with following message: %s"
-                % str(output.message)
+                "Integration of soil module failed with following message: {}".format(  # noqa: UP032
+                    str(output.message)
+                )
             )
             raise IntegrationError()
 

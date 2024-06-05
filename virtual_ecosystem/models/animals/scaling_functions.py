@@ -216,6 +216,7 @@ def prey_group_selection(
     TODO: Implement real pred-prey mass ratio.
 
     Args:
+        diet_type: A value from the DietType enumeration.
         mass: The body-mass [kg] of an AnimalCohort
         terms: The tuple of predator-prey scaling terms used.
 
@@ -255,6 +256,7 @@ def natural_mortality_scaling(mass: float, terms: tuple) -> float:
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
+        terms: The terms of the mean maximum age equation.
 
     Returns:
         The allometric natural mortality rate as a daily probability of death.

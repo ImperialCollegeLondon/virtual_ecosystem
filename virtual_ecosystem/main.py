@@ -32,13 +32,13 @@ def initialise_models(
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
-        modules: A dictionary of models to be configured.
+        models: A dictionary of models to be configured.
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
     """
 
-    LOGGER.info("Initialising models: %s" % ",".join(models.keys()))
+    LOGGER.info("Initialising models: {}".format(",".join(models.keys())))
 
     # Use factory methods to configure the desired models
     failed_models = []

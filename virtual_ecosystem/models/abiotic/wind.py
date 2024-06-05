@@ -453,7 +453,7 @@ def calculate_friction_velocity_reference_height(
     Args:
         wind_speed_ref: Wind speed at reference height, [m s-1]
         reference_height: Height of wind measurement, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
+        zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as
@@ -511,7 +511,7 @@ def calculate_wind_above_canopy(
             For use in the calculation of the full wind profiles, this typically
             includes two values: the height of the first layer ('above') and the first
             canopy layer which corresponds to the canopy height.
-        zero_plane_displacement: Height above ground within the canopy where the wind
+        zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as

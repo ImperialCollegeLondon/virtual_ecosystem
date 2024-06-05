@@ -219,11 +219,13 @@ def calculate_soil_heat_balance(
     * volume_to_weight_conversion: Factor to convert between soil volume and weight [kg]
 
     Args:
-        data: instance if a data object
+        data: The core data object
         time_index: time index
         update_interval: Update interval, [s]
-        AbioticConsts: set of constants specific to abiotic model
-        CoreConsts: set of constants that are shared across the model
+        topsoil_layer_index: An integer showing the index of the topsoil layer in the
+            vertical layer structure.
+        abiotic_consts: set of constants specific to abiotic model
+        core_consts: set of constants that are shared across the model
 
     Returns:
         dictionnary with soil shortwave absorption, soil longwave emission, sensible and

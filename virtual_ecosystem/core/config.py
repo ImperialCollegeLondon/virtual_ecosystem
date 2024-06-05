@@ -237,7 +237,7 @@ class Config(dict):
             self.from_cfg_strings = True
         if cfg_paths:
             # Standardise cfg_paths to list of Paths
-            if isinstance(cfg_paths, (str, Path)):
+            if isinstance(cfg_paths, str | Path):
                 self.cfg_paths = [Path(cfg_paths)]
             else:
                 self.cfg_paths = [Path(p) for p in cfg_paths]
