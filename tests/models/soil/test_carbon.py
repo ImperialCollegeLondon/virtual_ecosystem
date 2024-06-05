@@ -15,11 +15,11 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [-0.004255446, 0.002555196, -0.019693034, 0.00082771],
+        "soil_c_pool_lmwc": [-0.011287175, -0.001874381, -0.046860377, -3.36495e-5],
         "soil_c_pool_maom": [-1.28996257e-3, 2.35822401e-3, 1.5570399e-3, 1.2082886e-5],
         "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
-        "soil_c_pool_pom": [0.04809165, 0.01023544, 0.07853728, 0.01167564],
-        "soil_c_pool_necromass": [0.001398696, 0.000510624, 0.001803384, 0.00018168],
+        "soil_c_pool_pom": [0.00178122, -0.00785937, -0.01201551, 0.00545857],
+        "soil_c_pool_necromass": [0.054740855, 0.023035011, 0.119523517, 0.0072601095],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
     }
@@ -69,8 +69,7 @@ def test_determine_microbial_biomass_losses(
     expected_maintenance = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
     expected_pom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
     expected_maom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
-    expected_decay_to_pom = [0.04631043, 0.01809481, 0.09055279, 0.00621707]
-    expected_decay_to_lmwc = [0.007031729, 0.004429577, 0.027167343, 8.613595e-4]
+    expected_necromass_formation = [0.053342159, 0.022524387, 0.117720133, 0.0070784295]
 
     losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
@@ -83,8 +82,7 @@ def test_determine_microbial_biomass_losses(
     assert np.allclose(losses.maintenance_synthesis, expected_maintenance)
     assert np.allclose(losses.pom_enzyme_production, expected_pom_enzyme)
     assert np.allclose(losses.maom_enzyme_production, expected_maom_enzyme)
-    assert np.allclose(losses.necromass_decay_to_lmwc, expected_decay_to_lmwc)
-    assert np.allclose(losses.necromass_decay_to_pom, expected_decay_to_pom)
+    assert np.allclose(losses.necromass_formation, expected_necromass_formation)
 
     # Then check that sum of other rates is the same as the overall
     # maintenance_synthesis rate
@@ -92,8 +90,7 @@ def test_determine_microbial_biomass_losses(
         losses.maintenance_synthesis,
         losses.pom_enzyme_production
         + losses.maom_enzyme_production
-        + losses.necromass_decay_to_lmwc
-        + losses.necromass_decay_to_pom,
+        + losses.necromass_formation,
     )
 
 

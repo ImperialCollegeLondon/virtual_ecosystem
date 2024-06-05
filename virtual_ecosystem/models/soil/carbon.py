@@ -29,10 +29,8 @@ class MicrobialBiomassLoss:
     """Rate at which POM degrading enzymes are produced [kg C m^-3 day^-1]."""
     maom_enzyme_production: NDArray[np.float32]
     """Rate at which MAOM degrading enzymes are produced [kg C m^-3 day^-1]."""
-    necromass_decay_to_lmwc: NDArray[np.float32]
-    """Rate at which biomass is lost to the LMWC pool [kg C m^-3 day^-1]."""
-    necromass_decay_to_pom: NDArray[np.float32]
-    """Rate at which biomass is lost to the POM pool [kg C m^-3 day^-1]."""
+    necromass_formation: NDArray[np.float32]
+    """Rate at which living biomass enters the necromass pool [kg C m^-3 day^-1]."""
 
 
 # TODO - This function should probably be shortened, leaving as is for the moment as a
@@ -163,7 +161,6 @@ def calculate_soil_carbon_updates(
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
-        + biomass_losses.necromass_decay_to_lmwc
         + maom_decomposition_to_lmwc
         - microbial_uptake
         - labile_carbon_leaching
@@ -175,12 +172,10 @@ def calculate_soil_carbon_updates(
         microbial_assimilation - biomass_losses.maintenance_synthesis
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate
-        + biomass_losses.necromass_decay_to_pom
-        - pom_decomposition_rate
+        mineralisation_rate - pom_decomposition_rate
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
-        pom_enzyme_turnover + maom_enzyme_turnover
+        biomass_losses.necromass_formation + pom_enzyme_turnover + maom_enzyme_turnover
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
@@ -209,8 +204,6 @@ def determine_microbial_biomass_losses(
     Args:
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        clay_factor_decay: A factor capturing the impact of soil clay fraction on
-            necromass decay destination [unitless]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -229,23 +222,16 @@ def determine_microbial_biomass_losses(
     maom_enzyme_production = constants.maintenance_maom_enzyme * maintenance_synthesis
 
     # Remaining maintenance synthesis is used to replace degraded proteins and cells
-    replacement_synthesis = (
+    # (i.e. forms necromass)
+    necromass_formation = (
         1 - constants.maintenance_pom_enzyme - constants.maintenance_maom_enzyme
     ) * maintenance_synthesis
-
-    # TODO - This split will change when a necromass pool is introduced
-    # Calculate fraction of necromass that decays to LMWC
-    necromass_proportion_to_lmwc = constants.necromass_to_lmwc * clay_factor_decay
-    # These proteins and cells that are replaced decay into either the POM or LMWC pool
-    necromass_to_lmwc = necromass_proportion_to_lmwc * replacement_synthesis
-    necromass_to_pom = (1 - necromass_proportion_to_lmwc) * replacement_synthesis
 
     return MicrobialBiomassLoss(
         maintenance_synthesis=maintenance_synthesis,
         pom_enzyme_production=pom_enzyme_production,
         maom_enzyme_production=maom_enzyme_production,
-        necromass_decay_to_lmwc=necromass_to_lmwc,
-        necromass_decay_to_pom=necromass_to_pom,
+        necromass_formation=necromass_formation,
     )
 
 

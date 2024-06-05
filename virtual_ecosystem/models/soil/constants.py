@@ -200,12 +200,6 @@ class SoilConsts(ConstantsDataclass):
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
-    necromass_to_lmwc: float = 0.25
-    """Proportion of necromass that flows to LMWC rather than POM [unitless].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
     # TODO - The 4 constants below should take different values for fungi and bacteria,
     # once that separation is implemented.
     min_pH_microbes: float = 2.5
