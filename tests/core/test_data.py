@@ -840,11 +840,11 @@ def test_save_timeslice_to_netcdf(
         dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
-        dummy_carbon_data["soil_temperature"][13][0] = 15.0
+        dummy_carbon_data["soil_temperature_mean"][13][0] = 15.0
         # Append data to netcdf file
         dummy_carbon_data.save_timeslice_to_netcdf(
             out_path,
-            variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
+            variables_to_save=["soil_c_pool_lmwc", "soil_temperature_mean"],
             time_index=1,
         )
 
@@ -859,7 +859,7 @@ def test_save_timeslice_to_netcdf(
             ),
         )
         xr.testing.assert_allclose(
-            saved_data["soil_temperature"].isel(layers=range(12, 15)),
+            saved_data["soil_temperature_mean"].isel(layers=range(12, 15)),
             DataArray(
                 [
                     [
@@ -880,7 +880,8 @@ def test_save_timeslice_to_netcdf(
 
         # Check that only expected variables were added
         assert (
-            set(saved_data.keys()) - {"soil_c_pool_lmwc", "soil_temperature"} == set()
+            set(saved_data.keys()) - {"soil_c_pool_lmwc", "soil_temperature_mean"}
+            == set()
         )
         # Finally, close the dataset
         saved_data.close()
@@ -984,7 +985,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature_mean"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
         "out_continuous_file_name": "all_continuous_data.nc",
@@ -1001,7 +1002,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
         [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
     )
-    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+    dummy_carbon_data["soil_temperature_mean"][13][0] = 15.0
 
     # Save second data file
     dummy_carbon_data.save_timeslice_to_netcdf(
@@ -1035,7 +1036,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
         ),
     )
     testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        full_data["soil_temperature_mean"].isel(layers=range(12, 15)),
         DataArray(
             [
                 [
@@ -1071,7 +1072,7 @@ def test_merge_continuous_file_already_exists(
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature_mean"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
         "out_continuous_file_name": "already_exists.nc",

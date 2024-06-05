@@ -356,7 +356,7 @@ def test_order_independance(
         "soil_moisture",
         "matric_potential",
         "vertical_flow",
-        "soil_temperature",
+        "soil_temperature_mean",
         "clay_fraction",
         "litter_C_mineralisation_rate",
     ]

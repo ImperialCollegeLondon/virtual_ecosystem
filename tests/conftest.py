@@ -349,7 +349,7 @@ def dummy_carbon_data(fixture_core_components):
             "cell_id": data.grid.cell_id,
         }
     )
-    data["soil_temperature"] = xr.concat(
+    data["soil_temperature_mean"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
@@ -359,8 +359,8 @@ def dummy_carbon_data(fixture_core_components):
         ],
         dim="dim_0",
     )
-    data["soil_temperature"] = (
-        data["soil_temperature"]
+    data["soil_temperature_mean"] = (
+        data["soil_temperature_mean"]
         .rename({"dim_0": "layers"})
         .assign_coords(
             {

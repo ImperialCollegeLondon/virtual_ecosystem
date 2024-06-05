@@ -14,7 +14,7 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
     top_soil_water_potentials = [-3.0, -10.0, -250.0, -10000.0]
 
     assert np.allclose(
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index], top_soil_temps
+        dummy_carbon_data["soil_temperature_mean"][top_soil_layer_index], top_soil_temps
     )
     assert np.allclose(
         dummy_carbon_data["matric_potential"][top_soil_layer_index],
@@ -69,7 +69,9 @@ def calculate_temperature_effect_on_microbes(
     )
 
     actual_factors = calculate_temperature_effect_on_microbes(
-        soil_temperature=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_temperature=dummy_carbon_data["soil_temperature_mean"][
+            top_soil_layer_index
+        ],
         activation_energy=activation_energy,
         reference_temperature=SoilConsts.arrhenius_reference_temp,
         gas_constant=SoilConsts.universal_gas_constant,
