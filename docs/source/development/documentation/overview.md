@@ -28,18 +28,9 @@ website](https://virtual-ecosystem.readthedocs.io/).
 ## Sphinx build process
 
 The documentation sources for `virtual_ecosystem` are stored in the `docs/source`
-directory along with the `sphinx` configuration file `conf.py`. As noted below, the
-`sphinx` build process will need to run and build Jupyter notebooks. This requires the
-extra setup step shown below and [explained
-here](jupyter_notebooks.md#jupyter-kernel-setup).
-
-```zsh
-poetry run python -m ipykernel install --user --name=vr_python3
-```
-
-The HTML documentation can be built from `docs` folder from the command line using the
-commands below and will be built in  the `docs/build/html` directory. You can open
-`docs/build/html/index.html` in a browser to see the documentation.
+directory along with the `sphinx` configuration file `conf.py`. The HTML documentation
+can be built from `docs` folder from the command line using the commands below and will
+be built in  the `docs/build/html` directory.
 
 ```sh
 cd docs/
@@ -51,7 +42,8 @@ make html
 
 The `make html` command will only build pages for files that have changed recently, and
 it can sometimes be necessary to use `make clean` to remove all of the existing built
-pages in order to rebuild  the documentation from scratch.
+pages in order to rebuild  the documentation from scratch. You can open
+`docs/build/html/index.html` in a browser to see the resulting documentation.
 
 ## MyST Markdown
 

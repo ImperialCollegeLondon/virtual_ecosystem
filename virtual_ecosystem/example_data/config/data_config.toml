@@ -1,5 +1,5 @@
 [core.data_output_options]
-save_initial_state = false
+save_initial_state = true
 
 # Climate data
 [[core.data.variable]]
