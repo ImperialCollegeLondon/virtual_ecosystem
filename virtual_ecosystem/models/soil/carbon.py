@@ -74,7 +74,7 @@ def calculate_soil_carbon_updates(
         pH: pH values for each soil grid cell [unitless]
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: amount of water contained by each soil layer [mm]
-        soil_water_potential: Soil water potential for each grid cell [kPa]
+        soil_water_potential: Mean soil water potential for each grid cell [kPa]
         soil_temp: Mean soil temperature for each soil grid cell [degrees C]
         clay_fraction: The clay fraction for each soil grid cell [unitless]
         mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3

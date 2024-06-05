@@ -21,7 +21,9 @@ def temp_and_water_factors(
     environmental_factors = calculate_environmental_factors(
         surface_temp=dummy_litter_data["air_temperature_mean"][surface_layer_index],
         topsoil_temp=dummy_litter_data["soil_temperature_mean"][top_soil_layer_index],
-        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
+        water_potential=dummy_litter_data["matric_potential_mean"][
+            top_soil_layer_index
+        ],
         constants=LitterConsts,
     )
 
@@ -61,7 +63,9 @@ def test_calculate_environmental_factors(
     environmental_factors = calculate_environmental_factors(
         surface_temp=dummy_litter_data["air_temperature_mean"][surface_layer_index],
         topsoil_temp=dummy_litter_data["soil_temperature_mean"][top_soil_layer_index],
-        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
+        water_potential=dummy_litter_data["matric_potential_mean"][
+            top_soil_layer_index
+        ],
         constants=LitterConsts,
     )
 
@@ -155,7 +159,7 @@ def test_calculate_change_in_litter_variables(
         topsoil_temp=dummy_litter_data["soil_temperature_mean"][
             top_soil_layer_index
         ].to_numpy(),
-        water_potential=dummy_litter_data["matric_potential"][
+        water_potential=dummy_litter_data["matric_potential_mean"][
             top_soil_layer_index
         ].to_numpy(),
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),

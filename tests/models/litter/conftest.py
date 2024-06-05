@@ -90,7 +90,7 @@ def dummy_litter_data(fixture_core_components):
     )
 
     # The layer dependant data has to be handled separately
-    data["matric_potential"] = concat(
+    data["matric_potential_mean"] = concat(
         [
             DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the

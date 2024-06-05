@@ -48,7 +48,7 @@ def calculate_change_in_litter_variables(
             temperature as the above ground litter [C]
         topsoil_temp: Mean temperature of topsoil layer, which is assumed to be the same
             temperature as the below ground litter [C]
-        water_potential: Water potential of the topsoil layer [kPa]
+        water_potential: Mean water potential of the topsoil layer [kPa]
         above_metabolic: Above ground metabolic litter pool [kg C m^-2]
         above_structural: Above ground structural litter pool [kg C m^-2]
         woody: The woody litter pool [kg C m^-2]

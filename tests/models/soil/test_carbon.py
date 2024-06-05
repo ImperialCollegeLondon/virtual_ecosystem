@@ -40,7 +40,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         soil_moisture=dummy_carbon_data["soil_moisture"][
             top_soil_layer_index
         ].to_numpy(),
-        soil_water_potential=dummy_carbon_data["matric_potential"][
+        soil_water_potential=dummy_carbon_data["matric_potential_mean"][
             top_soil_layer_index
         ].to_numpy(),
         vertical_flow_rate=dummy_carbon_data["vertical_flow"],

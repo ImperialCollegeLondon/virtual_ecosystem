@@ -17,7 +17,7 @@ def test_top_soil_data_extraction(dummy_carbon_data, top_soil_layer_index):
         dummy_carbon_data["soil_temperature_mean"][top_soil_layer_index], top_soil_temps
     )
     assert np.allclose(
-        dummy_carbon_data["matric_potential"][top_soil_layer_index],
+        dummy_carbon_data["matric_potential_mean"][top_soil_layer_index],
         top_soil_water_potentials,
     )
 
@@ -37,7 +37,7 @@ def test_calculate_environmental_effect_factors(
     expected_clay_decay = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
 
     env_factors = calculate_environmental_effect_factors(
-        soil_water_potential=dummy_carbon_data["matric_potential"][
+        soil_water_potential=dummy_carbon_data["matric_potential_mean"][
             top_soil_layer_index
         ],
         pH=dummy_carbon_data["pH"],
@@ -92,7 +92,9 @@ def test_calculate_water_potential_impact_on_microbes(
     expected_factor = [1.0, 0.94414168, 0.62176357, 0.07747536]
 
     actual_factor = calculate_water_potential_impact_on_microbes(
-        water_potential=dummy_carbon_data["matric_potential"][top_soil_layer_index],
+        water_potential=dummy_carbon_data["matric_potential_mean"][
+            top_soil_layer_index
+        ],
         water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
         water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
         response_curvature=SoilConsts.microbial_water_response_curvature,

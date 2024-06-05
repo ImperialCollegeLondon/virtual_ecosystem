@@ -49,7 +49,7 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
     soil_constants = SoilConsts()
 
     water_factors = calculate_water_potential_impact_on_microbes(
-        water_potential=dummy_carbon_data["matric_potential"][
+        water_potential=dummy_carbon_data["matric_potential_mean"][
             top_soil_layer_index
         ].to_numpy(),
         water_potential_halt=soil_constants.soil_microbe_water_potential_halt,

@@ -354,7 +354,7 @@ def test_order_independance(
         "pH",
         "bulk_density",
         "soil_moisture",
-        "matric_potential",
+        "matric_potential_mean",
         "vertical_flow",
         "soil_temperature_mean",
         "clay_fraction",

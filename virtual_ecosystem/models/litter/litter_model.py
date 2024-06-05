@@ -199,7 +199,7 @@ class LitterModel(
             topsoil_temp=self.data["soil_temperature_mean"][
                 self.top_soil_layer_index
             ].to_numpy(),
-            water_potential=self.data["matric_potential"][
+            water_potential=self.data["matric_potential_mean"][
                 self.top_soil_layer_index
             ].to_numpy(),
             model_constants=self.model_constants,

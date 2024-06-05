@@ -280,7 +280,9 @@ def construct_full_soil_model(
         pH=data["pH"].to_numpy(),
         bulk_density=data["bulk_density"].to_numpy(),
         soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
-        soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
+        soil_water_potential=data["matric_potential_mean"][
+            top_soil_layer_index
+        ].to_numpy(),
         vertical_flow_rate=data["vertical_flow"].to_numpy(),
         soil_temp=data["soil_temperature_mean"][top_soil_layer_index].to_numpy(),
         clay_fraction=data["clay_fraction"].to_numpy(),

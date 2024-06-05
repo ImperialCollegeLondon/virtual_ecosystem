@@ -330,7 +330,7 @@ def dummy_carbon_data(fixture_core_components):
             "cell_id": data.grid.cell_id,
         }
     )
-    data["matric_potential"] = xr.concat(
+    data["matric_potential_mean"] = xr.concat(
         [
             DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
             # At present the soil model only uses the top soil layer, so this is the
