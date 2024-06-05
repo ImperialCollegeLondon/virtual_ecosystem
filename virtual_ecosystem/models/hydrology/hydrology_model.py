@@ -71,7 +71,6 @@ class HydrologyModel(
         "latent_heat_vapourisation",
         "molar_density_air",
         "soil_evaporation",
-        "aerodynamic_resistance_surface",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "matric_potential",
@@ -90,7 +89,6 @@ class HydrologyModel(
         "latent_heat_vapourisation",
         "molar_density_air",
         "soil_evaporation",
-        "aerodynamic_resistance_surface",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "matric_potential",
@@ -317,7 +315,6 @@ class HydrologyModel(
         * surface_runoff_accumulated, [mm]
         * subsurface_flow_accumulated, [mm]
         * soil_evaporation, [mm]
-        * aerodynamic_resistance_surface
         * vertical_flow, [mm d-1]
         * latent_heat_vapourisation, [J kg-1]
         * molar_density_air, [mol m-3]
@@ -512,9 +509,6 @@ class HydrologyModel(
                 ),
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
-            daily_lists["aerodynamic_resistance_surface"].append(
-                soil_evaporation["aerodynamic_resistance_surface"]
-            )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
             soil_moisture_evap_mm: NDArray[np.float32] = np.concatenate(
@@ -691,12 +685,11 @@ class HydrologyModel(
             coords={"cell_id": self.data.grid.cell_id},
         )
 
-        for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
-            soil_hydrology[var] = DataArray(
-                np.mean(np.stack(daily_lists[var], axis=1), axis=1),
-                dims="cell_id",
-                coords={"cell_id": self.data.grid.cell_id},
-            )
+        soil_hydrology["river_discharge_rate"] = DataArray(
+            np.mean(np.stack(daily_lists["river_discharge_rate"], axis=1), axis=1),
+            dims="cell_id",
+            coords={"cell_id": self.data.grid.cell_id},
+        )
 
         # Return mean soil moisture, [-], and matric potential, [kPa], and add
         # atmospheric layers (nan)

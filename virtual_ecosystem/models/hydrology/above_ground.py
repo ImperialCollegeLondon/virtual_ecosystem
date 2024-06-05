@@ -105,7 +105,6 @@ def calculate_soil_evaporation(
     aerodynamic_resistance = (
         1 / wind_speed_surface**2
     ) * soil_surface_heat_transfer_coefficient
-    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
