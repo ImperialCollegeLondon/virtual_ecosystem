@@ -103,14 +103,14 @@ def initialise_conductivities(
     )
     air_conductivity[-1] *= 2
     air_conductivity[0] *= (canopy_height / len(atmosphere_layers)) * 0.5
-    output["air_conductivity"] = DataArray(
+    output["air_heat_conductivity"] = DataArray(
         np.concatenate(
             [air_conductivity, np.full((len(soil_layers), len(canopy_height)), np.nan)],
             axis=0,
         ),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="air_conductivity",
+        name="air_heat_conductivity",
     )
 
     # Initialise leaf vapour conductivity
@@ -142,7 +142,7 @@ def initialise_conductivities(
         start_value=top_leaf_air_conductivity,
         end_value=bottom_leaf_air_conductivity,
     )
-    output["leaf_air_conductivity"] = DataArray(
+    output["leaf_air_heat_conductivity"] = DataArray(
         np.vstack(
             [
                 np.repeat(np.nan, len(canopy_height)),
@@ -152,7 +152,7 @@ def initialise_conductivities(
         ),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="leaf_air_conductivity",
+        name="leaf_air_heat_conductivity",
     )
 
     return output

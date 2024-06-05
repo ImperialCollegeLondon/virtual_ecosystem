@@ -1,9 +1,9 @@
 # Virtual Ecosystem example data
 
 Example data is included with Virtual Ecosystem to provide an introduction to the file
-formats and configuration. Using this data is described in the [usage](./usage.md)
-documentation and this page describes the structure and contents of the example data
-folder.
+formats and configuration. Using this data is described in the [getting
+started](./getting_started.md) page - this page describes the structure and contents of
+the example data folder.
 
 It might be useful to install the `ve_example` directory to a location of your choice
 when reading these notes, using the command shown below, but the contents of the key
