@@ -39,7 +39,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         np.broadcast_to(air_cond_values, (3, 15)).T,
         dims=["layers", "cell_id"],
         coords=coords,
-        name="air_conductivity",
+        name="air_heat_conductivity",
     )
 
     leaf_vap_values = np.repeat(
@@ -61,17 +61,17 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         np.broadcast_to(leaf_air_values, (3, 15)).T,
         dims=["layers", "cell_id"],
         coords=coords,
-        name="leaf_air_conductivity",
+        name="leaf_air_heat_conductivity",
     )
 
     np.testing.assert_allclose(
-        result["air_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
+        result["air_heat_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
         result["leaf_vapour_conductivity"], exp_leaf_vap_cond, rtol=1e-04, atol=1e-04
     )
     np.testing.assert_allclose(
-        result["leaf_air_conductivity"], exp_leaf_air_cond, rtol=1e-04, atol=1e-04
+        result["leaf_air_heat_conductivity"], exp_leaf_air_cond, rtol=1e-04, atol=1e-04
     )
 
 
