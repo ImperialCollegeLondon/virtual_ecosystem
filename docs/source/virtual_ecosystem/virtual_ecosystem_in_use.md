@@ -21,7 +21,7 @@ The workflow of the model is:
 
 ## Create the model configuration and initial data
 
-Here we are using the example data files supplied with the `virtual_ecosystem`
+Here we are using the example data supplied with the `virtual_ecosystem`
 package, which supplies a set of example data files and a simple model configuration
 to run a simulation. The following command line arguments set up the example data
 directory in Linux, Mac or Windows Subsystem for Linux (WSL).
@@ -51,7 +51,7 @@ fi
 ve_run --install-example /tmp/
 ```
 
-The `ve_example` directory contains the following files. These include:
+The `ve_example` directory contains the following files:
 
 * the `config` directory of TOML format configuration files,
 * the `data` and `source` directories of netCDF format data files,
@@ -118,7 +118,7 @@ continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.n
 final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
 ```
 
-### Initial state
+### Initial state and input data
 
 The `initial_state.nc` file contains all of the data required to start up the model.
 For some variables - such as elevation and soil pH - this just provides the initial or
@@ -175,7 +175,7 @@ ax.set_yticks(cell_bounds);
 ```
 
 For other variables, such as air temperature and precipitation, the initial data
-also provides time series data across the grid cells that are used to force the
+also provides time series data at reference height that are used to force the
 simulation across the configured time period.
 
 ```{code-cell}
@@ -188,13 +188,13 @@ fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 5))
 
 # Air temperature
 ax1.plot(initial_state["time_index"], initial_state["air_temperature_ref"])
-ax1.set_title("Air temperature across grid cells")
+ax1.set_title("Air temperature forcing across grid cells")
 ax1.set_ylabel("Air temperature (°C)")
 ax1.set_xlabel("Time step (months)")
 
 # Precipitation
 ax2.plot(initial_state["time_index"], initial_state["precipitation"])
-ax2.set_title("Precipitation across grid cells")
+ax2.set_title("Precipitation forcing across grid cells")
 ax2.set_ylabel("Total monthly precipitation (mm)")
 ax2.set_xlabel("Time step (months)");
 ```
