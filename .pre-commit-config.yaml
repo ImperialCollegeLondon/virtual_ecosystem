@@ -4,20 +4,11 @@ repos:
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
-  - repo: https://github.com/PyCQA/isort
-    rev: "5.13.2"
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.7
     hooks:
-      - id: isort
-        additional_dependencies: [toml]
-  - repo: https://github.com/psf/black
-    rev: "24.4.2"
-    hooks:
-      - id: black
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies: [flake8-docstrings]
+      - id: ruff        #  Run the linter.
+      - id: ruff-format #  Run the formatter.
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.10.0"
     hooks:
@@ -27,8 +18,3 @@ repos:
     rev: v0.41.0
     hooks:
     - id: markdownlint
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.2
-    hooks:
-      - id: pyupgrade
-        args: [--py310-plus]
