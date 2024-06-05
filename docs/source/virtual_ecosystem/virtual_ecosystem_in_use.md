@@ -120,9 +120,11 @@ final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
 
 ### Initial state and input data
 
-The `initial_state.nc` file contains all of the data required to start up the model.
-For some variables - such as elevation and soil pH - this just provides the initial or
-constant values across the grid cells to be calculated.
+The `initial_state.nc` file contains all of the data required to run the model. For some
+variables - such as elevation and soil pH - this just provides the initial or constant
+values across the grid cells to be calculated.  Other variables - such as precipitation
+and temperature - provide a time series of data at a reference height above the canopy
+that are used to that drive (or force) the behaviour of the model through time.
 
 ```{code-cell}
 extent = [
