@@ -30,14 +30,14 @@ version = "0.1.1a4"
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
-Shapely = "^1.8.4"
+Shapely = "^2.0"
 dask = "^2023.6.0"
 dpath = "^2.0.6"
 jsonschema = "^4.14.0"
 netcdf4 = "^1.6.5"
 numpy = "^1.23.0"
 pint = "^0.20.1"
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.13"
 scipy = "^1.9.0"
 tomli = {version = "^2.0.1", python = "<3.11"}
 tomli-w = "^1.0.0"
