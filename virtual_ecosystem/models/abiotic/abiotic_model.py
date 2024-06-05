@@ -97,6 +97,7 @@ class AbioticModel(
         "leaf_area_index",
         "layer_heights",
         "topofcanopy_radiation",
+        "stomatal_conductance",
     ),
     vars_initialised=(
         "soil_temperature",
