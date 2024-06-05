@@ -8,9 +8,9 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: vr_python3
+  display_name: python3
   language: python
-  name: vr_python3
+  name: python3
 ---
 
 # The `core.grid` module
