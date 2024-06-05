@@ -166,7 +166,7 @@ def update_surface_temperature(
             kilograms
 
     Returns:
-        topsoil temperature
+        topsoil temperature, [C]
     """
     # Calculate the mass of the soil that is absorbing the radiation
     topsoil_mass = surface_layer_depth * grid_cell_area * volume_to_weight_conversion
@@ -202,8 +202,8 @@ def calculate_soil_heat_balance(
     The function takes an instance of data object, AbioticConsts and CoreConsts which
     must provide the following inputs:
 
-    * soil_temperature: Soil temperature
-    * air_temperature: Air temperature
+    * soil_temperature: Soil temperature, [C]
+    * air_temperature: Air temperature, [C]
     * shortwave_radiation_surface: Shortwave radiation that reaches surface, [W m-2]
     * soil_evaporation: Soil evaporation, [mm]
     * soil_emissivity: Soil emissivity, dimensionless
