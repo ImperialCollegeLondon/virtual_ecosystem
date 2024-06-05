@@ -19,8 +19,8 @@ def temp_and_water_factors(
     )
 
     environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
-        topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
+        surface_temp=dummy_litter_data["air_temperature_mean"][surface_layer_index],
+        topsoil_temp=dummy_litter_data["soil_temperature_mean"][top_soil_layer_index],
         water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
         constants=LitterConsts,
     )
@@ -59,8 +59,8 @@ def test_calculate_environmental_factors(
     expected_temp_below_factors = [0.2732009, 0.2732009, 0.2732009]
 
     environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
-        topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
+        surface_temp=dummy_litter_data["air_temperature_mean"][surface_layer_index],
+        topsoil_temp=dummy_litter_data["soil_temperature_mean"][top_soil_layer_index],
         water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
         constants=LitterConsts,
     )
@@ -81,7 +81,7 @@ def test_calculate_temperature_effect_on_litter_decomp(
     expected_factor = [0.2732009, 0.2732009, 0.2732009]
 
     actual_factor = calculate_temperature_effect_on_litter_decomp(
-        dummy_litter_data["soil_temperature"][top_soil_layer_index],
+        dummy_litter_data["soil_temperature_mean"][top_soil_layer_index],
         reference_temp=LitterConsts.litter_decomp_reference_temp,
         offset_temp=LitterConsts.litter_decomp_offset_temp,
         temp_response=LitterConsts.litter_decomp_temp_response,
@@ -149,10 +149,10 @@ def test_calculate_change_in_litter_variables(
     }
 
     result = calculate_change_in_litter_variables(
-        surface_temp=dummy_litter_data["air_temperature"][
+        surface_temp=dummy_litter_data["air_temperature_mean"][
             surface_layer_index
         ].to_numpy(),
-        topsoil_temp=dummy_litter_data["soil_temperature"][
+        topsoil_temp=dummy_litter_data["soil_temperature_mean"][
             top_soil_layer_index
         ].to_numpy(),
         water_potential=dummy_litter_data["matric_potential"][

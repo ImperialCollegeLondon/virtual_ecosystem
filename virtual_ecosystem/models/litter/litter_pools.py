@@ -44,9 +44,9 @@ def calculate_change_in_litter_variables(
     """Calculate changes for all the litter variables (pool sizes and chemistries).
 
     Args:
-        surface_temp: Temperature of soil surface, which is assumed to be the same
+        surface_temp: Mean temperature of soil surface, which is assumed to be the same
             temperature as the above ground litter [C]
-        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
+        topsoil_temp: Mean temperature of topsoil layer, which is assumed to be the same
             temperature as the below ground litter [C]
         water_potential: Water potential of the topsoil layer [kPa]
         above_metabolic: Above ground metabolic litter pool [kg C m^-2]

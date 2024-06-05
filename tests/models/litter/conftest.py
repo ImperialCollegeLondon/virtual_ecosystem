@@ -71,7 +71,7 @@ def dummy_litter_data(fixture_core_components):
 
     These values are completely made up, so you should not read anything into them.
     """
-    data["soil_temperature"] = (
+    data["soil_temperature_mean"] = (
         concat(
             [DataArray(np.full((13, 3), np.nan)), DataArray(np.full((2, 3), 20))],
             dim="dim_0",
@@ -113,7 +113,7 @@ def dummy_litter_data(fixture_core_components):
         }
     )
 
-    data["air_temperature"] = concat(
+    data["air_temperature_mean"] = concat(
         [
             DataArray(
                 [

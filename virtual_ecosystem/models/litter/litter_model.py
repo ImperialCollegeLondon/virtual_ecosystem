@@ -193,10 +193,10 @@ class LitterModel(
 
         # Find change in litter variables using the function
         updated_variables = calculate_change_in_litter_variables(
-            surface_temp=self.data["air_temperature"][
+            surface_temp=self.data["air_temperature_mean"][
                 self.surface_layer_index
             ].to_numpy(),
-            topsoil_temp=self.data["soil_temperature"][
+            topsoil_temp=self.data["soil_temperature_mean"][
                 self.top_soil_layer_index
             ].to_numpy(),
             water_potential=self.data["matric_potential"][
