@@ -27,7 +27,7 @@ TODO units and module coordination
     * change temperature to Kelvin
     * change soil moisture to mm
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -116,7 +116,7 @@ class HydrologyModel(
             ("initial_soil_moisture", initial_soil_moisture),
             ("initial_groundwater_saturation", initial_groundwater_saturation),
         ):
-            if not isinstance(value, (float, int)):
+            if not isinstance(value, float | int):
                 to_raise = InitialisationError(f"The {attr} must be numeric!")
                 LOGGER.error(to_raise)
                 raise to_raise

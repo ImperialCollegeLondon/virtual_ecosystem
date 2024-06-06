@@ -4,7 +4,7 @@ are shared across submodules in the
 
 TODO cross-check with pyrealm for duplication/ different implementation
 TODO change temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray

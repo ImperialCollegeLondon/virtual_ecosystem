@@ -2,7 +2,7 @@
 constants and parameters for the
 :mod:`~virtual_ecosystem.models.litter.litter_model`. These parameters are constants
 in that they should not be changed during a particular simulation.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 # TODO - Need to track down better estimates of the carbon use efficiencies.
 

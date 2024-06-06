@@ -1,7 +1,7 @@
 """The `models.animals.protocols` module contains a class provides eatability definition
 used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animals` module.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from typing import Protocol
 

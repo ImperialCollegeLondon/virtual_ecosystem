@@ -1,3 +1,5 @@
+"""The base initialisation of the Virtual Ecosystem model."""
+
 import importlib.metadata
 
 from . import example_data

@@ -12,7 +12,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 
-# Class uses DEBUG
+# Class uses DEBUG
 LOGGER.setLevel(DEBUG)
 
 
@@ -398,7 +398,7 @@ def new_axis_validators():
     # Create a new subclass.
     class TestAxis(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
@@ -411,7 +411,7 @@ def new_axis_validators():
     # Create a new duplicate subclass to check mutual exclusivity test
     class TestAxis2(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False

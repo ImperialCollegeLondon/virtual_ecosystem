@@ -1,6 +1,6 @@
 """The ''plant_resources'' classes provides toy plant module functionality that are
 required for setting up and testing the early stages of the animal module.
-"""  # noqa: #D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

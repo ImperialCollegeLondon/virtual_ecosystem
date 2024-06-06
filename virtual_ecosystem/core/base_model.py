@@ -230,6 +230,7 @@ class BaseModel(ABC):
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
     @abstractmethod

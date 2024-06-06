@@ -2,7 +2,7 @@
 Virtual Ecosystem, but which don't have a natural home in a specific module. Adding
 functions here can be a good way to reduce the amount boiler plate code generated for
 tasks that are repeated across modules.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from pathlib import Path
 
@@ -130,7 +130,7 @@ def set_layer_roles(
         LOGGER.error(to_raise)
         raise to_raise
 
-    if not all([isinstance(v, (float, int)) for v in soil_layers]):
+    if not all([isinstance(v, float | int) for v in soil_layers]):
         to_raise = InitialisationError("The soil layer depths are not all numeric.")
         LOGGER.error(to_raise)
         raise to_raise

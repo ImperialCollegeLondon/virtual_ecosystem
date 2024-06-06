@@ -77,8 +77,8 @@ def test_abiotic_simple_model_initialization(
                         "Information required to initialise the abiotic simple model "
                         "successfully extracted.",
                     ),
-                ]
-                + MODEL_VAR_CHECK_LOG,
+                    *MODEL_VAR_CHECK_LOG,
+                ],
             ),
             id="default_config",
         ),
@@ -99,8 +99,8 @@ def test_abiotic_simple_model_initialization(
                         "Information required to initialise the abiotic simple model "
                         "successfully extracted.",
                     ),
-                ]
-                + MODEL_VAR_CHECK_LOG,
+                    *MODEL_VAR_CHECK_LOG,
+                ],
             ),
             id="modified_config_correct",
         ),

@@ -4,7 +4,7 @@ interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from math import sqrt
 
@@ -66,6 +66,7 @@ def calculate_soil_evaporation(
         celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
         density_air: density if air, [kg m-3]
         latent_heat_vapourisation: latent heat of vapourisation, [MJ kg-1]
+        leaf_area_index: the leaf area index [unitless]
         gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
         soil_surface_heat_transfer_coefficient: heat transfer coefficient between soil
             and air, [W m-2 K-1]
@@ -265,12 +266,8 @@ def calculate_interception(
     Args:
         leaf_area_index: leaf area index summed over all canopy layers, [m2 m-2]
         precipitation: precipitation, [mm]
-        intercept_parameter_1: Parameter in equation that estimates maximum canopy
-            interception capacity
-        intercept_parameter_2: Parameter in equation that estimates maximum canopy
-            interception capacity
-        intercept_parameter_3: Parameter in equation that estimates maximum canopy
-            interception capacity
+        intercept_parameters: Parameters for equation estimating maximum canopy
+            interception capacity.
         veg_density_param: Parameter used to estimate vegetation density for maximum
             canopy interception capacity estimate
 

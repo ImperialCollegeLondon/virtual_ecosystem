@@ -25,7 +25,7 @@ def test_ve_run(capsys):
     could do with a fast running minimal test or a mocker to do that.
     """
 
-    # import virtual_ecosystem.core  # noqa #F401
+    # import virtual_ecosystem.core  #F401
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
 
