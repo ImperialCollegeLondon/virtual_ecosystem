@@ -118,7 +118,7 @@ file.
     # Load configured datasets
     data.load_data_config(config)
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from pathlib import Path
 from typing import Any

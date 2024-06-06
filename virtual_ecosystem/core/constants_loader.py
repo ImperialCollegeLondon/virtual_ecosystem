@@ -4,7 +4,7 @@ function that retrieves a constants dataclass from the
 :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY` and then extracts any
 configuration details for that constants dataclass from a
 :mod:`~virtual_ecosystem.core.config.Config` instance.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from typing import Any
 

@@ -14,7 +14,7 @@ information from the config dictionary to the required types
 (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
 of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -239,6 +239,7 @@ class AnimalModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         for community in self.communities.values():

@@ -5,7 +5,7 @@ will be inserted using the ``automodule`` declaration, so we do not repeat it he
 That does mean that we need to stop ``flake8`` complaining about a missing blank line
 after the first line and a missing full stop at the end of that line, which we can do
 using the comment ``# noqa: D205, D415`` after the docstring closes.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 AN_OBJECT: str = "An object in the module"
 """This is a docstring for a module attribute."""

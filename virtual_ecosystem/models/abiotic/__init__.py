@@ -37,6 +37,6 @@ Each of the abiotic sub-modules has its own API reference page:
   describe how well heat or vapour are transferred by a medium such as air, water, or
   leaves in mol m-2 s-1. We consider heat conductivity by turbulent convection in air,
   leaf-air heat conductivity, and leaf-air vapour conductivity.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

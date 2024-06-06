@@ -12,6 +12,6 @@ Each of the soil sub-modules has its own API reference page:
   the impact of environmental factors on microbial rates.
 * The :mod:`~virtual_ecosystem.models.soil.constants` provides a set of dataclasses
   containing the constants required by the broader soil model.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from virtual_ecosystem.models.soil.soil_model import SoilModel  # noqa: F401
