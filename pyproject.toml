@@ -105,13 +105,13 @@ select = [
   "D", # pydocstyle
   "I", # isort
   "UP", # pyupgrade
+  "RUF", # ruff-only checking
 ]
 
 # On top of the Google convention, disable:
 ignore = [
   "D202", # Blank line after docstring is ok
-  "D107", # Location of __init__ docstring in class not __init__"
-  "F401", # module imported but unused
+  "D107", # Location of __init__ docstring in class not __init__"  # "F401", # module imported but unused
 ]
 
 [tool.ruff.lint.pydocstyle]
