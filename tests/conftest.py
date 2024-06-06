@@ -835,13 +835,15 @@ def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_arr
     data["leaf_area_index"] = leaf_area_index
 
     layer_heights = fixture_empty_array.copy()
-    layer_heights[[0, 1, 2, 3, 11, 12], :] = [
+    layer_heights[[0, 1, 2, 3, 11, 12, 13, 14], :] = [
         [32.0, 32.0, 32.0],
         [30.0, 30.0, 30.0],
         [20.0, 20.0, np.nan],
         [10.0, np.nan, np.nan],
         [1.5, 1.5, 1.5],
         [0.1, 0.1, 0.1],
+        [-0.5, -0.5, -0.5],
+        [-1, -1, -1],
     ]
     data["layer_heights"] = layer_heights
 

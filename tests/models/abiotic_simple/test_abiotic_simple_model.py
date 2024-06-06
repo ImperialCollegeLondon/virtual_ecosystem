@@ -228,6 +228,10 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
         [22.81851, 25.21234, 27.60617],
     ]
 
+    exp_soil_temp = fixture_empty_array.copy()
+    exp_soil_temp[[13, 14], :] = [[20.712458, 21.317566, 21.922674], [20.0, 20.0, 20.0]]
+    xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+
     xr.testing.assert_allclose(
         dummy_climate_data_varying_canopy["air_temperature"], exp_air_temp
     )
