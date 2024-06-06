@@ -156,7 +156,7 @@ class AbioticSimpleModel(
 
         Args:
             time_index: The index of the current time step in the data object.
-            kwargs: Further arguments to the update method.
+            **kwargs: Further arguments to the update method.
         """
 
         # This section performs a series of calculations to update the variables in the

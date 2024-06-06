@@ -135,7 +135,7 @@ class AxisValidator(ABC):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if the `run_validation` method of the subclass can be
@@ -155,7 +155,7 @@ class AxisValidator(ABC):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A DataArray that passes validation, possibly modified to align with internal
@@ -194,7 +194,7 @@ def validate_dataarray(
     Args:
         value: An input DataArray for validation
         grid: A Grid object giving the spatial configuration.
-        kwargs: Further configuration details to be passed to AxisValidators
+        **kwargs: Further configuration details to be passed to AxisValidators
 
     Returns:
         The function returns the validated data array and a dictionary recording which
@@ -278,7 +278,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -299,7 +299,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
@@ -349,7 +349,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -370,7 +370,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
@@ -414,7 +414,7 @@ class Spat_XY_Coord_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -437,7 +437,7 @@ class Spat_XY_Coord_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.
@@ -502,7 +502,7 @@ class Spat_XY_Dim_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -522,7 +522,7 @@ class Spat_XY_Dim_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.

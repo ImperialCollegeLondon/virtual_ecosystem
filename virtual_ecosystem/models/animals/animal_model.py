@@ -239,7 +239,7 @@ class AnimalModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
-            kwargs: Further arguments to the update method.
+            **kwargs: Further arguments to the update method.
         """
 
         for community in self.communities.values():

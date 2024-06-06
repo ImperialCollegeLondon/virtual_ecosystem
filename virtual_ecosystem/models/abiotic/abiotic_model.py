@@ -251,7 +251,7 @@ class AbioticModel(
 
         Args:
             time_index: The index of the current time step in the data object.
-            kwargs: Further arguments to the update method.
+            **kwargs: Further arguments to the update method.
         """
 
         # TODO This selection of layers should be included in LayerStructure at the

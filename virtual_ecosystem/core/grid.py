@@ -326,7 +326,7 @@ class Grid:
 
         Args:
             dp: The decimal place precision for exported coordinates
-            kwargs: Arguments to json.dumps
+            **kwargs: Arguments to json.dumps
         """
 
         content = self._get_geojson(dp=dp)
@@ -344,7 +344,7 @@ class Grid:
         Args:
             outfile: A path used to export GeoJSON data.
             dp: The decimal place precision for exported coordinates
-            kwargs: Arguments to json.dump
+            **kwargs: Arguments to json.dump
         """
 
         content = self._get_geojson(dp=dp)
