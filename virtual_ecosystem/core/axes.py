@@ -76,7 +76,7 @@ class AxisValidator(ABC):
     core_axis: str
     """Class attribute giving the name of the core axis for an AxisValidator."""
 
-    dim_names: set[str]
+    dim_names: frozenset[str]
     """Class attribute giving the dimension names for an AxisValidator."""
 
     def __init__(self) -> None:
@@ -108,10 +108,10 @@ class AxisValidator(ABC):
         if not hasattr(cls, "dim_names"):
             raise ValueError("Class attribute dim_names not set.")
 
-        if not isinstance(cls.dim_names, set) or any(
+        if not isinstance(cls.dim_names, frozenset) or any(
             [not isinstance(x, str) for x in cls.dim_names]
         ):
-            raise ValueError("Class attribute dim_names is not a set of strings.")
+            raise ValueError("Class attribute dim_names is not a frozenset of strings.")
 
         if cls.core_axis in AXIS_VALIDATORS:
             AXIS_VALIDATORS[cls.core_axis].append(cls)
@@ -214,7 +214,7 @@ def validate_dataarray(
         validators: list[type[AxisValidator]] = AXIS_VALIDATORS[axis]
 
         # Get the set of dim names across all of the validators for this axis
-        validator_dims = set.union(*[v.dim_names for v in validators])
+        validator_dims = frozenset.union(*[v.dim_names for v in validators])
 
         # If the dataarray includes any of those dimension names, one of the validators
         # for that axis must be able to validate the array, otherwise we can skip
@@ -270,7 +270,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"cell_id"}
+    dim_names = frozenset(["cell_id"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -341,7 +341,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"cell_id"}
+    dim_names = frozenset(["cell_id"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -406,7 +406,7 @@ class Spat_XY_Coord_Square(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"x", "y"}
+    dim_names = frozenset(["x", "y"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -494,7 +494,7 @@ class Spat_XY_Dim_Square(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"x", "y"}
+    dim_names = frozenset(["x", "y"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.

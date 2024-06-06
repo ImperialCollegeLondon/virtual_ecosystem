@@ -398,7 +398,7 @@ def new_axis_validators():
     # Create a new subclass.
     class TestAxis(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
@@ -411,7 +411,7 @@ def new_axis_validators():
     # Create a new duplicate subclass to check mutual exclusivity test
     class TestAxis2(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
