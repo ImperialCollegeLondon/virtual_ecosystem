@@ -256,7 +256,7 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
     """Test that  __init_subclass__ traps bad values for required_init_vars."""
 
     # BaseModel is required here in the code being exec'd from the params.
-    from virtual_ecosystem.core.base_model import BaseModel  # noqa: F401
+    from virtual_ecosystem.core.base_model import BaseModel
 
     with exp_raise as err:
         # Run the code to define the model

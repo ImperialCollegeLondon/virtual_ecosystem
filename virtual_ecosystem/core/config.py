@@ -6,7 +6,7 @@ found :doc:`here </virtual_ecosystem/core/config>`.
 The validation of configuration documents is done using JSONSchema documents associated
 with the different model components. See the :mod:`~virtual_ecosystem.core.schema`
 module for details.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import sys
 from collections.abc import Sequence
@@ -338,7 +338,7 @@ class Config(dict):
                     self.toml_contents[this_file] = tomllib.load(file_io)
             except tomllib.TOMLDecodeError as err:
                 failed_inputs = True
-                LOGGER.error(f"Config TOML parsing error in {this_file}: {str(err)}")
+                LOGGER.error(f"Config TOML parsing error in {this_file}: {err!s}")
             else:
                 LOGGER.info(f"Config TOML loaded from {this_file}")
 
@@ -364,7 +364,7 @@ class Config(dict):
                 self.toml_contents[f"cfg_string_{index}"] = tomllib.loads(cfg_string)
             except tomllib.TOMLDecodeError as err:
                 to_raise = ConfigurationError(
-                    f"TOML parsing error in cfg_strings: {str(err)}"
+                    f"TOML parsing error in cfg_strings: {err!s}"
                 )
                 LOGGER.critical(to_raise)
                 raise to_raise

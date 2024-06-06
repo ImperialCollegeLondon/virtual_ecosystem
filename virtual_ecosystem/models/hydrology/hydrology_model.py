@@ -27,7 +27,7 @@ TODO units and module coordination
     * change temperature to Kelvin
     * change soil moisture to mm
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

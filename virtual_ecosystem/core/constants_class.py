@@ -14,7 +14,7 @@ use in a model:
    dataclass with the required constant values. See
    :mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass` for syntax
    details.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

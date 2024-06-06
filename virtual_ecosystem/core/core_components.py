@@ -3,7 +3,7 @@ by models. It is used as input to the
 :class:`~virtual_ecosystem.core.base_model.BaseModel`, allowing single instances of
 these components to be cascaded down to individual model subclass instances via the
 ``__init__`` method of the base model..
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

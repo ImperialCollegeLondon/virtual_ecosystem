@@ -1,7 +1,7 @@
 """The ``models.soil.env_factors`` module contains functions that are used to
 capture the impact that environmental factors have on microbial rates. These include
 temperature, soil water potential, pH and soil texture.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass
 

@@ -1,6 +1,6 @@
 r"""The ``models.abiotic.conductivities`` module calculates the conductivities for the
 energy balance of the Virtual Ecosystem based on :cite:t:`maclean_microclimc_2021`.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray

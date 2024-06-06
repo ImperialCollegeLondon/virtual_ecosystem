@@ -11,7 +11,7 @@ The second part determines the soil temperature profile at different depths. We
 divide the soil into discrete layers to numerically solve the time-dependent
 differential equation that describes soil temperature as a function of depth
 and time (see TODO THIS FUNCTION for details).
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray

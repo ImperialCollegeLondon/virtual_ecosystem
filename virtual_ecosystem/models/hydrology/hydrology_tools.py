@@ -1,7 +1,5 @@
 """Functions to set up hydrology model and select data for current time step."""
 
-# noqa: D205, D415
-
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray

@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.main` module defines the function used to run a full
 simulation of the model, along with helper functions to validate and configure the
 model.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import os
 from collections.abc import Sequence

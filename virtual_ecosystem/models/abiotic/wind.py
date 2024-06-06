@@ -6,7 +6,7 @@ the atmosphere above the canopy.
 TODO replace leaf area index by plant area index when we have more info about vertical
 distribution of leaf and woody parts
 TODO change temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray

@@ -14,7 +14,7 @@ dictionary to the required types (e.g. :class:`~numpy.timedelta64`) they are cau
 then logged, and at the end of the unpacking an error is thrown. This error should be
 caught and handled by downstream functions so that all model configuration failures can
 be reported as one.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 # TODO - At the moment this model only receives two things from the animal model,
 # excrement and decayed carcass biomass. Both of these are simply added to the above

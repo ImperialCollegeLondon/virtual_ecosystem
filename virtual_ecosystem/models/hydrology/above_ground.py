@@ -4,7 +4,7 @@ interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from math import sqrt
 

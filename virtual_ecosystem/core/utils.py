@@ -2,7 +2,7 @@
 Virtual Ecosystem, but which don't have a natural home in a specific module. Adding
 functions here can be a good way to reduce the amount boiler plate code generated for
 tasks that are repeated across modules.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from pathlib import Path
 

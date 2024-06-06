@@ -12,7 +12,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 
-# Class uses DEBUG
+# Class uses DEBUG
 LOGGER.setLevel(DEBUG)
 
 

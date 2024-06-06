@@ -1,7 +1,7 @@
 """The `models.animals.functional_group` module contains a class that organizes
 constants and rate equations used by AnimalCohorts in the
 :mod:`~virtual_ecosystem.models.animals` module.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import pandas as pd
 

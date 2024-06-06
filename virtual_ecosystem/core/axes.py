@@ -42,7 +42,7 @@ The :class:`~virtual_ecosystem.core.axes.AxisValidator` subclasses defined for t
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
 :class:`~virtual_ecosystem.core.grid.Grid` instance for the simulation. `x`
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from abc import ABC, abstractmethod
 from typing import Any

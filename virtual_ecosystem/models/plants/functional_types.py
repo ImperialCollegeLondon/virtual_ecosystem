@@ -78,7 +78,7 @@ class Flora(dict):
                     pft_dict[pft.pft_name] = pft
                 except Exception as excep:
                     LOGGER.critical(
-                        f"Error generating plant functional type: {str(excep)}"
+                        f"Error generating plant functional type: {excep!s}"
                     )
                     raise
         else:

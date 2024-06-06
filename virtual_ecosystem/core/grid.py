@@ -8,7 +8,7 @@ underlying the simulation and to identify the neighbourhood connections of cells
   defining mappings though.
 - maybe look at libpysal if we end up needing more weights/spatial analysis stuff?
   https://pysal.org/libpysal/
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

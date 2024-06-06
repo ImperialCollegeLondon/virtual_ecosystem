@@ -2,7 +2,7 @@
 Ecosystem. At the moment five pools are modelled, these are low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
 matter (POM), and POM degrading enzymes.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass
 
