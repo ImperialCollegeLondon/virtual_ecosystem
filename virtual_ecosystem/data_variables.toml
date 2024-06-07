@@ -1,4 +1,11 @@
 [[variable]]
+axis = ["community_id", "functional_group_id"]
+description = "Density of animal populations."
+name = "population_densities"
+unit = "???"
+variable_type = "float"
+
+[[variable]]
 axis = ["space"]
 description = "Air heat conductivity between layers"
 name = "air_heat_conductivity"
