@@ -623,9 +623,6 @@ unit = "kg C m^-3 day^-1"
 variable_type = ""
 axis = []
 
-# BELOW TO BE CHECKED
-
-
 [[variable]]
 name = "lignin_above_structural"
 description = "Lignin content of above ground structural litter"
@@ -699,13 +696,6 @@ axis = []
 [[variable]]
 name = "layer_leaf_mass"
 description = "layer_leaf_mass"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "layer_absorbed_irradiation"
-description = "layer_absorbed_irradiation"
 unit = ""
 variable_type = ""
 axis = []
