@@ -20,6 +20,13 @@ variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
+name = "animal_respiration"
+description = "Animal respiration aggregated over all functional types"
+unit = "ppm"
+variable_type = ""
+axis = []
+
+[[variable]]
 name = "atmospheric_co2"
 description = "Atmospheric CO2 concentration profile"
 unit = "ppm"
@@ -257,6 +264,21 @@ unit = "kg m-3"
 variable_type = "float"
 axis = ["space"]
 
+
+[[variable]]
+name = "plant_net_co2_assimilation"
+description = "Plant net CO2 assimilation"
+unit = "ppm"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "ppfd"
+description = "Top of canopy photosynthetic photon flux density"
+unit = "mol m-2"
+variable_type = ""
+axis = []
+
 [[variable]]
 name = "precipitation"
 description = "Precipitation input at the top of the canopy"
@@ -327,6 +349,7 @@ unit = "W m-2"
 variable_type = "float"
 axis = ["space"]
 
+
 [[variable]]
 name = "shortwave_radiation_surface"
 description = "Shortwave radiation at the surface"
@@ -370,6 +393,13 @@ variable_type = "float"
 axis = ["space"]
 
 [[variable]]
+name = "soil_respiration"
+description = "Soil respiration"
+unit = "ppm"
+variable_type = ""
+axis = ["space"]
+
+[[variable]]
 name = "soil_temperature"
 description = "Soil temperature profile"
 unit = "C"
@@ -383,6 +413,12 @@ unit = "kJ kg-1"
 variable_type = "float"
 axis = ["space"]
 
+[[variable]]
+name = "specific_humidity"
+description = "Specific humidity of air"
+unit = "g kg-1"
+variable_type = ""
+axis = ["space"]
 
 [[variable]]
 name = "stomatal_conductance"
@@ -488,3 +524,202 @@ description = "Zero displacement height"
 unit = "m"
 variable_type = "float"
 axis = ["space"]
+
+[[variable]]
+name = "soil_c_pool_lmwc"
+description = "Size of low molecular weight carbon pool"
+unit = "kg C m-3"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_c_pool_maom"
+description = "Size of mineral associated organic matter pool"
+unit = "kg C m-3"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_c_pool_microbe"
+description = "Size of microbial biomass pool"
+unit = "kg C m-3"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_c_pool_pom"
+description = "Size of microbial biomass pool"
+unit = "kg C m-3"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "bulk_density"
+description = "Bulk density of soil"
+unit = "kg m-3"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "pH"
+description = "Soil pH"
+unit = "pH"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_pool_above_metabolic"
+description = "Above ground metabolic litter pool"
+unit = "kg C m^-2"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_pool_above_structural"
+description = "Above ground structural litter pool"
+unit = "kg C m^-2"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_pool_woody"
+description = "Woody litter pool"
+unit = "kg C m^-2"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_pool_below_metabolic"
+description = "Below ground metabolic litter pool"
+unit = "kg C m^-2"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_pool_below_structural"
+description = "Below ground structural litter pool"
+unit = "kg C m^-2"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "litter_C_mineralisation_rate"
+description = "Rate of carbon addition to soil from litter"
+unit = "kg C m^-3 day^-1"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "decomposed_excrement"
+description = "Rate of excrement flow from animals into litter"
+unit = "kg C m^-3 day^-1"
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "decomposed_carcasses"
+description = "Rate of decomposed carcass biomass flow from animals into litter"
+unit = "kg C m^-3 day^-1"
+variable_type = ""
+axis = []
+
+# BELOW TO BE CHECKED
+
+
+[[variable]]
+name = "lignin_above_structural"
+description = "Lignin content of above ground structural litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "lignin_below_structural"
+description = "Lignin content of above ground structural litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "lignin_woody"
+description = "Lignin content of woody litter"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_cell_id"
+description = "Cell ID of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_pft"
+description = "Plant functional type of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_n"
+description = "Number of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "plant_cohorts_dbh"
+description = "Diameter at breast height of plant cohorts"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "photosynthetic_photon_flux_density"
+description = "Photosynthetic photon flux density"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "clay_fraction"
+description = "Fraction of clay in soil"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_fapar"
+description = "layer_fapar"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_leaf_mass"
+description = "layer_leaf_mass"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "layer_absorbed_irradiation"
+description = "layer_absorbed_irradiation"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_enzyme_pom"
+description = "soil_enzyme_pom"
+unit = ""
+variable_type = ""
+axis = []
+
+[[variable]]
+name = "soil_enzyme_maom"
+description = "soil_enzyme_maom"
+unit = ""
+variable_type = ""
+axis = []
