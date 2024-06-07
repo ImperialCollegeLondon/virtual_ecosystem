@@ -17,8 +17,8 @@ Each of the abiotic sub-modules has its own API reference page:
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.constants` submodule provides a
   set of dataclasses containing the constants required by the broader abiotic model.
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
-from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (  # noqa: F401, E501
+from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (  # noqa: F401
     AbioticSimpleModel,
 )

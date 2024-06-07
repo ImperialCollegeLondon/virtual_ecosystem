@@ -46,8 +46,8 @@ INITIALISATION_LOG = [
             None,
             pytest.raises(InitialisationError),
             tuple(
-                INITIALISATION_LOG
-                + [
+                [
+                    *INITIALISATION_LOG,
                     (
                         ERROR,
                         "The update interval is faster than the soil "
@@ -63,8 +63,8 @@ INITIALISATION_LOG = [
             None,
             pytest.raises(InitialisationError),
             tuple(
-                INITIALISATION_LOG
-                + [
+                [
+                    *INITIALISATION_LOG,
                     (
                         ERROR,
                         "The update interval is slower than the soil "

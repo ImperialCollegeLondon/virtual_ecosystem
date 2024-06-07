@@ -449,13 +449,13 @@ class TestAnimalCommunity:
 
         animal_community_instance.populate_community()
 
-        initial_age = list(
-            chain.from_iterable(animal_community_instance.animal_cohorts.values())
-        )[0].age
+        initial_age = next(
+            iter(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
+        ).age
         animal_community_instance.increase_age_community(timedelta64(5, "D"))
-        new_age = list(
-            chain.from_iterable(animal_community_instance.animal_cohorts.values())
-        )[0].age
+        new_age = next(
+            iter(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
+        ).age
         assert new_age == initial_age + 5
 
     def test_metabolize_community(

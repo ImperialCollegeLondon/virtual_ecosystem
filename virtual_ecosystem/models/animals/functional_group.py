@@ -1,7 +1,7 @@
 """The `models.animals.functional_group` module contains a class that organizes
 constants and rate equations used by AnimalCohorts in the
 :mod:`~virtual_ecosystem.models.animals` module.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import pandas as pd
 
@@ -96,7 +96,9 @@ def import_functional_groups(
     can be constructed later.
 
     Args:
-        csv_file: The location of the csv file holding the functional group definitions.
+        fg_csv_file: The location of the csv file holding the functional group
+            definitions.
+        constants:  An object providing animal model constants.
 
     Returns:
         A list of the FunctionalGroup instances created by the import.

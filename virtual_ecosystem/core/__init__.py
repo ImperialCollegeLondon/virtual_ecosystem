@@ -31,4 +31,4 @@ Each of the core sub-modules has its own API reference page:
 
 The :mod:`~virtual_ecosystem.core` module itself is only responsible for loading the
 configuration schema for the core submodules.
-"""  # noqa: D205, D415
+"""  # noqa: D205

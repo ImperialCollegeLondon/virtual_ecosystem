@@ -10,7 +10,7 @@ The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
 
 TODO change tenperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 import xarray as xr

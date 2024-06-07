@@ -15,7 +15,7 @@ of the unpacking an error is thrown. This error should be caught and handled by
 downstream functions so that all model configuration failures can be reported as one.
 
 TODO update temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -175,6 +175,7 @@ class AbioticSimpleModel(
 
         Args:
             time_index: The index of the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # This section performs a series of calculations to update the variables in the

@@ -9,7 +9,7 @@ core schema and constants, but does not provide a model object.
 
 The module also provides the :func:`~virtual_ecosystem.core.registry.register_module`
 function, which is used to populate the registry with the components of a given module.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass, is_dataclass
 from importlib import import_module, resources
