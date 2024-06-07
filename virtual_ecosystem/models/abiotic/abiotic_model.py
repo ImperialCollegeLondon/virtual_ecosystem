@@ -51,11 +51,11 @@ class AbioticModel(
     model_name="abiotic",
     model_update_bounds=("1 hour", "1 month"),
     required_init_vars=(
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-        ("topofcanopy_radiation", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("layer_heights", ("spatial",)),
+        "air_temperature_ref",
+        "relative_humidity_ref",
+        "topofcanopy_radiation",
+        "leaf_area_index",
+        "layer_heights",
     ),
     vars_updated=(
         "air_temperature",

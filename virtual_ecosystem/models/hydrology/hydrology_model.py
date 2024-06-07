@@ -60,8 +60,8 @@ class HydrologyModel(
     model_name="hydrology",
     model_update_bounds=("1 day", "1 month"),
     required_init_vars=(
-        ("layer_heights", ("spatial",)),
-        ("elevation", ("spatial",)),
+        "layer_heights",
+        "elevation",
     ),
     vars_updated=(
         "precipitation_surface",  # precipitation-interception loss
