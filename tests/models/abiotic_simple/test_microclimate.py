@@ -203,6 +203,10 @@ def test_run_microclimate(
     ]
     xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
 
+    exp_soil_temp = fixture_empty_array.copy()
+    exp_soil_temp[[13, 14], :] = [[20.712458, 20.712458, 20.712458], [20.0, 20.0, 20.0]]
+    xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
+
     soil_values = DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"])
     pressure_values = DataArray(np.full((13, 3), 96.0), dims=["layers", "cell_id"])
     exp_pressure = xr.concat(
@@ -242,6 +246,10 @@ def test_run_microclimate_varying_canopy(
         [22.81851, 25.21234, 27.60617],
     ]
     xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
+
+    exp_soil_temp = fixture_empty_array.copy()
+    exp_soil_temp[[13, 14], :] = [[20.712458, 21.317566, 21.922674], [20.0, 20.0, 20.0]]
+    xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
 
     soil_values = DataArray(np.full((2, 3), np.nan), dims=["layers", "cell_id"])
     pressure_values = DataArray(np.full((13, 3), 96.0), dims=["layers", "cell_id"])

@@ -441,47 +441,26 @@ def dummy_climate_data(fixture_core_components):
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "wind_speed_ref": 1.0,
+        "relative_humidity_ref": 90.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_ref": 0.14,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
+    data["mean_annual_temperature"] = DataArray([20, 20, 20], dims="cell_id")
 
     # Simulation data
     full_coordinates = {
@@ -776,47 +755,26 @@ def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_arr
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "wind_speed_ref": 1.0,
+        "relative_humidity_ref": 90.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_ref": 0.14,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
+    data["mean_annual_temperature"] = DataArray([20, 20, 20], dims="cell_id")
 
     # Simulation data
     full_coordinates = {
@@ -835,13 +793,15 @@ def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_arr
     data["leaf_area_index"] = leaf_area_index
 
     layer_heights = fixture_empty_array.copy()
-    layer_heights[[0, 1, 2, 3, 11, 12], :] = [
+    layer_heights[[0, 1, 2, 3, 11, 12, 13, 14], :] = [
         [32.0, 32.0, 32.0],
         [30.0, 30.0, 30.0],
         [20.0, 20.0, np.nan],
         [10.0, np.nan, np.nan],
         [1.5, 1.5, 1.5],
         [0.1, 0.1, 0.1],
+        [-0.5, -0.5, -0.5],
+        [-1, -1, -1],
     ]
     data["layer_heights"] = layer_heights
 
