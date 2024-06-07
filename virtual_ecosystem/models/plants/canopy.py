@@ -151,9 +151,9 @@ def build_canopy_arrays(
 def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
-    This function initialises four data arrays describing the plant canopy structure and
-    soil layer structure within a Data object: ``layer_heights``, ``leaf_area_index``,
-    ``layer_fapar``, ``layer_leaf_mass`` and ``canopy_absorption``.
+    This function initialises the following data arrays describing the plant canopy
+    structure and soil layer structure within a Data object: ``layer_heights``,
+    ``leaf_area_index``, ``layer_fapar``, ``layer_leaf_mass`` and ``canopy_absorption``.
 
     Args:
         data: A Data object to update.

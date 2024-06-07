@@ -30,11 +30,25 @@ class PlantsModel(
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
     required_init_vars=(
-        ("plant_cohorts_cell_id", tuple()),
-        ("plant_cohorts_pft", tuple()),
-        ("plant_cohorts_n", tuple()),
-        ("plant_cohorts_dbh", tuple()),
-        ("photosynthetic_photon_flux_density", ("spatial",)),
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
+    ),
+    vars_initialised = (        
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "canopy_absorption",
+    ), 
+    required_update_vars = (
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles

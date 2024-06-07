@@ -527,122 +527,122 @@ axis = ["space"]
 
 [[variable]]
 name = "soil_c_pool_lmwc"
-description = "Size of low molecular weight carbon pool"
+description = "Soil low molecular weight carbon pool"
 unit = "kg C m-3"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "soil_c_pool_maom"
-description = "Size of mineral associated organic matter pool"
+description = "Soil mineral associated organic matter pool "
 unit = "kg C m-3"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "soil_c_pool_microbe"
-description = "Size of microbial biomass pool"
+description = "Soil microbial biomass (carbon) pool"
 unit = "kg C m-3"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "soil_c_pool_pom"
-description = "Size of microbial biomass pool"
+description = "Particulate organic matter pool"
 unit = "kg C m-3"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "bulk_density"
 description = "Bulk density of soil"
 unit = "kg m-3"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "pH"
-description = "Soil pH"
+description = "Soil pH values for each grid cell"
 unit = "pH"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_pool_above_metabolic"
 description = "Above ground metabolic litter pool"
 unit = "kg C m^-2"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_pool_above_structural"
 description = "Above ground structural litter pool"
 unit = "kg C m^-2"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_pool_woody"
 description = "Woody litter pool"
 unit = "kg C m^-2"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_pool_below_metabolic"
 description = "Below ground metabolic litter pool"
 unit = "kg C m^-2"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_pool_below_structural"
 description = "Below ground structural litter pool"
 unit = "kg C m^-2"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "litter_C_mineralisation_rate"
 description = "Rate of carbon addition to soil from litter"
 unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "decomposed_excrement"
 description = "Rate of excrement flow from animals into litter"
 unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "decomposed_carcasses"
 description = "Rate of decomposed carcass biomass flow from animals into litter"
 unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "lignin_above_structural"
-description = "Lignin content of above ground structural litter"
-unit = ""
-variable_type = ""
-axis = []
+description = "Proportion of above ground structural pool which is lignin"
+unit = "-"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "lignin_below_structural"
-description = "Lignin content of above ground structural litter"
-unit = ""
-variable_type = ""
-axis = []
+description = "Proportion of below ground structural pool which is lignin"
+unit = "-"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "lignin_woody"
-description = "Lignin content of woody litter"
-unit = ""
-variable_type = ""
-axis = []
+description = "Proportion of dead wood pool which is lignin"
+unit = "-"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "plant_cohorts_cell_id"
@@ -673,43 +673,36 @@ variable_type = "float"
 axis = ["as_yet_undefined_cohort_setup_axis"]
 
 [[variable]]
-name = "photosynthetic_photon_flux_density"
-description = "Photosynthetic photon flux density"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
 name = "clay_fraction"
-description = "Fraction of clay in soil"
-unit = ""
-variable_type = ""
-axis = []
+description = "The fraction of clay in soil"
+unit = "-"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "layer_fapar"
-description = "layer_fapar"
-unit = ""
-variable_type = ""
-axis = []
+description = "The fraction of absorbed photosynthetically active radiation (f_APAR) in each model layer."
+unit = "-"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "layer_leaf_mass"
-description = "layer_leaf_mass"
-unit = ""
-variable_type = ""
-axis = []
+description = "The leaf mass within each canopy layer."
+unit = "kg"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "soil_enzyme_pom"
-description = "soil_enzyme_pom"
-unit = ""
-variable_type = ""
-axis = []
+description = "Amount of enzyme class which breaks down particulate organic matter"
+unit = "kg C m^-3"
+variable_type = "float"
+axis = ["space"]
 
 [[variable]]
 name = "soil_enzyme_maom"
-description = "soil_enzyme_maom"
-unit = ""
-variable_type = ""
-axis = []
+description = "Amount of enzyme class which breaks down mineral associated organic matter"
+unit = "kg C m^-3"
+variable_type = "float"
+axis = ["space"]
