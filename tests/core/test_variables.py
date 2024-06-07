@@ -239,7 +239,7 @@ def test_collect_required_init_vars(known_variables, run_variables):
 
     class TestModel:
         model_name = "TestModel"
-        required_init_vars = ("test_var", tuple())
+        required_init_vars = (("test_var", tuple()),)
 
     with pytest.raises(ValueError, match="not in the known variables registry."):
         variables._collect_required_init_vars([TestModel])
