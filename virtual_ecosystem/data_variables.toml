@@ -211,7 +211,7 @@ axis = ["space"]
 [[variable]]
 name = "leaf_area_index"
 description = "Leaf area index"
-unit = "m m"
+unit = "m m-1"
 variable_type = "float"
 axis = ["space"]
 
@@ -273,11 +273,11 @@ variable_type = ""
 axis = []
 
 [[variable]]
-name = "ppfd"
-description = "Top of canopy photosynthetic photon flux density"
-unit = "mol m-2"
-variable_type = ""
-axis = []
+name = "photosynthetic_photon_flux_density"
+description = "Top of canopy photosynthetic photon flux density (PPFD)"
+unit = "µmol m-2 s-1"
+variable_type = "float"
+axis = ["space", "time"]
 
 [[variable]]
 name = "precipitation"
@@ -647,30 +647,30 @@ axis = []
 [[variable]]
 name = "plant_cohorts_cell_id"
 description = "Cell ID of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
+unit = "-"
+variable_type = "int"
+axis = ["as_yet_undefined_cohort_setup_axis"]
 
 [[variable]]
 name = "plant_cohorts_pft"
 description = "Plant functional type of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
+unit = "-"
+variable_type = "str"
+axis = ["as_yet_undefined_cohort_setup_axis"]
 
 [[variable]]
 name = "plant_cohorts_n"
-description = "Number of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
+description = "Number of individuals in a plant cohort"
+unit = "-"
+variable_type = "int"
+axis = ["as_yet_undefined_cohort_setup_axis"]
 
 [[variable]]
 name = "plant_cohorts_dbh"
-description = "Diameter at breast height of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
+description = "Diameter at breast height of individuals in plant cohorts"
+unit = "m"
+variable_type = "float"
+axis = ["as_yet_undefined_cohort_setup_axis"]
 
 [[variable]]
 name = "photosynthetic_photon_flux_density"
