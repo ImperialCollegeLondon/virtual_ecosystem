@@ -2,736 +2,489 @@
 name = "air_heat_conductivity"
 description = "Air heat conductivity between layers"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "air_temperature"
 description = "Air temperature profile"
 unit = "C"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "air_temperature_ref"
 description = "Air temperature at reference height (2m)"
 unit = "C"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
-
-[[variable]]
-name = "animal_respiration"
-description = "Animal respiration aggregated over all functional types"
-unit = "ppm"
-variable_type = ""
-axis = []
 
 [[variable]]
 name = "atmospheric_co2"
 description = "Atmospheric CO2 concentration profile"
 unit = "ppm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "atmospheric_co2_ref"
 description = "Atmospheric CO2 concentration at reference height (above canopy)"
 unit = "ppm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "atmospheric_pressure"
 description = "Atmospheric pressure profile"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "atmospheric_pressure_ref"
 description = "Atmospheric pressure at reference height (2m)"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "attenuation_coefficient"
 description = "Wind attenuation coefficient"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "baseflow"
 description = "Baseflow"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "bypass_flow"
 description = "Bypass flow"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "canopy_absorption"
 description = "Shortwave radiation absorbed by individual canopy layers"
 unit = ""
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "canopy_height"
 description = "Canopy height"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "canopy_temperature"
 description = "Canopy temperature of individual layers"
 unit = "C"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "conductivity_from_ref_height"
 description = "Conductivity from reference height"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "conductivity_from_soil"
 description = "Conductivity from soil"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "diabatic_correction_heat_above"
 description = "Diabatic correction factor for heat above canopy"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "diabatic_correction_heat_canopy"
 description = "Diabatic correction factor for heat in canopy"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "diabatic_correction_momentum_above"
 description = "Diabatic correction factor for momentum above canopy"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "diabatic_correction_momentum_canopy"
 description = "Diabatic correction factor for momentum in canopy"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "elevation"
 description = "Elevation above sea level"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "evapotranspiration"
 description = "Evapotranspiration"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "friction_velocity"
 description = "Friction velocity"
 unit = "m s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "ground_heat_flux"
 description = "Ground heat flux"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "groundwater_storage"
 description = "Groundwater Storage"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "latent_heat_flux"
 description = "Latent heat flux profile"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "latent_heat_flux_soil"
 description = "Latent heat flux from topsoil layer"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "latent_heat_vapourisation"
 description = "Latent heat of vapourisation"
 unit = "kJ kg-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "layer_heights"
 description = "Heights of model layers"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "leaf_air_heat_conductivity"
 description = "Leaf air heat conductivity"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "leaf_area_index"
 description = "Leaf area index"
 unit = "m m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "leaf_vapour_conductivity"
 description = "Leaf vapour conductivity"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "longwave_canopy"
 description = "Longwave radiation from individual canopy layers"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "longwave_emission_soil"
 description = "Longwave radiation from topsoil layer"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "matric_potential"
 description = "Matric potential"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "mean_annual_temperature"
 description = "Mean annual temperature = temperature of deepest soil layer"
 unit = "C"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "mean_mixing_length"
 description = "Mean mixing length"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "molar_density_air"
 description = "Temperature-dependent molar density of air"
 unit = "kg m-3"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
-
-[[variable]]
-name = "netradiation_surface"
-description = "Net shortwave radiation at the surface"
-unit = "W m-2"
-variable_type = "DataArray(float)"
-axis = ["space"]
-
-[[variable]]
-name = "plant_net_co2_assimilation"
-description = "Plant net CO2 assimilation"
-unit = "ppm"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "ppfd"
-description = "Top of canopy photosynthetic photon flux density"
-unit = "mol m-2"
-variable_type = ""
-axis = []
 
 [[variable]]
 name = "precipitation"
 description = "Precipitation input at the top of the canopy"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "precipitation_surface"
 description = "Precipitation that reaches surface"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "relative_humidity"
 description = "Relative humidity profile"
 unit = "%"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "relative_humidity_ref"
 description = "Relative humidity at reference height (2m)"
 unit = "%"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "relative_turbulence_intensity"
 description = "Relative turbulence intensity"
 unit = "-"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "river_discharge_rate"
 description = "River discharge rate"
 unit = "m3 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "roughness_length_momentum"
 description = "Roughness length for momentum"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "saturated_vapour_pressure_ref"
 description = "Saturated vapour pressure at reference height (2m)"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "sensible_heat_flux"
 description = "Sensible heat flux profile"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "sensible_heat_flux_soil"
 description = "Sensible heat flux from topsoil layer"
 unit = "W m-2"
-variable_type = "DataArray(float)"
-axis = ["space"]
-
-[[variable]]
-name = "shortwave_in"
-description = "Downward shortwave radiation"
-unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "shortwave_radiation_surface"
 description = "Shortwave radiation at the surface"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "soil_absorption"
 description = "Shortwave radiation absorbed by topsoil layer"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "soil_vapour_pressure"
 description = "Soil vapour pressure"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "subsurface_flow_accumulated"
 description = "Accumulated subsurface flow"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "soil_evaporation"
 description = "Soil evaporation"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "soil_moisture"
 description = "Soil moisture"
 unit = "mm"
-variable_type = "DataArray(float)"
-axis = ["space"]
-
-[[variable]]
-name = "soil_respiration"
-description = "Soil respiration"
-unit = "ppm"
-variable_type = ""
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "soil_temperature"
 description = "Soil temperature profile"
 unit = "C"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "specific_heat_air"
 description = "Specific heat of air"
 unit = "kJ kg-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
-[[variable]]
-name = "specific_humidity"
-description = "Specific humidity of air"
-unit = "g kg-1"
-variable_type = ""
-axis = ["space"]
 
 [[variable]]
 name = "stomatal_conductance"
 description = "Stomatal conductance"
 unit = "mol m-2 s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "stream_flow"
 description = "Estimated stream flow"
 unit = "mm per time step"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "subsurface_flow"
 description = "Subsurface flow"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "surface_runoff"
 description = "Surface runoff generated in each grid cell"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "surface_runoff_accumulated"
 description = "Accumlated surface runoff"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "topofcanopy_radiation"
 description = "Top of canopy downward shortwave radiation"
 unit = "W m-2"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "total_river_discharge"
 description = "Total river discharge"
 unit = "mm"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "vapour_pressure"
 description = "Vapour pressure profile"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "vapour_pressure_ref"
 description = "Vapour pressure at reference height (2m)"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "vapour_pressure_deficit"
 description = "Vapour pressure deficit profile"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "vapour_pressure_deficit_ref"
 description = "Vapour pressure deficit at reference height (2m)"
 unit = "kPa"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "vertical_flow"
 description = "Vertical flow of water through soil column"
 unit = "mm per time step (currently day)"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "wind_speed"
 description = "Wind profile within and below canopy"
 unit = "m s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
 
 [[variable]]
 name = "wind_speed_ref"
 description = "Wind speed at reference height (10m)"
 unit = "m s-1"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space", "time"]
 
 [[variable]]
 name = "zero_displacement_height"
 description = "Zero displacement height"
 unit = "m"
-variable_type = "DataArray(float)"
+variable_type = "float"
 axis = ["space"]
-
-[[variable]]
-name = "soil_c_pool_lmwc"
-description = "Size of low molecular weight carbon pool"
-unit = "kg C m-3"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "soil_c_pool_maom"
-description = "Size of mineral associated organic matter pool"
-unit = "kg C m-3"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "soil_c_pool_microbe"
-description = "Size of microbial biomass pool"
-unit = "kg C m-3"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "soil_c_pool_pom"
-description = "Size of microbial biomass pool"
-unit = "kg C m-3"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "bulk_density"
-description = "Bulk density of soil"
-unit = "kg m-3"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "pH"
-description = "Soil pH"
-unit = "pH"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_pool_above_metabolic"
-description = "Above ground metabolic litter pool"
-unit = "kg C m^-2"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_pool_above_structural"
-description = "Above ground structural litter pool"
-unit = "kg C m^-2"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_pool_woody"
-description = "Woody litter pool"
-unit = "kg C m^-2"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_pool_below_metabolic"
-description = "Below ground metabolic litter pool"
-unit = "kg C m^-2"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_pool_below_structural"
-description = "Below ground structural litter pool"
-unit = "kg C m^-2"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "litter_C_mineralisation_rate"
-description = "Rate of carbon addition to soil from litter"
-unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "decomposed_excrement"
-description = "Rate of excrement flow from animals into litter"
-unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "decomposed_carcasses"
-description = "Rate of decomposed carcass biomass flow from animals into litter"
-unit = "kg C m^-3 day^-1"
-variable_type = ""
-axis = []
-
-# BELOW TO BE CHECKED
-
-
-[[variable]]
-name = "lignin_above_structural"
-description = "Lignin content of above ground structural litter"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "lignin_below_structural"
-description = "Lignin content of above ground structural litter"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "lignin_woody"
-description = "Lignin content of woody litter"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "plant_cohorts_cell_id"
-description = "Cell ID of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "plant_cohorts_pft"
-description = "Plant functional type of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "plant_cohorts_n"
-description = "Number of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "plant_cohorts_dbh"
-description = "Diameter at breast height of plant cohorts"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "photosynthetic_photon_flux_density"
-description = "Photosynthetic photon flux density"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "clay_fraction"
-description = "Fraction of clay in soil"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "layer_fapar"
-description = "layer_fapar"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "layer_leaf_mass"
-description = "layer_leaf_mass"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "layer_absorbed_irradiation"
-description = "layer_absorbed_irradiation"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "soil_enzyme_pom"
-description = "soil_enzyme_pom"
-unit = ""
-variable_type = ""
-axis = []
-
-[[variable]]
-name = "soil_enzyme_maom"
-description = "soil_enzyme_maom"
-unit = ""
-variable_type = ""
-axis = []
