@@ -489,6 +489,10 @@ class BaseModel(ABC):
             model_update_bounds: Bounds on update intervals handled by the model
             required_init_vars: A tuple of the variables required to create a model
                 instance.
+            vars_initialised: A tuple of the variables initialised when a model instance
+                is created.
+            required_update_vars: A tuple of the variables required to update a model
+                instance.
             vars_updated: A tuple of the variable names updated by the model.
 
         Raises:
