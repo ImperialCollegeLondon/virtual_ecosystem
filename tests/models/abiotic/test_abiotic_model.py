@@ -321,9 +321,9 @@ def test_setup_abiotic_model(dummy_climate_data, cfg_string):
         "latent_heat_flux",
         "ground_heat_flux",
         "canopy_absorption",
-        "air_conductivity",
+        "air_heat_conductivity",
         "leaf_vapour_conductivity",
-        "leaf_air_conductivity",
+        "leaf_air_heat_conductivity",
     ]:
         assert var in model.data
 
@@ -376,7 +376,7 @@ def test_update_abiotic_model(dummy_climate_data, cfg_string):
         "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
-        "air_conductivity",
+        "air_heat_conductivity",
         "conductivity_from_ref_height",
         "leaf_air_heat_conductivity",
         "leaf_vapour_conductivity",

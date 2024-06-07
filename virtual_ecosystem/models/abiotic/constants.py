@@ -3,7 +3,7 @@ parameters required by the broader
 :mod:`~virtual_ecosystem.models.abiotic.abiotic_model` model.
 These parameters are constants in that they should not be changed during a particular
 simulation.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass, field
 

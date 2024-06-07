@@ -323,9 +323,9 @@ class AnimalCommunity:
 
         # Update the total_animal_respiration for this community using community_key.
 
-        self.data["total_animal_respiration"].loc[
-            {"cell_id": self.community_key}
-        ] += total_metabolic_waste
+        self.data["total_animal_respiration"].loc[{"cell_id": self.community_key}] += (
+            total_metabolic_waste
+        )
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.

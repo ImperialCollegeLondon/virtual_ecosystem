@@ -5,7 +5,7 @@ variables provided in the data object.
 
 NOTE - much of this will be outsourced to pyrealm.
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field

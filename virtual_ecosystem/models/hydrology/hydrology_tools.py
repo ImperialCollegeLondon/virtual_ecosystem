@@ -1,7 +1,5 @@
 """Functions to set up hydrology model and select data for current time step."""
 
-# noqa: D205, D415
-
 import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
@@ -71,6 +69,7 @@ def setup_hydrology_input_current_timestep(
         days: Number of days in core time step
         seed: Seed for random rainfall generator
         layer_roles: List of layer roles
+        soil_layer_thickness: The thickness of the soil layer (mm)
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants share across all models

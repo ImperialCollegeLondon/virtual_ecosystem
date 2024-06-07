@@ -11,7 +11,7 @@ The second part determines the soil temperature profile at different depths. We
 divide the soil into discrete layers to numerically solve the time-dependent
 differential equation that describes soil temperature as a function of depth
 and time (see TODO THIS FUNCTION for details).
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray
@@ -166,7 +166,7 @@ def update_surface_temperature(
             kilograms
 
     Returns:
-        topsoil temperature
+        topsoil temperature, [C]
     """
     # Calculate the mass of the soil that is absorbing the radiation
     topsoil_mass = surface_layer_depth * grid_cell_area * volume_to_weight_conversion
@@ -202,8 +202,8 @@ def calculate_soil_heat_balance(
     The function takes an instance of data object, AbioticConsts and CoreConsts which
     must provide the following inputs:
 
-    * soil_temperature: Soil temperature
-    * air_temperature: Air temperature
+    * soil_temperature: Soil temperature, [C]
+    * air_temperature: Air temperature, [C]
     * shortwave_radiation_surface: Shortwave radiation that reaches surface, [W m-2]
     * soil_evaporation: Soil evaporation, [mm]
     * soil_emissivity: Soil emissivity, dimensionless
@@ -219,11 +219,13 @@ def calculate_soil_heat_balance(
     * volume_to_weight_conversion: Factor to convert between soil volume and weight [kg]
 
     Args:
-        data: instance if a data object
+        data: The core data object
         time_index: time index
         update_interval: Update interval, [s]
-        AbioticConsts: set of constants specific to abiotic model
-        CoreConsts: set of constants that are shared across the model
+        topsoil_layer_index: An integer showing the index of the topsoil layer in the
+            vertical layer structure.
+        abiotic_consts: set of constants specific to abiotic model
+        core_consts: set of constants that are shared across the model
 
     Returns:
         dictionnary with soil shortwave absorption, soil longwave emission, sensible and

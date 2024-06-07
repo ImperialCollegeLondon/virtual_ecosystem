@@ -27,7 +27,7 @@ TODO units and module coordination
     * change temperature to Kelvin
     * change soil moisture to mm
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -80,6 +80,7 @@ class HydrologyModel(
         "total_river_discharge",
         "subsurface_flow",
         "baseflow",
+        "bypass_flow",
     ),
 ):
     """A class describing the hydrology model.
@@ -115,7 +116,7 @@ class HydrologyModel(
             ("initial_soil_moisture", initial_soil_moisture),
             ("initial_groundwater_saturation", initial_groundwater_saturation),
         ):
-            if not isinstance(value, (float, int)):
+            if not isinstance(value, float | int):
                 to_raise = InitialisationError(f"The {attr} must be numeric!")
                 LOGGER.error(to_raise)
                 raise to_raise
@@ -293,6 +294,7 @@ class HydrologyModel(
         * baseflow, [mm]
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
+        * bypass flow, [mm]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
@@ -431,6 +433,7 @@ class HydrologyModel(
                     self.model_constants.infiltration_shape_parameter
                 ),
             )
+            daily_lists["bypass_flow"].append(bypass_flow)
 
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
@@ -642,6 +645,7 @@ class HydrologyModel(
             "soil_evaporation",
             "subsurface_flow",
             "baseflow",
+            "bypass_flow",
             "surface_runoff_accumulated",
             "subsurface_flow_accumulated",
             "total_river_discharge",

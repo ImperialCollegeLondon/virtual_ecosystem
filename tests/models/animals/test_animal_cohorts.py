@@ -525,12 +525,15 @@ class TestAnimalCohort:
         """Test aggregation of handling times across all available plant resources."""
 
         alpha = 0.1  # Assume this is the calculated search efficiency
-        with mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
-            return_value=20.0,
-        ), mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.H_i_k",
-            return_value=0.2,
+        with (
+            mocker.patch(
+                "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
+                return_value=20.0,
+            ),
+            mocker.patch(
+                "virtual_ecosystem.models.animals.scaling_functions.H_i_k",
+                return_value=0.2,
+            ),
         ):
             total_handling_time = (
                 herbivore_cohort_instance.calculate_total_handling_time_for_herbivory(

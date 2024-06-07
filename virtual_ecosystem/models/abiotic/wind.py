@@ -6,7 +6,7 @@ the atmosphere above the canopy.
 TODO replace leaf area index by plant area index when we have more info about vertical
 distribution of leaf and woody parts
 TODO change temperatures to Kelvin
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray
@@ -453,7 +453,7 @@ def calculate_friction_velocity_reference_height(
     Args:
         wind_speed_ref: Wind speed at reference height, [m s-1]
         reference_height: Height of wind measurement, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
+        zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as
@@ -511,7 +511,7 @@ def calculate_wind_above_canopy(
             For use in the calculation of the full wind profiles, this typically
             includes two values: the height of the first layer ('above') and the first
             canopy layer which corresponds to the canopy height.
-        zero_plane_displacement: Height above ground within the canopy where the wind
+        zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
         diabatic_correction_momentum: Diabatic correction factor for momentum as
@@ -610,6 +610,18 @@ def calculate_wind_profile(
     mixing length, equivalent to the free space between the leaves and stems. For
     details, see :cite:t:`maclean_microclimc_2021`.
 
+    The following variables are returned:
+
+    * wind_speed
+    * friction_velocity
+    * molar_density_air
+    * specific_heat_air
+    * zero_plane_displacement
+    * roughness_length_momentum
+    * mean_mixing_length
+    * relative_turbulence_intensity
+    * attenuation_coefficient
+
     Args:
         canopy_height: Canopy height, [m]
         wind_height_above: Heights above canopy for which wind speed is required, [m].
@@ -630,8 +642,7 @@ def calculate_wind_profile(
         core_constants: Universal constants shared across all models
 
     Returns:
-        Dictionnary that contains wind speed and friction velocity, [m s-1] and
-        diabatic correction factors for heat and momentum transfer
+        Dictionary that contains wind related outputs
     """
 
     output = {}
@@ -662,6 +673,7 @@ def calculate_wind_profile(
         leaf_area_index=leaf_area_index_sum,
         zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
     )
+    output["zero_plane_displacement"] = zero_plane_displacement
 
     # Calculate zero plane displacement height, [m]
     roughness_length_momentum = calculate_roughness_length_momentum(
@@ -683,6 +695,7 @@ def calculate_wind_profile(
         min_roughness_length=abiotic_constants.min_roughness_length,
         von_karman_constant=core_constants.von_karmans_constant,
     )
+    output["roughness_length_momentum"] = roughness_length_momentum
 
     friction_velocity_uncorrected = calculate_friction_velocity_reference_height(
         wind_speed_ref=wind_speed_ref,
@@ -730,6 +743,7 @@ def calculate_wind_profile(
         roughness_length_momentum=roughness_length_momentum,
         mixing_length_factor=abiotic_constants.mixing_length_factor,
     )
+    output["mean_mixing_length"] = mean_mixing_length
 
     # Calculate profile of turbulent mixing intensities, dimensionless
     relative_turbulence_intensity = generate_relative_turbulence_intensity(
@@ -742,6 +756,7 @@ def calculate_wind_profile(
         ),
         increasing_with_height=abiotic_constants.turbulence_sign,
     )
+    output["relative_turbulence_intensity"] = relative_turbulence_intensity
 
     # Calculate profile of attenuation coefficients, dimensionless
     attennuation_coefficient = calculate_wind_attenuation_coefficient(
@@ -751,6 +766,7 @@ def calculate_wind_profile(
         drag_coefficient=abiotic_constants.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
+    output["attennuation_coefficient"] = attennuation_coefficient
 
     # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
     wind_speed_above_canopy = calculate_wind_above_canopy(

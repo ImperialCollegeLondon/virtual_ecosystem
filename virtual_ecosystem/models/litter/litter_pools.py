@@ -14,7 +14,7 @@ pool.
 
 The amount of lignin in both the structural pools and the dead wood pool is tracked.
 This is tracked because litter chemistry is a major determinant of litter decay rates.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray

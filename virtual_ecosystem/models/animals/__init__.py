@@ -25,6 +25,6 @@ Each of the animal sub-modules has its own API reference page:
 * The :mod:`~virtual_ecosystem.models.animals.plant_resources` provides the
   :class:`~virtual_ecosystem.models.animals.plant_resources.PlantResources` class,
   which provides an API for exposing plant model data via the animal model protocols.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from virtual_ecosystem.models.animals.animal_model import AnimalModel  # noqa: F401

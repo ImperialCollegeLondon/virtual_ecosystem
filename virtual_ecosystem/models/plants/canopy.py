@@ -3,7 +3,7 @@ functions used to estimate the canopy model.
 
 NOTE - much of this will be outsourced to pyrealm.
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 r"""The ``models.abiotic.conductivities`` module calculates the conductivities for the
 energy balance of the Virtual Ecosystem based on :cite:t:`maclean_microclimc_2021`.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray
@@ -69,7 +69,7 @@ def initialise_conductivities(
     conductivity between the ground and the lowest canopy node.
 
     Args:
-        layer_height: layer heights, [m]
+        layer_heights: layer heights, [m]
         initial_air_conductivity: Initial value for heat conductivity by turbulent
             convection in air, [mol m-2 s-1]
         top_leaf_vapour_conductivity: Initial leaf vapour conductivity at the top of the
@@ -103,14 +103,14 @@ def initialise_conductivities(
     )
     air_conductivity[-1] *= 2
     air_conductivity[0] *= (canopy_height / len(atmosphere_layers)) * 0.5
-    output["air_conductivity"] = DataArray(
+    output["air_heat_conductivity"] = DataArray(
         np.concatenate(
             [air_conductivity, np.full((len(soil_layers), len(canopy_height)), np.nan)],
             axis=0,
         ),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="air_conductivity",
+        name="air_heat_conductivity",
     )
 
     # Initialise leaf vapour conductivity
@@ -142,7 +142,7 @@ def initialise_conductivities(
         start_value=top_leaf_air_conductivity,
         end_value=bottom_leaf_air_conductivity,
     )
-    output["leaf_air_conductivity"] = DataArray(
+    output["leaf_air_heat_conductivity"] = DataArray(
         np.vstack(
             [
                 np.repeat(np.nan, len(canopy_height)),
@@ -152,7 +152,7 @@ def initialise_conductivities(
         ),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="leaf_air_conductivity",
+        name="leaf_air_heat_conductivity",
     )
 
     return output
@@ -412,6 +412,7 @@ def calculate_current_conductivities(
     * diabatic_correction_heat: Diabatic correction for heat in canopy
 
     Args:
+        data: The core data object.
         characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
             0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
             value per grid cell, or a 3D-array with one value for each layer.

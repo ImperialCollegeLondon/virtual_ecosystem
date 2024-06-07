@@ -115,7 +115,7 @@ def initialise_canopy_temperature(
         air_temperature: Air temperature, [C]
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
-        absorbed_radiation: Shortwave radiation absorbed by canopy
+        absorbed_radiation: Shortwave radiation absorbed by canopy, [W m-2]
 
     Returns:
         Initial canopy temperature, [C]
@@ -153,7 +153,7 @@ def initialise_canopy_and_soil_fluxes(
 
     Returns:
         Dictionary with absorbed radiation (canopy), canopy temperature, sensible
-            and latent heat flux (canopy and soil), and ground heat flux.
+            and latent heat flux (canopy and soil), and ground heat flux [W m-2].
     """
 
     output = {}
@@ -386,7 +386,7 @@ def calculate_leaf_and_air_temperature(
     * absorbed_radiation: Absorbed radiation, [W m-2]
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
 
-    TODO
+    Todo:
     * add latent heat flux from soil to atmosphere (-> VPD)
     * check time integration
     * set limits to temperature and VPD
@@ -525,8 +525,9 @@ def calculate_leaf_and_air_temperature(
     )
     new_air_temperature = a_A + b_A * delta_canopy_temperature
     new_canopy_temperature = (
-        data["air_temperature"][1 : true_canopy_layers_n + 1]
-    ).to_numpy() + delta_canopy_temperature
+        (data["air_temperature"][1 : true_canopy_layers_n + 1]).to_numpy()
+        + delta_canopy_temperature
+    )
 
     # Interpolate temperature below canopy
     # This could potentially be done without explicit below canopy layers
@@ -670,9 +671,9 @@ def leaf_and_air_temperature_linearisation(
     """Calculate factors for leaf and air temperature linearisation.
 
     Args:
-        conductivity_from_ref_height: Conductivity from reference height, [mol m-2 s-2]
-        conductivity_from_soil: Conductivity from soil, [mol m-2 s-2]
-        leaf_air_heat_conductivity: Leaf air heat conductivity, [mol m-2 s-2]
+        conductivity_from_ref_height: Conductivity from reference height, [mol m-2 s-1]
+        conductivity_from_soil: Conductivity from soil, [mol m-2 s-1]
+        leaf_air_heat_conductivity: Leaf air heat conductivity, [mol m-2 s-1]
         air_temperature_ref: Air temperature at reference height 2m above the canopy,[C]
         top_soil_temperature: Top soil temperature, [C]
 
@@ -738,7 +739,7 @@ def vapour_pressure_linearisation(
         saturated_vapour_pressure_ref: Saturated vapour pressure at reference height 2 m
             above canopy, [kPa]
         soil_vapour_pressure: Soil vapour pressure, [kPa]
-        conductivity_from_soil: Conductivity from soil TODO unit
+        conductivity_from_soil: Conductivity from soil, [mol m-2 s-1]
         leaf_vapour_conductivity: Leaf vapour conductivity, [mol m-2 s-1]
         conductivity_from_ref_height: Conductivity frm reference height, [mol m-2 s-1]
         delta_v_ref: Slope of saturated vapour pressure curve

@@ -3,7 +3,7 @@ by models. It is used as input to the
 :class:`~virtual_ecosystem.core.base_model.BaseModel`, allowing single instances of
 these components to be cascaded down to individual model subclass instances via the
 ``__init__`` method of the base model..
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -143,9 +143,10 @@ class ModelTiming:
 
         # Log the completed timing creation.
         LOGGER.info(
-            "Timing details built from model configuration: "
-            "start - %s, end - %s, run length - %s"
-            % (self.start_time, self.end_time, self.reconciled_run_length)
+            "Timing details built from model configuration: "  # noqa: UP032
+            "start - {}, end - {}, run length - {}".format(
+                self.start_time, self.end_time, self.reconciled_run_length
+            )
         )
 
 
@@ -245,7 +246,7 @@ def _validate_positive_integer(value: float | int) -> int:
 
     # Note that float.is_integer() traps np.infty and np.nan, both of which are floats
     if (
-        (not isinstance(value, (float, int)))
+        (not isinstance(value, float | int))
         or (isinstance(value, int) and value < 1)
         or (isinstance(value, float) and (not value.is_integer() or value < 1))
     ):
@@ -271,7 +272,7 @@ def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
         LOGGER.error(to_raise)
         raise to_raise
 
-    if not all([isinstance(v, (float, int)) for v in soil_layers]):
+    if not all([isinstance(v, float | int) for v in soil_layers]):
         to_raise = ConfigurationError("The soil layer depths are not all numeric.")
         LOGGER.error(to_raise)
         raise to_raise
@@ -291,7 +292,7 @@ def _validate_positive_finite_numeric(value: float | int, label: str) -> float |
     """Validation function for positive numeric values."""
 
     if (
-        not isinstance(value, (float, int))
+        not isinstance(value, float | int)
         or np.isinf(value)
         or np.isnan(value)
         or value < 0

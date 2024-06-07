@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.models.plants.plants_model` module creates
 :class:`~virtual_ecosystem.models.plants.plants_model.PlantsModel` class as a child of
 the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -161,7 +161,7 @@ class PlantsModel(
             )
         except Exception as excep:
             LOGGER.critical(
-                f"Error creating plants model from configuration: {str(excep)}"
+                f"Error creating plants model from configuration: {excep!s}"
             )
             raise excep
 
@@ -186,6 +186,7 @@ class PlantsModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # Update the canopy layers
