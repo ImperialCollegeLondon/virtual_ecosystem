@@ -55,7 +55,7 @@ class SoilModel(
         "clay_fraction",
     ),
     vars_initialised=(),
-    required_update_vars = (),
+    required_update_vars=(),
     vars_updated=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",

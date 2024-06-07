@@ -41,6 +41,8 @@ class AnimalModel(
     model_name="animals",
     model_update_bounds=("1 day", "1 month"),
     required_init_vars=(),
+    vars_initialised=(),
+    required_update_vars=(),
     vars_updated=(
         "decomposed_excrement",
         "decomposed_carcasses",
