@@ -153,7 +153,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
 
     This function initialises four data arrays describing the plant canopy structure and
     soil layer structure within a Data object: ``layer_heights``, ``leaf_area_index``,
-    ``layer_fapar``, ``layer_leaf_mass`` and ``layer_absorbed_irradiation``.
+    ``layer_fapar``, ``layer_leaf_mass`` and ``canopy_absorption``.
 
     Args:
         data: A Data object to update.
@@ -175,7 +175,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         "leaf_area_index",
         "layer_fapar",
         "layer_leaf_mass",
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
     )
 
     layers_found = set(layers_to_create).intersection(data.data.variables)

@@ -25,7 +25,7 @@ def test_PlantsModel__init__(plants_data, flora, fixture_core_components):
         ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("canopy_absorption", 1000 * 4),
     ]
 
     for layer_name, layer_sum in expected_layers:
@@ -51,7 +51,7 @@ def test_PlantsModel_from_config(plants_data, fixture_config, fixture_core_compo
         ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("canopy_absorption", 1000 * 4),
     )
 
     for layer_name, layer_sum in expected_layers:
@@ -66,7 +66,7 @@ def test_PlantsModel_update_canopy_layers(fxt_plants_model):
         ("layer_heights", (32 + 30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 0),  # Note that this layer should not be updated
+        ("canopy_absorption", 0),  # Note that this layer should not be updated
     )
 
     # Overwrite the existing data in each layer
@@ -89,7 +89,7 @@ def test_PlantsModel_set_absorbed_irradiance(fxt_plants_model):
         ("layer_heights", (32 + 30 + 20 + 10) * 4),
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),  # Is restored by additional call.
+        ("canopy_absorption", 1000 * 4),  # Is restored by additional call.
     )
     # Overwrite the existing data in each layer
     for layer, _ in expected_layers:
@@ -164,7 +164,7 @@ def test_PlantsModel_update(fxt_plants_model):
         ("leaf_area_index", 3 * 4),
         ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
         ("layer_leaf_mass", 30000 * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("canopy_absorption", 1000 * 4),
     )
 
     # Overwrite the existing data in each layer
