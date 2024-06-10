@@ -1,6 +1,6 @@
-"""The `models.animals.scaling_functions` module contains a set of functions containing
+"""The `models.animal.scaling_functions` module contains a set of functions containing
 scaling equations" (relationships between body-mass and a trait) required by the broader
-:mod:`~virtual_ecosystem.models.animals` module
+:mod:`~virtual_ecosystem.models.animal` module
 
 To Do:
 - streamline units of scaling functions [kg]->[kg] etc
@@ -11,8 +11,8 @@ from math import ceil, exp, log
 
 import numpy as np
 
-from virtual_ecosystem.models.animals.animal_traits import DietType, MetabolicType
-from virtual_ecosystem.models.animals.constants import BOLTZMANN_CONSTANT
+from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
+from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
 
 
 def damuths_law(mass: float, terms: tuple) -> int:
@@ -22,7 +22,7 @@ def damuths_law(mass: float, terms: tuple) -> int:
         terrestrial herbivorous mammals. Later, it will be expanded to other types. The
         current form takes the ceiling of the population density to ensure there is a
         minimum of 1 individual and integer values. This will be corrected once the
-        multi-grid occupation system for large animals is implemented.
+        multi-grid occupation system for large animal is implemented.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.

@@ -86,7 +86,7 @@ def test_merge_schemas():
     # Import the models to populate the registry
     register_module("virtual_ecosystem.core")
     register_module("virtual_ecosystem.models.abiotic_simple")
-    register_module("virtual_ecosystem.models.animals")
+    register_module("virtual_ecosystem.models.animal")
     register_module("virtual_ecosystem.models.plants")
     register_module("virtual_ecosystem.models.soil")
 
@@ -94,7 +94,7 @@ def test_merge_schemas():
         {
             "core": MODULE_REGISTRY["core"].schema,
             "abiotic_simple": MODULE_REGISTRY["abiotic_simple"].schema,
-            "animals": MODULE_REGISTRY["animals"].schema,
+            "animal": MODULE_REGISTRY["animal"].schema,
             "plants": MODULE_REGISTRY["plants"].schema,
             "soil": MODULE_REGISTRY["soil"].schema,
         }
@@ -102,7 +102,7 @@ def test_merge_schemas():
 
     assert set(merged_schemas["required"]) == {
         "abiotic_simple",
-        "animals",
+        "animal",
         "plants",
         "soil",
         "core",
