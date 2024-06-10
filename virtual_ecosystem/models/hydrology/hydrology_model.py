@@ -84,7 +84,6 @@ class HydrologyModel(
     vars_initialised=(
         "precipitation_surface",  # precipitation-interception loss
         "soil_moisture",
-        "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "latent_heat_vapourisation",
         "molar_density_air",
