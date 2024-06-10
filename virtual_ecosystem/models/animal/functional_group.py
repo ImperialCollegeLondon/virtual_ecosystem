@@ -1,17 +1,17 @@
-"""The `models.animals.functional_group` module contains a class that organizes
+"""The `models.animal.functional_group` module contains a class that organizes
 constants and rate equations used by AnimalCohorts in the
-:mod:`~virtual_ecosystem.models.animals` module.
+:mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
 import pandas as pd
 
-from virtual_ecosystem.models.animals.animal_traits import (
+from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
     ReproductiveType,
     TaxaType,
 )
-from virtual_ecosystem.models.animals.constants import AnimalConsts
+from virtual_ecosystem.models.animal.constants import AnimalConsts
 
 
 class FunctionalGroup:

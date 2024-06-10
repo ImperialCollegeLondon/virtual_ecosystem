@@ -74,7 +74,7 @@ def register_module(module_name: str) -> None:
 
     Args:
         module_name: The full name of the module to be registered (e.g.
-            'virtual_ecosystem.model.animals').
+            'virtual_ecosystem.model.animal').
 
     Raises:
         RuntimeError: if the requested module cannot be found or where a module does not

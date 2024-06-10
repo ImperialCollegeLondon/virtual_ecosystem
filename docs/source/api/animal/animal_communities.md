@@ -14,10 +14,10 @@ kernelspec:
   name: python3
 ---
 
-# API for the {mod}`~virtual_ecosystem.models.animals.functional_group` module
+# API for the {mod}`~virtual_ecosystem.models.animal.animal_communities` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.animals.functional_group
+.. automodule:: virtual_ecosystem.models.animal.animal_communities
     :autosummary:
     :members:
     :exclude-members: model_name

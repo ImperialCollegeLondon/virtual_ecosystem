@@ -1,4 +1,4 @@
-"""The ''animals'' module provides animal module functionality.
+"""The ''animal'' module provides animal module functionality.
 
 Notes:
 - assume each grid = 1 km2
@@ -13,13 +13,13 @@ from math import ceil, exp, sqrt
 
 from numpy import random, timedelta64
 
-import virtual_ecosystem.models.animals.scaling_functions as sf
+import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animals.animal_traits import DietType
-from virtual_ecosystem.models.animals.constants import AnimalConsts
-from virtual_ecosystem.models.animals.decay import CarcassPool
-from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animals.protocols import Consumer, DecayPool, Resource
+from virtual_ecosystem.models.animal.animal_traits import DietType
+from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.decay import CarcassPool
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
 
 
 class AnimalCohort:
@@ -187,7 +187,7 @@ class AnimalCohort:
         """The function to reduce the number of individuals in the cohort through death.
 
         Currently, all cohorts are crafted as single km2 grid cohorts. This means that
-        very large animals will have one or fewer cohort members per grid. As changes
+        very large animal will have one or fewer cohort members per grid. As changes
         are made to capture large body size and multi-grid occupancy, this will be
         updated.
 

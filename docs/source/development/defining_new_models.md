@@ -15,7 +15,7 @@ kernelspec:
 # Creating new Virtual Ecosystem models
 
 The Virtual Ecosystem initially contains a set of models defining core components of
-an ecosystem, examples include the `abiotic`, `animals`, `plants` and `soil` models.
+an ecosystem, examples include the `abiotic`, `animal`, `plants` and `soil` models.
 However, the simulation is designed to be modular:
 
 * Different combinations of models can be configured for a particular simulation.
