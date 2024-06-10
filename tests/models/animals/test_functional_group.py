@@ -125,14 +125,14 @@ class TestFunctionalGroup:
     ):
         """Testing initialization of derived parameters for animal cohorts."""
 
-        from virtual_ecosystem.models.animals.animal_traits import (
+        from virtual_ecosystem.models.animal.animal_traits import (
             DietType,
             MetabolicType,
             ReproductiveType,
             TaxaType,
         )
-        from virtual_ecosystem.models.animals.constants import AnimalConsts
-        from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
         func_group = FunctionalGroup(
             name,
@@ -199,14 +199,14 @@ def test_import_functional_groups(
     shared_datadir, index, name, taxa, diet, metabolic_type, reproductive_type
 ):
     """Testing import functional groups."""
-    from virtual_ecosystem.models.animals.animal_traits import (
+    from virtual_ecosystem.models.animal.animal_traits import (
         DietType,
         MetabolicType,
         ReproductiveType,
         TaxaType,
     )
-    from virtual_ecosystem.models.animals.constants import AnimalConsts
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.constants import AnimalConsts
+    from virtual_ecosystem.models.animal.functional_group import (
         FunctionalGroup,
         import_functional_groups,
     )

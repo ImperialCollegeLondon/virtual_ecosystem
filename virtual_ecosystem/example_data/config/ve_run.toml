@@ -3,7 +3,7 @@
 init = ['plants']
 update = ['plants', 'abiotic_simple']
 [abiotic_simple]
-[animals]
+[animal]
 [litter.depends]
 update = ['hydrology', 'abiotic_simple']
 [soil.depends]

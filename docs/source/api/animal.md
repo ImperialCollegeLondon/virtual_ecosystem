@@ -14,10 +14,8 @@ kernelspec:
   name: python3
 ---
 
-# API for the {mod}`~virtual_ecosystem.models.animals.decay` module
+# API reference for `animal` modules
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.animals.decay
-    :autosummary:
-    :members:
-    :exclude-members: model_name
+.. automodule:: virtual_ecosystem.models.animal
+```

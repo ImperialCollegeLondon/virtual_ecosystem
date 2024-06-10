@@ -1,11 +1,11 @@
-"""The `models.animals.protocols` module contains a class provides eatability definition
+"""The `models.animal.protocols` module contains a class provides eatability definition
 used by AnimalCohorts, PlantResources, and Carcasses in the
-:mod:`~virtual_ecosystem.models.animals` module.
+:mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
 from typing import Protocol
 
-from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
 class Consumer(Protocol):
