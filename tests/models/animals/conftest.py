@@ -147,7 +147,7 @@ def animal_model_instance(
 ):
     """Fixture for an animal model object used in tests."""
 
-    from virtual_ecosystem.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.models.animals.animals_model import AnimalModel
 
     return AnimalModel(
         data=data_instance,
