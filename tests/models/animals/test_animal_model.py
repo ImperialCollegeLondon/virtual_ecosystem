@@ -17,7 +17,7 @@ def prepared_animal_model_instance(
     constants_instance,
 ):
     """Animal model instance in which setup has already been run."""
-    from virtual_ecosystem.models.animals.animals_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     model = AnimalModel(
         data=animal_data_for_model_instance,
@@ -37,7 +37,7 @@ def test_animal_model_initialization(
 ):
     """Test `AnimalModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.animals.animals_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Initialize model
     model = AnimalModel(
@@ -122,7 +122,7 @@ def test_generate_animal_model(
     """Test that the function to initialise the animal model behaves as expected."""
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.models.animals.animals_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Build the config object and core components
     config = Config(cfg_strings=config_string)
@@ -150,7 +150,7 @@ def test_generate_animal_model(
 def test_get_community_by_key(animal_model_instance):
     """Test the `get_community_by_key` method."""
 
-    from virtual_ecosystem.models.animals.animals_model import AnimalCommunity
+    from virtual_ecosystem.models.animals.animal_model import AnimalCommunity
 
     # If you know that your model_instance should have a community with key 0
     community_0 = animal_model_instance.get_community_by_key(0)
@@ -223,7 +223,7 @@ def test_calculate_litter_additions(functional_group_list_instance):
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.animals.animals_model import AnimalModel
+    from virtual_ecosystem.models.animals.animal_model import AnimalModel
 
     # Build the config object and core components
     config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')

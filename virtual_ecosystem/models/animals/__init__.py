@@ -27,4 +27,4 @@ Each of the animal sub-modules has its own API reference page:
   which provides an API for exposing plant model data via the animal model protocols.
 """  # noqa: D205
 
-from virtual_ecosystem.models.animals.animals_model import AnimalModel  # noqa: F401
+from virtual_ecosystem.models.animals.animal_model import AnimalModel  # noqa: F401
