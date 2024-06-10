@@ -1,4 +1,27 @@
 [[variable]]
+axis = ["space"]
+description = "Air heat conductivity by turbulent convection."
+name = "air_conductivity"
+unit = "???"
+variable_type = "float"
+
+[[variable]]
+axis = ["space"]
+description = "???"
+name = "accumulated_surface_runoff"
+unit = "???"
+variable_type = "float"
+
+[[variable]]
+axis = ["space"]
+description = "???"
+name = "accumulated_subsurface_flow"
+unit = "???"
+variable_type = "float"
+
+# All above this line added by DO 
+
+[[variable]]
 axis = ["community_id", "functional_group_id"]
 description = "Density of animal populations."
 name = "population_densities"
