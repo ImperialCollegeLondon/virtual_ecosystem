@@ -11,7 +11,6 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
-import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,13 +29,9 @@ from virtual_ecosystem.core import variables
 # example in the development section of the documentation. The path to the modules for
 # the virtual_ecosystem package itself do not needed to be included here, providing
 # sphinx is run within the poetry shell. RTD runs sphinx-build in the same directory
-# as this conf.py file, where we currently run it from the parent `docs` folder.
-
-on_rtd = os.environ.get("READTHEDOCS") == "True"
-if on_rtd:
-    sys.path.append("development/documentation")
-else:
-    sys.path.append("source/development/documentation")
+# as this conf.py file, where we currently run it from the parent `docs` folder, so
+# adding an absolute path is more reliable.
+sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
 
 version = ve.__version__
