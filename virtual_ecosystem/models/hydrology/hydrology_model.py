@@ -109,8 +109,8 @@ class HydrologyModel(
         "layer_heights",
         "soil_moisture",
         "evapotranspiration",
-        "accumulated_surface_runoff",
-        "accumulated_subsurface_flow",
+        "surface_runoff_accumulated",
+        "subsurface_flow_accumulated",
     ),
 ):
     """A class describing the hydrology model.

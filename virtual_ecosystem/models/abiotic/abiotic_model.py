@@ -63,7 +63,7 @@ class AbioticModel(
         "soil_temperature",
         "vapour_pressure",
         "vapour_pressure_deficit",
-        "air_conductivity",
+        "air_heat_conductivity",
         "conductivity_from_ref_height",
         "leaf_air_heat_conductivity",
         "leaf_vapour_conductivity",
