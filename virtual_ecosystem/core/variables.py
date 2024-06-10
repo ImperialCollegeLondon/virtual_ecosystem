@@ -312,9 +312,9 @@ def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> Non
             registry or the runtime registry.
     """
     for model in models:
-        for v in model.required_init_vars:
+        for var in model.required_init_vars:
             # TODO In the future, var will be a string, so this won't be necessary
-            var = v[0]
+            # var = v[0]
             if var not in KNOWN_VARIABLES:
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} is not in the known"
@@ -393,7 +393,7 @@ def get_variable(name: str) -> Variable:
 
     Raises:
         KeyError: If the variable is not in the run variables registry, whether known
-        or unknown to Virtual Ecosystem.
+            or unknown to Virtual Ecosystem.
     """
     if var := RUN_VARIABLES_REGISTRY.get(name):
         return var
