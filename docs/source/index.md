@@ -123,17 +123,17 @@ team.
   Hydrology Above-ground <api/hydrology/above_ground.md>
   Hydrology Below-ground <api/hydrology/below_ground.md>
   Hydrology Constants <api/hydrology/constants.md>
-  Animal Overview <api/animals>
-  Animal Model <api/animals/animal_model.md>
-  Animal Communities <api/animals/animal_communities.md>
-  Animal Protocols <api/animals/protocols.md>
-  Animal Cohorts <api/animals/animal_cohorts.md>
-  Animal Functional Groups <api/animals/functional_group.md>
-  Animal Traits <api/animals/animal_traits.md>
-  Animal Scaling Functions <api/animals/scaling_functions.md>
-  Animal Constants <api/animals/constants.md>
-  Animal Decay <api/animals/decay.md>
-  Animal Plant Resources <api/animals/plant_resources.md>
+  Animal Overview <api/animal>
+  Animal Model <api/animal/animal_model.md> 
+  Animal Communities <api/animal/animal_communities.md> 
+  Animal Protocols <api/animal/protocols.md>
+  Animal Cohorts <api/animal/animal_cohorts.md> 
+  Animal Functional Groups <api/animal/functional_group.md> 
+  Animal Traits <api/animal/animal_traits.md>
+  Animal Scaling Functions <api/animal/scaling_functions.md> 
+  Animal Constants <api/animal/constants.md> 
+  Animal Decay <api/animal/decay.md> 
+  Animal Plant Resources <api/animal/plant_resources.md> 
   Litter Overview <api/litter.md>
   Litter Model <api/litter/litter_model.md>
   Litter Pools <api/litter/litter_pools.md>

@@ -8,77 +8,77 @@ cell_nx = 10
 cell_ny = 10
 
 [core.timing]
+run_length = "50 years"
 start_date = "2020-01-01"
 update_interval = "2 weeks"
-run_length = "50 years"
 
 [core.data_output_options]
-save_initial_state = true
-save_final_state = true
-out_initial_file_name = "model_at_start.nc"
 out_final_file_name = "model_at_end.nc"
+out_initial_file_name = "model_at_start.nc"
+save_final_state = true
+save_initial_state = true
 
 [plants]
 a_plant_integer = 12
 
 [[plants.ftypes]]
-pft_name = "shrub"
 max_height = 1.0
+pft_name = "shrub"
 
 [[plants.ftypes]]
-pft_name = "broadleaf"
 max_height = 50.0
+pft_name = "broadleaf"
 
-[[animals.functional_groups]]
-name = "carnivorous_bird"
-taxa = "bird"
-diet = "carnivore"
-metabolic_type = "endothermic"
-birth_mass = 0.1
+[[animal.functional_groups]]
 adult_mass = 1.0
+birth_mass = 0.1
+diet = "carnivore"
+metabolic_type = "endothermic"
+name = "carnivorous_bird"
 reproductive_type = "iteroparous"
-
-[[animals.functional_groups]]
-name = "herbivorous_bird"
 taxa = "bird"
-diet = "herbivore"
-metabolic_type = "endothermic"
-birth_mass = 0.05
+
+[[animal.functional_groups]]
 adult_mass = 0.5
-reproductive_type = "iteroparous"
-
-[[animals.functional_groups]]
-name = "carnivorous_mammal"
-taxa = "mammal"
-diet = "carnivore"
+birth_mass = 0.05
+diet = "herbivore"
 metabolic_type = "endothermic"
-birth_mass = 4.0
+name = "herbivorous_bird"
+reproductive_type = "iteroparous"
+taxa = "bird"
+
+[[animal.functional_groups]]
 adult_mass = 40.0
+birth_mass = 4.0
+diet = "carnivore"
+metabolic_type = "endothermic"
+name = "carnivorous_mammal"
 reproductive_type = "iteroparous"
-
-[[animals.functional_groups]]
-name = "herbivorous_mammal"
 taxa = "mammal"
+
+[[animal.functional_groups]]
+adult_mass = 10.0
+birth_mass = 1.0
 diet = "herbivore"
 metabolic_type = "endothermic"
-birth_mass = 1.0
-adult_mass = 10.0
+name = "herbivorous_mammal"
 reproductive_type = "iteroparous"
+taxa = "mammal"
 
-[[animals.functional_groups]]
-name = "carnivorous_insect"
-taxa = "insect"
+[[animal.functional_groups]]
+adult_mass = 0.01
+birth_mass = 0.001
 diet = "carnivore"
 metabolic_type = "ectothermic"
-birth_mass = 0.001
-adult_mass = 0.01
+name = "carnivorous_insect"
 reproductive_type = "iteroparous"
-
-[[animals.functional_groups]]
-name = "herbivorous_insect"
 taxa = "insect"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
 diet = "herbivore"
 metabolic_type = "ectothermic"
-birth_mass = 0.0005
-adult_mass = 0.005
+name = "herbivorous_insect"
 reproductive_type = "semelparous"
+taxa = "insect"

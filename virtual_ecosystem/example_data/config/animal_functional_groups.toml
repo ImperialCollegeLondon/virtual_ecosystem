@@ -1,55 +1,55 @@
 # animal_functional_groups.toml
 
-[[animals.functional_groups]]
-name = "carnivorous_bird"
-taxa = "bird"
-diet = "carnivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-birth_mass = 0.1
+[[animal.functional_groups]]
 adult_mass = 1.0
-
-[[animals.functional_groups]]
-name = "herbivorous_bird"
+birth_mass = 0.1
+diet = "carnivore"
+metabolic_type = "endothermic"
+name = "carnivorous_bird"
+reproductive_type = "iteroparous"
 taxa = "bird"
-diet = "herbivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-birth_mass = 0.05
+
+[[animal.functional_groups]]
 adult_mass = 0.5
-
-[[animals.functional_groups]]
-name = "carnivorous_mammal"
-taxa = "mammal"
-diet = "carnivore"
+birth_mass = 0.05
+diet = "herbivore"
 metabolic_type = "endothermic"
+name = "herbivorous_bird"
 reproductive_type = "iteroparous"
-birth_mass = 4.0
+taxa = "bird"
+
+[[animal.functional_groups]]
 adult_mass = 40.0
-
-[[animals.functional_groups]]
-name = "herbivorous_mammal"
+birth_mass = 4.0
+diet = "carnivore"
+metabolic_type = "endothermic"
+name = "carnivorous_mammal"
+reproductive_type = "iteroparous"
 taxa = "mammal"
+
+[[animal.functional_groups]]
+adult_mass = 10.0
+birth_mass = 1.0
 diet = "herbivore"
 metabolic_type = "endothermic"
+name = "herbivorous_mammal"
 reproductive_type = "iteroparous"
-birth_mass = 1.0
-adult_mass = 10.0
+taxa = "mammal"
 
-[[animals.functional_groups]]
-name = "carnivorous_insect"
-taxa = "insect"
+[[animal.functional_groups]]
+adult_mass = 0.01
+birth_mass = 0.001
 diet = "carnivore"
 metabolic_type = "ectothermic"
+name = "carnivorous_insect"
 reproductive_type = "iteroparous"
-birth_mass = 0.001
-adult_mass = 0.01
-
-[[animals.functional_groups]]
-name = "herbivorous_insect"
 taxa = "insect"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
 diet = "herbivore"
 metabolic_type = "ectothermic"
+name = "herbivorous_insect"
 reproductive_type = "semelparous"
-birth_mass = 0.0005
-adult_mass = 0.005
+taxa = "insect"

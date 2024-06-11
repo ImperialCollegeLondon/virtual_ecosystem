@@ -54,7 +54,7 @@ The example configuration files are:
 ````
 
 * The **`animal_functional_groups.toml`** file provides basic configuration for the
-  `animals` model to set functional group definitions.
+  `animal` model to set functional group definitions.
 
 ````{admonition} config/animal_functional_groups.toml
 :class: dropdown
