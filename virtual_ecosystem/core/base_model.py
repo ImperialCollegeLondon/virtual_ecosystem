@@ -42,7 +42,7 @@ The usage of these attributes is described in their docstrings and each is valid
 when a new subclass is created using the following private methods of the class:
 
 * :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_name`,
-* :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_var_attribute` and
+* :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_variables_attribute` and
 * :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_update_bounds`.
 
 Model checking
@@ -289,14 +289,14 @@ class BaseModel(ABC):
         return model_name
 
     @classmethod
-    def _check_model_var_attribute(
+    def _check_variables_attribute(
         cls,
-        model_var_attribute_name: str,
-        model_var_attribute_contents: tuple[str, ...],
+        variables_attribute_name: str,
+        variables_attribute_value: tuple[str, ...],
     ) -> tuple[str, ...]:
-        """Check a model variable attribute property is valid.
+        """Check a model variables attribute property is valid.
 
-        Creating an instance of the BaseModel class requires that several variable
+        Creating an instance of the BaseModel class requires that several variables
         attributes are set. Each of these provides a list of variable names that are
         required or updated by the model at various points. This method is used to
         validate the structure of the new instance and ensure the resulting model
@@ -307,29 +307,29 @@ class BaseModel(ABC):
             check on creating the model correctly.
 
         Args:
-            model_var_attribute_name: The name of the model variable attribute
-            model_var_attribute_contents: The contents of the model variable attribute
+            variables_attribute_name: The name of the variables attribute
+            variables_attribute_value: The provided value for the variables attribute
 
         Raises:
-            TypeError: the value of the model variable attribute has the wrong type
+            TypeError: the value of the model variables attribute has the wrong type
                 structure.
 
         Returns:
-            The validated variable attribute property
+            The validated variables attribute value
         """
 
         # Check the structure
-        if not isinstance(model_var_attribute_contents, tuple) and all(
-            isinstance(vname, str) for vname in model_var_attribute_contents
+        if isinstance(variables_attribute_value, tuple) and all(
+            isinstance(vname, str) for vname in variables_attribute_value
         ):
-            to_raise = TypeError(
-                f"Class attribute {model_var_attribute_name} has the wrong "
-                f"structure in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+            return variables_attribute_value
 
-        return model_var_attribute_contents
+        to_raise = TypeError(
+            f"Class attribute {variables_attribute_name} has the wrong "
+            f"structure in {cls.__name__}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     @classmethod
     def _check_model_update_bounds(
@@ -472,14 +472,14 @@ class BaseModel(ABC):
         try:
             cls.model_name = cls._check_model_name(model_name=model_name)
 
-            # Validate the structure of the variable attributes
+            # Validate the structure of the variables attributes
             for name, attr in (
                 ("required_init_vars", required_init_vars),
                 ("vars_initialised", vars_initialised),
                 ("required_update_vars", required_update_vars),
                 ("vars_updated", vars_updated),
             ):
-                setattr(cls, name, cls._check_model_var_attribute(name, attr))
+                setattr(cls, name, cls._check_variables_attribute(name, attr))
 
             cls.model_update_bounds = cls._check_model_update_bounds(
                 model_update_bounds=model_update_bounds
