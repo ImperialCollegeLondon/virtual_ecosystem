@@ -302,10 +302,6 @@ class BaseModel(ABC):
         validate the structure of the new instance and ensure the resulting model
         structure is consistent.
 
-        TODO: Diego - this is possibly paranoid. It no longer checks anything about the
-            variables (which is the job of the variables system) but is basically a
-            check on creating the model correctly.
-
         Args:
             variables_attribute_name: The name of the variables attribute
             variables_attribute_value: The provided value for the variables attribute
