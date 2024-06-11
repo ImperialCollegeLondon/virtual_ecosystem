@@ -296,6 +296,7 @@ variable_type = "float"
 axis = ["space"]
 description = "Precipitation that reaches surface"
 name = "precipitation_surface"
+name = "precipitation_surface"
 unit = "mm"
 variable_type = "float"
 
@@ -303,12 +304,14 @@ variable_type = "float"
 axis = ["space"]
 description = "Relative humidity profile"
 name = "relative_humidity"
+name = "relative_humidity"
 unit = "%"
 variable_type = "float"
 
 [[variable]]
 axis = ["space", "time"]
 description = "Relative humidity at reference height (2m)"
+name = "relative_humidity_ref"
 name = "relative_humidity_ref"
 unit = "%"
 variable_type = "float"
@@ -330,6 +333,7 @@ variable_type = "float"
 [[variable]]
 axis = ["space"]
 description = "Roughness length for momentum"
+name = "roughness_length_momentum"
 name = "roughness_length_momentum"
 unit = "m"
 variable_type = "float"
@@ -387,6 +391,7 @@ variable_type = "float"
 axis = ["space"]
 description = "Soil evaporation"
 name = "soil_evaporation"
+name = "soil_evaporation"
 unit = "mm"
 variable_type = "float"
 
@@ -401,12 +406,14 @@ variable_type = "float"
 axis = ["space"]
 description = "Soil respiration"
 name = "soil_respiration"
+name = "soil_respiration"
 unit = "ppm"
 variable_type = ""
 
 [[variable]]
 axis = ["space"]
 description = "Soil temperature profile"
+name = "soil_temperature"
 name = "soil_temperature"
 unit = "C"
 variable_type = "float"

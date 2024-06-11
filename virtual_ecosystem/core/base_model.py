@@ -99,7 +99,6 @@ from typing import Any
 
 import pint
 
-from virtual_ecosystem.core.axes import AXIS_VALIDATORS
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import (
@@ -149,7 +148,7 @@ class BaseModel(ABC):
     patterns.
     """
 
-    required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
+    required_init_vars: tuple[str, ...]
     """Required variables for model initialisation.
 
     This class property defines a set of variable names that must be present in the
@@ -287,8 +286,8 @@ class BaseModel(ABC):
 
     @classmethod
     def _check_required_init_vars(
-        cls, required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
-    ) -> tuple[tuple[str, tuple[str, ...]], ...]:
+        cls, required_init_vars: tuple[str, ...]
+    ) -> tuple[str, ...]:
         """Check the required_init_vars property is valid.
 
         TODO: Remove. Validation is performed at runtime in the variables side.
@@ -306,48 +305,48 @@ class BaseModel(ABC):
             The provided ``required_init_vars`` if valid
         """
 
-        to_raise: Exception
+        # to_raise: Exception
 
-        # Check the structure
-        required_init_vars_ok = True
-        unknown_axes: list[str] = []
+        # # Check the structure
+        # required_init_vars_ok = True
+        # unknown_axes: list[str] = []
 
-        if not isinstance(required_init_vars, tuple):
-            required_init_vars_ok = False
-        else:
-            for entry in required_init_vars:
-                # entry is a 2 tuple
-                if not (isinstance(entry, tuple) and len(entry) == 2):
-                    required_init_vars_ok = False
-                    continue
+        # if not isinstance(required_init_vars, tuple):
+        #     required_init_vars_ok = False
+        # else:
+        #     for entry in required_init_vars:
+        #         # entry is a 2 tuple
+        #         if not (isinstance(entry, tuple) and len(entry) == 2):
+        #             required_init_vars_ok = False
+        #             continue
 
-                # and entry contains (str, tuple(str,...))
-                vname, axes = entry
-                if not (
-                    isinstance(vname, str)
-                    and isinstance(axes, tuple)
-                    and all([isinstance(a, str) for a in axes])
-                ):
-                    required_init_vars_ok = False
-                else:
-                    # Add any unknown axes
-                    unknown_axes.extend(set(axes).difference(AXIS_VALIDATORS))
+        #         # and entry contains (str, tuple(str,...))
+        #         vname, axes = entry
+        #         if not (
+        #             isinstance(vname, str)
+        #             and isinstance(axes, tuple)
+        #             and all([isinstance(a, str) for a in axes])
+        #         ):
+        #             required_init_vars_ok = False
+        #         else:
+        #             # Add any unknown axes
+        #             unknown_axes.extend(set(axes).difference(AXIS_VALIDATORS))
 
-        if not required_init_vars_ok:
-            to_raise = TypeError(
-                f"Class attribute required_init_vars has the wrong "
-                f"structure in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # if not required_init_vars_ok:
+        #     to_raise = TypeError(
+        #         f"Class attribute required_init_vars has the wrong "
+        #         f"structure in {cls.__name__}"
+        #     )
+        #     LOGGER.error(to_raise)
+        #     raise to_raise
 
-        if unknown_axes:
-            to_raise = ValueError(
-                f"Class attribute required_init_vars uses unknown core "
-                f"axes in {cls.__name__}: {','.join(unknown_axes)}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # if unknown_axes:
+        #     to_raise = ValueError(
+        #         f"Class attribute required_init_vars uses unknown core "
+        #         f"axes in {cls.__name__}: {','.join(unknown_axes)}"
+        #     )
+        #     LOGGER.error(to_raise)
+        #     raise to_raise
 
         return required_init_vars
 
@@ -453,7 +452,7 @@ class BaseModel(ABC):
         cls,
         model_name: str,
         model_update_bounds: tuple[str, str],
-        required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
+        required_init_vars: tuple[str, ...],
         vars_updated: tuple[str, ...],
         required_update_vars: tuple[str, ...] = (),
         vars_initialised: tuple[str, ...] = (),
@@ -488,6 +487,10 @@ class BaseModel(ABC):
             model_name: The model name to be used
             model_update_bounds: Bounds on update intervals handled by the model
             required_init_vars: A tuple of the variables required to create a model
+                instance.
+            vars_initialised: A tuple of the variables initialised when a model instance
+                is created.
+            required_update_vars: A tuple of the variables required to update a model
                 instance.
             vars_updated: A tuple of the variable names updated by the model.
 
@@ -553,11 +556,11 @@ class BaseModel(ABC):
         """
 
         # Sentinel variables
-        all_axes_ok: bool = True
+        # all_axes_ok: bool = True
         all_vars_found: bool = True
 
         # Loop over the required  and axes
-        for var, axes in self.required_init_vars:
+        for var in self.required_init_vars:
             # Record when a variable is missing
             if var not in self.data:
                 LOGGER.error(
@@ -566,26 +569,27 @@ class BaseModel(ABC):
                 all_vars_found = False
                 continue
 
-            # Get a list of missing axes
-            bad_axes = []
-            # Could use try: here and let on_core_axis report errors but easier to
-            # provide more clearly structured feedback this way
-            for axis in axes:
-                if not self.data.on_core_axis(var, axis):
-                    bad_axes.append(axis)
+            # # Get a list of missing axes
+            # bad_axes = []
+            # # Could use try: here and let on_core_axis report errors but easier to
+            # # provide more clearly structured feedback this way
+            # for axis in axes:
+            #     if not self.data.on_core_axis(var, axis):
+            #         bad_axes.append(axis)
 
             # Log the outcome
-            if bad_axes:
-                LOGGER.error(
-                    f"{self.model_name} model: required var '{var}' "
-                    f"not on required axes: {','.join(bad_axes)}"
-                )
-                all_axes_ok = False
-            else:
-                LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
+            # if bad_axes:
+            #     LOGGER.error(
+            #         f"{self.model_name} model: required var '{var}' "
+            #         f"not on required axes: {','.join(bad_axes)}"
+            #     )
+            #     all_axes_ok = False
+            # else:
+
+            LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
 
         # Raise if any problems found
-        if not (all_axes_ok and all_vars_found):
+        if not (all_vars_found):
             error = ValueError(
                 f"{self.model_name} model: error checking required_init_vars, see log."
             )

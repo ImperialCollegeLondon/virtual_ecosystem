@@ -167,7 +167,7 @@ def output_known_variables(output_file: Path) -> None:
     register_all_variables()
 
     models = _discover_models()
-    _collect_initialise_by_vars(models)
+    _collect_initialise_by_vars(models, check_unique_initialisation=False)
 
     # Add any variables that are not yet in the run registry to account for those
     # that would have been initialised by the data object.
@@ -209,11 +209,20 @@ def _format_varriables_list(vars: dict[str, dict]) -> str:
     return "\n".join(out)
 
 
-def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> None:
+def _collect_initialise_by_vars(
+    models: list[type[base_model.BaseModel]], check_unique_initialisation: bool = True
+) -> None:
     """Initialise the runtime variable registry.
+
+    It is a runtime error if a variable is initialised by more than one model. However,
+    when this function is used to populate variable descriptions across known model - as
+    in :func:`virtual_ecosystem.core.variables.output_known_variables` - alternative
+    models may report initialising the same variable. The `check_unique_initialisation`
+    flag is used to switch between these use cases.
 
     Args:
         models: The list of models that are initialising the variables.
+        check_unique_initialisation: Fail on duplicate intialisation.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
@@ -223,12 +232,13 @@ def _collect_initialise_by_vars(models: list[type[base_model.BaseModel]]) -> Non
         for var in model.vars_initialised:
             if var not in KNOWN_VARIABLES:
                 raise ValueError(
-                    f"Variable {var} required by {model.model_name} is not in the"
+                    f"Variable {var} initialised by {model.model_name} is not in the"
                     " known variables registry."
                 )
-            if var in RUN_VARIABLES_REGISTRY:
+            if var in RUN_VARIABLES_REGISTRY and check_unique_initialisation:
                 raise ValueError(
-                    f"Variable {var} already in registry, initialised by"
+                    f"Variable {var} initialised by {model.model_name} already in "
+                    f"registry as initialised by "
                     f"{RUN_VARIABLES_REGISTRY[var].initialised_by}."
                 )
 
@@ -302,9 +312,9 @@ def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> Non
             registry or the runtime registry.
     """
     for model in models:
-        for v in model.required_init_vars:
+        for var in model.required_init_vars:
             # TODO In the future, var will be a string, so this won't be necessary
-            var = v[0]
+            # var = v[0]
             if var not in KNOWN_VARIABLES:
                 raise ValueError(
                     f"Variable {var} required by {model.model_name} is not in the known"
@@ -383,7 +393,7 @@ def get_variable(name: str) -> Variable:
 
     Raises:
         KeyError: If the variable is not in the run variables registry, whether known
-        or unknown to Virtual Ecosystem.
+            or unknown to Virtual Ecosystem.
     """
     if var := RUN_VARIABLES_REGISTRY.get(name):
         return var
