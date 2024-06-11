@@ -11,6 +11,14 @@ from xarray import DataArray
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
+REQUIRED_INIT_VAR_CHECKS = (
+    (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
+    (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
+    (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
+    (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
+    (DEBUG, "abiotic model: required var 'layer_heights' checked"),
+)
+
 
 def test_abiotic_model_initialization(
     caplog, dummy_climate_data, fixture_core_components
@@ -36,11 +44,7 @@ def test_abiotic_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=(
-            (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-            (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-            (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
-        ),
+        expected_log=REQUIRED_INIT_VAR_CHECKS,
     )
 
 
@@ -80,6 +84,14 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "abiotic model: init data missing required var 'topofcanopy_radiation'",
             ),
+            (
+                ERROR,
+                "abiotic model: init data missing required var 'leaf_area_index'",
+            ),
+            (
+                ERROR,
+                "abiotic model: init data missing required var 'layer_heights'",
+            ),
             (ERROR, "abiotic model: error checking required_init_vars, see log."),
         ),
     )
@@ -99,9 +111,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                     "Information required to initialise the abiotic model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-                (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
+                *REQUIRED_INIT_VAR_CHECKS,
             ),
             id="default_config",
         ),
@@ -117,9 +127,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                     "Information required to initialise the abiotic model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-                (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
+                *REQUIRED_INIT_VAR_CHECKS,
             ),
             id="modified_config_correct",
         ),
@@ -182,9 +190,7 @@ def test_generate_abiotic_model(
                     "Information required to initialise the abiotic model "
                     "successfully extracted.",
                 ),
-                (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
-                (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-                (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
+                *REQUIRED_INIT_VAR_CHECKS,
                 (
                     ERROR,
                     "The update interval is slower than the abiotic upper "

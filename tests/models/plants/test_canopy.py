@@ -105,7 +105,7 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
         "leaf_area_index",
         "layer_fapar",
         "layer_leaf_mass",
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
     )
 
     n_layer = 1 + 10 + 2 + 2
