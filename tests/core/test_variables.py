@@ -127,7 +127,9 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     assert "test_var" in variables.RUN_VARIABLES_REGISTRY
     variables.register_all_variables.assert_called_once()
     variables._discover_models.assert_called_once()
-    variables._collect_initialise_by_vars.assert_called_once_with([])
+    variables._collect_initialise_by_vars.assert_called_once_with(
+        [], check_unique_initialisation=False
+    )
     variables._collect_required_init_vars.assert_called_once_with([])
     variables._collect_updated_by_vars.assert_called_once_with([])
     variables._collect_required_update_vars.assert_called_once_with([])
@@ -239,7 +241,7 @@ def test_collect_required_init_vars(known_variables, run_variables):
 
     class TestModel:
         model_name = "TestModel"
-        required_init_vars = (("test_var", tuple()),)
+        required_init_vars = ("test_var",)
 
     with pytest.raises(ValueError, match="not in the known variables registry."):
         variables._collect_required_init_vars([TestModel])
