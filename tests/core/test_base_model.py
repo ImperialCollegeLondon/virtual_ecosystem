@@ -53,14 +53,9 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (
-                    (
-                        "temperature",
-                        ("spatial",),
-                    ),
-                ),
+                "required_init_vars": ("temperature", "wind_speed"),
                 "model_update_bounds": ("1 day", "1 month"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             does_not_raise(),
             None,
@@ -72,7 +67,7 @@ def data_instance():
                 "model_name": 9,
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 month"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(TypeError),
             "Class attribute model_name in UnnamedModel is not a string",
@@ -87,7 +82,7 @@ def data_instance():
                 "model_name": "should_pass",
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 time"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -107,7 +102,7 @@ def data_instance():
                 "model_name": "should_pass",
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -126,7 +121,7 @@ def data_instance():
                 "model_name": "should_pass",
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 second"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -145,7 +140,7 @@ def data_instance():
                 "model_name": "should_pass",
                 "required_init_vars": (),
                 "model_update_bounds": ("1 meter", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -165,7 +160,7 @@ def data_instance():
                 "model_name": "should_pass",
                 "required_init_vars": (),
                 "model_update_bounds": ("1 spongebob", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -206,54 +201,40 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
 
 
 @pytest.mark.parametrize(
-    argnames="riv_value, exp_raise, exp_msg",
+    argnames="value, exp_raise, exp_msg",
     argvalues=[
         pytest.param(
             1,
             pytest.raises(TypeError),
             "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is integer",
+            id="value is integer",
         ),
         pytest.param(
-            ["temperature", (1, 2)],
+            ["temperature", "wind_speed"],
             pytest.raises(TypeError),
             "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is list",
+            id="value is list",
         ),
         pytest.param(
-            ("temperature", ("spatial",)),
+            ("temperature", 1),
             pytest.raises(TypeError),
             "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is not nested enough",
+            id="value not all strings",
         ),
         pytest.param(
-            (("temperature", (1,)),),
-            pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV axis is not string",
-        ),
-        pytest.param(
-            (("temperature", (1,), (2,)),),
-            pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV entry is too long",
-        ),
-        pytest.param(
-            (("temperature", ("special",)),),
-            pytest.raises(ValueError),
-            "Class attribute required_init_vars uses unknown core axes in UM: special",
-            id="RIV entry has bad axis name",
-        ),
-        pytest.param(
-            (("temperature", ("spatial",)),),
+            ("temperature", "wind_speed"),
             does_not_raise(),
             None,
-            id="RIV ok",
+            id="value ok",
         ),
     ],
 )
-def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
-    """Test that  __init_subclass__ traps bad values for required_init_vars."""
+def test_check_variable_attribute_structure(value, exp_raise, exp_msg):
+    """Test that  __init_subclass__ traps bad values for required_init_vars.
+
+    This could also test the other BaseModel variable attributes, but this checks
+    the mechanism.
+    """
 
     # BaseModel is required here in the code being exec'd from the params.
     from virtual_ecosystem.core.base_model import BaseModel
@@ -263,9 +244,9 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
         class UM(
             BaseModel,
             model_name="should_also_pass",
-            required_init_vars=riv_value,
+            required_init_vars=value,
             model_update_bounds=("1 day", "1 month"),
-            vars_updated=[],
+            vars_updated=(),
         ):
             pass
 
@@ -287,7 +268,7 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
         model_name="init_var",
         model_update_bounds=("1 second", "1 year"),
         required_init_vars=(),
-        vars_updated=[],
+        vars_updated=(),
     ):
         pass
 
@@ -303,6 +284,10 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
     assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 
+@pytest.mark.skip(
+    "This functionality is going to be handed off to the variables system "
+    "so skipping for now but this will probably be deleted"
+)
 @pytest.mark.parametrize(
     argnames="req_init_vars, raises, exp_err_msg, exp_log",
     argvalues=[
@@ -489,7 +474,7 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
         model_name="timing_test",
         model_update_bounds=("1 day", "1 month"),
         required_init_vars=(),
-        vars_updated=[],
+        vars_updated=(),
     ):
         def setup(self) -> None:
             pass
