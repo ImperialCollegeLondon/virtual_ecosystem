@@ -6,39 +6,42 @@ from logging import ERROR, INFO
 import numpy as np
 import pytest
 from pint import Quantity
+from xarray import DataArray
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
-DEFAULT_CANOPY = [
-    "above",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "canopy",
-    "subcanopy",
-    "surface",
-    "soil",
-    "soil",
-]
+DEFAULT_CANOPY = np.array(
+    [
+        "above",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "canopy",
+        "surface",
+        "soil",
+        "soil",
+    ]
+)
 
-ALTERNATE_CANOPY = [
-    "above",
-    "canopy",
-    "canopy",
-    "canopy",
-    "subcanopy",
-    "surface",
-    "soil",
-    "soil",
-    "soil",
-]
+ALTERNATE_CANOPY = np.array(
+    [
+        "above",
+        "canopy",
+        "canopy",
+        "canopy",
+        "surface",
+        "soil",
+        "soil",
+        "soil",
+    ]
+)
 
 
 @pytest.mark.parametrize(
@@ -51,9 +54,7 @@ ALTERNATE_CANOPY = [
                 "soil_layers": [-0.25, -1.0],
                 "above_canopy_height_offset": 2.0,
                 "surface_layer_height": 0.1,
-                "subcanopy_layer_height": 1.5,
-                "layer_roles": DEFAULT_CANOPY,
-                "n_layers": 15,
+                "n_layers": 14,
             },
             {
                 "start_time": np.datetime64("2013-01-01"),
@@ -74,7 +75,6 @@ ALTERNATE_CANOPY = [
             canopy_layers=3
             above_canopy_height_offset=1.5
             surface_layer_height=0.2
-            subcanopy_layer_height=1.2
             [core.timing]
             start_date = "2020-01-01"
             update_interval = "10 minutes"
@@ -87,9 +87,7 @@ ALTERNATE_CANOPY = [
                 "soil_layers": [-0.1, -0.5, -0.9],
                 "above_canopy_height_offset": 1.5,
                 "surface_layer_height": 0.2,
-                "subcanopy_layer_height": 1.2,
-                "layer_roles": ALTERNATE_CANOPY,
-                "n_layers": 9,
+                "n_layers": 8,
             },
             {
                 "start_time": np.datetime64("2020-01-01"),
@@ -107,33 +105,25 @@ ALTERNATE_CANOPY = [
     ],
 )
 def test_CoreComponents(config, expected_layers, expected_timing, expected_constants):
-    """Simple test of core component generation."""
+    """Simple test of core component generation.
+
+    The expected components contain some simple values to check - the component specific
+    tests provide more rigourous testing.
+    """
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
 
     cfg = Config(cfg_strings=config)
     core_components = CoreComponents(cfg)
 
-    core_constants = {
-        "placeholder": 123.4,
-        "standard_pressure": 101.325,
-        "standard_mole": 44.642,
-        "molar_heat_capacity_air": 29.19,
-        "gravity": 6.6743e-11,
-        "stefan_boltzmann_constant": 5.670374419e-08,
-        "von_karmans_constant": 0.4,
-        "depth_of_active_soil_layer": 0.25,
-        "meters_to_mm": 1000.0,
-        "molecular_weight_air": 28.96,
-        "gas_constant_water_vapour": 461.51,
-        "seconds_to_day": 86400.0,
-        "characteristic_dimension_leaf": 0.01,
-    }
-    core_constants.update(expected_constants)
+    for ky, val in expected_layers.items():
+        assert getattr(core_components.layer_structure, ky) == expected_layers[ky]
 
-    assert core_components.layer_structure.__dict__ == expected_layers
-    assert core_components.model_timing.__dict__ == expected_timing
-    assert core_components.core_constants.__dict__ == core_constants
+    for ky, val in expected_timing.items():
+        assert getattr(core_components.model_timing, ky) == expected_timing[ky]
+
+    for ky, val in expected_constants.items():
+        assert getattr(core_components.core_constants, ky) == expected_constants[ky]
 
 
 @pytest.mark.parametrize(
@@ -147,8 +137,13 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                 [-0.25, -1.0],
                 2.0,
                 0.1,
-                1.5,
                 DEFAULT_CANOPY,
+                {
+                    "above": np.array([0]),
+                    "canopy": np.arange(1, 11),
+                    "surface": np.array([11]),
+                    "soil": np.array([12, 13]),
+                },
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="defaults",
@@ -159,7 +154,6 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             canopy_layers=3
             above_canopy_height_offset=1.5
             surface_layer_height=0.2
-            subcanopy_layer_height=1.2
             """,
             does_not_raise(),
             (
@@ -167,8 +161,13 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                 [-0.1, -0.5, -0.9],
                 1.5,
                 0.2,
-                1.2,
                 ALTERNATE_CANOPY,
+                {
+                    "above": np.array([0]),
+                    "canopy": np.arange(1, 4),
+                    "surface": np.array([4]),
+                    "soil": np.array([5, 6, 7]),
+                },
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="alternative",
@@ -179,7 +178,6 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             canopy_layers=9
             above_canopy_height_offset=1.5
             surface_layer_height=0.2
-            subcanopy_layer_height=1.2
             """,
             pytest.raises(ConfigurationError),
             None,
@@ -196,17 +194,34 @@ def test_LayerStructure(caplog, config_string, raises, expected_values, expected
     cfg = Config(cfg_strings=config_string)
 
     with raises:
-        layer_structure = LayerStructure(cfg)
+        layer_structure = LayerStructure(cfg, n_cells=9)
 
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
 
     if isinstance(raises, does_not_raise):
+        # Check the main properties
         assert layer_structure.canopy_layers == expected_values[0]
         assert layer_structure.soil_layers == expected_values[1]
         assert layer_structure.above_canopy_height_offset == expected_values[2]
         assert layer_structure.surface_layer_height == expected_values[3]
-        assert layer_structure.subcanopy_layer_height == expected_values[4]
-        assert layer_structure.layer_roles == expected_values[5]
+        assert np.all(np.equal(layer_structure.layer_roles, expected_values[4]))
+        assert layer_structure.role_indices.keys() == expected_values[5].keys()
+        for ky in layer_structure.role_indices.keys():
+            assert np.all(
+                np.equal(layer_structure.role_indices[ky], expected_values[5][ky])
+            )
+
+        # Check the template data array
+        template = layer_structure.get_template()
+        assert isinstance(template, DataArray)
+        assert template.shape == (layer_structure.n_layers, layer_structure.n_cells)
+        assert template.dims == ("layer_roles", "cell_id")
+        assert np.all(
+            np.equal(template["layer_roles"].to_numpy(), layer_structure.layer_roles)
+        )
+        assert np.all(
+            np.equal(template["cell_id"].to_numpy(), np.arange(layer_structure.n_cells))
+        )
 
 
 @pytest.mark.parametrize(

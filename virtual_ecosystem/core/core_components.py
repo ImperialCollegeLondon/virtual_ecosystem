@@ -10,13 +10,16 @@ from __future__ import annotations
 from dataclasses import InitVar, dataclass, field
 
 import numpy as np
+from numpy.typing import NDArray
 from pint import Quantity
 from pint.errors import DimensionalityError, UndefinedUnitError
+from xarray import DataArray
 
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 
 
@@ -30,6 +33,8 @@ class CoreComponents:
     specific model subclasses.
     """
 
+    grid: Grid = field(init=False)
+    """A grid structure for the simulation."""
     layer_structure: LayerStructure = field(init=False)
     """The vertical layer structure for the simulation."""
     model_timing: ModelTiming = field(init=False)
@@ -41,7 +46,8 @@ class CoreComponents:
 
     def __post_init__(self, config: Config) -> None:
         """Populate the core components from the config."""
-        self.layer_structure = LayerStructure(config=config)
+        self.grid = Grid.from_config(config=config)
+        self.layer_structure = LayerStructure(config=config, n_cells=self.grid.n_cells)
         self.model_timing = ModelTiming(config=config)
         self.core_constants = load_constants(config, "core", "CoreConsts")
 
@@ -155,13 +161,13 @@ class LayerStructure:
     """Simulation vertical layer structure.
 
     This class defines the structure of the vertical dimension of the Virtual Ecosystem
-    from a model configuration. Five values from the ``core.layers`` configuration
+    from a model configuration. Four values from the ``core.layers`` configuration
     section are used to define a set of vertical layers and their heights (or relative
-    heights): ``canopy_layers``, ``soil_layers``, ``above_canopy_height_offset``,
-    ``surface_layer_height`` and``subcanopy_layer_height``. These values are validatated
-    and then assigned to attributes of this class. The ``n_layers`` and ``layer_roles``
-    attributes report the total number of layers in the vertical dimension and a tuple
-    of the role of each layer within that dimension.
+    heights): ``canopy_layers``, ``soil_layers``, ``above_canopy_height_offset`` and
+    ``surface_layer_height``. These values are validated and then assigned to attributes
+    of this class. The ``n_layers`` and ``layer_roles`` attributes report the total
+    number of layers in the vertical dimension and an array giving the vertical sequence
+    of layer roles.
 
     The layer structure is shown below, along with values from the default
     configuration. All heights are in metres relative to ground level and the canopy
@@ -176,10 +182,23 @@ class LayerStructure:
         1, "canopy", "Height of first canopy layer",  "``PlantsModel``", "--"
         "...", "canopy", "Height of other canopy layers",  "``PlantsModel``", "--"
         10, "canopy", "Height of the last canopy layer ", "``PlantsModel``", "--"
-        11, "subcanopy", "Subcanopy height", ``subcanopy_layer_height``, "1.5 m"
-        12, "surface", "Near surface conditions", ``surface_layer_height``, "0.1 m"
-        13, "soil", "Upper soil layer depth",  ``soil_layers``, "-0.25 m"
-        14, "soil", "Lower soil layer depth",  ``soil_layers``, "-1.25 m"
+        11, "surface", "Near surface conditions", ``surface_layer_height``, "0.1 m"
+        12, "soil", "Upper soil layer depth",  ``soil_layers``, "-0.25 m"
+        13, "soil", "Lower soil layer depth",  ``soil_layers``, "-1.25 m"
+
+    .. role:: python(code)
+        :language: python
+
+    The instance also provides the ``role_indices`` and ``role_indices_bool`` attributes
+    that provide dictionaries of array indices for the locations of each of the four
+    vertical layer roles. For example, given the example table above,
+    :python:`layer_structure.role_indices["soil"]` would return
+    :python:`np.array([12,13])` and :python:`layer_structure.role_indices_bool["soil"]`
+    would return :python:`np.array([False, ..., False, True, True])`.
+
+    The instance also provides the `~virtual_ecosystem.core.LayerStructure.get_template`
+    method, which returns a DataArray template dimensioned to the layer structure and
+    number of grid cells.
 
     Raises:
         ConfigurationError: If the configuration elements are incorrect for defining
@@ -194,15 +213,21 @@ class LayerStructure:
     """The height above the canopy of the provided reference climate variables."""
     surface_layer_height: float = field(init=False)
     """The height above ground used to represent surface conditions."""
-    subcanopy_layer_height: float = field(init=False)
-    """The height above ground used to represent subcanopy conditions."""
-    layer_roles: list[str] = field(init=False)
-    """An tuple of the roles of the vertical layers within the model from top to
+    layer_roles: NDArray[np.str_] = field(init=False)
+    """An array of the roles of the vertical layers within the model from top to
     bottom."""
     n_layers: int = field(init=False)
     """The total number of vertical layers in the model."""
+    role_indices_bool: dict[str, NDArray[np.bool_]] = field(init=False)
+    """A dictionary providing boolean indices of each role within the vertical layer
+    structure."""
+    role_indices: dict[str, NDArray[np.int_]] = field(init=False)
+    """A dictionary providing integer indices of each roles within the vertical layer
+    structure."""
     config: InitVar[Config]
     """A validated model configuration."""
+    n_cells: int
+    """The number of grid cells in the simulation."""
 
     def __post_init__(self, config: Config) -> None:
         """Populate the ``LayerStructure`` instance.
@@ -224,21 +249,51 @@ class LayerStructure:
         for attr, value in (
             ("above_canopy_height_offset", lyr_config["above_canopy_height_offset"]),
             ("surface_layer_height", lyr_config["surface_layer_height"]),
-            ("subcanopy_layer_height", lyr_config["subcanopy_layer_height"]),
         ):
             setattr(self, attr, _validate_positive_finite_numeric(value, attr))
 
-        self.layer_roles = (
+        # Get the layer role sequence
+        self.layer_roles = np.array(
             ["above"]
             + ["canopy"] * int(self.canopy_layers)
-            + ["subcanopy"]
             + ["surface"]
             + ["soil"] * len(self.soil_layers)
         )
 
+        # Record the number of layers
         self.n_layers = len(self.layer_roles)
 
+        # Set up the various indices onto those roles
+        self.role_indices_bool = {
+            layer_role: self.layer_roles == layer_role
+            for layer_role in ("above", "canopy", "surface", "soil")
+        }
+        self.role_indices = {
+            ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
+        }
+
+        # Create a private template data array with the simulation structure. This
+        # should not be accessed directly to avoid the chance of someone modifying the
+        # actual template.
+        self._array_template: DataArray = DataArray(
+            np.full((self.n_layers, self.n_cells), np.nan),
+            dims=("layer_roles", "cell_id"),
+            coords={
+                "layer_roles": self.layer_roles,
+                "cell_id": np.arange(self.n_cells),
+            },
+        )
+
         LOGGER.info("Layer structure built from model configuration")
+
+    def get_template(self) -> DataArray:
+        """Get a template DataArray with the simulation vertical structure.
+
+        This method returns two dimensional :class:`xarray.DataArray` with coordinates
+        set to match the layer roles and number of grid cells for the current
+        simulation. The array is filled with ``np.nan`` values.
+        """
+        return self._array_template.copy()
 
 
 def _validate_positive_integer(value: float | int) -> int:
