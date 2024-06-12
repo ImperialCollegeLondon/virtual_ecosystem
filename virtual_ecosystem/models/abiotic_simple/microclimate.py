@@ -87,13 +87,12 @@ def run_microclimate(
         atmospheric :math:`\ce{CO2}` [ppm]
     """
 
-    # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
     # sum leaf area index over all canopy layers
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
-    # interpolate atmospheric profiles
+    # interpolate atmospheric profiles TODO gradients are different!!
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
         lower, upper, gradient = getattr(bounds, var)
 
@@ -180,43 +179,34 @@ def log_interpolation(
     """
 
     # Calculate microclimatic variable at 1.5 m as function of leaf area index
-    lai_regression = DataArray(
-        leaf_area_index_sum * gradient + reference_data, dims="cell_id"
-    )
+    lai_regression = leaf_area_index_sum * gradient + reference_data
 
     # Calculate per cell slope and intercept for logarithmic within-canopy profile
-    slope = (reference_data - lai_regression) / (
+    slope = slope = (reference_data - lai_regression) / (
         np.log(layer_heights.isel(layers=0)) - np.log(1.5)
     )
     intercept = lai_regression - slope * np.log(1.5)
 
     # Calculate the values within cells by layer
-    positive_layer_heights = DataArray(
-        np.where(layer_heights > 0, layer_heights, np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
+    positive_layer_heights = np.where(layer_heights > 0, layer_heights, np.nan)
 
-    layer_values = np.where(
-        np.logical_not(np.isnan(positive_layer_heights)),
-        (np.log(positive_layer_heights) * slope + intercept),
-        np.nan,
+    slope_value = (
+        np.log(positive_layer_heights)[:, np.newaxis, :]
+        * slope.to_numpy()[np.newaxis, :, :]
     )
+    layer_values = slope_value + intercept.to_numpy()[np.newaxis, :, :]
 
     # set upper and lower bounds
     return DataArray(
         np.clip(layer_values, lower_bound, upper_bound),
-        dims=["layers", "cell_id"],
+        dims=["layers", "cell_id", "climate_stats"],
         coords={
             "layers": np.arange(0, len(layer_roles)),
             "layer_roles": ("layers", layer_roles),
             "cell_id": data.grid.cell_id,
+            "climate_stats": reference_data.coords["climate_stats"],
         },
-    )
+    ).transpose("cell_id", "layers", "climate_stats")
 
 
 def calculate_saturation_vapour_pressure(
@@ -326,9 +316,15 @@ def interpolate_soil_temperature(
     # Calculate the values within cells by layer
     layer_values = np.log(interpolation_heights) * slope + intercept
 
-    # set upper and lower bounds and return soil and surface layers, further layers are
-    # added in the 'run' function
+    # set upper and lower bounds and return soil and surface layers,
+    # further layers are added in the 'run' function
     return DataArray(
         np.clip(layer_values, lower_bound, upper_bound),
-        coords=interpolation_heights.coords,
+        dims=["layers", "cell_id", "climate_stats"],
+        coords={
+            "cell_id": interpolation_heights.coords["cell_id"],
+            "layers": interpolation_heights.coords["layers"],
+            "layer_roles": interpolation_heights.coords["layer_roles"],
+            "climate_stats": ["mean", "min", "max"],
+        },
     ).drop_isel(layers=0)
