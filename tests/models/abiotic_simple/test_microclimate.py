@@ -29,36 +29,41 @@ def test_varying_canopy_log_interpolation(
         gradient=np.repeat(-2.45, 3),
     )
 
-    air_temp1 = fixture_empty_2d_array.copy()
-    air_temp1[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.844995, 29.844995, 29.844995],
-        [28.87117, 28.87117, np.nan],
-        [27.206405, np.nan, np.nan],
-        [22.65, 22.65, 22.65],
-        [16.145945, 16.145945, 16.145945],
+    indices = [0, 1, 2, 3, 11, 12]
+    temp_values = [
+        [
+            [30.0, 30.0, 30.0],
+            [29.844995, 29.844995, 29.844995],
+            [28.87117, 28.87117, np.nan],
+            [27.206405, np.nan, np.nan],
+            [22.65, 22.65, 22.65],
+            [16.145945, 16.145945, 16.145945],
+        ],
+        [
+            [30.0, 30.0, 30.0],
+            [29.896663, 29.896663, 29.896663],
+            [29.247446, 29.247446, np.nan],
+            [28.137603, np.nan, np.nan],
+            [25.1, 25.1, 25.1],
+            [20.763963, 20.763963, 20.763963],
+        ],
+        [
+            [30.0, 30.0, 30.0],
+            [29.948332, 29.948332, 29.948332],
+            [29.623723, 29.623723, np.nan],
+            [29.068802, np.nan, np.nan],
+            [27.55, 27.55, 27.55],
+            [25.381982, 25.381982, 25.381982],
+        ],
     ]
-    air_temp2 = fixture_empty_2d_array.copy()
-    air_temp2[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.896663, 29.896663, 29.896663],
-        [29.247446, 29.247446, np.nan],
-        [28.137603, np.nan, np.nan],
-        [25.1, 25.1, 25.1],
-        [20.763963, 20.763963, 20.763963],
-    ]
-    air_temp3 = fixture_empty_2d_array.copy()
-    air_temp3[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.948332, 29.948332, 29.948332],
-        [29.623723, 29.623723, np.nan],
-        [29.068802, np.nan, np.nan],
-        [27.55, 27.55, 27.55],
-        [25.381982, 25.381982, 25.381982],
-    ]
+
+    air_temps = [fixture_empty_2d_array.copy() for _ in range(3)]
+
+    for air_temp, val in zip(air_temps, temp_values):
+        air_temp[indices, :] = val
+
     exp_air_temp = xr.concat(
-        [air_temp1, air_temp2, air_temp3],
-        dim=xr.DataArray(["mean", "min", "max"], dims="climate_stats"),
+        air_temps, dim=xr.DataArray(["mean", "min", "max"], dims="climate_stats")
     )
     np.testing.assert_allclose(result, exp_air_temp, rtol=1e-4, atol=1e-4)
 
@@ -82,7 +87,7 @@ def test_calculate_saturation_vapour_pressure(dummy_climate_data):
     )
 
     exp_output = DataArray(
-        [1.41727, 1.41727, 1.41727],
+        [1.41727] * 3,
         dims=["cell_id"],
         coords={"cell_id": [0, 1, 2]},
     )
@@ -146,37 +151,43 @@ def test_run_microclimate_varying_canopy(
         bounds=AbioticSimpleBounds(),
     )
 
-    air_temp1 = fixture_empty_2d_array.copy()
-    air_temp1[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.91965, 29.91965, 29.91965],
-        [29.414851, 29.414851, np.nan],
-        [28.551891, np.nan, np.nan],
-        [26.19, 26.19, 26.19],
-        [22.81851, 22.81851, 22.81851],
+    indices = [0, 1, 2, 3, 11, 12]
+    temp_values = [
+        [
+            [30.0, 30.0, 30.0],
+            [29.91965, 29.91965, 29.91965],
+            [29.414851, 29.414851, np.nan],
+            [28.551891, np.nan, np.nan],
+            [26.19, 26.19, 26.19],
+            [22.81851, 22.81851, 22.81851],
+        ],
+        [
+            [30.0, 30.0, 30.0],
+            [29.996626, 29.996626, 29.996626],
+            [29.975427, 29.975427, np.nan],
+            [29.939187, np.nan, np.nan],
+            [29.84, 29.84, 29.84],
+            [29.698415, 29.698415, 29.698415],
+        ],
+        [
+            [30.0, 30.0, 30.0],
+            [29.948332, 29.948332, 29.948332],
+            [29.623723, 29.623723, np.nan],
+            [29.068802, np.nan, np.nan],
+            [27.55, 27.55, 27.55],
+            [25.381982, 25.381982, 25.381982],
+        ],
     ]
-    air_temp2 = fixture_empty_2d_array.copy()
-    air_temp2[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.996626, 29.996626, 29.996626],
-        [29.975427, 29.975427, np.nan],
-        [29.939187, np.nan, np.nan],
-        [29.84, 29.84, 29.84],
-        [29.698415, 29.698415, 29.698415],
-    ]
-    air_temp3 = fixture_empty_2d_array.copy()
-    air_temp3[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.948332, 29.948332, 29.948332],
-        [29.623723, 29.623723, np.nan],
-        [29.068802, np.nan, np.nan],
-        [27.55, 27.55, 27.55],
-        [25.381982, 25.381982, 25.381982],
-    ]
+
+    air_temps = [fixture_empty_2d_array.copy() for _ in range(3)]
+
+    for air_temp, val in zip(air_temps, temp_values):
+        air_temp[indices, :] = val
+
     exp_air_temp = xr.concat(
-        [air_temp1, air_temp2, air_temp3],
-        dim=xr.DataArray(["mean", "min", "max"], dims="climate_stats"),
+        air_temps, dim=xr.DataArray(["mean", "min", "max"], dims="climate_stats")
     )
+
     np.testing.assert_allclose(
         result["air_temperature"], exp_air_temp, rtol=1e-4, atol=1e-4
     )
@@ -225,18 +236,7 @@ def test_interpolate_soil_temperature(dummy_climate_data):
     )
 
     exp_output = DataArray(
-        [
-            [
-                [20.505557, 20.505557, 20.505557],
-                [20.505557, 20.505557, 20.505557],
-                [20.505557, 20.505557, 20.505557],
-            ],
-            [
-                [20.0, 20.0, 20.0],
-                [20.0, 20.0, 20.0],
-                [20.0, 20.0, 20.0],
-            ],
-        ],
+        [[[20.505557] * 3] * 3, [[20.0] * 3] * 3],
         dims=["layers", "cell_id", "climate_stats"],
         coords={
             "layers": [13, 14],
@@ -245,4 +245,5 @@ def test_interpolate_soil_temperature(dummy_climate_data):
             "climate_stats": ["mean", "min", "max"],
         },
     )
+
     xr.testing.assert_allclose(result, exp_output)
