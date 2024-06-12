@@ -160,7 +160,7 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
+def test_setup(dummy_climate_data_varying_canopy, fixture_empty_2d_array):
     """Test set up and update."""
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -183,8 +183,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
 
     model.setup()
     exp_soil_temp = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
+        np.full((3, 15, 3), np.nan),
+        dims=["cell_id", "layers", "climate_stats"],
         coords={
             "layers": np.arange(0, 15),
             "layer_roles": (
@@ -192,6 +192,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
                 core_components.layer_structure.layer_roles,
             ),
             "cell_id": [0, 1, 2],
+            "climate_stats": ["mean", "min", "max"],
         },
     )
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
@@ -199,9 +200,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((3, 3), 0.141727),
-            dims=["cell_id", "time_index"],
-            coords={"cell_id": [0, 1, 2]},
+            np.full((3, 3, 3), 0.141727),
+            dims=["cell_id", "time_index", "climate_stats"],
+            coords={"cell_id": [0, 1, 2], "climate_stats": ["mean", "min", "max"]},
         ),
     )
 
@@ -218,7 +219,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
     ]:
         assert var in model.data
 
-    exp_air_temp = fixture_empty_array.copy()
+    exp_air_temp = fixture_empty_2d_array.copy()
     exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
         [30.0, 30.0, 30.0],
         [29.91965, 29.946434, 29.973217],
@@ -228,10 +229,19 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
         [22.81851, 25.21234, 27.60617],
     ]
 
-    exp_soil_temp = fixture_empty_array.copy()
-    exp_soil_temp[[13, 14], :] = [[20.712458, 21.317566, 21.922674], [20.0, 20.0, 20.0]]
-    xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+    soil_indices = [13, 14]
+    soil_values = [
+        [[20.712458, 20.712458, 20.712458], [20, 20, 20]],
+        [[22.451549, 22.451549, 22.451549], [20, 20, 20]],
+        [[21.360448, 21.360448, 21.360448], [20, 20, 20]],
+    ]
 
-    xr.testing.assert_allclose(
-        dummy_climate_data_varying_canopy["air_temperature"], exp_air_temp
+    soil_temps = [fixture_empty_2d_array.copy() for _ in range(3)]
+
+    for soil_temp, val in zip(soil_temps, soil_values):
+        soil_temp[soil_indices, :] = val
+
+    exp_soil_temp = xr.concat(
+        soil_temps, dim=xr.DataArray(["mean", "min", "max"], dims="climate_stats")
     )
+    np.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
