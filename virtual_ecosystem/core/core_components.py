@@ -183,8 +183,8 @@ class LayerStructure:
         "...", "canopy", "Height of other canopy layers",  "``PlantsModel``", "--"
         10, "canopy", "Height of the last canopy layer ", "``PlantsModel``", "--"
         11, "surface", "Near surface conditions", ``surface_layer_height``, "0.1 m"
-        12, "soil", "Upper soil layer depth",  ``soil_layers``, "-0.25 m"
-        13, "soil", "Lower soil layer depth",  ``soil_layers``, "-1.25 m"
+        12, "topsoil", "Top soil layer depth",  ``soil_layers``, "-0.25 m"
+        13, "subsoil", "First subsoil layer depth",  ``soil_layers``, "-1.25 m"
 
     .. role:: python(code)
         :language: python
@@ -192,9 +192,9 @@ class LayerStructure:
     The instance also provides the ``role_indices`` and ``role_indices_bool`` attributes
     that provide dictionaries of array indices for the locations of each of the four
     vertical layer roles. For example, given the example table above,
-    :python:`layer_structure.role_indices["soil"]` would return
-    :python:`np.array([12,13])` and :python:`layer_structure.role_indices_bool["soil"]`
-    would return :python:`np.array([False, ..., False, True, True])`.
+    :python:`layer_structure.role_indices["topsoil"]` would return
+    :python:`np.array([12])` and :python:`layer_structure.role_indices_bool["topsoil"]`
+    would return :python:`np.array([False, ..., False, True, False])`.
 
     The instance also provides the `~virtual_ecosystem.core.LayerStructure.get_template`
     method, which returns a DataArray template dimensioned to the layer structure and
@@ -257,7 +257,8 @@ class LayerStructure:
             ["above"]
             + ["canopy"] * int(self.canopy_layers)
             + ["surface"]
-            + ["soil"] * len(self.soil_layers)
+            + ["topsoil"]
+            + ["subsoil"] * (len(self.soil_layers) - 1)
         )
 
         # Record the number of layers
@@ -266,11 +267,13 @@ class LayerStructure:
         # Set up the various indices onto those roles
         self.role_indices_bool = {
             layer_role: self.layer_roles == layer_role
-            for layer_role in ("above", "canopy", "surface", "soil")
+            for layer_role in ("above", "canopy", "surface", "topsoil", "subsoil")
         }
         self.role_indices = {
             ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
         }
+
+        # Specific index for biologically active top soil layer
 
         # Create a private template data array with the simulation structure. This
         # should not be accessed directly to avoid the chance of someone modifying the

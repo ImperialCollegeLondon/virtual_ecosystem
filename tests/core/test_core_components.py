@@ -25,8 +25,8 @@ DEFAULT_CANOPY = np.array(
         "canopy",
         "canopy",
         "surface",
-        "soil",
-        "soil",
+        "topsoil",
+        "subsoil",
     ]
 )
 
@@ -37,9 +37,9 @@ ALTERNATE_CANOPY = np.array(
         "canopy",
         "canopy",
         "surface",
-        "soil",
-        "soil",
-        "soil",
+        "topsoil",
+        "subsoil",
+        "subsoil",
     ]
 )
 
@@ -142,7 +142,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "above": np.array([0]),
                     "canopy": np.arange(1, 11),
                     "surface": np.array([11]),
-                    "soil": np.array([12, 13]),
+                    "topsoil": np.array([12]),
+                    "subsoil": np.array([13]),
                 },
             ),
             ((INFO, "Layer structure built from model configuration"),),
@@ -166,7 +167,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "above": np.array([0]),
                     "canopy": np.arange(1, 4),
                     "surface": np.array([4]),
-                    "soil": np.array([5, 6, 7]),
+                    "topsoil": np.array([5]),
+                    "subsoil": np.array([6, 7]),
                 },
             ),
             ((INFO, "Layer structure built from model configuration"),),
