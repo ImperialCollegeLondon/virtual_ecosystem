@@ -14,6 +14,7 @@ TODO change tenperatures to Kelvin
 
 import numpy as np
 import xarray as xr
+from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
@@ -94,7 +95,8 @@ def run_microclimate(
 
     # interpolate atmospheric profiles TODO gradients are different!!
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
-        lower, upper, gradient = getattr(bounds, var)
+        lower, upper, gradient_mean, gradient_min, gradient_max = getattr(bounds, var)
+        gradient = np.array([gradient_mean, gradient_min, gradient_max])
 
         output[var] = log_interpolation(
             data=data,
@@ -159,7 +161,7 @@ def log_interpolation(
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,
-    gradient: float,
+    gradient: float | NDArray[np.float32],
 ) -> DataArray:
     """LAI regression and logarithmic interpolation of variables above ground.
 

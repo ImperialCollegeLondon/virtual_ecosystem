@@ -21,33 +21,46 @@ class AbioticSimpleConsts(ConstantsDataclass):
 
 @dataclass(frozen=True)
 class AbioticSimpleBounds(ConstantsDataclass):
-    """Upper and lower bounds for abiotic variables.
+    """Upper/lower bounds for abiotic variables and gradients for linear regressions.
 
-    When a values falls outside these bounds, it is set to the bound value. Note that
-    this approach does not conserve energy and matter in the system. This will be
-    implemented at a later stage.
+    Bounds are set to reasonable minimum and maximum values following `pyrealm`. When a
+    values falls outside these bounds, it is set to the bound value. Note that this
+    approach does not conserve energy and matter in the system. This will be implemented
+    at a later stage.
+
+    Gradients are used in linear regression to calculate mean, minimum, and maximum air
+    temperature, relative humidity, and vapour pressure deficit as a function of leaf
+    area index. The values are based on daily statistics from
+    :cite:t:`hardwick_relationship_2015`; we assume that the relationship is valid on a
+    monthly timestep, too.
     """
 
-    air_temperature: tuple[float, float, float] = (-20.0, 80.0, -1.27)
-    """Bounds and gradient for air temperature, [C].
+    air_temperature: tuple[float, float, float, float, float] = (
+        -25.0,
+        80.0,
+        -1.27,
+        -0.08,
+        -2.45,
+    )
+    """Bounds and gradients for air temperature, [C]."""
 
-    Gradient for linear regression to calculate air temperature as a function of
-    leaf area index from :cite:t:`hardwick_relationship_2015`.
-    """
+    relative_humidity: tuple[float, float, float, float, float] = (
+        0.0,
+        100.0,
+        5.4,
+        9.05,
+        -0.02,
+    )
+    """Bounds and gradients for relative humidity, dimensionless."""
 
-    relative_humidity: tuple[float, float, float] = (0.0, 100.0, 5.4)
-    """Bounds and gradient for relative humidity, dimensionless.
+    vapour_pressure_deficit: tuple[float, float, float, float, float] = (
+        0.0,
+        10.0,
+        -252.24,
+        -0.47,
+        -504.0,
+    )
+    """Bounds and gradients for vapour pressure deficit, [kPa]."""
 
-    Gradient for linear regression to calculate relative humidity as a function of
-    leaf area index from :cite:t:`hardwick_relationship_2015`.
-    """
-
-    vapour_pressure_deficit: tuple[float, float, float] = (0.0, 10.0, -252.24)
-    """Bounds and gradient for vapour pressure deficit, [kPa]."""
-
-    soil_temperature: tuple[float, float] = (-10.0, 50.0)
-    """Bounds for soil temperature, [C].
-
-    Gradient for linear regression to calculate vapour pressure deficit as a function
-    of leaf area index from :cite:t:`hardwick_relationship_2015`
-    """
+    soil_temperature: tuple[float, float] = (-25.0, 50.0)
+    """Bounds for soil temperature, [C]."""

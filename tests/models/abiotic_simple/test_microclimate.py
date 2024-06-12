@@ -26,7 +26,7 @@ def test_varying_canopy_log_interpolation(
         layer_heights=data["layer_heights"],
         upper_bound=80,
         lower_bound=0,
-        gradient=-2.45,
+        gradient=np.repeat(-2.45, 3),
     )
 
     air_temp1 = fixture_empty_2d_array.copy()
@@ -138,7 +138,6 @@ def test_run_microclimate_varying_canopy(
     from virtual_ecosystem.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data_varying_canopy
-
     result = run_microclimate(
         data=data,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
@@ -159,20 +158,20 @@ def test_run_microclimate_varying_canopy(
     air_temp2 = fixture_empty_2d_array.copy()
     air_temp2[[0, 1, 2, 3, 11, 12], :] = [
         [30.0, 30.0, 30.0],
-        [29.946434, 29.946434, 29.946434],
-        [29.609901, 29.609901, np.nan],
-        [29.034594, np.nan, np.nan],
-        [27.46, 27.46, 27.46],
-        [25.21234, 25.21234, 25.21234],
+        [29.996626, 29.996626, 29.996626],
+        [29.975427, 29.975427, np.nan],
+        [29.939187, np.nan, np.nan],
+        [29.84, 29.84, 29.84],
+        [29.698415, 29.698415, 29.698415],
     ]
     air_temp3 = fixture_empty_2d_array.copy()
     air_temp3[[0, 1, 2, 3, 11, 12], :] = [
         [30.0, 30.0, 30.0],
-        [29.973217, 29.973217, 29.973217],
-        [29.80495, 29.80495, np.nan],
-        [29.517297, np.nan, np.nan],
-        [28.73, 28.73, 28.73],
-        [27.60617, 27.60617, 27.60617],
+        [29.948332, 29.948332, 29.948332],
+        [29.623723, 29.623723, np.nan],
+        [29.068802, np.nan, np.nan],
+        [27.55, 27.55, 27.55],
+        [25.381982, 25.381982, 25.381982],
     ]
     exp_air_temp = xr.concat(
         [air_temp1, air_temp2, air_temp3],
@@ -183,7 +182,7 @@ def test_run_microclimate_varying_canopy(
     )
 
     soil_temp = fixture_empty_2d_array.copy()
-    soil_temp[[13, 14], :] = [[20.712458, 21.317566, 21.922674], [20.0, 20.0, 20.0]]
+    soil_temp[[13, 14], :] = [[20.712458, 22.451549, 21.360448], [20.0, 20.0, 20.0]]
     exp_soil_temp = xr.concat(
         [soil_temp] * 3,
         dim=xr.DataArray(
@@ -246,5 +245,4 @@ def test_interpolate_soil_temperature(dummy_climate_data):
             "climate_stats": ["mean", "min", "max"],
         },
     )
-
     xr.testing.assert_allclose(result, exp_output)
