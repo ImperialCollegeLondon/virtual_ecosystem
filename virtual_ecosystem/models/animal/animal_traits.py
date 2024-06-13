@@ -33,3 +33,10 @@ class ReproductiveType(Enum):
 
     SEMELPAROUS = "semelparous"
     ITEROPAROUS = "iteroparous"
+
+
+class DevelopmentType(Enum):
+    """Enumeration for development types."""
+
+    DIRECT = "direct"
+    INDIRECT = "indirect"
