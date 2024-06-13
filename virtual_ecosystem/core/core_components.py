@@ -47,9 +47,13 @@ class CoreComponents:
     def __post_init__(self, config: Config) -> None:
         """Populate the core components from the config."""
         self.grid = Grid.from_config(config=config)
-        self.layer_structure = LayerStructure(config=config, n_cells=self.grid.n_cells)
-        self.model_timing = ModelTiming(config=config)
         self.core_constants = load_constants(config, "core", "CoreConsts")
+        self.layer_structure = LayerStructure(
+            config=config,
+            n_cells=self.grid.n_cells,
+            max_depth_of_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+        )
+        self.model_timing = ModelTiming(config=config)
 
 
 @dataclass
@@ -196,7 +200,18 @@ class LayerStructure:
     :python:`np.array([12])` and :python:`layer_structure.role_indices_bool["topsoil"]`
     would return :python:`np.array([False, ..., False, True, False])`.
 
-    The instance also provides the `~virtual_ecosystem.core.LayerStructure.get_template`
+    In addition to the roles shown above, a
+    :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance also
+    provides information on the microbially active soil layers. These are the soil
+    layers that fall even partially above the configured
+    `max_depth_of_microbial_activity`. The `soil_layer_thickness` attribute provides the
+    thickness of each soil layer - including both top- and sub-soil layers - and the
+    `soil_layer_active_thickness` records the depth of biologically active soil within
+    each layer. The two indexing structures above then contain additional indices for
+    `active_soil` layers, where soil layer active thickness is greater than zero.
+
+    The instance also provides the
+    :meth:`~virtual_ecosystem.core.core_components.LayerStructure.get_template`
     method, which returns a DataArray template dimensioned to the layer structure and
     number of grid cells.
 
@@ -207,8 +222,10 @@ class LayerStructure:
 
     canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layers: list[float] = field(init=False)
+    soil_layers: NDArray[np.float_] = field(init=False)
     """A list of the depths of soil layer boundaries."""
+    soil_layer_thickness: NDArray[np.float_] = field(init=False)
+    """A list of the thicknesses of soil layers."""
     above_canopy_height_offset: float = field(init=False)
     """The height above the canopy of the provided reference climate variables."""
     surface_layer_height: float = field(init=False)
@@ -228,6 +245,8 @@ class LayerStructure:
     """A validated model configuration."""
     n_cells: int
     """The number of grid cells in the simulation."""
+    max_depth_of_microbial_activity: float
+    """The maximum depth of microbial activity (m)."""
 
     def __post_init__(self, config: Config) -> None:
         """Populate the ``LayerStructure`` instance.
@@ -243,7 +262,7 @@ class LayerStructure:
 
         # Validate configuration
         self.canopy_layers = _validate_positive_integer(lyr_config["canopy_layers"])
-        self.soil_layers = _validate_soil_layers(lyr_config["soil_layers"])
+        self.soil_layers = np.array(_validate_soil_layers(lyr_config["soil_layers"]))
 
         # Other heights should all be positive floats
         for attr, value in (
@@ -273,8 +292,41 @@ class LayerStructure:
             ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
         }
 
+        # Check that the maximum depth of the last layer is greater than the max depth
+        # of microbial activity.
+        if self.soil_layers[-1] > -self.max_depth_of_microbial_activity:
+            to_raise = ConfigurationError(
+                "Maximum depth of soil layers is less than the maximum depth "
+                "of microbial activity"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
         # Generate indices and layer information for the soil layers containing
-        # microbial activity
+        # significant microbial activity
+        soil_layer_boundaries = np.array([0, *self.soil_layers])
+        self.soil_layer_thickness = -np.diff(soil_layer_boundaries)
+        self.soil_layer_active_thickness = np.clip(
+            np.minimum(
+                self.soil_layer_thickness,
+                (soil_layer_boundaries + self.max_depth_of_microbial_activity)[:-1],
+            ),
+            a_min=0,
+            a_max=np.inf,
+        )
+
+        all_soil_indices = np.concatenate(
+            [self.role_indices["topsoil"], self.role_indices["subsoil"]]
+        )
+        self.role_indices["active_soil"] = all_soil_indices[
+            self.soil_layer_active_thickness > 0
+        ]
+        self.role_indices_bool["active_soil"] = np.array(
+            [
+                True if v in self.role_indices["active_soil"] else False
+                for v in np.arange(self.n_layers)
+            ]
+        )
 
         # Create a private template data array with the simulation structure. This
         # should not be accessed directly to avoid the chance of someone modifying the

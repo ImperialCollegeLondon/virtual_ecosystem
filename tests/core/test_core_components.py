@@ -127,14 +127,15 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
 
 
 @pytest.mark.parametrize(
-    argnames="config_string, raises, expected_values, expected_log",
+    argnames="config_string, max_active_depth, raises, expected_values, expected_log",
     argvalues=[
         pytest.param(
             "[core]",
+            0.25,
             does_not_raise(),
             (
                 10,
-                [-0.25, -1.0],
+                np.array([-0.25, -1.0]),
                 2.0,
                 0.1,
                 DEFAULT_CANOPY,
@@ -144,7 +145,10 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "surface": np.array([11]),
                     "topsoil": np.array([12]),
                     "subsoil": np.array([13]),
+                    "active_soil": np.array([12]),
                 },
+                np.array([0.25, 0.75]),
+                np.array([0.25, 0]),
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="defaults",
@@ -156,10 +160,11 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             above_canopy_height_offset=1.5
             surface_layer_height=0.2
             """,
+            0.25,
             does_not_raise(),
             (
                 3,
-                [-0.1, -0.5, -0.9],
+                np.array([-0.1, -0.5, -0.9]),
                 1.5,
                 0.2,
                 ALTERNATE_CANOPY,
@@ -169,10 +174,42 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "surface": np.array([4]),
                     "topsoil": np.array([5]),
                     "subsoil": np.array([6, 7]),
+                    "active_soil": np.array([5, 6]),
                 },
+                np.array([0.1, 0.4, 0.4]),
+                np.array([0.1, 0.15, 0]),
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="alternative",
+        ),
+        pytest.param(
+            """[core.layers]
+            soil_layers=[-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]
+            canopy_layers=3
+            above_canopy_height_offset=1.5
+            surface_layer_height=0.2
+            """,
+            0.45,
+            does_not_raise(),
+            (
+                3,
+                np.array([-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]),
+                1.5,
+                0.2,
+                np.concatenate([ALTERNATE_CANOPY, ["subsoil"] * 6]),
+                {
+                    "above": np.array([0]),
+                    "canopy": np.arange(1, 4),
+                    "surface": np.array([4]),
+                    "topsoil": np.array([5]),
+                    "subsoil": np.arange(6, 14),
+                    "active_soil": np.array([5, 6, 7, 8, 9]),
+                },
+                np.repeat(0.1, 9),
+                np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
+            ),
+            ((INFO, "Layer structure built from model configuration"),),
+            id="alternative fine soil layers",
         ),
         pytest.param(
             """[core.layers]
@@ -181,14 +218,36 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             above_canopy_height_offset=1.5
             surface_layer_height=0.2
             """,
+            0.25,
             pytest.raises(ConfigurationError),
             None,
             ((ERROR, "Soil layer depths must be strictly decreasing and negative."),),
             id="bad_soil",
         ),
+        pytest.param(
+            """[core.layers]
+            soil_layers=[-0.1, -0.5, -0.9]
+            canopy_layers=9
+            above_canopy_height_offset=1.5
+            surface_layer_height=0.2
+            """,
+            1.0,
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (
+                    ERROR,
+                    "Maximum depth of soil layers is less than the maximum depth "
+                    "of microbial activity",
+                ),
+            ),
+            id="soil not deep enough for microbes",
+        ),
     ],
 )
-def test_LayerStructure(caplog, config_string, raises, expected_values, expected_log):
+def test_LayerStructure(
+    caplog, config_string, max_active_depth, raises, expected_values, expected_log
+):
     """Test the creation and error handling of LayerStructure."""
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import LayerStructure
@@ -196,22 +255,36 @@ def test_LayerStructure(caplog, config_string, raises, expected_values, expected
     cfg = Config(cfg_strings=config_string)
 
     with raises:
-        layer_structure = LayerStructure(cfg, n_cells=9)
+        layer_structure = LayerStructure(
+            cfg, n_cells=9, max_depth_of_microbial_activity=max_active_depth
+        )
 
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
 
     if isinstance(raises, does_not_raise):
         # Check the main properties
         assert layer_structure.canopy_layers == expected_values[0]
-        assert layer_structure.soil_layers == expected_values[1]
+        assert np.all(np.equal(layer_structure.soil_layers, expected_values[1]))
         assert layer_structure.above_canopy_height_offset == expected_values[2]
         assert layer_structure.surface_layer_height == expected_values[3]
         assert np.all(np.equal(layer_structure.layer_roles, expected_values[4]))
         assert layer_structure.role_indices.keys() == expected_values[5].keys()
         for ky in layer_structure.role_indices.keys():
+            # Do the integer indices match
             assert np.all(
                 np.equal(layer_structure.role_indices[ky], expected_values[5][ky])
             )
+            # Do the boolean indices match
+            assert np.all(
+                np.equal(
+                    np.where(layer_structure.role_indices_bool[ky]),
+                    expected_values[5][ky],
+                )
+            )
+        assert np.allclose(layer_structure.soil_layer_thickness, expected_values[6])
+        assert np.allclose(
+            layer_structure.soil_layer_active_thickness, expected_values[7]
+        )
 
         # Check the template data array
         template = layer_structure.get_template()
