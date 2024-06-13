@@ -32,6 +32,9 @@
                             "development_status": {
                                 "type": "string"
                             },
+                            "offpsring_functional_group": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },

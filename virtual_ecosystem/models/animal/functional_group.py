@@ -38,6 +38,7 @@ class FunctionalGroup:
         reproductive_type: str,
         development_type: str,
         development_status: str,
+        offspring_functional_group: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -56,8 +57,10 @@ class FunctionalGroup:
         """The reproductive type of the functional group."""
         self.development_type = DevelopmentType(development_type)
         """The development type of the functional group."""
-        self.developmment_status = DevelopmentStatus(development_status)
+        self.development_status = DevelopmentStatus(development_status)
         """The development status of the functional group."""
+        self.offspring_functional_group = offspring_functional_group
+        """The offspring type produced by this functional group in reproduction."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -131,6 +134,7 @@ def import_functional_groups(
             row.reproductive_type,
             row.development_type,
             row.development_status,
+            row.offspring_functional_group,
             row.birth_mass,
             row.adult_mass,
             constants=constants,
