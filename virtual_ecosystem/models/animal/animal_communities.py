@@ -184,6 +184,7 @@ class AnimalCommunity:
         The science here follows Madingley.
 
         TODO: Check whether madingley discards excess reproductive mass
+        TODO: nonreproductive functional groups should not give birth
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new

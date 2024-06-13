@@ -155,12 +155,49 @@ class TestFunctionalGroup:
 
 
 @pytest.mark.parametrize(
-    "index, name, taxa, diet, metabolic_type, reproductive_type",
+    "index, name, taxa, diet, metabolic_type, reproductive_type, "
+    "development_type, development_status",
     [
-        (0, "carnivorous_bird", "bird", "carnivore", "endothermic", "iteroparous"),
-        (1, "herbivorous_bird", "bird", "herbivore", "endothermic", "iteroparous"),
-        (2, "carnivorous_mammal", "mammal", "carnivore", "endothermic", "iteroparous"),
-        (3, "herbivorous_mammal", "mammal", "herbivore", "endothermic", "iteroparous"),
+        (
+            0,
+            "carnivorous_bird",
+            "bird",
+            "carnivore",
+            "endothermic",
+            "iteroparous",
+            "direct",
+            "adult",
+        ),
+        (
+            1,
+            "herbivorous_bird",
+            "bird",
+            "herbivore",
+            "endothermic",
+            "iteroparous",
+            "direct",
+            "adult",
+        ),
+        (
+            2,
+            "carnivorous_mammal",
+            "mammal",
+            "carnivore",
+            "endothermic",
+            "iteroparous",
+            "direct",
+            "adult",
+        ),
+        (
+            3,
+            "herbivorous_mammal",
+            "mammal",
+            "herbivore",
+            "endothermic",
+            "iteroparous",
+            "direct",
+            "adult",
+        ),
         (
             4,
             "carnivorous_insect_iteroparous",
@@ -168,6 +205,8 @@ class TestFunctionalGroup:
             "carnivore",
             "ectothermic",
             "iteroparous",
+            "direct",
+            "adult",
         ),
         (
             5,
@@ -176,6 +215,8 @@ class TestFunctionalGroup:
             "herbivore",
             "ectothermic",
             "iteroparous",
+            "direct",
+            "adult",
         ),
         (
             6,
@@ -184,6 +225,8 @@ class TestFunctionalGroup:
             "carnivore",
             "ectothermic",
             "semelparous",
+            "direct",
+            "adult",
         ),
         (
             7,
@@ -192,14 +235,46 @@ class TestFunctionalGroup:
             "herbivore",
             "ectothermic",
             "semelparous",
+            "direct",
+            "adult",
+        ),
+        (
+            8,
+            "butterfly",
+            "insect",
+            "herbivore",
+            "ectothermic",
+            "semelparous",
+            "indirect",
+            "adult",
+        ),
+        (
+            9,
+            "catterpillar",
+            "insect",
+            "herbivore",
+            "ectothermic",
+            "semelparous",
+            "indirect",
+            "larval",
         ),
     ],
 )
 def test_import_functional_groups(
-    shared_datadir, index, name, taxa, diet, metabolic_type, reproductive_type
+    shared_datadir,
+    index,
+    name,
+    taxa,
+    diet,
+    metabolic_type,
+    reproductive_type,
+    development_type,
+    development_status,
 ):
     """Testing import functional groups."""
     from virtual_ecosystem.models.animal.animal_traits import (
+        DevelopmentStatus,
+        DevelopmentType,
         DietType,
         MetabolicType,
         ReproductiveType,
@@ -220,3 +295,5 @@ def test_import_functional_groups(
     assert fg_list[index].diet == DietType(diet)
     assert fg_list[index].metabolic_type == MetabolicType(metabolic_type)
     assert fg_list[index].reproductive_type == ReproductiveType(reproductive_type)
+    assert fg_list[index].development_type == DevelopmentType(development_type)
+    assert fg_list[index].development_status == DevelopmentStatus(development_status)
