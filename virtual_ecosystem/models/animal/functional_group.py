@@ -143,3 +143,24 @@ def import_functional_groups(
     ]
 
     return functional_group_list
+
+
+def get_functional_group_by_name(
+    functional_groups: tuple[FunctionalGroup, ...], name: str
+) -> FunctionalGroup:
+    """Retrieve a FunctionalGroup by its name from a tuple of FunctionalGroup instances.
+
+    Args:
+        functional_groups: Tuple of FunctionalGroup instances.
+        name: The name of the FunctionalGroup to retrieve.
+
+    Returns:
+        The FunctionalGroup instance with the matching name.
+
+    Raises:
+        ValueError: If no FunctionalGroup with the given name is found.
+    """
+    for fg in functional_groups:
+        if fg.name == name:
+            return fg
+    raise ValueError(f"No FunctionalGroup with name '{name}' found.")

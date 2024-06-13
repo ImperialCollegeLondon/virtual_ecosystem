@@ -19,7 +19,10 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
-from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.functional_group import (
+    FunctionalGroup,
+    get_functional_group_by_name,
+)
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
@@ -184,7 +187,9 @@ class AnimalCommunity:
         The science here follows Madingley.
 
         TODO: Check whether madingley discards excess reproductive mass
-        TODO: nonreproductive functional groups should not give birth
+        TODO: rework birth mass for indirect developers
+        TODO: rework offspring functional group in reproduction when moving beyond
+              csv imported functional group lists
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
@@ -215,7 +220,10 @@ class AnimalCommunity:
         parent_cohort.reproductive_mass = 0.0
 
         offspring_cohort = AnimalCohort(
-            parent_cohort.functional_group,
+            get_functional_group_by_name(
+                self.functional_groups,
+                parent_cohort.functional_group.offspring_functional_group,
+            ),
             parent_cohort.functional_group.birth_mass,
             0.0,
             number_offspring,
@@ -233,7 +241,10 @@ class AnimalCommunity:
 
         # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if not cohort.is_below_mass_threshold(self.constants.birth_mass_threshold):
+            if (
+                not cohort.is_below_mass_threshold(self.constants.birth_mass_threshold)
+                and cohort.functional_group.reproductive_type != "nonreproductive"
+            ):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
