@@ -6,6 +6,8 @@ constants and rate equations used by AnimalCohorts in the
 import pandas as pd
 
 from virtual_ecosystem.models.animal.animal_traits import (
+    DevelopmentStatus,
+    DevelopmentType,
     DietType,
     MetabolicType,
     ReproductiveType,
@@ -34,6 +36,8 @@ class FunctionalGroup:
         diet: str,
         metabolic_type: str,
         reproductive_type: str,
+        development_type: str,
+        development_status: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -50,6 +54,10 @@ class FunctionalGroup:
         """The metabolic type of the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
         """The reproductive type of the functional group."""
+        self.development_type = DevelopmentType(development_type)
+        """The development type of the functional group."""
+        self.developmment_status = DevelopmentStatus(development_status)
+        """The development status of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -121,6 +129,8 @@ def import_functional_groups(
             row.diet,
             row.metabolic_type,
             row.reproductive_type,
+            row.development_type,
+            row.development_status,
             row.birth_mass,
             row.adult_mass,
             constants=constants,

@@ -26,6 +26,12 @@
                             "reproductive_type": {
                                 "type": "string"
                             },
+                            "development_type": {
+                                "type": "string"
+                            },
+                            "development_status": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
