@@ -273,7 +273,8 @@ class LayerStructure:
             ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
         }
 
-        # Specific index for biologically active top soil layer
+        # Generate indices and layer information for the soil layers containing
+        # microbial activity
 
         # Create a private template data array with the simulation structure. This
         # should not be accessed directly to avoid the chance of someone modifying the

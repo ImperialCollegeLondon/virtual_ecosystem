@@ -66,7 +66,7 @@ ALTERNATE_CANOPY = np.array(
                 "reconciled_run_length": np.timedelta64(63115200, "s"),
                 "n_updates": 24,
             },
-            {"depth_of_active_soil_layer": 0.25},
+            {"max_depth_of_microbial_activity": 0.25},
             id="defaults",
         ),
         pytest.param(
@@ -80,7 +80,7 @@ ALTERNATE_CANOPY = np.array(
             update_interval = "10 minutes"
             run_length = "30 years"
             [core.constants.CoreConsts]
-            depth_of_active_soil_layer = 2
+            max_depth_of_microbial_activity = 2
             """,
             {
                 "canopy_layers": 3,
@@ -99,7 +99,7 @@ ALTERNATE_CANOPY = np.array(
                 "reconciled_run_length": np.timedelta64(946728000, "s"),
                 "n_updates": 1577880,
             },
-            {"depth_of_active_soil_layer": 2},
+            {"max_depth_of_microbial_activity": 2},
             id="alternative config",
         ),
     ],

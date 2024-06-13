@@ -22,7 +22,7 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
             id="default_values",
         ),
         pytest.param(
-            "[core.constants.CoreConsts]\ndepth_of_active_soil_layer=1.5",
+            "[core.constants.CoreConsts]\nmax_depth_of_microbial_activity=1.5",
             "core",
             "CoreConsts",
             does_not_raise(),
@@ -96,7 +96,7 @@ def test_load_constants(
             assert isinstance(constants_instance, CoreConsts)
             # The unconfigurable zero_Celsius should take the default value
             assert constants_instance.zero_Celsius == constants.zero_Celsius
-            # Check the depth_of_active_soil_layer constant has been configured
-            assert constants_instance.depth_of_active_soil_layer == exp_val
+            # Check the max_depth_of_microbial_activity constant has been configured
+            assert constants_instance.max_depth_of_microbial_activity == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)
