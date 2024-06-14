@@ -216,9 +216,9 @@ class LayerStructure:
        for `all_soil` for the combined `topsoil` and `subsoil` layers.
 
     The instance also provides the
-    :meth:`~virtual_ecosystem.core.core_components.LayerStructure.get_template`
-    method, which returns a DataArray template dimensioned to the layer structure and
-    number of grid cells.
+    :meth:`~virtual_ecosystem.core.core_components.LayerStructure.from_template` method,
+    which returns a new empty DataArray with the standard vertical layer structure and
+    grid cell dimensions used across the Virtual Ecosystem models.
 
     Raises:
         ConfigurationError: If the configuration elements are incorrect for defining
@@ -356,14 +356,21 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
-    def get_template(self) -> DataArray:
-        """Get a template DataArray with the simulation vertical structure.
+    def from_template(self, array_name: str) -> DataArray:
+        """Get a DataArray with the simulation vertical structure.
 
         This method returns two dimensional :class:`xarray.DataArray` with coordinates
         set to match the layer roles and number of grid cells for the current
-        simulation. The array is filled with ``np.nan`` values.
+        simulation. The array is filled with ``np.nan`` values and the array name is set
+        to the provided value.
+
+        Args:
+            array_name: A variable name to assign to the returned data array.
         """
-        return self._array_template.copy()
+
+        # Note that the rename method automatically returns a copy of the template not a
+        # reference to the template
+        return self._array_template.rename(array_name)
 
 
 def _validate_positive_integer(value: float | int) -> int:

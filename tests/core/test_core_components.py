@@ -306,11 +306,12 @@ def test_LayerStructure(
             layer_structure.soil_layer_active_thickness, expected_values["soil_active"]
         )
 
-        # Check the template data array
-        template = layer_structure.get_template()
+        # Check the from_template data array
+        template = layer_structure.from_template("a_variable")
         assert isinstance(template, DataArray)
         assert template.shape == (layer_structure.n_layers, layer_structure.n_cells)
         assert template.dims == ("layers", "cell_id")
+        assert template.name == "a_variable"
         assert np.all(
             np.equal(template["layers"].to_numpy(), layer_structure.layer_indices)
         )
