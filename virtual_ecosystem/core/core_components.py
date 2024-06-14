@@ -235,11 +235,13 @@ class LayerStructure:
     """The height above the canopy of the provided reference climate variables."""
     surface_layer_height: float = field(init=False)
     """The height above ground used to represent surface conditions."""
+    n_layers: int = field(init=False)
+    """The total number of vertical layers in the model."""
+    layer_indices: NDArray[np.int_] = field(init=False)
+    """The numeric indices of the vertical layers in the model."""
     layer_roles: NDArray[np.str_] = field(init=False)
     """An array of the roles of the vertical layers within the model from top to
     bottom."""
-    n_layers: int = field(init=False)
-    """The total number of vertical layers in the model."""
     role_indices_bool: dict[str, NDArray[np.bool_]] = field(init=False)
     """A dictionary providing boolean indices of each role within the vertical layer
     structure."""
@@ -285,8 +287,9 @@ class LayerStructure:
             + ["subsoil"] * (len(self.soil_layers) - 1)
         )
 
-        # Record the number of layers
+        # Record the number of layers and layer indices
         self.n_layers = len(self.layer_roles)
+        self.layer_indices = np.arange(0, self.n_layers)
 
         # Set up the various indices onto those roles
         self.role_indices_bool = {
@@ -343,9 +346,10 @@ class LayerStructure:
         # actual template.
         self._array_template: DataArray = DataArray(
             np.full((self.n_layers, self.n_cells), np.nan),
-            dims=("layer_roles", "cell_id"),
+            dims=("layers", "cell_id"),
             coords={
-                "layer_roles": self.layer_roles,
+                "layers": self.layer_indices,
+                "layer_roles": ("layers", self.layer_roles),
                 "cell_id": np.arange(self.n_cells),
             },
         )

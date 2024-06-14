@@ -133,13 +133,13 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             "[core]",
             0.25,
             does_not_raise(),
-            (
-                10,
-                np.array([-0.25, -1.0]),
-                2.0,
-                0.1,
-                DEFAULT_CANOPY,
-                {
+            dict(
+                canopy_layers=10,
+                soil_layers=np.array([-0.25, -1.0]),
+                offset_height=2.0,
+                surface_height=0.1,
+                layer_roles=DEFAULT_CANOPY,
+                layer_indices={
                     "above": np.array([0]),
                     "canopy": np.arange(1, 11),
                     "surface": np.array([11]),
@@ -148,8 +148,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.array([12, 13]),
                     "active_soil": np.array([12]),
                 },
-                np.array([0.25, 0.75]),
-                np.array([0.25, 0]),
+                soil_thickness=np.array([0.25, 0.75]),
+                soil_active=np.array([0.25, 0]),
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="defaults",
@@ -163,13 +163,13 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             """,
             0.25,
             does_not_raise(),
-            (
-                3,
-                np.array([-0.1, -0.5, -0.9]),
-                1.5,
-                0.2,
-                ALTERNATE_CANOPY,
-                {
+            dict(
+                canopy_layers=3,
+                soil_layers=np.array([-0.1, -0.5, -0.9]),
+                offset_height=1.5,
+                surface_height=0.2,
+                layer_roles=ALTERNATE_CANOPY,
+                layer_indices={
                     "above": np.array([0]),
                     "canopy": np.arange(1, 4),
                     "surface": np.array([4]),
@@ -178,8 +178,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.array([5, 6, 7]),
                     "active_soil": np.array([5, 6]),
                 },
-                np.array([0.1, 0.4, 0.4]),
-                np.array([0.1, 0.15, 0]),
+                soil_thickness=np.array([0.1, 0.4, 0.4]),
+                soil_active=np.array([0.1, 0.15, 0]),
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="alternative",
@@ -193,13 +193,15 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             """,
             0.45,
             does_not_raise(),
-            (
-                3,
-                np.array([-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]),
-                1.5,
-                0.2,
-                np.concatenate([ALTERNATE_CANOPY, ["subsoil"] * 6]),
-                {
+            dict(
+                canopy_layers=3,
+                soil_layers=np.array(
+                    [-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]
+                ),
+                offset_height=1.5,
+                surface_height=0.2,
+                layer_roles=np.concatenate([ALTERNATE_CANOPY, ["subsoil"] * 6]),
+                layer_indices={
                     "above": np.array([0]),
                     "canopy": np.arange(1, 4),
                     "surface": np.array([4]),
@@ -208,8 +210,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.arange(5, 14),
                     "active_soil": np.array([5, 6, 7, 8, 9]),
                 },
-                np.repeat(0.1, 9),
-                np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
+                soil_thickness=np.repeat(0.1, 9),
+                soil_active=np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
             ),
             ((INFO, "Layer structure built from model configuration"),),
             id="alternative fine soil layers",
@@ -266,34 +268,52 @@ def test_LayerStructure(
 
     if isinstance(raises, does_not_raise):
         # Check the main properties
-        assert layer_structure.canopy_layers == expected_values[0]
-        assert np.all(np.equal(layer_structure.soil_layers, expected_values[1]))
-        assert layer_structure.above_canopy_height_offset == expected_values[2]
-        assert layer_structure.surface_layer_height == expected_values[3]
-        assert np.all(np.equal(layer_structure.layer_roles, expected_values[4]))
-        assert layer_structure.role_indices.keys() == expected_values[5].keys()
+        assert layer_structure.canopy_layers == expected_values["canopy_layers"]
+        assert np.all(
+            np.equal(layer_structure.soil_layers, expected_values["soil_layers"])
+        )
+        assert (
+            layer_structure.above_canopy_height_offset
+            == expected_values["offset_height"]
+        )
+        assert layer_structure.surface_layer_height == expected_values["surface_height"]
+        assert np.all(
+            np.equal(layer_structure.layer_roles, expected_values["layer_roles"])
+        )
+        assert (
+            layer_structure.role_indices.keys()
+            == expected_values["layer_indices"].keys()
+        )
         for ky in layer_structure.role_indices.keys():
             # Do the integer indices match
             assert np.all(
-                np.equal(layer_structure.role_indices[ky], expected_values[5][ky])
+                np.equal(
+                    layer_structure.role_indices[ky],
+                    expected_values["layer_indices"][ky],
+                )
             )
             # Do the boolean indices match
             assert np.all(
                 np.equal(
                     np.where(layer_structure.role_indices_bool[ky]),
-                    expected_values[5][ky],
+                    expected_values["layer_indices"][ky],
                 )
             )
-        assert np.allclose(layer_structure.soil_layer_thickness, expected_values[6])
         assert np.allclose(
-            layer_structure.soil_layer_active_thickness, expected_values[7]
+            layer_structure.soil_layer_thickness, expected_values["soil_thickness"]
+        )
+        assert np.allclose(
+            layer_structure.soil_layer_active_thickness, expected_values["soil_active"]
         )
 
         # Check the template data array
         template = layer_structure.get_template()
         assert isinstance(template, DataArray)
         assert template.shape == (layer_structure.n_layers, layer_structure.n_cells)
-        assert template.dims == ("layer_roles", "cell_id")
+        assert template.dims == ("layers", "cell_id")
+        assert np.all(
+            np.equal(template["layers"].to_numpy(), layer_structure.layer_indices)
+        )
         assert np.all(
             np.equal(template["layer_roles"].to_numpy(), layer_structure.layer_roles)
         )
