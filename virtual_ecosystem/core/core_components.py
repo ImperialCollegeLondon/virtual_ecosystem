@@ -200,15 +200,20 @@ class LayerStructure:
     :python:`np.array([12])` and :python:`layer_structure.role_indices_bool["topsoil"]`
     would return :python:`np.array([False, ..., False, True, False])`.
 
-    In addition to the roles shown above, a
+    In addition to the main list of roles shown above, a
     :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance also
-    provides information on the microbially active soil layers. These are the soil
-    layers that fall even partially above the configured
-    `max_depth_of_microbial_activity`. The `soil_layer_thickness` attribute provides the
-    thickness of each soil layer - including both top- and sub-soil layers - and the
-    `soil_layer_active_thickness` records the depth of biologically active soil within
-    each layer. The two indexing structures above then contain additional indices for
-    `active_soil` layers, where soil layer active thickness is greater than zero.
+    provides indexing for two other sets of layers.
+
+    1. Microbially active soil layers. These are the soil layers that fall even
+       partially above the configured `max_depth_of_microbial_activity`. The
+       `soil_layer_thickness` attribute provides the thickness of each soil layer -
+       including both top- and sub-soil layers - and the `soil_layer_active_thickness`
+       records the depth of biologically active soil within each layer. The two indexing
+       structures above then contain additional indices for `active_soil` layers, where
+       soil layer active thickness is greater than zero.
+
+    2. All soil layers. These are simply additional entries in the indexing structure
+       for `all_soil` for the combined `topsoil` and `subsoil` layers.
 
     The instance also provides the
     :meth:`~virtual_ecosystem.core.core_components.LayerStructure.get_template`
@@ -292,6 +297,14 @@ class LayerStructure:
             ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
         }
 
+        # Add the `all_soil` indices
+        self.role_indices["all_soil"] = np.concatenate(
+            [self.role_indices["topsoil"], self.role_indices["subsoil"]]
+        )
+        self.role_indices_bool["all_soil"] = np.logical_or(
+            self.role_indices_bool["topsoil"], self.role_indices_bool["subsoil"]
+        )
+
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
         if self.soil_layers[-1] > -self.max_depth_of_microbial_activity:
@@ -315,10 +328,7 @@ class LayerStructure:
             a_max=np.inf,
         )
 
-        all_soil_indices = np.concatenate(
-            [self.role_indices["topsoil"], self.role_indices["subsoil"]]
-        )
-        self.role_indices["active_soil"] = all_soil_indices[
+        self.role_indices["active_soil"] = self.role_indices["all_soil"][
             self.soil_layer_active_thickness > 0
         ]
         self.role_indices_bool["active_soil"] = np.array(
