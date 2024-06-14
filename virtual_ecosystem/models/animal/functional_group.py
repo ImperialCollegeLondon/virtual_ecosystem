@@ -60,7 +60,8 @@ class FunctionalGroup:
         self.development_status = DevelopmentStatus(development_status)
         """The development status of the functional group."""
         self.offspring_functional_group = offspring_functional_group
-        """The offspring type produced by this functional group in reproduction."""
+        """The offspring type produced by this functional group in reproduction or 
+            metamorphosis."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass

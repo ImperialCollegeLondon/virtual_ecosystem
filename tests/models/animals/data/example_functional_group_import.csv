@@ -8,4 +8,4 @@ herbivorous_insect_iteroparous,insect,herbivore,ectothermic,iteroparous,direct,a
 carnivorous_insect_semelparous,insect,carnivore,ectothermic,semelparous,direct,adult,carnivorous_insect_semelparous,0.001,0.01
 herbivorous_insect_semelparous,insect,herbivore,ectothermic,semelparous,direct,adult,herbivorous_insect_semelparous,0.0005,0.005
 butterfly,insect,herbivore,ectothermic,semelparous,indirect,adult,catterpillar,0.0005,0.005
-catterpillar,insect,herbivore,ectothermic,semelparous,indirect,larval,none,0.0005,0.005
+catterpillar,insect,herbivore,ectothermic,nonreproductive,indirect,larval,butterfly,0.0005,0.005

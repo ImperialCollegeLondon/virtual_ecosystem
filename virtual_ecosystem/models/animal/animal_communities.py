@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 from collections.abc import Callable, Iterable
 from itertools import chain
+from math import ceil
 
 from numpy import timedelta64
 
@@ -369,9 +370,44 @@ class AnimalCommunity:
     def metamorphosize(self, larval_cohort: AnimalCohort) -> None:
         """This transforms a larval status cohort into an adult status cohort.
 
-        This method should take an indirect developing cohort in its larval form, pause
-        its activity for a variable length of time, inflict a mortality rate, and return
-        an adult cohort of the correct type.
+        This method takes an indirect developing cohort in its larval form,
+        inflict a mortality rate, and returns an adult cohort of the correct type.
 
+
+        TODO: would the filter be better somewhere else?
+        TODO: build in a relationship between larval_cohort mass and adult cohort
+              mass.
+
+        Args:
+            larval_cohort: The cohort in its larval stage to be
+                 transformed.
 
         """
+
+        if not larval_cohort.is_below_mass_threshold(
+            larval_cohort.functional_group.adult_mass
+        ):
+            # inflict a mortality
+            larval_cohort.individuals *= ceil(
+                1.0 - larval_cohort.constants.metamorph_mortality
+            )
+            # collect the adult functional group
+            adult_functional_group = get_functional_group_by_name(
+                self.functional_groups,
+                larval_cohort.functional_group.offspring_functional_group,
+            )
+            # create the adult cohort
+            adult_cohort = AnimalCohort(
+                adult_functional_group,
+                adult_functional_group.birth_mass,
+                0.0,
+                larval_cohort.individuals,
+                self.constants,
+            )
+
+            # add a new cohort of the parental type to the community
+            self.animal_cohorts[adult_cohort.name].append(adult_cohort)
+
+            # remove the larval cohort
+            larval_cohort.is_alive = False
+            self.remove_dead_cohort(larval_cohort)
