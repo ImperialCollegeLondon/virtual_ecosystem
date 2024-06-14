@@ -300,13 +300,19 @@ class LayerStructure:
             ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
         }
 
-        # Add the `all_soil` indices
+        # Add the `all_soil` and `atmospheric` indices
         self.role_indices["all_soil"] = np.concatenate(
             [self.role_indices["topsoil"], self.role_indices["subsoil"]]
         )
         self.role_indices_bool["all_soil"] = np.logical_or(
             self.role_indices_bool["topsoil"], self.role_indices_bool["subsoil"]
         )
+        self.role_indices_bool["atmosphere"] = np.logical_not(
+            self.role_indices_bool["all_soil"]
+        )
+        self.role_indices["atmosphere"] = np.where(
+            self.role_indices_bool["atmosphere"]
+        )[0]
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
@@ -356,16 +362,16 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
-    def from_template(self, array_name: str) -> DataArray:
+    def from_template(self, array_name: str | None = None) -> DataArray:
         """Get a DataArray with the simulation vertical structure.
 
         This method returns two dimensional :class:`xarray.DataArray` with coordinates
         set to match the layer roles and number of grid cells for the current
         simulation. The array is filled with ``np.nan`` values and the array name is set
-        to the provided value.
+        if a name is provided.
 
         Args:
-            array_name: A variable name to assign to the returned data array.
+            array_name: An optional variable name to assign to the returned data array.
         """
 
         # Note that the rename method automatically returns a copy of the template not a

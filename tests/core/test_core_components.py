@@ -51,7 +51,7 @@ ALTERNATE_CANOPY = np.array(
             "[core]",
             {
                 "canopy_layers": 10,
-                "soil_layers": [-0.25, -1.0],
+                "soil_layers": np.array([-0.25, -1.0]),
                 "above_canopy_height_offset": 2.0,
                 "surface_layer_height": 0.1,
                 "n_layers": 14,
@@ -80,11 +80,11 @@ ALTERNATE_CANOPY = np.array(
             update_interval = "10 minutes"
             run_length = "30 years"
             [core.constants.CoreConsts]
-            max_depth_of_microbial_activity = 2
+            max_depth_of_microbial_activity = 0.8
             """,
             {
                 "canopy_layers": 3,
-                "soil_layers": [-0.1, -0.5, -0.9],
+                "soil_layers": np.array([-0.1, -0.5, -0.9]),
                 "above_canopy_height_offset": 1.5,
                 "surface_layer_height": 0.2,
                 "n_layers": 8,
@@ -99,7 +99,7 @@ ALTERNATE_CANOPY = np.array(
                 "reconciled_run_length": np.timedelta64(946728000, "s"),
                 "n_updates": 1577880,
             },
-            {"max_depth_of_microbial_activity": 2},
+            {"max_depth_of_microbial_activity": 0.8},
             id="alternative config",
         ),
     ],
@@ -117,13 +117,18 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     core_components = CoreComponents(cfg)
 
     for ky, val in expected_layers.items():
-        assert getattr(core_components.layer_structure, ky) == expected_layers[ky]
+        # Handle different expected classes
+        result = getattr(core_components.layer_structure, ky)
+        if isinstance(result, np.ndarray):
+            assert np.all(np.equal(result, val))
+        else:
+            assert result == val
 
     for ky, val in expected_timing.items():
-        assert getattr(core_components.model_timing, ky) == expected_timing[ky]
+        assert getattr(core_components.model_timing, ky) == val
 
     for ky, val in expected_constants.items():
-        assert getattr(core_components.core_constants, ky) == expected_constants[ky]
+        assert getattr(core_components.core_constants, ky) == val
 
 
 @pytest.mark.parametrize(
@@ -147,6 +152,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "subsoil": np.array([13]),
                     "all_soil": np.array([12, 13]),
                     "active_soil": np.array([12]),
+                    "atmosphere": np.arange(0, 12),
                 },
                 soil_thickness=np.array([0.25, 0.75]),
                 soil_active=np.array([0.25, 0]),
@@ -177,6 +183,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "subsoil": np.array([6, 7]),
                     "all_soil": np.array([5, 6, 7]),
                     "active_soil": np.array([5, 6]),
+                    "atmosphere": np.arange(0, 5),
                 },
                 soil_thickness=np.array([0.1, 0.4, 0.4]),
                 soil_active=np.array([0.1, 0.15, 0]),
@@ -209,6 +216,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "subsoil": np.arange(6, 14),
                     "all_soil": np.arange(5, 14),
                     "active_soil": np.array([5, 6, 7, 8, 9]),
+                    "atmosphere": np.arange(0, 5),
                 },
                 soil_thickness=np.repeat(0.1, 9),
                 soil_active=np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
