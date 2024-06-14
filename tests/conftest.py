@@ -83,88 +83,32 @@ def reset_module_registry():
 # Shared fixtures
 
 
-@pytest.fixture
-def fixture_square_grid():
-    """Create a square grid fixture.
+# @pytest.fixture
+# def fixture_empty_array(fixture_core_components):
+#     """An empty array to construct full layer structure."""
 
-    A 10 x 10 grid of 1 hectare cells, with non-zero origin.
-    """
-
-    from virtual_ecosystem.core.grid import Grid
-
-    grid = Grid(
-        grid_type="square",
-        cell_area=10000,
-        cell_nx=10,
-        cell_ny=10,
-        xoff=500000,
-        yoff=200000,
-    )
-
-    return grid
+#     return DataArray(
+#         np.full((15, 3), np.nan),
+#         dims=["layers", "cell_id"],
+#         coords={
+#             "layers": np.arange(0, 15),
+#             "layer_roles": (
+#                 "layers",
+#                 fixture_core_components.layer_structure.layer_roles,
+#             ),
+#             "cell_id": [0, 1, 2],
+#         },
+#     )
 
 
-@pytest.fixture
-def fixture_square_grid_simple():
-    """Create a square grid fixture.
+# @pytest.fixture
+# def data_instance():
+#     """Creates an empty data instance."""
+#     from virtual_ecosystem.core.data import Data
+#     from virtual_ecosystem.core.grid import Grid
 
-    A 2 x 2 grid centred on x=1,1,2,2 y=1,2,1,2
-    """
-
-    from virtual_ecosystem.core.grid import Grid
-
-    grid = Grid(
-        grid_type="square",
-        cell_area=1,
-        cell_nx=2,
-        cell_ny=2,
-        xoff=0.5,
-        yoff=0.5,
-    )
-
-    return grid
-
-
-@pytest.fixture
-def fixture_data(fixture_square_grid_simple):
-    """A Data instance fixture for use in testing."""
-
-    from virtual_ecosystem.core.data import Data
-
-    data = Data(fixture_square_grid_simple)
-
-    # Create an existing variable to test replacement
-    data["existing_var"] = DataArray([1, 2, 3, 4], dims=("cell_id",))
-
-    return data
-
-
-@pytest.fixture
-def fixture_empty_array(fixture_core_components):
-    """An empty array to construct full layer structure."""
-
-    return DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": [0, 1, 2],
-        },
-    )
-
-
-@pytest.fixture
-def data_instance():
-    """Creates an empty data instance."""
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
-
-    grid = Grid()
-    return Data(grid)
+#     grid = Grid()
+#     return Data(grid)
 
 
 @pytest.fixture
@@ -176,8 +120,8 @@ def fixture_config():
     cfg_string = """
         [core]
         [core.grid]
-        cell_nx = 10
-        cell_ny = 10
+        cell_nx = 2
+        cell_ny = 2
         [core.timing]
         start_date = "2020-01-01"
         update_interval = "2 weeks"
@@ -193,7 +137,6 @@ def fixture_config():
         soil_layers = [-0.25, -1.0]
         above_canopy_height_offset = 2.0
         surface_layer_height = 0.1
-        subcanopy_layer_height = 1.5
 
         [plants]
         a_plant_integer = 12
@@ -270,11 +213,9 @@ def dummy_carbon_data(fixture_core_components):
     """Creates a dummy carbon data object for use in tests."""
 
     from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
 
     # Setup the data object with four cells.
-    grid = Grid(cell_nx=4, cell_ny=1)
-    data = Data(grid)
+    data = Data(fixture_core_components.grid)
 
     # The required data is now added. This includes the four carbon pools: mineral
     # associated organic matter, low molecular weight carbon, microbial carbon and
@@ -306,87 +247,42 @@ def dummy_carbon_data(fixture_core_components):
     # Data for average vertical flow
     data["vertical_flow"] = DataArray([0.1, 0.5, 2.5, 1.59], dims=["cell_id"])
 
-    # The layer dependant data has to be handled separately
-    data["soil_moisture"] = xr.concat(
-        [
-            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
-            # At present the soil model only uses the top soil layer, so this is the
-            # only one with real test values in
-            DataArray(
-                [[232.61550125, 196.88733175, 126.065797, 75.63195175]],
-                dims=["layers", "cell_id"],
-            ),
-            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    )
-    data["soil_moisture"] = data["soil_moisture"].assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": data.grid.cell_id,
-        }
-    )
-    data["matric_potential"] = xr.concat(
-        [
-            DataArray(np.full((13, 4), np.nan), dims=["layers", "cell_id"]),
-            # At present the soil model only uses the top soil layer, so this is the
-            # only one with real test values in
-            DataArray([[-3.0, -10.0, -250.0, -10000.0]], dims=["layers", "cell_id"]),
-            DataArray(np.full((1, 4), np.nan), dims=["layers", "cell_id"]),
-        ],
-        dim="layers",
-    ).assign_coords(
-        {
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                fixture_core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": data.grid.cell_id,
-        }
-    )
-    data["soil_temperature"] = xr.concat(
-        [
-            DataArray(np.full((13, 4), np.nan), dims=["dim_0", "cell_id"]),
-            # At present the soil model only uses the top soil layer, so this is the
-            # only one with real test values in
-            DataArray([[35.0, 37.5, 40.0, 25.0]], dims=["dim_0", "cell_id"]),
-            DataArray(np.full((1, 4), 22.5), dims=["dim_0", "cell_id"]),
-        ],
-        dim="dim_0",
-    )
-    data["soil_temperature"] = (
-        data["soil_temperature"]
-        .rename({"dim_0": "layers"})
-        .assign_coords(
-            {
-                "layers": np.arange(0, 15),
-                "layer_roles": (
-                    "layers",
-                    fixture_core_components.layer_structure.layer_roles,
-                ),
-                "cell_id": data.grid.cell_id,
-            }
-        )
-    )
+    # The layer dependant data has to be handled separately - at present all of these
+    # are defined only for the topsoil layer
+    data["soil_moisture"] = fixture_core_components.layer_structure.from_template("")
+    data["soil_moisture"].loc[
+        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
+    ] = [232.61550125, 196.88733175, 126.065797, 75.63195175]
+
+    data["matric_potential"] = fixture_core_components.layer_structure.from_template("")
+    data["matric_potential"].loc[
+        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
+    ] = [-3.0, -10.0, -250.0, -10000.0]
+
+    data["soil_temperature"] = fixture_core_components.layer_structure.from_template("")
+    data["soil_temperature"].loc[
+        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
+    ] = [35.0, 37.5, 40.0, 25.0]
 
     return data
 
 
 @pytest.fixture
 def top_soil_layer_index(fixture_core_components):
-    """The index of the top soil layer in the data fixtures."""
-    return fixture_core_components.layer_structure.layer_roles.index("soil")
+    """The index of the top soil layer in the data fixtures.
+
+    Convert from array to scalar using item.
+    """
+    return fixture_core_components.layer_structure.role_indices["topsoil"].item()
 
 
 @pytest.fixture
 def surface_layer_index(fixture_core_components):
-    """The index of the top soil layer in the data fixtures."""
-    return fixture_core_components.layer_structure.layer_roles.index("surface")
+    """The index of the top soil layer in the data fixtures.
+
+    Convert from array to scalar using item.
+    """
+    return fixture_core_components.layer_structure.role_indices["surface"].item()
 
 
 @pytest.fixture
