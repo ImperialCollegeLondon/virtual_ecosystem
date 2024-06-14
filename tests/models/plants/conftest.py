@@ -16,32 +16,34 @@ def flora(fixture_config):
 
 
 @pytest.fixture
-def plants_data():
+def plants_data(fixture_core_components):
     """Construct a minimal data object with plant cohort data."""
     from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.core.utils import set_layer_roles
 
-    data = Data(grid=Grid(cell_ny=2, cell_nx=2))
+    data = Data(grid=fixture_core_components.grid)
+    n_cells = fixture_core_components.grid.n_cells
 
     # Add cohort configuration
-    data["plant_cohorts_n"] = DataArray(np.array([5] * 4))
-    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * 4))
-    data["plant_cohorts_cell_id"] = DataArray(np.arange(4))
-    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
+    data["plant_cohorts_n"] = DataArray(np.array([5] * n_cells))
+    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * n_cells))
+    data["plant_cohorts_cell_id"] = DataArray(np.arange(n_cells))
+    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * n_cells))
 
     # Spatio-temporal data
     data["photosynthetic_photon_flux_density"] = DataArray(
-        data=np.full((4, 12), fill_value=1000),
+        data=np.full((n_cells, 12), fill_value=1000),
         coords={
-            "cell_id": np.arange(4),
+            "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),
         },
     )
 
     # Canopy layer specific forcing variables from abiotic model
-    layer_roles = set_layer_roles(10, [-0.25, -1.0])
-    layer_shape = (len(layer_roles), data.grid.n_cells)
+    layer_roles = fixture_core_components.layer_structure.layer_roles
+    layer_shape = (
+        fixture_core_components.layer_structure.n_layers,
+        fixture_core_components.grid.n_cells,
+    )
 
     # Setup the layers
     forcing_vars = (
@@ -58,7 +60,7 @@ def plants_data():
             coords={
                 "layers": np.arange(len(layer_roles)),
                 "layer_roles": ("layers", layer_roles),
-                "cell_id": data.grid.cell_id,
+                "cell_id": fixture_core_components.grid.cell_id,
             },
         )
 

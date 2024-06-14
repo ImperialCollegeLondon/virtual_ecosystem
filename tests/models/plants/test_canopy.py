@@ -108,7 +108,7 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
         "layer_absorbed_irradiation",
     )
 
-    n_layer = 1 + 10 + 2 + 2
+    n_layer = 1 + 10 + 1 + 2
     exp_shape = (n_layer, data.grid.n_cells)
 
     exp_dims = {
@@ -134,6 +134,6 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
     # Specifically for layer heights, check that the fixed layer heights are as expected
     assert np.allclose(
         data["layer_heights"].mean(dim="cell_id").to_numpy(),
-        np.array([np.nan] * 11 + [1.5, 0.1, -0.25, -1.0]),
+        np.array([np.nan] * 11 + [0.1, -0.25, -1.0]),
         equal_nan=True,
     )
