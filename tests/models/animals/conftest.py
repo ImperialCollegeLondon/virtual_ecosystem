@@ -201,6 +201,54 @@ def herbivore_cohort_instance(herbivore_functional_group_instance, constants_ins
 
 
 @pytest.fixture
+def caterpillar_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[9]
+
+
+@pytest.fixture
+def caterpillar_cohort_instance(
+    caterpillar_functional_group_instance, constants_instance
+):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        caterpillar_functional_group_instance, 1.0, 1, 100, constants_instance
+    )
+
+
+@pytest.fixture
+def butterfly_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[8]
+
+
+@pytest.fixture
+def butterfly_cohort_instance(butterfly_functional_group_instance, constants_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        butterfly_functional_group_instance, 1.0, 1, 100, constants_instance
+    )
+
+
+@pytest.fixture
 def excrement_pool_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_ecosystem.models.animal.decay import ExcrementPool

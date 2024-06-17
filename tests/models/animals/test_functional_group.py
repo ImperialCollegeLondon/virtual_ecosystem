@@ -142,6 +142,9 @@ class TestFunctionalGroup:
         diet,
         metabolic_type,
         reproductive_type,
+        development_type,
+        development_status,
+        offspring_functional_group,
         birth_mass,
         adult_mass,
         dam_law_exp,
@@ -165,6 +168,9 @@ class TestFunctionalGroup:
             diet,
             metabolic_type,
             reproductive_type,
+            development_type,
+            development_status,
+            offspring_functional_group,
             birth_mass,
             adult_mass,
             constants=AnimalConsts(),
@@ -288,10 +294,10 @@ class TestFunctionalGroup:
             "insect",
             "herbivore",
             "ectothermic",
-            "semelparous",
+            "nonreproductive",
             "indirect",
             "larval",
-            "none",
+            "butterfly",
         ),
     ],
 )
@@ -324,7 +330,7 @@ def test_import_functional_groups(
 
     file = shared_datadir / "example_functional_group_import.csv"
     fg_list = import_functional_groups(file, constants=AnimalConsts())
-    assert len(fg_list) == 8
+    assert len(fg_list) == 10
     assert isinstance(fg_list[index], FunctionalGroup)
     assert fg_list[index].name == name
     assert fg_list[index].taxa == TaxaType(taxa)
@@ -334,3 +340,32 @@ def test_import_functional_groups(
     assert fg_list[index].development_type == DevelopmentType(development_type)
     assert fg_list[index].development_status == DevelopmentStatus(development_status)
     assert fg_list[index].offspring_functional_group == offspring_functional_group
+
+
+@pytest.mark.parametrize(
+    "name, raises_exception",
+    [
+        pytest.param("herbivorous_mammal", False, id="Valid functional group name"),
+        pytest.param("non_existent_group", True, id="Invalid functional group name"),
+    ],
+)
+def test_get_functional_group_by_name(
+    functional_group_list_instance, name, raises_exception
+):
+    """Test get_functional_group_by_name for both valid and invalid names."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        FunctionalGroup,
+        get_functional_group_by_name,
+    )
+
+    functional_groups = tuple(functional_group_list_instance)
+
+    if raises_exception:
+        with pytest.raises(
+            ValueError, match=f"No FunctionalGroup with name '{name}' found."
+        ):
+            get_functional_group_by_name(functional_groups, name)
+    else:
+        result = get_functional_group_by_name(functional_groups, name)
+        assert result.name == name
+        assert isinstance(result, FunctionalGroup)

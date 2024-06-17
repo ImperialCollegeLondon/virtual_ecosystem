@@ -1,5 +1,7 @@
 """Test module for animal_communities.py."""
 
+from math import ceil
+
 import pytest
 
 
@@ -64,6 +66,8 @@ class TestAnimalCommunity:
             "herbivorous_insect_iteroparous",
             "carnivorous_insect_semelparous",
             "herbivorous_insect_semelparous",
+            "butterfly",
+            "caterpillar",
         ]
 
     def test_all_animal_cohorts_property(
@@ -521,3 +525,63 @@ class TestAnimalCommunity:
                         cohort
                         not in animal_community_instance.animal_cohorts[cohort.name]
                     ), "Dead cohort should be removed from the community"
+
+    @pytest.mark.parametrize(
+        "is_below_mass_threshold, expected_individuals, expected_is_alive",
+        [
+            pytest.param(False, ceil(100 * (1 - 0.1)), False, id="Valid larval cohort"),
+            pytest.param(True, 100, True, id="Below mass threshold"),
+        ],
+    )
+    def test_metamorphosize(
+        self,
+        mocker,
+        animal_community_instance,
+        caterpillar_cohort_instance,
+        butterfly_cohort_instance,
+        is_below_mass_threshold,
+        expected_individuals,
+        expected_is_alive,
+    ):
+        """Test the metamorphosize method for different scenarios."""
+
+        larval_cohort = caterpillar_cohort_instance
+        larval_cohort.is_below_mass_threshold = mocker.Mock(
+            return_value=is_below_mass_threshold
+        )
+        larval_cohort.is_alive = True
+
+        adult_functional_group = butterfly_cohort_instance.functional_group
+        adult_functional_group.birth_mass = 5.0
+        mock_get_functional_group_by_name = mocker.patch(
+            "virtual_ecosystem.models.animal.animal_communities.get_functional_group_by_name",
+            return_value=adult_functional_group,
+        )
+        animal_community_instance.animal_cohorts["butterfly"] = []
+
+        mock_remove_dead_cohort = mocker.patch.object(
+            animal_community_instance, "remove_dead_cohort"
+        )
+
+        # Exercise
+        animal_community_instance.metamorphosize(larval_cohort)
+
+        # Verify
+        if not is_below_mass_threshold:
+            assert larval_cohort.individuals == expected_individuals
+            assert larval_cohort.is_alive is expected_is_alive
+            assert len(animal_community_instance.animal_cohorts["butterfly"]) == 1
+            assert (
+                animal_community_instance.animal_cohorts["butterfly"][0].individuals
+                == larval_cohort.individuals
+            )
+            mock_remove_dead_cohort.assert_called_once_with(larval_cohort)
+            mock_get_functional_group_by_name.assert_called_once_with(
+                animal_community_instance.functional_groups,
+                larval_cohort.functional_group.offspring_functional_group,
+            )
+        else:
+            assert larval_cohort.individuals == expected_individuals
+            assert larval_cohort.is_alive is expected_is_alive
+            mock_remove_dead_cohort.assert_not_called()
+            mock_get_functional_group_by_name.assert_not_called()

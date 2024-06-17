@@ -371,12 +371,13 @@ class AnimalCommunity:
         """This transforms a larval status cohort into an adult status cohort.
 
         This method takes an indirect developing cohort in its larval form,
-        inflict a mortality rate, and returns an adult cohort of the correct type.
+        inflicts a mortality rate, and creates an adult cohort of the correct type.
 
 
         TODO: would the filter be better somewhere else?
         TODO: build in a relationship between larval_cohort mass and adult cohort
               mass.
+        TODO: is adult_mass the correct mass threshold?
 
         Args:
             larval_cohort: The cohort in its larval stage to be
@@ -388,9 +389,10 @@ class AnimalCommunity:
             larval_cohort.functional_group.adult_mass
         ):
             # inflict a mortality
-            larval_cohort.individuals *= ceil(
-                1.0 - larval_cohort.constants.metamorph_mortality
+            number_dead = ceil(
+                larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
             )
+            larval_cohort.die_individual(number_dead, self.carcass_pool)
             # collect the adult functional group
             adult_functional_group = get_functional_group_by_name(
                 self.functional_groups,

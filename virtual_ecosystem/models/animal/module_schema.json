@@ -32,7 +32,7 @@
                             "development_status": {
                                 "type": "string"
                             },
-                            "offpsring_functional_group": {
+                            "offspring_functional_group": {
                                 "type": "string"
                             },
                             "birth_mass": {

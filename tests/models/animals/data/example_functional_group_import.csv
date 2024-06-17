@@ -1,11 +1,11 @@
 name,taxa,diet,metabolic_type,reproductive_type,development_type,development_status,offspring_functional_group,birth_mass,adult_mass
 carnivorous_bird,bird,carnivore,endothermic,iteroparous,direct,adult,carnivorous_bird,0.1,1.0
-herbivorous_bird,bird,herbivore,endothermic,iteroparous,direct, adult,herbivorous_bird,0.05,0.5
+herbivorous_bird,bird,herbivore,endothermic,iteroparous,direct,adult,herbivorous_bird,0.05,0.5
 carnivorous_mammal,mammal,carnivore,endothermic,iteroparous,direct,adult,carnivorous_mammal,4.0,40.0
 herbivorous_mammal,mammal,herbivore,endothermic,iteroparous,direct,adult,herbivorous_mammal,1.0,10.0
 carnivorous_insect_iteroparous,insect,carnivore,ectothermic,iteroparous,direct,adult,carnivorous_insect_iteroparous,0.001,0.01
 herbivorous_insect_iteroparous,insect,herbivore,ectothermic,iteroparous,direct,adult,herbivorous_insect_iteroparous,0.0005,0.005
 carnivorous_insect_semelparous,insect,carnivore,ectothermic,semelparous,direct,adult,carnivorous_insect_semelparous,0.001,0.01
 herbivorous_insect_semelparous,insect,herbivore,ectothermic,semelparous,direct,adult,herbivorous_insect_semelparous,0.0005,0.005
-butterfly,insect,herbivore,ectothermic,semelparous,indirect,adult,catterpillar,0.0005,0.005
-catterpillar,insect,herbivore,ectothermic,nonreproductive,indirect,larval,butterfly,0.0005,0.005
+butterfly,insect,herbivore,ectothermic,semelparous,indirect,adult,caterpillar,0.0005,0.005
+caterpillar,insect,herbivore,ectothermic,nonreproductive,indirect,larval,butterfly,0.0005,0.005
