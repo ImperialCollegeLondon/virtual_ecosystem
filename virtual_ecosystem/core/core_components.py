@@ -377,9 +377,12 @@ class LayerStructure:
             array_name: An optional variable name to assign to the returned data array.
         """
 
-        # Note that the rename method automatically returns a copy of the template not a
-        # reference to the template
-        return self._array_template.rename(array_name)
+        # Note that copy defaults to a deep copy, which is what is needed.
+        template_copy = self._array_template.copy()
+        if array_name:
+            template_copy.name = array_name
+
+        return template_copy
 
 
 def _validate_positive_integer(value: float | int) -> int:
