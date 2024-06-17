@@ -215,6 +215,9 @@ class LayerStructure:
     2. All soil layers. These are simply additional entries in the indexing structure
        for `all_soil` for the combined `topsoil` and `subsoil` layers.
 
+    3. Atmospheric (non-soil) layers. These are simply the layer indices from `above`
+       down to and including `surface`.
+
     The instance also provides the
     :meth:`~virtual_ecosystem.core.core_components.LayerStructure.from_template` method,
     which returns a new empty DataArray with the standard vertical layer structure and
