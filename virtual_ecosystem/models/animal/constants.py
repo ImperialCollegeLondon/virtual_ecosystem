@@ -1,6 +1,6 @@
-"""The `models.animals.constants` module contains a set of dataclasses containing
+"""The `models.animal.constants` module contains a set of dataclasses containing
 constants" (fitting relationships taken from the literature) required by the broader
-:mod:`~virtual_ecosystem.models.animals` module
+:mod:`~virtual_ecosystem.models.animal` module
 
 The near-future intention is to rework the relationship between these constants and the
 AnimalCohort objects in which they are used such that there is a FunctionalType class
@@ -12,7 +12,7 @@ avoid frequent searches through this constants file for values.
 from dataclasses import dataclass, field
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
-from virtual_ecosystem.models.animals.animal_traits import (
+from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
@@ -232,7 +232,7 @@ class AnimalConsts(ConstantsDataclass):
 
     # Madingley mortality parameters
     u_bg = 10.0**-3.0  # u_bg [Madingley] [day^-1]
-    """The constant background mortality faced by all animals."""
+    """The constant background mortality faced by all animal."""
 
     lambda_se = 3.0 * 10.0**-3.0  # lambda_se [Madingley] [day^-1]
     """The instantaneous rate of senescence mortality at the point of maturity."""

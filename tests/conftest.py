@@ -204,7 +204,7 @@ def fixture_config():
         pft_name = "broadleaf"
         max_height = 50.0
 
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
         diet = "carnivore"
@@ -212,7 +212,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 0.1
         adult_mass = 1.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_bird"
         taxa = "bird"
         diet = "herbivore"
@@ -220,7 +220,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 0.05
         adult_mass = 0.5
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_mammal"
         taxa = "mammal"
         diet = "carnivore"
@@ -228,7 +228,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 4.0
         adult_mass = 40.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_mammal"
         taxa = "mammal"
         diet = "herbivore"
@@ -236,7 +236,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 1.0
         adult_mass = 10.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_insect"
         taxa = "insect"
         diet = "carnivore"
@@ -244,7 +244,7 @@ def fixture_config():
         reproductive_type = "semelparous"
         birth_mass = 0.001
         adult_mass = 0.01
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_insect"
         taxa = "insect"
         diet = "herbivore"

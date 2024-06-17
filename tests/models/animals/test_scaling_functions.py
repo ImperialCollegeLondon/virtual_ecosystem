@@ -14,7 +14,7 @@ import pytest
 def test_damuths_law(mass, population_density, terms, scenario_id):
     """Testing damuth's law for various body-masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import damuths_law
+    from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
     testing_pop = damuths_law(mass, terms)
     assert testing_pop == pytest.approx(
@@ -80,8 +80,8 @@ def test_damuths_law(mass, population_density, terms, scenario_id):
 def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     """Testing metabolic rate for various body-masses."""
 
-    from virtual_ecosystem.models.animals.animal_traits import MetabolicType
-    from virtual_ecosystem.models.animals.scaling_functions import metabolic_rate
+    from virtual_ecosystem.models.animal.animal_traits import MetabolicType
+    from virtual_ecosystem.models.animal.scaling_functions import metabolic_rate
 
     testing_rate = metabolic_rate(
         mass, temperature, terms, MetabolicType(metabolic_type)
@@ -100,7 +100,7 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
 def test_muscle_mass_scaling(mass, muscle, terms):
     """Testing muscle mass scaling for various body-masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import muscle_mass_scaling
+    from virtual_ecosystem.models.animal.scaling_functions import muscle_mass_scaling
 
     gains = muscle_mass_scaling(mass, terms)
     assert gains == pytest.approx(muscle, rel=1e-6)
@@ -117,7 +117,7 @@ def test_muscle_mass_scaling(mass, muscle, terms):
 def test_fat_mass_scaling(mass, fat, terms):
     """Testing fat mass scaling for various body-masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import fat_mass_scaling
+    from virtual_ecosystem.models.animal.scaling_functions import fat_mass_scaling
 
     gains = fat_mass_scaling(mass, terms)
     assert gains == pytest.approx(fat, rel=1e-6)
@@ -136,7 +136,7 @@ def test_fat_mass_scaling(mass, fat, terms):
 def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
     """Testing energetic reserve scaling for various body-masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         energetic_reserve_scaling,
     )
 
@@ -155,7 +155,7 @@ def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
 def test_intake_rate_scaling(mass, intake_rate, terms):
     """Testing intake rate scaling for various body-masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import intake_rate_scaling
+    from virtual_ecosystem.models.animal.scaling_functions import intake_rate_scaling
 
     test_rate = intake_rate_scaling(mass, terms)
     assert test_rate == pytest.approx(intake_rate, rel=1e-6)
@@ -163,7 +163,7 @@ def test_intake_rate_scaling(mass, intake_rate, terms):
 
 def test_herbivore_prey_group_selection():
     """Test for herbivore diet type selection."""
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -174,7 +174,7 @@ def test_herbivore_prey_group_selection():
 
 def test_carnivore_prey_group_selection():
     """Test for carnivore diet type selection."""
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -194,7 +194,7 @@ def test_carnivore_prey_group_selection():
 def test_prey_group_selection_invalid_diet_type():
     """Test for an invalid diet type."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import prey_group_selection
+    from virtual_ecosystem.models.animal.scaling_functions import prey_group_selection
 
     with pytest.raises(ValueError, match="Invalid diet type:"):
         prey_group_selection("omnivore", 10.0, (0.1, 1000.0))
@@ -202,7 +202,7 @@ def test_prey_group_selection_invalid_diet_type():
 
 def test_prey_group_selection_mass_and_terms_impact():
     """Test to ensure `mass` and `terms` don't affect output."""
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
@@ -244,7 +244,7 @@ def test_prey_group_selection_mass_and_terms_impact():
 )
 def test_natural_mortality_scaling(mass, terms, expected, error_type):
     """Testing natural mortality scaling for various body-masses."""
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         natural_mortality_scaling,
     )
 
@@ -266,7 +266,7 @@ def test_natural_mortality_scaling(mass, terms, expected, error_type):
 )
 def test_background_mortality(input_value, expected_output):
     """Test the background_mortality function returns the correct mortality rate."""
-    from virtual_ecosystem.models.animals.scaling_functions import background_mortality
+    from virtual_ecosystem.models.animal.scaling_functions import background_mortality
 
     assert (
         background_mortality(input_value) == expected_output
@@ -295,7 +295,7 @@ def test_senescence_mortality(
 ):
     """Test the calculation of senescence mortality rate."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import senescence_mortality
+    from virtual_ecosystem.models.animal.scaling_functions import senescence_mortality
 
     if t_to_maturity == 0:
         with pytest.raises(ZeroDivisionError):
@@ -356,7 +356,7 @@ def test_starvation_mortality(
     lambda_max, J_st, zeta_st, mass_current, mass_max, expected_mortality, param_id
 ):
     """Test the calculation of starvation mortality based on body mass."""
-    from virtual_ecosystem.models.animals.scaling_functions import starvation_mortality
+    from virtual_ecosystem.models.animal.scaling_functions import starvation_mortality
 
     # Diagnostics
     print(
@@ -395,7 +395,7 @@ def test_starvation_mortality(
 def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
     """Testing effective search rate calculation for various herbivore body masses."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import alpha_i_k
+    from virtual_ecosystem.models.animal.scaling_functions import alpha_i_k
 
     calculated_search_rate = alpha_i_k(alpha_0_herb, mass)
     assert calculated_search_rate == pytest.approx(expected_search_rate, rel=1e-6)
@@ -417,7 +417,7 @@ def test_alpha_i_k(alpha_0_herb, mass, expected_search_rate):
 def test_k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell, expected_biomass):
     """Testing the potential biomass eaten calculation for various scenarios."""
 
-    from virtual_ecosystem.models.animals.scaling_functions import k_i_k
+    from virtual_ecosystem.models.animal.scaling_functions import k_i_k
 
     calculated_biomass = k_i_k(alpha_i_k, phi_herb_t, B_k_t, A_cell)
     assert calculated_biomass == pytest.approx(expected_biomass, rel=1e-6)
@@ -443,7 +443,7 @@ def test_H_i_k(
     h_herb_0, M_ref, M_i_t, b_herb, expected_handling_time, expect_exception
 ):
     """Testing the handling time calculation for various herbivore masses."""
-    from virtual_ecosystem.models.animals.scaling_functions import H_i_k
+    from virtual_ecosystem.models.animal.scaling_functions import H_i_k
 
     if expect_exception:
         with pytest.raises(ZeroDivisionError):
@@ -475,7 +475,7 @@ def test_theta_opt_i(
     # Mock np.random.normal to return a controlled random value
     mocker.patch.object(np.random, "normal", return_value=random_value)
 
-    from virtual_ecosystem.models.animals.scaling_functions import theta_opt_i
+    from virtual_ecosystem.models.animal.scaling_functions import theta_opt_i
 
     result = theta_opt_i(theta_opt_min_f, theta_opt_f, sigma_opt_f)
     assert result == expected
@@ -506,7 +506,7 @@ def test_w_bar_i_j(
     expect_exception,
 ):
     """Testing the success probability for various predator-prey mass ratios."""
-    from virtual_ecosystem.models.animals.scaling_functions import w_bar_i_j
+    from virtual_ecosystem.models.animal.scaling_functions import w_bar_i_j
 
     if expect_exception:
         with pytest.raises((ZeroDivisionError, ValueError)):
@@ -531,7 +531,7 @@ def test_w_bar_i_j(
 )
 def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
     """Testing the effective search rate calculation for various inputs."""
-    from virtual_ecosystem.models.animals.scaling_functions import alpha_i_j
+    from virtual_ecosystem.models.animal.scaling_functions import alpha_i_j
 
     calculated_search_rate = alpha_i_j(alpha_0_pred, mass, w_bar_i_j)
     assert calculated_search_rate == pytest.approx(expected_search_rate, rel=1e-6)
@@ -552,7 +552,7 @@ def test_alpha_i_j(alpha_0_pred, mass, w_bar_i_j, expected_search_rate):
 )
 def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
     """Testing the calculation of potential prey items eaten."""
-    from virtual_ecosystem.models.animals.scaling_functions import k_i_j
+    from virtual_ecosystem.models.animal.scaling_functions import k_i_j
 
     # Handle special case where division by zero might occur
     if A_cell == 0:
@@ -577,7 +577,7 @@ def test_k_i_j(alpha_i_j, N_i_t, A_cell, theta_i_j, expected_output):
 )
 def test_H_i_j(h_pred_0, M_ref, M_i_t, b_pred, expected_handling_time):
     """Testing the handling time calculation for various predator-prey interactions."""
-    from virtual_ecosystem.models.animals.scaling_functions import H_i_j
+    from virtual_ecosystem.models.animal.scaling_functions import H_i_j
 
     # Handle special case where division by zero might occur
     if M_i_t == 0:
@@ -608,7 +608,7 @@ def test_juvenile_dispersal_speed(
     current_mass, V_disp, M_disp_ref, o_disp, expected_speed
 ):
     """Testing the juvenile dispersal speed calculation for various scenarios."""
-    from virtual_ecosystem.models.animals.scaling_functions import (
+    from virtual_ecosystem.models.animal.scaling_functions import (
         juvenile_dispersal_speed,
     )
 

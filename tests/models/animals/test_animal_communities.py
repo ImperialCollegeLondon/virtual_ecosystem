@@ -11,7 +11,7 @@ def animal_community_destination_instance(
     constants_instance,
 ):
     """Fixture for an animal community used in tests."""
-    from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
+    from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
@@ -26,7 +26,7 @@ def animal_community_destination_instance(
 @pytest.fixture
 def functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.functional_group import (
         import_functional_groups,
     )
 
@@ -39,7 +39,7 @@ def functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def animal_cohort_instance(functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         functional_group_instance,
@@ -360,8 +360,8 @@ class TestAnimalCommunity:
         import unittest
         from copy import deepcopy
 
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 
         # Prepare data
         animal_cohort_instance_2 = deepcopy(animal_cohort_instance)
@@ -404,7 +404,7 @@ class TestAnimalCommunity:
         functional_group_instance,
     ):
         """Testing collect_prey with eligible prey items."""
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
         prey_cohort = AnimalCohort(functional_group_instance, 5000.0, 1, 10)
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
@@ -426,7 +426,7 @@ class TestAnimalCommunity:
         functional_group_instance,
     ):
         """Testing collect_prey with no eligible prey items."""
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
         prey_cohort = AnimalCohort(functional_group_instance, 20000.0, 1, 10)
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
@@ -466,7 +466,7 @@ class TestAnimalCommunity:
 
         from numpy import timedelta64
 
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
         mock_metabolize = mocker.patch.object(AnimalCohort, "metabolize")
         animal_community_instance.metabolize_community(25.0, timedelta64(5, "D"))
@@ -494,7 +494,7 @@ class TestAnimalCommunity:
 
         # Mock the inflict_non_predation_mortality method
         mock_mortality = mocker.patch(
-            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort."
+            "virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort."
             "inflict_non_predation_mortality"
         )
 
