@@ -188,15 +188,14 @@ class AnimalCommunity:
 
         The science here follows Madingley.
 
-        TODO: Check whether madingley discards excess reproductive mass
-        TODO: rework birth mass for indirect developers
-        TODO: rework offspring functional group in reproduction when moving beyond
-              csv imported functional group lists
+        TODO: Check whether Madingley discards excess reproductive mass.
+        TODO: Rework birth mass for indirect developers.
+        TODO: Rework offspring functional group in reproduction when moving beyond
+              CSV imported functional group lists.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new
-            AnimalCohort.
-
+              AnimalCohort.
         """
         # semelparous organisms use a portion of their non-reproductive mass to make
         # offspring and then they die
@@ -374,15 +373,12 @@ class AnimalCommunity:
         This method takes an indirect developing cohort in its larval form,
         inflicts a mortality rate, and creates an adult cohort of the correct type.
 
-        TODO: build in a relationship between larval_cohort mass and adult cohort
-              mass.
-        TODO: is adult_mass the correct mass threshold?
-        TODO: if time step drops below a month, this needs an intermediary stage
+        TODO: Build in a relationship between larval_cohort mass and adult cohort mass.
+        TODO: Is adult_mass the correct mass threshold?
+        TODO: If the time step drops below a month, this needs an intermediary stage.
 
         Args:
-            larval_cohort: The cohort in its larval stage to be
-                 transformed.
-
+            larval_cohort: The cohort in its larval stage to be transformed.
         """
 
         # inflict a mortality
@@ -413,6 +409,7 @@ class AnimalCommunity:
 
     def metamorphose_community(self) -> None:
         """Handle metamorphosis for all applicable cohorts in the community."""
+
         for cohort in list(self.all_animal_cohorts):
             print(f"Processing cohort: {cohort.name}, mass: {cohort.mass_current}")
             print(f"Development type: {cohort.functional_group.development_type}")
