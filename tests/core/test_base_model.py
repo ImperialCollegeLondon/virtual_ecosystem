@@ -274,7 +274,7 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
         assert str(err.value) == exp_msg
 
 
-def test_check_failure_on_missing_methods(data_instance, fixture_core_components):
+def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_components):
     """Test that a model without methods raises an error.
 
     The two properties get caught earlier, when __init_subclass__ runs, but missing

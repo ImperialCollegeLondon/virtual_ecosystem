@@ -140,15 +140,6 @@ class LitterModel(
         self.model_constants = model_constants
         """Set of constants for the litter model."""
 
-        # Find first soil layer from the list of layer roles
-        self.top_soil_layer_index: int = self.layer_structure.layer_roles.index("soil")
-        """The layer in the data object representing the first soil layer."""
-        # Find first soil layer from the list of layer roles
-        self.surface_layer_index: int = self.layer_structure.layer_roles.index(
-            "surface"
-        )
-        """The layer in the data object representing the surface layer."""
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -195,13 +186,13 @@ class LitterModel(
         # Find change in litter variables using the function
         updated_variables = calculate_change_in_litter_variables(
             surface_temp=self.data["air_temperature"][
-                self.surface_layer_index
+                self.layer_structure.role_indices["surface"].item()
             ].to_numpy(),
             topsoil_temp=self.data["soil_temperature"][
-                self.top_soil_layer_index
+                self.layer_structure.role_indices["topsoil"].item()
             ].to_numpy(),
             water_potential=self.data["matric_potential"][
-                self.top_soil_layer_index
+                self.layer_structure.role_indices["topsoil"].item()
             ].to_numpy(),
             model_constants=self.model_constants,
             core_constants=self.core_constants,

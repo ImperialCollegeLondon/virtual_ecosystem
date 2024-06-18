@@ -17,15 +17,16 @@ def test_PlantsModel__init__(plants_data, flora, fixture_core_components):
     )
 
     # Test the flora and community are as expected
+    n_cells = fixture_core_components.grid.n_cells
     assert len(plants_model.flora) == len(flora)
-    assert len(plants_model.communities) == plants_data.grid.n_cells
+    assert len(plants_model.communities) == n_cells
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = [
-        ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("layer_heights", (32 + 30 + 20 + 10 + 0.1 - 0.25 - 1) * n_cells),
+        ("leaf_area_index", 3 * n_cells),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * n_cells),
+        ("layer_absorbed_irradiation", 1000 * n_cells),
     ]
 
     for layer_name, layer_sum in expected_layers:
@@ -43,15 +44,16 @@ def test_PlantsModel_from_config(plants_data, fixture_config, fixture_core_compo
     )
 
     # Currently trivial test.
+    n_cells = fixture_core_components.grid.n_cells
     assert isinstance(plants_model, PlantsModel)
-    assert len(plants_model.communities) == plants_data.grid.n_cells
+    assert len(plants_model.communities) == n_cells
 
     # Check the canopy has been initialised and updated with some simple test sums
     expected_layers = (
-        ("layer_heights", (32 + 30 + 20 + 10 + 1.5 + 0.1 - 0.25 - 1) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("layer_heights", (32 + 30 + 20 + 10 + 0.1 - 0.25 - 1) * n_cells),
+        ("leaf_area_index", 3 * n_cells),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * n_cells),
+        ("layer_absorbed_irradiation", 1000 * n_cells),
     )
 
     for layer_name, layer_sum in expected_layers:
@@ -62,10 +64,11 @@ def test_PlantsModel_from_config(plants_data, fixture_config, fixture_core_compo
 def test_PlantsModel_update_canopy_layers(fxt_plants_model):
     """Simple test that update canopy layers restores overwritten data."""
 
+    n_cells = fxt_plants_model.grid.n_cells
     expected_layers = (
-        ("layer_heights", (32 + 30 + 20 + 10) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
+        ("layer_heights", (32 + 30 + 20 + 10) * n_cells),
+        ("leaf_area_index", 3 * n_cells),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * n_cells),
         ("layer_absorbed_irradiation", 0),  # Note that this layer should not be updated
     )
 
@@ -85,11 +88,15 @@ def test_PlantsModel_update_canopy_layers(fxt_plants_model):
 def test_PlantsModel_set_absorbed_irradiance(fxt_plants_model):
     """Simple test that update canopy layers restores overwritten data."""
 
+    n_cells = fxt_plants_model.grid.n_cells
     expected_layers = (
-        ("layer_heights", (32 + 30 + 20 + 10) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),  # Is restored by additional call.
+        ("layer_heights", (32 + 30 + 20 + 10) * n_cells),
+        ("leaf_area_index", 3 * n_cells),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * n_cells),
+        (
+            "layer_absorbed_irradiation",
+            1000 * n_cells,
+        ),  # Is restored by additional call.
     )
     # Overwrite the existing data in each layer
     for layer, _ in expected_layers:
@@ -118,7 +125,11 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     # Check calculate quantities - this is currently very basic.
 
     # - Light use efficiency: currently asserted fixed value
-    exp_lue = np.full((15, 4), fill_value=np.nan)
+    layer_shape = (
+        fxt_plants_model.layer_structure.n_layers,
+        fxt_plants_model.grid.n_cells,
+    )
+    exp_lue = np.full(layer_shape, fill_value=np.nan)
     exp_lue[1:4, :] = 0.3
     assert np.allclose(
         fxt_plants_model.data["layer_light_use_efficiency"].to_numpy(),
@@ -127,7 +138,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
     # Same for evapotranspiration
-    exp_evapo = np.full((15, 4), fill_value=np.nan)
+    exp_evapo = np.full(layer_shape, fill_value=np.nan)
     exp_evapo[1:4, :] = 20
     assert np.allclose(
         fxt_plants_model.data["evapotranspiration"].to_numpy(),
@@ -136,8 +147,10 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
     # - Canopy fapar to expected gpp per m2
-    exp_fapar = np.full((15, 1), fill_value=np.nan)
-    exp_fapar[[1, 2, 3, 12]] = [[0.4], [0.2], [0.1], [0.3]]
+    exp_fapar = np.full(
+        (fxt_plants_model.layer_structure.n_layers, 1), fill_value=np.nan
+    )
+    exp_fapar[[1, 2, 3, 11]] = [[0.4], [0.2], [0.1], [0.3]]
     exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
 
     assert np.allclose(
@@ -159,12 +172,13 @@ def test_PlantsModel_update(fxt_plants_model):
 
     # The update method runs both update_canopy_layers and set_absorbed_irradiance so
     # should restore all of the layers below.
+    n_cells = fxt_plants_model.grid.n_cells
     expected_layers = (
-        ("layer_heights", (32 + 30 + 20 + 10) * 4),
-        ("leaf_area_index", 3 * 4),
-        ("layer_fapar", (0.4 + 0.2 + 0.1) * 4),
-        ("layer_leaf_mass", 30000 * 4),
-        ("layer_absorbed_irradiation", 1000 * 4),
+        ("layer_heights", (32 + 30 + 20 + 10) * n_cells),
+        ("leaf_area_index", 3 * n_cells),
+        ("layer_fapar", (0.4 + 0.2 + 0.1) * n_cells),
+        ("layer_leaf_mass", 30000 * n_cells),
+        ("layer_absorbed_irradiation", 1000 * n_cells),
     )
 
     # Overwrite the existing data in each layer
