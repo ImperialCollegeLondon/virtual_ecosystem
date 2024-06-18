@@ -190,8 +190,6 @@ class AnimalCommunity:
 
         TODO: Check whether Madingley discards excess reproductive mass.
         TODO: Rework birth mass for indirect developers.
-        TODO: Rework offspring functional group in reproduction when moving beyond
-                CSV imported functional group lists.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
