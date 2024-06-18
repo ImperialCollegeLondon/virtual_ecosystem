@@ -94,7 +94,7 @@ def test_calculate_ground_heat_flux():
     np.testing.assert_allclose(result, np.array([70, 20, -30]))
 
 
-def test_calculate_soil_heat_balance(dummy_climate_data):
+def test_calculate_soil_heat_balance(fixture_core_components, dummy_climate_data):
     """Test full surface heat balance is run correctly."""
 
     from virtual_ecosystem.models.abiotic.soil_energy_balance import (
@@ -119,10 +119,10 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
     result = calculate_soil_heat_balance(
         data=data,
         time_index=0,
-        topsoil_layer_index=11,
+        layer_structure=fixture_core_components.layer_structure,
         update_interval=43200,
-        abiotic_consts=AbioticConsts,
-        core_consts=CoreConsts,
+        abiotic_consts=AbioticConsts(),
+        core_consts=CoreConsts(),
     )
 
     # Check if all variables were created
@@ -137,6 +137,9 @@ def test_calculate_soil_heat_balance(dummy_climate_data):
     variables = [var for var in result if var not in var_list]
     assert variables
 
+    # VIVI - I can't get these to work. I think there is a bug in the function, that was
+    # getting the total canopy absorption across all cells, not the per cell sum across
+    # layers, so not sure what the right answer is here.
     test_values = {
         "soil_absorption": np.repeat(79.625, 4),
         "longwave_emission_soil": np.repeat(0.007258, 4),

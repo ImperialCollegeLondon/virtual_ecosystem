@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 from pint import Quantity
 
 from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic.energy_balance import calculate_longwave_emission
@@ -183,7 +184,7 @@ def update_surface_temperature(
 def calculate_soil_heat_balance(
     data: Data,
     time_index: int,
-    topsoil_layer_index: int,
+    layer_structure: LayerStructure,
     update_interval: Quantity,
     abiotic_consts: AbioticConsts,
     core_consts: CoreConsts,
@@ -222,23 +223,25 @@ def calculate_soil_heat_balance(
         data: The core data object
         time_index: time index
         update_interval: Update interval, [s]
-        topsoil_layer_index: An integer showing the index of the topsoil layer in the
-            vertical layer structure.
+        layer_structure: The LayerStructure instance for the simulation.
         abiotic_consts: set of constants specific to abiotic model
         core_consts: set of constants that are shared across the model
 
     Returns:
-        dictionnary with soil shortwave absorption, soil longwave emission, sensible and
-            latent heat flux from the soil, ground heat flux, and updated topsoil
-            temperature
+        A dictionary with soil shortwave absorption, soil longwave emission, sensible
+        and latent heat flux from the soil, ground heat flux, and updated topsoil
+        temperature
     """
+
+    topsoil_layer_index = layer_structure.role_indices["topsoil"]
+    surface_layer_index = layer_structure.role_indices["surface"]
 
     output = {}
 
     # Calculate soil absorption of shortwave radiation, [W m-2]
     shortwave_radiation_surface = data["topofcanopy_radiation"].isel(
         time_index=time_index
-    ) - (data["canopy_absorption"].sum())
+    ) - (data["canopy_absorption"].sum(dim="layers"))
     soil_absorption = calculate_soil_absorption(
         shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
         surface_albedo=abiotic_consts.surface_albedo,
@@ -258,11 +261,11 @@ def calculate_soil_heat_balance(
     # Calculate sensible heat flux from soil to lowest atmosphere layer, [W m-2]
     sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
         air_temperature_surface=(
-            data["air_temperature"][topsoil_layer_index - 1].to_numpy()
+            data["air_temperature"][surface_layer_index].to_numpy()
         ),
         topsoil_temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
-        molar_density_air=data["molar_density_air"][topsoil_layer_index - 1].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][topsoil_layer_index - 1].to_numpy(),
+        molar_density_air=data["molar_density_air"][surface_layer_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][surface_layer_index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_surface"].to_numpy(),
     )
     output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
@@ -271,7 +274,7 @@ def calculate_soil_heat_balance(
     latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=data["soil_evaporation"].to_numpy(),
         latent_heat_vapourisation=(
-            data["latent_heat_vapourisation"][topsoil_layer_index - 1].to_numpy()
+            data["latent_heat_vapourisation"][surface_layer_index].to_numpy()
         ),
     )
     output["latent_heat_flux_soil"] = latent_heat_flux_soil
