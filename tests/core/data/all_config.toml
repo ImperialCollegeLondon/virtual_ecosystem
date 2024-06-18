@@ -30,55 +30,97 @@ max_height = 50.0
 pft_name = "broadleaf"
 
 [[animal.functional_groups]]
-adult_mass = 1.0
-birth_mass = 0.1
-diet = "carnivore"
-metabolic_type = "endothermic"
 name = "carnivorous_bird"
-reproductive_type = "iteroparous"
 taxa = "bird"
+diet = "carnivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_bird"
+birth_mass = 0.1
+adult_mass = 1.0
 
 [[animal.functional_groups]]
-adult_mass = 0.5
-birth_mass = 0.05
-diet = "herbivore"
-metabolic_type = "endothermic"
 name = "herbivorous_bird"
-reproductive_type = "iteroparous"
 taxa = "bird"
+diet = "herbivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_bird"
+birth_mass = 0.05
+adult_mass = 0.5
 
 [[animal.functional_groups]]
-adult_mass = 40.0
-birth_mass = 4.0
-diet = "carnivore"
-metabolic_type = "endothermic"
 name = "carnivorous_mammal"
-reproductive_type = "iteroparous"
 taxa = "mammal"
+diet = "carnivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_mammal"
+birth_mass = 4.0
+adult_mass = 40.0
 
 [[animal.functional_groups]]
-adult_mass = 10.0
-birth_mass = 1.0
+name = "herbivorous_mammal"
+taxa = "mammal"
 diet = "herbivore"
 metabolic_type = "endothermic"
-name = "herbivorous_mammal"
 reproductive_type = "iteroparous"
-taxa = "mammal"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_mammal"
+birth_mass = 1.0
+adult_mass = 10.0
 
 [[animal.functional_groups]]
-adult_mass = 0.01
-birth_mass = 0.001
+name = "carnivorous_insect"
+taxa = "insect"
 diet = "carnivore"
 metabolic_type = "ectothermic"
-name = "carnivorous_insect"
 reproductive_type = "iteroparous"
-taxa = "insect"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_insect"
+birth_mass = 0.001
+adult_mass = 0.01
 
 [[animal.functional_groups]]
-adult_mass = 0.005
-birth_mass = 0.0005
+name = "herbivorous_insect"
+taxa = "insect"
 diet = "herbivore"
 metabolic_type = "ectothermic"
-name = "herbivorous_insect"
 reproductive_type = "semelparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_insect"
+birth_mass = 0.0005
+adult_mass = 0.005
+
+[[animal.functional_groups]]
+name = "butterfly"
 taxa = "insect"
+diet = "herbivore"
+metabolic_type = "ectothermic"
+reproductive_type = "semelparous"
+development_type = "indirect"
+development_status = "adult"
+offspring_functional_group = "caterpillar"
+birth_mass = 0.0005
+adult_mass = 0.005
+
+[[animal.functional_groups]]
+name = "caterpillar"
+taxa = "insect"
+diet = "herbivore"
+metabolic_type = "ectothermic"
+reproductive_type = "nonreproductive"
+development_type = "indirect"
+development_status = "larval"
+offspring_functional_group = "butterfly"
+birth_mass = 0.0005
+adult_mass = 0.005
