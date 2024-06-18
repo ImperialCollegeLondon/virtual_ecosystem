@@ -118,19 +118,7 @@ class AbioticSimpleModel(
         """
 
         # create soil temperature array
-        self.data["soil_temperature"] = DataArray(
-            np.full(
-                (self.layer_structure.n_layers, self.data.grid.n_cells),
-                np.nan,
-            ),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, self.layer_structure.n_layers),
-                "layer_roles": ("layers", self.layer_structure.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
+        self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
@@ -140,13 +128,12 @@ class AbioticSimpleModel(
                 self.model_constants.saturation_vapour_pressure_factors
             ),
         )
-        self.data["vapour_pressure_deficit_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure_deficit"]
-        ).rename("vapour_pressure_deficit_ref")
-
-        self.data["vapour_pressure_ref"] = (
-            vapour_pressure_and_deficit["vapour_pressure"]
-        ).rename("vapour_pressure_ref")
+        self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure_deficit"
+        ]
+        self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure"
+        ]
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -164,7 +151,7 @@ class AbioticSimpleModel(
         # object. For now, we leave it as a separate routine.
         output_variables = microclimate.run_microclimate(
             data=self.data,
-            layer_roles=self.layer_structure.layer_roles,
+            layer_structure=self.layer_structure,
             time_index=time_index,
             constants=self.model_constants,
             bounds=self.bounds,
