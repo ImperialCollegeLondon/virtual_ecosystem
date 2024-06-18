@@ -188,7 +188,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
 
     # Initialise a data array for each layer from the layer structure template
     for each_layer_name in layers_to_create:
-        data[each_layer_name] = layer_structure.from_template(each_layer_name)
+        data[each_layer_name] = layer_structure.from_template()
 
     # Initialise the fixed layer heights
     # TODO: See issue #442 about centralising the layer_heights variable initialisation
