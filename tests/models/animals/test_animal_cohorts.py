@@ -7,7 +7,7 @@ from numpy import isclose, timedelta64
 @pytest.fixture
 def predator_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.functional_group import (
         import_functional_groups,
     )
 
@@ -20,7 +20,7 @@ def predator_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def predator_cohort_instance(predator_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         predator_functional_group_instance, 10000.0, 1, 10, constants_instance
@@ -30,7 +30,7 @@ def predator_cohort_instance(predator_functional_group_instance, constants_insta
 @pytest.fixture
 def ectotherm_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.functional_group import (
         import_functional_groups,
     )
 
@@ -43,7 +43,7 @@ def ectotherm_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def ectotherm_cohort_instance(ectotherm_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         ectotherm_functional_group_instance, 100.0, 1, 10, constants_instance
@@ -53,7 +53,7 @@ def ectotherm_cohort_instance(ectotherm_functional_group_instance, constants_ins
 @pytest.fixture
 def prey_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         herbivore_functional_group_instance, 100.0, 1, 10, constants_instance
@@ -63,7 +63,7 @@ def prey_cohort_instance(herbivore_functional_group_instance, constants_instance
 @pytest.fixture
 def carcass_pool_instance():
     """Fixture for an carcass pool used in tests."""
-    from virtual_ecosystem.models.animals.decay import CarcassPool
+    from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(0.0, 0.0)
 
@@ -95,7 +95,7 @@ class TestAnimalCohort:
         constants_instance,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
         with pytest.raises(error_type):
             AnimalCohort(
@@ -397,7 +397,7 @@ class TestAnimalCohort:
 
         # Mock the random.binomial call
         mocker.patch(
-            "virtual_ecosystem.models.animals.animal_cohorts.random.binomial",
+            "virtual_ecosystem.models.animal.animal_cohorts.random.binomial",
             return_value=expected_deaths,
         )
         # Keep a copy of initial individuals to validate number_of_deaths
@@ -434,12 +434,12 @@ class TestAnimalCohort:
     ):
         """Testing for calculate alpha."""
         # Assuming necessary imports and setup based on previous examples
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animals.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.constants import AnimalConsts
 
         # Mock the scaling function to control its return value
         mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_k",
+            "virtual_ecosystem.models.animal.scaling_functions.alpha_i_k",
             return_value=expected_alpha,
         )
 
@@ -477,16 +477,16 @@ class TestAnimalCohort:
         self, mocker, alpha, mass_current, phi_herb_t, expected_biomass
     ):
         """Testing for calculate_potential_consumed_biomass."""
-        from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animals.animal_traits import DietType
-        from virtual_ecosystem.models.animals.protocols import Resource
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+        from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant
         target_plant = mocker.MagicMock(spec=Resource, mass_current=mass_current)
 
         # Mock k_i_k to return the expected_biomass
         k_i_k_mock = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
+            "virtual_ecosystem.models.animal.scaling_functions.k_i_k",
             return_value=expected_biomass,
         )
 
@@ -525,12 +525,15 @@ class TestAnimalCohort:
         """Test aggregation of handling times across all available plant resources."""
 
         alpha = 0.1  # Assume this is the calculated search efficiency
-        with mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.k_i_k",
-            return_value=20.0,
-        ), mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.H_i_k",
-            return_value=0.2,
+        with (
+            mocker.patch(
+                "virtual_ecosystem.models.animal.scaling_functions.k_i_k",
+                return_value=20.0,
+            ),
+            mocker.patch(
+                "virtual_ecosystem.models.animal.scaling_functions.H_i_k",
+                return_value=0.2,
+            ),
         ):
             total_handling_time = (
                 herbivore_cohort_instance.calculate_total_handling_time_for_herbivory(
@@ -583,7 +586,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
     ):
         """Test for F_i_k."""
-        from virtual_ecosystem.models.animals.protocols import Resource
+        from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant with specified biomass
         target_plant = mocker.MagicMock(spec=Resource, mass_current=plant_biomass)
@@ -623,7 +626,7 @@ class TestAnimalCohort:
     def test_calculate_theta_opt_i(self, mocker, herbivore_cohort_instance):
         """Test calculate_theta_opt_i."""
         theta_opt_i_mock = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.theta_opt_i",
+            "virtual_ecosystem.models.animal.scaling_functions.theta_opt_i",
             return_value=0.5,  # Mocked return value to simulate `theta_opt_i` behavior
         )
         result = herbivore_cohort_instance.calculate_theta_opt_i()
@@ -648,13 +651,13 @@ class TestAnimalCohort:
         target_mass = 50.0  # Example target mass
 
         mock_theta_opt_i = mocker.patch(
-            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort"
+            "virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort"
             ".calculate_theta_opt_i",
             return_value=0.7,
         )
 
         mock_w_bar = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.w_bar_i_j",
+            "virtual_ecosystem.models.animal.scaling_functions.w_bar_i_j",
             return_value=0.6,
         )
 
@@ -682,7 +685,7 @@ class TestAnimalCohort:
         success_probability = 0.5  # Example success probability
 
         mock_alpha_i_j = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.alpha_i_j",
+            "virtual_ecosystem.models.animal.scaling_functions.alpha_i_j",
             return_value=0.8,
         )
 
@@ -707,7 +710,7 @@ class TestAnimalCohort:
         theta_i_j = 0.7  # Example predation parameter
 
         mock_k_i_j = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.k_i_j",
+            "virtual_ecosystem.models.animal.scaling_functions.k_i_j",
             return_value=15.0,
         )
 
@@ -732,7 +735,7 @@ class TestAnimalCohort:
         """Test total handling time calculation for predation."""
 
         mock_H_i_j = mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.H_i_j", return_value=2.5
+            "virtual_ecosystem.models.animal.scaling_functions.H_i_j", return_value=2.5
         )
 
         result = herbivore_cohort_instance.calculate_total_handling_time_for_predation()
@@ -758,35 +761,35 @@ class TestAnimalCohort:
         # Mock methods using the mocker fixture
         mock_success_prob = mocker.patch(
             (
-                "virtual_ecosystem.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animal.animal_cohorts."
                 "AnimalCohort.calculate_predation_success_probability"
             ),
             return_value=0.5,
         )
         mock_search_rate = mocker.patch(
             (
-                "virtual_ecosystem.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animal.animal_cohorts."
                 "AnimalCohort.calculate_predation_search_rate"
             ),
             return_value=0.8,
         )
         mock_theta_i_j = mocker.patch(
             (
-                "virtual_ecosystem.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animal.animal_cohorts."
                 "AnimalCohort.theta_i_j"
             ),
             return_value=0.7,
         )
         mock_potential_prey = mocker.patch(
             (
-                "virtual_ecosystem.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animal.animal_cohorts."
                 "AnimalCohort.calculate_potential_prey_consumed"
             ),
             return_value=10,
         )
         mock_total_handling = mocker.patch(
             (
-                "virtual_ecosystem.models.animals.animal_cohorts."
+                "virtual_ecosystem.models.animal.animal_cohorts."
                 "AnimalCohort.calculate_total_handling_time_for_predation"
             ),
             return_value=2,
@@ -863,7 +866,7 @@ class TestAnimalCohort:
 
         # Mock AnimalCohort.get_eaten to simulate consumption behavior
         mocker.patch(
-            "virtual_ecosystem.models.animals.animal_cohorts.AnimalCohort.get_eaten",
+            "virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_eaten",
             return_value=consumed_mass,
         )
 
@@ -903,7 +906,7 @@ class TestAnimalCohort:
 
         # Mock the PlantResources.get_eaten method
         mock_get_eaten = mocker.patch(
-            "virtual_ecosystem.models.animals.plant_resources.PlantResources.get_eaten",
+            "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
             side_effect=lambda consumed_mass, herbivore, excrement_pool: consumed_mass,
         )
 
@@ -997,7 +1000,7 @@ class TestAnimalCohort:
         # Mock juvenile_dispersal_speed
         mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions."
+            "virtual_ecosystem.models.animal.scaling_functions."
             "juvenile_dispersal_speed",
             return_value=mocked_velocity,
         )
@@ -1073,7 +1076,7 @@ class TestAnimalCohort:
         """Test the calculation of total non-predation mortality in a cohort."""
         from math import ceil, exp
 
-        import virtual_ecosystem.models.animals.scaling_functions as sf
+        import virtual_ecosystem.models.animal.scaling_functions as sf
 
         # Use the predator cohort instance and set initial individuals to 100
         cohort = predator_cohort_instance
@@ -1086,17 +1089,17 @@ class TestAnimalCohort:
 
         # Mocking the mortality functions to return predefined values
         mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.background_mortality",
+            "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
             return_value=u_bg,
         )
         mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.senescence_mortality",
+            "virtual_ecosystem.models.animal.scaling_functions.senescence_mortality",
             return_value=(
                 lambda_se * exp(t_since_maturity / t_to_maturity) if is_mature else 0.0
             ),
         )
         mocker.patch(
-            "virtual_ecosystem.models.animals.scaling_functions.starvation_mortality",
+            "virtual_ecosystem.models.animal.scaling_functions.starvation_mortality",
             return_value=(
                 lambda_max
                 / (1 + exp((mass_current - J_st * mass_max) / (zeta_st * mass_max)))

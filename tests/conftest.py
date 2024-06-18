@@ -12,7 +12,7 @@ from xarray import DataArray
 # This can be removed as soon as a script that imports logger is imported
 from virtual_ecosystem.core.logger import LOGGER
 
-# Class uses DEBUG
+# Class uses DEBUG
 LOGGER.setLevel(DEBUG)
 
 
@@ -204,7 +204,7 @@ def fixture_config():
         pft_name = "broadleaf"
         max_height = 50.0
 
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
         diet = "carnivore"
@@ -212,7 +212,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 0.1
         adult_mass = 1.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_bird"
         taxa = "bird"
         diet = "herbivore"
@@ -220,7 +220,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 0.05
         adult_mass = 0.5
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_mammal"
         taxa = "mammal"
         diet = "carnivore"
@@ -228,7 +228,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 4.0
         adult_mass = 40.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_mammal"
         taxa = "mammal"
         diet = "herbivore"
@@ -236,7 +236,7 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 1.0
         adult_mass = 10.0
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "carnivorous_insect"
         taxa = "insect"
         diet = "carnivore"
@@ -244,7 +244,7 @@ def fixture_config():
         reproductive_type = "semelparous"
         birth_mass = 0.001
         adult_mass = 0.01
-        [[animals.functional_groups]]
+        [[animal.functional_groups]]
         name = "herbivorous_insect"
         taxa = "insect"
         diet = "herbivore"
@@ -402,7 +402,7 @@ def new_axis_validators():
     # Create a new subclass.
     class TestAxis(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
@@ -415,7 +415,7 @@ def new_axis_validators():
     # Create a new duplicate subclass to check mutual exclusivity test
     class TestAxis2(AxisValidator):
         core_axis = "testing"
-        dim_names = {"test"}
+        dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
             return True if value.sum() > 10 else False
@@ -445,47 +445,26 @@ def dummy_climate_data(fixture_core_components):
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "wind_speed_ref": 1.0,
+        "relative_humidity_ref": 90.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_ref": 0.14,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
+    data["mean_annual_temperature"] = DataArray([20, 20, 20], dims="cell_id")
 
     # Simulation data
     full_coordinates = {
@@ -780,47 +759,26 @@ def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_arr
     data = Data(grid)
 
     # Reference data
-    data["air_temperature_ref"] = DataArray(
-        np.full((3, 3), 30.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["wind_speed_ref"] = DataArray(
-        np.full((3, 3), 1.0),
-        dims=["time_index", "cell_id"],
-    )
-    data["mean_annual_temperature"] = DataArray(
-        np.full((3), 20.0),
-        dims=["cell_id"],
-    )
-    data["relative_humidity_ref"] = DataArray(
-        np.full((3, 3), 90.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_deficit_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["vapour_pressure_ref"] = DataArray(
-        np.full((3, 3), 0.14),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_pressure_ref"] = DataArray(
-        np.full((3, 3), 96.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["atmospheric_co2_ref"] = DataArray(
-        np.full((3, 3), 400.0),
-        dims=["cell_id", "time_index"],
-    )
-    data["precipitation"] = DataArray(
-        np.full((3, 3), 200.0),
-        dims=["time_index", "cell_id"],
-    )
+    ref_values = {
+        "air_temperature_ref": 30.0,
+        "wind_speed_ref": 1.0,
+        "relative_humidity_ref": 90.0,
+        "vapour_pressure_deficit_ref": 0.14,
+        "vapour_pressure_ref": 0.14,
+        "atmospheric_pressure_ref": 96.0,
+        "atmospheric_co2_ref": 400.0,
+        "precipitation": 200.0,
+        "topofcanopy_radiation": 100.0,
+    }
+
+    for var, value in ref_values.items():
+        data[var] = DataArray(
+            np.full((3, 3), value),
+            dims=["cell_id", "time_index"],
+        )
 
     data["elevation"] = DataArray([200, 100, 10], dims="cell_id")
-    data["topofcanopy_radiation"] = DataArray(
-        np.full((3, 3), 100.0), dims=["cell_id", "time_index"]
-    )
+    data["mean_annual_temperature"] = DataArray([20, 20, 20], dims="cell_id")
 
     # Simulation data
     full_coordinates = {
@@ -839,13 +797,15 @@ def dummy_climate_data_varying_canopy(fixture_core_components, fixture_empty_arr
     data["leaf_area_index"] = leaf_area_index
 
     layer_heights = fixture_empty_array.copy()
-    layer_heights[[0, 1, 2, 3, 11, 12], :] = [
+    layer_heights[[0, 1, 2, 3, 11, 12, 13, 14], :] = [
         [32.0, 32.0, 32.0],
         [30.0, 30.0, 30.0],
         [20.0, 20.0, np.nan],
         [10.0, np.nan, np.nan],
         [1.5, 1.5, 1.5],
         [0.1, 0.1, 0.1],
+        [-0.5, -0.5, -0.5],
+        [-1, -1, -1],
     ]
     data["layer_heights"] = layer_heights
 

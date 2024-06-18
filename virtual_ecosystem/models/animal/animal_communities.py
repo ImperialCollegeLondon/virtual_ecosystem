@@ -1,4 +1,4 @@
-"""The ''animals'' module provides animal module functionality.
+"""The ''animal'' module provides animal module functionality.
 
 Notes:
 - assume each grid = 1 km2
@@ -16,12 +16,12 @@ from numpy import timedelta64
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animals.constants import AnimalConsts
-from virtual_ecosystem.models.animals.decay import CarcassPool, ExcrementPool
-from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animals.plant_resources import PlantResources
-from virtual_ecosystem.models.animals.scaling_functions import damuths_law
+from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
 
 class AnimalCommunity:
@@ -323,9 +323,9 @@ class AnimalCommunity:
 
         # Update the total_animal_respiration for this community using community_key.
 
-        self.data["total_animal_respiration"].loc[
-            {"cell_id": self.community_key}
-        ] += total_metabolic_waste
+        self.data["total_animal_respiration"].loc[{"cell_id": self.community_key}] += (
+            total_metabolic_waste
+        )
 
     def increase_age_community(self, dt: timedelta64) -> None:
         """This handles age for all cohorts in a community.

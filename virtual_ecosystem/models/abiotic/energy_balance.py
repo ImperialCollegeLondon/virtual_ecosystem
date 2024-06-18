@@ -386,7 +386,7 @@ def calculate_leaf_and_air_temperature(
     * absorbed_radiation: Absorbed radiation, [W m-2]
     * specific_heat_air: Specific heat of air, [J mol-1 K-1]
 
-    TODO
+    Todo:
     * add latent heat flux from soil to atmosphere (-> VPD)
     * check time integration
     * set limits to temperature and VPD
@@ -525,8 +525,9 @@ def calculate_leaf_and_air_temperature(
     )
     new_air_temperature = a_A + b_A * delta_canopy_temperature
     new_canopy_temperature = (
-        data["air_temperature"][1 : true_canopy_layers_n + 1]
-    ).to_numpy() + delta_canopy_temperature
+        (data["air_temperature"][1 : true_canopy_layers_n + 1]).to_numpy()
+        + delta_canopy_temperature
+    )
 
     # Interpolate temperature below canopy
     # This could potentially be done without explicit below canopy layers

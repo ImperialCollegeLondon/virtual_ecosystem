@@ -1,4 +1,4 @@
-"""A test constants class for the test module."""  # noqa: D205, D415
+"""A test constants class for the test module."""
 
 from dataclasses import dataclass
 

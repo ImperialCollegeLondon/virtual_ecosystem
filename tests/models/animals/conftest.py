@@ -120,7 +120,7 @@ def animal_data_for_community_instance(fixture_core_components):
 @pytest.fixture
 def constants_instance():
     """Fixture for an instance of animal constants."""
-    from virtual_ecosystem.models.animals.constants import AnimalConsts
+    from virtual_ecosystem.models.animal.constants import AnimalConsts
 
     return AnimalConsts()
 
@@ -128,7 +128,7 @@ def constants_instance():
 @pytest.fixture
 def functional_group_list_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.functional_group import (
         import_functional_groups,
     )
 
@@ -147,7 +147,7 @@ def animal_model_instance(
 ):
     """Fixture for an animal model object used in tests."""
 
-    from virtual_ecosystem.models.animals.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
     return AnimalModel(
         data=data_instance,
@@ -165,7 +165,7 @@ def animal_community_instance(
     constants_instance,
 ):
     """Fixture for an animal community used in tests."""
-    from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
+    from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
@@ -180,7 +180,7 @@ def animal_community_instance(
 @pytest.fixture
 def herbivore_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
-    from virtual_ecosystem.models.animals.functional_group import (
+    from virtual_ecosystem.models.animal.functional_group import (
         import_functional_groups,
     )
 
@@ -193,7 +193,7 @@ def herbivore_functional_group_instance(shared_datadir, constants_instance):
 @pytest.fixture
 def herbivore_cohort_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture for an animal cohort used in tests."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
         herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
@@ -203,7 +203,7 @@ def herbivore_cohort_instance(herbivore_functional_group_instance, constants_ins
 @pytest.fixture
 def excrement_pool_instance():
     """Fixture for a soil pool used in tests."""
-    from virtual_ecosystem.models.animals.decay import ExcrementPool
+    from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(100000.0, 0.0)
 
@@ -211,7 +211,7 @@ def excrement_pool_instance():
 @pytest.fixture
 def plant_instance(plant_data_instance, constants_instance):
     """Fixture for a plant community used in tests."""
-    from virtual_ecosystem.models.animals.plant_resources import PlantResources
+    from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
     return PlantResources(
         data=plant_data_instance, cell_id=4, constants=constants_instance
@@ -221,7 +221,7 @@ def plant_instance(plant_data_instance, constants_instance):
 @pytest.fixture
 def plant_list_instance(plant_data_instance, constants_instance):
     """Fixture providing a list of plant resources."""
-    from virtual_ecosystem.models.animals.plant_resources import PlantResources
+    from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
     return [
         PlantResources(
@@ -234,7 +234,7 @@ def plant_list_instance(plant_data_instance, constants_instance):
 @pytest.fixture
 def animal_list_instance(herbivore_functional_group_instance, constants_instance):
     """Fixture providing a list of animal cohorts."""
-    from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return [
         AnimalCohort(

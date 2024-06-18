@@ -2,7 +2,7 @@
 Ecosystem. At the moment five pools are modelled, these are low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
 matter (POM), and POM degrading enzymes.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass
 
@@ -75,6 +75,7 @@ def calculate_soil_carbon_updates(
         bulk_density: bulk density values for each soil grid cell [kg m^-3]
         soil_moisture: amount of water contained by each soil layer [mm]
         soil_water_potential: Soil water potential for each grid cell [kPa]
+        vertical_flow_rate: The vertical flow rate [TODO]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         clay_fraction: The clay fraction for each soil grid cell [unitless]
         mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3

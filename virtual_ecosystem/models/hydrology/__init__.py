@@ -22,7 +22,7 @@ Each of the hydrology sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.hydrology.constants` submodule contains
   parameters and constants for the hydrology model. This is a temporary solution.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from virtual_ecosystem.models.hydrology.hydrology_model import (  # noqa: F401
     HydrologyModel,

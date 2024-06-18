@@ -1,6 +1,6 @@
 """This submodule contains a set of dataclasses containing constants used
 in the :mod:`~virtual_ecosystem.models.plants` module.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass
 

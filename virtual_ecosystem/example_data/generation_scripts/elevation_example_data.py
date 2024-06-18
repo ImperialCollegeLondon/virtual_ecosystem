@@ -33,16 +33,16 @@ from virtual_ecosystem.example_data.generation_scripts.common import cell_displa
 # dem = rioxarray.open_rasterio("SRTM_UTM50N_processed.tif")
 
 # # Specify the original grid coordinates
-# x = dem.coords["x"]  # type: ignore  # noqa
-# y = dem.coords["y"]  # type: ignore  # noqa
+# x = dem.coords["x"]  # type: ignore
+# y = dem.coords["y"]  # type: ignore
 
 # # Create a new grid of longitude and latitude coordinates with higher resolution
 # new_resolution = 26000
-# new_x = np.arange(x.min(), x.max(), new_resolution)  # type: ignore  # noqa
-# new_y = np.arange(y.min(), y.max(), new_resolution)  # type: ignore  # noqa
+# new_x = np.arange(x.min(), x.max(), new_resolution)  # type: ignore
+# new_y = np.arange(y.min(), y.max(), new_resolution)  # type: ignore
 
 # # Project DEM to new mesh
-# dem_9x9 = dem.interp(x=new_x, y=new_y)  # type: ignore  # noqa
+# dem_9x9 = dem.interp(x=new_x, y=new_y)  # type: ignore
 
 # # Reduce the data to reuired information for netcdf
 # dem_cleaned = (

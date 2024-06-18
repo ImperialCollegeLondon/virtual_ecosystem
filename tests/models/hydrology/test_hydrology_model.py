@@ -33,8 +33,10 @@ MODEL_VAR_CHECK_LOG = [
             0.9,
             pytest.raises(InitialisationError),
             tuple(
-                MODEL_VAR_CHECK_LOG
-                + [(ERROR, "The initial_soil_moisture has to be between 0 and 1!")]
+                [
+                    *MODEL_VAR_CHECK_LOG,
+                    (ERROR, "The initial_soil_moisture has to be between 0 and 1!"),
+                ]
             ),
             id="soil moisture out of bounds",
         ),
@@ -43,8 +45,10 @@ MODEL_VAR_CHECK_LOG = [
             0.9,
             pytest.raises(InitialisationError),
             tuple(
-                MODEL_VAR_CHECK_LOG
-                + [(ERROR, "The initial_soil_moisture must be numeric!")]
+                [
+                    *MODEL_VAR_CHECK_LOG,
+                    (ERROR, "The initial_soil_moisture must be numeric!"),
+                ]
             ),
             id="soil moisture not numeric",
         ),
@@ -53,12 +57,12 @@ MODEL_VAR_CHECK_LOG = [
             1.9,
             pytest.raises(InitialisationError),
             tuple(
-                MODEL_VAR_CHECK_LOG
-                + [
+                [
+                    *MODEL_VAR_CHECK_LOG,
                     (
                         ERROR,
                         "The initial_groundwater_saturation has to be between 0 and 1!",
-                    )
+                    ),
                 ]
             ),
             id="grnd sat out of bounds",
@@ -118,8 +122,8 @@ def test_hydrology_model_initialization(
                         "Information required to initialise the hydrology model "
                         "successfully extracted.",
                     ),
+                    *MODEL_VAR_CHECK_LOG,
                 ]
-                + MODEL_VAR_CHECK_LOG
             ),
             id="default_config",
         ),
@@ -138,8 +142,8 @@ def test_hydrology_model_initialization(
                         "Information required to initialise the hydrology model "
                         "successfully extracted.",
                     ),
+                    *MODEL_VAR_CHECK_LOG,
                 ]
-                + MODEL_VAR_CHECK_LOG
             ),
             id="modified_config_correct",
         ),

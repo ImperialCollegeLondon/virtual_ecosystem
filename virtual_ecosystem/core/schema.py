@@ -20,7 +20,7 @@ in the schema.
 The JSONSchema documents for a module should be loaded when a model is imported into the
 :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. See the
 :mod:`~virtual_ecosystem.core.registry` module for details.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import json
 from collections.abc import Iterator

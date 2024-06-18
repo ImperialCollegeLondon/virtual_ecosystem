@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.main` module defines the function used to run a full
 simulation of the model, along with helper functions to validate and configure the
 model.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import os
 from collections.abc import Sequence
@@ -32,13 +32,13 @@ def initialise_models(
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
-        modules: A dictionary of models to be configured.
+        models: A dictionary of models to be configured.
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
     """
 
-    LOGGER.info("Initialising models: %s" % ",".join(models.keys()))
+    LOGGER.info("Initialising models: {}".format(",".join(models.keys())))
 
     # Use factory methods to configure the desired models
     failed_models = []

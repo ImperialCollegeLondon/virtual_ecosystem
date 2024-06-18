@@ -1,12 +1,12 @@
-"""The :mod:`~virtual_ecosystem.models.animals.animal_model` module creates a
-:class:`~virtual_ecosystem.models.animals.animal_model.AnimalModel` class as a
+"""The :mod:`~virtual_ecosystem.models.animal.animal_model` module creates a
+:class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
 :func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
 :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
 Virtual Ecosystem model develops. The factory method
-:func:`~virtual_ecosystem.models.animals.animal_model.AnimalModel.from_config`
+:func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
 from our currently pretty minimal configuration dictionary. These parameters are
 then used to generate a class instance. If errors crop up here when converting the
@@ -14,7 +14,7 @@ information from the config dictionary to the required types
 (e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
 of the unpacking an error is thrown. This error should be caught and handled
 by downstream functions so that all model configuration failures can be reported as one.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -30,15 +30,15 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animals.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animals.animal_communities import AnimalCommunity
-from virtual_ecosystem.models.animals.constants import AnimalConsts
-from virtual_ecosystem.models.animals.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
+from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
 class AnimalModel(
     BaseModel,
-    model_name="animals",
+    model_name="animal",
     model_update_bounds=("1 day", "1 month"),
     required_init_vars=(),
     vars_updated=(
@@ -156,12 +156,12 @@ class AnimalModel(
         """
 
         # Load in the relevant constants
-        model_constants = load_constants(config, "animals", "AnimalConsts")
+        model_constants = load_constants(config, "animal", "AnimalConsts")
 
         # Load functional groups
         functional_groups = [
             FunctionalGroup(**k, constants=model_constants)
-            for k in config["animals"]["functional_groups"]
+            for k in config["animal"]["functional_groups"]
         ]
 
         LOGGER.info(
@@ -239,6 +239,7 @@ class AnimalModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         for community in self.communities.values():

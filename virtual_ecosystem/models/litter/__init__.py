@@ -11,6 +11,6 @@ Each of the litter sub-modules has its own API reference page:
   pools that the litter model is comprised of.
 * The :mod:`~virtual_ecosystem.models.litter.constants` provides a set of dataclasses
   containing the constants required by the broader litter model.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from virtual_ecosystem.models.litter.litter_model import LitterModel  # noqa: F401

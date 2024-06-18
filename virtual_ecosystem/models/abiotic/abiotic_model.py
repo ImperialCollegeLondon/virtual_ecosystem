@@ -17,7 +17,7 @@ to the vertical layer structure:
 * expand tests to cover different atmospheric conditions
 * expand use of LayerStructure and shape for more compact concatenating
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -251,6 +251,7 @@ class AbioticModel(
 
         Args:
             time_index: The index of the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # TODO This selection of layers should be included in LayerStructure at the
