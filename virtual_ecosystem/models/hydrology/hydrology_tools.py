@@ -33,7 +33,7 @@ def setup_hydrology_input_current_timestep(
     time_index: int,
     days: int,
     seed: None | int,
-    layer_roles: list[str],
+    layer_structure: LayerStructure,
     soil_layer_thickness: NDArray[np.float32],
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
@@ -68,7 +68,7 @@ def setup_hydrology_input_current_timestep(
         time_index: Time index of current time step
         days: Number of days in core time step
         seed: Seed for random rainfall generator
-        layer_roles: List of layer roles
+        layer_structure: The LayerStructure instance for a simulation.
         soil_layer_thickness: The thickness of the soil layer (mm)
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
@@ -107,15 +107,16 @@ def setup_hydrology_input_current_timestep(
         seed=seed,
     )
 
-    for out_var, in_var in (
-        ("subcanopy_temperature", "air_temperature"),
-        ("subcanopy_humidity", "relative_humidity"),
-        ("subcanopy_wind_speed", "wind_speed"),
-        ("subcanopy_pressure", "atmospheric_pressure"),
-    ):
-        output[out_var] = (
-            data[in_var].isel(layers=layer_roles.index("subcanopy")).to_numpy()
-        )
+    # VIVI: these to go?
+    # for out_var, in_var in (
+    #     ("subcanopy_temperature", "air_temperature"),
+    #     ("subcanopy_humidity", "relative_humidity"),
+    #     ("subcanopy_wind_speed", "wind_speed"),
+    #     ("subcanopy_pressure", "atmospheric_pressure"),
+    # ):
+    #     output[out_var] = (
+    #         data[in_var].isel(layers=layer_roles.index("subcanopy")).to_numpy()
+    #     )
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
@@ -126,14 +127,15 @@ def setup_hydrology_input_current_timestep(
     # Select soil variables
     # FIXME - there's an implicit axis order built into these calculations (vertical
     #         profile is axis 0) that needs fixing.
+    # VIVI: I think this is implicit order is now baked in?
     output["top_soil_moisture_capacity_mm"] = (
-        soil_moisture_capacity * soil_layer_thickness[0]
+        soil_moisture_capacity * layer_structure.soil_layer_thickness[0]
     )
     output["top_soil_moisture_residual_mm"] = (
-        soil_moisture_residual * soil_layer_thickness[0]
+        soil_moisture_residual * layer_structure.soil_layer_thickness[0]
     )
     output["soil_moisture_mm"] = (  # drop above ground layers
-        data["soil_moisture"].isel(layers=data["layer_roles"] == "soil")
+        data["soil_moisture"][layer_structure.role_indices["all_soil"]]
     ).to_numpy()
 
     # Get accumulated runoff/flow and ground water level from previous time step
@@ -149,53 +151,32 @@ def setup_hydrology_input_current_timestep(
 
 
 def initialise_soil_moisture_mm(
-    soil_layer_thickness: NDArray[np.float32],
     layer_structure: LayerStructure,
-    n_cells: int,
     initial_soil_moisture: float | NDArray[np.float32],
+    soil_layer_thickness: NDArray[np.float32],
 ) -> DataArray:
     """Initialise soil moisture in mm.
 
     Args:
-        soil_layer_thickness: Soil layer thickness, [mm]
         layer_structure: LayerStructure object that contains information about the
             number and identities of vertical layers
-        n_cells: Number of grid cells
         initial_soil_moisture: Initial relative soil moisture, dimensionless
+        soil_layer_thickness: The soil layer thickness in mm.
 
     Returns:
         soil moisture, [mm]
     """
 
-    # Create 1-dimensional numpy array filled with initial soil moisture values for
-    # all soil layers and np.nan for atmosphere layers
-    soil_moisture_values = np.repeat(
-        a=[np.nan, initial_soil_moisture],
-        repeats=[
-            layer_structure.n_layers - len(layer_structure.soil_layers),
-            len(layer_structure.soil_layers),
-        ],
-    )
-    layer_thickness_array = np.concatenate(
-        [
-            np.repeat(
-                np.nan, layer_structure.n_layers - len(layer_structure.soil_layers)
-            ),
-            soil_layer_thickness[:, 0],
-        ]
-    )
+    # Create a data array filled with initial soil moisture values for all soil layers
+    # and np.nan for atmosphere layers
 
-    # Broadcast 1-dimensional array to grid and assign dimensions and coordinates
-    return DataArray(
-        np.broadcast_to(
-            soil_moisture_values * layer_thickness_array,
-            (n_cells, layer_structure.n_layers),
-        ).T,
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(layer_structure.n_layers),
-            "layer_roles": ("layers", layer_structure.layer_roles),
-            "cell_id": np.arange(n_cells),
-        },
-        name="soil_moisture",
-    )
+    soil_moisture = layer_structure.from_template("soil_moisture")
+
+    # The layer_structure.soil_layer_thickness is an np.array so as long as initial soil
+    # moisture is either a scalar or an np array of similar length, this will broadcast
+    # into the soil layers as a column vector.
+    soil_moisture[layer_structure.role_indices["all_soil"]] = (
+        initial_soil_moisture * soil_layer_thickness
+    )[:, None]
+
+    return soil_moisture

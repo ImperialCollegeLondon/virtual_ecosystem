@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
+import pint
 import pytest
 import xarray as xr
 from xarray import DataArray
@@ -99,7 +100,8 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
         assert model.initial_soil_moisture == ini_soil_moisture
         assert model.initial_groundwater_saturation == ini_groundwater_sat
-        assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
+        # VIVI - not sure about the value below.
+        assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -196,21 +198,15 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "cfg_string, raises",
+    "update_interval, raises",
     [
         pytest.param(
-            "[core]\n"
-            "[core.timing]\nupdate_interval = '1 month'\n"
-            "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n",
+            pint.Quantity(1, "month"),
             does_not_raise(),
             id="updates correctly",
         ),
         pytest.param(
-            "[core]\n"
-            "[core.timing]\nupdate_interval = '1 week'\n"
-            "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n",
+            pint.Quantity(1, "week"),
             pytest.raises(NotImplementedError),
             id="incorrect update frequency",
         ),
@@ -218,24 +214,24 @@ def test_generate_hydrology_model(
 )
 def test_setup(
     dummy_climate_data,
-    cfg_string,
+    fixture_config,
+    update_interval,
     raises,
 ):
     """Test set up and update."""
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config)
+    fixture_config["core"]["timing"]["update_interval"] = update_interval
+    core_components = CoreComponents(fixture_config)
 
     with raises:
         # initialise model
         model = HydrologyModel.from_config(
             data=dummy_climate_data,
             core_components=core_components,
-            config=config,
+            config=fixture_config,
         )
 
         model.setup()

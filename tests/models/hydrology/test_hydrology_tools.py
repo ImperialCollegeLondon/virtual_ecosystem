@@ -1,6 +1,7 @@
 """Test module for hydrology.hydrology_model.py."""
 
 import numpy as np
+import pytest
 import xarray as xr
 from xarray import DataArray
 
@@ -33,8 +34,8 @@ def test_setup_hydrology_input_current_timestep(
 
     dummy_climate_data["soil_moisture"] = xr.concat(
         [
-            DataArray(np.full((13, 3), np.nan), dims=["layers", "cell_id"]),
-            DataArray(np.full((2, 3), 50), dims=["layers", "cell_id"]),
+            DataArray(np.full((12, 4), np.nan), dims=["layers", "cell_id"]),
+            DataArray(np.full((2, 4), 50), dims=["layers", "cell_id"]),
         ],
         dim="layers",
     )
@@ -44,7 +45,9 @@ def test_setup_hydrology_input_current_timestep(
         days=30,
         seed=42,
         layer_roles=fixture_core_components.layer_structure.layer_roles,
-        soil_layer_thickness=np.array([[10, 10, 10], [100, 100, 100]]),
+        soil_layer_thickness=np.array(
+            [[10, 10, 10, 10], [100, 100, 100, 100]]
+        ),  # VIVI - should come from layer structure
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
         core_constants=CoreConsts(),
@@ -89,22 +92,35 @@ def test_setup_hydrology_input_current_timestep(
         (dummy_climate_data["atmospheric_pressure_ref"].isel(time_index=0)).to_numpy(),
     )
     np.testing.assert_allclose(
-        result["soil_moisture_mm"], DataArray(np.full((2, 3), 50.0))
+        result["soil_moisture_mm"], DataArray(np.full((2, 4), 50.0))
     )
 
 
-def test_initialise_soil_moisture_mm(fixture_core_components):
+@pytest.mark.parametrize(
+    argnames="init_soilm, expected",
+    argvalues=(
+        pytest.param(0.5, np.array([125, 375]), id="scalar_init_soilm"),
+        pytest.param(
+            np.array([0.25, 0.5]), np.array([62.5, 375]), id="scalar_init_soilm"
+        ),
+    ),
+)
+def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expected):
     """Test soil moisture is initialised correctly."""
 
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         initialise_soil_moisture_mm,
     )
 
+    layer_structure = fixture_core_components.layer_structure
+
     result = initialise_soil_moisture_mm(
-        soil_layer_thickness=np.array([[10, 10, 10, 10], [100, 100, 100, 100]]),
-        layer_structure=fixture_core_components.layer_structure,
-        n_cells=4,
-        initial_soil_moisture=0.5,
+        layer_structure=layer_structure,
+        soil_layer_thickness=layer_structure.soil_layer_thickness * 1000,
+        initial_soil_moisture=init_soilm,
     )
-    exp_result = DataArray([[5.0, 5.0, 5.0, 5.0], [50.0, 50.0, 50.0, 50.0]])
-    np.testing.assert_allclose(result[13:15], exp_result)
+    # The fixture is configured with soil layers [-0.25, -1.0]
+    exp_result = DataArray(np.broadcast_to(expected[:, None], (2, 4)))
+    np.testing.assert_allclose(
+        result[layer_structure.role_indices["all_soil"]], exp_result
+    )

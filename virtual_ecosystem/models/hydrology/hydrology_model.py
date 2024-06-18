@@ -144,20 +144,13 @@ class HydrologyModel(
         """Upstream neighbours for the calculation of accumulated horizontal flow."""
 
         # Calculate layer thickness for soil moisture unit conversion and set structures
-        # NOTE Could be moved to LayerStructure?
-        soil_layer_heights = self.data["layer_heights"].where(
-            self.data["layer_heights"].layer_roles == "soil"
-        )
-        self.soil_layer_thickness = hydrology_tools.calculate_layer_thickness(
-            soil_layer_heights=soil_layer_heights.dropna(dim="layers").to_numpy(),
-            meters_to_mm=self.core_constants.meters_to_mm,
+        self.soil_layer_thickness_mm = (
+            self.layer_structure.soil_layer_thickness * self.core_constants.meters_to_mm
         )
         """Soil layer thickness in mm."""
-        self.subcanopy_layer_index = self.layer_structure.layer_roles.index("subcanopy")
-        """Subcanopy layer index."""
-        non_soil_layers = (
-            self.layer_structure.n_layers
-            - self.layer_structure.layer_roles.count("soil")
+
+        non_soil_layers = self.layer_structure.n_layers - len(
+            self.layer_structure.soil_layers
         )
         self.nan_fill_atmosphere = np.full(
             (non_soil_layers, self.data.grid.n_cells), np.nan
@@ -221,9 +214,8 @@ class HydrologyModel(
 
         # Calculate initial soil moisture, [mm]
         self.data["soil_moisture"] = hydrology_tools.initialise_soil_moisture_mm(
-            soil_layer_thickness=self.soil_layer_thickness,
+            soil_layer_thickness=self.soil_layer_thickness_mm,
             layer_structure=self.layer_structure,
-            n_cells=self.data.grid.n_cells,
             initial_soil_moisture=self.initial_soil_moisture,
         )
 
@@ -387,8 +379,8 @@ class HydrologyModel(
             time_index=time_index,
             days=days,
             seed=seed,
-            layer_roles=self.layer_structure.layer_roles,
-            soil_layer_thickness=self.soil_layer_thickness,
+            layer_structure=self.layer_structure,
+            soil_layer_thickness=self.soil_layer_thickness_mm,
             soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
@@ -449,7 +441,7 @@ class HydrologyModel(
 
             # Prepare inputs for soil evaporation function
             top_soil_moisture_vol = (
-                soil_moisture_infiltrated / self.soil_layer_thickness[0]
+                soil_moisture_infiltrated / self.soil_layer_thickness_mm[0]
             )
             latent_heat_vapourisation = (
                 hydro_input["latent_heat_vapourisation"][self.subcanopy_layer_index]
@@ -509,8 +501,9 @@ class HydrologyModel(
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
             vertical_flow = below_ground.calculate_vertical_flow(
-                soil_moisture=soil_moisture_evap_mm / self.soil_layer_thickness,  # vol
-                soil_layer_thickness=self.soil_layer_thickness,  # mm
+                soil_moisture=soil_moisture_evap_mm
+                / self.soil_layer_thickness_mm,  # vol
+                soil_layer_thickness=self.soil_layer_thickness_mm,  # mm
                 soil_moisture_capacity=(
                     self.model_constants.soil_moisture_capacity
                 ),  # vol
@@ -535,11 +528,11 @@ class HydrologyModel(
                 evapotranspiration=hydro_input["current_evapotranspiration"],  # mm
                 soil_moisture_capacity=(  # mm
                     self.model_constants.soil_moisture_capacity
-                    * self.soil_layer_thickness
+                    * self.soil_layer_thickness_mm
                 ),
                 soil_moisture_residual=(  # mm
                     self.model_constants.soil_moisture_residual
-                    * self.soil_layer_thickness
+                    * self.soil_layer_thickness_mm
                 ),
             )
             daily_lists["soil_moisture"].append(soil_moisture_updated)
@@ -547,7 +540,7 @@ class HydrologyModel(
             # Convert soil moisture to matric potential
             matric_potential = below_ground.convert_soil_moisture_to_water_potential(
                 soil_moisture=(
-                    soil_moisture_updated / self.soil_layer_thickness  # vol
+                    soil_moisture_updated / self.soil_layer_thickness_mm  # vol
                 ),
                 air_entry_water_potential=(
                     self.model_constants.air_entry_water_potential
