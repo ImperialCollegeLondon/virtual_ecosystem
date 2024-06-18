@@ -15,6 +15,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     )
 
     result = initialise_conductivities(
+        layer_structure=fixture_core_components.layer_structure,
         layer_heights=dummy_climate_data["layer_heights"],
         initial_air_conductivity=50.0,
         top_leaf_vapour_conductivity=0.32,
@@ -23,46 +24,16 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         bottom_leaf_air_conductivity=0.13,
     )
 
-    coords = {
-        "layers": np.arange(15),
-        "layer_roles": (
-            "layers",
-            fixture_core_components.layer_structure.layer_roles,
-        ),
-        "cell_id": [0, 1, 2],
-    }
+    exp_air_cond = fixture_core_components.layer_structure.from_template()
+    exp_air_cond[:] = np.repeat(
+        a=[3.84615385, 3.33333333, 6.66666667, np.nan], repeats=[1, 10, 1, 2]
+    )[:, None]
 
-    air_cond_values = np.repeat(
-        a=[3.84615385, 3.33333333, 6.66666667, np.nan], repeats=[1, 11, 1, 2]
-    )
-    exp_air_cond = DataArray(
-        np.broadcast_to(air_cond_values, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords=coords,
-        name="air_heat_conductivity",
-    )
+    exp_leaf_vap_cond = fixture_core_components.layer_structure.from_template()
+    exp_leaf_vap_cond[[1, 2, 3]] = np.array([0.254389, 0.276332, 0.298276])[:, None]
 
-    leaf_vap_values = np.repeat(
-        a=[np.nan, 0.254389, 0.276332, 0.298276, np.nan],
-        repeats=[1, 1, 1, 1, 11],
-    )
-    exp_leaf_vap_cond = DataArray(
-        np.broadcast_to(leaf_vap_values, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords=coords,
-        name="leaf_vapour_conductivity",
-    )
-
-    leaf_air_values = np.repeat(
-        a=[np.nan, 0.133762, 0.152571, 0.171379, np.nan],
-        repeats=[1, 1, 1, 1, 11],
-    )
-    exp_leaf_air_cond = DataArray(
-        np.broadcast_to(leaf_air_values, (3, 15)).T,
-        dims=["layers", "cell_id"],
-        coords=coords,
-        name="leaf_air_heat_conductivity",
-    )
+    exp_leaf_air_cond = fixture_core_components.layer_structure.from_template()
+    exp_leaf_air_cond[[1, 2, 3]] = np.array([0.133762, 0.152571, 0.171379])[:, None]
 
     np.testing.assert_allclose(
         result["air_heat_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
@@ -75,7 +46,7 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     )
 
 
-def test_interpolate_along_heights(dummy_climate_data):
+def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
     """Test linear interpolation along heights."""
 
     from virtual_ecosystem.models.abiotic.conductivities import (
@@ -83,7 +54,10 @@ def test_interpolate_along_heights(dummy_climate_data):
     )
 
     layer_heights = dummy_climate_data["layer_heights"]
-    atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
+    atmos_index = np.logical_not(
+        fixture_core_components.layer_structure.role_indices_bool["all_soil"]
+    )
+    atmosphere_layers = layer_heights[atmos_index]
     result = interpolate_along_heights(
         start_height=layer_heights[-3].to_numpy(),
         end_height=layer_heights[0].to_numpy(),
@@ -91,9 +65,18 @@ def test_interpolate_along_heights(dummy_climate_data):
         start_value=50.0,
         end_value=20.0,
     )
-    exp_result = np.full((13, 3), np.nan)
-    row_vals = [20.0, 21.88087774, 31.28526646, 40.68965517, 48.68338558, 50.0]
-    exp_result.T[..., [0, 1, 2, 3, 11, 12]] = row_vals
+
+    # Get layer structure and reduce to only atmospheric layers
+    exp_result = fixture_core_components.layer_structure.from_template()
+    exp_result.T[..., [0, 1, 2, 3, 11]] = [
+        20.0,
+        21.88087774,
+        31.28526646,
+        40.68965517,
+        50.0,
+    ]
+    exp_result = exp_result[atmos_index]
+
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 

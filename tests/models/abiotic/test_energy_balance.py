@@ -29,7 +29,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
         light_extinction_coefficient=0.01,
     )
 
-    exp_result = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
+    exp_result = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -44,14 +44,14 @@ def test_initialise_canopy_temperature(dummy_climate_data):
     air_temperature = d["air_temperature"][
         d["leaf_area_index"]["layer_roles"] == "canopy"
     ].dropna(dim="layers", how="all")
-    absorbed_radiation = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
+    absorbed_radiation = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
 
     result = initialise_canopy_temperature(
         air_temperature=air_temperature,
         absorbed_radiation=absorbed_radiation,
         canopy_temperature_ini_factor=0.01,
     )
-    exp_result = np.array([[29.845994] * 3, [28.872169] * 3, [27.207403] * 3])
+    exp_result = np.array([[29.845994] * 4, [28.872169] * 4, [27.207403] * 4])
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
@@ -99,7 +99,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         canopy_temperature_ini_factor=0.01,
     )
 
-    exp_abs = np.array([[0.09995] * 3, [0.09985] * 3, [0.09975] * 3])
+    exp_abs = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
 
     for var in [
         "canopy_temperature",
@@ -114,8 +114,8 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         result["canopy_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
-        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 3)))
-        np.testing.assert_allclose(result[var][13].to_numpy(), np.zeros(3))
+        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 4)))
+        np.testing.assert_allclose(result[var][13].to_numpy(), np.zeros(4))
 
 
 def test_calculate_longwave_emission():
@@ -134,40 +134,17 @@ def test_calculate_longwave_emission():
 
 
 def test_calculate_leaf_and_air_temperature(
+    fixture_core_components,
     dummy_climate_data,
 ):
     """Test updating leaf and air temperature."""
 
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.core_components import LayerStructure
     from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_leaf_and_air_temperature,
     )
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
-    cfg_string = """
-        [core]
-        [core.grid]
-        cell_nx = 3
-        cell_ny = 1
-        [core.timing]
-        start_date = "2020-01-01"
-        update_interval = "2 weeks"
-        run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        save_final_state = true
-        out_initial_file_name = "model_at_start.nc"
-        out_final_file_name = "model_at_end.nc"
-        [core.layers]
-        canopy_layers = 10
-        soil_layers = [-0.5, -1.0]
-        above_canopy_height_offset = 2.0
-        surface_layer_height = 0.1
-        subcanopy_layer_height = 1.5
-        """
-    config = Config(cfg_strings=cfg_string)
-    layer_structure = LayerStructure(config=config)
+    layer_structure = fixture_core_components.layer_structure
 
     true_canopy_indexes = [1, 2, 3]
     result = calculate_leaf_and_air_temperature(
@@ -182,31 +159,31 @@ def test_calculate_leaf_and_air_temperature(
         core_constants=CoreConsts(),
     )
 
-    exp_air_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_air_temp = layer_structure.from_template()
     t_vals = [30.0, 29.999969, 29.995439, 28.796977, 21.319547, 20.08797]
     exp_air_temp.T[..., [0, 1, 2, 3, 11, 12]] = t_vals
 
-    exp_leaf_temp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_leaf_temp = layer_structure.from_template()
     tl_vals = [30.078613, 29.091601, 26.951191]
     exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
 
-    exp_vp = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_vp = layer_structure.from_template()
     vp_vals = [0.14, 0.140323, 0.18372, 1.296359, 0.203754, 0.023795]
     exp_vp.T[..., [0, 1, 2, 3, 11, 12]] = vp_vals
 
-    exp_vpd = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_vpd = layer_structure.from_template()
     vpd_vals = [0.098781, 0.099009, 0.129644, 0.94264, 0.179767, 0.021697]
     exp_vpd.T[..., [0, 1, 2, 3, 11, 12]] = vpd_vals
 
-    exp_gv = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_gv = layer_structure.from_template()
     gv_vals = [0.203513, 0.202959, 0.202009]
     exp_gv.T[..., [1, 2, 3]] = gv_vals
 
-    exp_sens_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_sens_heat = layer_structure.from_template()
     sens_heat_vals = [0.0, 1.397746, 1.315211, -1.515519, 1.0]
     exp_sens_heat.T[..., [0, 1, 2, 3, 13]] = sens_heat_vals
 
-    exp_latent_heat = DataArray(np.full((15, 3), np.nan), dims=["layers", "cell_id"])
+    exp_latent_heat = layer_structure.from_template()
     lat_heat_vals = [0.0, 8.330748, 8.426556, 11.740824, 1.0]
     exp_latent_heat.T[..., [0, 1, 2, 3, 13]] = lat_heat_vals
 
@@ -252,7 +229,7 @@ def test_leaf_and_air_temperature_linearisation(dummy_climate_data):
                 true_canopy_layers_indexes
             ]
         ),
-        conductivity_from_soil=np.repeat(0.1, 3),
+        conductivity_from_soil=np.repeat(0.1, 4),
         leaf_air_heat_conductivity=(
             dummy_climate_data["leaf_air_heat_conductivity"][true_canopy_layers_indexes]
         ),
@@ -262,8 +239,8 @@ def test_leaf_and_air_temperature_linearisation(dummy_climate_data):
         top_soil_temperature=dummy_climate_data["soil_temperature"][13].to_numpy(),
     )
 
-    exp_a = np.array([[29.677419, 29.677419, 29.677419]] * 3)
-    exp_b = np.array([[0.04193548, 0.04193548, 0.04193548]] * 3)
+    exp_a = np.array([[29.677419, 29.677419, 29.677419, 29.677419]] * 3)
+    exp_b = np.array([[0.04193548, 0.04193548, 0.04193548, 0.04193548]] * 3)
     np.testing.assert_allclose(a_A, exp_a)
     np.testing.assert_allclose(b_A, exp_b)
 

@@ -14,11 +14,11 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0.0, np.nan, 7.0]),
+        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
         zero_plane_scaling_parameter=7.5,
     )
 
-    np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256]))
+    np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256, 25.86256]))
 
 
 def test_calculate_roughness_length_momentum(dummy_climate_data):
@@ -30,8 +30,8 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
 
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([np.nan, 0.0, 7]),
-        zero_plane_displacement=np.array([0.0, 0.0, 27.58673]),
+        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
+        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
         substrate_surface_drag_coefficient=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
@@ -41,7 +41,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
     )
 
     np.testing.assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
     )
 
 
@@ -55,23 +55,23 @@ def test_calculate_diabatic_correction_above(dummy_climate_data):
     abiotic_consts = AbioticConsts()
     core_const = CoreConsts()
     result = calculate_diabatic_correction_above(
-        molar_density_air=np.repeat(28.96, 3),
-        specific_heat_air=np.repeat(1.0, 3),
+        molar_density_air=np.repeat(28.96, 4),
+        specific_heat_air=np.repeat(1.0, 4),
         temperature=dummy_climate_data["air_temperature"][0].to_numpy(),
         sensible_heat_flux=(
             dummy_climate_data["sensible_heat_flux_topofcanopy"].to_numpy()
         ),
         friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
         wind_heights=dummy_climate_data["layer_heights"][0].to_numpy(),
-        zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
+        zero_plane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
         celsius_to_kelvin=core_const.zero_Celsius,
         von_karmans_constant=core_const.von_karmans_constant,
         yasuda_stability_parameters=abiotic_consts.yasuda_stability_parameters,
         diabatic_heat_momentum_ratio=abiotic_consts.diabatic_heat_momentum_ratio,
     )
 
-    exp_result_h = np.array([0.105164, 0.024834, 0.008092])
-    exp_result_m = np.array([0.063098, 0.0149, 0.004855])
+    exp_result_h = np.array([0.105164, 0.024834, 0.008092, 0.008092])
+    exp_result_m = np.array([0.063098, 0.0149, 0.004855, 0.004855])
     np.testing.assert_allclose(result["psi_h"], exp_result_h, rtol=1e-4, atol=1e-4)
     np.testing.assert_allclose(result["psi_m"], exp_result_m, rtol=1e-4, atol=1e-4)
 
@@ -129,13 +129,13 @@ def test_calculate_mean_mixing_length(dummy_climate_data):
 
     result = calculate_mean_mixing_length(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        zero_plane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
+        zero_plane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
+        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
         mixing_length_factor=AbioticConsts.mixing_length_factor,
     )
 
     np.testing.assert_allclose(
-        result, np.array([1.284154, 1.280886, 0.836903]), rtol=1e-4, atol=1e-4
+        result, np.array([1.284154, 1.280886, 0.836903, 0.836903]), rtol=1e-4, atol=1e-4
     )
 
 
@@ -202,34 +202,38 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
     )
 
     leaf_area_index = np.array(
-        [[1.0, 1.0, 1.0], [1.0, 1.0, np.nan], [1.0, np.nan, np.nan]]
+        [
+            [1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, np.nan, np.nan],
+            [1.0, np.nan, np.nan, np.nan],
+        ]
     )
     relative_turbulence_intensity = np.array(
         [
-            [17.64, 17.64, 17.64],
-            [16.56, 16.56, 16.56],
-            [11.16, 11.16, np.nan],
-            [5.76, np.nan, np.nan],
-            [1.17, 1.17, 1.17],
-            [0.414, 0.414, 0.414],
+            [17.64, 17.64, 17.64, 17.64],
+            [16.56, 16.56, 16.56, 16.56],
+            [11.16, 11.16, np.nan, np.nan],
+            [5.76, np.nan, np.nan, np.nan],
+            [1.17, 1.17, 1.17, 1.17],
+            [0.414, 0.414, 0.4144, 0.414],
         ]
     )
     result = calculate_wind_attenuation_coefficient(
         canopy_height=dummy_climate_data.data["layer_heights"][1].to_numpy(),
         leaf_area_index=leaf_area_index,
-        mean_mixing_length=np.array([1.35804, 1.401984, 0.925228]),
+        mean_mixing_length=np.array([1.35804, 1.401984, 0.925228, 0.925228]),
         drag_coefficient=AbioticConsts.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
 
     exp_result = np.array(
         [
-            [0.0, 0.0, 0.0],
-            [0.12523, 0.121305, 0.183812],
-            [0.133398, 0.129216, np.nan],
-            [0.197945, np.nan, np.nan],
-            [0.197945, 0.129216, 0.183812],
-            [0.197945, 0.129216, 0.183812],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.12523, 0.121305, 0.183812, 0.183812],
+            [0.133398, 0.129216, np.nan, np.nan],
+            [0.197945, np.nan, np.nan, np.nan],
+            [0.197945, 0.129216, 0.183812, 0.183812],
+            [0.197945, 0.129216, 0.183812, 0.183812],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
@@ -245,22 +249,22 @@ def test_wind_log_profile(dummy_climate_data):
         .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
         .dropna(dim="layers")
     )
-    diab_correction = np.array([0.105164, 0.024834, 0.008092])
+    diab_correction = np.array([0.105164, 0.024834, 0.008092, 0.008092])
     result = wind_log_profile(
         height=layer_heights.to_numpy(),
-        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
+        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
+        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
         diabatic_correction_momentum=diab_correction,
     )
 
     exp_result = np.array(
         [
-            [7.645442, 1.551228, 1.534468],
-            [7.580903, 1.195884, 0.930835],
-            [7.175438, np.nan, np.nan],
-            [6.482291, np.nan, np.nan],
-            [4.585171, np.nan, np.nan],
-            [1.877121, np.nan, np.nan],
+            [7.645442, 1.551228, 1.534468, 1.534468],
+            [7.580903, 1.195884, 0.930835, 0.930835],
+            [7.175438, np.nan, np.nan, np.nan],
+            [6.482291, np.nan, np.nan, np.nan],
+            [4.585171, np.nan, np.nan, np.nan],
+            [1.877121, np.nan, np.nan, np.nan],
         ]
     )
 
@@ -279,13 +283,13 @@ def test_calculate_friction_velocity_reference_height(dummy_climate_data):
             dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
         ),
         reference_height=(dummy_climate_data["layer_heights"][1] + 10).to_numpy(),
-        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
-        diabatic_correction_momentum=np.array([0.063098, 0.0149, 0.004855]),
+        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
+        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
+        diabatic_correction_momentum=np.array([0.063098, 0.0149, 0.004855, 0.004855]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
         min_friction_velocity=0.001,
     )
-    exp_result = np.array([0.051108, 0.171817, 0.155922])
+    exp_result = np.array([0.051108, 0.171817, 0.155922, 0.155922])
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
@@ -315,24 +319,24 @@ def test_calculate_wind_canopy(dummy_climate_data):
 
     attenuation_coeff = np.array(
         [
-            [0.12523, 0.121305, 0.183812],
-            [0.133398, 0.129216, np.nan],
-            [0.197945, np.nan, np.nan],
-            [0.197945, 0.129216, 0.183812],
-            [0.197945, 0.129216, 0.183812],
+            [0.12523, 0.121305, 0.183812, 0.183812],
+            [0.133398, 0.129216, np.nan, np.nan],
+            [0.197945, np.nan, np.nan, np.nan],
+            [0.197945, 0.129216, 0.183812, 0.183812],
+            [0.197945, 0.129216, 0.183812, 0.183812],
         ]
     )
     layer_heights = np.array(
         [
-            [30.0, 30.0, 30.0],
-            [20.0, 20.0, np.nan],
-            [10.0, np.nan, np.nan],
-            [1.5, 1.5, 1.5],
-            [0.1, 0.1, 0.1],
+            [30.0, 30.0, 30.0, 30.0],
+            [20.0, 20.0, np.nan, np.nan],
+            [10.0, np.nan, np.nan, np.nan],
+            [1.5, 1.5, 1.5, 1.5],
+            [0.1, 0.1, 0.1, 0.1],
         ]
     )
     result = calculate_wind_canopy(
-        top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233]),
+        top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233, 10.750233]),
         wind_layer_heights=layer_heights,
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
         attenuation_coefficient=attenuation_coeff,
@@ -340,11 +344,11 @@ def test_calculate_wind_canopy(dummy_climate_data):
 
     exp_result = np.array(
         [
-            [0.5, 5.590124, 10.750233],
-            [0.478254, 5.354458, np.nan],
-            [0.438187, np.nan, np.nan],
-            [0.414288, 4.944354, 9.027776],
-            [0.410478, 4.914629, 8.950668],
+            [0.5, 5.590124, 10.750233, 10.750233],
+            [0.478254, 5.354458, np.nan, np.nan],
+            [0.438187, np.nan, np.nan, np.nan],
+            [0.414288, 4.944354, 9.027776, 9.027776],
+            [0.410478, 4.914629, 8.950668, 8.950668],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)

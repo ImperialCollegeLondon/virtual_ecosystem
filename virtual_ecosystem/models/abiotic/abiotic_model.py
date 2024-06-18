@@ -211,6 +211,7 @@ class AbioticModel(
         )
 
         initial_conductivities = conductivities.initialise_conductivities(
+            layer_structure=self.layer_structure,
             layer_heights=self.data["layer_heights"],
             initial_air_conductivity=self.model_constants.initial_air_conductivity,
             top_leaf_vapour_conductivity=(
