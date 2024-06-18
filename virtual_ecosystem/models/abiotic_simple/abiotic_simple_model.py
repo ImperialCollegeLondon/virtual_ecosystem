@@ -21,9 +21,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-from xarray import DataArray
-
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
