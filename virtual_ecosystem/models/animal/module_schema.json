@@ -48,6 +48,9 @@
                             "diet",
                             "metabolic_type",
                             "reproductive_type",
+                            "development_type",
+                            "development_status",
+                            "offspring_functional_group",
                             "birth_mass",
                             "adult_mass"
                         ]
