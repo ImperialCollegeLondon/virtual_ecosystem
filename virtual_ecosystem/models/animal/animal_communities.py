@@ -191,11 +191,10 @@ class AnimalCommunity:
         TODO: Check whether Madingley discards excess reproductive mass.
         TODO: Rework birth mass for indirect developers.
         TODO: Rework offspring functional group in reproduction when moving beyond
-              CSV imported functional group lists.
+                CSV imported functional group lists.
 
         Args:
-            parent_cohort: The AnimalCohort instance which is producing a new
-              AnimalCohort.
+            parent_cohort: The AnimalCohort instance which is producing a new cohort.
         """
         # semelparous organisms use a portion of their non-reproductive mass to make
         # offspring and then they die
