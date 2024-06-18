@@ -377,6 +377,7 @@ class AnimalCommunity:
         TODO: build in a relationship between larval_cohort mass and adult cohort
               mass.
         TODO: is adult_mass the correct mass threshold?
+        TODO: if time step drops below a month, this needs an intermediary stage
 
         Args:
             larval_cohort: The cohort in its larval stage to be
