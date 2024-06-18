@@ -1,7 +1,6 @@
 """Test module for abiotic.energy_balance.py."""
 
 import numpy as np
-from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
