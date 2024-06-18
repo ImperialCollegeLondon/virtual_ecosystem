@@ -74,7 +74,6 @@ def test_determine_microbial_biomass_losses(
     losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
-        clay_factor_decay=environmental_factors["clay_decay"],
         constants=SoilConsts,
     )
 

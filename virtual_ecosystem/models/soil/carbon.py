@@ -108,7 +108,6 @@ def calculate_soil_carbon_updates(
     biomass_losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
-        clay_factor_decay=env_factors.clay_decay,
         constants=model_constants,
     )
     pom_enzyme_turnover = calculate_enzyme_turnover(
@@ -192,7 +191,6 @@ def calculate_soil_carbon_updates(
 def determine_microbial_biomass_losses(
     soil_c_pool_microbe: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    clay_factor_decay: NDArray[np.float32],
     constants: SoilConsts,
 ) -> MicrobialBiomassLoss:
     """Calculate all of the losses from the microbial biomass pool.
@@ -444,3 +442,25 @@ def calculate_enzyme_mediated_decomposition(
     return (
         rate_constant * soil_enzyme * soil_c_pool / (saturation_constant + soil_c_pool)
     )
+
+
+def calculate_necromass_breakdown(
+    soil_c_pool_necromass: NDArray[np.float32], necromass_breakdown_rate: float
+) -> NDArray[np.float32]:
+    """Calculate breakdown rate of necromass into low molecular weight carbon (LMWC).
+
+    This function calculate necromass breakdown to LMWC as a simple exponential decay.
+    This decay is not effected by temperature or any other environmental factor. The
+    idea is to keep this function as simple as possible, because it will be hard to
+    parametrise even without additional complications. However, this is a simplification
+    to bear in mind when planning future model improvements.
+
+    Args:
+        soil_c_pool_necromass: Size of the microbial necromass pool [kg C m^-3]
+        necromass_breakdown_rate: Rate at which necromass breaks down into LMWC [day^-1]
+
+    Returns:
+        The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
+    """
+
+    return -necromass_breakdown_rate * soil_c_pool_necromass
