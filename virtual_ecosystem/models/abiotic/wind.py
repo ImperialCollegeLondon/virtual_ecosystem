@@ -404,7 +404,7 @@ def calculate_wind_attenuation_coefficient(
         [
             [np.repeat(0.0, len(mean_mixing_length))],
             attenuation_coefficient,
-            [attenuation_coefficient_below] * 2,
+            [attenuation_coefficient_below],
         ]
     )
 

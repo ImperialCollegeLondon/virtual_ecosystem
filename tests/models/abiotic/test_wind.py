@@ -139,23 +139,15 @@ def test_calculate_mean_mixing_length(dummy_climate_data):
     )
 
 
-def test_generate_relative_turbulence_intensity():
+def test_generate_relative_turbulence_intensity(dummy_climate_data_varying_canopy):
     """Test relative turbulence intensity for different true layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         generate_relative_turbulence_intensity,
     )
 
-    layer_heights = np.array(
-        [
-            [32.0, 32.0, 32.0],
-            [30.0, 30.0, 30.0],
-            [20.0, 20.0, np.nan],
-            [10.0, np.nan, np.nan],
-            [1.5, 1.5, 1.5],
-            [0.1, 0.1, 0.1],
-        ]
-    )
+    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][[0, 1, 2, 3, 11]]
+
     result_t = generate_relative_turbulence_intensity(
         layer_heights=layer_heights,
         min_relative_turbulence_intensity=0.36,
@@ -165,12 +157,11 @@ def test_generate_relative_turbulence_intensity():
 
     exp_result_t = np.array(
         [
-            [17.64, 17.64, 17.64],
-            [16.56, 16.56, 16.56],
-            [11.16, 11.16, np.nan],
-            [5.76, np.nan, np.nan],
-            [1.17, 1.17, 1.17],
-            [0.414, 0.414, 0.414],
+            [17.64, 17.64, 17.64, 17.64],
+            [16.56, 16.56, 16.56, 16.56],
+            [11.16, 11.16, np.nan, np.nan],
+            [5.76, np.nan, np.nan, np.nan],
+            [0.414, 0.414, 0.414, 0.414],
         ]
     )
     result_f = generate_relative_turbulence_intensity(
@@ -182,44 +173,42 @@ def test_generate_relative_turbulence_intensity():
 
     exp_result_f = np.array(
         [
-            [-16.92, -16.92, -16.92],
-            [-15.84, -15.84, -15.84],
-            [-10.44, -10.44, np.nan],
-            [-5.04, np.nan, np.nan],
-            [-0.45, -0.45, -0.45],
-            [0.306, 0.306, 0.306],
+            [-16.92, -16.92, -16.92, -16.92],
+            [-15.84, -15.84, -15.84, -15.84],
+            [-10.44, -10.44, np.nan, np.nan],
+            [-5.04, np.nan, np.nan, np.nan],
+            [0.306, 0.306, 0.306, 0.306],
         ]
     )
     np.testing.assert_allclose(result_t, exp_result_t, rtol=1e-3, atol=1e-3)
     np.testing.assert_allclose(result_f, exp_result_f, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
+def test_calculate_wind_attenuation_coefficient(dummy_climate_data_varying_canopy):
     """Test wind attenuation coefficient with different canopy layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_wind_attenuation_coefficient,
     )
 
-    leaf_area_index = np.array(
-        [
-            [1.0, 1.0, 1.0, 1.0],
-            [1.0, 1.0, np.nan, np.nan],
-            [1.0, np.nan, np.nan, np.nan],
-        ]
+    # TODO: Occupied canopies - the plants model should populate the filled_canopies
+    #       index in the data at some point.
+    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+
+    leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
+        filled_canopies
+    ].to_numpy()
+
+    relative_turbulence_intensity = dummy_climate_data_varying_canopy[
+        "relative_turbulence_intensity"
+    ][[0, 1, 2, 3, 11]].to_numpy()
+
+    canopy_height = (
+        dummy_climate_data_varying_canopy.data["layer_heights"][1].to_numpy(),
     )
-    relative_turbulence_intensity = np.array(
-        [
-            [17.64, 17.64, 17.64, 17.64],
-            [16.56, 16.56, 16.56, 16.56],
-            [11.16, 11.16, np.nan, np.nan],
-            [5.76, np.nan, np.nan, np.nan],
-            [1.17, 1.17, 1.17, 1.17],
-            [0.414, 0.414, 0.4144, 0.414],
-        ]
-    )
+
     result = calculate_wind_attenuation_coefficient(
-        canopy_height=dummy_climate_data.data["layer_heights"][1].to_numpy(),
+        canopy_height=canopy_height,
         leaf_area_index=leaf_area_index,
         mean_mixing_length=np.array([1.35804, 1.401984, 0.925228, 0.925228]),
         drag_coefficient=AbioticConsts.drag_coefficient,
@@ -232,29 +221,25 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data):
             [0.12523, 0.121305, 0.183812, 0.183812],
             [0.133398, 0.129216, np.nan, np.nan],
             [0.197945, np.nan, np.nan, np.nan],
-            [0.197945, 0.129216, 0.183812, 0.183812],
+            # [0.197945, 0.129216, 0.183812, 0.183812],
             [0.197945, 0.129216, 0.183812, 0.183812],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_wind_log_profile(dummy_climate_data):
+def test_wind_log_profile(fixture_core_components, dummy_climate_data):
     """Test log wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import wind_log_profile
 
-    layer_heights = (
-        dummy_climate_data["layer_heights"]
-        .where(dummy_climate_data["layer_heights"].layer_roles != "soil")
-        .dropna(dim="layers")
-    )
-    diab_correction = np.array([0.105164, 0.024834, 0.008092, 0.008092])
+    layer_heights = dummy_climate_data["layer_heights"][[0, 1, 2, 3, 11]].to_numpy()
+
     result = wind_log_profile(
-        height=layer_heights.to_numpy(),
+        height=layer_heights,
         zeroplane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
-        diabatic_correction_momentum=diab_correction,
+        diabatic_correction_momentum=np.array([0.105164, 0.024834, 0.008092, 0.008092]),
     )
 
     exp_result = np.array(
@@ -263,7 +248,6 @@ def test_wind_log_profile(dummy_climate_data):
             [7.580903, 1.195884, 0.930835, 0.930835],
             [7.175438, np.nan, np.nan, np.nan],
             [6.482291, np.nan, np.nan, np.nan],
-            [4.585171, np.nan, np.nan, np.nan],
             [1.877121, np.nan, np.nan, np.nan],
         ]
     )
@@ -299,46 +283,46 @@ def test_calculate_wind_above_canopy():
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_above_canopy
 
     result = calculate_wind_above_canopy(
-        friction_velocity=np.array([0.0, 0.819397, 1.423534]),
-        wind_height_above=np.array([[2.0, 32.0, 32.0], [np.nan, 30.0, 30.0]]),
-        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673]),
-        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591]),
-        diabatic_correction_momentum=np.array([0.003, 0.026, 0.013]),
+        friction_velocity=np.array([0.0, 0.819397, 1.423534, 1.423534]),
+        wind_height_above=np.array(
+            [[2.0, 32.0, 32.0, 32.0], [np.nan, 30.0, 30.0, 30.0]]
+        ),
+        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
+        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
+        diabatic_correction_momentum=np.array([0.003, 0.026, 0.013, 0.013]),
         von_karmans_constant=CoreConsts.von_karmans_constant,
         min_wind_speed_above_canopy=0.55,
     )
 
-    exp_result = np.array([[0.55, 3.180068, 5.478385], [np.nan, 2.452148, 3.330154]])
+    exp_result = np.array(
+        [[0.55, 3.180068, 5.478385, 5.478385], [np.nan, 2.452148, 3.330154, 3.330154]]
+    )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_canopy(dummy_climate_data):
+def test_calculate_wind_canopy(dummy_climate_data_varying_canopy):
     """Test below canopy wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_canopy
 
+    # VIVI - different from attenuation coefficient in the data object? Can we switch to
+    # using the fixture?
     attenuation_coeff = np.array(
         [
             [0.12523, 0.121305, 0.183812, 0.183812],
             [0.133398, 0.129216, np.nan, np.nan],
             [0.197945, np.nan, np.nan, np.nan],
             [0.197945, 0.129216, 0.183812, 0.183812],
-            [0.197945, 0.129216, 0.183812, 0.183812],
         ]
     )
-    layer_heights = np.array(
-        [
-            [30.0, 30.0, 30.0, 30.0],
-            [20.0, 20.0, np.nan, np.nan],
-            [10.0, np.nan, np.nan, np.nan],
-            [1.5, 1.5, 1.5, 1.5],
-            [0.1, 0.1, 0.1, 0.1],
-        ]
-    )
+    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
+        [1, 2, 3, 11]
+    ].to_numpy()
+
     result = calculate_wind_canopy(
         top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233, 10.750233]),
         wind_layer_heights=layer_heights,
-        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         attenuation_coefficient=attenuation_coeff,
     )
 
@@ -347,41 +331,26 @@ def test_calculate_wind_canopy(dummy_climate_data):
             [0.5, 5.590124, 10.750233, 10.750233],
             [0.478254, 5.354458, np.nan, np.nan],
             [0.438187, np.nan, np.nan, np.nan],
-            [0.414288, 4.944354, 9.027776, 9.027776],
             [0.410478, 4.914629, 8.950668, 8.950668],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_profile():
+def test_calculate_wind_profile(dummy_climate_data_varying_canopy):
     """Test full update of wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
-    leaf_area_index = np.array(
-        [[1.0, 1.0, 1.0], [1.0, 1.0, np.nan], [1.0, np.nan, np.nan]]
-    )
-    layer_heights = np.array(
-        [
-            [32.0, 32.0, 32.0],
-            [30.0, 30.0, 30.0],
-            [20.0, 20.0, np.nan],
-            [10.0, np.nan, np.nan],
-            [1.5, 1.5, 1.5],
-            [0.1, 0.1, 0.1],
-        ]
-    )
-    air_temperature = np.array(
-        [
-            [30.0, 30.0, 30.0],
-            [29.844995, 29.844995, 29.844995],
-            [28.87117, 28.87117, np.nan],
-            [27.206405, np.nan, np.nan],
-            [22.65, 22.65, 22.65],
-            [16.145945, 16.145945, 16.145945],
-        ]
-    )
+    leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
+        [1, 2, 3]
+    ].to_numpy()
+    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
+        [0, 1, 2, 3, 11]
+    ].to_numpy()
+    air_temperature = dummy_climate_data_varying_canopy["air_temperature"][
+        [0, 1, 2, 3, 11]
+    ].to_numpy()
 
     wind_update = calculate_wind_profile(
         canopy_height=layer_heights[1],
@@ -389,23 +358,22 @@ def test_calculate_wind_profile():
         wind_layer_heights=layer_heights,
         leaf_area_index=leaf_area_index,
         air_temperature=air_temperature,
-        atmospheric_pressure=np.array([96.0, 96.0, 96.0]),
-        sensible_heat_flux_topofcanopy=np.array([100.0, 50.0, 10.0]),
-        wind_speed_ref=np.array([0.1, 5.0, 10.0]),
+        atmospheric_pressure=np.repeat(96.0, 4),
+        sensible_heat_flux_topofcanopy=np.array([100.0, 50.0, 10.0, 10.0]),
+        wind_speed_ref=np.array([0.1, 5.0, 10.0, 10.0]),
         wind_reference_height=(layer_heights[1] + 10),
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
     )
 
-    friction_velocity_exp = np.array([0.012793, 0.84372, 1.811774])
+    friction_velocity_exp = np.array([0.012793, 0.84372, 1.811774, 1.811774])
     wind_speed_exp = np.array(
         [
-            [0.1, 3.719967, 7.722811],
-            [0.1, 3.226327, 6.915169],
-            [0.09551, 3.106107, np.nan],
-            [0.087254, np.nan, np.nan],
-            [0.082342, 2.895383, 6.414144],
-            [0.08156, 2.880031, 6.39049],
+            [0.1, 3.719967, 7.722811, 7.722811],
+            [0.1, 3.226327, 6.915169, 6.915169],
+            [0.09551, 3.106107, np.nan, np.nan],
+            [0.087254, np.nan, np.nan, np.nan],
+            [0.08156, 2.880031, 6.39049, 6.39049],
         ]
     )
 
