@@ -189,6 +189,7 @@ def test_update_method_sequence(mocker, prepared_animal_model_instance):
         "forage_community",
         "migrate_community",
         "birth_community",
+        "metamorphose_community",
         "metabolize_community",
         "inflict_non_predation_mortality_community",
         "remove_dead_cohort_community",
