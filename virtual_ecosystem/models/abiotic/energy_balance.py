@@ -407,6 +407,7 @@ def calculate_leaf_and_air_temperature(
         pressure deficit, [kPa]
     """
 
+    # TODO - reduce arguments to get more info from layer structure
     output = {}
 
     # Select variables for current time step and relevant layers
