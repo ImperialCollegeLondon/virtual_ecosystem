@@ -250,6 +250,7 @@ class AnimalModel(
             community.forage_community()
             community.migrate_community()
             community.birth_community()
+            community.metamorphose_community()
             community.metabolize_community(
                 float(self.data["air_temperature"][0][community.community_key].values),
                 self.update_interval_timedelta,

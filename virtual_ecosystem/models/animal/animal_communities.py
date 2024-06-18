@@ -18,6 +18,7 @@ from numpy import timedelta64
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import (
@@ -367,14 +368,12 @@ class AnimalCommunity:
                 cohort.is_alive = False
                 self.remove_dead_cohort(cohort)
 
-    def metamorphosize(self, larval_cohort: AnimalCohort) -> None:
+    def metamorphose(self, larval_cohort: AnimalCohort) -> None:
         """This transforms a larval status cohort into an adult status cohort.
 
         This method takes an indirect developing cohort in its larval form,
         inflicts a mortality rate, and creates an adult cohort of the correct type.
 
-
-        TODO: would the filter be better somewhere else?
         TODO: build in a relationship between larval_cohort mass and adult cohort
               mass.
         TODO: is adult_mass the correct mass threshold?
@@ -385,31 +384,42 @@ class AnimalCommunity:
 
         """
 
-        if not larval_cohort.is_below_mass_threshold(
-            larval_cohort.functional_group.adult_mass
-        ):
-            # inflict a mortality
-            number_dead = ceil(
-                larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
-            )
-            larval_cohort.die_individual(number_dead, self.carcass_pool)
-            # collect the adult functional group
-            adult_functional_group = get_functional_group_by_name(
-                self.functional_groups,
-                larval_cohort.functional_group.offspring_functional_group,
-            )
-            # create the adult cohort
-            adult_cohort = AnimalCohort(
-                adult_functional_group,
-                adult_functional_group.birth_mass,
-                0.0,
-                larval_cohort.individuals,
-                self.constants,
-            )
+        # inflict a mortality
+        number_dead = ceil(
+            larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
+        )
+        larval_cohort.die_individual(number_dead, self.carcass_pool)
+        # collect the adult functional group
+        adult_functional_group = get_functional_group_by_name(
+            self.functional_groups,
+            larval_cohort.functional_group.offspring_functional_group,
+        )
+        # create the adult cohort
+        adult_cohort = AnimalCohort(
+            adult_functional_group,
+            adult_functional_group.birth_mass,
+            0.0,
+            larval_cohort.individuals,
+            self.constants,
+        )
 
-            # add a new cohort of the parental type to the community
-            self.animal_cohorts[adult_cohort.name].append(adult_cohort)
+        # add a new cohort of the parental type to the community
+        self.animal_cohorts[adult_cohort.name].append(adult_cohort)
 
-            # remove the larval cohort
-            larval_cohort.is_alive = False
-            self.remove_dead_cohort(larval_cohort)
+        # remove the larval cohort
+        larval_cohort.is_alive = False
+        self.remove_dead_cohort(larval_cohort)
+
+    def metamorphose_community(self) -> None:
+        """Handle metamorphosis for all applicable cohorts in the community."""
+        for cohort in list(self.all_animal_cohorts):
+            print(f"Processing cohort: {cohort.name}, mass: {cohort.mass_current}")
+            print(f"Development type: {cohort.functional_group.development_type}")
+            if (
+                cohort.functional_group.development_type == DevelopmentType.INDIRECT
+                and (cohort.mass_current >= cohort.functional_group.adult_mass)
+            ):
+                print(f"Metamorphosing cohort: {cohort.name}")
+                self.metamorphose(cohort)
+            else:
+                print(f"Skipping cohort: {cohort.name}")
