@@ -165,6 +165,8 @@ def fixture_config():
         reproductive_type = "iteroparous"
         birth_mass = 0.0005
         adult_mass = 0.005
+
+        [hydrology]
         """
 
     return Config(cfg_strings=cfg_string)
