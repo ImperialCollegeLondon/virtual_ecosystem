@@ -34,7 +34,7 @@ def test_cannot_create_unfrozen_constants_dataclass():
             id="defaults_with_no_config",
         ),
         pytest.param(
-            {"depth_of_active_soil_layer": 1.55},
+            {"max_depth_of_microbial_activity": 1.55},
             does_not_raise(),
             1.55,
             (),
@@ -70,6 +70,6 @@ def test_ConstantsDataclass_from_config(caplog, config, raises, exp_val, exp_log
         constants_instance = CoreConsts.from_config(config)
 
         if isinstance(raises, does_not_raise):
-            assert constants_instance.depth_of_active_soil_layer == exp_val
+            assert constants_instance.max_depth_of_microbial_activity == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)
