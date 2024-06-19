@@ -90,6 +90,9 @@ def setup_hydrology_input_current_timestep(
     )
 
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
+    # VIVI - these variables are explicitly 1 dimensional for a single layer. They come
+    # out of the subset as 2D (1, n_cells) and so I've squeezed them.
+    # squeezed them
     for out_var, in_var in (
         ("surface_temperature", "air_temperature"),
         ("surface_humidity", "relative_humidity"),
@@ -97,7 +100,7 @@ def setup_hydrology_input_current_timestep(
         ("surface_pressure", "atmospheric_pressure"),
     ):
         output[out_var] = (
-            data[in_var].isel(layers=layer_structure.role_indices["surface"]).to_numpy()
+            data[in_var][layer_structure.role_indices["surface"]].to_numpy().squeeze()
         )
 
     # Get inputs from plant model
@@ -134,7 +137,7 @@ def setup_hydrology_input_current_timestep(
 
 def initialise_soil_moisture_mm(
     layer_structure: LayerStructure,
-    initial_soil_moisture: float | NDArray[np.float32],
+    initial_soil_moisture: float,
     soil_layer_thickness: NDArray[np.float32],
 ) -> DataArray:
     """Initialise soil moisture in mm.
@@ -152,13 +155,13 @@ def initialise_soil_moisture_mm(
     # Create a data array filled with initial soil moisture values for all soil layers
     # and np.nan for atmosphere layers
 
-    soil_moisture = layer_structure.from_template(name="soil_moisture")
+    soil_moisture = layer_structure.from_template(array_name="soil_moisture")
 
     # The layer_structure.soil_layer_thickness is an np.array so as long as initial soil
     # moisture is either a scalar or an np array of similar length, this will broadcast
     # into the soil layers as a column vector.
     soil_moisture[layer_structure.role_indices["all_soil"]] = (
         initial_soil_moisture * soil_layer_thickness
-    )[:, None]
+    )
 
     return soil_moisture

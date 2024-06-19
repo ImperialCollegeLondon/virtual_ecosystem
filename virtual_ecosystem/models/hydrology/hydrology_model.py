@@ -141,14 +141,21 @@ class HydrologyModel(
         """Upstream neighbours for the calculation of accumulated horizontal flow."""
 
         # Calculate layer thickness for soil moisture unit conversion and set structures
-        self.soil_layer_thickness_mm = (
-            self.layer_structure.soil_layer_thickness * self.core_constants.meters_to_mm
+        # and tile across grid cells
+        self.soil_layer_thickness_mm = np.tile(
+            (
+                self.layer_structure.soil_layer_thickness
+                * self.core_constants.meters_to_mm
+            )[:, None],
+            self.grid.n_cells,
         )
         """Soil layer thickness in mm."""
 
         # Select abovegroud layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
-        self.surface_layer_index: int = self.layer_structure.role_indices["surface"]
+        self.surface_layer_index: int = self.layer_structure.role_indices[
+            "surface"
+        ].item()
         """Surface layer index."""
 
     @classmethod
@@ -240,7 +247,7 @@ class HydrologyModel(
                 .rename(var)
                 .assign_coords(
                     coords={
-                        "layers": self.surface_layer_index,
+                        "layers": np.array([self.surface_layer_index]),
                         "layer_roles": ("layers", ["surface"]),
                         "cell_id": self.grid.cell_id,
                     },

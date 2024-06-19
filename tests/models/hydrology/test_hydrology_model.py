@@ -237,7 +237,11 @@ def test_setup(
         model.setup()
 
         # Test soil moisture
+
         exp_soilm_setup = fixture_core_components.layer_structure.from_template()
+        soil_indices = fixture_core_components.layer_structure.role_indices["all_soil"]
+        exp_soilm_setup[soil_indices] = np.array([[125], [375]])
+
         np.testing.assert_allclose(
             model.data["soil_moisture"],
             exp_soilm_setup,
@@ -247,7 +251,7 @@ def test_setup(
 
         # Test groundwater storage
         exp_groundwater = DataArray(
-            np.full((2, fixture_core_components.n_cells), 450.0),
+            np.full((2, fixture_core_components.grid.n_cells), 450.0),
             dims=("groundwater_layers", "cell_id"),
         )
         np.testing.assert_allclose(
@@ -261,38 +265,45 @@ def test_setup(
         model.update(time_index=1, seed=42)
 
         # Test 2d variables
-        soil_indices = fixture_core_components.layer_structure.role_indices["all_soil"]
-
         expected_2d = {
             "soil_moisture": [
-                [67.0621, 67.0829, 67.05435, 67.05435],
-                [209.8470, 209.8500, 209.8491, 209.8491],
+                # [67.0621, 67.0829, 67.05435, 67.05435],
+                # [209.8470, 209.8500, 209.8491, 209.8491],
+                [27.39980532, 27.42582027, 27.41118745, 27.39885058],
+                [332.86865956, 332.86955187, 332.8695253, 332.86842804],
             ],
             "matric_potential": [
-                [-1.532961e07, -1.536408e07, -1.528976e07, -1],
-                [-1.250262e03, -1.250131e03, -1.250172e03, -1],
+                # [-1.532961e07, -1.536408e07, -1.528976e07, -1],
+                # [-1.250262e03, -1.250131e03, -1.250172e03, -1],
+                [-2.73084554e07, -2.72799538e07, -2.73203705e07, -2.73156990e07],
+                [-7.14598067e02, -7.14584359e02, -7.14584775e02, -7.14601617e02],
             ],
         }
 
-        for var in expected_2d.items():
+        for var_name, expected_vals in expected_2d.items():
             exp_var = fixture_core_components.layer_structure.from_template()
-            exp_var[soil_indices] = expected_2d[var]
+            exp_var[soil_indices] = expected_vals
 
-            np.testing.assert_allclose(model.data[var], exp_var, rtol=1e-4, atol=1e-4)
+            np.testing.assert_allclose(
+                model.data[var_name], exp_var, rtol=1e-4, atol=1e-4
+            )
 
         # Test one dimensional variables
         expected_1d = {
-            "vertical_flow": [0.69471, 0.695691, 0.695682, 0.6],
-            "total_river_discharge": [0, 20925, 42201, 0],
+            # "vertical_flow": [0.69471, 0.695691, 0.695682, 0.6],
+            "vertical_flow": [0.57040329, 0.5709112, 0.57090678, 0.57026227],
+            # "total_river_discharge": [0, 20925, 42201, 0],
+            "total_river_discharge": [0, 0, 63153, 20925],
             "surface_runoff": [0, 0, 0, 0],
             "surface_runoff_accumulated": [0, 0, 0, 0],
-            "soil_evaporation": [345.1148, 344.759928, 345.15422, 345.15422],
+            # "soil_evaporation": [345.1148, 344.759928, 345.15422, 345.15422],
+            "soil_evaporation": [287.6170083, 287.19527165, 287.40854562, 287.64586797],
         }
 
-        for var in expected_1d.items():
+        for var_name, expected_vals in expected_1d.items():
             np.testing.assert_allclose(
-                model.data[var],
-                expected_1d[var],
+                model.data[var_name],
+                expected_vals,
                 rtol=1e-4,
                 atol=1e-4,
             )
