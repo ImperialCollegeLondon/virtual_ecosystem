@@ -180,6 +180,7 @@ class TestFunctionalGroup:
         assert func_group.diet == DietType(diet)
         assert func_group.metabolic_type == MetabolicType(metabolic_type)
         assert func_group.reproductive_type == ReproductiveType(reproductive_type)
+        assert func_group.offspring_functional_group == offspring_functional_group
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
