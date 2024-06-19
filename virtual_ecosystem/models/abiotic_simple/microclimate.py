@@ -108,17 +108,18 @@ def run_microclimate(
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
-    # VIVI: the previous code implied this should only be filled for atmospheric roles,
-    # but that didn't happen.
+    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_pressure"] = layer_structure.from_template()
-    output["atmospheric_pressure"][:] = data["atmospheric_pressure_ref"].isel(
-        time_index=time_index
-    )
+    output["atmospheric_pressure"][layer_structure.role_indices["atmosphere"]] = data[
+        "atmospheric_pressure_ref"
+    ].isel(time_index=time_index)
 
     # Mean atmospheric C02 profile, [ppm]
-    # VIVI: This had a non varying time index
+    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_co2"] = layer_structure.from_template()
-    output["atmospheric_co2"] = data["atmospheric_co2_ref"].isel(time_index=time_index)
+    output["atmospheric_co2"][layer_structure.role_indices["atmosphere"]] = data[
+        "atmospheric_co2_ref"
+    ].isel(time_index=time_index)
 
     # Calculate soil temperatures
     lower, upper = getattr(bounds, "soil_temperature")
