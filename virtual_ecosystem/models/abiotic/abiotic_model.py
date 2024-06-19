@@ -151,22 +151,10 @@ class AbioticModel(
             .dropna(dim="layers", how="all")
             .indexes["layers"]
         )
-        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
+        topsoil_layer_index = self.layer_structure.role_indices["topsoil"].item()
 
         # create soil temperature array
-        self.data["soil_temperature"] = DataArray(
-            np.full(
-                (self.layer_structure.n_layers, self.data.grid.n_cells),
-                np.nan,
-            ),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, self.layer_structure.n_layers),
-                "layer_roles": ("layers", self.layer_structure.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
+        self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # Calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
@@ -268,7 +256,7 @@ class AbioticModel(
         )
         true_canopy_layers_n = len(true_canopy_indexes)
         empty_canopy_layers = self.layer_structure.canopy_layers - true_canopy_layers_n
-        topsoil_layer_index = self.layer_structure.layer_roles.index("soil")
+        topsoil_layer_index = self.layer_structure.role_indices["topsoil"].item()
         true_aboveground_rows = list(range(0, true_canopy_layers_n + 1)) + list(
             range(
                 true_canopy_layers_n + empty_canopy_layers + 1,
@@ -336,7 +324,7 @@ class AbioticModel(
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
             data=self.data,
             time_index=time_index,
-            topsoil_layer_index=topsoil_layer_index,
+            layer_structure=self.layer_structure,
             update_interval=43200,  # TODO self.model_timing.update_interval
             abiotic_consts=self.model_constants,
             core_consts=self.core_constants,
