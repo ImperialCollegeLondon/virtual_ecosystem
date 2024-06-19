@@ -93,7 +93,10 @@ def test_setup_hydrology_input_current_timestep(
 
 @pytest.mark.parametrize(
     argnames="init_soilm, expected",
-    argvalues=(pytest.param(0.5, np.array([[125], [375]]), id="scalar_init_soilm"),),
+    argvalues=(
+        pytest.param(0.5, np.array([[250], [250]]), id="scalar_init_soilm"),
+        # pytest.param(0.5, np.array([[125], [375]]), id="scalar_init_soilm"),
+    ),
 )
 def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expected):
     """Test soil moisture is initialised correctly."""

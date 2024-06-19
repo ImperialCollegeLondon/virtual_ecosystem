@@ -104,7 +104,7 @@ def fixture_config():
 
         [core.layers]
         canopy_layers = 10
-        soil_layers = [-0.25, -1.0]
+        soil_layers = [-0.5, -1.0]
         above_canopy_height_offset = 2.0
         surface_layer_height = 0.1
 
