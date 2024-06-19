@@ -665,16 +665,11 @@ class HydrologyModel(
 
         # Return mean soil moisture, [-], and matric potential, [kPa], and add
         # atmospheric layers (nan)
+        soil_indices = self.layer_structure.role_indices["all_soil"]
         for var in ["soil_moisture", "matric_potential"]:
-            soil_hydrology[var] = DataArray(
-                np.concatenate(
-                    (
-                        self.nan_fill_atmosphere,
-                        np.mean(np.stack(daily_lists[var], axis=0), axis=0),
-                    ),
-                ),
-                dims=self.data["layer_heights"].dims,
-                coords=self.data["layer_heights"].coords,
+            soil_hydrology[var] = self.layer_structure.from_template()
+            soil_hydrology[var][soil_indices] = np.mean(
+                np.stack(daily_lists[var], axis=0), axis=0
             )
 
         # Save last state of groundwater stoage, [mm]
