@@ -146,12 +146,6 @@ class HydrologyModel(
         )
         """Soil layer thickness in mm."""
 
-        non_soil_layers = self.layer_structure.n_layers - len(
-            self.layer_structure.soil_layers
-        )
-        self.nan_fill_atmosphere = np.full((non_soil_layers, self.grid.n_cells), np.nan)
-        """Array of nan representing non-soil layers."""
-
         # Select abovegroud layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
         self.surface_layer_index: int = self.layer_structure.role_indices["surface"]
