@@ -15,9 +15,7 @@ TODO processes
 
 TODO time step and model structure
 
-    * Move calculation of static arrays and selection of indices to LayerStructure
     * find a way to load daily (precipitation) data and loop over daily time_index
-    * add time dimension to required_init_vars
     * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
     * add abiotic constants from config
@@ -25,7 +23,6 @@ TODO time step and model structure
 TODO units and module coordination
 
     * change temperature to Kelvin
-    * change soil moisture to mm
 
 """  # noqa: D205
 
@@ -135,7 +132,7 @@ class HydrologyModel(
         """Set of constants for the hydrology model"""
         self.core_constants = core_components.core_constants
         """Set of core constants for the hydrology model"""
-        self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
+        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
             grid=self.data.grid,
@@ -152,10 +149,13 @@ class HydrologyModel(
         non_soil_layers = self.layer_structure.n_layers - len(
             self.layer_structure.soil_layers
         )
-        self.nan_fill_atmosphere = np.full(
-            (non_soil_layers, self.data.grid.n_cells), np.nan
-        )
+        self.nan_fill_atmosphere = np.full((non_soil_layers, self.grid.n_cells), np.nan)
         """Array of nan representing non-soil layers."""
+
+        # Select abovegroud layer for surface evaporation calculation
+        # TODO this needs to be replaced with 2m above ground value
+        self.surface_layer_index: int = self.layer_structure.role_indices["surface"]
+        """Surface layer index."""
 
     @classmethod
     def from_config(
@@ -199,7 +199,7 @@ class HydrologyModel(
 
         At the moment, this function initializes variables that are required to run the
         first update(). Air temperature, relative humidity, atmospheric pressure, and
-        wind speed below the canopy are set to the 2 m reference values.
+        wind speed below the canopy are set to the reference values 2m above canopy.
 
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
@@ -227,12 +227,13 @@ class HydrologyModel(
             * self.model_constants.groundwater_capacity
         )
         self.data["groundwater_storage"] = DataArray(
-            np.full((2, self.data.grid.n_cells), initial_groundwater_storage),
+            np.full((2, self.grid.n_cells), initial_groundwater_storage),
             dims=("groundwater_layers", "cell_id"),
             name="groundwater_storage",
         )
 
         # Create subcanopy microclimate from reference height
+        # TODO currently surface layer, needs to be replaced with 2m above ground
         for var in [
             "air_temperature",
             "relative_humidity",
@@ -245,9 +246,9 @@ class HydrologyModel(
                 .rename(var)
                 .assign_coords(
                     coords={
-                        "layers": [self.subcanopy_layer_index],
-                        "layer_roles": ("layers", ["subcanopy"]),
-                        "cell_id": self.data.grid.cell_id,
+                        "layers": self.surface_layer_index,
+                        "layer_roles": ("layers", ["surface"]),
+                        "cell_id": self.grid.cell_id,
                     },
                 )
             )
@@ -258,7 +259,7 @@ class HydrologyModel(
                 np.zeros_like(self.data["elevation"]),
                 dims="cell_id",
                 name=var,
-                coords={"cell_id": self.data.grid.cell_id},
+                coords={"cell_id": self.grid.cell_id},
             )
 
     def spinup(self) -> None:
@@ -380,7 +381,7 @@ class HydrologyModel(
             days=days,
             seed=seed,
             layer_structure=self.layer_structure,
-            soil_layer_thickness=self.soil_layer_thickness_mm,
+            soil_layer_thickness_mm=self.soil_layer_thickness_mm,
             soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
@@ -413,7 +414,6 @@ class HydrologyModel(
                 top_soil_moisture=hydro_input["soil_moisture_mm"][0],
                 top_soil_moisture_capacity=hydro_input["top_soil_moisture_capacity_mm"],
             )
-
             daily_lists["surface_runoff"].append(surface_runoff)
 
             # Calculate preferential bypass flow, [mm]
@@ -440,28 +440,29 @@ class HydrologyModel(
             ).squeeze()
 
             # Prepare inputs for soil evaporation function
+            # TODO currently surface layer, needs to be replaced with 2m above ground
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / self.soil_layer_thickness_mm[0]
             )
             latent_heat_vapourisation = (
-                hydro_input["latent_heat_vapourisation"][self.subcanopy_layer_index]
+                hydro_input["latent_heat_vapourisation"][self.surface_layer_index]
                 / 1000.0
             )
             density_air_kg = (
-                hydro_input["molar_density_air"][self.subcanopy_layer_index]
+                hydro_input["molar_density_air"][self.surface_layer_index]
                 * self.core_constants.molecular_weight_air
                 / 1000.0
             )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
-                temperature=hydro_input["subcanopy_temperature"],
-                relative_humidity=hydro_input["subcanopy_humidity"],
-                atmospheric_pressure=hydro_input["subcanopy_pressure"],
+                temperature=hydro_input["surface_temperature"],
+                relative_humidity=hydro_input["surface_humidity"],
+                atmospheric_pressure=hydro_input["surface_pressure"],
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.model_constants.soil_moisture_residual,
                 soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
-                wind_speed_surface=hydro_input["subcanopy_wind_speed"],
+                wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
                 density_air=density_air_kg,
                 latent_heat_vapourisation=latent_heat_vapourisation,
@@ -604,7 +605,7 @@ class HydrologyModel(
             # Convert total discharge to river discharge rate, [m3 s-1]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
                 river_discharge_mm=total_river_discharge,
-                area=self.data.grid.cell_area,
+                area=self.grid.cell_area,
                 days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
                 meters_to_millimeters=self.core_constants.meters_to_mm,
@@ -646,20 +647,20 @@ class HydrologyModel(
             soil_hydrology[var] = DataArray(
                 np.sum(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",
-                coords={"cell_id": self.data.grid.cell_id},
+                coords={"cell_id": self.grid.cell_id},
             )
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
             dims="cell_id",
-            coords={"cell_id": self.data.grid.cell_id},
+            coords={"cell_id": self.grid.cell_id},
         )
 
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",
-                coords={"cell_id": self.data.grid.cell_id},
+                coords={"cell_id": self.grid.cell_id},
             )
 
         # Return mean soil moisture, [-], and matric potential, [kPa], and add

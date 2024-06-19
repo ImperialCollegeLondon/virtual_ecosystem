@@ -11,30 +11,13 @@ from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.hydrology import above_ground
 
 
-def calculate_layer_thickness(
-    soil_layer_heights: NDArray[np.float32],
-    meters_to_mm: float,
-) -> NDArray[np.float32]:
-    """Calculate layer thickness from soil layer depth profile.
-
-    Args:
-        soil_layer_heights: Soil layer heights, [m]
-        meters_to_mm: Meter to millimeter conversion factor
-
-    Returns:
-        Soil layer thickness, [mm]
-    """
-
-    return np.diff(soil_layer_heights, axis=0, prepend=0) * (-meters_to_mm)
-
-
 def setup_hydrology_input_current_timestep(
     data: Data,
     time_index: int,
     days: int,
     seed: None | int,
     layer_structure: LayerStructure,
-    soil_layer_thickness: NDArray[np.float32],
+    soil_layer_thickness_mm: NDArray[np.float32],
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     core_constants: CoreConsts,
@@ -47,10 +30,10 @@ def setup_hydrology_input_current_timestep(
     * latent_heat_vapourisation
     * molar_density_air
     * current_precipitation
-    * subcanopy_temperature
-    * subcanopy_humidity
-    * subcanopy_pressure
-    * subcanopy_wind_speed
+    * surface_temperature (TODO switch to subcanopy_temperature)
+    * surface_humidity (TODO switch to subcanopy_humidity)
+    * surface_pressure (TODO switch to subcanopy_pressure)
+    * surface_wind_speed (TODO switch to subcanopy_wind_speed)
     * leaf_area_index_sum
     * current_evapotranspiration
     * soil_layer_heights
@@ -69,13 +52,12 @@ def setup_hydrology_input_current_timestep(
         days: Number of days in core time step
         seed: Seed for random rainfall generator
         layer_structure: The LayerStructure instance for a simulation.
-        soil_layer_thickness: The thickness of the soil layer (mm)
+        soil_layer_thickness_mm: The thickness of the soil layer, [mm]
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants share across all models
         latent_heat_vap_equ_factors: Factors in calculation of latent heat of
             vapourisation.
-
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -83,7 +65,7 @@ def setup_hydrology_input_current_timestep(
 
     output = {}
 
-    # Calculate latent heat of vapourisation and density of air
+    # Calculate latent heat of vapourisation and density of air for all layers
     latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
         temperature=data["air_temperature"].to_numpy(),
         celsius_to_kelvin=core_constants.zero_Celsius,
@@ -107,16 +89,16 @@ def setup_hydrology_input_current_timestep(
         seed=seed,
     )
 
-    # VIVI: these to go?
-    # for out_var, in_var in (
-    #     ("subcanopy_temperature", "air_temperature"),
-    #     ("subcanopy_humidity", "relative_humidity"),
-    #     ("subcanopy_wind_speed", "wind_speed"),
-    #     ("subcanopy_pressure", "atmospheric_pressure"),
-    # ):
-    #     output[out_var] = (
-    #         data[in_var].isel(layers=layer_roles.index("subcanopy")).to_numpy()
-    #     )
+    # named 'surface_...' for now TODO needs to be replaced with 2m above ground
+    for out_var, in_var in (
+        ("surface_temperature", "air_temperature"),
+        ("surface_humidity", "relative_humidity"),
+        ("surface_wind_speed", "wind_speed"),
+        ("surface_pressure", "atmospheric_pressure"),
+    ):
+        output[out_var] = (
+            data[in_var].isel(layers=layer_structure.role_indices["surface"]).to_numpy()
+        )
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
@@ -129,10 +111,10 @@ def setup_hydrology_input_current_timestep(
     #         profile is axis 0) that needs fixing.
     # VIVI: I think this is implicit order is now baked in?
     output["top_soil_moisture_capacity_mm"] = (
-        soil_moisture_capacity * layer_structure.soil_layer_thickness[0]
+        soil_moisture_capacity * soil_layer_thickness_mm[0]
     )
     output["top_soil_moisture_residual_mm"] = (
-        soil_moisture_residual * layer_structure.soil_layer_thickness[0]
+        soil_moisture_residual * soil_layer_thickness_mm[0]
     )
     output["soil_moisture_mm"] = (  # drop above ground layers
         data["soil_moisture"][layer_structure.role_indices["all_soil"]]
@@ -170,7 +152,7 @@ def initialise_soil_moisture_mm(
     # Create a data array filled with initial soil moisture values for all soil layers
     # and np.nan for atmosphere layers
 
-    soil_moisture = layer_structure.from_template("soil_moisture")
+    soil_moisture = layer_structure.from_template(name="soil_moisture")
 
     # The layer_structure.soil_layer_thickness is an np.array so as long as initial soil
     # moisture is either a scalar or an np array of similar length, this will broadcast

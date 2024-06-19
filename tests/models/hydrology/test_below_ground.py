@@ -90,9 +90,7 @@ def test_convert_soil_moisture_to_water_potential():
         convert_soil_moisture_to_water_potential,
     )
 
-    expected_potentials = np.array(
-        [-198467.26813379, -198467.26813379, -198467.26813379]
-    )
+    expected_potentials = np.repeat(-198467.26813379, 3)
     actual_potentials = convert_soil_moisture_to_water_potential(
         soil_moisture=np.repeat(0.2, 3),
         air_entry_water_potential=HydroConsts.air_entry_water_potential,
