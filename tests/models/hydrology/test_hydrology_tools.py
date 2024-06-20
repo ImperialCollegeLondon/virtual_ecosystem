@@ -32,28 +32,21 @@ def test_setup_hydrology_input_current_timestep(
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
+        "latent_heat_vapourisation",
+        "molar_density_air",
         "current_precipitation",
-        # "subcanopy_temperature",
-        # "subcanopy_humidity",
-        # "subcanopy_pressure",
-        # "subcanopy_wind_speed",
         "surface_temperature",
         "surface_humidity",
         "surface_pressure",
         "surface_wind_speed",
         "leaf_area_index_sum",
         "current_evapotranspiration",
-        # "soil_layer_heights",
-        # "soil_layer_thickness",
         "top_soil_moisture_capacity_mm",
         "top_soil_moisture_residual_mm",
-        # "soil_moisture_true",
         "previous_accumulated_runoff",
         "previous_subsurface_flow_accumulated",
         "groundwater_storage",
         "soil_moisture_mm",
-        "latent_heat_vapourisation",
-        "molar_density_air",
     ]
 
     assert set(result.keys()) == set(var_list)
@@ -63,27 +56,21 @@ def test_setup_hydrology_input_current_timestep(
         np.sum(result["current_precipitation"], axis=1),
         (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
     )
+    # Get the surface layer index as an integer to extract a 1D slice
+    surface_idx = fixture_core_components.layer_structure.role_indices["surface"].item()
     np.testing.assert_allclose(
         result["surface_temperature"],
-        dummy_climate_data["air_temperature"]
-        .isel(layers=fixture_core_components.layer_structure.role_indices["surface"])
-        .squeeze(),
+        dummy_climate_data["air_temperature"][surface_idx],
     )
     np.testing.assert_allclose(
         result["surface_humidity"],
-        dummy_climate_data["relative_humidity"]
-        .isel(layers=fixture_core_components.layer_structure.role_indices["surface"])
-        .squeeze(),
+        dummy_climate_data["relative_humidity"][surface_idx],
     )
     # The reference data is a time series with cell id in axis 0, the result has cell_id
-    # on axis 1, so need to extract as 2d and rotate to match.
+    # on axis 1, so need to extract from the second axis
     np.testing.assert_allclose(
         result["surface_pressure"],
-        dummy_climate_data["atmospheric_pressure_ref"]
-        .isel(time_index=[0])
-        .squeeze()
-        .to_numpy()
-        .T,
+        dummy_climate_data["atmospheric_pressure_ref"][:, 0].to_numpy(),
     )
     np.testing.assert_allclose(
         result["soil_moisture_mm"],
@@ -93,10 +80,7 @@ def test_setup_hydrology_input_current_timestep(
 
 @pytest.mark.parametrize(
     argnames="init_soilm, expected",
-    argvalues=(
-        pytest.param(0.5, np.array([[250], [250]]), id="scalar_init_soilm"),
-        # pytest.param(0.5, np.array([[125], [375]]), id="scalar_init_soilm"),
-    ),
+    argvalues=(pytest.param(0.5, np.array([[250], [250]]), id="scalar_init_soilm"),),
 )
 def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expected):
     """Test soil moisture is initialised correctly."""

@@ -99,7 +99,7 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
         assert model.initial_soil_moisture == ini_soil_moisture
         assert model.initial_groundwater_saturation == ini_groundwater_sat
-        # VIVI - not sure about the value below.
+        # TODO - not sure about the value below, test with more expansive drainage maps
         assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
 
     # Final check that expected logging entries are produced
@@ -240,7 +240,7 @@ def test_setup(
 
         exp_soilm_setup = fixture_core_components.layer_structure.from_template()
         soil_indices = fixture_core_components.layer_structure.role_indices["all_soil"]
-        exp_soilm_setup[soil_indices] = np.array([[250], [250]])  # [[125], [375]]
+        exp_soilm_setup[soil_indices] = np.array([[250], [250]])
 
         np.testing.assert_allclose(
             model.data["soil_moisture"],
@@ -269,14 +269,10 @@ def test_setup(
             "soil_moisture": [
                 [67.0621, 67.0829, 67.05435, 67.04017],
                 [209.8470, 209.8500, 209.8491, 209.8467],
-                # [27.39980532, 27.42582027, 27.41118745, 27.39885058],
-                # [332.86865956, 332.86955187, 332.8695253, 332.86842804],
             ],
             "matric_potential": [
                 [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
                 [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
-                # [-2.73084554e07, -2.72799538e07, -2.73203705e07, -2.73156990e07],
-                # [-7.14598067e02, -7.14584359e02, -7.14584775e02, -7.14601617e02],
             ],
         }
 
@@ -291,13 +287,10 @@ def test_setup(
         # Test one dimensional variables
         expected_1d = {
             "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
-            # "vertical_flow": [0.57040329, 0.5709112, 0.57090678, 0.57026227],
             "total_river_discharge": [0, 0, 63361, 20925],
-            # "total_river_discharge": [    0,     0, 63153, 20925]
             "surface_runoff": [0, 0, 0, 0],
             "surface_runoff_accumulated": [0, 0, 0, 0],
             "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
-            # "soil_evaporation": [287.6170083, 287.19527165, 287.40854562, 287.64586797],
         }
 
         for var_name, expected_vals in expected_1d.items():

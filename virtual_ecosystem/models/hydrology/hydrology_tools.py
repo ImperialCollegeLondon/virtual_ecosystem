@@ -36,14 +36,12 @@ def setup_hydrology_input_current_timestep(
     * surface_wind_speed (TODO switch to subcanopy_wind_speed)
     * leaf_area_index_sum
     * current_evapotranspiration
-    * soil_layer_heights
-    * soil_layer_thickness
     * top_soil_moisture_capacity_mm
     * top_soil_moisture_residual_mm
-    * soil_moisture_true (no above ground layers)
     * previous_accumulated_runoff
     * previous_subsurface_flow_accumulated
     * groundwater_storage
+    * soil moisture
 
     Args:
         data: Data object that contains inputs from the microclimate model, the plant
@@ -90,18 +88,16 @@ def setup_hydrology_input_current_timestep(
     )
 
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
-    # VIVI - these variables are explicitly 1 dimensional for a single layer. They come
-    # out of the subset as 2D (1, n_cells) and so I've squeezed them.
-    # squeezed them
+    # We explicitly get a scalar index for the surface layer to extract the values as a
+    # 1D array of grid cells and not a 2D array with a singleton layer dimension.
+    surface_index = layer_structure.role_indices["surface"].item()
     for out_var, in_var in (
         ("surface_temperature", "air_temperature"),
         ("surface_humidity", "relative_humidity"),
         ("surface_wind_speed", "wind_speed"),
         ("surface_pressure", "atmospheric_pressure"),
     ):
-        output[out_var] = (
-            data[in_var][layer_structure.role_indices["surface"]].to_numpy().squeeze()
-        )
+        output[out_var] = data[in_var][surface_index].to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
@@ -110,9 +106,6 @@ def setup_hydrology_input_current_timestep(
     ).to_numpy()
 
     # Select soil variables
-    # FIXME - there's an implicit axis order built into these calculations (vertical
-    #         profile is axis 0) that needs fixing.
-    # VIVI: I think this is implicit order is now baked in?
     output["top_soil_moisture_capacity_mm"] = (
         soil_moisture_capacity * soil_layer_thickness_mm[0]
     )
