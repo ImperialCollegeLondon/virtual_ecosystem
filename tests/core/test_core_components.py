@@ -139,8 +139,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             0.25,
             does_not_raise(),
             dict(
-                canopy_layers=10,
-                soil_layers=np.array([-0.25, -1.0]),
+                n_canopy_layers=10,
+                soil_layer_depth=np.array([-0.25, -1.0]),
                 offset_height=2.0,
                 surface_height=0.1,
                 layer_roles=DEFAULT_CANOPY,
@@ -170,8 +170,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             0.25,
             does_not_raise(),
             dict(
-                canopy_layers=3,
-                soil_layers=np.array([-0.1, -0.5, -0.9]),
+                n_canopy_layers=3,
+                soil_layer_depth=np.array([-0.1, -0.5, -0.9]),
                 offset_height=1.5,
                 surface_height=0.2,
                 layer_roles=ALTERNATE_CANOPY,
@@ -201,8 +201,8 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             0.45,
             does_not_raise(),
             dict(
-                canopy_layers=3,
-                soil_layers=np.array(
+                n_canopy_layers=3,
+                soil_layer_depth=np.array(
                     [-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]
                 ),
                 offset_height=1.5,
@@ -258,7 +258,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         ),
     ],
 )
-def test_LayerStructure(
+def test_LayerStructure_init(
     caplog, config_string, max_active_depth, raises, expected_values, expected_log
 ):
     """Test the creation and error handling of LayerStructure."""
@@ -275,10 +275,12 @@ def test_LayerStructure(
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
 
     if isinstance(raises, does_not_raise):
-        # Check the main properties
-        assert layer_structure.canopy_layers == expected_values["canopy_layers"]
+        # Check the simple properties
+        assert layer_structure.n_canopy_layers == expected_values["n_canopy_layers"]
         assert np.all(
-            np.equal(layer_structure.soil_layers, expected_values["soil_layers"])
+            np.equal(
+                layer_structure.soil_layer_depth, expected_values["soil_layer_depth"]
+            )
         )
         assert (
             layer_structure.above_canopy_height_offset
@@ -288,25 +290,6 @@ def test_LayerStructure(
         assert np.all(
             np.equal(layer_structure.layer_roles, expected_values["layer_roles"])
         )
-        assert (
-            layer_structure.role_indices.keys()
-            == expected_values["layer_indices"].keys()
-        )
-        for ky in layer_structure.role_indices.keys():
-            # Do the integer indices match
-            assert np.all(
-                np.equal(
-                    layer_structure.role_indices[ky],
-                    expected_values["layer_indices"][ky],
-                )
-            )
-            # Do the boolean indices match
-            assert np.all(
-                np.equal(
-                    np.where(layer_structure.role_indices_bool[ky]),
-                    expected_values["layer_indices"][ky],
-                )
-            )
         assert np.allclose(
             layer_structure.soil_layer_thickness, expected_values["soil_thickness"]
         )
@@ -314,10 +297,32 @@ def test_LayerStructure(
             layer_structure.soil_layer_active_thickness, expected_values["soil_active"]
         )
 
+        # Check the index dictionaries - convert expected keys to frozendicts
+        exp_indices = {
+            frozenset([ky]): vl for ky, vl in expected_values["layer_indices"].items()
+        }
+
+        assert layer_structure._role_indices_int.keys() == exp_indices.keys()
+        for ky in layer_structure._role_indices_int.keys():
+            # Do the integer indices match
+            assert np.all(
+                np.equal(
+                    layer_structure._role_indices_int[ky],
+                    exp_indices[ky],
+                )
+            )
+            # Do the boolean indices match
+            assert np.all(
+                np.equal(
+                    np.where(layer_structure._role_indices_bool[ky]),
+                    exp_indices[ky],
+                )
+            )
+
         # Check the from_template data array
         template = layer_structure.from_template("a_variable")
         assert isinstance(template, DataArray)
-        assert template.shape == (layer_structure.n_layers, layer_structure.n_cells)
+        assert template.shape == (layer_structure.n_layers, layer_structure._n_cells)
         assert template.dims == ("layers", "cell_id")
         assert template.name == "a_variable"
         assert np.all(
@@ -327,7 +332,9 @@ def test_LayerStructure(
             np.equal(template["layer_roles"].to_numpy(), layer_structure.layer_roles)
         )
         assert np.all(
-            np.equal(template["cell_id"].to_numpy(), np.arange(layer_structure.n_cells))
+            np.equal(
+                template["cell_id"].to_numpy(), np.arange(layer_structure._n_cells)
+            )
         )
 
 

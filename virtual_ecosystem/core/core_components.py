@@ -160,7 +160,6 @@ class ModelTiming:
         )
 
 
-@dataclass
 class LayerStructure:
     """Simulation vertical layer structure.
 
@@ -228,37 +227,9 @@ class LayerStructure:
             the model timing.
     """
 
-    canopy_layers: int = field(init=False)
-    """The maximum number of canopy layers."""
-    soil_layers: NDArray[np.float_] = field(init=False)
-    """A list of the depths of soil layer boundaries."""
-    soil_layer_thickness: NDArray[np.float_] = field(init=False)
-    """A list of the thicknesses of soil layers."""
-    above_canopy_height_offset: float = field(init=False)
-    """The height above the canopy of the provided reference climate variables."""
-    surface_layer_height: float = field(init=False)
-    """The height above ground used to represent surface conditions."""
-    n_layers: int = field(init=False)
-    """The total number of vertical layers in the model."""
-    layer_indices: NDArray[np.int_] = field(init=False)
-    """The numeric indices of the vertical layers in the model."""
-    layer_roles: NDArray[np.str_] = field(init=False)
-    """An array of the roles of the vertical layers within the model from top to
-    bottom."""
-    role_indices_bool: dict[str, NDArray[np.bool_]] = field(init=False)
-    """A dictionary providing boolean indices of each role within the vertical layer
-    structure."""
-    role_indices: dict[str, NDArray[np.int_]] = field(init=False)
-    """A dictionary providing integer indices of each roles within the vertical layer
-    structure."""
-    config: InitVar[Config]
-    """A validated model configuration."""
-    n_cells: int
-    """The number of grid cells in the simulation."""
-    max_depth_of_microbial_activity: float
-    """The maximum depth of microbial activity (m)."""
-
-    def __post_init__(self, config: Config) -> None:
+    def __init__(
+        self, config: Config, n_cells: int, max_depth_of_microbial_activity: float
+    ) -> None:
         """Populate the ``LayerStructure`` instance.
 
         This method populates the ``LayerStructure`` attributes from the provided
@@ -266,60 +237,89 @@ class LayerStructure:
 
         Args:
             config: A Config instance.
+            n_cells: The number of grid cells in the simulation.
+            max_depth_of_microbial_activity: The maximum depth of soil microbial
+                activity (m).
         """
 
         lyr_config = config["core"]["layers"]
 
+        # This attribute is used internally but users should access it via Grid
+        self._n_cells = n_cells
+        """Number of grid cells in simulation."""
+        self.max_depth_of_microbial_activity = max_depth_of_microbial_activity
+        """The maximum soil depth of significant microbial activity."""
+
         # Validate configuration
-        self.canopy_layers = _validate_positive_integer(lyr_config["canopy_layers"])
-        self.soil_layers = np.array(_validate_soil_layers(lyr_config["soil_layers"]))
+        self.n_canopy_layers: int = _validate_positive_integer(
+            lyr_config["canopy_layers"]
+        )
+        """The maximum number of canopy layers."""
+        self.soil_layer_depth: NDArray[np.float_] = np.array(
+            _validate_soil_layers(lyr_config["soil_layers"])
+        )
+        """A list of the depths of soil layer boundaries."""
+        self.n_soil_layers: int = len(self.soil_layer_depth)
+        """The number of soil layers."""
 
         # Other heights should all be positive floats
-        for attr, value in (
-            ("above_canopy_height_offset", lyr_config["above_canopy_height_offset"]),
-            ("surface_layer_height", lyr_config["surface_layer_height"]),
-        ):
-            setattr(self, attr, _validate_positive_finite_numeric(value, attr))
+        self.above_canopy_height_offset: float = _validate_positive_finite_numeric(
+            lyr_config["above_canopy_height_offset"], "above_canopy_height_offset"
+        )
+        """The height above the canopy of the provided reference climate variables."""
+        self.surface_layer_height: float = _validate_positive_finite_numeric(
+            lyr_config["surface_layer_height"], "surface_layer_height"
+        )
+        """The height above ground used to represent surface conditions."""
 
         # Get the layer role sequence
-        self.layer_roles = np.array(
+        self.layer_roles: NDArray[np.str_] = np.array(
             ["above"]
-            + ["canopy"] * int(self.canopy_layers)
+            + ["canopy"] * self.n_canopy_layers
             + ["surface"]
             + ["topsoil"]
-            + ["subsoil"] * (len(self.soil_layers) - 1)
+            + ["subsoil"] * (self.n_soil_layers - 1)
         )
+        """An array of the role names of the vertical layers within the model from top 
+        to bottom."""
 
         # Record the number of layers and layer indices
         self.n_layers = len(self.layer_roles)
+        """The total number of vertical layers in the model."""
         self.layer_indices = np.arange(0, self.n_layers)
+        """An array of the integer indices of the vertical layers in the model."""
 
-        # Set up the various indices onto those roles
-        self.role_indices_bool = {
-            layer_role: self.layer_roles == layer_role
+        # Set up the indices onto the core roles
+        self._role_indices_bool: dict[frozenset, NDArray[np.bool_]] = {
+            frozenset([layer_role]): self.layer_roles == layer_role
             for layer_role in ("above", "canopy", "surface", "topsoil", "subsoil")
         }
-        self.role_indices = {
-            ky: np.nonzero(vl)[0] for ky, vl in self.role_indices_bool.items()
+        """A dictionary providing boolean arrays indexing the location of sets of roles
+         within the vertical layer structure."""
+        self._role_indices_int: dict[frozenset, NDArray[np.int_]] = {
+            ky: np.where(vl)[0] for ky, vl in self._role_indices_bool.items()
         }
+        """A dictionary providing integer arrays indexing the location of sets of roles
+         within the vertical layer structure."""
 
         # Add the `all_soil` and `atmospheric` indices
-        self.role_indices["all_soil"] = np.concatenate(
-            [self.role_indices["topsoil"], self.role_indices["subsoil"]]
+        self._role_indices_bool[frozenset(["all_soil"])] = np.logical_or(
+            self.get_indices("topsoil"), self.get_indices("subsoil")
         )
-        self.role_indices_bool["all_soil"] = np.logical_or(
-            self.role_indices_bool["topsoil"], self.role_indices_bool["subsoil"]
+        self._role_indices_int[frozenset(["all_soil"])] = np.where(
+            self.get_indices("all_soil")
+        )[0]
+
+        self._role_indices_bool[frozenset(["atmosphere"])] = np.logical_not(
+            self.get_indices("all_soil")
         )
-        self.role_indices_bool["atmosphere"] = np.logical_not(
-            self.role_indices_bool["all_soil"]
-        )
-        self.role_indices["atmosphere"] = np.where(
-            self.role_indices_bool["atmosphere"]
+        self._role_indices_int[frozenset(["atmosphere"])] = np.where(
+            self.get_indices("atmosphere")
         )[0]
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
-        if self.soil_layers[-1] > -self.max_depth_of_microbial_activity:
+        if self.soil_layer_depth[-1] > -self.max_depth_of_microbial_activity:
             to_raise = ConfigurationError(
                 "Maximum depth of soil layers is less than the maximum depth "
                 "of microbial activity"
@@ -329,7 +329,7 @@ class LayerStructure:
 
         # Generate indices and layer information for the soil layers containing
         # significant microbial activity
-        soil_layer_boundaries = np.array([0, *self.soil_layers])
+        soil_layer_boundaries = np.array([0, *self.soil_layer_depth])
         self.soil_layer_thickness = -np.diff(soil_layer_boundaries)
         self.soil_layer_active_thickness = np.clip(
             np.minimum(
@@ -340,30 +340,78 @@ class LayerStructure:
             a_max=np.inf,
         )
 
-        self.role_indices["active_soil"] = self.role_indices["all_soil"][
-            self.soil_layer_active_thickness > 0
-        ]
-        self.role_indices_bool["active_soil"] = np.array(
+        self._role_indices_bool[frozenset(["active_soil"])] = np.concatenate(
             [
-                True if v in self.role_indices["active_soil"] else False
-                for v in np.arange(self.n_layers)
+                np.repeat(False, self.n_canopy_layers + 2),
+                self.soil_layer_active_thickness > 0,
             ]
         )
+        self._role_indices_int[frozenset(["active_soil"])] = np.nonzero(
+            self.get_indices("active_soil")
+        )[0]
 
         # Create a private template data array with the simulation structure. This
         # should not be accessed directly to avoid the chance of someone modifying the
         # actual template.
         self._array_template: DataArray = DataArray(
-            np.full((self.n_layers, self.n_cells), np.nan),
+            np.full((self.n_layers, self._n_cells), np.nan),
             dims=("layers", "cell_id"),
             coords={
                 "layers": self.layer_indices,
                 "layer_roles": ("layers", self.layer_roles),
-                "cell_id": np.arange(self.n_cells),
+                "cell_id": np.arange(self._n_cells),
             },
         )
 
         LOGGER.info("Layer structure built from model configuration")
+
+    def get_indices(self, roles: str | tuple[str], as_bool: bool = True) -> NDArray:
+        """Get the indices for a role or combination of roles.
+
+        Args:
+            roles: a role name or tuple of role names
+            as_bool: sets whether indices are returned as boolean or integer arrays.
+        """
+
+        # Get the key as a frozen set
+        roles_is_str = isinstance(roles, str)
+        idx_key = frozenset([roles]) if roles_is_str else frozenset(roles)
+
+        # Get the requested index type
+        if as_bool:
+            idx_dict: dict = self._role_indices_bool
+        else:
+            idx_dict = self._role_indices_int
+
+        # Check if the key is already present
+        if idx_key in idx_dict:
+            return idx_dict[idx_key]
+
+        # If roles is a string it is simply unknown
+        if roles_is_str:
+            to_raise = ValueError(f"Unknown layer role: {roles}")
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Otherwise check for valid aggregate roles
+        roles_as_frozensets = [frozenset([v]) for v in roles]
+        unknown_roles = [
+            rl for st, rl in zip(roles_as_frozensets, roles) if st not in idx_dict
+        ]
+        if unknown_roles:
+            to_raise = ValueError(f"Unknown layer role(s): {','.join(unknown_roles)}")
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Construct aggregate indices for known roles
+        bool_index = np.logical_or.reduce(
+            tuple(self._role_indices_bool[st] for st in roles_as_frozensets)
+        )
+
+        self._role_indices_bool[idx_key] = bool_index
+        self._role_indices_int[idx_key] = np.where(bool_index)[0]
+
+        return bool_index
 
     def from_template(self, array_name: str | None = None) -> DataArray:
         """Get a DataArray with the simulation vertical structure.
