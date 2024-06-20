@@ -303,19 +303,12 @@ class LayerStructure:
          within the vertical layer structure."""
 
         # Add the `all_soil` and `atmospheric` indices
-        self._role_indices_bool[frozenset(["all_soil"])] = np.logical_or(
-            self.get_indices("topsoil"), self.get_indices("subsoil")
+        self._set_base_index(
+            "all_soil",
+            np.logical_or(self.get_indices("topsoil"), self.get_indices("subsoil")),
         )
-        self._role_indices_int[frozenset(["all_soil"])] = np.where(
-            self.get_indices("all_soil")
-        )[0]
 
-        self._role_indices_bool[frozenset(["atmosphere"])] = np.logical_not(
-            self.get_indices("all_soil")
-        )
-        self._role_indices_int[frozenset(["atmosphere"])] = np.where(
-            self.get_indices("atmosphere")
-        )[0]
+        self._set_base_index("atmosphere", ~self.get_indices("all_soil"))
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
@@ -340,15 +333,20 @@ class LayerStructure:
             a_max=np.inf,
         )
 
-        self._role_indices_bool[frozenset(["active_soil"])] = np.concatenate(
-            [
-                np.repeat(False, self.n_canopy_layers + 2),
-                self.soil_layer_active_thickness > 0,
-            ]
+        self._set_base_index(
+            "active_soil",
+            np.concatenate(
+                [
+                    np.repeat(False, self.n_canopy_layers + 2),
+                    self.soil_layer_active_thickness > 0,
+                ]
+            ),
         )
-        self._role_indices_int[frozenset(["active_soil"])] = np.nonzero(
-            self.get_indices("active_soil")
-        )[0]
+
+        # Set the default filled canopy indices and lowest filled attribute
+        self._set_base_index("filled_canopy", np.repeat(False, self.n_layers))
+        self.lowest_canopy_filled: NDArray[np.float_] = np.repeat(np.nan, self._n_cells)
+        """Integer index of the lowest filled canopy layer by grid cell"""
 
         # Create a private template data array with the simulation structure. This
         # should not be accessed directly to avoid the chance of someone modifying the
@@ -365,6 +363,51 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
+    def _set_base_index(self, name: str, bool_values: NDArray[np.bool_]) -> None:
+        """Helper method to populate the boolean and integer base indices.
+
+        Args:
+            name: the name of the base role
+            bool_values: the boolean representation of the index data.
+        """
+        index_key = frozenset([name])
+        self._role_indices_bool[index_key] = bool_values
+        self._role_indices_int[index_key] = np.nonzero(bool_values)[0]
+
+    def _set_aggregate_index(self, aggregate_index_key: frozenset) -> None:
+        """Method to validate and set an aggregate role index.
+
+        This method checks an aggregate index key (e.g. ``frozenset(['above','canopy'])
+        is made up of valid base role indices and then populates the underlying role
+        indices dictionaries with the resulting aggregate index across the base roles.
+
+        Args:
+            aggregate_index_key: a role index key containing more than one base role
+                name.
+        """
+
+        # Get list of basic roles as frozensets
+        base_index_keys = [frozenset([r]) for r in aggregate_index_key]
+
+        # Check for unknown roles
+        unknown_roles = [
+            role
+            for role, base_key in zip(aggregate_index_key, base_index_keys)
+            if base_key not in self._role_indices_bool
+        ]
+        if unknown_roles:
+            to_raise = ValueError(f"Unknown layer role(s): {','.join(unknown_roles)}")
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Construct aggregate indices for known roles
+        bool_index = np.logical_or.reduce(
+            tuple(self._role_indices_bool[role] for role in base_index_keys)
+        )
+
+        self._role_indices_bool[aggregate_index_key] = bool_index
+        self._role_indices_int[aggregate_index_key] = np.where(bool_index)[0]
+
     def get_indices(self, roles: str | tuple[str], as_bool: bool = True) -> NDArray:
         """Get the indices for a role or combination of roles.
 
@@ -375,7 +418,8 @@ class LayerStructure:
 
         # Get the key as a frozen set
         roles_is_str = isinstance(roles, str)
-        idx_key = frozenset([roles]) if roles_is_str else frozenset(roles)
+        roles_as_tuple = (roles,) if roles_is_str else roles
+        idx_key = frozenset(roles_as_tuple)
 
         # Get the requested index type
         if as_bool:
@@ -393,25 +437,48 @@ class LayerStructure:
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Otherwise check for valid aggregate roles
-        roles_as_frozensets = [frozenset([v]) for v in roles]
-        unknown_roles = [
-            rl for st, rl in zip(roles_as_frozensets, roles) if st not in idx_dict
-        ]
-        if unknown_roles:
-            to_raise = ValueError(f"Unknown layer role(s): {','.join(unknown_roles)}")
+        # Otherwise try and set the aggregate role index
+        self._set_aggregate_index(aggregate_index_key=idx_key)
+
+        return idx_dict[idx_key]
+
+    def set_filled_canopy(self, canopy_heights: NDArray[np.float_]) -> None:
+        """Set the dynamic canopy indices and attributes.
+
+        The layer structure includes a fixed number of canopy layers but these layers
+        are not all necessarily occupied. This method takes an array of canopy heights
+        across the grid cells of the simulation and populates the "filled_canopy"
+        indices, which are the canopy layers that contain at least one filled canopy
+        layer. It also populates the "lowest_canopy_filled" attribute.
+
+        Args:
+            canopy_heights: A n_canopy_layers by n_grid_cells array of canopy layer
+                heights.
+        """
+
+        if canopy_heights.shape != (self.n_canopy_layers, self._n_cells):
+            to_raise = ValueError("canopy_heights array has wrong dimensions.")
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Construct aggregate indices for known roles
-        bool_index = np.logical_or.reduce(
-            tuple(self._role_indices_bool[st] for st in roles_as_frozensets)
+        # Set the filled canopy role index
+        canopy_present = ~np.isnan(canopy_heights)
+        filled_canopy_bool = np.repeat(False, self.n_layers)
+        filled_canopy_bool[1 : (self.n_canopy_layers + 1)] = np.any(
+            canopy_present, axis=1
         )
+        self._set_base_index("filled_canopy", filled_canopy_bool)
 
-        self._role_indices_bool[idx_key] = bool_index
-        self._role_indices_int[idx_key] = np.where(bool_index)[0]
+        # Set the lowest filled attribute
+        lowest_filled = np.nansum(canopy_present, axis=0)
+        self.lowest_canopy_filled = np.where(lowest_filled > 0, lowest_filled, np.nan)
 
-        return bool_index
+        # Reset any aggregate index keys that use the filled canopy role, on the grounds
+        # that they have already been requested once and are probably going to be
+        # required again.
+        for index_key in self._role_indices_bool.keys():
+            if "filled_canopy" in index_key and len(index_key) > 1:
+                self._set_aggregate_index(aggregate_index_key=index_key)
 
     def from_template(self, array_name: str | None = None) -> DataArray:
         """Get a DataArray with the simulation vertical structure.
