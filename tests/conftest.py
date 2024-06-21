@@ -104,7 +104,7 @@ def fixture_config():
 
         [core.layers]
         canopy_layers = 10
-        soil_layers = [-0.25, -1.0]
+        soil_layers = [-0.5, -1.0]
         above_canopy_height_offset = 2.0
         surface_layer_height = 0.1
 
@@ -321,8 +321,12 @@ def dummy_climate_data(fixture_core_components):
     data["canopy_absorption"][[1, 2, 3]] = 1.0
 
     data["layer_heights"] = from_template()
-    data["layer_heights"][[0, 1, 2, 3, 11, 12, 13]] = np.array(
-        [32.0, 30.0, 20.0, 10.0, 0.1, -0.5, -1.0]
+    data["layer_heights"][[0, 1, 2, 3, 11, 12, 13]] = np.concatenate(
+        [
+            [32.0, 30.0, 20.0, 10.0],
+            [fixture_core_components.layer_structure.surface_layer_height],
+            fixture_core_components.layer_structure.soil_layers,
+        ]
     )[:, None]
 
     # Microclimate and energy balance
