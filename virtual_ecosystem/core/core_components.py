@@ -161,12 +161,22 @@ class ModelTiming:
 
 
 class LayerStructure:
-    """Simulation vertical layer structure.
+    """Vertical layer structure of the Virtual Ecosystem.
 
-    This class defines the structure of the vertical dimension of the Virtual Ecosystem
-    from a model configuration. Four values from the ``core.layers`` configuration
-    section are used to define a set of vertical layers and their heights (or relative
-    heights): ``canopy_layers``, ``soil_layers``, ``above_canopy_height_offset`` and
+    This class defines the structure of the vertical dimension of a simulation using the
+    Virtual Ecosystem. The vertical dimension is divided into a series of layers, which
+    perform different roles. Four settings from the ``core.layers`` configuration define
+    these layers, which are arranged from the top to the bottom.
+
+    * ``above_canopy_height_offset``: this defines the height above the canopy top of
+      the first layer role ``above``, which represents the measurement height of
+      reference climate data.
+    * ``canopy_layers``: this defines the fixed number of layers with the ``canopy``
+      role. Not all of these necessarily contain canopy during a simulation as the
+      canopy structure is dynamic
+    * ``surface_layer_heights``: this defines the height above ground level of the
+      ground surface atmospheric layer
+    ``soil_layers``,  and
     ``surface_layer_height``. These values are validated and then assigned to attributes
     of this class. The ``n_layers`` and ``layer_roles`` attributes report the total
     number of layers in the vertical dimension and an array giving the vertical sequence
