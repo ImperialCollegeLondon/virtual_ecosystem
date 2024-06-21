@@ -305,8 +305,9 @@ def test_calculate_wind_canopy(dummy_climate_data_varying_canopy):
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_canopy
 
-    # VIVI - different from attenuation coefficient in the data object? Can we switch to
-    # using the fixture?
+    # TODO we want to use fixture here, but there is a conflict with expected results
+    # in conductivities (attenuation coefficient two orders of magnitude different, and
+    # test fixture does not include gradient.) FIX in separate PR.
     attenuation_coeff = np.array(
         [
             [0.12523, 0.121305, 0.183812, 0.183812],
