@@ -412,15 +412,15 @@ class HydrologyModel(
             # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
             surface_runoff = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
-                top_soil_moisture=hydro_input["soil_moisture_mm"][0],
-                top_soil_moisture_capacity=hydro_input["top_soil_moisture_capacity_mm"],
+                top_soil_moisture=hydro_input["current_soil_moisture"][0],
+                top_soil_moisture_capacity=hydro_input["top_soil_moisture_capacity"],
             )
             daily_lists["surface_runoff"].append(surface_runoff)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
-                top_soil_moisture=hydro_input["soil_moisture_mm"][0],
-                sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity_mm"],
+                top_soil_moisture=hydro_input["current_soil_moisture"][0],
+                sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity"],
                 available_water=precipitation_surface - surface_runoff,
                 infiltration_shape_parameter=(
                     self.model_constants.infiltration_shape_parameter
@@ -431,13 +431,13 @@ class HydrologyModel(
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
                 (
-                    hydro_input["soil_moisture_mm"][0]
+                    hydro_input["current_soil_moisture"][0]
                     + precipitation_surface
                     - surface_runoff
                     - bypass_flow,
                 ),
                 0,
-                hydro_input["top_soil_moisture_capacity_mm"],
+                hydro_input["top_soil_moisture_capacity"],
             ).squeeze()
 
             # Prepare inputs for soil evaporation function
@@ -489,12 +489,12 @@ class HydrologyModel(
                                 soil_moisture_infiltrated
                                 - soil_evaporation["soil_evaporation"]
                             ),
-                            hydro_input["top_soil_moisture_residual_mm"],
-                            hydro_input["top_soil_moisture_capacity_mm"],
+                            hydro_input["top_soil_moisture_residual"],
+                            hydro_input["top_soil_moisture_capacity"],
                         ),
                         axis=0,
                     ),
-                    hydro_input["soil_moisture_mm"][1:],
+                    hydro_input["current_soil_moisture"][1:],
                 )
             )
 
@@ -614,7 +614,7 @@ class HydrologyModel(
             daily_lists["river_discharge_rate"].append(river_discharge_rate)
 
             # update inputs for next day
-            hydro_input["soil_moisture_mm"] = soil_moisture_updated
+            hydro_input["current_soil_moisture"] = soil_moisture_updated
             hydro_input["groundwater_storage"] = below_ground_flow[
                 "groundwater_storage"
             ]

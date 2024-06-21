@@ -25,23 +25,30 @@ def setup_hydrology_input_current_timestep(
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
+    The hydrology model currently loops over 30 days per month. Atmospheric variables
+    near the surface are selected here and kept constant for the whole month. Daily
+    timeseries of precipitation and evapotranspiration are generated from monthly
+    values in `data` to be used in the daily loop. States of other hydrology variables
+    are selected and updated in the daily loop.
+
     The function returns a dictionary with the following variables:
 
     * latent_heat_vapourisation
     * molar_density_air
-    * current_precipitation
+
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
     * surface_pressure (TODO switch to subcanopy_pressure)
     * surface_wind_speed (TODO switch to subcanopy_wind_speed)
     * leaf_area_index_sum
+    * current_precipitation
     * current_evapotranspiration
-    * top_soil_moisture_capacity_mm
-    * top_soil_moisture_residual_mm
+    * current_soil_moisture
+    * top_soil_moisture_capacity
+    * top_soil_moisture_residual
     * previous_accumulated_runoff
     * previous_subsurface_flow_accumulated
     * groundwater_storage
-    * soil moisture
 
     Args:
         data: Data object that contains inputs from the microclimate model, the plant
@@ -59,6 +66,7 @@ def setup_hydrology_input_current_timestep(
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
+        daily loop
     """
 
     output = {}
@@ -106,13 +114,13 @@ def setup_hydrology_input_current_timestep(
     ).to_numpy()
 
     # Select soil variables
-    output["top_soil_moisture_capacity_mm"] = (
+    output["top_soil_moisture_capacity"] = (
         soil_moisture_capacity * soil_layer_thickness_mm[0]
     )
-    output["top_soil_moisture_residual_mm"] = (
+    output["top_soil_moisture_residual"] = (
         soil_moisture_residual * soil_layer_thickness_mm[0]
     )
-    output["soil_moisture_mm"] = (  # drop above ground layers
+    output["current_soil_moisture"] = (  # drop above ground layers
         data["soil_moisture"][layer_structure.role_indices["all_soil"]]
     ).to_numpy()
 

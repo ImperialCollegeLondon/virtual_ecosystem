@@ -41,12 +41,12 @@ def test_setup_hydrology_input_current_timestep(
         "surface_wind_speed",
         "leaf_area_index_sum",
         "current_evapotranspiration",
-        "top_soil_moisture_capacity_mm",
-        "top_soil_moisture_residual_mm",
+        "top_soil_moisture_capacity",
+        "top_soil_moisture_residual",
         "previous_accumulated_runoff",
         "previous_subsurface_flow_accumulated",
         "groundwater_storage",
-        "soil_moisture_mm",
+        "current_soil_moisture",
     ]
 
     assert set(result.keys()) == set(var_list)
@@ -73,7 +73,7 @@ def test_setup_hydrology_input_current_timestep(
         dummy_climate_data["atmospheric_pressure_ref"][:, 0].to_numpy(),
     )
     np.testing.assert_allclose(
-        result["soil_moisture_mm"],
+        result["current_soil_moisture"],
         DataArray(np.tile([[5], [500]], fixture_core_components.grid.n_cells)),
     )
 
