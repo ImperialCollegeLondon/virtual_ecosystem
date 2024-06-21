@@ -24,10 +24,6 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     )
 
     exp_air_cond = fixture_core_components.layer_structure.from_template()
-    # VIVI - these test values have changed from:
-    #  [3.84615385, 3.33333333, 6.66666667, np.nan]
-    #  [4.166667, 3.33333333, 6.66666667, np.nan]
-    # Don't know if this is correct - possibly different inputs?
     exp_air_cond[:] = np.repeat(
         a=[4.166667, 3.33333333, 6.66666667, np.nan], repeats=[1, 10, 1, 2]
     )[:, None]

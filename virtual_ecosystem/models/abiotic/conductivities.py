@@ -70,6 +70,8 @@ def initialise_conductivities(
     canopy and the highest canopy layer. The last (above ground) value represents
     conductivity between the ground and the lowest canopy node.
 
+    TODO account for variable layer depths
+
     Args:
         layer_structure: the model layer structure instance.
         layer_heights: layer heights, [m]
