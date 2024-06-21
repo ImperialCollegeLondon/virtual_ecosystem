@@ -188,8 +188,7 @@ class BaseModel(ABC):
         * ``model_timing``: the
           :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from
           the ``core_components`` argument.
-        * ``grid``: the
-          :class:`~virtual_ecosystem.core.core_components.Grid` instance from
+        * ``grid``: the :class:`~virtual_ecosystem.core.grid.Grid` instance from
           the ``core_components`` argument.
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from

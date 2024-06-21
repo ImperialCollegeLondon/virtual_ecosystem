@@ -164,28 +164,24 @@ class LayerStructure:
     """Vertical layer structure of the Virtual Ecosystem.
 
     This class defines the structure of the vertical dimension of a simulation using the
-    Virtual Ecosystem. The vertical dimension is divided into a series of layers, which
-    perform different roles. Four settings from the ``core.layers`` configuration define
-    these layers, which are arranged from the top to the bottom.
+    Virtual Ecosystem. The vertical dimension is divided into a series of layers,
+    ordered from above the canopy to the bottom of the soil, that perform different
+    roles in the simulation. The layers are defined using the following five
+    configuration settings from the ``[core.layers]`` section.
 
-    * ``above_canopy_height_offset``: this defines the height above the canopy top of
-      the first layer role ``above``, which represents the measurement height of
-      reference climate data.
-    * ``canopy_layers``: this defines the fixed number of layers with the ``canopy``
-      role. Not all of these necessarily contain canopy during a simulation as the
-      canopy structure is dynamic
-    * ``surface_layer_heights``: this defines the height above ground level of the
-      ground surface atmospheric layer
-    ``soil_layers``,  and
-    ``surface_layer_height``. These values are validated and then assigned to attributes
-    of this class. The ``n_layers`` and ``layer_roles`` attributes report the total
-    number of layers in the vertical dimension and an array giving the vertical sequence
-    of layer roles.
+    * ``above_canopy_height_offset``: the height above the canopy top of the first layer
+      role ``above``, which is used as the measurement height of reference climate data.
+    * ``canopy_layers``: a fixed number of layers with the ``canopy`` role. Not all of
+      these necessarily contain canopy during a simulation as the canopy structure
+      within these layers is dynamic.
+    * ``surface_layer_heights``: the height above ground level of the ground surface
+      atmospheric layer.
+    * ``soil_layers``: the number and depths of soil layers.
+    * ``max_depth_of_microbial_activity``: the depth limit of significant microbial
+      activity.
 
-    The layer structure is shown below, along with values from the default
-    configuration. All heights are in metres relative to ground level and the canopy
-    layer heights are defined dynamically by the
-    :class:`~virtual_ecosystem.models.plants.plants_model.PlantsModel`.
+    The layer structure is shown below, along with the default configured height values
+    in metres relative to ground level.
 
     .. csv-table::
         :header: "Index", "Role", "Description", "Set by", "Default"
@@ -197,44 +193,59 @@ class LayerStructure:
         10, "canopy", "Height of the last canopy layer ", "``PlantsModel``", "--"
         11, "surface", "Near surface conditions", ``surface_layer_height``, "0.1 m"
         12, "topsoil", "Top soil layer depth",  ``soil_layers``, "-0.25 m"
-        13, "subsoil", "First subsoil layer depth",  ``soil_layers``, "-1.25 m"
+        13, "subsoil", "First subsoil layer depth",  ``soil_layers``, "-1.00 m"
 
     .. role:: python(code)
         :language: python
 
-    The instance also provides the ``role_indices`` and ``role_indices_bool`` attributes
-    that provide dictionaries of array indices for the locations of each of the four
-    vertical layer roles. For example, given the example table above,
-    :python:`layer_structure.role_indices["topsoil"]` would return
-    :python:`np.array([12])` and :python:`layer_structure.role_indices_bool["topsoil"]`
-    would return :python:`np.array([False, ..., False, True, False])`.
+    .. py:current_module:: ~virtual_ecosystem.core.core_components
 
-    In addition to the main list of roles shown above, a
-    :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance also
-    provides indexing for two other sets of layers.
+    Additional Roles:
+        The following additional roles and attributes are also defined when the instance
+        is created.
 
-    1. Microbially active soil layers. These are the soil layers that fall even
-       partially above the configured `max_depth_of_microbial_activity`. The
-       `soil_layer_thickness` attribute provides the thickness of each soil layer -
-       including both top- and sub-soil layers - and the `soil_layer_active_thickness`
-       records the depth of biologically active soil within each layer. The two indexing
-       structures above then contain additional indices for `active_soil` layers, where
-       soil layer active thickness is greater than zero.
+        1. The ``active_soil`` role indicates soil layers that fall even partially above
+           the        configured `max_depth_of_microbial_activity`. The
+           `soil_layer_thickness` attribute provides the thickness of each soil layer -
+           including both top- and sub-soil layers - and the
+           `soil_layer_active_thickness` records the depth of biologically active soil
+           within each layer.
 
-    2. All soil layers. These are simply additional entries in the indexing structure
-       for `all_soil` for the combined `topsoil` and `subsoil` layers.
+        2. The ``all_soil`` role is the combination of the ``topsoil`` and ``subsoil``
+           layers.
 
-    3. Atmospheric (non-soil) layers. These are simply the layer indices from `above`
-       down to and including `surface`.
+        3. The ``atmosphere`` role is the combination of ``above``, ``canopy`` and
+           ``surface`` layers.
 
-    The instance also provides the
-    :meth:`~virtual_ecosystem.core.core_components.LayerStructure.from_template` method,
-    which returns a new empty DataArray with the standard vertical layer structure and
-    grid cell dimensions used across the Virtual Ecosystem models.
+        4. The ``filled_canopy`` role indicates canopy layers that contain any canopy
+           across all of the grid cells. Canopy layers below these layers do not contain
+           any canopy, and this is initialised to show no filled canopy layers. The
+           ``lowest_canopy_filled`` attribute contains an array showing the lowest
+           filled canopy layer in each grid cell. It contains ``np.nan`` when there is
+           no canopy in a grid cell and is initalised as an array of ``np.nan`` values.
+
+           Both of these are updated by the
+           :meth:`~virtual_ecosystem.core.core_components.LayerStructure.set_filled_canopy`
+           method, which is used to dynamically update these layer components during a
+           simulation.
+
+    Methods:
+        * :meth:`~LayerStructure.get_indices`: this returns indices across the
+          vertical layer dimension. As well as accepting single role names (e.g.
+          ``get_indices('canopy')``), this method also constructs and caches aggregate
+          indices (e.g. ``get_indices(['above','filled_canopy','surface'])``).
+
+        * :meth:`~LayerStructure.from_template`: this returns an empty DataArray with
+          the standard vertical layer structure and grid cell dimensions used across the
+          Virtual Ecosystem models.
+
+        * :meth:`~LayerStructure.set_filled_canopy`: this method is used to update the
+          ``filled_canopy`` role indices and the ``lowest_canopy_filled` attribute,
+          along with any cached aggregate indices using the ``filled_canopy`` role.
 
     Raises:
         ConfigurationError: If the configuration elements are incorrect for defining
-            the model timing.
+            the layer structure.
     """
 
     def __init__(
@@ -374,7 +385,7 @@ class LayerStructure:
         LOGGER.info("Layer structure built from model configuration")
 
     def _set_base_index(self, name: str, bool_values: NDArray[np.bool_]) -> None:
-        """Helper method to populate the boolean and integer base indices.
+        """Helper method to populate the boolean and integer indices for base roles.
 
         Args:
             name: the name of the base role
