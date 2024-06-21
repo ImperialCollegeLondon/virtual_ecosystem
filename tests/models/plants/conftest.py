@@ -78,3 +78,47 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
         core_components=fixture_core_components,
         flora=flora,
     )
+
+
+@pytest.fixture
+def fixture_canopy_layer_data():
+    """Shared canopy layer data.
+
+    The fixture supplies tuples of layer name, test values and the indices of the
+    vertical layer dimension to insert test values.
+
+    TODO: This is currently convoluted because of the way in which layer_heights is set
+    within the plants model.
+    """
+    return {
+        "layer_heights_full": (
+            "layer_heights",
+            np.array([32, 30, 20, 10, 0.1, -0.5, -1]),
+            np.array([0, 1, 2, 3, 11, 12, 13]),
+        ),
+        "layer_heights_canopy": (
+            "layer_heights",
+            np.array([32, 30, 20, 10]),
+            np.array([0, 1, 2, 3]),
+        ),
+        "leaf_area_index": (
+            "leaf_area_index",
+            np.array([1, 1, 1]),
+            np.array([1, 2, 3]),
+        ),
+        "layer_fapar": (
+            "layer_fapar",
+            np.array([0.4, 0.2, 0.1]),
+            np.array([1, 2, 3]),
+        ),
+        "layer_absorbed_irradiation": (
+            "layer_absorbed_irradiation",
+            np.array([400, 200, 100, 300]),
+            np.array([1, 2, 3, 11]),
+        ),
+        "layer_leaf_mass": (
+            "layer_leaf_mass",
+            np.array([10000, 10000, 10000]),
+            np.array([1, 2, 3]),
+        ),
+    }
