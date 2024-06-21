@@ -248,6 +248,10 @@ class AnimalConsts(ConstantsDataclass):
     """The scaling of the logistic function describing the ratio of the realised
     mortality rate to the maximum rate."""
 
+    metamorph_mortality = 0.1  # toy [unitless]
+    """The mortality proportion inflicted on a larval cohort undergoing
+    metamorphosis. """
+
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
