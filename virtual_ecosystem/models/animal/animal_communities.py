@@ -408,13 +408,8 @@ class AnimalCommunity:
         """Handle metamorphosis for all applicable cohorts in the community."""
 
         for cohort in list(self.all_animal_cohorts):
-            print(f"Processing cohort: {cohort.name}, mass: {cohort.mass_current}")
-            print(f"Development type: {cohort.functional_group.development_type}")
             if (
                 cohort.functional_group.development_type == DevelopmentType.INDIRECT
                 and (cohort.mass_current >= cohort.functional_group.adult_mass)
             ):
-                print(f"Metamorphosing cohort: {cohort.name}")
                 self.metamorphose(cohort)
-            else:
-                print(f"Skipping cohort: {cohort.name}")
