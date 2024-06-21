@@ -69,7 +69,7 @@ def initialise_conductivities(
     The first value in each output represents conductivity between the air at 2 m above
     canopy and the highest canopy layer. The last (above ground) value represents
     conductivity between the ground and the lowest canopy node.
-
+TODO account for variable layer depths
     TODO account for variable layer depths
 
     Args:
