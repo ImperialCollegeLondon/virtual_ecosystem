@@ -558,7 +558,7 @@ class TestAnimalCommunity:
 
         animal_community_instance.metamorphose(larval_cohort)
 
-        assert larval_cohort.is_alive is False
+        assert not larval_cohort.is_alive
         assert len(animal_community_instance.animal_cohorts["butterfly"]) == 1
         assert (
             animal_community_instance.animal_cohorts["butterfly"][0].individuals

@@ -368,5 +368,5 @@ def test_get_functional_group_by_name(
             get_functional_group_by_name(functional_groups, name)
     else:
         result = get_functional_group_by_name(functional_groups, name)
-        assert result.name == name
         assert isinstance(result, FunctionalGroup)
+        assert result.name == name

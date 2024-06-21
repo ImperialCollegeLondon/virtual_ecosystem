@@ -407,7 +407,7 @@ class AnimalCommunity:
     def metamorphose_community(self) -> None:
         """Handle metamorphosis for all applicable cohorts in the community."""
 
-        for cohort in list(self.all_animal_cohorts):
+        for cohort in self.all_animal_cohorts:
             if (
                 cohort.functional_group.development_type == DevelopmentType.INDIRECT
                 and (cohort.mass_current >= cohort.functional_group.adult_mass)

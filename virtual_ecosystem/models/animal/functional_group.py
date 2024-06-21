@@ -3,6 +3,8 @@ constants and rate equations used by AnimalCohorts in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
+from collections.abc import Iterable
+
 import pandas as pd
 
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -147,7 +149,7 @@ def import_functional_groups(
 
 
 def get_functional_group_by_name(
-    functional_groups: tuple[FunctionalGroup, ...], name: str
+    functional_groups: Iterable[FunctionalGroup], name: str
 ) -> FunctionalGroup:
     """Retrieve a FunctionalGroup by its name from a tuple of FunctionalGroup instances.
 
