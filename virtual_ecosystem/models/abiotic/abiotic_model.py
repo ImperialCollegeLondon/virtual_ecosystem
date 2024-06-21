@@ -140,19 +140,6 @@ class AbioticModel(
         self.data object.
         """
 
-        # TODO This selection of layers should be included in LayerStructure at the
-        # start of the simulation and updated at each time step (except topsoil index)
-        # At the moment this is duplicated in update() and other parts of the Virtual
-        # Ecosystem
-        true_canopy_indexes = (
-            self.data["leaf_area_index"][
-                self.data["leaf_area_index"]["layer_roles"] == "canopy"
-            ]
-            .dropna(dim="layers", how="all")
-            .indexes["layers"]
-        )
-        topsoil_layer_index = self.layer_structure.role_indices["topsoil"].item()
-
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
 
@@ -177,7 +164,7 @@ class AbioticModel(
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
         initial_microclimate = microclimate.run_microclimate(
             data=self.data,
-            layer_roles=self.layer_structure.layer_roles,
+            layer_structure=self.layer_structure,
             time_index=0,
             constants=self.simple_constants,
             bounds=AbioticSimpleBounds(),
@@ -188,8 +175,7 @@ class AbioticModel(
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
             layer_heights=self.data["layer_heights"],
-            true_canopy_indexes=true_canopy_indexes,
-            topsoil_layer_index=topsoil_layer_index,
+            layer_structure=self.layer_structure,
             light_extinction_coefficient=(
                 self.model_constants.light_extinction_coefficient
             ),
@@ -356,9 +342,6 @@ class AbioticModel(
         new_microclimate = energy_balance.calculate_leaf_and_air_temperature(
             data=self.data,
             time_index=time_index,
-            topsoil_layer_index=topsoil_layer_index,
-            true_canopy_indexes=true_canopy_indexes,
-            true_canopy_layers_n=true_canopy_layers_n,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             abiotic_simple_constants=self.simple_constants,

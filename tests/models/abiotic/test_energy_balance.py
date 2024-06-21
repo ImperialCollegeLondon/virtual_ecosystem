@@ -74,7 +74,7 @@ def test_calculate_slope_of_saturated_pressure_curve():
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
+def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_components):
     """Test that canopy and soil fluxes initialised correctly."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -83,7 +83,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
 
     # TODO: Occupied canopies - the plants model should populate the filled_canopies
     #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+    # filled_canopies = np.repeat([False, True, False], [1, 3, 10])
 
     result = initialise_canopy_and_soil_fluxes(
         air_temperature=dummy_climate_data["air_temperature"],
@@ -92,8 +92,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
         ),
         leaf_area_index=dummy_climate_data["leaf_area_index"],
         layer_heights=dummy_climate_data["layer_heights"],
-        true_canopy_indexes=filled_canopies,
-        topsoil_layer_index=13,
+        layer_structure=fixture_core_components.layer_structure,
         light_extinction_coefficient=0.01,
         canopy_temperature_ini_factor=0.01,
     )
@@ -114,7 +113,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data):
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 4)))
-        np.testing.assert_allclose(result[var][13].to_numpy(), np.zeros(4))
+        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros(4))
 
 
 def test_calculate_longwave_emission():
@@ -146,14 +145,11 @@ def test_calculate_leaf_and_air_temperature(
     layer_structure = fixture_core_components.layer_structure
     # TODO: Occupied canopies - the plants model should populate the filled_canopies
     #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+    # filled_canopies = np.repeat([False, True, False], [1, 3, 10])
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
-        topsoil_layer_index=layer_structure.role_indices["topsoil"],
-        true_canopy_indexes=filled_canopies,
-        true_canopy_layers_n=3,
         layer_structure=layer_structure,
         abiotic_constants=AbioticConsts(),
         abiotic_simple_constants=AbioticSimpleConsts(),
