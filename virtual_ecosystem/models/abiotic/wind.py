@@ -386,27 +386,22 @@ def calculate_wind_attenuation_coefficient(
         Wind attenuation coefficient, dimensionless
     """
 
-    intermediate_coefficient = (
-        (drag_coefficient * leaf_area_index * canopy_height)
-        / (
-            2
-            * mean_mixing_length
-            * relative_turbulence_intensity[0 : len(leaf_area_index)]
-        ),
+    # VIVI - this is operating on inputs containing all true aboveground rows. Because
+    # LAI is only defined for the canopy layers, the result of this operation is
+    # undefined for the top and bottom row and so can just be filled in rather than
+    # having to concatenate. We _could_ subset the inputs and then concatenate - those
+    # are more intuitive inputs - but handling those extra layers maintains the same
+    # calculation shape throughout the wind calculation stack.
+    attenuation_coefficient = (drag_coefficient * leaf_area_index * canopy_height) / (
+        2 * mean_mixing_length * relative_turbulence_intensity
     )
 
-    attenuation_coefficient = np.squeeze(intermediate_coefficient)
-    attenuation_coefficient_below = find_last_valid_row(attenuation_coefficient)
+    # Above the canopy is set to zero and the surface layer is set to the last valid
+    # canopy value
+    attenuation_coefficient[0] = 0
+    attenuation_coefficient[-1] = find_last_valid_row(attenuation_coefficient)
 
-    # Combine all layers; above the canopy is set to zero and below canopy layers are
-    # set to the last valid canopy value
-    return np.concatenate(
-        [
-            [np.repeat(0.0, len(mean_mixing_length))],
-            attenuation_coefficient,
-            [attenuation_coefficient_below],
-        ]
-    )
+    return attenuation_coefficient
 
 
 def wind_log_profile(
@@ -759,6 +754,10 @@ def calculate_wind_profile(
     output["relative_turbulence_intensity"] = relative_turbulence_intensity
 
     # Calculate profile of attenuation coefficients, dimensionless
+    # VIVI - This might be wildly wrong, but at the moment this is taking in the full
+    # set of true aboveground rows and then appending a row above and below. I think it
+    # should operate by taking only the canopy data (dropping two rows) and then
+    # replacing them.
     attennuation_coefficient = calculate_wind_attenuation_coefficient(
         canopy_height=canopy_height,
         leaf_area_index=leaf_area_index,

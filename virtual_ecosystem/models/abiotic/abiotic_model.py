@@ -233,33 +233,28 @@ class AbioticModel(
         # start of the simulation and updated at each time step (except topsoil index)
         # At the moment this is duplicated in setup() and other parts of the Virtual
         # Ecosystem
-        true_canopy_indexes = (
-            self.data["leaf_area_index"][
-                self.data["leaf_area_index"]["layer_roles"] == "canopy"
-            ]
-            .dropna(dim="layers", how="all")
-            .indexes["layers"]
+
+        # VIVI - have recalculated these using boolean indices
+        true_canopy_indices = np.logical_and(
+            self.layer_structure.role_indices_bool["canopy"],
+            np.any(~np.isnan(self.data["leaf_area_index"]), axis=1),
         )
-        true_canopy_layers_n = len(true_canopy_indexes)
-        empty_canopy_layers = self.layer_structure.canopy_layers - true_canopy_layers_n
-        topsoil_layer_index = self.layer_structure.role_indices["topsoil"].item()
-        true_aboveground_rows = list(range(0, true_canopy_layers_n + 1)) + list(
-            range(
-                true_canopy_layers_n + empty_canopy_layers + 1,
-                true_canopy_layers_n + empty_canopy_layers + 3,
+        true_aboveground_rows = np.logical_or.reduce(
+            (
+                self.layer_structure.role_indices_bool["above"],
+                true_canopy_indices,
+                self.layer_structure.role_indices_bool["surface"],
             )
         )
 
         # Wind profiles
-        wind_update_inputs: dict[str, DataArray] = {}
 
-        for var in ["layer_heights", "leaf_area_index", "air_temperature"]:
-            selection = (
-                self.data[var]
-                .where(self.data[var].layer_roles != "soil")
-                .dropna(dim="layers")
-            )
-            wind_update_inputs[var] = selection
+        # Reduce input variables to true above ground rows
+        # TODO: this type-ignore is because our Data interface doesn't currently accept
+        #       list[str] indices, which it should.
+        wind_update_inputs = self.data[
+            ["layer_heights", "leaf_area_index", "air_temperature"]  # type: ignore [index]
+        ].isel(layers=true_aboveground_rows)
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["layer_heights"][1].to_numpy(),
@@ -282,18 +277,13 @@ class AbioticModel(
             core_constants=self.core_constants,
         )  # TODO wind height above in constants, cross-check with LayerStructure setup
 
-        wind_output = {}
-
-        # Might make sense to store the shape and use np.full(shape, np.nan)
+        # Store 2D wind outputs using the full vertical structure
         for var in ["wind_speed", "molar_density_air", "specific_heat_air"]:
-            var_out = np.full_like(self.data["leaf_area_index"], np.nan)
-            var_out[true_aboveground_rows, :] = wind_update[var]
-            wind_output[var] = DataArray(
-                var_out,
-                dims=self.data["layer_heights"].dims,
-                coords=self.data["layer_heights"].coords,
-            )
+            var_out = self.layer_structure.from_template()
+            var_out[true_aboveground_rows] = wind_update[var]
+            self.data[var] = var_out
 
+        # Store 1D outputs by cell id
         for var in [
             "friction_velocity",
             "diabatic_correction_heat_above",
@@ -301,10 +291,9 @@ class AbioticModel(
             "diabatic_correction_heat_canopy",
             "diabatic_correction_momentum_canopy",
         ]:
-            var_out = wind_update[var]
-            wind_output[var] = DataArray(var_out, dims="cell_id")
-
-        self.data.add_from_dict(output_dict=wind_output)
+            self.data[var] = DataArray(
+                wind_update[var], coords={"cell_id": self.data["cell_id"]}
+            )
 
         # Soil energy balance
         soil_heat_balance = soil_energy_balance.calculate_soil_heat_balance(
@@ -316,24 +305,22 @@ class AbioticModel(
             core_consts=self.core_constants,
         )
 
-        soil_output = {
-            var: DataArray(
-                soil_heat_balance[var],
-                dims="cell_id",
-                coords={"cell_id": self.data.grid.cell_id},
+        # Store 1D outputs by cell id
+        for var in (
+            "soil_absorption",
+            "longwave_emission_soil",
+            "sensible_heat_flux_soil",
+            "latent_heat_flux_soil",
+            "ground_heat_flux",
+        ):
+            self.data[var] = DataArray(
+                soil_heat_balance[var], coords={"cell_id": self.data["cell_id"]}
             )
-            for var in (
-                "soil_absorption",
-                "longwave_emission_soil",
-                "sensible_heat_flux_soil",
-                "latent_heat_flux_soil",
-                "ground_heat_flux",
-            )
-        }
-        self.data["soil_temperature"][topsoil_layer_index] = soil_heat_balance[
-            "new_surface_temperature"
-        ]
-        self.data.add_from_dict(output_dict=soil_output)
+
+        # Update topsoil temperature
+        self.data["soil_temperature"][self.layer_structure.role_indices["topsoil"]] = (
+            soil_heat_balance["new_surface_temperature"]
+        )
 
         # TODO Update lower soil temperatures
 

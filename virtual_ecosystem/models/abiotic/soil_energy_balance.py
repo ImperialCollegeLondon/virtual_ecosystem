@@ -251,8 +251,12 @@ def calculate_soil_heat_balance(
 
     # Calculate longwave emission from topsoil, [W m-2]; note that this is the soil
     # temperature of the previous time step
+    # VIVI - all of the subsets extract a 2D (1, n_cells) array, and they are intended
+    # to end up as a 1D (n_cells) array in the data, so I'm using squeeze() to simplify
+    # them to 1D. Could use [0] - it's shorter and maybe more efficient, but it's less
+    # obvious?
     longwave_emission_soil = calculate_longwave_emission(
-        temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
+        temperature=data["soil_temperature"][topsoil_layer_index].to_numpy().squeeze(),
         emissivity=abiotic_consts.soil_emissivity,
         stefan_boltzmann=core_consts.stefan_boltzmann_constant,
     )
@@ -260,12 +264,18 @@ def calculate_soil_heat_balance(
 
     # Calculate sensible heat flux from soil to lowest atmosphere layer, [W m-2]
     sensible_heat_flux_soil = calculate_sensible_heat_flux_soil(
-        air_temperature_surface=(
-            data["air_temperature"][surface_layer_index].to_numpy()
-        ),
-        topsoil_temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
-        molar_density_air=data["molar_density_air"][surface_layer_index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][surface_layer_index].to_numpy(),
+        air_temperature_surface=data["air_temperature"][surface_layer_index]
+        .to_numpy()
+        .squeeze(),
+        topsoil_temperature=data["soil_temperature"][topsoil_layer_index]
+        .to_numpy()
+        .squeeze(),
+        molar_density_air=data["molar_density_air"][surface_layer_index]
+        .to_numpy()
+        .squeeze(),
+        specific_heat_air=data["specific_heat_air"][surface_layer_index]
+        .to_numpy()
+        .squeeze(),
         aerodynamic_resistance=data["aerodynamic_resistance_surface"].to_numpy(),
     )
     output["sensible_heat_flux_soil"] = sensible_heat_flux_soil
@@ -274,7 +284,7 @@ def calculate_soil_heat_balance(
     latent_heat_flux_soil = calculate_latent_heat_flux_from_soil_evaporation(
         soil_evaporation=data["soil_evaporation"].to_numpy(),
         latent_heat_vapourisation=(
-            data["latent_heat_vapourisation"][surface_layer_index].to_numpy()
+            data["latent_heat_vapourisation"][surface_layer_index].to_numpy().squeeze()
         ),
     )
     output["latent_heat_flux_soil"] = latent_heat_flux_soil
@@ -300,7 +310,9 @@ def calculate_soil_heat_balance(
 
     # Update surface temperature, [C]
     new_surface_temperature = update_surface_temperature(
-        topsoil_temperature=data["soil_temperature"][topsoil_layer_index].to_numpy(),
+        topsoil_temperature=data["soil_temperature"][topsoil_layer_index]
+        .to_numpy()
+        .squeeze(),
         surface_net_radiation=surface_net_radiation,
         surface_layer_depth=abiotic_consts.surface_layer_depth,
         grid_cell_area=data.grid.cell_area,

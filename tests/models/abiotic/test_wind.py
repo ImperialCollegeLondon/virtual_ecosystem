@@ -193,10 +193,15 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data_varying_canop
 
     # TODO: Occupied canopies - the plants model should populate the filled_canopies
     #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+
+    # VIVI - this function was being used in two ways. One with the true aboveground
+    # rows and one with only the true canopy rows, adding the rows for above and surface
+    # My updates assume the former approach, so I've updated this test to match. The
+    # results have changed.
+    true_aboveground_rows = np.repeat([True, False, True, False], [4, 7, 1, 2])
 
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        filled_canopies
+        true_aboveground_rows
     ].to_numpy()
 
     relative_turbulence_intensity = dummy_climate_data_varying_canopy[
@@ -216,13 +221,20 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data_varying_canop
     )
 
     exp_result = np.array(
+        # [
+        #     [0.0, 0.0, 0.0, 0.0],
+        #     [0.12523, 0.121305, 0.183812, 0.183812],
+        #     [0.133398, 0.129216, np.nan, np.nan],
+        #     [0.197945, np.nan, np.nan, np.nan],
+        #     # [0.197945, 0.129216, 0.183812, 0.183812],
+        #     [0.197945, 0.129216, 0.183812, 0.183812],
+        # ]
         [
             [0.0, 0.0, 0.0, 0.0],
-            [0.12523, 0.121305, 0.183812, 0.183812],
-            [0.133398, 0.129216, np.nan, np.nan],
-            [0.197945, np.nan, np.nan, np.nan],
-            # [0.197945, 0.129216, 0.183812, 0.183812],
-            [0.197945, 0.129216, 0.183812, 0.183812],
+            [0.13339771, 0.12921647, 0.19579976, 0.19579976],
+            [0.19794498, 0.19174057, np.nan, np.nan],
+            [0.3835184, np.nan, np.nan, np.nan],
+            [0.3835184, 0.19174057, 0.19579976, 0.19579976],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
@@ -343,8 +355,10 @@ def test_calculate_wind_profile(dummy_climate_data_varying_canopy):
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
+    # VIVI - same deal here. Feeding the full true aboveground rows into this, not just
+    # the true canopy rows. Seeing minor test value changes as a result.
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        [1, 2, 3]
+        [0, 1, 2, 3, 11]
     ].to_numpy()
     layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
         [0, 1, 2, 3, 11]
@@ -369,12 +383,19 @@ def test_calculate_wind_profile(dummy_climate_data_varying_canopy):
 
     friction_velocity_exp = np.array([0.012793, 0.84372, 1.811774, 1.811774])
     wind_speed_exp = np.array(
+        # [
+        #     [0.1, 3.719967, 7.722811, 7.722811],
+        #     [0.1, 3.226327, 6.915169, 6.915169],
+        #     [0.09551, 3.106107, np.nan, np.nan],
+        #     [0.087254, np.nan, np.nan, np.nan],
+        #     [0.08156, 2.880031, 6.39049, 6.39049],
+        # ]
         [
-            [0.1, 3.719967, 7.722811, 7.722811],
-            [0.1, 3.226327, 6.915169, 6.915169],
-            [0.09551, 3.106107, np.nan, np.nan],
-            [0.087254, np.nan, np.nan, np.nan],
-            [0.08156, 2.880031, 6.39049, 6.39049],
+            [0.1, 3.7199665, 7.72281114, 7.72281114],
+            [0.1, 3.22632714, 6.91516866, 6.91516866],
+            [0.09341001, 3.04955397, np.nan, np.nan],
+            [0.07678466, np.nan, np.nan, np.nan],
+            [0.06737292, 2.7260693, 6.35768904, 6.35768904],
         ]
     )
 
