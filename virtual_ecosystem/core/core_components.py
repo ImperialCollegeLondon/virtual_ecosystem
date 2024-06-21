@@ -200,16 +200,15 @@ class LayerStructure:
 
     .. py:current_module:: ~virtual_ecosystem.core.core_components
 
-    Additional Roles:
+    **Additional Roles**:
         The following additional roles and attributes are also defined when the instance
         is created.
 
         1. The ``active_soil`` role indicates soil layers that fall even partially above
-           the        configured `max_depth_of_microbial_activity`. The
-           `soil_layer_thickness` attribute provides the thickness of each soil layer -
-           including both top- and sub-soil layers - and the
-           `soil_layer_active_thickness` records the depth of biologically active soil
-           within each layer.
+           the configured `max_depth_of_microbial_activity`. The `soil_layer_thickness`
+           attribute provides the thickness of each soil layer - including both top- and
+           sub-soil layers - and the `soil_layer_active_thickness` records the depth of
+           biologically active soil within each layer.
 
         2. The ``all_soil`` role is the combination of the ``topsoil`` and ``subsoil``
            layers.
@@ -224,12 +223,21 @@ class LayerStructure:
            filled canopy layer in each grid cell. It contains ``np.nan`` when there is
            no canopy in a grid cell and is initalised as an array of ``np.nan`` values.
 
-           Both of these are updated by the
-           :meth:`~virtual_ecosystem.core.core_components.LayerStructure.set_filled_canopy`
+           Both of these are updated by the :meth:`~LayerStructure.set_filled_canopy`
            method, which is used to dynamically update these layer components during a
            simulation.
 
-    Methods:
+    **Layer indexing**:
+
+        The class contains two private attributes (``_role_indices_bool`` and
+        ``_role_indices_int``) that contain dictionaries of role indices as either
+        boolean or integer indices. These dictionaries are keyed using frozensets of
+        layer roles to allow both indicices for single roles and to add cache additional
+        user requested aggregate role indices. User access to these dictionaries is
+        through the :meth:`~LayerStructure.get_indices` method.
+
+    **Methods overview**:
+
         * :meth:`~LayerStructure.get_indices`: this returns indices across the
           vertical layer dimension. As well as accepting single role names (e.g.
           ``get_indices('canopy')``), this method also constructs and caches aggregate
