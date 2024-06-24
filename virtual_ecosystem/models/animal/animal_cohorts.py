@@ -90,8 +90,6 @@ class AnimalCohort:
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce mass_current through basal metabolism.
 
-        TODO: Implement distinction between field and basal rates.
-        TODO: Implement proportion of day active.
         TODO: clean up units
         TODO: Distinguish between uric and respiratory metabolic wastes
 
