@@ -135,6 +135,7 @@ class AnimalCohort:
         fixed once the litter pools are updated for mass.
 
         TODO: Rework after update litter pools for mass
+        TODO: update for current conversion efficiency
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
