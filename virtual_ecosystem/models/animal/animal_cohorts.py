@@ -123,7 +123,7 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(
+    def defecate(
         self,
         excrement_pool: DecayPool,
         mass_consumed: float,
@@ -523,7 +523,7 @@ class AnimalCohort:
             total_consumed_mass += actual_consumed_mass
 
         # Process waste generated from predation, separate from herbivory b/c diff waste
-        self.excrete(excrement_pool, total_consumed_mass)
+        self.defecate(excrement_pool, total_consumed_mass)
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(

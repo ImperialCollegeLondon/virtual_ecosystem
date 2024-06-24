@@ -171,7 +171,7 @@ class TestAnimalCohort:
             (0.0, 0.0, 1000.0, 1000.0, 0.0),
         ],
     )
-    def test_excrete(
+    def test_defecate(
         self,
         herbivore_cohort_instance,
         excrement_pool_instance,
@@ -181,10 +181,10 @@ class TestAnimalCohort:
         decomp_final,
         consumed_energy,
     ):
-        """Testing excrete() for varying soil energy levels."""
+        """Testing defecate() for varying soil energy levels."""
         excrement_pool_instance.scavengeable_energy = scav_initial
         excrement_pool_instance.decomposed_energy = decomp_initial
-        herbivore_cohort_instance.excrete(excrement_pool_instance, consumed_energy)
+        herbivore_cohort_instance.defecate(excrement_pool_instance, consumed_energy)
         assert excrement_pool_instance.scavengeable_energy == scav_final
         assert excrement_pool_instance.decomposed_energy == decomp_final
 
@@ -822,8 +822,8 @@ class TestAnimalCohort:
             return_value=consumed_mass,
         )
 
-        # Mock predator_cohort_instance.excrete to verify its call
-        mock_excrete = mocker.patch.object(predator_cohort_instance, "excrete")
+        # Mock predator_cohort_instance.defecate to verify its call
+        mock_defecate = mocker.patch.object(predator_cohort_instance, "defecate")
 
         total_consumed_mass = predator_cohort_instance.delta_mass_predation(
             animal_list_instance, excrement_pool_instance, carcass_pool_instance
@@ -834,8 +834,8 @@ class TestAnimalCohort:
             total_consumed_mass == expected_total_consumed_mass
         ), "Total consumed mass should match expected value."
 
-        # Ensure excrete was called with the correct total consumed mass
-        mock_excrete.assert_called_once_with(
+        # Ensure defecate was called with the correct total consumed mass
+        mock_defecate.assert_called_once_with(
             excrement_pool_instance, total_consumed_mass
         )
 
