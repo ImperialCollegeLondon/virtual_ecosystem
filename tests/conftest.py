@@ -213,7 +213,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "carnivorous_bird"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.1
     adult_mass = 1.0
     [[animal.functional_groups]]
@@ -225,7 +225,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "herbivorous_bird"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.05
     adult_mass = 0.5
     [[animal.functional_groups]]
@@ -237,7 +237,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "carnivorous_mammal"
-    excretion_typ = "ureotelic"
+    excretion_type = "ureotelic"
     birth_mass = 4.0
     adult_mass = 40.0
     [[animal.functional_groups]]
@@ -249,7 +249,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "herbivorous_mammal"
-    excretion_typ = "ureotelic"
+    excretion_type = "ureotelic"
     birth_mass = 1.0
     adult_mass = 10.0
     [[animal.functional_groups]]
@@ -261,7 +261,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "carnivorous_insect"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.001
     adult_mass = 0.01
     [[animal.functional_groups]]
@@ -273,7 +273,7 @@ def fixture_config():
     development_type = "direct"
     development_status = "adult"
     offspring_functional_group = "herbivorous_insect"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.0005
     adult_mass = 0.005
     [[animal.functional_groups]]
@@ -285,7 +285,7 @@ def fixture_config():
     development_type = "indirect"
     development_status = "adult"
     offspring_functional_group = "caterpillar"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.0005
     adult_mass = 0.005
     [[animal.functional_groups]]
@@ -297,7 +297,7 @@ def fixture_config():
     development_type = "indirect"
     development_status = "larval"
     offspring_functional_group = "butterfly"
-    excretion_typ = "uricotelic"
+    excretion_type = "uricotelic"
     birth_mass = 0.0005
     adult_mass = 0.005
     """
