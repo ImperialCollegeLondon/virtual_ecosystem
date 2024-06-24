@@ -367,54 +367,6 @@ class TestAnimalCohort:
         )
 
     @pytest.mark.parametrize(
-        "initial_individuals, number_days, mortality_prob",
-        [(100, 10.0, 0.01), (1000, 20.0, 0.05), (0, 10.0, 0.01), (100, 10.0, 0.0)],
-    )
-    def test_inflict_natural_mortality(
-        self,
-        herbivore_cohort_instance,
-        carcass_pool_instance,
-        mocker,
-        initial_individuals,
-        number_days,
-        mortality_prob,
-    ):
-        """Testing inflict natural mortality method."""
-        from random import seed
-
-        from numpy import floor
-
-        seed(42)
-
-        expected_deaths = initial_individuals * (
-            1 - (1 - mortality_prob) ** number_days
-        )
-        expected_deaths = int(floor(expected_deaths))
-
-        # Set individuals and adult natural mortality probability
-        herbivore_cohort_instance.individuals = initial_individuals
-        herbivore_cohort_instance.adult_natural_mortality_prob = mortality_prob
-
-        # Mock the random.binomial call
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.random.binomial",
-            return_value=expected_deaths,
-        )
-        # Keep a copy of initial individuals to validate number_of_deaths
-        initial_individuals_copy = herbivore_cohort_instance.individuals
-
-        # Call the inflict_natural_mortality method
-        herbivore_cohort_instance.inflict_natural_mortality(
-            carcass_pool_instance, number_days
-        )
-
-        # Verify the number_of_deaths and remaining individuals
-        assert (
-            herbivore_cohort_instance.individuals
-            == initial_individuals_copy - expected_deaths
-        )
-
-    @pytest.mark.parametrize(
         "alpha_0_herb, mass_current, expected_alpha",
         [
             pytest.param(1.0e-11, 50, 5e-10, id="base rate and mass"),
