@@ -406,7 +406,22 @@ def test_LayerStructure_get_index(
 
 
 def test_LayerStructure_set_filled_canopy():
-    """Test the set_filled_canopy_method."""
+    """Test the set_filled_canopy_method.
+
+    This test does quite a lot!
+
+    * Initialises a LayerStructure instance.
+    * Checks that the filled canopy layer information matches the expected defaults
+      - no filled layers.
+    * Calls for an aggregate role index including canopy to get the result and to cache
+      that aggregate index.
+    * Calls the `set_filled_canopy` method with a simple canopy structure with a simple
+      triangle of filled canopy layers across the 9 grid cells, so that the lowest
+      canopy layer is never filled and the ninth cell has no filled.canopy.
+    * Checks that the filled canopy layers and lowest filled canopy attributes are then
+      as expected
+    * Checks that the aggregate role index has been updated with the new canopy state.
+    """
 
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import LayerStructure
@@ -416,7 +431,7 @@ def test_LayerStructure_set_filled_canopy():
         cfg, n_cells=9, max_depth_of_microbial_activity=0.25
     )
 
-    # Check the defaults
+    # Check the empty canopy defaults are as expected.
     assert np.all(
         np.equal(np.isnan(layer_structure.lowest_canopy_filled), np.repeat(True, 9))
     )
@@ -424,7 +439,8 @@ def test_LayerStructure_set_filled_canopy():
         layer_structure.get_indices("filled_canopy", as_bool=False), np.array([])
     )
 
-    # Set an aggregate index
+    # Get an aggregate index to check the output is as expected and to cache the
+    # requested aggregate index.
     agg_roles = ["above", "filled_canopy", "surface"]
     agg_index = frozenset(agg_roles)
     agg_values = layer_structure.get_indices(agg_roles, as_bool=False)
@@ -432,7 +448,8 @@ def test_LayerStructure_set_filled_canopy():
     assert agg_index in layer_structure._role_indices_int
     assert np.all(np.equal(agg_values, np.array([0, 11])))
 
-    # Run the method
+    # Run the set_filled_canopy method to populate the filled layers and update cached
+    # indices.
     canopy_heights = np.full(
         (layer_structure.n_canopy_layers, layer_structure._n_cells), np.nan
     )
@@ -440,7 +457,7 @@ def test_LayerStructure_set_filled_canopy():
 
     layer_structure.set_filled_canopy(canopy_heights=canopy_heights)
 
-    # Check everything has been set
+    # Check the attributes have been set correctly.
     assert np.allclose(
         layer_structure.lowest_canopy_filled,
         np.concatenate([np.arange(8, 0, -1), [np.nan]]),
@@ -451,7 +468,8 @@ def test_LayerStructure_set_filled_canopy():
         layer_structure.get_indices("filled_canopy", as_bool=False), np.arange(1, 9)
     )
 
-    # Check the aggregate index has been updated automatically
+    # Check the aggregate index has been updated automatically and is retrieved cleanly
+    # by the get_indices method.
     assert agg_index in layer_structure._role_indices_int
     internal_values = layer_structure._role_indices_int[agg_index]
     assert np.all(np.equal(internal_values, np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 11])))

@@ -176,7 +176,9 @@ class LayerStructure:
       within these layers is dynamic.
     * ``surface_layer_heights``: the height above ground level of the ground surface
       atmospheric layer.
-    * ``soil_layers``: the number and depths of soil layers.
+    * ``soil_layers``: this provides the depths of the soil horizons to be used in the
+      simulation and so sets the number of soil layers and the horizon depth for each
+      layer relative to the surface.
     * ``max_depth_of_microbial_activity``: the depth limit of significant microbial
       activity.
 
@@ -207,8 +209,12 @@ class LayerStructure:
         1. The ``active_soil`` role indicates soil layers that fall even partially above
            the configured `max_depth_of_microbial_activity`. The `soil_layer_thickness`
            attribute provides the thickness of each soil layer - including both top- and
-           sub-soil layers - and the `soil_layer_active_thickness` records the depth of
-           biologically active soil within each layer.
+           sub-soil layers - and the `soil_layer_active_thickness` records the thickness
+           of biologically active soil within each layer. Note that the ``soil_layers``
+           provides the sequence of depths of soil horizons relative to the surface and
+           these values provide the thickness of individual layers: the default
+           ``soil_layers`` values of ``[-0.25, -1.00]`` give thickness values of
+           ``[0.25, 0.75]``.
 
         2. The ``all_soil`` role is the combination of the ``topsoil`` and ``subsoil``
            layers.
