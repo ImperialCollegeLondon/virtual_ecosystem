@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from math import ceil, exp, sqrt
 
-from numpy import random, timedelta64
+from numpy import timedelta64
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
@@ -80,13 +80,6 @@ class AnimalCohort:
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
-
-        self.adult_natural_mortality_prob = sf.natural_mortality_scaling(
-            self.functional_group.adult_mass, self.functional_group.longevity_scaling
-        )
-        # TODO: Distinguish between background, senesence, and starvation mortalities.
-        """The per-day probability of an individual dying to natural causes."""
-
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
@@ -696,34 +689,6 @@ class AnimalCohort:
         return (
             self.mass_current + self.reproductive_mass
         ) / self.functional_group.adult_mass < mass_threshold
-
-    def inflict_natural_mortality(
-        self, carcass_pool: CarcassPool, number_days: float
-    ) -> None:
-        """Inflicts natural mortality in a cohort.
-
-        TODO Find a more efficient structure so we aren't recalculating the
-        time_step_mortality. Probably pass through the initialized timestep size to the
-        scaling function
-
-        Args:
-            carcass_pool: The grid-local carcass pool to which the dead matter is
-                transferred.
-            number_days: Number of days over which the metabolic costs should be
-                calculated.
-
-        """
-
-        # Calculate the mortality probability for the entire time step
-        time_step_mortality_prob = (
-            1 - (1 - self.adult_natural_mortality_prob) ** number_days
-        )
-        # Draw the number of deaths from a binomial distribution
-        number_of_deaths = random.binomial(
-            n=self.individuals, p=time_step_mortality_prob
-        )
-
-        self.die_individual(number_of_deaths, carcass_pool)
 
     def migrate_juvenile_probability(self) -> float:
         """The probability that a juvenile cohort will migrate to a new grid cell.
