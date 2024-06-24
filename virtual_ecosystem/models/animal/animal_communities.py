@@ -318,20 +318,34 @@ class AnimalCommunity:
     def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
+        This method generates a total amount of metabolic waste per cohort and passes
+        that waste to handler methods for distinguishing between nitrogenous and
+        carbonaceous wastes as they need depositing in different pools. This will not
+        be fully implemented until the stoichiometric rework.
+
+        Respiration wastes are totaled because they are CO2 and not tracked spatially.
+        Excretion wastes are handled cohort by cohort because they will need to be
+        spatiallty explicit with multi-grid occupancy.
+
         Args:
             temperature: Current air temperature (K).
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
-        total_metabolic_waste = 0.0
+        total_carbonaceous_waste = 0.0
+
         for cohort in self.all_animal_cohorts:
             metabolic_waste_mass = cohort.metabolize(temperature, dt)
-            total_metabolic_waste += metabolic_waste_mass
+            total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
+            cohort.excrete(
+                metabolic_waste_mass,
+                self.excrement_pool,
+            )
 
         # Update the total_animal_respiration for this community using community_key.
 
         self.data["total_animal_respiration"].loc[{"cell_id": self.community_key}] += (
-            total_metabolic_waste
+            total_carbonaceous_waste
         )
 
     def increase_age_community(self, dt: timedelta64) -> None:
