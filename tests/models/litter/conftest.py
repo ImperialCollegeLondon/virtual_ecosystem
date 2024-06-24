@@ -13,7 +13,6 @@ def fixture_litter_model(dummy_litter_data, fixture_core_components):
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    fixture_core_components
     # Build the config object
     config = Config(
         cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"

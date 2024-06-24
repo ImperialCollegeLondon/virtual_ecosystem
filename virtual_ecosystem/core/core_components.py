@@ -344,10 +344,7 @@ class LayerStructure:
             self.soil_layer_active_thickness > 0
         ]
         self.role_indices_bool["active_soil"] = np.array(
-            [
-                True if v in self.role_indices["active_soil"] else False
-                for v in np.arange(self.n_layers)
-            ]
+            [v in self.role_indices["active_soil"] for v in np.arange(self.n_layers)]
         )
 
         # Create a private template data array with the simulation structure. This
@@ -388,7 +385,7 @@ class LayerStructure:
 def _validate_positive_integer(value: float | int) -> int:
     """Validation function for positive integer values including integer floats."""
 
-    # Note that float.is_integer() traps np.infty and np.nan, both of which are floats
+    # Note that float.is_integer() traps np.inf and np.nan, both of which are floats
     if (
         (not isinstance(value, float | int))
         or (isinstance(value, int) and value < 1)

@@ -425,7 +425,7 @@ def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
     argvalues=[
         (1, does_not_raise()),
         (1.23, does_not_raise()),
-        (np.infty, pytest.raises(ConfigurationError)),
+        (np.inf, pytest.raises(ConfigurationError)),
         (np.nan, pytest.raises(ConfigurationError)),
         (-9, pytest.raises(ConfigurationError)),
         (-9.5, pytest.raises(ConfigurationError)),
@@ -446,7 +446,7 @@ def test__validate_positive_finite_numeric(value, raises):
     argvalues=[
         (10, does_not_raise()),
         (1.23, pytest.raises(ConfigurationError)),
-        (np.infty, pytest.raises(ConfigurationError)),
+        (np.inf, pytest.raises(ConfigurationError)),
         (np.nan, pytest.raises(ConfigurationError)),
         (-9, pytest.raises(ConfigurationError)),
         (-9.5, pytest.raises(ConfigurationError)),

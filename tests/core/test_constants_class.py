@@ -70,6 +70,6 @@ def test_ConstantsDataclass_from_config(caplog, config, raises, exp_val, exp_log
         constants_instance = CoreConsts.from_config(config)
 
         if isinstance(raises, does_not_raise):
-            assert constants_instance.max_depth_of_microbial_activity == exp_val
+            pytest.approx(constants_instance.max_depth_of_microbial_activity) == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)

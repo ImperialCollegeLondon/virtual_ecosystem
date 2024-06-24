@@ -15,7 +15,7 @@ def fixture_square_grid():
 
     from virtual_ecosystem.core.grid import Grid
 
-    grid = Grid(
+    return Grid(
         grid_type="square",
         cell_area=10000,
         cell_nx=10,
@@ -23,8 +23,6 @@ def fixture_square_grid():
         xoff=500000,
         yoff=200000,
     )
-
-    return grid
 
 
 @pytest.fixture
@@ -36,7 +34,7 @@ def fixture_square_grid_simple():
 
     from virtual_ecosystem.core.grid import Grid
 
-    grid = Grid(
+    return Grid(
         grid_type="square",
         cell_area=1,
         cell_nx=2,
@@ -44,8 +42,6 @@ def fixture_square_grid_simple():
         xoff=0.5,
         yoff=0.5,
     )
-
-    return grid
 
 
 @pytest.fixture
@@ -74,7 +70,7 @@ def new_axis_validators():
         dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
-            return True if value.sum() > 10 else False
+            return (value.sum() > 10).item()
 
         def run_validation(
             self, value: DataArray, grid: Grid, **kwargs: Any
@@ -87,7 +83,7 @@ def new_axis_validators():
         dim_names = frozenset(["test"])
 
         def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
-            return True if value.sum() > 10 else False
+            return (value.sum() > 10).item()
 
         def run_validation(
             self, value: DataArray, grid: Grid, **kwargs: Any
