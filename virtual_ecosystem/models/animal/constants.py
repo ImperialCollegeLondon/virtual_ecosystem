@@ -21,12 +21,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates.
-
-    TODO: The entire constants fille will be reworked in this style after the energy to
-    mass conversion.
-
-    """
+    """Dataclass to store all constants related to metabolic rates."""
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
         default_factory=lambda: {
