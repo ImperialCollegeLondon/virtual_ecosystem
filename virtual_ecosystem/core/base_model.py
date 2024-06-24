@@ -186,17 +186,15 @@ class BaseModel(ABC):
 
         * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance,
         * ``model_timing``: the
-          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from
-          the ``core_components`` argument.
-        * ``grid``: the
-          :class:`~virtual_ecosystem.core.core_components.Grid` instance from
-          the ``core_components`` argument.
+          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from the
+          ``core_components`` argument.
+        * ``grid``: the :class:`~virtual_ecosystem.core.grid.Grid` instance from the
+          ``core_components`` argument.
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the
-          :class:`~virtual_ecosystem.core.constants.CoreConsts` instance from
-          the ``core_components`` argument.
+        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
+          instance from the ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
