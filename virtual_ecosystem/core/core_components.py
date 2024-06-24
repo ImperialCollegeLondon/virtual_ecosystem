@@ -230,9 +230,9 @@ class LayerStructure:
 
     canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layers: NDArray[np.float_] = field(init=False)
+    soil_layers: NDArray[np.float32] = field(init=False)
     """A list of the depths of soil layer boundaries."""
-    soil_layer_thickness: NDArray[np.float_] = field(init=False)
+    soil_layer_thickness: NDArray[np.float32] = field(init=False)
     """A list of the thicknesses of soil layers."""
     above_canopy_height_offset: float = field(init=False)
     """The height above the canopy of the provided reference climate variables."""
