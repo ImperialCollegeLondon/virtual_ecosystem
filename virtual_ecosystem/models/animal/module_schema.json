@@ -26,6 +26,15 @@
                             "reproductive_type": {
                                 "type": "string"
                             },
+                            "development_type": {
+                                "type": "string"
+                            },
+                            "development_status": {
+                                "type": "string"
+                            },
+                            "offspring_functional_group": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
@@ -39,6 +48,9 @@
                             "diet",
                             "metabolic_type",
                             "reproductive_type",
+                            "development_type",
+                            "development_status",
+                            "offspring_functional_group",
                             "birth_mass",
                             "adult_mass"
                         ]

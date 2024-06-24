@@ -68,6 +68,9 @@ def test_animal_model_initialization(
             diet = "carnivore"
             metabolic_type = "endothermic"
             reproductive_type = "iteroparous"
+            development_type = "direct"
+            development_status = "adult"
+            offspring_functional_group = "carnivorous_bird"
             birth_mass = 0.1
             adult_mass = 1.0
             [[animal.functional_groups]]
@@ -76,6 +79,9 @@ def test_animal_model_initialization(
             diet = "herbivore"
             metabolic_type = "endothermic"
             reproductive_type = "iteroparous"
+            development_type = "direct"
+            development_status = "adult"
+            offspring_functional_group = "herbivorous_bird"
             birth_mass = 0.05
             adult_mass = 0.5
             [[animal.functional_groups]]
@@ -84,6 +90,9 @@ def test_animal_model_initialization(
             diet = "carnivore"
             metabolic_type = "endothermic"
             reproductive_type = "iteroparous"
+            development_type = "direct"
+            development_status = "adult"
+            offspring_functional_group = "carnivorous_mammal"
             birth_mass = 4.0
             adult_mass = 40.0
             [[animal.functional_groups]]
@@ -92,6 +101,9 @@ def test_animal_model_initialization(
             diet = "herbivore"
             metabolic_type = "endothermic"
             reproductive_type = "iteroparous"
+            development_type = "direct"
+            development_status = "adult"
+            offspring_functional_group = "herbivorous_mammal"
             birth_mass = 1.0
             adult_mass = 10.0
             """,
@@ -177,6 +189,7 @@ def test_update_method_sequence(mocker, prepared_animal_model_instance):
         "forage_community",
         "migrate_community",
         "birth_community",
+        "metamorphose_community",
         "metabolize_community",
         "inflict_non_predation_mortality_community",
         "remove_dead_cohort_community",

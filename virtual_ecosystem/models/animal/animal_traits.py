@@ -33,3 +33,18 @@ class ReproductiveType(Enum):
 
     SEMELPAROUS = "semelparous"
     ITEROPAROUS = "iteroparous"
+    NONREPRODUCTIVE = "nonreproductive"
+
+
+class DevelopmentType(Enum):
+    """Enumeration for development types."""
+
+    DIRECT = "direct"
+    INDIRECT = "indirect"
+
+
+class DevelopmentStatus(Enum):
+    """Enumeration for development status."""
+
+    LARVAL = "larval"
+    ADULT = "adult"
