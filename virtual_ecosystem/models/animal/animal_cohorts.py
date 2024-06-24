@@ -90,8 +90,6 @@ class AnimalCohort:
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce mass_current through basal metabolism.
 
-        TODO: Distinguish between uric and respiratory metabolic wastes
-
         Args:
             temperature: Current air temperature (K)
             dt: Number of days over which the metabolic costs should be calculated.
@@ -122,6 +120,33 @@ class AnimalCohort:
         # returns total metabolic waste from cohort to animal_communities for tracking
         # in data object
         return actual_mass_metabolized * self.individuals
+
+    def excrete(self, excreta_mass: float, excrement_pool: DecayPool):
+        """Transfers nitrogenous metabolic wastes to the excrement pool.
+
+        This method will not be fully implemented until the stoichiometric rework.
+
+        """
+        excrement_pool.decomposed_energy += excreta_mass * (
+            1.0 - self.constants.carbon_excreta_proportion
+        )
+
+    def respire(self, excreta_mass: float) -> float:
+        """Transfers carbonaceous metabolic wastes to the atmosphere.
+
+        This method will not be fully implemented until the stoichiometric rework. All
+        current metabolic wastes are carbonaceous and so all this does is return the
+        excreta mass for updating data["total_animal_respiration"] in metabolize
+        community.
+
+        Args:
+            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
+
+        Return: The total mass of carbonaceous wastes excreted by the cohort.
+
+        """
+
+        return excreta_mass * self.constants.carbon_excreta_proportion
 
     def defecate(
         self,
