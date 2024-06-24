@@ -124,9 +124,6 @@ class AnimalCommunity:
         Travel distance is not currently a function of body-size or locomotion for
         starvation dispersal.
 
-        TODO: Implement low-density trigger. [might not actually do this, requires
-                cohort merging.]
-
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
             destination: The AnimalCommunity the cohort is moving to.

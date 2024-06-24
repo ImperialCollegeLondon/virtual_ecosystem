@@ -90,7 +90,6 @@ class AnimalCohort:
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce mass_current through basal metabolism.
 
-        TODO: clean up units
         TODO: Distinguish between uric and respiratory metabolic wastes
 
         Args:
@@ -501,9 +500,6 @@ class AnimalCohort:
         """This method handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation
-
-        TODO: Replace delta_t values with actual reference
-        TODO: add epsilon conversion efficiency
 
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
