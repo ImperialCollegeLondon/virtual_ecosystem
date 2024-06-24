@@ -11,6 +11,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentStatus,
     DevelopmentType,
     DietType,
+    ExcretionType,
     MetabolicType,
     ReproductiveType,
     TaxaType,
@@ -41,6 +42,7 @@ class FunctionalGroup:
         development_type: str,
         development_status: str,
         offspring_functional_group: str,
+        excretion_type: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -64,6 +66,8 @@ class FunctionalGroup:
         self.offspring_functional_group = offspring_functional_group
         """The offspring type produced by this functional group in reproduction or 
             metamorphosis."""
+        self.excretion_type = ExcretionType(excretion_type)
+        """The excretion type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -138,6 +142,7 @@ def import_functional_groups(
             row.development_type,
             row.development_status,
             row.offspring_functional_group,
+            row.excretion_type,
             row.birth_mass,
             row.adult_mass,
             constants=constants,
