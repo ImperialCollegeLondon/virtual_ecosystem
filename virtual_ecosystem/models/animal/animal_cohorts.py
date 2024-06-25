@@ -659,6 +659,8 @@ class AnimalCohort:
         It assumes the `mass_consumed` has already been calculated and processed
         through `get_eaten`.
 
+        TODO: nonreproductive functional groups should not store any reproductive mass
+
         Args:
             mass_consumed: The mass consumed by this consumer, calculated externally.
 

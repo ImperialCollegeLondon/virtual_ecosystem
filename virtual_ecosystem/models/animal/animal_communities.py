@@ -11,15 +11,20 @@ from __future__ import annotations
 import random
 from collections.abc import Callable, Iterable
 from itertools import chain
+from math import ceil
 
 from numpy import timedelta64
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
-from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.functional_group import (
+    FunctionalGroup,
+    get_functional_group_by_name,
+)
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
@@ -183,12 +188,11 @@ class AnimalCommunity:
 
         The science here follows Madingley.
 
-        TODO: Check whether madingley discards excess reproductive mass
+        TODO: Check whether Madingley discards excess reproductive mass.
+        TODO: Rework birth mass for indirect developers.
 
         Args:
-            parent_cohort: The AnimalCohort instance which is producing a new
-            AnimalCohort.
-
+            parent_cohort: The AnimalCohort instance which is producing a new cohort.
         """
         # semelparous organisms use a portion of their non-reproductive mass to make
         # offspring and then they die
@@ -214,7 +218,10 @@ class AnimalCommunity:
         parent_cohort.reproductive_mass = 0.0
 
         offspring_cohort = AnimalCohort(
-            parent_cohort.functional_group,
+            get_functional_group_by_name(
+                self.functional_groups,
+                parent_cohort.functional_group.offspring_functional_group,
+            ),
             parent_cohort.functional_group.birth_mass,
             0.0,
             number_offspring,
@@ -232,7 +239,10 @@ class AnimalCommunity:
 
         # reproduction occurs for cohorts with sufficient reproductive mass
         for cohort in self.all_animal_cohorts:
-            if not cohort.is_below_mass_threshold(self.constants.birth_mass_threshold):
+            if (
+                not cohort.is_below_mass_threshold(self.constants.birth_mass_threshold)
+                and cohort.functional_group.reproductive_type != "nonreproductive"
+            ):
                 self.birth(cohort)
 
     def forage_community(self) -> None:
@@ -353,3 +363,53 @@ class AnimalCommunity:
             if cohort.individuals <= 0:
                 cohort.is_alive = False
                 self.remove_dead_cohort(cohort)
+
+    def metamorphose(self, larval_cohort: AnimalCohort) -> None:
+        """This transforms a larval status cohort into an adult status cohort.
+
+        This method takes an indirect developing cohort in its larval form,
+        inflicts a mortality rate, and creates an adult cohort of the correct type.
+
+        TODO: Build in a relationship between larval_cohort mass and adult cohort mass.
+        TODO: Is adult_mass the correct mass threshold?
+        TODO: If the time step drops below a month, this needs an intermediary stage.
+
+        Args:
+            larval_cohort: The cohort in its larval stage to be transformed.
+        """
+
+        # inflict a mortality
+        number_dead = ceil(
+            larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
+        )
+        larval_cohort.die_individual(number_dead, self.carcass_pool)
+        # collect the adult functional group
+        adult_functional_group = get_functional_group_by_name(
+            self.functional_groups,
+            larval_cohort.functional_group.offspring_functional_group,
+        )
+        # create the adult cohort
+        adult_cohort = AnimalCohort(
+            adult_functional_group,
+            adult_functional_group.birth_mass,
+            0.0,
+            larval_cohort.individuals,
+            self.constants,
+        )
+
+        # add a new cohort of the parental type to the community
+        self.animal_cohorts[adult_cohort.name].append(adult_cohort)
+
+        # remove the larval cohort
+        larval_cohort.is_alive = False
+        self.remove_dead_cohort(larval_cohort)
+
+    def metamorphose_community(self) -> None:
+        """Handle metamorphosis for all applicable cohorts in the community."""
+
+        for cohort in self.all_animal_cohorts:
+            if (
+                cohort.functional_group.development_type == DevelopmentType.INDIRECT
+                and (cohort.mass_current >= cohort.functional_group.adult_mass)
+            ):
+                self.metamorphose(cohort)
