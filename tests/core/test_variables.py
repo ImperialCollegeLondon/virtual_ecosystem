@@ -106,7 +106,8 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
 
     mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
     mocker.patch("virtual_ecosystem.core.variables._discover_models")
-    mocker.patch("virtual_ecosystem.core.variables._collect_initialise_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_populated_by_init_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_populated_by_update_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_required_init_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_required_update_vars")
@@ -127,7 +128,10 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
     assert "test_var" in variables.RUN_VARIABLES_REGISTRY
     variables.register_all_variables.assert_called_once()
     variables._discover_models.assert_called_once()
-    variables._collect_initialise_by_vars.assert_called_once_with(
+    variables._collect_populated_by_init_vars.assert_called_once_with(
+        [], check_unique_initialisation=False
+    )
+    variables._collect_populated_by_update_vars.assert_called_once_with(
         [], check_unique_initialisation=False
     )
     variables._collect_required_init_vars.assert_called_once_with([])
@@ -145,10 +149,10 @@ def test_collect_initialise_by_vars(known_variables, run_variables):
 
     class TestModel:
         model_name = "TestModel"
-        vars_initialised = ("test_var",)
+        populated_by_init_vars = ("test_var",)
 
     with pytest.raises(ValueError, match="not in the known variables registry."):
-        variables._collect_initialise_by_vars([TestModel])
+        variables._collect_populated_by_init_vars([TestModel])
 
     variables.Variable(
         name="test_var",
@@ -158,13 +162,15 @@ def test_collect_initialise_by_vars(known_variables, run_variables):
         axis=("x", "y", "z"),
     )
 
-    variables._collect_initialise_by_vars([TestModel])
+    variables._collect_populated_by_init_vars([TestModel])
 
     assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by == "TestModel"
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init == [
+        "TestModel"
+    ]
 
     with pytest.raises(ValueError, match="already in registry"):
-        variables._collect_initialise_by_vars([TestModel])
+        variables._collect_populated_by_init_vars([TestModel])
 
 
 def test_collect_updated_by_vars(known_variables, run_variables, caplog):
@@ -190,7 +196,7 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
         variables._collect_updated_by_vars([TestModel])
 
     variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
 
     variables._collect_updated_by_vars([TestModel])
     assert variables.RUN_VARIABLES_REGISTRY["test_var"].updated_by == ["TestModel"]
@@ -227,10 +233,10 @@ def test_collect_required_update_vars(known_variables, run_variables):
         variables._collect_required_update_vars([TestModel])
 
     variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
 
     variables._collect_required_update_vars([TestModel])
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_update_by == [
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_by_update == [
         "TestModel"
     ]
 
@@ -258,10 +264,10 @@ def test_collect_required_init_vars(known_variables, run_variables):
         variables._collect_required_init_vars([TestModel])
 
     variables.RUN_VARIABLES_REGISTRY["test_var"] = var
-    variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by = "AnotherModel"
+    variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init = "AnotherModel"
 
     variables._collect_required_init_vars([TestModel])
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_init_by == [
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].required_by_init == [
         "TestModel"
     ]
 
@@ -284,7 +290,7 @@ def test_collect_initial_data_vars(known_variables, run_variables):
     variables._collect_initial_data_vars(["test_var"])
 
     assert "test_var" in variables.RUN_VARIABLES_REGISTRY
-    assert variables.RUN_VARIABLES_REGISTRY["test_var"].initialised_by == "data"
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_init == ["data"]
 
     with pytest.raises(ValueError, match="already in registry"):
         variables._collect_initial_data_vars(["test_var"])
@@ -295,7 +301,8 @@ def test_setup_variables(mocker):
     from virtual_ecosystem.core import variables
 
     mocker.patch("virtual_ecosystem.core.variables._collect_initial_data_vars")
-    mocker.patch("virtual_ecosystem.core.variables._collect_initialise_by_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_populated_by_init_vars")
+    mocker.patch("virtual_ecosystem.core.variables._collect_populated_by_update_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_required_init_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_updated_by_vars")
     mocker.patch("virtual_ecosystem.core.variables._collect_required_update_vars")
@@ -306,7 +313,7 @@ def test_setup_variables(mocker):
     variables.setup_variables([TestModel], ["test_var"])
 
     variables._collect_initial_data_vars.assert_called_once_with(["test_var"])
-    variables._collect_initialise_by_vars.assert_called_once_with([TestModel])
+    variables._collect_populated_by_init_vars.assert_called_once_with([TestModel])
     variables._collect_required_init_vars.assert_called_once_with([TestModel])
     variables._collect_updated_by_vars.assert_called_once_with([TestModel])
     variables._collect_required_update_vars.assert_called_once_with([TestModel])
