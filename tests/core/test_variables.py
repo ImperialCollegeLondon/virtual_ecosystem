@@ -143,8 +143,8 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
         assert "test_var" in f.read()
 
 
-def test_collect_initialise_by_vars(known_variables, run_variables):
-    """Test the _collect_initialise_by_vars function."""
+def test_collect_populated_by_init_vars(known_variables, run_variables):
+    """Test the _collect_populated_by_init_vars function."""
     from virtual_ecosystem.core import variables
 
     class TestModel:
@@ -171,6 +171,45 @@ def test_collect_initialise_by_vars(known_variables, run_variables):
 
     with pytest.raises(ValueError, match="already in registry"):
         variables._collect_populated_by_init_vars([TestModel])
+
+
+def test_collect_populated_by_update_vars(known_variables, run_variables):
+    """Test the _collect_populated_by_update_vars function."""
+    from virtual_ecosystem.core import variables
+
+    class TestModel:
+        model_name = "TestModel"
+        populated_by_update_vars = ("test_var",)
+        populated_by_init_vars = ("test_var",)
+
+    with pytest.raises(ValueError, match="not in the known variables registry."):
+        variables._collect_populated_by_update_vars([TestModel])
+
+    variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    variables._collect_populated_by_update_vars([TestModel])
+
+    assert "test_var" in variables.RUN_VARIABLES_REGISTRY
+    assert variables.RUN_VARIABLES_REGISTRY["test_var"].populated_by_update == [
+        "TestModel"
+    ]
+
+    with pytest.raises(ValueError, match="already in registry"):
+        variables._collect_populated_by_update_vars([TestModel])
+
+    # If the variable was initialised during init...
+    variables.RUN_VARIABLES_REGISTRY.pop("test_var")
+    variables._collect_populated_by_init_vars([TestModel])
+
+    # re-registering ruring update will also fail
+    with pytest.raises(ValueError, match="already in registry"):
+        variables._collect_populated_by_update_vars([TestModel])
 
 
 def test_collect_updated_by_vars(known_variables, run_variables, caplog):

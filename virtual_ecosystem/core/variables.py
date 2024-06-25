@@ -287,7 +287,7 @@ def _collect_populated_by_update_vars(
                     f"registry as initialised by {initialiser}."
                 )
 
-            KNOWN_VARIABLES[var].populated_by_init.append(model.model_name)
+            KNOWN_VARIABLES[var].populated_by_update.append(model.model_name)
             RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
 
 
@@ -407,9 +407,12 @@ def setup_variables(
         ValueError: If a variable required by a model is not in the known variables
             registry or the runtime registry.
     """
+    # Variables related to the initialisation step
     _collect_initial_data_vars(cast(list[str], data_vars))
     _collect_populated_by_init_vars(models)
     _collect_required_init_vars(models)
+
+    # Variables related to the update step
     _collect_populated_by_update_vars(models)
     _collect_updated_by_vars(models)
     _collect_required_update_vars(models)
