@@ -111,6 +111,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
+    populated_by_update_vars=(),
 ):
     """A class describing the hydrology model.
 

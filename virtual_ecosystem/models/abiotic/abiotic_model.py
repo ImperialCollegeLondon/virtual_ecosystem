@@ -133,6 +133,7 @@ class AbioticModel(
         "molar_density_air",
         "specific_heat_air",
     ),
+    populated_by_update_vars=(),
 ):
     """A class describing the abiotic model.
 

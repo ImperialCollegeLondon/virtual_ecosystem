@@ -78,6 +78,7 @@ class LitterModel(
         "lignin_below_structural",
         "litter_C_mineralisation_rate",
     ),
+    populated_by_update_vars=(),
 ):
     """A class defining the litter model.
 

@@ -427,9 +427,9 @@ class BaseModel(ABC):
         model_update_bounds: tuple[str, str],
         required_init_vars: tuple[str, ...],
         vars_updated: tuple[str, ...],
-        required_update_vars: tuple[str, ...] = (),
-        populated_by_init_vars: tuple[str, ...] = (),
-        populated_by_update_vars: tuple[str, ...] = (),
+        required_update_vars: tuple[str, ...],
+        populated_by_init_vars: tuple[str, ...],
+        populated_by_update_vars: tuple[str, ...],
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -453,9 +453,6 @@ class BaseModel(ABC):
                 vars_updated=("updated_variable"),
             ):
                 ...
-
-        TODO: Make populated_by_init_vars and required_update_vars a required argument,
-        even if just ().
 
         Args:
             model_name: The model name to be used

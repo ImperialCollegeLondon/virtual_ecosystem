@@ -72,6 +72,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
+    populated_by_update_vars=(),
 ):
     """A class describing the abiotic simple model.
 

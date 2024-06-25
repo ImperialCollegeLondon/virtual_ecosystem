@@ -58,6 +58,7 @@ class PlantsModel(
         "canopy_absorption",
         "evapotranspiration",
     ),
+    populated_by_update_vars=(),
 ):
     """A class defining the plants model.
 

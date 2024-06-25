@@ -36,19 +36,22 @@ def data_instance():
         pytest.param(
             {},
             pytest.raises(TypeError),
-            "BaseModel.__init_subclass__() missing 4 required positional arguments: "
+            "BaseModel.__init_subclass__() missing 7 required positional arguments: "
             "'model_name', 'model_update_bounds', 'required_init_vars', "
-            "and 'vars_updated'",
+            "'vars_updated', 'required_update_vars', 'populated_by_init_vars', and "
+            "'populated_by_update_vars'",
             [],
             id="missing_all_args",
         ),
         pytest.param(
             {"model_name": 9},
             pytest.raises(TypeError),
-            "BaseModel.__init_subclass__() missing 3 required positional arguments: "
-            "'model_update_bounds', 'required_init_vars', and 'vars_updated'",
+            "BaseModel.__init_subclass__() missing 6 required positional arguments: "
+            "'model_update_bounds', 'required_init_vars', 'vars_updated', "
+            "'required_update_vars', 'populated_by_init_vars', and "
+            "'populated_by_update_vars'",
             [],
-            id="missing_3_args",
+            id="missing_6_args",
         ),
         pytest.param(
             {
@@ -56,6 +59,9 @@ def data_instance():
                 "required_init_vars": ("temperature", "wind_speed"),
                 "model_update_bounds": ("1 day", "1 month"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             does_not_raise(),
             None,
@@ -68,6 +74,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 month"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(TypeError),
             "Class attribute model_name in UnnamedModel is not a string",
@@ -83,6 +92,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 time"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -103,6 +115,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 day"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -122,6 +137,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 day", "1 second"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -141,6 +159,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 meter", "1 day"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -161,6 +182,9 @@ def data_instance():
                 "required_init_vars": (),
                 "model_update_bounds": ("1 spongebob", "1 day"),
                 "vars_updated": (),
+                "required_update_vars": (),
+                "populated_by_init_vars": (),
+                "populated_by_update_vars": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -247,6 +271,9 @@ def test_check_variable_attribute_structure(value, exp_raise, exp_msg):
             required_init_vars=value,
             model_update_bounds=("1 day", "1 month"),
             vars_updated=(),
+            required_update_vars=tuple(),
+            populated_by_init_vars=tuple(),
+            populated_by_update_vars=tuple(),
         ):
             pass
 
@@ -269,6 +296,9 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
         model_update_bounds=("1 second", "1 year"),
         required_init_vars=(),
         vars_updated=(),
+        required_update_vars=tuple(),
+        populated_by_init_vars=tuple(),
+        populated_by_update_vars=tuple(),
     ):
         pass
 
@@ -475,6 +505,9 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
         model_update_bounds=("1 day", "1 month"),
         required_init_vars=(),
         vars_updated=(),
+        required_update_vars=tuple(),
+        populated_by_init_vars=tuple(),
+        populated_by_update_vars=tuple(),
     ):
         def setup(self) -> None:
             pass

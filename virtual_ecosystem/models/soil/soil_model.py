@@ -64,6 +64,7 @@ class SoilModel(
         "soil_enzyme_pom",
         "soil_enzyme_maom",
     ),
+    populated_by_update_vars=(),
 ):
     """A class defining the soil model.
 
