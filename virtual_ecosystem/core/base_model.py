@@ -28,7 +28,7 @@ attributes that must be specified as arguments to the subclass declaration:
 
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`,
-* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_initialised`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.populated_by_init_vars`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_update_vars`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds` and
@@ -181,12 +181,20 @@ class BaseModel(ABC):
     external sources, but in either case they will be available in the data object.
     """
 
-    vars_initialised: tuple[str, ...]
-    """Variables that are initialised by the model.
+    populated_by_init_vars: tuple[str, ...]
+    """Variables that are initialised by the model during the setup.
 
     These are the variables that are initialised by the model and stored in the data
     object when running the setup method and that will be available for other models to
     use in their own setup or update methods.
+    """
+
+    populated_by_update_vars: tuple[str, ...]
+    """Variables that are initialised by the model during the first update.
+
+    These are the variables that are initialised by the model and stored in the data
+    object when running the update method for the first time. They will be available for
+    other models to use in their update methods but not in the setup methos.
     """
 
     def __init__(
@@ -420,7 +428,8 @@ class BaseModel(ABC):
         required_init_vars: tuple[str, ...],
         vars_updated: tuple[str, ...],
         required_update_vars: tuple[str, ...] = (),
-        vars_initialised: tuple[str, ...] = (),
+        populated_by_init_vars: tuple[str, ...] = (),
+        populated_by_update_vars: tuple[str, ...] = (),
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -445,16 +454,18 @@ class BaseModel(ABC):
             ):
                 ...
 
-        TODO: Make vars_initialised and required_update_vars a required argument, even
-        if just ().
+        TODO: Make populated_by_init_vars and required_update_vars a required argument,
+        even if just ().
 
         Args:
             model_name: The model name to be used
             model_update_bounds: Bounds on update intervals handled by the model
             required_init_vars: A tuple of the variables required to create a model
                 instance.
-            vars_initialised: A tuple of the variables initialised when a model instance
-                is created.
+            populated_by_init_vars: A tuple of the variables initialised when a model
+                instance is created.
+            populated_by_update_vars: A tuple of the variables initialised when a model
+                update method first run.
             required_update_vars: A tuple of the variables required to update a model
                 instance.
             vars_updated: A tuple of the variable names updated by the model.
@@ -471,17 +482,16 @@ class BaseModel(ABC):
             # Validate the structure of the variables attributes
             for name, attr in (
                 ("required_init_vars", required_init_vars),
-                ("vars_initialised", vars_initialised),
+                ("populated_by_init_vars", populated_by_init_vars),
                 ("required_update_vars", required_update_vars),
                 ("vars_updated", vars_updated),
+                ("populated_by_update_vars", populated_by_update_vars),
             ):
                 setattr(cls, name, cls._check_variables_attribute(name, attr))
 
             cls.model_update_bounds = cls._check_model_update_bounds(
                 model_update_bounds=model_update_bounds
             )
-            cls.required_update_vars = required_update_vars
-            cls.vars_initialised = vars_initialised
 
         except (NotImplementedError, TypeError, ValueError) as excep:
             LOGGER.critical(
