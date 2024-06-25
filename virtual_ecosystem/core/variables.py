@@ -76,13 +76,15 @@ class Variable:
     """Type of the variable."""
     axis: tuple[str, ...]
     """Axes the variable is defined on."""
-    initialised_by: str = field(default="None", init=False)
-    """Model that initialised the variable."""
-    required_init_by: list[str] = field(default_factory=list, init=False)
-    """Models that requires the variable to be initialised."""
+    populated_by_init: list[str] = field(default_factory=list, init=False)
+    """Model that initialised the variable either in init or by input data."""
+    populated_by_update: list[str] = field(default_factory=list, init=False)
+    """Model that initialised the variable in its update method."""
+    required_by_init: list[str] = field(default_factory=list, init=False)
+    """Models that require the variable to be initialised."""
     updated_by: list[str] = field(default_factory=list, init=False)
     """Models that update the variable."""
-    required_update_by: list[str] = field(default_factory=list, init=False)
+    required_by_update: list[str] = field(default_factory=list, init=False)
     """Models that use the variable."""
 
     def __post_init__(self) -> None:
@@ -167,7 +169,8 @@ def output_known_variables(output_file: Path) -> None:
     register_all_variables()
 
     models = _discover_models()
-    _collect_initialise_by_vars(models, check_unique_initialisation=False)
+    _collect_populated_by_init_vars(models, check_unique_initialisation=False)
+    _collect_populated_by_update_vars(models, check_unique_initialisation=False)
 
     # Add any variables that are not yet in the run registry to account for those
     # that would have been initialised by the data object.
@@ -209,7 +212,7 @@ def _format_varriables_list(vars: dict[str, dict]) -> str:
     return "\n".join(out)
 
 
-def _collect_initialise_by_vars(
+def _collect_populated_by_init_vars(
     models: list[type[base_model.BaseModel]], check_unique_initialisation: bool = True
 ) -> None:
     """Initialise the runtime variable registry.
@@ -229,7 +232,7 @@ def _collect_initialise_by_vars(
             registry or if it is already initialised by another model.
     """
     for model in models:
-        for var in model.vars_initialised:
+        for var in model.populated_by_init_vars:
             if var not in KNOWN_VARIABLES:
                 raise ValueError(
                     f"Variable {var} initialised by {model.model_name} is not in the"
@@ -239,10 +242,52 @@ def _collect_initialise_by_vars(
                 raise ValueError(
                     f"Variable {var} initialised by {model.model_name} already in "
                     f"registry as initialised by "
-                    f"{RUN_VARIABLES_REGISTRY[var].initialised_by}."
+                    f"{RUN_VARIABLES_REGISTRY[var].populated_by_init}."
                 )
 
-            KNOWN_VARIABLES[var].initialised_by = model.model_name
+            KNOWN_VARIABLES[var].populated_by_init.append(model.model_name)
+            RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
+
+
+def _collect_populated_by_update_vars(
+    models: list[type[base_model.BaseModel]], check_unique_initialisation: bool = True
+) -> None:
+    """Initialise the runtime variable registry.
+
+    It is a runtime error if a variable is initialised by more than one model. However,
+    when this function is used to populate variable descriptions across known model - as
+    in :func:`virtual_ecosystem.core.variables.output_known_variables` - alternative
+    models may report initialising the same variable. The `check_unique_initialisation`
+    flag is used to switch between these use cases.
+
+    Args:
+        models: The list of models that are initialising the variables.
+        check_unique_initialisation: Fail on duplicate intialisation.
+
+    Raises:
+        ValueError: If a variable required by a model is not in the known variables
+            registry or if it is already initialised by another model.
+    """
+    for model in models:
+        for var in model.populated_by_update_vars:
+            if var not in KNOWN_VARIABLES:
+                raise ValueError(
+                    f"Variable {var} initialised by {model.model_name} is not in the"
+                    " known variables registry."
+                )
+            if var in RUN_VARIABLES_REGISTRY and check_unique_initialisation:
+                v = RUN_VARIABLES_REGISTRY[var]
+                initialiser = (
+                    v.populated_by_init[0]
+                    if v.populated_by_init
+                    else v.populated_by_update[0]
+                )
+                raise ValueError(
+                    f"Variable {var} initialised by {model.model_name} already in "
+                    f"registry as initialised by {initialiser}."
+                )
+
+            KNOWN_VARIABLES[var].populated_by_init.append(model.model_name)
             RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
 
 
@@ -298,7 +343,7 @@ def _collect_required_update_vars(models: list[type[base_model.BaseModel]]) -> N
                     f"Variable {var} required by {model.model_name} is not initialised"
                     " by any model neither provided as input."
                 )
-            RUN_VARIABLES_REGISTRY[var].required_update_by.append(model.model_name)
+            RUN_VARIABLES_REGISTRY[var].required_by_update.append(model.model_name)
 
 
 def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> None:
@@ -326,7 +371,7 @@ def _collect_required_init_vars(models: list[type[base_model.BaseModel]]) -> Non
                     "initialisation is not initialised by any model neither provided as"
                     " input."
                 )
-            RUN_VARIABLES_REGISTRY[var].required_init_by.append(model.model_name)
+            RUN_VARIABLES_REGISTRY[var].required_by_init.append(model.model_name)
 
 
 def _collect_initial_data_vars(vars: list[str]) -> None:
@@ -342,10 +387,10 @@ def _collect_initial_data_vars(vars: list[str]) -> None:
         if var in RUN_VARIABLES_REGISTRY:
             raise ValueError(
                 f"Variable {var} already in registry, initialised by"
-                f"{RUN_VARIABLES_REGISTRY[var].initialised_by}."
+                f"{RUN_VARIABLES_REGISTRY[var].populated_by_init}."
             )
 
-        KNOWN_VARIABLES[var].initialised_by = "data"
+        KNOWN_VARIABLES[var].populated_by_init.append("data")
         RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
 
 
@@ -363,8 +408,9 @@ def setup_variables(
             registry or the runtime registry.
     """
     _collect_initial_data_vars(cast(list[str], data_vars))
-    _collect_initialise_by_vars(models)
+    _collect_populated_by_init_vars(models)
     _collect_required_init_vars(models)
+    _collect_populated_by_update_vars(models)
     _collect_updated_by_vars(models)
     _collect_required_update_vars(models)
 
