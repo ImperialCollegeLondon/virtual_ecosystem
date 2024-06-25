@@ -65,7 +65,7 @@ class LitterModel(
         "lignin_woody",
         "lignin_below_structural",
     ),
-    vars_initialised=(),
+    populated_by_init_vars=(),
     required_update_vars=(),
     vars_updated=(
         "litter_pool_above_metabolic",

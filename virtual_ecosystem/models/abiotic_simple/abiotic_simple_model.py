@@ -62,7 +62,7 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
     ),
-    vars_initialised=(
+    populated_by_init_vars=(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",

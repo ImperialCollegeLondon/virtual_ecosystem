@@ -54,7 +54,7 @@ class SoilModel(
         "bulk_density",
         "clay_fraction",
     ),
-    vars_initialised=(),
+    populated_by_init_vars=(),
     required_update_vars=(),
     vars_updated=(
         "soil_c_pool_maom",

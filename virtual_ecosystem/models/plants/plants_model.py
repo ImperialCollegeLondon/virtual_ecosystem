@@ -36,7 +36,7 @@ class PlantsModel(
         "plant_cohorts_dbh",
         "photosynthetic_photon_flux_density",
     ),
-    vars_initialised=(
+    populated_by_init_vars=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",

@@ -99,7 +99,7 @@ class AbioticModel(
         "topofcanopy_radiation",
         "stomatal_conductance",
     ),
-    vars_initialised=(
+    populated_by_init_vars=(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",

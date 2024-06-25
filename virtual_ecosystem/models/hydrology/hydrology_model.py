@@ -81,7 +81,7 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
     ),
-    vars_initialised=(
+    populated_by_init_vars=(
         "precipitation_surface",  # precipitation-interception loss
         "soil_moisture",
         "vertical_flow",
