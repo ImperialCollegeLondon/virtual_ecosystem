@@ -160,6 +160,7 @@ class ModelTiming:
         )
 
 
+@dataclass
 class LayerStructure:
     """Vertical layer structure of the Virtual Ecosystem.
 
@@ -204,7 +205,7 @@ class LayerStructure:
 
     **Additional Roles**:
         The following additional roles and attributes are also defined when the instance
-        is created.
+        is created and are constant through the runtime of the model.
 
         1. The ``active_soil`` role indicates soil layers that fall even partially above
            the configured `max_depth_of_microbial_activity`. The `soil_layer_thickness`
@@ -222,32 +223,36 @@ class LayerStructure:
         3. The ``atmosphere`` role is the combination of ``above``, ``canopy`` and
            ``surface`` layers.
 
-        4. The ``filled_canopy`` role indicates canopy layers that contain any canopy
-           across all of the grid cells. Canopy layers below these layers do not contain
-           any canopy, and this is initialised to show no filled canopy layers. The
-           ``lowest_canopy_filled`` attribute contains an array showing the lowest
-           filled canopy layer in each grid cell. It contains ``np.nan`` when there is
-           no canopy in a grid cell and is initalised as an array of ``np.nan`` values.
+    **Dynamic roles**:
 
-           Both of these are updated by the :meth:`~LayerStructure.set_filled_canopy`
-           method, which is used to dynamically update these layer components during a
-           simulation.
+        The following roles are set when the instance is initialised but are can be
+        updated during the model run using the :meth:`~LayerStructure.set_filled_canopy`
+        method.
 
-    **Layer indexing**:
+        1. The ``filled_canopy`` role indicates canopy layers that contain any canopy
+           across all of the grid cells. No grid cell contains actual canopy in any of
+           the canopy layers below the filled canopy layers. This is initialised to show
+           no filled canopy layers.
 
-        The class contains two private attributes (``_role_indices_bool`` and
-        ``_role_indices_int``) that contain dictionaries of role indices as either
-        boolean or integer indices. These dictionaries are keyed using frozensets of
-        layer roles to allow both indicices for single roles and to add cache additional
-        user requested aggregate role indices. User access to these dictionaries is
-        through the :meth:`~LayerStructure.get_indices` method.
+        2, The ``filled_atmosphere`` role includes the above canopy layer, all filled
+        canopy layer indices and the surface layer.
+
+        3. The ``flux_layers`` role includes the filled canopy layers and the topsoil
+           layer.
+
+        In addition, the ``lowest_canopy_filled`` attribute provides an array giving the
+        vertical index of the lowest filled canopy layer in each grid cell. It contains
+        ``np.nan`` when there is  no canopy in a grid cell and is initalised as an array
+        of ``np.nan`` values.
+
+    **Getting layer indices**:
+
+        The ``_role_indices_bool`` and ``_role_indices_int`` attributes provide
+        dictionaries keyed by role name of the boolean or integer indices of the
+        different defined roles. However, all of the role indices can be accessed more
+        conveniently using class properties e.g. ``LayerStructure.index_above``.
 
     **Methods overview**:
-
-        * :meth:`~LayerStructure.get_indices`: this returns indices across the
-          vertical layer dimension. As well as accepting single role names (e.g.
-          ``get_indices('canopy')``), this method also constructs and caches aggregate
-          indices (e.g. ``get_indices(['above','filled_canopy','surface'])``).
 
         * :meth:`~LayerStructure.from_template`: this returns an empty DataArray with
           the standard vertical layer structure and grid cell dimensions used across the
@@ -262,50 +267,117 @@ class LayerStructure:
             the layer structure.
     """
 
-    def __init__(
-        self, config: Config, n_cells: int, max_depth_of_microbial_activity: float
-    ) -> None:
+    config: InitVar[Config]
+    """A configuration object instance."""
+
+    # These two init arguments could also be accessed directly from the config, but
+    # this allows for the core components flow from Grid and CoreConstants to validate
+    # these values rather than doing it internally.
+    n_cells: InitVar[int]
+    """The number of grid cells in the simulation."""
+    max_depth_of_microbial_activity: float
+    """The maximum soil depth of significant microbial activity."""
+
+    # Attributes populated by __post_init__
+    n_canopy_layers: int = field(init=False)
+    """The maximum number of canopy layers."""
+    soil_layer_depth: NDArray[np.float_] = field(init=False)
+    """A list of the depths of soil layer boundaries."""
+    n_soil_layers: int = field(init=False)
+    """The number of soil layers."""
+    above_canopy_height_offset: float = field(init=False)
+    """The height above the canopy of the provided reference climate variables."""
+    surface_layer_height: float = field(init=False)
+    """The height above ground used to represent surface conditions."""
+    _n_cells: int = field(init=False)
+    """Private record of the number of grid cells in simulation."""
+    layer_roles: NDArray[np.str_] = field(init=False)
+    """An array of vertical layer role names from top to bottom."""
+    n_layers: int = field(init=False)
+    """The total number of vertical layers in the model."""
+    layer_indices: NDArray[np.int_] = field(init=False)
+    """An array of the integer indices of the vertical layers in the model."""
+    _role_indices_bool: dict[str, NDArray[np.bool_]] = field(
+        init=False, default_factory=lambda: {}
+    )
+    """A dictionary of boolean layer role indices within the vertical structure."""
+    _role_indices_int: dict[str, NDArray[np.int_]] = field(
+        init=False, default_factory=lambda: {}
+    )
+    """A dictionary of integer layer role indices within the vertical structure."""
+    lowest_canopy_filled: NDArray[np.int_] = field(init=False)
+    """An integer index showing the lowest filled canopy layer for each grid cell"""
+    soil_layer_thickness: NDArray[np.float_] = field(init=False)
+    """Thickness of each soil layer (m)"""
+    soil_layer_active_thickness: NDArray[np.float_] = field(init=False)
+    """Thickness of the microbially active soil in each soil layer (m)"""
+    _array_template: DataArray = field(init=False)
+    """A private data array template. Access copies using get_template."""
+
+    def __post_init__(self, config: Config, n_cells: int) -> None:
         """Populate the ``LayerStructure`` instance.
 
-        This method populates the ``LayerStructure`` attributes from the provided
-        :class:`~virtual_ecosystem.core.config.Config` instance.
+        This method populates the ``LayerStructure`` attributes from the dataclass init
+        arguments.
 
         Args:
             config: A Config instance.
             n_cells: The number of grid cells in the simulation.
-            max_depth_of_microbial_activity: The maximum depth of soil microbial
-                activity (m).
         """
 
-        lyr_config = config["core"]["layers"]
+        # Store the number of grid cells privately
+        self._n_cells = n_cells
+
+        # Validates the configuration inputs and sets the layer structure attributes
+        self._validate_and_initialise_layer_config(config)
+
+        # Now populate the initial role indices and create the layer data template
+        self._populate_role_indices()
+
+        # Set the layer structure DataArray template
+        self._set_layer_data_array_template()
+
+        LOGGER.info("Layer structure built from model configuration")
+
+    def _validate_and_initialise_layer_config(self, config: Config):
+        """Layer structure config validation and attribute setting.
+
+        Args:
+            config: A Config instance.
+        """
+
+        lcfg = config["core"]["layers"]
 
         # Validate configuration
-        self.n_canopy_layers: int = _validate_positive_integer(
-            lyr_config["canopy_layers"]
-        )
-        """The maximum number of canopy layers."""
-        self.soil_layer_depth: NDArray[np.float_] = np.array(
-            _validate_soil_layers(lyr_config["soil_layers"])
-        )
-        """A list of the depths of soil layer boundaries."""
-        self.n_soil_layers: int = len(self.soil_layer_depth)
-        """The number of soil layers."""
-        # Other heights should all be positive floats
-        self.above_canopy_height_offset: float = _validate_positive_finite_numeric(
-            lyr_config["above_canopy_height_offset"], "above_canopy_height_offset"
-        )
-        """The height above the canopy of the provided reference climate variables."""
-        self.surface_layer_height: float = _validate_positive_finite_numeric(
-            lyr_config["surface_layer_height"], "surface_layer_height"
-        )
-        """The height above ground used to represent surface conditions."""
+        self.n_canopy_layers = _validate_positive_integer(lcfg["canopy_layers"])
 
-        # Store init arguments - these could be accessed directly from config, but
-        # the core components flow then validates these values
-        self._n_cells = n_cells
-        """Number of grid cells in simulation."""
-        self.max_depth_of_microbial_activity = max_depth_of_microbial_activity
-        """The maximum soil depth of significant microbial activity."""
+        # Soil layers are negative floats
+        self.soil_layer_depth = np.array(_validate_soil_layers(lcfg["soil_layers"]))
+        self.n_soil_layers = len(self.soil_layer_depth)
+
+        # Other heights should all be positive floats
+        self.above_canopy_height_offset = _validate_positive_finite_numeric(
+            lcfg["above_canopy_height_offset"], "above_canopy_height_offset"
+        )
+        self.surface_layer_height = _validate_positive_finite_numeric(
+            lcfg["surface_layer_height"], "surface_layer_height"
+        )
+
+        # Set the layer role sequence
+        self.layer_roles: NDArray[np.str_] = np.array(
+            ["above"]
+            + ["canopy"] * self.n_canopy_layers
+            + ["surface"]
+            + ["topsoil"]
+            + ["subsoil"] * (self.n_soil_layers - 1)
+        )
+
+        # Record the number of layers and layer indices
+        self.n_layers = len(self.layer_roles)
+        self.layer_indices = np.arange(0, self.n_layers)
+
+        # Default values for lowest canopy filled
+        self.lowest_canopy_filled = np.repeat(np.nan, self._n_cells)
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
@@ -317,38 +389,9 @@ class LayerStructure:
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Set the layer role sequence
-        self.layer_roles: NDArray[np.str_] = np.array(
-            ["above"]
-            + ["canopy"] * self.n_canopy_layers
-            + ["surface"]
-            + ["topsoil"]
-            + ["subsoil"] * (self.n_soil_layers - 1)
-        )
-        """An array of vertical layer role names from top to bottom."""
-
-        # Record the number of layers and layer indices
-        self.n_layers = len(self.layer_roles)
-        """The total number of vertical layers in the model."""
-        self.layer_indices = np.arange(0, self.n_layers)
-        """An array of the integer indices of the vertical layers in the model."""
-
-        # Type and initialise the role index attributes
-        self._role_indices_bool: dict[str, NDArray[np.bool_]] = {}
-        """A dictionary providing boolean arrays indexing the location of sets of roles
-         within the vertical layer structure."""
-        self._role_indices_int: dict[str, NDArray[np.int_]] = {}
-        """A dictionary providing integer arrays indexing the location of sets of roles
-         within the vertical layer structure."""
-
-        self.lowest_canopy_filled = np.repeat(np.nan, self._n_cells)
-        """An integer index showing the lowest filled canopy layer for each grid cell"""
-
-        # Set up further soil layers details - layer thickness and the thickness of
-        # microbially active soils within each layer
+        # Set up soil layer thickness and the thickness of microbially active soil
         soil_layer_boundaries = np.array([0, *self.soil_layer_depth])
         self.soil_layer_thickness = -np.diff(soil_layer_boundaries)
-        """Thickness of each soil layer (m)"""
         self.soil_layer_active_thickness = np.clip(
             np.minimum(
                 self.soil_layer_thickness,
@@ -357,36 +400,9 @@ class LayerStructure:
             a_min=0,
             a_max=np.inf,
         )
-        """Thickness of microbially active soil in each soil layer (m)"""
 
-        # Now define the initial indices and create the layer data template
-        self._initialise_indices()
-
-        # Create a private template data array with the simulation structure. This
-        # should not be accessed directly to avoid the chance of someone modifying the
-        # actual template.
-
-        # PERFORMANCE - does deepcopy of a template provide any real benefit over
-        # from_template creating it when called.
-        self._array_template: DataArray = DataArray(
-            np.full((self.n_layers, self._n_cells), np.nan),
-            dims=("layers", "cell_id"),
-            coords={
-                "layers": self.layer_indices,
-                "layer_roles": ("layers", self.layer_roles),
-                "cell_id": np.arange(self._n_cells),
-            },
-        )
-        """A private data array template. Access copies using get_template."""
-
-        LOGGER.info("Layer structure built from model configuration")
-
-    def _initialise_indices(self):
-        """Initialise the various layer indices.
-
-        This method is called during instance initialisation to populate the role
-        indices.
-        """
+    def _populate_role_indices(self):
+        """Populate the initial values for the layer role indices."""
 
         # The five core role names
         for layer_role in ("above", "canopy", "surface", "topsoil", "subsoil"):
@@ -433,6 +449,29 @@ class LayerStructure:
                 self._role_indices_bool["filled_canopy"],
                 self._role_indices_bool["topsoil"],
             ),
+        )
+
+    def _set_layer_data_array_template(self):
+        """Sets the template data array with the simulation vertical structure.
+
+        This data array structure is widely used across the Virtual Ecosystem and this
+        method sets up a template that can be copied via the
+        :meth:`~virtual_ecosystem.core.core_components.LayerStructure.from_template`
+        method. The private attribute itself should not be accessed directly to avoid
+        accidental  modification of the template.
+        """
+
+        # PERFORMANCE - does deepcopy of a store template provide any real benefit over
+        # from_template creating it when called.
+
+        self._array_template = DataArray(
+            np.full((self.n_layers, self._n_cells), np.nan),
+            dims=("layers", "cell_id"),
+            coords={
+                "layers": self.layer_indices,
+                "layer_roles": ("layers", self.layer_roles),
+                "cell_id": np.arange(self._n_cells),
+            },
         )
 
     def _set_base_index(self, name: str, bool_values: NDArray[np.bool_]) -> None:
