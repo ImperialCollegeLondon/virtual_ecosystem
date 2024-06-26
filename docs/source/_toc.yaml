@@ -38,91 +38,100 @@ subtrees:
       - file: api/core/utils.md
         title: The `utils` submodule
   - file: api/main.md
-    title: The ``main`` API
+    title: The ``main`` submodule
   - file: api/models.md
-  - file: api/abiotic.md
-    title: The ``abiotic`` model
     entries:
-    - file: api/abiotic/abiotic_model
-      title: The `abiotic_model` submodule
-    - file: api/abiotic/abiotic_constants
-      title: The `abiotic_constants` submodule
-    - file: api/abiotic/abiotic_tools
-      title: The `abiotic_tools` submodule
-    - file: api/abiotic/conductivities
-      title: The `conductivities` submodule
-    - file: api/abiotic/energy_balance
-      title: The `energy_balance` submodule
-    - file: api/abiotic/soil_energy_balance
-      title: The `soil_energy_balance` submodule
-    - file: api/abiotic/wind
-      title: The `wind` submodule
-  - file: api/abiotic_simple
-    entries:
-    - file: api/abiotic_simple/abiotic_simple_constants
-      title: The `abiotic_simple_constants` submodule
-    - file: api/abiotic_simple/abiotic_simple_model
-      title: The `abiotic_simple_model` submodule
-    - file: api/abiotic_simple/microclimate
-      title: The `microclimate` submodule
-  - file: api/animal
-    entries:
-    - file: api/animal/animal_cohorts 
-      title: The `animal_cohorts` submodule
-    - file: api/animal/animal_communities 
-      title: The `animal_communities` submodule
-    - file: api/animal/animal_model 
-      title: The `animal_model` submodule
-    - file: api/animal/animal_traits 
-      title: The `animal_traits` submodule
-    - file: api/animal/constants 
-      title: The `constants` submodule
-    - file: api/animal/decay 
-      title: The `decay` submodule
-    - file: api/animal/functional_group 
-      title: The `functional_group` submodule
-    - file: api/animal/plant_resources 
-      title: The `plant_resources` submodule
-    - file: api/animal/protocols 
-      title: The `protocols` submodule
-    - file: api/animal/scaling_functions 
-      title: The `scaling_functions` submodule
-  - file: api/hydrology
-    entries:
-    - file: api/hydrology/above_ground
-      title: The `above_ground` submodule
-    - file: api/hydrology/below_ground
-      title: The `below_ground` submodule
-    - file: api/hydrology/constants
-      title: The `constants` submodule
-    - file: api/hydrology/hydrology_model
-      title: The `hydrology_model` submodule
-  - file: api/litter
-    entries:
-    - file: api/litter/constants
-      title: The `constants` submodule
-    - file: api/litter/litter_model
-      title: The `litter_model` submodule
-    - file: api/litter/litter_pools
-      title: The `litter_pools` submodule
-  - file: api/soil
-    entries:
-    - file: api/soil/carbon
-      title: The `carbon` submodule
-    - file: api/soil/constants
-      title: The `constants` submodule
-    - file: api/soil/env_factors
-      title: The `env_factors` submodule
-    - file: api/soil/soil_model
-      title: The `soil_model` submodule
+    - file: api/models/abiotic.md
+      title: The ``abiotic`` model
+      entries:
+      - file: api/models/abiotic/abiotic_model
+        title: The `abiotic_model` submodule
+      - file: api/models/abiotic/abiotic_constants
+        title: The `abiotic_constants` submodule
+      - file: api/models/abiotic/abiotic_tools
+        title: The `abiotic_tools` submodule
+      - file: api/models/abiotic/conductivities
+        title: The `conductivities` submodule
+      - file: api/models/abiotic/energy_balance
+        title: The `energy_balance` submodule
+      - file: api/models/abiotic/soil_energy_balance
+        title: The `soil_energy_balance` submodule
+      - file: api/models/abiotic/wind
+        title: The `wind` submodule
+    - file: api/models/abiotic_simple
+      title: The abiotic_simple model
+      entries:
+      - file: api/models/abiotic_simple/abiotic_simple_constants
+        title: The `abiotic_simple_constants` submodule
+      - file: api/models/abiotic_simple/abiotic_simple_model
+        title: The `abiotic_simple_model` submodule
+      - file: api/models/abiotic_simple/microclimate
+        title: The `microclimate` submodule
+    - file: api/models/animal
+      title: The animal model
+      entries:
+      - file: api/models/animal/animal_cohorts 
+        title: The `animal_cohorts` submodule
+      - file: api/models/animal/animal_communities 
+        title: The `animal_communities` submodule
+      - file: api/models/animal/animal_model 
+        title: The `animal_model` submodule
+      - file: api/models/animal/animal_traits 
+        title: The `animal_traits` submodule
+      - file: api/models/animal/constants 
+        title: The `constants` submodule
+      - file: api/models/animal/decay 
+        title: The `decay` submodule
+      - file: api/models/animal/functional_group 
+        title: The `functional_group` submodule
+      - file: api/models/animal/plant_resources 
+        title: The `plant_resources` submodule
+      - file: api/models/animal/protocols 
+        title: The `protocols` submodule
+      - file: api/models/animal/scaling_functions 
+        title: The `scaling_functions` submodule
+    - file: api/models/hydrology
+      title: The hydrology model
+      entries:
+      - file: api/models/hydrology/above_ground
+        title: The `above_ground` submodule
+      - file: api/models/hydrology/below_ground
+        title: The `below_ground` submodule
+      - file: api/models/hydrology/constants
+        title: The `constants` submodule
+      - file: api/models/hydrology/hydrology_model
+        title: The `hydrology_model` submodule
+    - file: api/models/litter
+      title: The litter model
+      entries:
+      - file: api/models/litter/constants
+        title: The `constants` submodule
+      - file: api/models/litter/litter_model
+        title: The `litter_model` submodule
+      - file: api/models/litter/litter_pools
+        title: The `litter_pools` submodule
+    - file: api/models/soil
+      title: The soil model
+      entries:
+      - file: api/models/soil/carbon
+        title: The `carbon` submodule
+      - file: api/models/soil/constants
+        title: The `constants` submodule
+      - file: api/models/soil/env_factors
+        title: The `env_factors` submodule
+      - file: api/models/soil/soil_model
+        title: The `soil_model` submodule
+    - file: api/models/plants
+      title: The plants model
+      entries:
+      - file: api/models/plants/plant_structures
+        title: The `plant_structures` submodule
+      - file: api/models/plants/plants_model
+        title: The `plants_model` submodule
 
   - file: api/example_data
     title: The `example_data` submodule
 
-  - file: api/plants/plant_structures
-    title: The `plant_structures` submodule
-  - file: api/plants/plants_model
-    title: The `plants_model` submodule
 
 - caption: Other stuff
   entries:
