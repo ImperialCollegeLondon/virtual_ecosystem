@@ -70,6 +70,7 @@ extensions = [
     "sphinxcontrib.mermaid",
     "myst_nb",
     "sphinx_rtd_theme",
+    "sphinx_external_toc",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
