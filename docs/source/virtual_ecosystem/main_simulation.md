@@ -93,10 +93,10 @@ simulating a particular aspect of the ecosystem ecosystem. The models used for t
 specific simulation run can be set in the configuration and will typically include the
 four standard models:
 
-* the [`AbioticSimpleModel`](../api/abiotic_simple.md),
-* the `AnimalModel`,
-* the `PlantModel` and the
-* [`SoilModel`](../api/soil.md)
+* the [`AbioticSimpleModel`](../api/models/abiotic_simple.md),
+* the [`AnimalModel`](../api/models/animal.md),
+* the [`PlantModel`](../api/models/plants.md) and the
+* [`SoilModel`](../api/models/soil.md)
 
 but this can be [extended to include new models](../development/defining_new_models.md)
 or adopt different combinations of models.

@@ -1,5 +1,39 @@
 root: index
 subtrees:
+- titlesonly: True
+
+  caption: The Virtual Ecosystem
+  entries:
+  - file: virtual_ecosystem/module_overview
+  - file: virtual_ecosystem/example_data
+  - file: virtual_ecosystem/getting_started
+  - file: virtual_ecosystem/main_simulation
+  - file: virtual_ecosystem/virtual_ecosystem_in_use
+  - file: virtual_ecosystem/soil/soil_details
+
+- caption: Setting up a Virtual Ecosystem
+  entries:
+  - file: virtual_ecosystem/core/axes
+  - file: virtual_ecosystem/core/config
+  - file: virtual_ecosystem/core/data
+  - file: virtual_ecosystem/core/grid
+  - file: virtual_ecosystem/constants
+  - file: command_line_tools/ve_run
+  - file: data_recipes/CDS_toolbox_template
+  - file: data_recipes/climate_data_recipes
+
+- caption: Development
+  entries:
+  - file: development/code_development_strategy
+  - file: development/defining_new_models
+  - file: development/developer_setup
+  - file: development/package_releases
+  - file: development/design/core
+  - file: development/documentation/api_generation
+  - file: development/documentation/docstring_style
+  - file: development/documentation/jupyter_notebooks
+  - file: development/documentation/overview
+  
 - caption: API
   entries:
   - file: api/core.md
@@ -128,41 +162,11 @@ subtrees:
         title: The `plant_structures` submodule
       - file: api/models/plants/plants_model
         title: The `plants_model` submodule
-
   - file: api/example_data
     title: The `example_data` submodule
 
 
-- caption: Other stuff
+- caption: Bibliography
   entries:
   - file: bibliography
-
-  - file: command_line_tools/ve_run
-  - file: data_recipes/CDS_toolbox_template
-    entries:
-    - file: data_recipes/climate_data_recipes
-  - file: development/code_development_strategy
-    entries:
-    - file: development/defining_new_models
-    - file: development/developer_setup
-    - file: development/package_releases
-    - file: development/design/core
-    - file: development/documentation/api_generation
-      entries:
-      - file: development/documentation/docstring_style
-      - file: development/documentation/jupyter_notebooks
-      - file: development/documentation/overview
-  - file: virtual_ecosystem/constants
-    entries:
-    - file: virtual_ecosystem/example_data
-    - file: virtual_ecosystem/getting_started
-    - file: virtual_ecosystem/main_simulation
-    - file: virtual_ecosystem/module_overview
-    - file: virtual_ecosystem/virtual_ecosystem_in_use
-    - file: virtual_ecosystem/core/axes
-      entries:
-      - file: virtual_ecosystem/core/config
-      - file: virtual_ecosystem/core/data
-      - file: virtual_ecosystem/core/grid
-    - file: virtual_ecosystem/soil/soil_details
 
