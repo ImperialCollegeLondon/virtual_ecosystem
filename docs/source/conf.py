@@ -77,7 +77,7 @@ autosummary_generate = True
 
 
 external_toc_path = "_toc.yaml"
-# external_toc_exclude_missing = False  # optional, default: False
+external_toc_exclude_missing = False
 
 
 def bracket_style() -> BracketStyle:
@@ -174,7 +174,7 @@ exclude_patterns = [
     "development/training/.pytest_cache/*",
 ]
 
-master_doc = "index"
+# master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -192,9 +192,9 @@ html_theme_options = {
     # Toc options
     "collapse_navigation": False,
     "sticky_navigation": True,
-    "navigation_depth": 0,
-    "includehidden": False,
-    "titles_only": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
