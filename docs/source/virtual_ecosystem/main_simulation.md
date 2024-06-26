@@ -55,25 +55,26 @@ loaded. These files are then validated to ensure:
 
 Some settings will be filled automatically from defaults settings and so can be omitted,
 but validation will fail if mandatory settings are omitted. Further details can be found
-in the [configuration documentation](./core/config.md).
+in the [configuration documentation](../using_the_ve/configuration/config.md).
 
 ### Grid creation
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
-object](./core/grid.md) that defines the area, coordinate system and geometry of the
-individual cells that will be used in the simulation.
+object](../using_the_ve/configuration/grid.md) that defines the area, coordinate system
+and geometry of the individual cells that will be used in the simulation.
 
 ### Loading and validation of input data
 
 All of the data required to initialise and run the simulation is then loaded into an
-internal [`Data` object](./core/data.md). The model configuration sets the locations of
-files containing required variables and this configuration is passed into the
-{meth}`~virtual_ecosystem.core.data.Data.load_data_config` method, which ensures that:
+internal [`Data` object](../using_the_ve/data/data.md). The model configuration sets the
+locations of files containing required variables and this configuration is passed into
+the {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method, which ensures
+that:
 
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
-  checking the dimensionality and shape of [core axes](./core/axes.md) like the spatial
-  grid.
+  checking the dimensionality and shape of [core
+  axes](../using_the_ve/configuration/axes.md) like the spatial grid.
 
 ### Simulation timescale
 

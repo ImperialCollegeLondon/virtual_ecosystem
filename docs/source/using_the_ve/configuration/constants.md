@@ -15,7 +15,7 @@ is fine to use different values for them across different simulations.
 ## Using non-default values for constants
 
 If you want to use a non-default value for a constant this can be accomplished using the
-[configuration system](core/config.md). The configuration for each specific model
+[configuration system](./config.md). The configuration for each specific model
 contains a `constants` section. Within this section constants are grouped based on the
 name of the data class they belong to. An example of this can be seen below:
 
@@ -29,4 +29,4 @@ Any values supplied in this way will be used to override the default values for 
 class in question. Only constants for which non-default values are supplied will be
 replaced. Anything that is not included within the configuration will just take the
 default value, which is set in the data class (see
-[here](../development/defining_new_models.md) for further details).
+[here](../../development/defining_new_models.md) for further details).

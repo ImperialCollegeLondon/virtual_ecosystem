@@ -59,7 +59,7 @@ simulation. Validators may also standardise or subset input datasets to map them
 particular axis configuration.
 
 For more details on the different core axes and the alternative mappings applied by
-validators see the [core axis](axes.md) documentation.
+validators see the [core axis](../configuration/axes.md) documentation.
 
 ## Creating a `Data` instance
 
@@ -148,8 +148,8 @@ A variable can be accessed from the `data` object using the variable name as a k
 the data is returned as an :class:`xarray.DataArray` object.
 
 Note that the `x` and `y` coordinates have been mapped onto the internal `cell_id`
-dimension used to label the different grid cells (see the [Grid](./grid.md)
-documentation for details).
+dimension used to label the different grid cells (see the
+[Grid](../configuration/grid.md) documentation for details).
 
 ```{code-cell}
 # Get the temperature data

@@ -293,7 +293,7 @@ run from a set of configuration files, the model now needs to define two things:
 
 The [JSONSchema](https://json-schema.org/) document in the module root directory defines
 the configuration options for the model. A detailed description of the configuration
-system works can be found [here](../virtual_ecosystem/core/config.md) but the schema
+system works can be found [here](../using_the_ve/configuration/config.md) but the schema
 definition is used to validate configuration files for a Virtual Ecosystem simulation
 that uses your model. Essentially, it defines all of the `__init__` arguments that are
 unique to your model.

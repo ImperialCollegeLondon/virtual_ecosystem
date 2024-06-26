@@ -168,7 +168,7 @@ The `example_climate_data.nc` file provides:
 
 The dummy climate data for the example simulation is based on monthly ERA5-Land data
 which can be downloaded from the [Copernicus climate data store](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview).
-See the [climate data recipes page](../data_recipes/climate_data_recipes.md) for more
+See the [climate data recipes page](./data/climate_data_recipes.md) for more
 details.
 
 ### Hydrology data
@@ -246,7 +246,8 @@ The `example_soil_data.nc` file provides:
 
 This code creates a set of plausible values for which the
 {mod}`~virtual_ecosystem.models.soil.soil_model` absolutely has to function sensibly
-for. Descriptions of the soil pools can be found [here](./soil/soil_details.md).
+for. Descriptions of the soil pools can be found
+[here](../virtual_ecosystem/soil/soil_details.md).
 
 ````{admonition} soil_example_data.py
 :class: dropdown
@@ -299,7 +300,7 @@ The `example_litter_data.nc` file provides:
 
 The generation script creates a set of plausible values for which the {mod}`~virtual_ecosystem.models.litter.litter_model`
 absolutely has to function sensibly for.
-Descriptions of the litter pools can be found [here](./soil/soil_details.md).
+Descriptions of the litter pools can be found [here](../virtual_ecosystem/soil/soil_details.md).
 
 ````{admonition} litter_example_data.py
 :class: dropdown
