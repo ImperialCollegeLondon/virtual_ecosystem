@@ -333,11 +333,11 @@ class LayerStructure:
         self.layer_indices = np.arange(0, self.n_layers)
         """An array of the integer indices of the vertical layers in the model."""
 
-        # Document and type the role index attributes
-        self._role_indices_bool: dict[str, NDArray[np.bool_]]
+        # Type and initialise the role index attributes
+        self._role_indices_bool: dict[str, NDArray[np.bool_]] = {}
         """A dictionary providing boolean arrays indexing the location of sets of roles
          within the vertical layer structure."""
-        self._role_indices_int: dict[str, NDArray[np.int_]]
+        self._role_indices_int: dict[str, NDArray[np.int_]] = {}
         """A dictionary providing integer arrays indexing the location of sets of roles
          within the vertical layer structure."""
 
@@ -418,10 +418,12 @@ class LayerStructure:
         # Set two additional widely used indices
         self._set_base_index(
             "filled_atmosphere",
-            np.logical_or(
-                self._role_indices_bool["above"],
-                self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["surface"],
+            np.logical_or.reduce(
+                (
+                    self._role_indices_bool["above"],
+                    self._role_indices_bool["filled_canopy"],
+                    self._role_indices_bool["surface"],
+                )
             ),
         )
 
@@ -477,10 +479,12 @@ class LayerStructure:
         # Update indices that rely on filled canopy
         self._set_base_index(
             "filled_atmosphere",
-            np.logical_or(
-                self._role_indices_bool["above"],
-                self._role_indices_bool["filled_canopy"],
-                self._role_indices_bool["surface"],
+            np.logical_or.reduce(
+                (
+                    self._role_indices_bool["above"],
+                    self._role_indices_bool["filled_canopy"],
+                    self._role_indices_bool["surface"],
+                )
             ),
         )
 
@@ -512,57 +516,57 @@ class LayerStructure:
         return template_copy
 
     @property
-    def index_above(self):
+    def index_above(self) -> NDArray:
         """Layer indices for the above layer."""
         return self._role_indices_bool["above"]
 
     @property
-    def index_canopy(self):
+    def index_canopy(self) -> NDArray:
         """Layer indices for the above canopy layers."""
         return self._role_indices_bool["canopy"]
 
     @property
-    def index_surface(self):
+    def index_surface(self) -> NDArray:
         """Layer indices for the surface layer."""
         return self._role_indices_bool["surface"]
 
     @property
-    def index_topsoil(self):
+    def index_topsoil(self) -> NDArray:
         """Layer indices for the topsoil layer."""
         return self._role_indices_bool["topsoil"]
 
     @property
-    def index_subsoil(self):
+    def index_subsoil(self) -> NDArray:
         """Layer indices for the subsoil layers."""
         return self._role_indices_bool["subsoil"]
 
     @property
-    def index_all_soil(self):
+    def index_all_soil(self) -> NDArray:
         """Layer indices for all soil layers."""
         return self._role_indices_bool["all_soil"]
 
     @property
-    def index_atmosphere(self):
+    def index_atmosphere(self) -> NDArray:
         """Layer indices for all atmospheric layers."""
         return self._role_indices_bool["atmosphere"]
 
     @property
-    def index_active_soil(self):
+    def index_active_soil(self) -> NDArray:
         """Layer indices for microbially active soil layers."""
         return self._role_indices_bool["active_soil"]
 
     @property
-    def index_filled_canopy(self):
+    def index_filled_canopy(self) -> NDArray:
         """Layer indices for the filled canopy layers."""
         return self._role_indices_bool["filled_canopy"]
 
     @property
-    def index_filled_atmosphere(self):
+    def index_filled_atmosphere(self) -> NDArray:
         """Layer indices for the filled atmospheric layers."""
         return self._role_indices_bool["filled_atmosphere"]
 
     @property
-    def index_flux_layers(self):
+    def index_flux_layers(self) -> NDArray:
         """Layer indices for the flux layers."""
         return self._role_indices_bool["flux_layers"]
 

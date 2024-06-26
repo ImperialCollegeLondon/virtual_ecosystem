@@ -153,7 +153,9 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.array([12, 13]),
                     "active_soil": np.array([12]),
                     "atmosphere": np.arange(0, 12),
-                    "filled_canopy": np.array([]),
+                    "filled_canopy": np.array([], dtype=np.int_),
+                    "filled_atmosphere": np.array([0, 11]),
+                    "flux_layers": np.array([12]),
                 },
                 soil_thickness=np.array([0.25, 0.75]),
                 soil_active=np.array([0.25, 0]),
@@ -185,7 +187,9 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.array([5, 6, 7]),
                     "active_soil": np.array([5, 6]),
                     "atmosphere": np.arange(0, 5),
-                    "filled_canopy": np.array([]),
+                    "filled_canopy": np.array([], dtype=np.int_),
+                    "filled_atmosphere": np.array([0, 4]),
+                    "flux_layers": np.array([5]),
                 },
                 soil_thickness=np.array([0.1, 0.4, 0.4]),
                 soil_active=np.array([0.1, 0.15, 0]),
@@ -219,7 +223,9 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
                     "all_soil": np.arange(5, 14),
                     "active_soil": np.array([5, 6, 7, 8, 9]),
                     "atmosphere": np.arange(0, 5),
-                    "filled_canopy": np.array([]),
+                    "filled_canopy": np.array([], dtype=np.int_),
+                    "filled_atmosphere": np.array([0, 4]),
+                    "flux_layers": np.array([5]),
                 },
                 soil_thickness=np.repeat(0.1, 9),
                 soil_active=np.array([0.1, 0.1, 0.1, 0.1, 0.05, 0, 0, 0, 0]),
@@ -299,30 +305,32 @@ def test_LayerStructure_init(
         assert np.allclose(
             layer_structure.soil_layer_active_thickness, expected_values["soil_active"]
         )
-
         assert np.all(
             np.equal(np.isnan(layer_structure.lowest_canopy_filled), np.repeat(True, 9))
         )
-        # Check the index dictionaries - convert expected keys to frozendicts
-        exp_indices = {
-            frozenset([ky]): vl for ky, vl in expected_values["layer_indices"].items()
-        }
 
-        assert layer_structure._role_indices_int.keys() == exp_indices.keys()
+        # Check the index dictionaries
+        assert (
+            layer_structure._role_indices_int.keys()
+            == expected_values["layer_indices"].keys()
+        )
         for ky in layer_structure._role_indices_int.keys():
+            exp_int_index = expected_values["layer_indices"][ky]
             # Do the integer indices match
             assert np.all(
-                np.equal(
-                    layer_structure._role_indices_int[ky],
-                    exp_indices[ky],
-                )
+                np.equal(layer_structure._role_indices_int[ky], exp_int_index)
             )
             # Do the boolean indices match
+
+            bool_indices = np.repeat(False, layer_structure.n_layers)
+            bool_indices[exp_int_index] = True
             assert np.all(
-                np.equal(
-                    np.where(layer_structure._role_indices_bool[ky]),
-                    exp_indices[ky],
-                )
+                np.equal(layer_structure._role_indices_bool[ky], bool_indices)
+            )
+
+            # Does the attribute/property API return the same as the boolean index
+            assert np.all(
+                np.equal(getattr(layer_structure, f"index_{ky}"), bool_indices)
             )
 
         # Check the from_template data array
@@ -344,77 +352,11 @@ def test_LayerStructure_init(
         )
 
 
-@pytest.mark.parametrize(
-    argnames="requested,as_bool,raises,expected",
-    argvalues=[
-        pytest.param(
-            "above",
-            True,
-            does_not_raise(),
-            np.array([True] + [False] * 13),
-            id="basic bool",
-        ),
-        pytest.param(
-            "above",
-            False,
-            does_not_raise(),
-            np.array([0]),
-            id="basic int",
-        ),
-        pytest.param(
-            ["above", "subsoil"],
-            True,
-            does_not_raise(),
-            np.array([True] + [False] * 12 + [True]),
-            id="aggregate bool",
-        ),
-        pytest.param(
-            ["above", "subsoil"],
-            False,
-            does_not_raise(),
-            np.array([0, 13]),
-            id="aggregate int",
-        ),
-        pytest.param(
-            "above_canopy",
-            False,
-            pytest.raises(ValueError),
-            None,
-            id="bad string",
-        ),
-        pytest.param(
-            ["above", "lowsoil"],
-            False,
-            pytest.raises(ValueError),
-            None,
-            id="bad list",
-        ),
-    ],
-)
-def test_LayerStructure_get_index(
-    caplog, fixture_core_components, requested, as_bool, raises, expected
-):
-    """Test the get index method."""
-
-    with raises:
-        indices = fixture_core_components.layer_structure.get_indices(
-            requested, as_bool=as_bool
-        )
-
-    if isinstance(raises, does_not_raise):
-        assert np.all(np.equal(indices, expected))
-
-
 def test_LayerStructure_set_filled_canopy():
     """Test the set_filled_canopy_method.
 
-    This test does quite a lot!
+    This test:
 
-    * Initialises a LayerStructure instance.
-    * Checks that the filled canopy layer information matches the expected defaults
-      - no filled layers.
-    * Calls for an aggregate role index including canopy to get the result and to cache
-      that aggregate index.
     * Calls the `set_filled_canopy` method with a simple canopy structure with a simple
       triangle of filled canopy layers across the 9 grid cells, so that the lowest
       canopy layer is never filled and the ninth cell has no filled.canopy.
@@ -430,23 +372,6 @@ def test_LayerStructure_set_filled_canopy():
     layer_structure = LayerStructure(
         cfg, n_cells=9, max_depth_of_microbial_activity=0.25
     )
-
-    # Check the empty canopy defaults are as expected.
-    assert np.all(
-        np.equal(np.isnan(layer_structure.lowest_canopy_filled), np.repeat(True, 9))
-    )
-    assert np.allclose(
-        layer_structure.get_indices("filled_canopy", as_bool=False), np.array([])
-    )
-
-    # Get an aggregate index to check the output is as expected and to cache the
-    # requested aggregate index.
-    agg_roles = ["above", "filled_canopy", "surface"]
-    agg_index = frozenset(agg_roles)
-    agg_values = layer_structure.get_indices(agg_roles, as_bool=False)
-
-    assert agg_index in layer_structure._role_indices_int
-    assert np.all(np.equal(agg_values, np.array([0, 11])))
 
     # Run the set_filled_canopy method to populate the filled layers and update cached
     # indices.
@@ -464,18 +389,18 @@ def test_LayerStructure_set_filled_canopy():
         equal_nan=True,
     )
 
-    assert np.allclose(
-        layer_structure.get_indices("filled_canopy", as_bool=False), np.arange(1, 9)
-    )
+    # Index attributes that are defined using filled_canopy
+    exp_filled_canopy = np.repeat(False, layer_structure.n_layers)
+    exp_filled_canopy[np.arange(1, 9)] = True
+    assert np.allclose(layer_structure.index_filled_canopy, exp_filled_canopy)
 
-    # Check the aggregate index has been updated automatically and is retrieved cleanly
-    # by the get_indices method.
-    assert agg_index in layer_structure._role_indices_int
-    internal_values = layer_structure._role_indices_int[agg_index]
-    assert np.all(np.equal(internal_values, np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 11])))
+    exp_filled_atmosphere = np.repeat(False, layer_structure.n_layers)
+    exp_filled_atmosphere[np.concatenate([[0], np.arange(1, 9), [11]])] = True
+    assert np.allclose(layer_structure.index_filled_atmosphere, exp_filled_atmosphere)
 
-    got_values = layer_structure.get_indices(agg_roles, as_bool=False)
-    assert np.all(np.equal(internal_values, got_values))
+    exp_flux_layers = np.repeat(False, layer_structure.n_layers)
+    exp_flux_layers[np.concatenate([np.arange(1, 9), [12]])] = True
+    assert np.allclose(layer_structure.index_flux_layers, exp_flux_layers)
 
 
 @pytest.mark.parametrize(
