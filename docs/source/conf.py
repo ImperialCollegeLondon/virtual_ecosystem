@@ -76,6 +76,10 @@ autodoc_default_flags = ["members"]
 autosummary_generate = True
 
 
+external_toc_path = "_toc.yaml"
+# external_toc_exclude_missing = False  # optional, default: False
+
+
 def bracket_style() -> BracketStyle:
     """Function that defines round brackets citation style."""
     return BracketStyle(
