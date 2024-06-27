@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
@@ -50,6 +51,7 @@ def interpolate_along_heights(
 
 
 def initialise_conductivities(
+    layer_structure: LayerStructure,
     layer_heights: DataArray,
     initial_air_conductivity: float,
     top_leaf_vapour_conductivity: float,
@@ -67,8 +69,11 @@ def initialise_conductivities(
     The first value in each output represents conductivity between the air at 2 m above
     canopy and the highest canopy layer. The last (above ground) value represents
     conductivity between the ground and the lowest canopy node.
+    TODO account for variable layer depths
+    TODO account for variable layer depths
 
     Args:
+        layer_structure: the model layer structure instance.
         layer_heights: layer heights, [m]
         initial_air_conductivity: Initial value for heat conductivity by turbulent
             convection in air, [mol m-2 s-1]
@@ -87,10 +92,10 @@ def initialise_conductivities(
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
-    canopy_height = layer_heights[1].to_numpy()
-    atmosphere_layers = layer_heights[layer_heights["layer_roles"] != "soil"]
-    canopy_layers = layer_heights[layer_heights["layer_roles"] == "canopy"]
-    soil_layers = layer_heights[layer_heights["layer_roles"] == "soil"]
+    canopy_height = layer_heights[layer_structure.role_indices["canopy"][0]].to_numpy()
+    atmosphere_layers = layer_heights[layer_structure.role_indices_bool["atmosphere"]]
+    canopy_layers = layer_heights[layer_structure.role_indices["canopy"]]
+    soil_layers = layer_heights[layer_structure.role_indices["all_soil"]]
 
     output = {}
 
@@ -103,14 +108,10 @@ def initialise_conductivities(
     )
     air_conductivity[-1] *= 2
     air_conductivity[0] *= (canopy_height / len(atmosphere_layers)) * 0.5
-    output["air_heat_conductivity"] = DataArray(
-        np.concatenate(
-            [air_conductivity, np.full((len(soil_layers), len(canopy_height)), np.nan)],
-            axis=0,
-        ),
-        dims=layer_heights.dims,
-        coords=layer_heights.coords,
-        name="air_heat_conductivity",
+
+    output["air_heat_conductivity"] = layer_structure.from_template()
+    output["air_heat_conductivity"][layer_structure.role_indices_bool["atmosphere"]] = (
+        air_conductivity
     )
 
     # Initialise leaf vapour conductivity
@@ -121,17 +122,9 @@ def initialise_conductivities(
         start_value=top_leaf_vapour_conductivity,
         end_value=bottom_leaf_vapour_conductivity,
     )
-    output["leaf_vapour_conductivity"] = DataArray(
-        np.vstack(
-            [
-                np.repeat(np.nan, len(canopy_height)),
-                leaf_vapour_conductivity,
-                np.full((len(soil_layers) + 2, len(canopy_height)), np.nan),
-            ],
-        ),
-        dims=layer_heights.dims,
-        coords=layer_heights.coords,
-        name="leaf_vapour_conductivity",
+    output["leaf_vapour_conductivity"] = layer_structure.from_template()
+    output["leaf_vapour_conductivity"][layer_structure.role_indices["canopy"]] = (
+        leaf_vapour_conductivity
     )
 
     # Initialise leaf air heat conductivity
@@ -142,17 +135,9 @@ def initialise_conductivities(
         start_value=top_leaf_air_conductivity,
         end_value=bottom_leaf_air_conductivity,
     )
-    output["leaf_air_heat_conductivity"] = DataArray(
-        np.vstack(
-            [
-                np.repeat(np.nan, len(canopy_height)),
-                leaf_air_conductivity,
-                np.full((len(soil_layers) + 2, len(canopy_height)), np.nan),
-            ],
-        ),
-        dims=layer_heights.dims,
-        coords=layer_heights.coords,
-        name="leaf_air_heat_conductivity",
+    output["leaf_air_heat_conductivity"] = layer_structure.from_template()
+    output["leaf_air_heat_conductivity"][layer_structure.role_indices["canopy"]] = (
+        leaf_air_conductivity
     )
 
     return output
