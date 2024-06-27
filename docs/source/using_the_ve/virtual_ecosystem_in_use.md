@@ -12,8 +12,6 @@ kernelspec:
   name: python3
 settings:
   output_matplotlib_strings: remove
-mystnb:
-  execution_mode: 'off' # TODO: ve_run is not exiting cleanly - compiling continuous data 
 ---
 
 # Using the Virtual Ecosystem
