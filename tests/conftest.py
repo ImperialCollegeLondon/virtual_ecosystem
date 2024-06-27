@@ -253,23 +253,37 @@ def dummy_carbon_data(fixture_core_components):
 
     # The layer dependant data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
-    data["soil_moisture"] = fixture_core_components.layer_structure.from_template()
-    data["soil_moisture"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
-    ] = [232.61550125, 196.88733175, 126.065797, 75.63195175]
+    ls = fixture_core_components.layer_structure
 
-    data["matric_potential"] = fixture_core_components.layer_structure.from_template()
-    data["matric_potential"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
-    ] = [-3.0, -10.0, -250.0, -10000.0]
+    data["soil_moisture"] = ls.from_template()
+    data["soil_moisture"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+        232.61550125,
+        196.88733175,
+        126.065797,
+        75.63195175,
+    ]
 
-    data["soil_temperature"] = fixture_core_components.layer_structure.from_template()
-    data["soil_temperature"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
-    ] = [35.0, 37.5, 40.0, 25.0]
-    data["soil_temperature"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["subsoil"]}
-    ] = [22.5, 22.5, 22.5, 22.5]
+    data["matric_potential"] = ls.from_template()
+    data["matric_potential"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+        -3.0,
+        -10.0,
+        -250.0,
+        -10000.0,
+    ]
+
+    data["soil_temperature"] = ls.from_template()
+    data["soil_temperature"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+        35.0,
+        37.5,
+        40.0,
+        25.0,
+    ]
+    data["soil_temperature"].loc[{"layers": ls.role_indices["subsoil"]}] = [
+        22.5,
+        22.5,
+        22.5,
+        22.5,
+    ]
 
     return data
 
