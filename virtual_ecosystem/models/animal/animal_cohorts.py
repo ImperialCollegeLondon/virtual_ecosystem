@@ -93,6 +93,8 @@ class AnimalCohort:
         This method currently employs a toy 50/50 split of basal and field metabolism
         through the metabolic_rate scaling function. Ecothermic metabolism is a function
         of environmental temperature. Endotherms are unaffected by temperature change.
+        This method will later drive the processing of carbon and nitrogen metabolic
+        products.
 
         Args:
             temperature: Current air temperature (K)
@@ -128,7 +130,9 @@ class AnimalCohort:
     def excrete(self, excreta_mass: float, excrement_pool: DecayPool) -> None:
         """Transfers nitrogenous metabolic wastes to the excrement pool.
 
-        This method will not be fully implemented until the stoichiometric rework.
+        This method will not be fully implemented until the stoichiometric rework. All
+        current metabolic wastes are carbonaceous and so all this does is provide a link
+        joining metabolism to a soil pool for later use.
 
         Args:
             excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
