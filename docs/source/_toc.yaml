@@ -34,15 +34,21 @@ subtrees:
 
 - caption: Development
   entries:
-  - file: development/code_development_strategy
-  - file: development/defining_new_models
-  - file: development/developer_setup
-  - file: development/package_releases
-  - file: development/design/core
-  - file: development/documentation/api_generation
-  - file: development/documentation/docstring_style
-  - file: development/documentation/jupyter_notebooks
-  - file: development/documentation/overview
+  - file: development/contributing
+    entries:
+    - file: development/contributing/code_development_strategy
+    - file: development/contributing/developer_setup
+    - file: development/contributing/package_releases
+  - file: development/design
+    entries:
+    - file: development/design/core
+    - file: development/design/defining_new_models
+  - file: development/documentation
+    entries:
+    - file: development/documentation/api_generation
+    - file: development/documentation/docstring_style
+    - file: development/documentation/jupyter_notebooks
+    - file: development/documentation/overview
 
 - caption: API
   entries:

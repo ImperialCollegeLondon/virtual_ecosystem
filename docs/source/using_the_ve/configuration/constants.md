@@ -29,4 +29,4 @@ Any values supplied in this way will be used to override the default values for 
 class in question. Only constants for which non-default values are supplied will be
 replaced. Anything that is not included within the configuration will just take the
 default value, which is set in the data class (see
-[here](../../development/defining_new_models.md) for further details).
+[here](../../development/design/defining_new_models.md) for further details).

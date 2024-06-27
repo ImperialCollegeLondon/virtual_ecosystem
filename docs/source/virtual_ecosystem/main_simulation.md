@@ -99,8 +99,9 @@ four standard models:
 * the [`PlantModel`](../api/models/plants.md) and the
 * [`SoilModel`](../api/models/soil.md)
 
-but this can be [extended to include new models](../development/defining_new_models.md)
-or adopt different combinations of models.
+but this can be [extended to include new
+models](../development/design/defining_new_models.md) or adopt different combinations of
+models.
 
 Once a list of models to configure has been extracted from the configuration, all
 science models run through a set of steps to prepare for the simulation to start. Each
