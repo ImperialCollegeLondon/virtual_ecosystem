@@ -4,8 +4,8 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
+import pint
 import pytest
-import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -41,7 +41,7 @@ MODEL_VAR_CHECK_LOG = [
             id="soil moisture out of bounds",
         ),
         pytest.param(
-            DataArray([50, 30, 20]),
+            DataArray([50, 30, 20, 20]),
             0.9,
             pytest.raises(InitialisationError),
             tuple(
@@ -99,7 +99,8 @@ def test_hydrology_model_initialization(
         assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
         assert model.initial_soil_moisture == ini_soil_moisture
         assert model.initial_groundwater_saturation == ini_groundwater_sat
-        assert model.drainage_map == {0: [], 1: [0], 2: [1, 2]}
+        # TODO - not sure about the value below, test with more expansive drainage maps
+        assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -196,21 +197,15 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "cfg_string, raises",
+    "update_interval, raises",
     [
         pytest.param(
-            "[core]\n"
-            "[core.timing]\nupdate_interval = '1 month'\n"
-            "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n",
+            pint.Quantity(1, "month"),
             does_not_raise(),
             id="updates correctly",
         ),
         pytest.param(
-            "[core]\n"
-            "[core.timing]\nupdate_interval = '1 week'\n"
-            "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n",
+            pint.Quantity(1, "week"),
             pytest.raises(NotImplementedError),
             id="incorrect update frequency",
         ),
@@ -218,50 +213,50 @@ def test_generate_hydrology_model(
 )
 def test_setup(
     dummy_climate_data,
-    cfg_string,
+    fixture_config,
+    update_interval,
     raises,
+    fixture_core_components,
 ):
     """Test set up and update."""
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config)
+    fixture_config["core"]["timing"]["update_interval"] = update_interval
+    core_components = CoreComponents(fixture_config)
 
     with raises:
         # initialise model
         model = HydrologyModel.from_config(
             data=dummy_climate_data,
             core_components=core_components,
-            config=config,
+            config=fixture_config,
         )
 
         model.setup()
 
+        # Test soil moisture
+
+        exp_soilm_setup = fixture_core_components.layer_structure.from_template()
+        soil_indices = fixture_core_components.layer_structure.role_indices["all_soil"]
+        exp_soilm_setup[soil_indices] = np.array([[250], [250]])
+
         np.testing.assert_allclose(
-            dummy_climate_data["soil_moisture"][13:15],
-            DataArray(
-                np.full((2, 3), 250.0),
-                dims=["layers", "cell_id"],
-                coords={
-                    "layers": [13, 14],
-                    "layer_roles": ("layers", ["soil", "soil"]),
-                    "cell_id": [0, 1, 2],
-                },
-                name="soil_moisture",
-            ),
+            model.data["soil_moisture"],
+            exp_soilm_setup,
             rtol=1e-3,
             atol=1e-3,
         )
 
+        # Test groundwater storage
+        exp_groundwater = DataArray(
+            np.full((2, fixture_core_components.grid.n_cells), 450.0),
+            dims=("groundwater_layers", "cell_id"),
+        )
         np.testing.assert_allclose(
-            dummy_climate_data["groundwater_storage"],
-            DataArray(
-                [[450.0, 450.0, 450.0], [450.0, 450.0, 450.0]],
-                dims=("groundwater_layers", "cell_id"),
-            ),
+            model.data["groundwater_storage"],
+            exp_groundwater,
             rtol=1e-3,
             atol=1e-3,
         )
@@ -269,108 +264,39 @@ def test_setup(
         # Run the update step
         model.update(time_index=1, seed=42)
 
-        exp_soil_evap = DataArray(
-            [345.1148, 344.759928, 345.15422],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
-        np.testing.assert_allclose(
-            model.data["soil_evaporation"],
-            exp_soil_evap,
-            rtol=1e-4,
-            atol=1e-4,
-        )
-        exp_runoff = DataArray(
-            [0.0, 0.0, 0.0],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
-        np.testing.assert_allclose(
-            model.data["surface_runoff"],
-            exp_runoff,
-            rtol=1e-4,
-            atol=1e-4,
-        )
-
-        exp_soil_moisture = xr.concat(
-            [
-                DataArray(
-                    np.full((13, 3), np.nan),
-                    dims=["layers", "cell_id"],
-                ),
-                DataArray(
-                    [
-                        [67.062176, 67.082902, 67.054351],
-                        [209.847047, 209.850025, 209.849115],
-                    ],
-                    dims=["layers", "cell_id"],
-                ),
+        # Test 2d variables
+        expected_2d = {
+            "soil_moisture": [
+                [67.0621, 67.0829, 67.05435, 67.04017],
+                [209.8470, 209.8500, 209.8491, 209.8467],
             ],
-            dim="layers",
-        ).assign_coords(model.data["layer_heights"].coords)
-        np.testing.assert_allclose(
-            model.data["soil_moisture"][13:15],
-            exp_soil_moisture[13:15],
-            rtol=1e-4,
-            atol=1e-4,
-        )
-
-        exp_matric_pot = xr.concat(
-            [
-                DataArray(
-                    np.full((13, 3), np.nan),
-                    dims=["layers", "cell_id"],
-                ),
-                DataArray(
-                    [
-                        [-1.532961e07, -1.536408e07, -1.528976e07],
-                        [-1.250262e03, -1.250131e03, -1.250172e03],
-                    ],
-                    dims=["layers", "cell_id"],
-                ),
+            "matric_potential": [
+                [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
+                [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
             ],
-            dim="layers",
-        ).assign_coords(model.data["layer_heights"].coords)
-        np.testing.assert_allclose(
-            model.data["matric_potential"][13:15],
-            exp_matric_pot[13:15],
-            rtol=1e-4,
-            atol=1e-4,
-        )
+        }
 
-        exp_vertical_flow = DataArray(
-            [0.69471, 0.695691, 0.695682],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
+        for var_name, expected_vals in expected_2d.items():
+            exp_var = fixture_core_components.layer_structure.from_template()
+            exp_var[soil_indices] = expected_vals
 
-        exp_total_discharge = DataArray(
-            [0, 20925, 42201],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
-        exp_runoff_acc = DataArray(
-            [0, 0, 0],
-            dims=["cell_id"],
-            coords={"cell_id": [0, 1, 2]},
-        )
+            np.testing.assert_allclose(
+                model.data[var_name], exp_var, rtol=1e-4, atol=1e-4
+            )
 
-        np.testing.assert_allclose(
-            model.data["vertical_flow"],
-            exp_vertical_flow,
-            rtol=1e-4,
-            atol=1e-4,
-        )
+        # Test one dimensional variables
+        expected_1d = {
+            "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
+            "total_river_discharge": [0, 0, 63361, 20925],
+            "surface_runoff": [0, 0, 0, 0],
+            "surface_runoff_accumulated": [0, 0, 0, 0],
+            "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
+        }
 
-        np.testing.assert_allclose(
-            model.data["total_river_discharge"],
-            exp_total_discharge,
-            rtol=1e-4,
-            atol=1e-4,
-        )
-        np.testing.assert_allclose(
-            model.data["surface_runoff_accumulated"],
-            exp_runoff_acc,
-            rtol=1e-4,
-            atol=1e-4,
-        )
+        for var_name, expected_vals in expected_1d.items():
+            np.testing.assert_allclose(
+                model.data[var_name],
+                expected_vals,
+                rtol=1e-4,
+                atol=1e-4,
+            )

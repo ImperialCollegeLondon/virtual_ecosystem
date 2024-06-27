@@ -100,13 +100,15 @@ class SoilModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Find first soil layer from the list of layer roles
-        self.top_soil_layer_index = self.layer_structure.layer_roles.index("soil")
-        """The layer in the data object representing the first soil layer."""
+        # Get top soil layer index as a scalar
+        self.top_soil_layer_index: int = self.layer_structure.role_indices[
+            "topsoil"
+        ].item()
+        """The layer in the data object representing the topsoil layer."""
 
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
-        self.model_constants = model_constants
+        self.model_constants: SoilConsts = model_constants
         """Set of constants for the soil model."""
 
     @classmethod

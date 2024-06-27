@@ -160,48 +160,30 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
+def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test set up and update."""
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.core_components import CoreComponents
+
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
 
-    # Build the config object and core components
-    config = Config(
-        cfg_strings="[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n"
-    )
-    core_components = CoreComponents(config)
-
     # initialise model
-    model = AbioticSimpleModel.from_config(
+    model = AbioticSimpleModel(
         data=dummy_climate_data_varying_canopy,
-        core_components=core_components,
-        config=config,
+        core_components=fixture_core_components,
     )
 
     model.setup()
-    exp_soil_temp = DataArray(
-        np.full((15, 3), np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, 15),
-            "layer_roles": (
-                "layers",
-                core_components.layer_structure.layer_roles,
-            ),
-            "cell_id": [0, 1, 2],
-        },
-    )
+
+    exp_soil_temp = fixture_core_components.layer_structure.from_template()
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((3, 3), 0.141727),
+            np.full((4, 3), 0.141727),
             dims=["cell_id", "time_index"],
-            coords={"cell_id": [0, 1, 2]},
+            coords={"cell_id": [0, 1, 2, 3]},
         ),
     )
 
@@ -218,20 +200,19 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_empty_array):
     ]:
         assert var in model.data
 
-    exp_air_temp = fixture_empty_array.copy()
-    exp_air_temp[[0, 1, 2, 3, 11, 12], :] = [
-        [30.0, 30.0, 30.0],
-        [29.91965, 29.946434, 29.973217],
-        [29.414851, 29.609901, np.nan],
-        [28.551891, np.nan, np.nan],
-        [26.19, 27.46, 28.73],
-        [22.81851, 25.21234, 27.60617],
+    exp_air_temp = fixture_core_components.layer_structure.from_template()
+    exp_air_temp[[0, 1, 2, 3, 11], :] = [
+        [30.0, 30.0, 30.0, 30.0],
+        [29.91965, 29.946434, 29.973217, 29.973217],
+        [29.414851, 29.609901, np.nan, np.nan],
+        [28.551891, np.nan, np.nan, np.nan],
+        [22.81851, 25.21234, 27.60617, 27.60617],
     ]
+    xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
-    exp_soil_temp = fixture_empty_array.copy()
-    exp_soil_temp[[13, 14], :] = [[20.712458, 21.317566, 21.922674], [20.0, 20.0, 20.0]]
+    exp_soil_temp = fixture_core_components.layer_structure.from_template()
+    exp_soil_temp[[12, 13], :] = [
+        [20.712458, 21.317566, 21.922674, 21.922674],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
-
-    xr.testing.assert_allclose(
-        dummy_climate_data_varying_canopy["air_temperature"], exp_air_temp
-    )

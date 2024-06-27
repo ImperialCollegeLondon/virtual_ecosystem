@@ -268,7 +268,7 @@ def calculate_total_C_mineralised(
     )
 
     # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
-    return total_C_mineralisation_rate / core_constants.depth_of_active_soil_layer
+    return total_C_mineralisation_rate / core_constants.max_depth_of_microbial_activity
 
 
 def calculate_updated_pools(
