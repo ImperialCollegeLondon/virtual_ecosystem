@@ -88,7 +88,11 @@ class AnimalCohort:
         """The fraction of carcass biomass which decays before it gets consumed."""
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
-        """The function to reduce mass_current through basal metabolism.
+        """The function to reduce body mass through metabolism.
+
+        This method currently employs a toy 50/50 split of basal and field metabolism
+        through the metabolic_rate scaling function. Ecothermic metabolism is a function
+        of environmental temperature. Endotherms are unaffected by temperature change.
 
         Args:
             temperature: Current air temperature (K)
@@ -121,14 +125,19 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(self, excreta_mass: float, excrement_pool: DecayPool):
+    def excrete(self, excreta_mass: float, excrement_pool: DecayPool) -> None:
         """Transfers nitrogenous metabolic wastes to the excrement pool.
 
         This method will not be fully implemented until the stoichiometric rework.
 
+        Args:
+            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
+            excrement_pool: The pool of wastes to which the excreted nitrogenous wastes
+                flow.
+
         """
-        excrement_pool.decomposed_energy += excreta_mass * (
-            1.0 - self.constants.carbon_excreta_proportion
+        excrement_pool.decomposed_energy += (
+            excreta_mass * self.constants.nitrogen_excreta_proportion
         )
 
     def respire(self, excreta_mass: float) -> float:

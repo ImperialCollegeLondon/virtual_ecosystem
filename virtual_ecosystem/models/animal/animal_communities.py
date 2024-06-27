@@ -325,7 +325,7 @@ class AnimalCommunity:
 
         Respiration wastes are totaled because they are CO2 and not tracked spatially.
         Excretion wastes are handled cohort by cohort because they will need to be
-        spatiallty explicit with multi-grid occupancy.
+        spatially explicit with multi-grid occupancy.
 
         Args:
             temperature: Current air temperature (K).
