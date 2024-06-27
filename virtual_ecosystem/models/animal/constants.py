@@ -251,6 +251,10 @@ class AnimalConsts(ConstantsDataclass):
     """The proportion of metabolic wastes that are carbonaceous. This is a temporary
     fix to facilitate building the machinery and will be updated with stoichiometry."""
 
+    nitrogen_excreta_proportion = 0.0  # toy [unitless]
+    """The proportion of metabolic wastes that are nitrogenous. This is a temporary
+    fix to facilitate building the machinery and will be updated with stoichiometry."""
+
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
 """Fraction of excrement that is assumed to decay rather than be consumed [unitless].
