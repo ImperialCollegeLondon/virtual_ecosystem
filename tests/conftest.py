@@ -289,24 +289,6 @@ def dummy_carbon_data(fixture_core_components):
 
 
 @pytest.fixture
-def top_soil_layer_index(fixture_core_components):
-    """The index of the top soil layer in the data fixtures.
-
-    Convert from array to scalar using item.
-    """
-    return fixture_core_components.layer_structure.index_topsoil.item()
-
-
-@pytest.fixture
-def surface_layer_index(fixture_core_components):
-    """The index of the top soil layer in the data fixtures.
-
-    Convert from array to scalar using item.
-    """
-    return fixture_core_components.layer_structure.index_surface.item()
-
-
-@pytest.fixture
 def dummy_climate_data(fixture_core_components):
     """Creates a dummy climate data object for use in tests."""
 
