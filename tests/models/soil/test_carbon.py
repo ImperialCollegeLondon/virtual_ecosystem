@@ -15,11 +15,11 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [-0.011287175, -0.001874381, -0.046860377, -3.36495e-5],
+        "soil_c_pool_lmwc": [0.0021136705, 0.0015913549, -0.0253728144, 0.0242265018],
         "soil_c_pool_maom": [-1.28996257e-3, 2.35822401e-3, 1.5570399e-3, 1.2082886e-5],
         "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
         "soil_c_pool_pom": [0.00178122, -0.00785937, -0.01201551, 0.00545857],
-        "soil_c_pool_necromass": [0.054740855, 0.023035011, 0.119523517, 0.0072601095],
+        "soil_c_pool_necromass": [0.041340010, 0.019569275, 0.098035954, -0.017000042],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
     }
@@ -212,7 +212,7 @@ def test_calculate_necromass_breakdown(dummy_carbon_data):
 
     from virtual_ecosystem.models.soil.carbon import calculate_necromass_breakdown
 
-    expected_breakdown = [-0.0134008455, -0.0034657359, -0.0214875626, -0.0242601513]
+    expected_breakdown = [0.0134008455, 0.0034657359, 0.0214875626, 0.0242601513]
 
     actual_breakdown = calculate_necromass_breakdown(
         soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],

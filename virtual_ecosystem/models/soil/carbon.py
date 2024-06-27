@@ -157,11 +157,17 @@ def calculate_soil_carbon_updates(
         half_saturation=model_constants.half_sat_maom_decomposition,
         activation_energy_sat=model_constants.activation_energy_maom_decomp_saturation,
     )
+    # Calculate necromass decay to lmwc and sorption to maom
+    necromass_decay_to_lmwc = calculate_necromass_breakdown(
+        soil_c_pool_necromass=soil_c_pool_necromass,
+        necromass_decay_rate=model_constants.necromass_decay_rate,
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
         + maom_decomposition_to_lmwc
+        + necromass_decay_to_lmwc
         - microbial_uptake
         - labile_carbon_leaching
     )
@@ -175,7 +181,10 @@ def calculate_soil_carbon_updates(
         mineralisation_rate - pom_decomposition_rate
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
-        biomass_losses.necromass_formation + pom_enzyme_turnover + maom_enzyme_turnover
+        biomass_losses.necromass_formation
+        + pom_enzyme_turnover
+        + maom_enzyme_turnover
+        - necromass_decay_to_lmwc
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
@@ -463,4 +472,4 @@ def calculate_necromass_breakdown(
         The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
     """
 
-    return -necromass_decay_rate * soil_c_pool_necromass
+    return necromass_decay_rate * soil_c_pool_necromass

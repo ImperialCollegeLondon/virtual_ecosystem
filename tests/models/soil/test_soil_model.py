@@ -265,20 +265,20 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.04470103, 0.01915703, 0.07950671, 0.00498331], dims="cell_id"
+                        [0.05210826, 0.02123014, 0.09141469, 0.01660416], dims="cell_id"
                     ),
                     maom=DataArray(
                         [2.49935708, 1.70117552, 4.50075105, 0.50000609], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77504346, 2.28989195, 11.24785387, 0.99640886],
+                        [5.7752017, 2.28995877, 11.24831909, 0.99642481],
                         dims="cell_id",
                     ),
                     pom=DataArray(
                         [0.10088985, 0.99607906, 0.69401895, 0.35272921], dims="cell_id"
                     ),
                     necromass=DataArray(
-                        [0.08531216, 0.02649261, 0.15262834, 0.10862358], dims="cell_id"
+                        [0.07746489, 0.02421675, 0.13916487, 0.09696637], dims="cell_id"
                     ),
                     enzyme_pom=DataArray(
                         [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
@@ -405,10 +405,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
     from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -0.011287175,
-        -0.001874381,
-        -0.046860377,
-        -3.36495e-5,
+        0.0021136705,
+        0.0015913549,
+        -0.0253728144,
+        0.0242265018,
         -1.28996257e-3,
         2.35822401e-3,
         1.5570399e-3,
@@ -421,10 +421,10 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         -0.00785937,
         -0.01201551,
         0.00545857,
-        0.054740855,
-        0.023035011,
-        0.119523517,
-        0.0072601095,
+        0.041340010,
+        0.019569275,
+        0.098035954,
+        -0.017000042,
         1.17571917e-8,
         1.67442231e-8,
         1.83311362e-9,
