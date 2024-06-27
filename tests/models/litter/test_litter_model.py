@@ -134,7 +134,7 @@ def test_litter_model_initialization_bad_pool_bounds(
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
         dummy_litter_data["litter_pool_above_metabolic"] = DataArray(
-            [0.05, 0.02, -0.1], dims=["cell_id"]
+            [0.05, 0.02, -0.1, -0.1], dims=["cell_id"]
         )
 
         LitterModel(
@@ -162,7 +162,7 @@ def test_litter_model_initialization_bad_lignin_bounds(
         # Make four cell grid
         litter_data = deepcopy(dummy_litter_data)
         # Put incorrect data in for woody lignin
-        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1], dims=["cell_id"])
+        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"])
 
         LitterModel(
             data=litter_data,
@@ -311,15 +311,15 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.29587973, 0.14851276, 0.07041856]
-    end_above_struct = [0.50055126, 0.25010012, 0.0907076]
-    end_woody = [4.702103, 11.802315, 7.300997]
-    end_below_meta = [0.38949196, 0.36147436, 0.06906041]
-    end_below_struct = [0.60011634, 0.30989963, 0.02047753]
-    end_lignin_above_struct = [0.4996410, 0.1004310, 0.6964345]
-    end_lignin_woody = [0.49989001, 0.79989045, 0.34998229]
-    end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757]
-    c_mineral = [0.02987233, 0.02316114, 0.00786517]
+    end_above_meta = [0.29587973, 0.14851276, 0.07041856, 0.07041856]
+    end_above_struct = [0.50055126, 0.25010012, 0.0907076, 0.0907076]
+    end_woody = [4.702103, 11.802315, 7.300997, 7.300997]
+    end_below_meta = [0.38949196, 0.36147436, 0.06906041, 0.06906041]
+    end_below_struct = [0.60011634, 0.30989963, 0.02047753, 0.02047753]
+    end_lignin_above_struct = [0.4996410, 0.1004310, 0.6964345, 0.6964345]
+    end_lignin_woody = [0.49989001, 0.79989045, 0.34998229, 0.34998229]
+    end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757, 0.737107757]
+    c_mineral = [0.02987233, 0.02316114, 0.00786517, 0.00786517]
 
     fixture_litter_model.update(time_index=0)
 

@@ -107,7 +107,7 @@ from virtual_ecosystem.core.core_components import (
     LayerStructure,
     ModelTiming,
 )
-from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.data import Data, Grid
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -186,14 +186,15 @@ class BaseModel(ABC):
 
         * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance,
         * ``model_timing``: the
-          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from
-          the ``core_components`` argument.
+          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from the
+          ``core_components`` argument.
+        * ``grid``: the :class:`~virtual_ecosystem.core.grid.Grid` instance from the
+          ``core_components`` argument.
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the
-          :class:`~virtual_ecosystem.core.constants.CoreConsts` instance from
-          the ``core_components`` argument.
+        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
+          instance from the ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
@@ -204,6 +205,8 @@ class BaseModel(ABC):
         """A Data instance providing access to the shared simulation data."""
         self.model_timing: ModelTiming = core_components.model_timing
         """The ModelTiming details used in the model."""
+        self.grid: Grid = core_components.grid
+        """The Grid details used in the model."""
         self.layer_structure: LayerStructure = core_components.layer_structure
         """The LayerStructure details used in the model."""
         self.core_constants: CoreConsts = core_components.core_constants
