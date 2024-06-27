@@ -252,6 +252,15 @@ class LayerStructure:
         different defined roles. However, all of the role indices can be accessed more
         conveniently using class properties e.g. ``LayerStructure.index_above``.
 
+        Note that the standard index properties like ``LayerStructure.index_above`` will
+        return an array index, which extracts a two dimensional slice of the vertical
+        structure. It is sometimes more convenient to extract a 1 dimensional slice
+        across cells, dropping the vertical dimension. This only makes sense for the
+        three role layers (``above``, ``surface`` and ``topsoil``) that are by
+        definition a single layer thick, but for these three layers, additional
+        properties (e.g. ``LayerStructure.index_above_scalar``) are defined that will
+        return a scalar index that extracts a one-dimensional slice.
+
     **Methods overview**:
 
         * :meth:`~LayerStructure.from_template`: this returns an empty DataArray with
@@ -305,6 +314,9 @@ class LayerStructure:
         init=False, default_factory=lambda: {}
     )
     """A dictionary of integer layer role indices within the vertical structure."""
+    _role_indices_scalar: dict[str, int] = field(init=False, default_factory=lambda: {})
+    """A dictionary of scalar role indices within the vertical structure for single
+    layer roles."""
     lowest_canopy_filled: NDArray[np.int_] = field(init=False)
     """An integer index showing the lowest filled canopy layer for each grid cell"""
     soil_layer_thickness: NDArray[np.float_] = field(init=False)
@@ -450,6 +462,12 @@ class LayerStructure:
                 self._role_indices_bool["topsoil"],
             ),
         )
+
+        # Set the scalar indices - using item here as a deliberate trap for accidental
+        # definition of these layers as being more than a single layer.
+        self._role_indices_scalar["above"] = self._role_indices_int["above"].item()
+        self._role_indices_scalar["surface"] = self._role_indices_int["surface"].item()
+        self._role_indices_scalar["topsoil"] = self._role_indices_int["topsoil"].item()
 
     def _set_layer_data_array_template(self):
         """Sets the template data array with the simulation vertical structure.
@@ -608,6 +626,21 @@ class LayerStructure:
     def index_flux_layers(self) -> NDArray:
         """Layer indices for the flux layers."""
         return self._role_indices_bool["flux_layers"]
+
+    @property
+    def index_above_scalar(self) -> int:
+        """Layer indices for the flux layers."""
+        return self._role_indices_scalar["above"]
+
+    @property
+    def index_topsoil_scalar(self) -> int:
+        """Layer indices for the flux layers."""
+        return self._role_indices_scalar["topsoil"]
+
+    @property
+    def index_surface_scalar(self) -> int:
+        """Layer indices for the flux layers."""
+        return self._role_indices_scalar["surface"]
 
 
 def _validate_positive_integer(value: float | int) -> int:
