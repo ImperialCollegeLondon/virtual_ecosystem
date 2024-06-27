@@ -3,9 +3,13 @@ constants and rate equations used by AnimalCohorts in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
+from collections.abc import Iterable
+
 import pandas as pd
 
 from virtual_ecosystem.models.animal.animal_traits import (
+    DevelopmentStatus,
+    DevelopmentType,
     DietType,
     MetabolicType,
     ReproductiveType,
@@ -34,6 +38,9 @@ class FunctionalGroup:
         diet: str,
         metabolic_type: str,
         reproductive_type: str,
+        development_type: str,
+        development_status: str,
+        offspring_functional_group: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -50,6 +57,13 @@ class FunctionalGroup:
         """The metabolic type of the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
         """The reproductive type of the functional group."""
+        self.development_type = DevelopmentType(development_type)
+        """The development type of the functional group."""
+        self.development_status = DevelopmentStatus(development_status)
+        """The development status of the functional group."""
+        self.offspring_functional_group = offspring_functional_group
+        """The offspring type produced by this functional group in reproduction or 
+            metamorphosis."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -121,6 +135,9 @@ def import_functional_groups(
             row.diet,
             row.metabolic_type,
             row.reproductive_type,
+            row.development_type,
+            row.development_status,
+            row.offspring_functional_group,
             row.birth_mass,
             row.adult_mass,
             constants=constants,
@@ -129,3 +146,24 @@ def import_functional_groups(
     ]
 
     return functional_group_list
+
+
+def get_functional_group_by_name(
+    functional_groups: Iterable[FunctionalGroup], name: str
+) -> FunctionalGroup:
+    """Retrieve a FunctionalGroup by its name from a tuple of FunctionalGroup instances.
+
+    Args:
+        functional_groups: Tuple of FunctionalGroup instances.
+        name: The name of the FunctionalGroup to retrieve.
+
+    Returns:
+        The FunctionalGroup instance with the matching name.
+
+    Raises:
+        ValueError: If no FunctionalGroup with the given name is found.
+    """
+    for fg in functional_groups:
+        if fg.name == name:
+            return fg
+    raise ValueError(f"No FunctionalGroup with name '{name}' found.")

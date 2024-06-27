@@ -1,5 +1,7 @@
 """Test module for animal_communities.py."""
 
+from math import ceil
+
 import pytest
 
 
@@ -64,6 +66,8 @@ class TestAnimalCommunity:
             "herbivorous_insect_iteroparous",
             "carnivorous_insect_semelparous",
             "herbivorous_insect_semelparous",
+            "butterfly",
+            "caterpillar",
         ]
 
     def test_all_animal_cohorts_property(
@@ -521,3 +525,117 @@ class TestAnimalCommunity:
                         cohort
                         not in animal_community_instance.animal_cohorts[cohort.name]
                     ), "Dead cohort should be removed from the community"
+
+    def test_metamorphose(
+        self,
+        mocker,
+        animal_community_instance,
+        caterpillar_cohort_instance,
+        butterfly_cohort_instance,
+    ):
+        """Test the metamorphose method for different scenarios."""
+
+        larval_cohort = caterpillar_cohort_instance
+        larval_cohort.is_alive = True
+
+        adult_functional_group = butterfly_cohort_instance.functional_group
+        adult_functional_group.birth_mass = 5.0
+        mock_get_functional_group_by_name = mocker.patch(
+            "virtual_ecosystem.models.animal.animal_communities.get_functional_group_by_name",
+            return_value=adult_functional_group,
+        )
+        animal_community_instance.animal_cohorts["butterfly"] = []
+
+        mock_remove_dead_cohort = mocker.patch.object(
+            animal_community_instance, "remove_dead_cohort"
+        )
+
+        # Verify
+        number_dead = ceil(
+            larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
+        )
+        expected_individuals = larval_cohort.individuals - number_dead
+
+        animal_community_instance.metamorphose(larval_cohort)
+
+        assert not larval_cohort.is_alive
+        assert len(animal_community_instance.animal_cohorts["butterfly"]) == 1
+        assert (
+            animal_community_instance.animal_cohorts["butterfly"][0].individuals
+            == expected_individuals
+        )
+        mock_remove_dead_cohort.assert_called_once_with(larval_cohort)
+        mock_get_functional_group_by_name.assert_called_once_with(
+            animal_community_instance.functional_groups,
+            larval_cohort.functional_group.offspring_functional_group,
+        )
+
+    @pytest.mark.parametrize(
+        "mass_current, expected_caterpillar_count, expected_butterfly_count,"
+        "expected_is_alive",
+        [
+            pytest.param(
+                0.9,  # Caterpillar mass is below the adult mass threshold
+                1,  # Caterpillar count should remain the same
+                0,  # Butterfly count should remain the same
+                True,  # Caterpillar should still be alive
+                id="Below_mass_threshold",
+            ),
+            pytest.param(
+                1.1,  # Caterpillar mass is above the adult mass threshold
+                0,  # Caterpillar count should decrease
+                1,  # Butterfly count should increase
+                False,  # Caterpillar should no longer be alive
+                id="Above_mass_threshold",
+            ),
+        ],
+    )
+    def test_metamorphose_community(
+        self,
+        animal_community_instance,
+        caterpillar_cohort_instance,
+        mass_current,
+        expected_caterpillar_count,
+        expected_butterfly_count,
+        expected_is_alive,
+    ):
+        """Test the metamorphosis behavior of metamorphose_community."""
+
+        # Manually set the mass_current for the caterpillar cohort
+        caterpillar_cohort = caterpillar_cohort_instance
+        caterpillar_cohort.mass_current = (
+            caterpillar_cohort.functional_group.adult_mass * mass_current
+        )
+
+        # Initialize the animal_cohorts with both caterpillar and butterfly entries
+        animal_community_instance.animal_cohorts = {
+            "caterpillar": [caterpillar_cohort],
+            "butterfly": [],
+        }
+
+        # Initial counts
+        initial_caterpillar_count = len(
+            animal_community_instance.animal_cohorts.get("caterpillar", [])
+        )
+        initial_butterfly_count = len(
+            animal_community_instance.animal_cohorts.get("butterfly", [])
+        )
+
+        assert initial_caterpillar_count == 1
+        assert initial_butterfly_count == 0
+
+        # Execution: apply metamorphose to the community
+        animal_community_instance.metamorphose_community()
+
+        # New counts after metamorphosis
+        new_caterpillar_count = len(
+            animal_community_instance.animal_cohorts.get("caterpillar", [])
+        )
+        new_butterfly_count = len(
+            animal_community_instance.animal_cohorts.get("butterfly", [])
+        )
+
+        # Assertions
+        assert new_caterpillar_count == expected_caterpillar_count
+        assert new_butterfly_count == expected_butterfly_count
+        assert caterpillar_cohort.is_alive == expected_is_alive

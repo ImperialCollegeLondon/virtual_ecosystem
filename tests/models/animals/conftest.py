@@ -5,6 +5,19 @@ import pytest
 import xarray
 from xarray import DataArray
 
+# FIXME: Need to reconcile these data instances - a lot of overlap and some
+#        inconsistency with fixture_core_components
+
+
+@pytest.fixture
+def data_instance():
+    """Creates an empty data instance."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+
+    grid = Grid()
+    return Data(grid)
+
 
 @pytest.fixture
 def plant_data_instance():
@@ -197,6 +210,54 @@ def herbivore_cohort_instance(herbivore_functional_group_instance, constants_ins
 
     return AnimalCohort(
         herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
+    )
+
+
+@pytest.fixture
+def caterpillar_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[9]
+
+
+@pytest.fixture
+def caterpillar_cohort_instance(
+    caterpillar_functional_group_instance, constants_instance
+):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        caterpillar_functional_group_instance, 1.0, 1, 100, constants_instance
+    )
+
+
+@pytest.fixture
+def butterfly_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[8]
+
+
+@pytest.fixture
+def butterfly_cohort_instance(butterfly_functional_group_instance, constants_instance):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        butterfly_functional_group_instance, 1.0, 1, 100, constants_instance
     )
 
 
