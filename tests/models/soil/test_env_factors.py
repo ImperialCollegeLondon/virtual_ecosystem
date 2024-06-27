@@ -34,7 +34,6 @@ def test_calculate_environmental_effect_factors(
     expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
     expected_pH = [0.25, 1.0, 0.428571428, 1.0]
     expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
-    expected_clay_decay = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
 
     env_factors = calculate_environmental_effect_factors(
         soil_water_potential=dummy_carbon_data["matric_potential"][
@@ -48,7 +47,6 @@ def test_calculate_environmental_effect_factors(
     assert np.allclose(env_factors.water, expected_water)
     assert np.allclose(env_factors.pH, expected_pH)
     assert np.allclose(env_factors.clay_saturation, expected_clay_sat)
-    assert np.allclose(env_factors.clay_decay, expected_clay_decay)
 
 
 @pytest.mark.parametrize(
@@ -191,23 +189,6 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
         clay_fraction=dummy_carbon_data["clay_fraction"],
         base_protection=SoilConsts.base_soil_protection,
         protection_with_clay=SoilConsts.soil_protection_with_clay,
-    )
-
-    assert np.allclose(expected_factor, actual_factor)
-
-
-def test_calculate_clay_impact_on_necromass_decay(dummy_carbon_data):
-    """Test calculation of the effect of soil clay fraction on necromass decay."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.env_factors import (
-        calculate_clay_impact_on_necromass_decay,
-    )
-
-    expected_factor = [0.52729242, 0.78662786, 0.92311634, 0.48675225]
-
-    actual_factor = calculate_clay_impact_on_necromass_decay(
-        clay_fraction=dummy_carbon_data["clay_fraction"],
-        decay_exponent=SoilConsts.clay_necromass_decay_exponent,
     )
 
     assert np.allclose(expected_factor, actual_factor)
