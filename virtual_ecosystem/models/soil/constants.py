@@ -5,6 +5,8 @@ constants (fitting relationships taken from the literature) required by the broa
 
 from dataclasses import dataclass
 
+from numpy import log
+
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # TODO - Once lignin is tracked a large number of constants will have to be duplicated
@@ -247,14 +249,6 @@ class SoilConsts(ConstantsDataclass):
     The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    clay_necromass_decay_exponent: float = -0.8
-    """Change in proportion of necromass which decays with increasing soil clay content.
-
-    [unitless]. The function this is used in is an exponential, and the sign should be
-    negative so increases in clay leads to a lower proportion of necromass decaying to
-    LMWC. The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
-    """
-
     pom_decomposition_fraction_lmwc: float = 0.5
     """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
 
@@ -266,4 +260,12 @@ class SoilConsts(ConstantsDataclass):
 
     Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
     a loose manner.
+    """
+
+    necromass_decay_rate: float = (1 / 3) * log(2)
+    """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
+
+    I have not been able to track down any data on this, so for now choosing a rate that
+    corresponds to halving every three days. This parameter is a key target for tracking
+    down data for and for sensitivity analysis.
     """

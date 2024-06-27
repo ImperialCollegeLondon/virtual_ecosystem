@@ -205,3 +205,18 @@ def test_calculate_enzyme_mediated_decomposition(
     )
 
     assert np.allclose(actual_decomp, expected_decomp)
+
+
+def test_calculate_necromass_breakdown(dummy_carbon_data):
+    """Check that necromass breakdown to lmwc is calculated correctly."""
+
+    from virtual_ecosystem.models.soil.carbon import calculate_necromass_breakdown
+
+    expected_breakdown = [-0.0134008455, -0.0034657359, -0.0214875626, -0.0242601513]
+
+    actual_breakdown = calculate_necromass_breakdown(
+        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
+        necromass_decay_rate=SoilConsts.necromass_decay_rate,
+    )
+
+    assert np.allclose(actual_breakdown, expected_breakdown)

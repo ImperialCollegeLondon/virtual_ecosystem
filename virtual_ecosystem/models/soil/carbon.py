@@ -445,7 +445,7 @@ def calculate_enzyme_mediated_decomposition(
 
 
 def calculate_necromass_breakdown(
-    soil_c_pool_necromass: NDArray[np.float32], necromass_breakdown_rate: float
+    soil_c_pool_necromass: NDArray[np.float32], necromass_decay_rate: float
 ) -> NDArray[np.float32]:
     """Calculate breakdown rate of necromass into low molecular weight carbon (LMWC).
 
@@ -457,10 +457,10 @@ def calculate_necromass_breakdown(
 
     Args:
         soil_c_pool_necromass: Size of the microbial necromass pool [kg C m^-3]
-        necromass_breakdown_rate: Rate at which necromass breaks down into LMWC [day^-1]
+        necromass_decay_rate: Rate at which necromass decays into LMWC [day^-1]
 
     Returns:
         The amount of necromass that breakdown to LMWC [kg C m^-3 day^-1]
     """
 
-    return -necromass_breakdown_rate * soil_c_pool_necromass
+    return -necromass_decay_rate * soil_c_pool_necromass
