@@ -249,12 +249,6 @@ class SoilConsts(ConstantsDataclass):
     The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    pom_decomposition_fraction_lmwc: float = 0.5
-    """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
     solubility_coefficient_lmwc: float = 0.05
     """Solubility coefficient for low molecular weight organic carbon [unitless].
 

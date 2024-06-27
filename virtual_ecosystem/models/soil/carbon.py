@@ -124,7 +124,7 @@ def calculate_soil_carbon_updates(
         soil_moisture=soil_moisture,
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
     )
-    pom_decomposition_rate = calculate_enzyme_mediated_decomposition(
+    pom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_pom,
         soil_enzyme=soil_enzyme_pom,
         water_factor=env_factors.water,
@@ -136,13 +136,6 @@ def calculate_soil_carbon_updates(
         activation_energy_rate=model_constants.activation_energy_pom_decomp_rate,
         half_saturation=model_constants.half_sat_pom_decomposition,
         activation_energy_sat=model_constants.activation_energy_pom_decomp_saturation,
-    )
-    # Calculate how pom decomposition is split between lmwc and maom pools
-    pom_decomposition_to_lmwc = (
-        pom_decomposition_rate * model_constants.pom_decomposition_fraction_lmwc
-    )
-    pom_decomposition_to_maom = pom_decomposition_rate * (
-        1 - model_constants.pom_decomposition_fraction_lmwc
     )
     maom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_maom,
@@ -171,14 +164,12 @@ def calculate_soil_carbon_updates(
         - microbial_uptake
         - labile_carbon_leaching
     )
-    delta_pools_ordered["soil_c_pool_maom"] = (
-        pom_decomposition_to_maom - maom_decomposition_to_lmwc
-    )
+    delta_pools_ordered["soil_c_pool_maom"] = -maom_decomposition_to_lmwc
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_assimilation - biomass_losses.maintenance_synthesis
     )
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate - pom_decomposition_rate
+        mineralisation_rate - pom_decomposition_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
         biomass_losses.necromass_formation
