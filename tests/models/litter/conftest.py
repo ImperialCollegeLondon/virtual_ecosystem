@@ -55,14 +55,14 @@ def dummy_litter_data(fixture_core_components):
     # Vertically structured variables
     data["soil_temperature"] = fixture_core_components.layer_structure.from_template()
     data["soil_temperature"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["all_soil"]}
+        {"layers": fixture_core_components.layer_structure.index_all_soil}
     ] = np.full((2, 4), 20)
 
     # At present the soil model only uses the top soil layer, so this is the
     # only one with real test values in
     data["matric_potential"] = fixture_core_components.layer_structure.from_template()
     data["matric_potential"].loc[
-        {"layers": fixture_core_components.layer_structure.role_indices["topsoil"]}
+        {"layers": fixture_core_components.layer_structure.index_topsoil}
     ] = [-10.0, -25.0, -100.0, -100.0]
 
     data["air_temperature"] = fixture_core_components.layer_structure.from_template()

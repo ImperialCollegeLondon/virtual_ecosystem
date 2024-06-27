@@ -53,9 +53,7 @@ def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
     )
 
     layer_heights = dummy_climate_data["layer_heights"]
-    atmos_index = np.logical_not(
-        fixture_core_components.layer_structure.role_indices_bool["all_soil"]
-    )
+    atmos_index = np.logical_not(fixture_core_components.layer_structure.index)
     atmosphere_layers = layer_heights[atmos_index]
     result = interpolate_along_heights(
         start_height=layer_heights[-3].to_numpy(),
@@ -88,7 +86,7 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
 
     # Extract the block of atmospheric layer heights.
     layer_heights = dummy_climate_data["layer_heights"][
-        fixture_core_components.layer_structure.role_indices["atmosphere"]
+        fixture_core_components.layer_structure.index_atmosphere
     ].to_numpy()
 
     # Interpolate from the top to bottom across the atmosphere

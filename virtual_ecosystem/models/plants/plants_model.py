@@ -120,7 +120,7 @@ class PlantsModel(
         """A reference to the global data object."""
 
         # This is widely used internally so store it as an attribute.
-        self._canopy_layer_indices = self.layer_structure.role_indices_bool["canopy"]
+        self._canopy_layer_indices = self.layer_structure.index_canopy
         """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
@@ -218,7 +218,7 @@ class PlantsModel(
         # Retrive the canopy model arrays and insert into the data object.
         canopy_data = build_canopy_arrays(
             self.communities,
-            n_canopy_layers=self.layer_structure.canopy_layers,
+            n_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
         # Insert the canopy layers into the data objects

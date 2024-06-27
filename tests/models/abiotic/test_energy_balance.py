@@ -232,7 +232,7 @@ def test_leaf_and_air_temperature_linearisation(
             dummy_climate_data["air_temperature_ref"].isel(time_index=0).to_numpy()
         ),
         top_soil_temperature=dummy_climate_data["soil_temperature"][
-            fixture_core_components.layer_structure.role_indices["topsoil"]
+            fixture_core_components.layer_structure.index_topsoil
         ].to_numpy(),
     )
 

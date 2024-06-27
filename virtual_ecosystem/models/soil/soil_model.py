@@ -101,9 +101,9 @@ class SoilModel(
             raise to_raise
 
         # Get top soil layer index as a scalar
-        self.top_soil_layer_index: int = self.layer_structure.role_indices[
-            "topsoil"
-        ].item()
+        self.top_soil_layer_index: int = (
+            self.layer_structure.index_topsoil.role_indices["topsoil"].item()
+        )
         """The layer in the data object representing the topsoil layer."""
 
         # TODO - At the moment the soil model only cares about the very top layer. As

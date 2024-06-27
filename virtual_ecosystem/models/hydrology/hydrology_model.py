@@ -153,9 +153,7 @@ class HydrologyModel(
 
         # Select abovegroud layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
-        self.surface_layer_index: int = self.layer_structure.role_indices[
-            "surface"
-        ].item()
+        self.surface_layer_index: int = self.layer_structure.index_surface.item()
         """Surface layer index."""
 
     @classmethod
@@ -666,10 +664,9 @@ class HydrologyModel(
 
         # Return mean soil moisture, [-], and matric potential, [kPa], and add
         # atmospheric layers (nan)
-        soil_indices = self.layer_structure.role_indices["all_soil"]
         for var in ["soil_moisture", "matric_potential"]:
             soil_hydrology[var] = self.layer_structure.from_template()
-            soil_hydrology[var][soil_indices] = np.mean(
+            soil_hydrology[var][self.layer_structure.index_all_soil] = np.mean(
                 np.stack(daily_lists[var], axis=0), axis=0
             )
 

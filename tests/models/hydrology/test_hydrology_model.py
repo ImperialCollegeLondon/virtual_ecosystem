@@ -239,7 +239,7 @@ def test_setup(
         # Test soil moisture
 
         exp_soilm_setup = fixture_core_components.layer_structure.from_template()
-        soil_indices = fixture_core_components.layer_structure.role_indices["all_soil"]
+        soil_indices = fixture_core_components.layer_structure.index_all_soil
         exp_soilm_setup[soil_indices] = np.array([[250], [250]])
 
         np.testing.assert_allclose(

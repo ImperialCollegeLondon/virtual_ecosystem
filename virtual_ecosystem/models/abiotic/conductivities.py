@@ -92,10 +92,10 @@ def initialise_conductivities(
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
-    canopy_height = layer_heights[layer_structure.role_indices["canopy"][0]].to_numpy()
-    atmosphere_layers = layer_heights[layer_structure.role_indices_bool["atmosphere"]]
-    canopy_layers = layer_heights[layer_structure.role_indices["canopy"]]
-    soil_layers = layer_heights[layer_structure.role_indices["all_soil"]]
+    canopy_height = layer_heights[layer_structure.index_canopy[0]].to_numpy()
+    atmosphere_layers = layer_heights[layer_structure.index_atmosphere]
+    canopy_layers = layer_heights[layer_structure.index_canopy]
+    soil_layers = layer_heights[layer_structure.index_all_soil]
 
     output = {}
 
@@ -110,9 +110,7 @@ def initialise_conductivities(
     air_conductivity[0] *= (canopy_height / len(atmosphere_layers)) * 0.5
 
     output["air_heat_conductivity"] = layer_structure.from_template()
-    output["air_heat_conductivity"][layer_structure.role_indices_bool["atmosphere"]] = (
-        air_conductivity
-    )
+    output["air_heat_conductivity"][layer_structure.index_atmosphere] = air_conductivity
 
     # Initialise leaf vapour conductivity
     leaf_vapour_conductivity = interpolate_along_heights(
@@ -123,7 +121,7 @@ def initialise_conductivities(
         end_value=bottom_leaf_vapour_conductivity,
     )
     output["leaf_vapour_conductivity"] = layer_structure.from_template()
-    output["leaf_vapour_conductivity"][layer_structure.role_indices["canopy"]] = (
+    output["leaf_vapour_conductivity"][layer_structure.index_canopy] = (
         leaf_vapour_conductivity
     )
 
@@ -136,7 +134,7 @@ def initialise_conductivities(
         end_value=bottom_leaf_air_conductivity,
     )
     output["leaf_air_heat_conductivity"] = layer_structure.from_template()
-    output["leaf_air_heat_conductivity"][layer_structure.role_indices["canopy"]] = (
+    output["leaf_air_heat_conductivity"][layer_structure.index_canopy] = (
         leaf_air_conductivity
     )
 

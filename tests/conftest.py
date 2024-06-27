@@ -256,7 +256,7 @@ def dummy_carbon_data(fixture_core_components):
     ls = fixture_core_components.layer_structure
 
     data["soil_moisture"] = ls.from_template()
-    data["soil_moisture"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+    data["soil_moisture"].loc[{"layers": ls.index_topsoil}] = [
         232.61550125,
         196.88733175,
         126.065797,
@@ -264,7 +264,7 @@ def dummy_carbon_data(fixture_core_components):
     ]
 
     data["matric_potential"] = ls.from_template()
-    data["matric_potential"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+    data["matric_potential"].loc[{"layers": ls.index_topsoil}] = [
         -3.0,
         -10.0,
         -250.0,
@@ -272,13 +272,13 @@ def dummy_carbon_data(fixture_core_components):
     ]
 
     data["soil_temperature"] = ls.from_template()
-    data["soil_temperature"].loc[{"layers": ls.role_indices["topsoil"]}] = [
+    data["soil_temperature"].loc[{"layers": ls.index_topsoil}] = [
         35.0,
         37.5,
         40.0,
         25.0,
     ]
-    data["soil_temperature"].loc[{"layers": ls.role_indices["subsoil"]}] = [
+    data["soil_temperature"].loc[{"layers": ls.index_subsoil}] = [
         22.5,
         22.5,
         22.5,
@@ -294,7 +294,7 @@ def top_soil_layer_index(fixture_core_components):
 
     Convert from array to scalar using item.
     """
-    return fixture_core_components.layer_structure.role_indices["topsoil"].item()
+    return fixture_core_components.layer_structure.index_topsoil.item()
 
 
 @pytest.fixture
@@ -303,7 +303,7 @@ def surface_layer_index(fixture_core_components):
 
     Convert from array to scalar using item.
     """
-    return fixture_core_components.layer_structure.role_indices["surface"].item()
+    return fixture_core_components.layer_structure.index_surface.item()
 
 
 @pytest.fixture
@@ -379,7 +379,7 @@ def dummy_climate_data(fixture_core_components):
         [
             [32.0, 30.0, 20.0, 10.0],
             [fixture_core_components.layer_structure.surface_layer_height],
-            fixture_core_components.layer_structure.soil_layers,
+            fixture_core_components.layer_structure.n_soil_layers,
         ]
     )[:, None]
 

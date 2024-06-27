@@ -57,7 +57,7 @@ def test_setup_hydrology_input_current_timestep(
         (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
-    surface_idx = fixture_core_components.layer_structure.role_indices["surface"].item()
+    surface_idx = fixture_core_components.layer_structure.index_surface.item()
     np.testing.assert_allclose(
         result["surface_temperature"],
         dummy_climate_data["air_temperature"][surface_idx],
@@ -101,6 +101,4 @@ def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expect
     )
     # The fixture is configured with soil layers [-0.25, -1.0]
     exp_result = DataArray(np.broadcast_to(expected, (2, 4)))
-    np.testing.assert_allclose(
-        result[layer_structure.role_indices["all_soil"]], exp_result
-    )
+    np.testing.assert_allclose(result[layer_structure.index_all_soil], exp_result)

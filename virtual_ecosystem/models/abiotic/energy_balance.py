@@ -161,7 +161,7 @@ def initialise_canopy_and_soil_fluxes(
         .indexes["layers"]
     )
     # Index of top soil layer
-    topsoil_layer_index = layer_structure.role_indices["topsoil"].item()
+    topsoil_layer_index = layer_structure.index_topsoil.item()
 
     output = {}
 
@@ -418,7 +418,7 @@ def calculate_leaf_and_air_temperature(
     true_canopy_layers_n = len(true_canopy_indexes)
 
     # Index of top soil layer
-    topsoil_layer_index = layer_structure.role_indices["topsoil"].item()
+    topsoil_layer_index = layer_structure.index_topsoil.item()
 
     output = {}
 
@@ -569,13 +569,13 @@ def calculate_leaf_and_air_temperature(
             new_air_temperature,
             np.full(
                 (
-                    layer_structure.canopy_layers - true_canopy_layers_n,
+                    layer_structure.n_canopy_layers - true_canopy_layers_n,
                     data.grid.n_cells,
                 ),
                 np.nan,
             ),
             below_canopy_temperature,
-            np.full((len(layer_structure.soil_layers), data.grid.n_cells), np.nan),
+            np.full((layer_structure.n_soil_layers, data.grid.n_cells), np.nan),
         ]
     )
     output["air_temperature"] = DataArray(
