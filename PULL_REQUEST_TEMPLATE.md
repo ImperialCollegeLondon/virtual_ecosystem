@@ -21,4 +21,4 @@ Fixes # (issue)
 
 - [ ] Code is commented, particularly in hard-to-understand areas
 - [ ] Tests added that prove fix is effective or that feature works
-- [ ] Relevenat documentation reviewed and updated
+- [ ] Relevant documentation reviewed and updated
