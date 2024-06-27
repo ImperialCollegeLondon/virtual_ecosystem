@@ -123,6 +123,7 @@ file.
 from pathlib import Path
 from typing import Any
 
+import dask
 import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
@@ -132,6 +133,10 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.readers import load_to_dataarray
 from virtual_ecosystem.core.utils import check_outfile
+
+# This is an attempted fix for NetCDF segfaults
+# - see: https://github.com/pydata/xarray/issues/7079
+dask.config.set(scheduler="single-threaded")
 
 
 class Data:
