@@ -840,7 +840,7 @@ def test_save_timeslice_to_netcdf(
         dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
-        dummy_carbon_data["soil_temperature"][13][0] = 15.0
+        dummy_carbon_data["soil_temperature"][12][0] = 15.0
         # Append data to netcdf file
         dummy_carbon_data.save_timeslice_to_netcdf(
             out_path,
@@ -859,7 +859,7 @@ def test_save_timeslice_to_netcdf(
             ),
         )
         xr.testing.assert_allclose(
-            saved_data["soil_temperature"].isel(layers=range(12, 15)),
+            saved_data["soil_temperature"].isel(layers=range(11, 14)),
             DataArray(
                 [
                     [
@@ -872,8 +872,8 @@ def test_save_timeslice_to_netcdf(
                 coords={
                     "cell_id": [0, 1, 2, 3],
                     "time_index": [1],
-                    "layers": [12, 13, 14],
-                    "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                    "layers": [11, 12, 13],
+                    "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
                 },
             ),
         )
@@ -890,20 +890,20 @@ def test_save_timeslice_to_netcdf(
         log_check(caplog, expected_log)
 
 
-def test_Data_add_from_dict(dummy_climate_data):
+def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
     """Test reading from dictionary."""
 
     from virtual_ecosystem.core.data import Data
 
     var_dict = {
         "mean_annual_temperature": DataArray(
-            np.full((3), 40),
+            np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
         ),
         "new_variable": DataArray(
-            np.full((3), 100),
+            np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
@@ -915,7 +915,7 @@ def test_Data_add_from_dict(dummy_climate_data):
     xr.testing.assert_allclose(
         dummy_climate_data["mean_annual_temperature"],
         DataArray(
-            np.full((3), 40),
+            np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
@@ -924,7 +924,7 @@ def test_Data_add_from_dict(dummy_climate_data):
     xr.testing.assert_allclose(
         dummy_climate_data["new_variable"],
         DataArray(
-            np.full((3), 100),
+            np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
@@ -1001,7 +1001,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
         [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
     )
-    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+    dummy_carbon_data["soil_temperature"][12][0] = 15.0
 
     # Save second data file
     dummy_carbon_data.save_timeslice_to_netcdf(
@@ -1035,7 +1035,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
         ),
     )
     testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        full_data["soil_temperature"].isel(layers=range(11, 14)),
         DataArray(
             [
                 [
@@ -1053,8 +1053,8 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
             coords={
                 "cell_id": [0, 1, 2, 3],
                 "time_index": [1, 2],
-                "layers": [12, 13, 14],
-                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                "layers": [11, 12, 13],
+                "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
             },
         ),
     )
