@@ -120,6 +120,7 @@ class AbioticModel(
     ),
     populated_by_update_vars=(
         "conductivity_from_ref_height",
+        "vapour_pressure",
         "wind_speed",
         "friction_velocity",
         "zero_displacement_height",
