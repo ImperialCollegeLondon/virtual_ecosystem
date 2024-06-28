@@ -119,9 +119,8 @@ class PlantsModel(
         )
         """A reference to the global data object."""
 
-        self._canopy_layer_indices = np.arange(
-            1, self.layer_structure.canopy_layers + 1
-        )
+        # This is widely used internally so store it as an attribute.
+        self._canopy_layer_indices = self.layer_structure.role_indices_bool["canopy"]
         """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
@@ -317,13 +316,14 @@ class PlantsModel(
         # This will give an array of the light use efficiency per layer per cell,
 
         # Get an array where populated canopy layers are one otherwise nan
-        canopy_heights = self.data["layer_heights"].where(
-            self.data["layers"].isin(self._canopy_layer_indices)
+        filled_canopy = xarray.where(
+            (self.data["layer_heights"] * self._canopy_layer_indices[:, None]) > 0,
+            1,
+            np.nan,
         )
-        is_canopy = xarray.ones_like(canopy_heights).where(canopy_heights > 0)
 
         # Set a representative place holder LUE in gC mol-1 for now
-        self.data["layer_light_use_efficiency"] = is_canopy * 0.3
+        self.data["layer_light_use_efficiency"] = filled_canopy * 0.3
 
         # The LUE can then be scaled by the calculated absorbed irradiance, which is
         # the product of the layer specific fapar and the downwelling PPFD. In practice,
@@ -367,7 +367,7 @@ class PlantsModel(
 
         # Estimate evapotranspiration
         #  - currently just a placeholder for something more involved
-        self.data["evapotranspiration"] = is_canopy * 20
+        self.data["evapotranspiration"] = filled_canopy * 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

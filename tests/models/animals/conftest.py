@@ -5,6 +5,19 @@ import pytest
 import xarray
 from xarray import DataArray
 
+# FIXME: Need to reconcile these data instances - a lot of overlap and some
+#        inconsistency with fixture_core_components
+
+
+@pytest.fixture
+def data_instance():
+    """Creates an empty data instance."""
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+
+    grid = Grid()
+    return Data(grid)
+
 
 @pytest.fixture
 def plant_data_instance():

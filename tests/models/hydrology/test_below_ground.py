@@ -90,9 +90,7 @@ def test_convert_soil_moisture_to_water_potential():
         convert_soil_moisture_to_water_potential,
     )
 
-    expected_potentials = np.array(
-        [-198467.26813379, -198467.26813379, -198467.26813379]
-    )
+    expected_potentials = np.repeat(-198467.26813379, 3)
     actual_potentials = convert_soil_moisture_to_water_potential(
         soil_moisture=np.repeat(0.2, 3),
         air_entry_water_potential=HydroConsts.air_entry_water_potential,
@@ -114,17 +112,17 @@ def test_update_groundwater_storage(dummy_climate_data):
     data = dummy_climate_data
     result = update_groundwater_storage(
         groundwater_storage=np.array(data["groundwater_storage"]),
-        vertical_flow_to_groundwater=np.array([2, 4, 5]),
-        bypass_flow=np.array([2, 4, 5]),
+        vertical_flow_to_groundwater=np.array([2, 4, 5, 5]),
+        bypass_flow=np.array([2, 4, 5, 5]),
         max_percolation_rate_uzlz=HydroConsts.max_percolation_rate_uzlz,
         groundwater_loss=HydroConsts.groundwater_loss,
         reservoir_const_upper_groundwater=HydroConsts.reservoir_const_upper_groundwater,
         reservoir_const_lower_groundwater=HydroConsts.reservoir_const_lower_groundwater,
     )
 
-    exp_groundwater = np.array([[453, 457, 459], [450.0, 450.0, 450.0]])
-    exp_upper_flow = np.array([22.65, 22.85, 22.95])
-    exp_lower_flow = np.array([22.5, 22.5, 22.5])
+    exp_groundwater = np.array([[453, 457, 459, 459], [450.0, 450.0, 450.0, 450]])
+    exp_upper_flow = np.array([22.65, 22.85, 22.95, 22.95])
+    exp_lower_flow = np.array([22.5, 22.5, 22.5, 22.5])
     np.testing.assert_allclose(result["groundwater_storage"], exp_groundwater)
     np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow)
     np.testing.assert_allclose(result["baseflow"], exp_lower_flow)

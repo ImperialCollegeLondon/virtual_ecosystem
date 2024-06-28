@@ -3,6 +3,7 @@
 from math import ceil
 
 import pytest
+from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -463,7 +464,7 @@ class TestAnimalCommunity:
         assert new_age == initial_age + 5
 
     def test_metabolize_community(
-        self, dummy_climate_data, animal_community_instance, mocker
+        self, animal_community_instance, mocker: MockerFixture
     ):
         """Testing metabolize_community."""
         from itertools import chain
@@ -472,11 +473,45 @@ class TestAnimalCommunity:
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
-        mock_metabolize = mocker.patch.object(AnimalCohort, "metabolize")
+        # Mocking the AnimalCohort methods
+        mock_metabolize = mocker.patch.object(
+            AnimalCohort, "metabolize", return_value=100.0
+        )
+        mock_respire = mocker.patch.object(AnimalCohort, "respire", return_value=90.0)
+        mock_excrete = mocker.patch.object(AnimalCohort, "excrete")
+
+        # Initial value of total animal respiration
+        initial_respiration = (
+            animal_community_instance.data["total_animal_respiration"]
+            .loc[{"cell_id": animal_community_instance.community_key}]
+            .item()
+        )
+
+        # Call the metabolize_community method
         animal_community_instance.metabolize_community(25.0, timedelta64(5, "D"))
-        assert mock_metabolize.call_count == len(
+
+        # Calculate expected respiration after the method call
+        num_cohorts = len(
             list(chain.from_iterable(animal_community_instance.animal_cohorts.values()))
         )
+        expected_total_respiration = initial_respiration + num_cohorts * 90.0
+
+        # Check that metabolize was called the correct number of times
+        assert mock_metabolize.call_count == num_cohorts
+
+        # Check that respire was called the correct number of times
+        assert mock_respire.call_count == num_cohorts
+
+        # Check that excrete was called the correct number of times
+        assert mock_excrete.call_count == num_cohorts
+
+        # Verify that total_animal_respiration was updated correctly
+        updated_respiration = (
+            animal_community_instance.data["total_animal_respiration"]
+            .loc[{"cell_id": animal_community_instance.community_key}]
+            .item()
+        )
+        assert updated_respiration == expected_total_respiration
 
     @pytest.mark.parametrize(
         "days",
