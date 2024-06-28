@@ -62,17 +62,18 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
     ),
-    populated_by_init_vars=(
+    populated_by_init_vars=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
+    ),
+    populated_by_update_vars=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
-    populated_by_update_vars=(),
 ):
     """A class describing the abiotic simple model.
 
