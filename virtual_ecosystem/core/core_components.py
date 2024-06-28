@@ -319,6 +319,8 @@ class LayerStructure:
     layer roles."""
     lowest_canopy_filled: NDArray[np.int_] = field(init=False)
     """An integer index showing the lowest filled canopy layer for each grid cell"""
+    n_canopy_layers_filled: int = field(init=False)
+    """The current number of filled canopy layers across grid cells"""
     soil_layer_thickness: NDArray[np.float_] = field(init=False)
     """Thickness of each soil layer (m)"""
     soil_layer_active_thickness: NDArray[np.float_] = field(init=False)
@@ -388,8 +390,9 @@ class LayerStructure:
         self.n_layers = len(self.layer_roles)
         self.layer_indices = np.arange(0, self.n_layers)
 
-        # Default values for lowest canopy filled
+        # Default values for lowest canopy filled and n filled canopy
         self.lowest_canopy_filled = np.repeat(np.nan, self._n_cells)
+        self.n_canopy_layers_filled = 0
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
@@ -529,9 +532,10 @@ class LayerStructure:
         )
         self._set_base_index("filled_canopy", filled_canopy_bool)
 
-        # Set the lowest filled attribute
+        # Set the lowest filled attribute and number of layers
         lowest_filled = np.nansum(canopy_present, axis=0)
         self.lowest_canopy_filled = np.where(lowest_filled > 0, lowest_filled, np.nan)
+        self.n_canopy_layers_filled = np.sum(filled_canopy_bool)
 
         # Update indices that rely on filled canopy
         self._set_base_index(
