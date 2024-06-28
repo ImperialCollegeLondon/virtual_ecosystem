@@ -271,3 +271,20 @@ class SoilConsts(ConstantsDataclass):
     small relative to the rate at which microbes breakdown LMWC. This is another key
     target for sensitivity analysis.
     """
+
+    lmwc_sorption_rate: float = 1e-3
+    """Rate constant for low molecular weight carbon sorption to minerals [day^-1]
+    
+    The default value of this rate is not based on data. It was instead chosen so that
+    the ratio of LWMC to mineral associated organic matter would tend to 1/100, in the
+    absence of microbes. This is another key target for sensitivity analysis.
+    """
+
+    necromass_sorption_rate: float = 1 * log(2)
+    """Rate constant for necromass sorption to minerals [day^-1]
+    
+    The default value was chosen to be three times the value of
+    :attr:`necromass_decay_rate`, this means that 75% of necromass becomes MAOM with the
+    remainder becoming LMWC. Replacing this with a function that depends on
+    environmental conditions is a post release goal.
+    """

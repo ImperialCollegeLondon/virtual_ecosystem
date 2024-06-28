@@ -475,6 +475,30 @@ def calculate_maom_desorption(
     return desorption_rate_constant * soil_c_pool_maom
 
 
+def calculate_sorption_to_maom(
+    soil_c_pool: NDArray[np.float32], sorption_rate_constant: float
+):
+    """Calculate that a carbon pool sorbs to become mineral associated organic matter.
+
+    Carbon from both the low molecular weight carbon pool and the necromass pool can
+    sorb to minerals to form MAOM, so this function can be used for either pool.
+
+    This function is independent of soil temperature, moisture, pH, clay fraction and
+    bulk density. All of these things are known to effect real world desorption rates.
+    However, to simplify the parameterisation we only include these effects on microbial
+    rates. This may be something we want to alter in future.
+
+    Args:
+        soil_c_pool: Size of carbon pool [kg C m^-3]
+        sorption_rate_constant: Rate constant for sorption to MAOM [day^-1]
+
+    Returns:
+        The rate of sorption to MAOM [kg C m^-3 day^-1]
+    """
+
+    return sorption_rate_constant * soil_c_pool
+
+
 def calculate_necromass_breakdown(
     soil_c_pool_necromass: NDArray[np.float32], necromass_decay_rate: float
 ) -> NDArray[np.float32]:

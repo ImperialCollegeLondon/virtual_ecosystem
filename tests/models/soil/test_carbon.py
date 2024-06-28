@@ -222,6 +222,36 @@ def test_calculate_maom_desorption(dummy_carbon_data):
     assert np.allclose(actual_desorption, expected_desorption)
 
 
+@pytest.mark.parametrize(
+    "pool_name,sorption_rate_constant,expected_sorption",
+    [
+        (
+            "soil_c_pool_lmwc",
+            SoilConsts.lmwc_sorption_rate,
+            [5.0e-5, 2.0e-5, 0.0001, 5.0e-6],
+        ),
+        (
+            "soil_c_pool_necromass",
+            SoilConsts.necromass_sorption_rate,
+            [0.04020253647, 0.01039720771, 0.06446268779, 0.07278045396],
+        ),
+    ],
+)
+def test_calculate_sorption_to_maom(
+    dummy_carbon_data, pool_name, sorption_rate_constant, expected_sorption
+):
+    """Check that sorption to mineral associated matter is calculated correctly."""
+
+    from virtual_ecosystem.models.soil.carbon import calculate_sorption_to_maom
+
+    actual_sorption = calculate_sorption_to_maom(
+        soil_c_pool=dummy_carbon_data[pool_name],
+        sorption_rate_constant=sorption_rate_constant,
+    )
+
+    assert np.allclose(actual_sorption, expected_sorption)
+
+
 def test_calculate_necromass_breakdown(dummy_carbon_data):
     """Check that necromass breakdown to lmwc is calculated correctly."""
 
