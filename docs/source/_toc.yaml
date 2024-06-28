@@ -181,7 +181,10 @@ subtrees:
   - file: api/example_data
     title: The example_data submodule
 
-- caption: Bibliography
+- caption: Reference
   entries:
   - file: bibliography
+  - file: genindex
+  - file: modindex
+
 

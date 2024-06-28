@@ -77,7 +77,6 @@ sphinx-rtd-theme = "^2.0.0"
 sphinxcontrib-bibtex = "^2.6.1"
 sphinxcontrib-mermaid = "^0.9.2"
 
-
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.2.3"
 jupyterlab-myst = "^2.4.2"
