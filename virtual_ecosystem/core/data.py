@@ -134,8 +134,14 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.readers import load_to_dataarray
 from virtual_ecosystem.core.utils import check_outfile
 
-# This is an attempted fix for NetCDF segfaults
-# - see: https://github.com/pydata/xarray/issues/7079
+# There are ongoing xarray issues with NetCDF not being thread safe and this causes
+# segfaults on different architectures in testing using `xarray.open_mfdataset`
+# See:
+# - https://github.com/pydata/xarray/issues/7079
+# - https://github.com/pydata/xarray/issues/3961
+#
+# Following advice on both those issues, we currently explicitly stop dask from trying
+# to use parallel file processing and use open_mfdataset(..., lock=False)
 dask.config.set(scheduler="single-threaded")
 
 
