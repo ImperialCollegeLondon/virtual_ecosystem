@@ -81,7 +81,7 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
 
 
 @pytest.fixture
-def fixture_canopy_layer_data():
+def fixture_canopy_layer_data(fixture_core_components):
     """Shared canopy layer data.
 
     The fixture supplies tuples of layer name, test values and the indices of the
@@ -90,35 +90,37 @@ def fixture_canopy_layer_data():
     TODO: This is currently convoluted because of the way in which layer_heights is set
     within the plants model.
     """
+    lyr_str = fixture_core_components.layer_structure
+
     return {
         "layer_heights_full": (
             "layer_heights",
             np.array([32, 30, 20, 10, 0.1, -0.5, -1]),
-            np.array([0, 1, 2, 3, 11, 12, 13]),
+            np.logical_or(lyr_str.index_filled_atmosphere, lyr_str.index_all_soil),
         ),
         "layer_heights_canopy": (
             "layer_heights",
             np.array([32, 30, 20, 10]),
-            np.array([0, 1, 2, 3]),
+            np.logical_or(lyr_str.index_above, lyr_str.index_filled_canopy),
         ),
         "leaf_area_index": (
             "leaf_area_index",
             np.array([1, 1, 1]),
-            np.array([1, 2, 3]),
+            lyr_str.index_filled_canopy,
         ),
         "layer_fapar": (
             "layer_fapar",
             np.array([0.4, 0.2, 0.1]),
-            np.array([1, 2, 3]),
+            lyr_str.index_filled_canopy,
         ),
         "layer_absorbed_irradiation": (
             "layer_absorbed_irradiation",
             np.array([400, 200, 100, 300]),
-            np.array([1, 2, 3, 11]),
+            np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface),
         ),
         "layer_leaf_mass": (
             "layer_leaf_mass",
             np.array([10000, 10000, 10000]),
-            np.array([1, 2, 3]),
+            lyr_str.index_filled_canopy,
         ),
     }

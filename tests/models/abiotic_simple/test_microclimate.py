@@ -10,41 +10,43 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
 
     from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
 
-    data = dummy_climate_data
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
+    lyr_str = fixture_core_components.layer_structure
+    leaf_area_index_sum = dummy_climate_data["leaf_area_index"].sum(dim="layers")
 
     # temperature
     result = log_interpolation(
-        data=data,
-        reference_data=data["air_temperature_ref"].isel(time_index=0),
+        data=dummy_climate_data,
+        reference_data=dummy_climate_data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
-        layer_structure=fixture_core_components.layer_structure,
-        layer_heights=data["layer_heights"],
+        layer_structure=lyr_str,
+        layer_heights=dummy_climate_data["layer_heights"],
         upper_bound=80,
         lower_bound=0,
         gradient=-2.45,
     )
 
-    exp_air_temp = fixture_core_components.layer_structure.from_template()
-    t_vals = [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
-    exp_air_temp.T[..., [0, 1, 2, 3, 11]] = t_vals
+    exp_air_temp = lyr_str.from_template()
+    exp_air_temp[lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
     xr.testing.assert_allclose(result, exp_air_temp)
 
     # relative humidity
     result_hum = log_interpolation(
-        data=data,
-        reference_data=data["relative_humidity_ref"].isel(time_index=0),
+        data=dummy_climate_data,
+        reference_data=dummy_climate_data["relative_humidity_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
-        layer_structure=fixture_core_components.layer_structure,
-        layer_heights=data["layer_heights"],
+        layer_structure=lyr_str,
+        layer_heights=dummy_climate_data["layer_heights"],
         upper_bound=100,
         lower_bound=0,
         gradient=5.4,
     )
 
-    exp_humidity = fixture_core_components.layer_structure.from_template()
-    humidity_vals = [90.0, 90.341644, 92.488034, 96.157312, 100.0]
-    exp_humidity.T[..., [0, 1, 2, 3, 11]] = humidity_vals
+    exp_humidity = lyr_str.from_template()
+    exp_humidity[lyr_str.index_filled_atmosphere] = np.array(
+        [90.0, 90.341644, 92.488034, 96.157312, 100.0]
+    )[:, None]
     xr.testing.assert_allclose(result_hum, exp_humidity)
 
 
@@ -56,6 +58,7 @@ def test_varying_canopy_log_interpolation(
     from virtual_ecosystem.models.abiotic_simple.microclimate import log_interpolation
 
     data = dummy_climate_data_varying_canopy
+    lyr_str = fixture_core_components.layer_structure
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # temperature
@@ -63,15 +66,15 @@ def test_varying_canopy_log_interpolation(
         data=data,
         reference_data=data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
-        layer_structure=fixture_core_components.layer_structure,
+        layer_structure=lyr_str,
         layer_heights=data["layer_heights"],
         upper_bound=80,
         lower_bound=0,
         gradient=-2.45,
     )
 
-    exp_air_temp = fixture_core_components.layer_structure.from_template()
-    exp_air_temp[[0, 1, 2, 3, 11], :] = [
+    exp_air_temp = lyr_str.from_template()
+    exp_air_temp[lyr_str.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
         [29.844995, 29.896663, 29.948332, 29.948332],
         [28.87117, 29.247446, np.nan, np.nan],
@@ -115,13 +118,17 @@ def test_calculate_vapour_pressure_deficit(fixture_core_components):
         calculate_vapour_pressure_deficit,
     )
 
-    temperature = fixture_core_components.layer_structure.from_template()
-    t_vals = [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
-    temperature.T[..., [0, 1, 2, 3, 11]] = t_vals
+    lyr_str = fixture_core_components.layer_structure
 
-    rel_humidity = fixture_core_components.layer_structure.from_template()
-    humidity_vals = [90.0, 90.341644, 92.488034, 96.157312, 100.0]
-    rel_humidity.T[..., [0, 1, 2, 3, 11]] = humidity_vals
+    temperature = lyr_str.from_template()
+    temperature[lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
+
+    rel_humidity = lyr_str.from_template()
+    rel_humidity[lyr_str.index_filled_atmosphere] = np.array(
+        [90.0, 90.341644, 92.488034, 96.157312, 100.0]
+    )[:, None]
 
     constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
@@ -131,10 +138,10 @@ def test_calculate_vapour_pressure_deficit(fixture_core_components):
             constants.saturation_vapour_pressure_factors
         ),
     )
-    exp_output = fixture_core_components.layer_structure.from_template()
-    vpd_vals = [0.141727, 0.136357, 0.103501, 0.050763, 0.0]
-    exp_output.T[..., [0, 1, 2, 3, 11]] = vpd_vals
-
+    exp_output = lyr_str.from_template()
+    exp_output[lyr_str.index_filled_atmosphere] = np.array(
+        [0.141727, 0.136357, 0.103501, 0.050763, 0.0]
+    )[:, None]
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
 
@@ -148,6 +155,8 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
         calculate_vapour_pressure_deficit,
     )
 
+    lyr_str = fixture_core_components.layer_structure
+
     data = dummy_climate_data_varying_canopy
     constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
@@ -157,8 +166,8 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
             constants.saturation_vapour_pressure_factors
         ),
     )
-    exp_output = fixture_core_components.layer_structure.from_template()
-    exp_output[[0, 1, 2, 3, 11], :] = [
+    exp_output = lyr_str.from_template()
+    exp_output[lyr_str.index_filled_atmosphere] = [
         [0.141727, 0.141727, 0.141727, 0.141727],
         [0.136357, 0.136357, 0.136357, 0.136357],
         [0.103501, 0.103501, np.nan, np.nan],
@@ -177,28 +186,29 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
     from virtual_ecosystem.models.abiotic_simple.microclimate import run_microclimate
 
+    lyr_str = fixture_core_components.layer_structure
     data = dummy_climate_data
 
     result = run_microclimate(
         data=data,
-        layer_structure=fixture_core_components.layer_structure,
+        layer_structure=lyr_str,
         time_index=0,
         constants=AbioticSimpleConsts(),
         bounds=AbioticSimpleBounds(),
     )
 
-    exp_air_temp = fixture_core_components.layer_structure.from_template()
-    exp_air_temp[[0, 1, 2, 3, 11]] = np.array(
+    exp_air_temp = lyr_str.from_template()
+    exp_air_temp[lyr_str.index_filled_atmosphere] = np.array(
         [30.0, 29.91965, 29.414851, 28.551891, 22.81851]
     )[:, None]
     xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
 
-    exp_soil_temp = fixture_core_components.layer_structure.from_template()
-    exp_soil_temp[[12, 13]] = np.array([20.712458, 20.0])[:, None]
+    exp_soil_temp = lyr_str.from_template()
+    exp_soil_temp[lyr_str.index_all_soil] = np.array([20.712458, 20.0])[:, None]
     xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
 
-    exp_pressure = fixture_core_components.layer_structure.from_template()
-    exp_pressure[np.arange(0, 12)] = 96
+    exp_pressure = lyr_str.from_template()
+    exp_pressure[lyr_str.index_atmosphere] = 96
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
 
@@ -214,17 +224,18 @@ def test_run_microclimate_varying_canopy(
     from virtual_ecosystem.models.abiotic_simple.microclimate import run_microclimate
 
     data = dummy_climate_data_varying_canopy
+    lyr_str = fixture_core_components.layer_structure
 
     result = run_microclimate(
         data=data,
-        layer_structure=fixture_core_components.layer_structure,
+        layer_structure=lyr_str,
         time_index=0,
         constants=AbioticSimpleConsts(),
         bounds=AbioticSimpleBounds(),
     )
 
-    exp_air_temp = fixture_core_components.layer_structure.from_template()
-    exp_air_temp[[0, 1, 2, 3, 11], :] = [
+    exp_air_temp = lyr_str.from_template()
+    exp_air_temp[lyr_str.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
         [29.91965, 29.946434, 29.973217, 29.973217],
         [29.414851, 29.609901, np.nan, np.nan],
@@ -233,15 +244,15 @@ def test_run_microclimate_varying_canopy(
     ]
     xr.testing.assert_allclose(result["air_temperature"], exp_air_temp)
 
-    exp_soil_temp = fixture_core_components.layer_structure.from_template()
-    exp_soil_temp[[12, 13], :] = [
+    exp_soil_temp = lyr_str.from_template()
+    exp_soil_temp[lyr_str.index_all_soil] = [
         [20.712458, 21.317566, 21.922674, 21.922674],
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
 
-    exp_pressure = fixture_core_components.layer_structure.from_template()
-    exp_pressure[np.arange(0, 12)] = 96
+    exp_pressure = lyr_str.from_template()
+    exp_pressure[lyr_str.index_atmosphere] = 96
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
 
@@ -252,6 +263,7 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
         interpolate_soil_temperature,
     )
 
+    lyr_str = fixture_core_components.layer_structure
     data = dummy_climate_data
 
     surface_temperature = DataArray([22.0, 22.0, 22.0, 22.0], dims="cell_id")
@@ -259,12 +271,12 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
         layer_heights=data["layer_heights"],
         surface_temperature=surface_temperature,
         mean_annual_temperature=data["mean_annual_temperature"],
-        layer_structure=fixture_core_components.layer_structure,
+        layer_structure=lyr_str,
         upper_bound=50.0,
         lower_bound=-10.0,
     )
 
-    exp_output = fixture_core_components.layer_structure.from_template()
-    exp_output[[12, 13]] = np.array([20.505557, 20.0])[:, None]
+    exp_output = lyr_str.from_template()
+    exp_output[lyr_str.index_all_soil] = np.array([20.505557, 20.0])[:, None]
 
     xr.testing.assert_allclose(result, exp_output)

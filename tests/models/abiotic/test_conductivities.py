@@ -13,8 +13,10 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         initialise_conductivities,
     )
 
+    lyr_str = fixture_core_components.layer_structure
+
     result = initialise_conductivities(
-        layer_structure=fixture_core_components.layer_structure,
+        layer_structure=lyr_str,
         layer_heights=dummy_climate_data["layer_heights"],
         initial_air_conductivity=50.0,
         top_leaf_vapour_conductivity=0.32,
@@ -23,16 +25,20 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         bottom_leaf_air_conductivity=0.13,
     )
 
-    exp_air_cond = fixture_core_components.layer_structure.from_template()
-    exp_air_cond[:] = np.repeat(
-        a=[4.166667, 3.33333333, 6.66666667, np.nan], repeats=[1, 10, 1, 2]
+    exp_air_cond = lyr_str.from_template()
+    exp_air_cond[lyr_str.index_atmosphere] = np.repeat(
+        a=[4.166667, 3.33333333, 6.66666667], repeats=[1, 10, 1]
     )[:, None]
 
-    exp_leaf_vap_cond = fixture_core_components.layer_structure.from_template()
-    exp_leaf_vap_cond[[1, 2, 3]] = np.array([0.254389, 0.276332, 0.298276])[:, None]
+    exp_leaf_vap_cond = lyr_str.from_template()
+    exp_leaf_vap_cond[lyr_str.index_filled_canopy] = np.array(
+        [0.254389, 0.276332, 0.298276]
+    )[:, None]
 
-    exp_leaf_air_cond = fixture_core_components.layer_structure.from_template()
-    exp_leaf_air_cond[[1, 2, 3]] = np.array([0.133762, 0.152571, 0.171379])[:, None]
+    exp_leaf_air_cond = lyr_str.from_template()
+    exp_leaf_air_cond[lyr_str.index_filled_canopy] = np.array(
+        [0.133762, 0.152571, 0.171379]
+    )[:, None]
 
     np.testing.assert_allclose(
         result["air_heat_conductivity"], exp_air_cond, rtol=1e-04, atol=1e-04
@@ -52,28 +58,24 @@ def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
         interpolate_along_heights,
     )
 
-    lyr_struct = fixture_core_components.layer_structure
+    lyr_str = fixture_core_components.layer_structure
 
     layer_heights = dummy_climate_data["layer_heights"].to_numpy()
 
     result = interpolate_along_heights(
-        start_height=layer_heights[lyr_struct.index_surface],
-        end_height=layer_heights[lyr_struct.index_above],
-        target_heights=layer_heights[lyr_struct.index_filled_atmosphere],
+        start_height=layer_heights[lyr_str.index_surface],
+        end_height=layer_heights[lyr_str.index_above],
+        target_heights=layer_heights[lyr_str.index_filled_atmosphere],
         start_value=50.0,
         end_value=20.0,
     )
 
     # Get layer structure and reduce to only atmospheric layers
-    exp_result = fixture_core_components.layer_structure.from_template()
-    exp_result.T[..., [0, 1, 2, 3, 11]] = [
-        20.0,
-        21.88087774,
-        31.28526646,
-        40.68965517,
-        50.0,
-    ]
-    exp_result = exp_result[lyr_struct.index_filled_atmosphere]
+    exp_result = lyr_str.from_template()
+    exp_result[lyr_str.index_filled_atmosphere] = np.array(
+        [20.0, 21.88087774, 31.28526646, 40.68965517, 50.0]
+    )[:, None]
+    exp_result = exp_result[lyr_str.index_filled_atmosphere]
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
@@ -87,9 +89,11 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
         interpolate_along_heights,
     )
 
+    lyr_str = fixture_core_components.layer_structure
+
     # Extract the block of atmospheric layer heights.
     layer_heights = dummy_climate_data["layer_heights"][
-        fixture_core_components.layer_structure.index_atmosphere
+        lyr_str.index_atmosphere
     ].to_numpy()
 
     # Interpolate from the top to bottom across the atmosphere
@@ -100,9 +104,14 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
         start_value=np.repeat(50.0, 4),
         end_value=np.repeat(20.0, 4),
     )
-    exp_result = np.full((12, 4), np.nan)
-    row_vals = [20.0, 21.88087774, 31.28526646, 40.68965517, 50.0]
-    exp_result.T[..., [0, 1, 2, 3, 11]] = row_vals
+
+    # The function only returns values for the atmospheric layers, so fill the template
+    # and then truncate to the atmosphere.
+    exp_result = lyr_str.from_template()
+    exp_result[lyr_str.index_filled_atmosphere] = np.array(
+        [20.0, 21.88087774, 31.28526646, 40.68965517, 50.0]
+    )[:, None]
+    exp_result = exp_result[lyr_str.index_atmosphere]
 
     np.testing.assert_allclose(
         result, exp_result, rtol=1e-04, atol=1e-04, equal_nan=True
@@ -165,14 +174,18 @@ def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
+def test_calculate_leaf_air_heat_conductivity(
+    dummy_climate_data, fixture_core_components
+):
     """Test calculation of leaf air heat conductivity."""
 
     from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_leaf_air_heat_conductivity,
     )
 
+    lyr_str = fixture_core_components.layer_structure
     abiotic_consts = AbioticConsts()
+
     result = calculate_leaf_air_heat_conductivity(
         temperature=dummy_climate_data["air_temperature"].to_numpy(),
         wind_speed=dummy_climate_data["wind_speed"].to_numpy(),
@@ -193,9 +206,10 @@ def test_calculate_leaf_air_heat_conductivity(dummy_climate_data):
             abiotic_consts.negative_free_conductance_parameter
         ),
     )
-    exp_result = np.full((14, 4), np.nan)
-    row_vals = np.array([0.065242, 0.065062, 0.064753])[:, None]
-    exp_result[[1, 2, 3]] = row_vals
+    exp_result = lyr_str.from_template()
+    exp_result[lyr_str.index_filled_canopy] = np.array([0.065242, 0.065062, 0.064753])[
+        :, None
+    ]
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
@@ -214,12 +228,14 @@ def test_calculate_leaf_vapour_conductivity():
     np.testing.assert_allclose(result, np.repeat(2.5, 4), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_current_conductivities(dummy_climate_data):
+def test_calculate_current_conductivities(dummy_climate_data, fixture_core_components):
     """Test update current conductivities."""
 
     from virtual_ecosystem.models.abiotic.conductivities import (
         calculate_current_conductivities,
     )
+
+    lyr_str = fixture_core_components.layer_structure
 
     result = calculate_current_conductivities(
         data=dummy_climate_data,
@@ -228,22 +244,28 @@ def test_calculate_current_conductivities(dummy_climate_data):
         abiotic_constants=AbioticConsts(),
     )
 
-    exp_gt = np.full((14, 4), np.nan)
-    exp_gt[0, :] = np.array([1.460964e02, 6.087350e01, 2.434940e01, 2.434940e01])
-    gt_vals = [1.95435e03, 1.414247e01, 0.125081, 13.654908]
-    exp_gt.T[..., [1, 2, 3, 12]] = gt_vals
+    exp_gt = lyr_str.from_template()
+    exp_gt[lyr_str.index_above] = np.array(
+        [1.460964e02, 6.087350e01, 2.434940e01, 2.434940e01]
+    )
+    exp_gt[lyr_str.index_flux_layers] = np.array(
+        [1.95435e03, 1.414247e01, 0.125081, 13.654908]
+    )[:, None]
 
-    exp_gv = np.full((14, 4), np.nan)
-    gv_vals = [0.203513, 0.202959, 0.202009]
-    exp_gv.T[..., [1, 2, 3]] = gv_vals
+    exp_gv = lyr_str.from_template()
+    exp_gv[lyr_str.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
+        :, None
+    ]
 
-    exp_gha = np.full((14, 4), np.nan)
-    gha_vals = [0.206312, 0.205743, 0.204766]
-    exp_gha.T[..., [1, 2, 3]] = gha_vals
+    exp_gha = lyr_str.from_template()
+    exp_gha[lyr_str.index_filled_canopy] = np.array([0.206312, 0.205743, 0.204766])[
+        :, None
+    ]
 
-    exp_gtr = np.full((14, 4), np.nan)
-    gtr_vals = [1.954354e03, 1.403429e01, 0.123447, 0.604689]
-    exp_gtr.T[..., [1, 2, 3, 12]] = gtr_vals
+    exp_gtr = lyr_str.from_template()
+    exp_gtr[lyr_str.index_flux_layers] = np.array(
+        [1.954354e03, 1.403429e01, 0.123447, 0.604689]
+    )[:, None]
 
     np.testing.assert_allclose(
         result["air_heat_conductivity"], exp_gt, rtol=1e-04, atol=1e-04

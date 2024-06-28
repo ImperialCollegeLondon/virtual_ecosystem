@@ -263,37 +263,22 @@ def dummy_carbon_data(fixture_core_components):
 
     # The layer dependant data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
-    ls = fixture_core_components.layer_structure
+    lyr_str = fixture_core_components.layer_structure
 
-    data["soil_moisture"] = ls.from_template()
-    data["soil_moisture"].loc[{"layers": ls.index_topsoil}] = [
-        232.61550125,
-        196.88733175,
-        126.065797,
-        75.63195175,
-    ]
+    data["soil_moisture"] = lyr_str.from_template()
+    data["soil_moisture"][lyr_str.index_topsoil] = np.array(
+        [232.61550125, 196.88733175, 126.065797, 75.63195175]
+    )
 
-    data["matric_potential"] = ls.from_template()
-    data["matric_potential"].loc[{"layers": ls.index_topsoil}] = [
-        -3.0,
-        -10.0,
-        -250.0,
-        -10000.0,
-    ]
+    data["matric_potential"] = lyr_str.from_template()
+    data["matric_potential"][lyr_str.index_topsoil] = np.array(
+        [-3.0, -10.0, -250.0, -10000.0]
+    )
 
-    data["soil_temperature"] = ls.from_template()
-    data["soil_temperature"].loc[{"layers": ls.index_topsoil}] = [
-        35.0,
-        37.5,
-        40.0,
-        25.0,
-    ]
-    data["soil_temperature"].loc[{"layers": ls.index_subsoil}] = [
-        22.5,
-        22.5,
-        22.5,
-        22.5,
-    ]
+    data["soil_temperature"] = lyr_str.from_template()
+    data["soil_temperature"][lyr_str.index_all_soil] = np.array(
+        [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
+    )
 
     return data
 
@@ -398,11 +383,13 @@ def dummy_climate_data(fixture_core_components):
     data["absorbed_radiation"] = from_template()
     data["absorbed_radiation"][lyr_str.index_filled_canopy] = 10.0
 
+    flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
+
     data["sensible_heat_flux"] = from_template()
-    data["sensible_heat_flux"][[0, 1, 2, 3, 12]] = 0.0
+    data["sensible_heat_flux"][flux_index] = 0.0
 
     data["latent_heat_flux"] = from_template()
-    data["latent_heat_flux"][[0, 1, 2, 3, 12]] = 0.0
+    data["latent_heat_flux"][flux_index] = 0.0
 
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
@@ -433,7 +420,9 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_vapour_conductivity"][lyr_str.index_filled_canopy] = 0.2
 
     data["conductivity_from_ref_height"] = from_template()
-    data["conductivity_from_ref_height"][[1, 2, 3, 11]] = 3.0
+    data["conductivity_from_ref_height"][
+        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface)
+    ] = 3.0
 
     data["stomatal_conductance"] = from_template()
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
@@ -462,100 +451,102 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     number of canopy layers within the different cells.
     """
 
+    index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
+
     # Structural variables
-    dummy_climate_data["leaf_area_index"][[1, 2, 3], :] = [
+    dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
         [1.0, 1.0, 1.0, 1.0],
         [1.0, 1.0, np.nan, np.nan],
         [1.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["layer_heights"][[1, 2, 3], :] = [
+    dummy_climate_data["layer_heights"][index_filled_canopy] = [
         [30.0, 30.0, 30.0, 30.0],
         [20.0, 20.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
     ]
 
     # Microclimate and energy balance
-    dummy_climate_data["wind_speed"][[1, 2, 3], :] = [
+    dummy_climate_data["wind_speed"][index_filled_canopy] = [
         [0.1, 0.1, 0.1, 0.1],
         [0.1, 0.1, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["air_temperature"][[1, 2, 3], :] = [
+    dummy_climate_data["air_temperature"][index_filled_canopy] = [
         [29.844995, 29.844995, 29.844995, 29.844995],
         [28.87117, 28.87117, np.nan, np.nan],
         [27.206405, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["relative_humidity"][[1, 2, 3], :] = [
+    dummy_climate_data["relative_humidity"][index_filled_canopy] = [
         [90.341644, 90.341644, 90.341644, 90.341644],
         [92.488034, 92.488034, np.nan, np.nan],
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["absorbed_radiation"][[1, 2, 3], :] = [
+    dummy_climate_data["absorbed_radiation"][index_filled_canopy] = [
         [10.0, 10.0, 10.0, 10.0],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["sensible_heat_flux"][[1, 2, 3], :] = [
+    dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],
         [0.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["latent_heat_flux"][[1, 2, 3], :] = [
+    dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],
         [0.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["attenuation_coefficient"][[1, 2, 3], :] = [
+    dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
         [13.0, 13.0, 13.0, 13.0],
         [13.0, 13.0, np.nan, np.nan],
         [13.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["relative_turbulence_intensity"][[1, 2, 3], :] = [
+    dummy_climate_data["relative_turbulence_intensity"][index_filled_canopy] = [
         [16.56, 16.56, 16.56, 16.56],
         [11.16, 11.16, np.nan, np.nan],
         [5.76, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["canopy_temperature"][[1, 2, 3], :] = [
+    dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
         [25.0, 25.0, 25.0, 25.0],
         [25.0, 25.0, np.nan, np.nan],
         [25.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["leaf_air_heat_conductivity"][[1, 2, 3], :] = [
+    dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [
         [0.13, 0.13, 0.13, 0.13],
         [0.13, 0.13, np.nan, np.nan],
         [0.13, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["leaf_vapour_conductivity"][[1, 2, 3], :] = [
+    dummy_climate_data["leaf_vapour_conductivity"][index_filled_canopy] = [
         [0.2, 0.2, 0.2, 0.2],
         [0.2, 0.2, np.nan, np.nan],
         [0.2, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["conductivity_from_ref_height"][[1, 2, 3], :] = [
+    dummy_climate_data["conductivity_from_ref_height"][index_filled_canopy] = [
         [3.0, 3.0, 3.0, 3.0],
         [3.0, 3.0, np.nan, np.nan],
         [3.0, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["stomatal_conductance"][[1, 2, 3], :] = [
+    dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
         [15.0, 15.0, 15.0, 15.0],
         [15.0, 15.0, np.nan, np.nan],
         [15.0, np.nan, np.nan, np.nan],
     ]
 
     # Hydrology
-    dummy_climate_data["evapotranspiration"][[1, 2, 3], :] = [
+    dummy_climate_data["evapotranspiration"][index_filled_canopy] = [
         [20.0, 20.0, 20.0, 20.0],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],

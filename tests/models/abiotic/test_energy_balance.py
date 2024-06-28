@@ -6,19 +6,21 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
-def test_initialise_absorbed_radiation(dummy_climate_data):
+def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_components):
     """Test initial absorbed radiation has correct dimensions."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_absorbed_radiation,
     )
 
-    # TODO: Occupied canopies - the plants model should populate the filled_canopies
-    #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+    lyr_str = fixture_core_components.layer_structure
 
-    leaf_area_index_true = dummy_climate_data["leaf_area_index"][filled_canopies]
-    layer_heights_canopy = dummy_climate_data["layer_heights"][filled_canopies]
+    leaf_area_index_true = dummy_climate_data["leaf_area_index"][
+        lyr_str.index_filled_canopy
+    ]
+    layer_heights_canopy = dummy_climate_data["layer_heights"][
+        lyr_str.index_filled_canopy
+    ]
 
     result = initialise_absorbed_radiation(
         topofcanopy_radiation=dummy_climate_data["topofcanopy_radiation"]
@@ -33,18 +35,16 @@ def test_initialise_absorbed_radiation(dummy_climate_data):
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_initialise_canopy_temperature(dummy_climate_data):
+def test_initialise_canopy_temperature(dummy_climate_data, fixture_core_components):
     """Test that canopy temperature is initialised correctly."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_canopy_temperature,
     )
 
-    # TODO: Occupied canopies - the plants model should populate the filled_canopies
-    #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+    lyr_str = fixture_core_components.layer_structure
 
-    air_temperature = dummy_climate_data["air_temperature"][filled_canopies]
+    air_temperature = dummy_climate_data["air_temperature"][lyr_str.index_filled_canopy]
 
     absorbed_radiation = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
 
@@ -80,10 +80,6 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
     from virtual_ecosystem.models.abiotic.energy_balance import (
         initialise_canopy_and_soil_fluxes,
     )
-
-    # TODO: Occupied canopies - the plants model should populate the filled_canopies
-    #       index in the data at some point.
-    # filled_canopies = np.repeat([False, True, False], [1, 3, 10])
 
     result = initialise_canopy_and_soil_fluxes(
         air_temperature=dummy_climate_data["air_temperature"],
@@ -142,44 +138,54 @@ def test_calculate_leaf_and_air_temperature(
     )
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
-    layer_structure = fixture_core_components.layer_structure
+    lyr_str = fixture_core_components.layer_structure
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
-        layer_structure=layer_structure,
+        layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
         abiotic_simple_constants=AbioticSimpleConsts(),
         core_constants=CoreConsts(),
     )
 
-    exp_air_temp = layer_structure.from_template()
-    t_vals = [30.0, 29.999969, 29.995439, 28.796977, 20.08797]
-    exp_air_temp.T[..., [0, 1, 2, 3, 11]] = t_vals
+    exp_air_temp = lyr_str.from_template()
+    exp_air_temp[lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.999969, 29.995439, 28.796977, 20.08797]
+    )[:, None]
 
-    exp_leaf_temp = layer_structure.from_template()
-    tl_vals = [30.078613, 29.091601, 26.951191]
-    exp_leaf_temp.T[..., [1, 2, 3]] = tl_vals
+    exp_leaf_temp = lyr_str.from_template()
+    exp_leaf_temp[lyr_str.index_filled_canopy] = np.array(
+        [30.078613, 29.091601, 26.951191]
+    )[:, None]
 
-    exp_vp = layer_structure.from_template()
-    vp_vals = [0.14, 0.140323, 0.18372, 1.296359, 0.023795]
-    exp_vp.T[..., [0, 1, 2, 3, 11]] = vp_vals
+    exp_vp = lyr_str.from_template()
+    exp_vp[lyr_str.index_filled_atmosphere] = np.array(
+        [0.14, 0.140323, 0.18372, 1.296359, 0.023795]
+    )[:, None]
 
-    exp_vpd = layer_structure.from_template()
-    vpd_vals = [0.098781, 0.099009, 0.129644, 0.94264, 0.021697]
-    exp_vpd.T[..., [0, 1, 2, 3, 11]] = vpd_vals
+    exp_vpd = lyr_str.from_template()
+    exp_vpd[lyr_str.index_filled_atmosphere] = np.array(
+        [0.098781, 0.099009, 0.129644, 0.94264, 0.021697]
+    )[:, None]
 
-    exp_gv = layer_structure.from_template()
-    gv_vals = [0.203513, 0.202959, 0.202009]
-    exp_gv.T[..., [1, 2, 3]] = gv_vals
+    exp_gv = lyr_str.from_template()
+    exp_gv[lyr_str.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
+        :, None
+    ]
 
-    exp_sens_heat = layer_structure.from_template()
-    sens_heat_vals = [0.0, 1.397746, 1.315211, -1.515519, 1.0]
-    exp_sens_heat.T[..., [0, 1, 2, 3, 12]] = sens_heat_vals
+    # TODO - flux layer index does not include above but these tests do - what is best.
+    flux_index = np.logical_or(lyr_str.index_flux_layers, lyr_str.index_above)
 
-    exp_latent_heat = layer_structure.from_template()
-    lat_heat_vals = [0.0, 8.330748, 8.426556, 11.740824, 1.0]
-    exp_latent_heat.T[..., [0, 1, 2, 3, 12]] = lat_heat_vals
+    exp_sens_heat = lyr_str.from_template()
+    exp_sens_heat[flux_index] = np.array([0.0, 1.397746, 1.315211, -1.515519, 1.0])[
+        :, None
+    ]
+
+    exp_latent_heat = lyr_str.from_template()
+    exp_latent_heat[flux_index] = np.array([0.0, 8.330748, 8.426556, 11.740824, 1.0])[
+        :, None
+    ]
 
     np.testing.assert_allclose(
         result["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
@@ -213,23 +219,25 @@ def test_leaf_and_air_temperature_linearisation(
         leaf_and_air_temperature_linearisation,
     )
 
-    # TODO: Occupied canopies - the plants model should populate the filled_canopies
-    #       index in the data at some point.
-    filled_canopies = np.repeat([False, True, False], [1, 3, 10])
+    lyr_str = fixture_core_components.layer_structure
 
     a_A, b_A = leaf_and_air_temperature_linearisation(
         conductivity_from_ref_height=(
-            dummy_climate_data["conductivity_from_ref_height"][filled_canopies]
+            dummy_climate_data["conductivity_from_ref_height"][
+                lyr_str.index_filled_canopy
+            ]
         ),
         conductivity_from_soil=np.repeat(0.1, 4),
         leaf_air_heat_conductivity=(
-            dummy_climate_data["leaf_air_heat_conductivity"][filled_canopies]
+            dummy_climate_data["leaf_air_heat_conductivity"][
+                lyr_str.index_filled_canopy
+            ]
         ),
         air_temperature_ref=(
             dummy_climate_data["air_temperature_ref"].isel(time_index=0).to_numpy()
         ),
         top_soil_temperature=dummy_climate_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil
+            lyr_str.index_topsoil
         ].to_numpy(),
     )
 

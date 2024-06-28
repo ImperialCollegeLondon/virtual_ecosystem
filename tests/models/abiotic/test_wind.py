@@ -139,14 +139,18 @@ def test_calculate_mean_mixing_length(dummy_climate_data):
     )
 
 
-def test_generate_relative_turbulence_intensity(dummy_climate_data_varying_canopy):
+def test_generate_relative_turbulence_intensity(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test relative turbulence intensity for different true layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         generate_relative_turbulence_intensity,
     )
 
-    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][[0, 1, 2, 3, 11]]
+    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
+        fixture_core_components.layer_structure.index_filled_atmosphere
+    ]
 
     result_t = generate_relative_turbulence_intensity(
         layer_heights=layer_heights,
@@ -184,7 +188,9 @@ def test_generate_relative_turbulence_intensity(dummy_climate_data_varying_canop
     np.testing.assert_allclose(result_f, exp_result_f, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_attenuation_coefficient(dummy_climate_data_varying_canopy):
+def test_calculate_wind_attenuation_coefficient(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test wind attenuation coefficient with different canopy layers."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -198,16 +204,18 @@ def test_calculate_wind_attenuation_coefficient(dummy_climate_data_varying_canop
     # rows and one with only the true canopy rows, adding the rows for above and surface
     # My updates assume the former approach, so I've updated this test to match. The
     # results have changed.
-    true_aboveground_rows = np.repeat([True, False, True, False], [4, 7, 1, 2])
+
+    lyr_str = fixture_core_components.layer_structure
 
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        true_aboveground_rows
+        lyr_str.index_filled_atmosphere
     ].to_numpy()
 
     relative_turbulence_intensity = dummy_climate_data_varying_canopy[
         "relative_turbulence_intensity"
-    ][[0, 1, 2, 3, 11]].to_numpy()
+    ][lyr_str.index_filled_atmosphere].to_numpy()
 
+    # TODO - create a scalar index for this canopy top layer [1]
     canopy_height = (
         dummy_climate_data_varying_canopy.data["layer_heights"][1].to_numpy(),
     )
@@ -245,7 +253,9 @@ def test_wind_log_profile(fixture_core_components, dummy_climate_data):
 
     from virtual_ecosystem.models.abiotic.wind import wind_log_profile
 
-    layer_heights = dummy_climate_data["layer_heights"][[0, 1, 2, 3, 11]].to_numpy()
+    layer_heights = dummy_climate_data["layer_heights"][
+        fixture_core_components.layer_structure.index_filled_atmosphere
+    ].to_numpy()
 
     result = wind_log_profile(
         height=layer_heights,
@@ -312,10 +322,14 @@ def test_calculate_wind_above_canopy():
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_canopy(dummy_climate_data_varying_canopy):
+def test_calculate_wind_canopy(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test below canopy wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_canopy
+
+    lyr_str = fixture_core_components.layer_structure
 
     # TODO we want to use fixture here, but there is a conflict with expected results
     # in conductivities (attenuation coefficient two orders of magnitude different, and
@@ -328,14 +342,17 @@ def test_calculate_wind_canopy(dummy_climate_data_varying_canopy):
             [0.197945, 0.129216, 0.183812, 0.183812],
         ]
     )
-    layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
-        [1, 2, 3, 11]
-    ].to_numpy()
+
+    layer_heights_np = dummy_climate_data_varying_canopy["layer_heights"].to_numpy()
+    layer_heights = layer_heights_np[
+        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface)
+    ]
+    canopy_height = layer_heights_np[1]
 
     result = calculate_wind_canopy(
         top_of_canopy_wind_speed=np.array([0.5, 5.590124, 10.750233, 10.750233]),
         wind_layer_heights=layer_heights,
-        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
+        canopy_height=canopy_height,
         attenuation_coefficient=attenuation_coeff,
     )
 
@@ -350,21 +367,25 @@ def test_calculate_wind_canopy(dummy_climate_data_varying_canopy):
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_wind_profile(dummy_climate_data_varying_canopy):
+def test_calculate_wind_profile(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test full update of wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
+    lyr_str = fixture_core_components.layer_structure
+
     # VIVI - same deal here. Feeding the full true aboveground rows into this, not just
     # the true canopy rows. Seeing minor test value changes as a result.
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        [0, 1, 2, 3, 11]
+        lyr_str.index_filled_atmosphere
     ].to_numpy()
     layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
-        [0, 1, 2, 3, 11]
+        lyr_str.index_filled_atmosphere
     ].to_numpy()
     air_temperature = dummy_climate_data_varying_canopy["air_temperature"][
-        [0, 1, 2, 3, 11]
+        lyr_str.index_filled_atmosphere
     ].to_numpy()
 
     wind_update = calculate_wind_profile(
