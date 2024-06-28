@@ -48,3 +48,10 @@ class DevelopmentStatus(Enum):
 
     LARVAL = "larval"
     ADULT = "adult"
+
+
+class ExcretionType(Enum):
+    """Enumeration for excretion type."""
+
+    UREOTELIC = "ureotelic"
+    URICOTELIC = "uricotelic"

@@ -21,12 +21,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates.
-
-    TODO: The entire constants fille will be reworked in this style after the energy to
-    mass conversion.
-
-    """
+    """Dataclass to store all constants related to metabolic rates."""
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
         default_factory=lambda: {
@@ -251,6 +246,14 @@ class AnimalConsts(ConstantsDataclass):
     metamorph_mortality = 0.1  # toy [unitless]
     """The mortality proportion inflicted on a larval cohort undergoing
     metamorphosis. """
+
+    carbon_excreta_proportion = 1.0  # toy [unitless]
+    """The proportion of metabolic wastes that are carbonaceous. This is a temporary
+    fix to facilitate building the machinery and will be updated with stoichiometry."""
+
+    nitrogen_excreta_proportion = 0.0  # toy [unitless]
+    """The proportion of metabolic wastes that are nitrogenous. This is a temporary
+    fix to facilitate building the machinery and will be updated with stoichiometry."""
 
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
