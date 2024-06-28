@@ -92,7 +92,11 @@ def initialise_conductivities(
         Heat conductivity between air and leaf for each canopy layer node, [mol m-2 s-1]
     """
 
-    canopy_height = layer_heights[layer_structure.index_canopy[0]].to_numpy()
+    # TODO - this [1] indexes the first canopy layer - that's poorly defined at the
+    #        moment (canopy top? first canopy layer closure? representative midpoint
+    #        height of the first canopy layer) and we don't have a firm structure to
+    #        index this properly yet.
+    canopy_height = layer_heights[1].to_numpy()
     atmosphere_layers = layer_heights[layer_structure.index_atmosphere]
     canopy_layers = layer_heights[layer_structure.index_canopy]
     soil_layers = layer_heights[layer_structure.index_all_soil]

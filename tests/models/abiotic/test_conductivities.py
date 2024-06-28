@@ -52,13 +52,14 @@ def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
         interpolate_along_heights,
     )
 
-    layer_heights = dummy_climate_data["layer_heights"]
-    atmos_index = np.logical_not(fixture_core_components.layer_structure.index)
-    atmosphere_layers = layer_heights[atmos_index]
+    lyr_struct = fixture_core_components.layer_structure
+
+    layer_heights = dummy_climate_data["layer_heights"].to_numpy()
+
     result = interpolate_along_heights(
-        start_height=layer_heights[-3].to_numpy(),
-        end_height=layer_heights[0].to_numpy(),
-        target_heights=(layer_heights[atmosphere_layers.indexes].to_numpy()),
+        start_height=layer_heights[lyr_struct.index_surface],
+        end_height=layer_heights[lyr_struct.index_above],
+        target_heights=layer_heights[lyr_struct.index_filled_atmosphere],
         start_value=50.0,
         end_value=20.0,
     )
@@ -72,13 +73,15 @@ def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
         40.68965517,
         50.0,
     ]
-    exp_result = exp_result[atmos_index]
+    exp_result = exp_result[lyr_struct.index_filled_atmosphere]
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
 def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate_data):
     """Test linear interpolation along heights with arrays of boundary values."""
+
+    # TODO - I don't think this differs from the test above.
 
     from virtual_ecosystem.models.abiotic.conductivities import (
         interpolate_along_heights,

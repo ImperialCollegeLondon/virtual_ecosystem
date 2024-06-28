@@ -532,67 +532,42 @@ def calculate_leaf_and_air_temperature(
     )
     new_air_temperature = a_A + b_A * delta_canopy_temperature
     new_canopy_temperature = (
-        (data["air_temperature"][1 : true_canopy_layers_n + 1]).to_numpy()
+        (data["air_temperature"][layer_structure.index_filled_canopy]).to_numpy()
         + delta_canopy_temperature
     )
 
     # Interpolate temperature below canopy
-    # This could potentially be done without explicit below canopy layers
-    target_heights = np.vstack(
-        [
-            data["layer_heights"]
-            .where(data["layer_heights"]["layer_roles"] == "subcanopy")
-            .dropna(dim="layers"),
-            data["layer_heights"]
-            .where(data["layer_heights"]["layer_roles"] == "surface")
-            .dropna(dim="layers"),
-        ]
-    )
+
+    # TODO - This only uses the index of the _last_ filled layer, which works with the
+    #        current test where the canopy layers are consistent across cells, but will
+    #        break with uneven canopy layers.
+
+    target_heights = data["layer_heights"][layer_structure.index_surface].to_numpy()
+
     below_canopy_temperature = interpolate_along_heights(
         start_height=np.repeat(0.0, data.grid.n_cells),
-        end_height=data["layer_heights"][true_canopy_layers_n].to_numpy(),
+        end_height=data["layer_heights"][
+            layer_structure.n_canopy_layers_filled
+        ].to_numpy(),
         target_heights=target_heights,
         start_value=topsoil_temperature.to_numpy(),
         end_value=new_air_temperature[-1],
     )
 
     # Create arrays and return for data object
-    new_temperature_profile = np.vstack(
+    new_temperature_profile = layer_structure.from_template()
+    new_temperature_profile[layer_structure.index_filled_atmosphere] = np.vstack(
         [
             air_temperature_ref.to_numpy(),
             new_air_temperature,
-            np.full(
-                (
-                    layer_structure.n_canopy_layers - true_canopy_layers_n,
-                    data.grid.n_cells,
-                ),
-                np.nan,
-            ),
             below_canopy_temperature,
-            np.full((layer_structure.n_soil_layers, data.grid.n_cells), np.nan),
         ]
     )
-    output["air_temperature"] = DataArray(
-        new_temperature_profile,
-        dims=["layers", "cell_id"],
-        coords=data["layer_heights"].coords,
-    )
-    output["canopy_temperature"] = DataArray(
-        np.vstack(
-            [
-                np.repeat(np.nan, data.grid.n_cells),
-                new_canopy_temperature,
-                np.full(
-                    (
-                        layer_structure.n_layers - true_canopy_layers_n - 1,
-                        data.grid.n_cells,
-                    ),
-                    np.nan,
-                ),
-            ]
-        ),
-        dims=["layers", "cell_id"],
-    )
+    output["air_temperature"] = new_temperature_profile
+
+    canopy_temperature = layer_structure.from_template()
+    canopy_temperature[layer_structure.index_filled_canopy] = new_canopy_temperature
+    output["canopy_temperature"] = canopy_temperature
 
     # Calculate vapour pressure
     vapour_pressure_mean = a_E + b_E * delta_canopy_temperature
@@ -607,7 +582,7 @@ def calculate_leaf_and_air_temperature(
         ),
     )
     saturation_vapour_pressure_new_canopy = (
-        saturation_vapour_pressure_new[1 : true_canopy_layers_n + 1]
+        saturation_vapour_pressure_new[layer_structure.index_filled_canopy]
     ).to_numpy()
 
     canopy_vapour_pressure = np.where(
@@ -617,7 +592,9 @@ def calculate_leaf_and_air_temperature(
     )
     below_canopy_vapour_pressure = interpolate_along_heights(
         start_height=np.repeat(0.0, data.grid.n_cells),
-        end_height=data["layer_heights"][true_canopy_layers_n].to_numpy(),
+        end_height=data["layer_heights"][
+            layer_structure.n_canopy_layers_filled
+        ].to_numpy(),
         target_heights=target_heights,
         start_value=soil_vapour_pressure.to_numpy(),
         end_value=canopy_vapour_pressure[-1],

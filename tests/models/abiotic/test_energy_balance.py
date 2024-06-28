@@ -143,9 +143,6 @@ def test_calculate_leaf_and_air_temperature(
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     layer_structure = fixture_core_components.layer_structure
-    # TODO: Occupied canopies - the plants model should populate the filled_canopies
-    #       index in the data at some point.
-    # filled_canopies = np.repeat([False, True, False], [1, 3, 10])
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
