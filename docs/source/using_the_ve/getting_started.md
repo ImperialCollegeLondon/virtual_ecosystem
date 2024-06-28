@@ -16,8 +16,8 @@ that the package is still being developed so these are currently early developme
 
 If you are more interested in playing around with the development of the model, then you
 will need to follow the [development installation
-process](../development/developer_setup.md), which also installs the tools required for
-code development, testing and building documentation.
+process](../development/contributing/developer_setup.md), which also installs the tools
+required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
 

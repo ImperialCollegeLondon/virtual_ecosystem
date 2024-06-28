@@ -107,60 +107,226 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
-        "dt, initial_mass, temperature, final_mass",
+        "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
+        "metabolic_rate_return_value",
         [
-            (timedelta64(1, "D"), 1000.0, 298.0, 998.5205247106326),  # normal case
-            (timedelta64(1, "D"), 0.0, 298.0, 0.0),  # edge case: zero mass
-            (timedelta64(3, "D"), 1000.0, 298.0, 995.5615741318977),  # 3 days
-        ],
-    )
-    def test_metabolize_endotherm(
-        self, herbivore_cohort_instance, dt, initial_mass, temperature, final_mass
-    ):
-        """Testing metabolize with an endothermic metabolism."""
-        herbivore_cohort_instance.mass_current = initial_mass
-        herbivore_cohort_instance.metabolize(temperature, dt)
-        assert herbivore_cohort_instance.mass_current == final_mass
-        assert isclose(herbivore_cohort_instance.mass_current, final_mass, rtol=1e-9)
-
-    @pytest.mark.parametrize(
-        "dt, initial_mass, temperature, final_mass",
-        [
-            (timedelta64(1, "D"), 100.0, 20.0, 99.95896219913648),  # normal case
-            (timedelta64(1, "D"), 0.0, 20.0, 0.0),  # edge case: zero mass
+            # Endotherm cases
             (
+                "herbivore",
+                timedelta64(1, "D"),
+                1000.0,
+                298.0,
+                998.5205247106326,
+                None,
+                1.4794752893674,
+            ),  # normal case
+            (
+                "herbivore",
+                timedelta64(1, "D"),
+                0.0,
+                298.0,
+                0.0,
+                None,
+                0.0,
+            ),  # edge case: zero mass
+            (
+                "herbivore",
+                timedelta64(3, "D"),
+                1000.0,
+                298.0,
+                995.5615741318977,
+                None,
+                1.4794752893674,
+            ),  # 3 days
+            # Ectotherm cases
+            (
+                "ectotherm",
+                timedelta64(1, "D"),
+                100.0,
+                20.0,
+                99.95896219913648,
+                None,
+                0.04103780086352,
+            ),  # normal case
+            (
+                "ectotherm",
+                timedelta64(1, "D"),
+                0.0,
+                20.0,
+                0.0,
+                None,
+                0.0,
+            ),  # edge case: zero mass
+            (
+                "ectotherm",
                 timedelta64(1, "D"),
                 100.0,
                 0.0,
                 99.99436706014961,
+                None,
+                0.00563293985039,
             ),  # edge case: zero temperature
+            # Invalid input cases
+            (
+                "herbivore",
+                timedelta64(-1, "D"),
+                100.0,
+                298.0,
+                None,
+                ValueError,
+                1.0,
+            ),  # negative dt
+            (
+                "herbivore",
+                timedelta64(1, "D"),
+                -100.0,
+                298.0,
+                None,
+                ValueError,
+                1.0,
+            ),  # negative mass
+        ],
+        ids=[
+            "endotherm_normal",
+            "endotherm_zero_mass",
+            "endotherm_three_days",
+            "ectotherm_normal",
+            "ectotherm_zero_mass",
+            "ectotherm_zero_temp",
+            "invalid_negative_dt",
+            "invalid_negative_mass",
         ],
     )
-    def test_metabolize_ectotherm(
-        self, ectotherm_cohort_instance, dt, initial_mass, temperature, final_mass
+    def test_metabolize(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type,
+        dt,
+        initial_mass,
+        temperature,
+        expected_final_mass,
+        error_type,
+        metabolic_rate_return_value,
     ):
-        """Testing metabolize with ectotherms."""
-        # from math import isclose
+        """Testing metabolize method for various scenarios."""
 
-        ectotherm_cohort_instance.mass_current = initial_mass
-        ectotherm_cohort_instance.metabolize(temperature, dt)
-        assert ectotherm_cohort_instance.mass_current == final_mass
+        # Select the appropriate cohort instance
+        if cohort_type == "herbivore":
+            cohort_instance = herbivore_cohort_instance
+        elif cohort_type == "ectotherm":
+            cohort_instance = ectotherm_cohort_instance
+        else:
+            raise ValueError("Invalid cohort type provided.")
+
+        # Set initial mass
+        cohort_instance.mass_current = initial_mass
+
+        # Mocking the sf.metabolic_rate function to return a specific value
+        mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
+            return_value=metabolic_rate_return_value,
+        )
+
+        if error_type:
+            with pytest.raises(error_type):
+                cohort_instance.metabolize(temperature, dt)
+        else:
+            cohort_instance.metabolize(temperature, dt)
+            assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "dt, initial_mass, temperature, error_type",
+        "cohort_type, excreta_mass, initial_pool_energy, expected_pool_energy",
         [
-            (timedelta64(-1, "D"), 28266000000.0, 298.0, ValueError),
-            (timedelta64(1, "D"), -100.0, 298.0, ValueError),
-            # Add more invalid cases as needed
+            ("herbivore", 100.0, 500.0, 500.0),  # normal case for herbivore
+            ("herbivore", 0.0, 500.0, 500.0),  # zero excreta mass for herbivore
+            ("ectotherm", 50.0, 300.0, 300.0),  # normal case for ectotherm
+            ("ectotherm", 0.0, 300.0, 300.0),  # zero excreta mass for ectotherm
+        ],
+        ids=[
+            "herbivore_normal",
+            "herbivore_zero_excreta",
+            "ectotherm_normal",
+            "ectotherm_zero_excreta",
         ],
     )
-    def test_metabolize_invalid_input(
-        self, herbivore_cohort_instance, dt, initial_mass, temperature, error_type
+    def test_excrete(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type,
+        excreta_mass,
+        initial_pool_energy,
+        expected_pool_energy,
     ):
-        """Testing metabolize for invalid input."""
-        herbivore_cohort_instance.mass_current = initial_mass
-        with pytest.raises(error_type):
-            herbivore_cohort_instance.metabolize(temperature, dt)
+        """Testing excrete method for various scenarios.
+
+        This method is doing nothing of substance until the stoichiometry rework.
+
+        """
+
+        # Select the appropriate cohort instance
+        if cohort_type == "herbivore":
+            cohort_instance = herbivore_cohort_instance
+        elif cohort_type == "ectotherm":
+            cohort_instance = ectotherm_cohort_instance
+        else:
+            raise ValueError("Invalid cohort type provided.")
+
+        # Mock the excrement pool
+        excrement_pool = mocker.Mock()
+        excrement_pool.decomposed_energy = initial_pool_energy
+
+        # Call the excrete method
+        cohort_instance.excrete(excreta_mass, excrement_pool)
+
+        # Check the expected results
+        assert excrement_pool.decomposed_energy == expected_pool_energy
+
+    @pytest.mark.parametrize(
+        "cohort_type, excreta_mass, expected_carbon_waste",
+        [
+            ("herbivore", 100.0, 100.0),  # normal case for herbivore
+            ("herbivore", 0.0, 0.0),  # zero excreta mass for herbivore
+            ("ectotherm", 50.0, 50.0),  # normal case for ectotherm
+            ("ectotherm", 0.0, 0.0),  # zero excreta mass for ectotherm
+        ],
+        ids=[
+            "herbivore_normal",
+            "herbivore_zero_excreta",
+            "ectotherm_normal",
+            "ectotherm_zero_excreta",
+        ],
+    )
+    def test_respire(
+        self,
+        herbivore_cohort_instance,
+        ectotherm_cohort_instance,
+        cohort_type,
+        excreta_mass,
+        expected_carbon_waste,
+    ):
+        """Testing respire method for various scenarios.
+
+        This test is deliberately simple because it will be reworked with stoichiometry.
+
+        """
+
+        # Select the appropriate cohort instance
+        if cohort_type == "herbivore":
+            cohort_instance = herbivore_cohort_instance
+        elif cohort_type == "ectotherm":
+            cohort_instance = ectotherm_cohort_instance
+        else:
+            raise ValueError("Invalid cohort type provided.")
+
+        # Call the respire method
+        carbon_waste = cohort_instance.respire(excreta_mass)
+
+        # Check the expected results
+        assert carbon_waste == expected_carbon_waste
 
     @pytest.mark.parametrize(
         "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",
@@ -171,7 +337,7 @@ class TestAnimalCohort:
             (0.0, 0.0, 1000.0, 1000.0, 0.0),
         ],
     )
-    def test_excrete(
+    def test_defecate(
         self,
         herbivore_cohort_instance,
         excrement_pool_instance,
@@ -181,10 +347,10 @@ class TestAnimalCohort:
         decomp_final,
         consumed_energy,
     ):
-        """Testing excrete() for varying soil energy levels."""
+        """Testing defecate() for varying soil energy levels."""
         excrement_pool_instance.scavengeable_energy = scav_initial
         excrement_pool_instance.decomposed_energy = decomp_initial
-        herbivore_cohort_instance.excrete(excrement_pool_instance, consumed_energy)
+        herbivore_cohort_instance.defecate(excrement_pool_instance, consumed_energy)
         assert excrement_pool_instance.scavengeable_energy == scav_final
         assert excrement_pool_instance.decomposed_energy == decomp_final
 
@@ -364,54 +530,6 @@ class TestAnimalCohort:
         herbivore_cohort_instance.mass_current = 0.0
         assert herbivore_cohort_instance.is_below_mass_threshold(
             constants_instance.birth_mass_threshold
-        )
-
-    @pytest.mark.parametrize(
-        "initial_individuals, number_days, mortality_prob",
-        [(100, 10.0, 0.01), (1000, 20.0, 0.05), (0, 10.0, 0.01), (100, 10.0, 0.0)],
-    )
-    def test_inflict_natural_mortality(
-        self,
-        herbivore_cohort_instance,
-        carcass_pool_instance,
-        mocker,
-        initial_individuals,
-        number_days,
-        mortality_prob,
-    ):
-        """Testing inflict natural mortality method."""
-        from random import seed
-
-        from numpy import floor
-
-        seed(42)
-
-        expected_deaths = initial_individuals * (
-            1 - (1 - mortality_prob) ** number_days
-        )
-        expected_deaths = int(floor(expected_deaths))
-
-        # Set individuals and adult natural mortality probability
-        herbivore_cohort_instance.individuals = initial_individuals
-        herbivore_cohort_instance.adult_natural_mortality_prob = mortality_prob
-
-        # Mock the random.binomial call
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.random.binomial",
-            return_value=expected_deaths,
-        )
-        # Keep a copy of initial individuals to validate number_of_deaths
-        initial_individuals_copy = herbivore_cohort_instance.individuals
-
-        # Call the inflict_natural_mortality method
-        herbivore_cohort_instance.inflict_natural_mortality(
-            carcass_pool_instance, number_days
-        )
-
-        # Verify the number_of_deaths and remaining individuals
-        assert (
-            herbivore_cohort_instance.individuals
-            == initial_individuals_copy - expected_deaths
         )
 
     @pytest.mark.parametrize(
@@ -870,8 +988,8 @@ class TestAnimalCohort:
             return_value=consumed_mass,
         )
 
-        # Mock predator_cohort_instance.excrete to verify its call
-        mock_excrete = mocker.patch.object(predator_cohort_instance, "excrete")
+        # Mock predator_cohort_instance.defecate to verify its call
+        mock_defecate = mocker.patch.object(predator_cohort_instance, "defecate")
 
         total_consumed_mass = predator_cohort_instance.delta_mass_predation(
             animal_list_instance, excrement_pool_instance, carcass_pool_instance
@@ -882,8 +1000,8 @@ class TestAnimalCohort:
             total_consumed_mass == expected_total_consumed_mass
         ), "Total consumed mass should match expected value."
 
-        # Ensure excrete was called with the correct total consumed mass
-        mock_excrete.assert_called_once_with(
+        # Ensure defecate was called with the correct total consumed mass
+        mock_defecate.assert_called_once_with(
             excrement_pool_instance, total_consumed_mass
         )
 

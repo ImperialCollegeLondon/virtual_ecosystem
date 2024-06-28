@@ -16,12 +16,6 @@ kernelspec:
 
 # API documentation for the plants model
 
-```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants
-    :autosummary:
-    :members:
-```
-
 ## The {mod}`~virtual_ecosystem.models.plants.plants_model` module
 
 ```{eval-rst}

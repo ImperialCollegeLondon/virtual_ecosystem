@@ -10,7 +10,8 @@ class TestFunctionalGroup:
         (
             "name, taxa, diet, metabolic_type, reproductive_type, "
             "development_type, development_status, offspring_functional_group,"
-            "birth_mass, adult_mass, dam_law_exp, dam_law_coef, conv_eff"
+            "excretion_type, birth_mass, adult_mass, dam_law_exp, dam_law_coef,"
+            "conv_eff"
         ),
         [
             (
@@ -22,6 +23,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "herbivorous_mammal",
+                "ureotelic",
                 1.0,
                 10.0,
                 -0.75,
@@ -37,6 +39,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "carnivorous_mammal",
+                "ureotelic",
                 4.0,
                 40.0,
                 -0.75,
@@ -52,6 +55,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "herbivorous_bird",
+                "uricotelic",
                 0.05,
                 0.5,
                 -0.75,
@@ -67,6 +71,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "carnivorous_bird",
+                "uricotelic",
                 0.1,
                 1.0,
                 -0.75,
@@ -82,6 +87,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "herbivorous_insect_iteroparous",
+                "uricotelic",
                 0.0005,
                 0.005,
                 -0.75,
@@ -97,6 +103,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "carnivorous_insect_iteroparous",
+                "uricotelic",
                 0.001,
                 0.01,
                 -0.75,
@@ -112,6 +119,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "herbivorous_insect_semelparous",
+                "uricotelic",
                 0.0005,
                 0.005,
                 -0.75,
@@ -127,6 +135,7 @@ class TestFunctionalGroup:
                 "direct",
                 "adult",
                 "carnivorous_insect_semelparous",
+                "uricotelic",
                 0.001,
                 0.01,
                 -0.75,
@@ -145,6 +154,7 @@ class TestFunctionalGroup:
         development_type,
         development_status,
         offspring_functional_group,
+        excretion_type,
         birth_mass,
         adult_mass,
         dam_law_exp,
@@ -155,6 +165,7 @@ class TestFunctionalGroup:
 
         from virtual_ecosystem.models.animal.animal_traits import (
             DietType,
+            ExcretionType,
             MetabolicType,
             ReproductiveType,
             TaxaType,
@@ -171,6 +182,7 @@ class TestFunctionalGroup:
             development_type,
             development_status,
             offspring_functional_group,
+            excretion_type,
             birth_mass,
             adult_mass,
             constants=AnimalConsts(),
@@ -181,6 +193,7 @@ class TestFunctionalGroup:
         assert func_group.metabolic_type == MetabolicType(metabolic_type)
         assert func_group.reproductive_type == ReproductiveType(reproductive_type)
         assert func_group.offspring_functional_group == offspring_functional_group
+        assert func_group.excretion_type == ExcretionType(excretion_type)
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
@@ -188,7 +201,7 @@ class TestFunctionalGroup:
 
 @pytest.mark.parametrize(
     "index, name, taxa, diet, metabolic_type, reproductive_type, "
-    "development_type, development_status, offspring_functional_group",
+    "development_type, development_status, offspring_functional_group, excretion_type",
     [
         (
             0,
@@ -200,6 +213,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "carnivorous_bird",
+            "uricotelic",
         ),
         (
             1,
@@ -211,6 +225,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "herbivorous_bird",
+            "uricotelic",
         ),
         (
             2,
@@ -222,6 +237,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "carnivorous_mammal",
+            "ureotelic",
         ),
         (
             3,
@@ -233,6 +249,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "herbivorous_mammal",
+            "ureotelic",
         ),
         (
             4,
@@ -244,6 +261,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "carnivorous_insect_iteroparous",
+            "uricotelic",
         ),
         (
             5,
@@ -255,6 +273,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "herbivorous_insect_iteroparous",
+            "uricotelic",
         ),
         (
             6,
@@ -266,6 +285,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "carnivorous_insect_semelparous",
+            "uricotelic",
         ),
         (
             7,
@@ -277,6 +297,7 @@ class TestFunctionalGroup:
             "direct",
             "adult",
             "herbivorous_insect_semelparous",
+            "uricotelic",
         ),
         (
             8,
@@ -288,6 +309,7 @@ class TestFunctionalGroup:
             "indirect",
             "adult",
             "caterpillar",
+            "uricotelic",
         ),
         (
             9,
@@ -299,6 +321,7 @@ class TestFunctionalGroup:
             "indirect",
             "larval",
             "butterfly",
+            "uricotelic",
         ),
     ],
 )
@@ -313,12 +336,14 @@ def test_import_functional_groups(
     development_type,
     development_status,
     offspring_functional_group,
+    excretion_type,
 ):
     """Testing import functional groups."""
     from virtual_ecosystem.models.animal.animal_traits import (
         DevelopmentStatus,
         DevelopmentType,
         DietType,
+        ExcretionType,
         MetabolicType,
         ReproductiveType,
         TaxaType,
@@ -341,6 +366,7 @@ def test_import_functional_groups(
     assert fg_list[index].development_type == DevelopmentType(development_type)
     assert fg_list[index].development_status == DevelopmentStatus(development_status)
     assert fg_list[index].offspring_functional_group == offspring_functional_group
+    assert fg_list[index].excretion_type == ExcretionType(excretion_type)
 
 
 @pytest.mark.parametrize(

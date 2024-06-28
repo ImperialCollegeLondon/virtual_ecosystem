@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from math import ceil, exp, sqrt
 
-from numpy import random, timedelta64
+from numpy import timedelta64
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
@@ -80,13 +80,6 @@ class AnimalCohort:
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
-
-        self.adult_natural_mortality_prob = sf.natural_mortality_scaling(
-            self.functional_group.adult_mass, self.functional_group.longevity_scaling
-        )
-        # TODO: Distinguish between background, senesence, and starvation mortalities.
-        """The per-day probability of an individual dying to natural causes."""
-
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
@@ -95,12 +88,13 @@ class AnimalCohort:
         """The fraction of carcass biomass which decays before it gets consumed."""
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
-        """The function to reduce mass_current through basal metabolism.
+        """The function to reduce body mass through metabolism.
 
-        TODO: Implement distinction between field and basal rates.
-        TODO: Implement proportion of day active.
-        TODO: clean up units
-        TODO: Distinguish between uric and respiratory metabolic wastes
+        This method currently employs a toy 50/50 split of basal and field metabolism
+        through the metabolic_rate scaling function. Ecothermic metabolism is a function
+        of environmental temperature. Endotherms are unaffected by temperature change.
+        This method will later drive the processing of carbon and nitrogen metabolic
+        products.
 
         Args:
             temperature: Current air temperature (K)
@@ -133,7 +127,41 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(
+    def excrete(self, excreta_mass: float, excrement_pool: DecayPool) -> None:
+        """Transfers nitrogenous metabolic wastes to the excrement pool.
+
+        This method will not be fully implemented until the stoichiometric rework. All
+        current metabolic wastes are carbonaceous and so all this does is provide a link
+        joining metabolism to a soil pool for later use.
+
+        Args:
+            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
+            excrement_pool: The pool of wastes to which the excreted nitrogenous wastes
+                flow.
+
+        """
+        excrement_pool.decomposed_energy += (
+            excreta_mass * self.constants.nitrogen_excreta_proportion
+        )
+
+    def respire(self, excreta_mass: float) -> float:
+        """Transfers carbonaceous metabolic wastes to the atmosphere.
+
+        This method will not be fully implemented until the stoichiometric rework. All
+        current metabolic wastes are carbonaceous and so all this does is return the
+        excreta mass for updating data["total_animal_respiration"] in metabolize
+        community.
+
+        Args:
+            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
+
+        Return: The total mass of carbonaceous wastes excreted by the cohort.
+
+        """
+
+        return excreta_mass * self.constants.carbon_excreta_proportion
+
+    def defecate(
         self,
         excrement_pool: DecayPool,
         mass_consumed: float,
@@ -145,6 +173,7 @@ class AnimalCohort:
         fixed once the litter pools are updated for mass.
 
         TODO: Rework after update litter pools for mass
+        TODO: update for current conversion efficiency
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
@@ -511,9 +540,6 @@ class AnimalCohort:
 
         This is Madingley's delta_assimilation_mass_predation
 
-        TODO: Replace delta_t values with actual reference
-        TODO: add epsilon conversion efficiency
-
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
                          predator.
@@ -535,7 +561,7 @@ class AnimalCohort:
             total_consumed_mass += actual_consumed_mass
 
         # Process waste generated from predation, separate from herbivory b/c diff waste
-        self.excrete(excrement_pool, total_consumed_mass)
+        self.defecate(excrement_pool, total_consumed_mass)
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
@@ -696,34 +722,6 @@ class AnimalCohort:
         return (
             self.mass_current + self.reproductive_mass
         ) / self.functional_group.adult_mass < mass_threshold
-
-    def inflict_natural_mortality(
-        self, carcass_pool: CarcassPool, number_days: float
-    ) -> None:
-        """Inflicts natural mortality in a cohort.
-
-        TODO Find a more efficient structure so we aren't recalculating the
-        time_step_mortality. Probably pass through the initialized timestep size to the
-        scaling function
-
-        Args:
-            carcass_pool: The grid-local carcass pool to which the dead matter is
-                transferred.
-            number_days: Number of days over which the metabolic costs should be
-                calculated.
-
-        """
-
-        # Calculate the mortality probability for the entire time step
-        time_step_mortality_prob = (
-            1 - (1 - self.adult_natural_mortality_prob) ** number_days
-        )
-        # Draw the number of deaths from a binomial distribution
-        number_of_deaths = random.binomial(
-            n=self.individuals, p=time_step_mortality_prob
-        )
-
-        self.die_individual(number_of_deaths, carcass_pool)
 
     def migrate_juvenile_probability(self) -> float:
         """The probability that a juvenile cohort will migrate to a new grid cell.
