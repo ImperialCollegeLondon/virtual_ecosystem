@@ -36,35 +36,6 @@ def damuths_law(mass: float, terms: tuple) -> int:
     return ceil(terms[1] * mass ** terms[0])
 
 
-def metabolic_rate_energy(
-    mass: float, temperature: float, terms: tuple, metabolic_type: MetabolicType
-) -> float:
-    """Calculates the metabolic rate of animal cohorts.
-
-    TODO: No longer in use. Remove this method after constants rework.
-
-    Args:
-         mass: The body-mass [kg] of an AnimalCohort.
-         temperature: The temperature [Celsius] of the environment.
-         terms: The tuple of metabolic rate terms used.
-         metabolic_type: The metabolic type of the animal [ENDOTHERMIC or ECTOTHERMIC].
-
-    Returns:
-         The metabolic rate of an individual of the given cohort in [J/s].
-
-    """
-    mass_g = mass * 1000  # Convert mass to grams
-    temperature_k = temperature + 273.15  # Convert temperature to Kelvin
-
-    if metabolic_type == MetabolicType.ENDOTHERMIC:
-        return terms[1] * mass_g ** terms[0]
-    elif metabolic_type == MetabolicType.ECTOTHERMIC:
-        b0, exponent = terms
-        return b0 * mass_g**exponent * exp(-0.65 / (BOLTZMANN_CONSTANT * temperature_k))
-    else:
-        raise ValueError("Invalid metabolic type: {metabolic_type}")
-
-
 def metabolic_rate(
     mass: float,
     temperature: float,
