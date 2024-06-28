@@ -207,6 +207,21 @@ def test_calculate_enzyme_mediated_decomposition(
     assert np.allclose(actual_decomp, expected_decomp)
 
 
+def test_calculate_maom_desorption(dummy_carbon_data):
+    """Check that mineral associated matter desorption is calculated correctly."""
+
+    from virtual_ecosystem.models.soil.carbon import calculate_maom_desorption
+
+    expected_desorption = [2.5e-5, 1.7e-5, 4.5e-5, 5.0e-6]
+
+    actual_desorption = calculate_maom_desorption(
+        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        desorption_rate_constant=SoilConsts.maom_desorption_rate,
+    )
+
+    assert np.allclose(actual_desorption, expected_desorption)
+
+
 def test_calculate_necromass_breakdown(dummy_carbon_data):
     """Check that necromass breakdown to lmwc is calculated correctly."""
 

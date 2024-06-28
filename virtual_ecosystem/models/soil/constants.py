@@ -263,3 +263,11 @@ class SoilConsts(ConstantsDataclass):
     corresponds to halving every three days. This parameter is a key target for tracking
     down data for and for sensitivity analysis.
     """
+
+    maom_desorption_rate: float = 1e-5
+    """Rate constant for mineral associated organic matter desorption [day^-1]
+    
+    The default value of this rate is not based on data. It was instead chosen to be
+    small relative to the rate at which microbes breakdown LMWC. This is another key
+    target for sensitivity analysis.
+    """

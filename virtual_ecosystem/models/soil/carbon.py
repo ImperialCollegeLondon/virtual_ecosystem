@@ -444,6 +444,27 @@ def calculate_enzyme_mediated_decomposition(
     )
 
 
+def calculate_maom_desorption(
+    soil_c_pool_maom: NDArray[np.float32], desorption_rate_constant: float
+):
+    """Calculate the rate of mineral associated organic matter (MAOM) desorption.
+
+    This function is independent of soil temperature, moisture, pH, clay fraction and
+    bulk density. All of these things are known to effect real world desorption rates.
+    However, to simplify the parameterisation we only include these effects on microbial
+    rates. This may be something we want to alter in future.
+
+    Args:
+        soil_c_pool_maom: Size of the mineral associated organic matter pool [kg C m^-3]
+        desorption_rate_constant: Rate constant for MAOM desorption [day^-1]
+
+    Returns:
+        The rate of MAOM desorption to LMWC [kg C m^-3 day^-1]
+    """
+
+    return desorption_rate_constant * soil_c_pool_maom
+
+
 def calculate_necromass_breakdown(
     soil_c_pool_necromass: NDArray[np.float32], necromass_decay_rate: float
 ) -> NDArray[np.float32]:
