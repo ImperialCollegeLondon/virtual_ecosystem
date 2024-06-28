@@ -57,7 +57,7 @@ The research is based at [Imperial College London](https://imperial.ac.uk):
 - Professor Priyanga Amarasekare
 
 The research team are supported by the Imperial College London
-[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
+[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
 
 :::
