@@ -15,8 +15,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
     from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.0022835928, 0.0060513065, -0.019120058, 0.0242472142],
-        "soil_c_pool_maom": [-0.0014598849, -0.0021017276, -0.0046957161, -8.629514e-6],
+        "soil_c_pool_lmwc": [0.0023085928, 0.0060683065, -0.019075058, 0.0242522142],
+        "soil_c_pool_maom": [-0.001484885, -0.002118728, -0.004740716, -1.362951e-5],
         "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
         "soil_c_pool_pom": [0.00178122, -0.00785937, -0.01201551, 0.00545857],
         "soil_c_pool_necromass": [0.041340010, 0.019569275, 0.098035954, -0.017000042],

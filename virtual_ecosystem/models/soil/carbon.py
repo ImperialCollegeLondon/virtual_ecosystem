@@ -35,6 +35,9 @@ class MicrobialBiomassLoss:
 
 # TODO - This function should probably be shortened, leaving as is for the moment as a
 # sensible split will probably be more obvious once more is added to this function.
+# TODO - Some level of cleanup is needed before I submit this PR, because it's actually
+# hard to read at this point. I don't need to fix it completely, but need to do
+# something to improve the readability
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
@@ -150,6 +153,10 @@ def calculate_soil_carbon_updates(
         half_saturation=model_constants.half_sat_maom_decomposition,
         activation_energy_sat=model_constants.activation_energy_maom_decomp_saturation,
     )
+    maom_desorption_to_lmwc = calculate_maom_desorption(
+        soil_c_pool_maom=soil_c_pool_maom,
+        desorption_rate_constant=model_constants.maom_desorption_rate,
+    )
     # Calculate necromass decay to lmwc and sorption to maom
     necromass_decay_to_lmwc = calculate_necromass_breakdown(
         soil_c_pool_necromass=soil_c_pool_necromass,
@@ -160,11 +167,14 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_c_pool_lmwc"] = (
         pom_decomposition_to_lmwc
         + maom_decomposition_to_lmwc
+        + maom_desorption_to_lmwc
         + necromass_decay_to_lmwc
         - microbial_uptake
         - labile_carbon_leaching
     )
-    delta_pools_ordered["soil_c_pool_maom"] = -maom_decomposition_to_lmwc
+    delta_pools_ordered["soil_c_pool_maom"] = (
+        -maom_decomposition_to_lmwc - maom_desorption_to_lmwc
+    )
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_assimilation - biomass_losses.maintenance_synthesis
     )
