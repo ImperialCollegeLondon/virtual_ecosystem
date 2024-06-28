@@ -162,6 +162,10 @@ def calculate_soil_carbon_updates(
         soil_c_pool_necromass=soil_c_pool_necromass,
         necromass_decay_rate=model_constants.necromass_decay_rate,
     )
+    necromass_sorption_to_maom = calculate_sorption_to_maom(
+        soil_c_pool=soil_c_pool_necromass,
+        sorption_rate_constant=model_constants.necromass_sorption_rate,
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -173,7 +177,9 @@ def calculate_soil_carbon_updates(
         - labile_carbon_leaching
     )
     delta_pools_ordered["soil_c_pool_maom"] = (
-        -maom_decomposition_to_lmwc - maom_desorption_to_lmwc
+        necromass_sorption_to_maom
+        - maom_decomposition_to_lmwc
+        - maom_desorption_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_microbe"] = (
         microbial_assimilation - biomass_losses.maintenance_synthesis
@@ -186,6 +192,7 @@ def calculate_soil_carbon_updates(
         + pom_enzyme_turnover
         + maom_enzyme_turnover
         - necromass_decay_to_lmwc
+        - necromass_sorption_to_maom
     )
     delta_pools_ordered["soil_enzyme_pom"] = (
         biomass_losses.pom_enzyme_production - pom_enzyme_turnover
