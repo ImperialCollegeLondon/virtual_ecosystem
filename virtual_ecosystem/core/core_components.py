@@ -201,8 +201,6 @@ class LayerStructure:
     .. role:: python(code)
         :language: python
 
-    .. py:current_module:: ~virtual_ecosystem.core.core_components
-
     **Additional Roles**:
         The following additional roles and attributes are also defined when the instance
         is created and are constant through the runtime of the model.
@@ -226,7 +224,7 @@ class LayerStructure:
     **Dynamic roles**:
 
         The following roles are set when the instance is initialised but are can be
-        updated during the model run using the :meth:`~LayerStructure.set_filled_canopy`
+        updated during the model run using the :meth:`.set_filled_canopy`
         method.
 
         1. The ``filled_canopy`` role indicates canopy layers that contain any canopy
@@ -240,36 +238,36 @@ class LayerStructure:
         3. The ``flux_layers`` role includes the filled canopy layers and the topsoil
            layer.
 
-        In addition, the ``lowest_canopy_filled`` attribute provides an array giving the
-        vertical index of the lowest filled canopy layer in each grid cell. It contains
-        ``np.nan`` when there is  no canopy in a grid cell and is initalised as an array
-        of ``np.nan`` values.
+        In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
+        giving the vertical index of the lowest filled canopy layer in each grid cell.
+        It contains ``np.nan`` when there is  no canopy in a grid cell and is initalised
+        as an array of ``np.nan`` values.
 
     **Getting layer indices**:
 
-        The ``_role_indices_bool`` and ``_role_indices_int`` attributes provide
-        dictionaries keyed by role name of the boolean or integer indices of the
-        different defined roles. However, all of the role indices can be accessed more
-        conveniently using class properties e.g. ``LayerStructure.index_above``.
+        The :attr:`._role_indices_bool` and :attr:`._role_indices_int` attributes
+        contain dictionaries keyed by role name of the boolean or integer indices of the
+        different defined roles. However, all of the role indices should be accessed
+        using the specific instance properties e.g. :attr:`.index_above`.
 
-        Note that the standard index properties like ``LayerStructure.index_above`` will
-        return an array index, which extracts a two dimensional slice of the vertical
-        structure. It is sometimes more convenient to extract a 1 dimensional slice
-        across cells, dropping the vertical dimension. This only makes sense for the
-        three role layers (``above``, ``surface`` and ``topsoil``) that are by
-        definition a single layer thick, but for these three layers, additional
-        properties (e.g. ``LayerStructure.index_above_scalar``) are defined that will
-        return a scalar index that extracts a one-dimensional slice.
+        Note that the standard index properties like :attr:`.index_above` will return an
+        array index, which extracts a two dimensional slice of the vertical structure.
+        It is sometimes more convenient to extract a 1 dimensional slice across cells,
+        dropping the vertical dimension. This only makes sense for the role layers  that
+        are by definition a single layer thick (``above``, ``surface`` and ``topsoil``),
+        and for these three layers, additional properties (e.g.
+        :attr:`.index_above_scalar`) are defined that will return a scalar index that
+        extracts a one-dimensional slice.
 
     **Methods overview**:
 
-        * :meth:`~LayerStructure.from_template`: this returns an empty DataArray with
+        * :meth:`.from_template`: this returns an empty DataArray with
           the standard vertical layer structure and grid cell dimensions used across the
           Virtual Ecosystem models.
 
-        * :meth:`~LayerStructure.set_filled_canopy`: this method is used to update the
-          ``filled_canopy`` role indices and the ``lowest_canopy_filled` attribute,
-          along with any cached aggregate indices using the ``filled_canopy`` role.
+        * :meth:`.set_filled_canopy`: this method is used to update the
+          ``filled_canopy`` role indices, the related ``filled_atmosphere`` and
+          ``flux_layers`` roles, and the :attr:`.lowest_canopy_filled` attribute.
 
     Raises:
         ConfigurationError: If the configuration elements are incorrect for defining
@@ -477,7 +475,7 @@ class LayerStructure:
 
         This data array structure is widely used across the Virtual Ecosystem and this
         method sets up a template that can be copied via the
-        :meth:`~virtual_ecosystem.core.core_components.LayerStructure.from_template`
+        :meth:`LayerStructure.from_template`
         method. The private attribute itself should not be accessed directly to avoid
         accidental  modification of the template.
         """
