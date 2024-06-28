@@ -81,23 +81,6 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
     ),
-    populated_by_init_vars=(
-        "precipitation_surface",  # precipitation-interception loss
-        "soil_moisture",
-        "vertical_flow",
-        "latent_heat_vapourisation",
-        "molar_density_air",
-        "soil_evaporation",
-        "surface_runoff_accumulated",
-        "subsurface_flow_accumulated",
-        "matric_potential",
-        "groundwater_storage",
-        "river_discharge_rate",
-        "total_river_discharge",
-        "subsurface_flow",
-        "baseflow",
-        "bypass_flow",
-    ),
     required_update_vars=(
         "air_temperature",
         "relative_humidity",
@@ -111,7 +94,30 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
-    populated_by_update_vars=(),
+    populated_by_init_vars=(  # TODO move functionalities from setup() to __init__
+        "soil_moisture",
+        "groundwater_storage",
+        "air_temperature",  # NOTE also initiated in abiotic models, order?
+        "relative_humidity",  # NOTE also initiated in abiotic models, order?
+        "wind_speed",
+        "atmospheric_pressure",  # NOTE also initiated in abiotic models, order?
+        "surface_runoff_accumulated",
+        "subsurface_flow_accumulated",
+    ),
+    populated_by_update_vars=(
+        "precipitation_surface",  # precipitation-interception loss
+        "surface_runoff",
+        "bypass_flow",
+        "soil_evaporation",
+        "vertical_flow",
+        "matric_potential",
+        "subsurface_flow",
+        "baseflow",
+        "total_river_discharge",
+        "river_discharge_rate",
+        "latent_heat_vapourisation",
+        "molar_density_air",
+    ),
 ):
     """A class describing the hydrology model.
 
