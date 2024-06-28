@@ -290,7 +290,7 @@ class LayerStructure:
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layer_depth: NDArray[np.float_] = field(init=False)
+    soil_layer_depth: NDArray[np.float32] = field(init=False)
     """A list of the depths of soil layer boundaries."""
     n_soil_layers: int = field(init=False)
     """The number of soil layers."""
@@ -321,9 +321,9 @@ class LayerStructure:
     """An integer index showing the lowest filled canopy layer for each grid cell"""
     n_canopy_layers_filled: int = field(init=False)
     """The current number of filled canopy layers across grid cells"""
-    soil_layer_thickness: NDArray[np.float_] = field(init=False)
+    soil_layer_thickness: NDArray[np.float32] = field(init=False)
     """Thickness of each soil layer (m)"""
-    soil_layer_active_thickness: NDArray[np.float_] = field(init=False)
+    soil_layer_active_thickness: NDArray[np.float32] = field(init=False)
     """Thickness of the microbially active soil in each soil layer (m)"""
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
@@ -505,7 +505,7 @@ class LayerStructure:
         self._role_indices_bool[name] = bool_values
         self._role_indices_int[name] = np.nonzero(bool_values)[0]
 
-    def set_filled_canopy(self, canopy_heights: NDArray[np.float_]) -> None:
+    def set_filled_canopy(self, canopy_heights: NDArray[np.float32]) -> None:
         """Set the dynamic canopy indices and attributes.
 
         The layer structure includes a fixed number of canopy layers but these layers
