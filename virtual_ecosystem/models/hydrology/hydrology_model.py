@@ -151,9 +151,9 @@ class HydrologyModel(
         )
         """Soil layer thickness in mm."""
 
-        # Select abovegroud layer for surface evaporation calculation
+        # Select aboveground layer for surface evaporation calculation
         # TODO this needs to be replaced with 2m above ground value
-        self.surface_layer_index: int = self.layer_structure.index_surface.item()
+        self.surface_layer_index: int = self.layer_structure.index_surface_scalar
         """Surface layer index."""
 
     @classmethod

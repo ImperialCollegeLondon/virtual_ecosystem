@@ -217,7 +217,17 @@ def fixture_core_components(fixture_config):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents
 
-    return CoreComponents(fixture_config)
+    core_components = CoreComponents(fixture_config)
+
+    # Setup three filled canopy layers
+    canopy_array = np.full(
+        (core_components.layer_structure.n_canopy_layers, core_components.grid.n_cells),
+        np.nan,
+    )
+    canopy_array[np.array([0, 1, 2])] = 1.0
+    core_components.layer_structure.set_filled_canopy(canopy_array)
+
+    return core_components
 
 
 @pytest.fixture
@@ -297,8 +307,9 @@ def dummy_climate_data(fixture_core_components):
     # Setup the data object with four cells.
     data = Data(fixture_core_components.grid)
 
-    # Shorten syntax to function
-    from_template = fixture_core_components.layer_structure.from_template
+    # Shorten syntax
+    lyr_str = fixture_core_components.layer_structure
+    from_template = lyr_str.from_template
 
     # Reference data with a time series
     ref_values = {
@@ -351,43 +362,41 @@ def dummy_climate_data(fixture_core_components):
 
     # Structural variables - assign values to vertical layer indices across grid id
     data["leaf_area_index"] = from_template()
-    data["leaf_area_index"][[1, 2, 3]] = 1.0
+    data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
     data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][[1, 2, 3]] = 1.0
+    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
 
     data["layer_heights"] = from_template()
-    data["layer_heights"][[0, 1, 2, 3, 11, 12, 13]] = np.concatenate(
-        [
-            [32.0, 30.0, 20.0, 10.0],
-            [fixture_core_components.layer_structure.surface_layer_height],
-            fixture_core_components.layer_structure.n_soil_layers,
-        ]
+    data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
+        [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
     )[:, None]
+
+    data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depth[:, None]
 
     # Microclimate and energy balance
     # - Vertically structured
     data["wind_speed"] = from_template()
-    data["wind_speed"][[0, 1, 2, 3, 11]] = 0.1
+    data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
 
     data["atmospheric_pressure"] = from_template()
-    data["atmospheric_pressure"][[0, 1, 2, 3, 11]] = 96.0
+    data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
     data["air_temperature"] = from_template()
-    data["air_temperature"][[0, 1, 2, 3, 11]] = np.array(
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
 
     data["soil_temperature"] = from_template()
-    data["soil_temperature"][[12, 13]] = 20.0
+    data["soil_temperature"][lyr_str.index_all_soil] = 20.0
 
     data["relative_humidity"] = from_template()
-    data["relative_humidity"][[0, 1, 2, 3, 11]] = np.array(
+    data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
     )[:, None]
 
     data["absorbed_radiation"] = from_template()
-    data["absorbed_radiation"][[1, 2, 3]] = 10.0
+    data["absorbed_radiation"][lyr_str.index_filled_canopy] = 10.0
 
     data["sensible_heat_flux"] = from_template()
     data["sensible_heat_flux"][[0, 1, 2, 3, 12]] = 0.0
@@ -396,45 +405,45 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_flux"][[0, 1, 2, 3, 12]] = 0.0
 
     data["molar_density_air"] = from_template()
-    data["molar_density_air"][[0, 1, 2, 3, 11]] = 38.0
+    data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][[0, 1, 2, 3, 11]] = 29.0
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 29.0
 
     data["attenuation_coefficient"] = from_template()
-    data["attenuation_coefficient"][[0, 1, 2, 3, 11]] = np.array(
+    data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
         [13.0, 13.0, 13.0, 13.0, 2.0]
     )[:, None]
 
     data["relative_turbulence_intensity"] = from_template()
-    data["relative_turbulence_intensity"][[0, 1, 2, 3, 11]] = np.array(
+    data["relative_turbulence_intensity"][lyr_str.index_filled_atmosphere] = np.array(
         [17.64, 16.56, 11.16, 5.76, 0.414]
     )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
-    data["latent_heat_vapourisation"][[0, 1, 2, 3, 11]] = 2254.0
+    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2254.0
 
     data["canopy_temperature"] = from_template()
-    data["canopy_temperature"][[1, 2, 3]] = 25.0
+    data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
 
     data["leaf_air_heat_conductivity"] = from_template()
-    data["leaf_air_heat_conductivity"][[1, 2, 3]] = 0.13
+    data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
 
     data["leaf_vapour_conductivity"] = from_template()
-    data["leaf_vapour_conductivity"][[1, 2, 3]] = 0.2
+    data["leaf_vapour_conductivity"][lyr_str.index_filled_canopy] = 0.2
 
     data["conductivity_from_ref_height"] = from_template()
     data["conductivity_from_ref_height"][[1, 2, 3, 11]] = 3.0
 
     data["stomatal_conductance"] = from_template()
-    data["stomatal_conductance"][[1, 2, 3]] = 15.0
+    data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
 
     # Hydrology
     data["evapotranspiration"] = from_template()
-    data["evapotranspiration"][[1, 2, 3]] = 20.0
+    data["evapotranspiration"][lyr_str.index_filled_canopy] = 20.0
 
     data["soil_moisture"] = from_template()
-    data["soil_moisture"][[12, 13]] = np.array([5.0, 500.0])[:, None]
+    data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
 
     data["groundwater_storage"] = DataArray(
         np.full((2, 4), 450.0),

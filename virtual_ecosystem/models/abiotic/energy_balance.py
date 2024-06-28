@@ -153,22 +153,12 @@ def initialise_canopy_and_soil_fluxes(
             and latent heat flux (canopy and soil), and ground heat flux [W m-2].
     """
 
-    # Indexes of canopy layers that are not NaN (maximum extent to capture all depths
-    # even if grid cells have different number of layers)
-    true_canopy_indexes = (
-        leaf_area_index[leaf_area_index["layer_roles"] == "canopy"]
-        .dropna(dim="layers", how="all")
-        .indexes["layers"]
-    )
-    # Index of top soil layer
-    topsoil_layer_index = layer_structure.index_topsoil.item()
-
     output = {}
 
-    # select canopy layers with leaf area index != nan
-    leaf_area_index_true = leaf_area_index[true_canopy_indexes]
-    layer_heights_canopy = layer_heights[true_canopy_indexes]
-    air_temperature_canopy = air_temperature[true_canopy_indexes]
+    # Get variables within filled canopy layers
+    leaf_area_index_true = leaf_area_index[layer_structure.index_filled_canopy]
+    layer_heights_canopy = layer_heights[layer_structure.index_filled_canopy]
+    air_temperature_canopy = air_temperature[layer_structure.index_filled_canopy]
 
     # Initialize absorbed radiation DataArray
     absorbed_radiation = DataArray(
@@ -204,7 +194,7 @@ def initialise_canopy_and_soil_fluxes(
         absorbed_radiation=initial_absorbed_radiation,
         canopy_temperature_ini_factor=canopy_temperature_ini_factor,
     )
-    canopy_temperature[true_canopy_indexes] = initial_canopy_temperature
+    canopy_temperature[layer_structure.index_filled_canopy] = initial_canopy_temperature
     output["canopy_temperature"] = canopy_temperature
 
     # Initialise sensible heat flux with zeros and write in output dict
@@ -214,8 +204,8 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="sensible_heat_flux",
     )
-    sensible_heat_flux[true_canopy_indexes] = 0
-    sensible_heat_flux[topsoil_layer_index] = 0
+    sensible_heat_flux[layer_structure.index_filled_canopy] = 0
+    sensible_heat_flux[layer_structure.index_topsoil] = 0
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Initialise latent heat flux with zeros and write in output dict
@@ -228,7 +218,7 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="ground_heat_flux",
     )
-    ground_heat_flux[topsoil_layer_index] = 0
+    ground_heat_flux[layer_structure.index_topsoil] = 0
     output["ground_heat_flux"] = ground_heat_flux
 
     return output
@@ -408,25 +398,13 @@ def calculate_leaf_and_air_temperature(
         pressure deficit, [kPa]
     """
 
-    # indexes of canopy layers that are not NaN
-    true_canopy_indexes = (
-        data["leaf_area_index"][data["leaf_area_index"]["layer_roles"] == "canopy"]
-        .dropna(dim="layers", how="all")
-        .indexes["layers"]
-    )
-    # Maximum number of canopy layers that are not NaN
-    true_canopy_layers_n = len(true_canopy_indexes)
-
-    # Index of top soil layer
-    topsoil_layer_index = layer_structure.index_topsoil.item()
-
     output = {}
 
     # Select variables for current time step and relevant layers
-    topsoil_temperature = data["soil_temperature"][topsoil_layer_index]
+    topsoil_temperature = data["soil_temperature"][layer_structure.index_topsoil_scalar]
     topsoil_moisture = (
-        data["soil_moisture"][topsoil_layer_index]
-        / -data["layer_heights"][topsoil_layer_index]
+        data["soil_moisture"][layer_structure.index_topsoil_scalar]
+        / -data["layer_heights"][layer_structure.index_topsoil_scalar]
         / core_constants.meters_to_mm
     )
     air_temperature_ref = data["air_temperature_ref"].isel(time_index=time_index)
@@ -465,11 +443,15 @@ def calculate_leaf_and_air_temperature(
     # Factors from leaf and air temperature linearisation
     a_A, b_A = leaf_and_air_temperature_linearisation(
         conductivity_from_ref_height=(
-            current_conductivities["conductivity_from_ref_height"][true_canopy_indexes]
+            current_conductivities["conductivity_from_ref_height"][
+                layer_structure.index_filled_canopy
+            ]
         ),
         conductivity_from_soil=conductivity_from_soil,
         leaf_air_heat_conductivity=(
-            current_conductivities["leaf_air_heat_conductivity"][true_canopy_indexes]
+            current_conductivities["leaf_air_heat_conductivity"][
+                layer_structure.index_filled_canopy
+            ]
         ),
         air_temperature_ref=air_temperature_ref.to_numpy(),
         top_soil_temperature=topsoil_temperature.to_numpy(),
@@ -498,10 +480,14 @@ def calculate_leaf_and_air_temperature(
         soil_vapour_pressure=soil_vapour_pressure.to_numpy(),
         conductivity_from_soil=conductivity_from_soil,
         leaf_vapour_conductivity=(
-            current_conductivities["leaf_vapour_conductivity"][true_canopy_indexes]
+            current_conductivities["leaf_vapour_conductivity"][
+                layer_structure.index_filled_canopy
+            ]
         ),
         conductivity_from_ref_height=(
-            current_conductivities["conductivity_from_ref_height"][true_canopy_indexes]
+            current_conductivities["conductivity_from_ref_height"][
+                layer_structure.index_filled_canopy
+            ]
         ),
         delta_v_ref=delta_v_ref,
     )
@@ -509,10 +495,14 @@ def calculate_leaf_and_air_temperature(
     # Factors from latent heat flux linearisation
     a_L, b_L = latent_heat_flux_linearisation(
         latent_heat_vapourisation=(
-            data["latent_heat_vapourisation"][true_canopy_indexes].to_numpy()
+            data["latent_heat_vapourisation"][
+                layer_structure.index_filled_canopy
+            ].to_numpy()
         ),
         leaf_vapour_conductivity=(
-            current_conductivities["leaf_vapour_conductivity"][true_canopy_indexes]
+            current_conductivities["leaf_vapour_conductivity"][
+                layer_structure.index_filled_canopy
+            ]
         ),
         atmospheric_pressure_ref=atmospheric_pressure_ref.to_numpy(),
         saturated_vapour_pressure_ref=saturated_vapour_pressure_ref.to_numpy(),
@@ -523,13 +513,17 @@ def calculate_leaf_and_air_temperature(
 
     # Factor from sensible heat flux linearisation
     b_H = (
-        current_conductivities["leaf_air_heat_conductivity"][true_canopy_indexes]
-        * data["specific_heat_air"][true_canopy_indexes].to_numpy()
+        current_conductivities["leaf_air_heat_conductivity"][
+            layer_structure.index_filled_canopy
+        ]
+        * data["specific_heat_air"][layer_structure.index_filled_canopy].to_numpy()
     )
 
     # Calculate new leaf and air temperature
     delta_canopy_temperature = calculate_delta_canopy_temperature(
-        absorbed_radiation=data["absorbed_radiation"][true_canopy_indexes].to_numpy(),
+        absorbed_radiation=data["absorbed_radiation"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
         a_R=a_R,
         a_L=a_L,
         b_R=b_R,
@@ -661,14 +655,14 @@ def calculate_leaf_and_air_temperature(
     # Return latent and sensible heat flux from canopy
     sensible_heat_flux = data["sensible_heat_flux"].copy()
     sensible_heat_flux_canopy = b_H * delta_canopy_temperature
-    sensible_heat_flux[topsoil_layer_index] = data["sensible_heat_flux_soil"]
-    sensible_heat_flux[true_canopy_indexes] = sensible_heat_flux_canopy
+    sensible_heat_flux[layer_structure.index_topsoil] = data["sensible_heat_flux_soil"]
+    sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
     output["sensible_heat_flux"] = sensible_heat_flux
 
     latent_heat_flux = data["latent_heat_flux"].copy()
     latent_heat_flux_canopy = a_L + b_L * delta_canopy_temperature
-    latent_heat_flux[topsoil_layer_index] = data["latent_heat_flux_soil"]
-    latent_heat_flux[true_canopy_indexes] = latent_heat_flux_canopy
+    latent_heat_flux[layer_structure.index_topsoil] = data["latent_heat_flux_soil"]
+    latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
     output["latent_heat_flux"] = latent_heat_flux
 
     return output

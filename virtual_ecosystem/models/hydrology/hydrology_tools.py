@@ -98,14 +98,13 @@ def setup_hydrology_input_current_timestep(
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
     # We explicitly get a scalar index for the surface layer to extract the values as a
     # 1D array of grid cells and not a 2D array with a singleton layer dimension.
-    surface_index = layer_structure.index_surface.item()
     for out_var, in_var in (
         ("surface_temperature", "air_temperature"),
         ("surface_humidity", "relative_humidity"),
         ("surface_wind_speed", "wind_speed"),
         ("surface_pressure", "atmospheric_pressure"),
     ):
-        output[out_var] = data[in_var][surface_index].to_numpy()
+        output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()

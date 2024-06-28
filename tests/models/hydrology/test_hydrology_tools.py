@@ -57,7 +57,7 @@ def test_setup_hydrology_input_current_timestep(
         (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
-    surface_idx = fixture_core_components.layer_structure.index_surface.item()
+    surface_idx = fixture_core_components.layer_structure.index_surface_scalar
     np.testing.assert_allclose(
         result["surface_temperature"],
         dummy_climate_data["air_temperature"][surface_idx],
