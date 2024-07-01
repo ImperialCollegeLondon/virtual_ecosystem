@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
+    EnvironmentalEffectFactors,
     calculate_environmental_effect_factors,
     calculate_leaching_rate,
     calculate_temperature_effect_on_microbes,
@@ -19,25 +20,27 @@ from virtual_ecosystem.models.soil.env_factors import (
 
 
 @dataclass
-class MicrobialBiomassLoss:
-    """A data class to store the various biomass losses from microbial biomass."""
+class MicrobialChanges:
+    """Changes due to microbial uptake, biomass production and losses."""
 
-    maintenance_synthesis: NDArray[np.float32]
-    """Rate at which biomass must be synthesised to balance losses [kg C m^-3 day^-1].
-    """
-    pom_enzyme_production: NDArray[np.float32]
-    """Rate at which POM degrading enzymes are produced [kg C m^-3 day^-1]."""
-    maom_enzyme_production: NDArray[np.float32]
-    """Rate at which MAOM degrading enzymes are produced [kg C m^-3 day^-1]."""
-    necromass_formation: NDArray[np.float32]
-    """Rate at which living biomass enters the necromass pool [kg C m^-3 day^-1]."""
+    lmwc_uptake: NDArray[np.float32]
+    """Total rate of microbial LMWC uptake [kg C m^-3 day^-1]."""
+
+    microbe: NDArray[np.float32]
+    """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
+
+    pom_enzyme: NDArray[np.float32]
+    """Rate of change of POM degrading enzyme pool [kg C m^-3 day^-1]."""
+
+    maom_enzyme: NDArray[np.float32]
+    """Rate of change of MAOM degrading enzyme pool [kg C m^-3 day^-1]."""
+
+    necromass_generation: NDArray[np.float32]
+    """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
 
 
 # TODO - This function should probably be shortened, leaving as is for the moment as a
 # sensible split will probably be more obvious once more is added to this function.
-# TODO - Some level of cleanup is needed before I submit this PR, because it's actually
-# hard to read at this point. I don't need to fix it completely, but need to do
-# something to improve the readability
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
@@ -99,34 +102,25 @@ def calculate_soil_carbon_updates(
         clay_fraction=clay_fraction,
         constants=model_constants,
     )
-
-    microbial_uptake, microbial_assimilation = calculate_microbial_carbon_uptake(
+    # find changes related to microbial uptake, growth and decay
+    microbial_changes = calculate_microbial_changes(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
+        soil_enzyme_pom=soil_enzyme_pom,
+        soil_enzyme_maom=soil_enzyme_maom,
         soil_temp=soil_temp,
+        env_factors=env_factors,
         constants=model_constants,
     )
-    biomass_losses = determine_microbial_biomass_losses(
-        soil_c_pool_microbe=soil_c_pool_microbe,
-        soil_temp=soil_temp,
-        constants=model_constants,
-    )
-    pom_enzyme_turnover = calculate_enzyme_turnover(
-        enzyme_pool=soil_enzyme_pom,
-        turnover_rate=model_constants.pom_enzyme_turnover_rate,
-    )
-    maom_enzyme_turnover = calculate_enzyme_turnover(
-        enzyme_pool=soil_enzyme_maom,
-        turnover_rate=model_constants.maom_enzyme_turnover_rate,
-    )
+
     labile_carbon_leaching = calculate_leaching_rate(
         solute_density=soil_c_pool_lmwc,
         vertical_flow_rate=vertical_flow_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
     )
+    # TODO - This function should be changed to just receive env_factors
+    # TODO - These two should be combined into a function
     pom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
         soil_c_pool=soil_c_pool_pom,
         soil_enzyme=soil_enzyme_pom,
@@ -153,6 +147,7 @@ def calculate_soil_carbon_updates(
         half_saturation=model_constants.half_sat_maom_decomposition,
         activation_energy_sat=model_constants.activation_energy_maom_decomp_saturation,
     )
+    # TODO - Maybe the 4 below should be a function
     maom_desorption_to_lmwc = calculate_maom_desorption(
         soil_c_pool_maom=soil_c_pool_maom,
         desorption_rate_constant=model_constants.maom_desorption_rate,
@@ -177,7 +172,7 @@ def calculate_soil_carbon_updates(
         + maom_decomposition_to_lmwc
         + maom_desorption_to_lmwc
         + necromass_decay_to_lmwc
-        - microbial_uptake
+        - microbial_changes.lmwc_uptake
         - lmwc_sorption_to_maom
         - labile_carbon_leaching
     )
@@ -187,73 +182,137 @@ def calculate_soil_carbon_updates(
         - maom_decomposition_to_lmwc
         - maom_desorption_to_lmwc
     )
-    delta_pools_ordered["soil_c_pool_microbe"] = (
-        microbial_assimilation - biomass_losses.maintenance_synthesis
-    )
+    delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate - pom_decomposition_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
-        biomass_losses.necromass_formation
-        + pom_enzyme_turnover
-        + maom_enzyme_turnover
+        microbial_changes.necromass_generation
         - necromass_decay_to_lmwc
         - necromass_sorption_to_maom
     )
-    delta_pools_ordered["soil_enzyme_pom"] = (
-        biomass_losses.pom_enzyme_production - pom_enzyme_turnover
-    )
-    delta_pools_ordered["soil_enzyme_maom"] = (
-        biomass_losses.maom_enzyme_production - maom_enzyme_turnover
-    )
+    delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme
+    delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
 
 
-def determine_microbial_biomass_losses(
+def calculate_microbial_changes(
+    soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
+    soil_enzyme_pom: NDArray[np.float32],
+    soil_enzyme_maom: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
+    env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
-) -> MicrobialBiomassLoss:
-    """Calculate all of the losses from the microbial biomass pool.
+):
+    """Calculate the changes for the microbial biomass and enzyme pools.
 
-    Microbes need to synthesis new biomass at a certain rate just to maintain their
-    current biomass. This function calculates this overall rate and the various losses
-    that contribute to this rate. The main sources of this loss are the external
-    excretion of enzymes, cell death, and protein degradation.
+    This function calculates the uptake of low molecular weight carbon by the microbial
+    biomass pool and uses this to calculate the net change in the pool. The net change
+    in each enzyme pool is found, and finally the total rate at which necromass is
+    created is found.
 
     Args:
+        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
+            matter [kg C m^-3]
+        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
+            organic matter [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
+        env_factors: Data class containing the various factors through which the
+            environment effects soil cycling rates.
         constants: Set of constants for the soil model.
 
     Returns:
-        A dataclass containing all the losses from the microbial biomass pool.
+        A dataclass containing, the rate at which microbes uptake LMWC, the rate of
+        change in the microbial biomass pool and the enzyme pools.
     """
 
-    # Calculate the rate of maintenance synthesis
-    maintenance_synthesis = calculate_maintenance_biomass_synthesis(
+    # Calculate uptake, growth rate, and loss rate
+    microbial_uptake, biomass_growth = calculate_microbial_carbon_uptake(
+        soil_c_pool_lmwc=soil_c_pool_lmwc,
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        soil_temp=soil_temp,
+        constants=constants,
+    )
+    biomass_loss = calculate_maintenance_biomass_synthesis(
         soil_c_pool_microbe=soil_c_pool_microbe,
         soil_temp=soil_temp,
         constants=constants,
     )
+    # Find changes in each enzyme pool
+    pom_enzyme_net_change, maom_enzyme_net_change, enzyme_denaturation = (
+        calculate_enzyme_changes(
+            soil_enzyme_pom=soil_enzyme_pom,
+            soil_enzyme_maom=soil_enzyme_maom,
+            biomass_loss=biomass_loss,
+            constants=constants,
+        )
+    )
 
-    # Calculation the production of each enzyme class
-    pom_enzyme_production = constants.maintenance_pom_enzyme * maintenance_synthesis
-    maom_enzyme_production = constants.maintenance_maom_enzyme * maintenance_synthesis
-
-    # Remaining maintenance synthesis is used to replace degraded proteins and cells
-    # (i.e. forms necromass)
-    necromass_formation = (
+    # Find fraction of loss that isn't enzyme production
+    true_loss = (
         1 - constants.maintenance_pom_enzyme - constants.maintenance_maom_enzyme
-    ) * maintenance_synthesis
+    ) * biomass_loss
 
-    return MicrobialBiomassLoss(
-        maintenance_synthesis=maintenance_synthesis,
-        pom_enzyme_production=pom_enzyme_production,
-        maom_enzyme_production=maom_enzyme_production,
-        necromass_formation=necromass_formation,
+    return MicrobialChanges(
+        lmwc_uptake=microbial_uptake,
+        microbe=biomass_growth - biomass_loss,
+        pom_enzyme=pom_enzyme_net_change,
+        maom_enzyme=maom_enzyme_net_change,
+        necromass_generation=enzyme_denaturation + true_loss,
+    )
+
+
+def calculate_enzyme_changes(
+    soil_enzyme_pom: NDArray[np.float32],
+    soil_enzyme_maom: NDArray[np.float32],
+    biomass_loss: NDArray[np.float32],
+    constants: SoilConsts,
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
+    """Calculate the changes to the concentration of each enzyme pool.
+
+    Enzyme production rates are assumed to scale linearly with the total biomass loss
+    rate of the microbes. These are combined with turnover rates to find the net change
+    in each enzyme pool. The total enzyme denaturation rate is also calculated.
+
+    Args:
+        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
+            matter [kg C m^-3]
+        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
+            organic matter [kg C m^-3]
+        biomass_loss: Rate a which the microbial biomass pool loses biomass, this is a
+            combination of enzyme excretion, protein degradation, and cell death [kg C
+            m^-3 day^-1]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        A tuple containing the net rate of change in the POM enzyme pool, the net rate
+        of change in the MAOM enzyme pool, and the total enzyme denaturation rate.
+    """
+
+    # Calculate production an turnover of each enzyme class
+    pom_enzyme_production = constants.maintenance_pom_enzyme * biomass_loss
+    maom_enzyme_production = constants.maintenance_maom_enzyme * biomass_loss
+    pom_enzyme_turnover = calculate_enzyme_turnover(
+        enzyme_pool=soil_enzyme_pom,
+        turnover_rate=constants.pom_enzyme_turnover_rate,
+    )
+    maom_enzyme_turnover = calculate_enzyme_turnover(
+        enzyme_pool=soil_enzyme_maom,
+        turnover_rate=constants.maom_enzyme_turnover_rate,
+    )
+
+    # return net changes in the two enzyme pools and the necromass
+    return (
+        pom_enzyme_production - pom_enzyme_turnover,
+        maom_enzyme_production - maom_enzyme_turnover,
+        pom_enzyme_turnover + maom_enzyme_turnover,
     )
 
 

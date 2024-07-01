@@ -2,6 +2,8 @@
 
 import pytest
 
+from virtual_ecosystem.models.soil.env_factors import EnvironmentalEffectFactors
+
 
 @pytest.fixture
 def fixture_soil_config():
@@ -70,8 +72,6 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
         protection_with_clay=soil_constants.soil_protection_with_clay,
     )
 
-    return {
-        "water": water_factors,
-        "pH": pH_factors,
-        "clay_saturation": clay_saturation_factors,
-    }
+    return EnvironmentalEffectFactors(
+        water=water_factors, pH=pH_factors, clay_saturation=clay_saturation_factors
+    )

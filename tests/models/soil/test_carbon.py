@@ -60,37 +60,58 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
-def test_determine_microbial_biomass_losses(
-    dummy_carbon_data, top_soil_layer_index, environmental_factors
+def test_calculate_microbial_changes(
+    dummy_carbon_data, environmental_factors, top_soil_layer_index
 ):
-    """Check that the determination of microbial biomass losses works correctly."""
-    from virtual_ecosystem.models.soil.carbon import determine_microbial_biomass_losses
+    """Check that calculation of microbe related changes works correctly."""
 
-    expected_maintenance = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
-    expected_pom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
-    expected_maom_enzyme = [0.0005443078, 0.0002298407, 0.0012012258, 7.22288e-5]
-    expected_necromass_formation = [0.053342159, 0.022524387, 0.117720133, 0.0070784295]
+    from virtual_ecosystem.models.soil.carbon import calculate_microbial_changes
 
-    losses = determine_microbial_biomass_losses(
+    expected_lmwc_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
+    expected_microbe = [-0.04978105, -0.02020101, -0.10280967, -0.00719517]
+    expected_pom_enzyme = [1.17571917e-8, 1.67442231e-8, 1.83311362e-9, -1.11675865e-8]
+    expected_maom_enzyme = [-3.1009224e-4, -5.0959256e-5, 5.9906583e-4, -3.7211168e-5]
+    expected_necromass = [0.05474086, 0.02303502, 0.11952352, 0.00726011]
+
+    mic_changes = calculate_microbial_changes(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        env_factors=environmental_factors,
         constants=SoilConsts,
     )
 
     # Check that each rate matches expectation
-    assert np.allclose(losses.maintenance_synthesis, expected_maintenance)
-    assert np.allclose(losses.pom_enzyme_production, expected_pom_enzyme)
-    assert np.allclose(losses.maom_enzyme_production, expected_maom_enzyme)
-    assert np.allclose(losses.necromass_formation, expected_necromass_formation)
+    assert np.allclose(mic_changes.lmwc_uptake, expected_lmwc_uptake)
+    assert np.allclose(mic_changes.microbe, expected_microbe)
+    assert np.allclose(mic_changes.pom_enzyme, expected_pom_enzyme)
+    assert np.allclose(mic_changes.maom_enzyme, expected_maom_enzyme)
+    assert np.allclose(mic_changes.necromass_generation, expected_necromass)
 
-    # Then check that sum of other rates is the same as the overall
-    # maintenance_synthesis rate
-    assert np.allclose(
-        losses.maintenance_synthesis,
-        losses.pom_enzyme_production
-        + losses.maom_enzyme_production
-        + losses.necromass_formation,
+
+def test_calculate_enzyme_changes(dummy_carbon_data):
+    """Check that the determination of enzyme pool changes works correctly."""
+
+    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_changes
+
+    biomass_loss = np.array([0.05443078, 0.02298407, 0.12012258, 0.00722288])
+
+    expected_pom = [1.17571917e-8, 1.67442231e-8, 1.83311362e-9, -1.11675865e-8]
+    expected_maom = [-3.10092243e-4, -5.09592558e-5, 5.99065833e-4, -3.72111676e-5]
+    expected_denat = [0.0013987, 0.00051062, 0.00180338, 0.00018168]
+
+    actual_pom, actual_maom, actual_denat = calculate_enzyme_changes(
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        biomass_loss=biomass_loss,
+        constants=SoilConsts,
     )
+
+    assert np.allclose(actual_pom, expected_pom)
+    assert np.allclose(actual_maom, expected_maom)
+    assert np.allclose(actual_denat, expected_denat)
 
 
 def test_calculate_maintenance_biomass_synthesis(
@@ -168,8 +189,8 @@ def test_calculate_microbial_carbon_uptake(
     actual_uptake, actual_assimilation = calculate_microbial_carbon_uptake(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        water_factor=environmental_factors["water"],
-        pH_factor=environmental_factors["pH"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
         soil_temp=dummy_carbon_data["soil_temperature"][
             top_soil_layer_index
         ].to_numpy(),
@@ -193,9 +214,9 @@ def test_calculate_enzyme_mediated_decomposition(
     actual_decomp = calculate_enzyme_mediated_decomposition(
         soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
         soil_enzyme=dummy_carbon_data["soil_enzyme_pom"],
-        water_factor=environmental_factors["water"],
-        pH_factor=environmental_factors["pH"],
-        clay_factor_saturation=environmental_factors["clay_saturation"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        clay_factor_saturation=environmental_factors.clay_saturation,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         reference_temp=SoilConsts.arrhenius_reference_temp,
         max_decomp_rate=SoilConsts.max_decomp_rate_pom,
