@@ -39,8 +39,19 @@ class MicrobialChanges:
     """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
 
 
-# TODO - This function should probably be shortened, leaving as is for the moment as a
-# sensible split will probably be more obvious once more is added to this function.
+@dataclass
+class EnzymeMediatedRates:
+    """Rates of each enzyme mediated transfer between pools."""
+
+    pom_to_lmwc: NDArray[np.float32]
+    """Rate of POM decomposition to LMWC [kg C m^-3 day^-1]."""
+
+    maom_to_lmwc: NDArray[np.float32]
+    """Rate of MAOM decomposition to LMWC [kg C m^-3 day^-1]."""
+
+
+# TODO - This function should probably be shortened. I've done some work on this
+# already, but I need to keep an eye on it as new pools are added.
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],
@@ -112,6 +123,16 @@ def calculate_soil_carbon_updates(
         env_factors=env_factors,
         constants=model_constants,
     )
+    # find changes driven by the enzyme pools
+    enzyme_mediated = calculate_enzyme_mediated_rates(
+        soil_enzyme_pom=soil_enzyme_pom,
+        soil_enzyme_maom=soil_enzyme_maom,
+        soil_c_pool_pom=soil_c_pool_pom,
+        soil_c_pool_maom=soil_c_pool_maom,
+        soil_temp=soil_temp,
+        env_factors=env_factors,
+        constants=model_constants,
+    )
 
     labile_carbon_leaching = calculate_leaching_rate(
         solute_density=soil_c_pool_lmwc,
@@ -119,40 +140,12 @@ def calculate_soil_carbon_updates(
         soil_moisture=soil_moisture,
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
     )
-    # TODO - This function should be changed to just receive env_factors
-    # TODO - These two should be combined into a function
-    pom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_pom,
-        soil_enzyme=soil_enzyme_pom,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
-        clay_factor_saturation=env_factors.clay_saturation,
-        soil_temp=soil_temp,
-        reference_temp=model_constants.arrhenius_reference_temp,
-        max_decomp_rate=model_constants.max_decomp_rate_pom,
-        activation_energy_rate=model_constants.activation_energy_pom_decomp_rate,
-        half_saturation=model_constants.half_sat_pom_decomposition,
-        activation_energy_sat=model_constants.activation_energy_pom_decomp_saturation,
-    )
-    maom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_maom,
-        soil_enzyme=soil_enzyme_maom,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
-        clay_factor_saturation=env_factors.clay_saturation,
-        soil_temp=soil_temp,
-        reference_temp=model_constants.arrhenius_reference_temp,
-        max_decomp_rate=model_constants.max_decomp_rate_maom,
-        activation_energy_rate=model_constants.activation_energy_maom_decomp_rate,
-        half_saturation=model_constants.half_sat_maom_decomposition,
-        activation_energy_sat=model_constants.activation_energy_maom_decomp_saturation,
-    )
-    # TODO - Maybe the 4 below should be a function
+
+    # Calculate transfers between the lmwc, necromass and maom pools
     maom_desorption_to_lmwc = calculate_maom_desorption(
         soil_c_pool_maom=soil_c_pool_maom,
         desorption_rate_constant=model_constants.maom_desorption_rate,
     )
-    # Calculate necromass decay to lmwc and sorption to maom
     necromass_decay_to_lmwc = calculate_necromass_breakdown(
         soil_c_pool_necromass=soil_c_pool_necromass,
         necromass_decay_rate=model_constants.necromass_decay_rate,
@@ -168,8 +161,8 @@ def calculate_soil_carbon_updates(
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        pom_decomposition_to_lmwc
-        + maom_decomposition_to_lmwc
+        enzyme_mediated.pom_to_lmwc
+        + enzyme_mediated.maom_to_lmwc
         + maom_desorption_to_lmwc
         + necromass_decay_to_lmwc
         - microbial_changes.lmwc_uptake
@@ -179,12 +172,12 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_c_pool_maom"] = (
         necromass_sorption_to_maom
         + lmwc_sorption_to_maom
-        - maom_decomposition_to_lmwc
+        - enzyme_mediated.maom_to_lmwc
         - maom_desorption_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate - pom_decomposition_to_lmwc
+        mineralisation_rate - enzyme_mediated.pom_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
         microbial_changes.necromass_generation
@@ -266,6 +259,63 @@ def calculate_microbial_changes(
         pom_enzyme=pom_enzyme_net_change,
         maom_enzyme=maom_enzyme_net_change,
         necromass_generation=enzyme_denaturation + true_loss,
+    )
+
+
+def calculate_enzyme_mediated_rates(
+    soil_enzyme_pom: NDArray[np.float32],
+    soil_enzyme_maom: NDArray[np.float32],
+    soil_c_pool_pom: NDArray[np.float32],
+    soil_c_pool_maom: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    env_factors: EnvironmentalEffectFactors,
+    constants: SoilConsts,
+) -> EnzymeMediatedRates:
+    """Calculate the rates of each enzyme mediated reaction.
+
+    Args:
+        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
+            matter [kg C m^-3]
+        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
+            organic matter [kg C m^-3]
+        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
+        soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        env_factors: Data class containing the various factors through which the
+            environment effects soil cycling rates.
+        constants: Set of constants for the soil model.
+
+    Returns:
+        A dataclass containing the enzyme mediated decomposition rates of both the
+        particulate organic matter (POM) and mineral associated organic matter (MAOM)
+        pool.
+    """
+
+    pom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=soil_c_pool_pom,
+        soil_enzyme=soil_enzyme_pom,
+        soil_temp=soil_temp,
+        env_factors=env_factors,
+        reference_temp=constants.arrhenius_reference_temp,
+        max_decomp_rate=constants.max_decomp_rate_pom,
+        activation_energy_rate=constants.activation_energy_pom_decomp_rate,
+        half_saturation=constants.half_sat_pom_decomposition,
+        activation_energy_sat=constants.activation_energy_pom_decomp_saturation,
+    )
+    maom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
+        soil_c_pool=soil_c_pool_maom,
+        soil_enzyme=soil_enzyme_maom,
+        soil_temp=soil_temp,
+        env_factors=env_factors,
+        reference_temp=constants.arrhenius_reference_temp,
+        max_decomp_rate=constants.max_decomp_rate_maom,
+        activation_energy_rate=constants.activation_energy_maom_decomp_rate,
+        half_saturation=constants.half_sat_maom_decomposition,
+        activation_energy_sat=constants.activation_energy_maom_decomp_saturation,
+    )
+
+    return EnzymeMediatedRates(
+        pom_to_lmwc=pom_decomposition_to_lmwc, maom_to_lmwc=maom_decomposition_to_lmwc
     )
 
 
@@ -461,10 +511,8 @@ def calculate_microbial_carbon_uptake(
 def calculate_enzyme_mediated_decomposition(
     soil_c_pool: NDArray[np.float32],
     soil_enzyme: NDArray[np.float32],
-    water_factor: NDArray[np.float32],
-    pH_factor: NDArray[np.float32],
-    clay_factor_saturation: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
+    env_factors: EnvironmentalEffectFactors,
     reference_temp: float,
     max_decomp_rate: float,
     activation_energy_rate: float,
@@ -481,13 +529,9 @@ def calculate_enzyme_mediated_decomposition(
         soil_c_pool: Size of organic matter pool [kg C m^-3]
         soil_enzyme: Amount of enzyme class which breaks down the organic matter pool in
             question [kg C m^-3]
-        water_factor: A factor capturing the impact of soil water potential on microbial
-            rates [unitless]
-        pH_factor: A factor capturing the impact of soil pH on microbial rates
-            [unitless]
-        clay_factor_saturation: A factor capturing the impact of soil clay fraction on
-            enzyme saturation constants [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
+        env_factors: Data class containing the various factors through which the
+            environment effects soil cycling rates.
         reference_temp: The reference temperature that enzyme rates were determined
             relative to [degrees C]
         max_decomp_rate: The maximum rate of substrate decomposition (at the reference
@@ -516,9 +560,11 @@ def calculate_enzyme_mediated_decomposition(
     )
 
     # Calculate the adjusted rate and saturation constants
-    rate_constant = max_decomp_rate * temp_factor_rate * water_factor * pH_factor
+    rate_constant = (
+        max_decomp_rate * temp_factor_rate * env_factors.water * env_factors.pH
+    )
     saturation_constant = (
-        half_saturation * temp_factor_saturation * clay_factor_saturation
+        half_saturation * temp_factor_saturation * env_factors.clay_saturation
     )
 
     return (

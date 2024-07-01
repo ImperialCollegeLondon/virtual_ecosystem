@@ -91,6 +91,30 @@ def test_calculate_microbial_changes(
     assert np.allclose(mic_changes.necromass_generation, expected_necromass)
 
 
+def test_calculate_enzyme_mediated_rates(
+    dummy_carbon_data, environmental_factors, top_soil_layer_index
+):
+    """Check that calculation of enzyme mediated rates works as expected."""
+
+    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_mediated_rates
+
+    expected_pom_to_lmwc = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
+    expected_maom_to_lmwc = [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6]
+
+    actual_rates = calculate_enzyme_mediated_rates(
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
+        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        env_factors=environmental_factors,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rates.pom_to_lmwc, expected_pom_to_lmwc)
+    assert np.allclose(actual_rates.maom_to_lmwc, expected_maom_to_lmwc)
+
+
 def test_calculate_enzyme_changes(dummy_carbon_data):
     """Check that the determination of enzyme pool changes works correctly."""
 
@@ -214,9 +238,7 @@ def test_calculate_enzyme_mediated_decomposition(
     actual_decomp = calculate_enzyme_mediated_decomposition(
         soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
         soil_enzyme=dummy_carbon_data["soil_enzyme_pom"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        clay_factor_saturation=environmental_factors.clay_saturation,
+        env_factors=environmental_factors,
         soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
         reference_temp=SoilConsts.arrhenius_reference_temp,
         max_decomp_rate=SoilConsts.max_decomp_rate_pom,
