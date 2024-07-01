@@ -126,16 +126,20 @@ Ecosystem workflow.
 Some of the features described here are not yet implemented.
 ```
 
-The first part of the hydrology model determines the water balance within each
-grid cell including rainfall, intercept, surface runoff out of the grid cell,
+#### Vertical hydrology components
+The vertical component of the hydrology model determines the water balance within each
+grid cell. This includes [above ground](../api/models/hydrology/above_ground.md)
+processes such as rainfall, intercept, and surface runoff out of the grid cell.
+The [below ground](../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
 potential, horizontal sub-surface flow out of the grid cell, and changes in
 groundwater storage.
 The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`.
 
-The second part of the submodule calculates the water balance across the full model
-grid including accumulated surface runoff and sub-surface flow, and river discharge rate
-.
+#### Horizontal hydrology components
+The second part of the hydrology model calculates the horizontal water movement across
+the full model grid including accumulated surface runoff and sub-surface flow, and river
+discharge rate, [see](../api/models/hydrology/above_ground.md).
 
 ## Plant Model
 
