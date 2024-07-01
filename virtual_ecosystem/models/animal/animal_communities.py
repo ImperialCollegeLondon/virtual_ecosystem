@@ -100,6 +100,8 @@ class AnimalCommunity:
         Currently, the number of individuals in a cohort is handled using Damuth's Law,
         which only holds for mammals.
 
+        TODO: Move populate_community to following Madingley instead of damuth
+
         """
         for functional_group in self.functional_groups:
             individuals = damuths_law(
@@ -121,11 +123,8 @@ class AnimalCommunity:
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
-        Travel distance is not currently a function of body-size or locomotion for
-        starvation dispersal.
-
-        TODO: Implement low-density trigger. [might not actually do this, requires
-                cohort merging.]
+        TODO: travel distance should be a function of body-size or locomotion once
+              multi-grid occupancy is integrated.
 
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
@@ -285,8 +284,7 @@ class AnimalCommunity:
         """Collect suitable prey for a given consumer cohort.
 
         This is a helper function for forage_community to isolate the prey selection
-        functionality. It was already getting confusing and it will get much more so
-        as the Animal Module develops.
+        functionality.
 
         Args:
             consumer_cohort: The AnimalCohort for which a prey list is being collected
@@ -321,20 +319,36 @@ class AnimalCommunity:
     def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
+        This method generates a total amount of metabolic waste per cohort and passes
+        that waste to handler methods for distinguishing between nitrogenous and
+        carbonaceous wastes as they need depositing in different pools. This will not
+        be fully implemented until the stoichiometric rework.
+
+        Respiration wastes are totaled because they are CO2 and not tracked spatially.
+        Excretion wastes are handled cohort by cohort because they will need to be
+        spatially explicit with multi-grid occupancy.
+
+        TODO: Rework with stoichiometry
+
         Args:
             temperature: Current air temperature (K).
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
-        total_metabolic_waste = 0.0
+        total_carbonaceous_waste = 0.0
+
         for cohort in self.all_animal_cohorts:
             metabolic_waste_mass = cohort.metabolize(temperature, dt)
-            total_metabolic_waste += metabolic_waste_mass
+            total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
+            cohort.excrete(
+                metabolic_waste_mass,
+                self.excrement_pool,
+            )
 
         # Update the total_animal_respiration for this community using community_key.
 
         self.data["total_animal_respiration"].loc[{"cell_id": self.community_key}] += (
-            total_metabolic_waste
+            total_carbonaceous_waste
         )
 
     def increase_age_community(self, dt: timedelta64) -> None:
