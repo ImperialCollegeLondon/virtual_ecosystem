@@ -48,7 +48,7 @@ def metabolic_rate(
     mass and an exponential relationship with temperature.
 
     TODO: Implement activity windows to properly paramterize sigma.
-    TODO: Move constants to constants file after constants rework.
+    TODO: Move constants to constants file.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -98,7 +98,9 @@ def muscle_mass_scaling(mass: float, terms: tuple) -> float:
     """The function to set the amount of muscle mass on individual in an AnimalCohort.
 
     Currently, this scaling relationship is only accurate for terrestrial mammals.
-        This will later be updated for additional functional types.
+    This will later be updated for additional functional types.
+
+    TODO: Remove if unused.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -115,8 +117,10 @@ def muscle_mass_scaling(mass: float, terms: tuple) -> float:
 def fat_mass_scaling(mass: float, terms: tuple) -> float:
     """The function to set the amount of fat mass on individual in an AnimalCohort.
 
-        Currently, this scaling relationship is only accurate for terrestrial mammals.
-        This will later be updated for additional functional types.
+    Currently, this scaling relationship is only accurate for terrestrial mammals.
+    This will later be updated for additional functional types.
+
+    TODO: Remove if unused.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -135,8 +139,10 @@ def energetic_reserve_scaling(
 ) -> float:
     """The function to set the energetic reserve of an individual in an AnimalCohort.
 
-        Currently, this scaling relationship is only accurate for terrestrial mammals.
-        This will later be updated for additional functional types.
+    Currently, this scaling relationship is only accurate for terrestrial mammals.
+    This will later be updated for additional functional types.
+
+    TODO: Remove if unused.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -155,12 +161,14 @@ def energetic_reserve_scaling(
 def intake_rate_scaling(mass: float, terms: tuple) -> float:
     """The function to set the intake rate of an individual in an AnimalCohort.
 
-        Currently, this scaling relationship is only accurate for terrestrial
-        herbivorous mammals interacting with plant foods. This will later be updated
-        for additional functional types and interactions.
+    Currently, this scaling relationship is only accurate for terrestrial
+    herbivorous mammals interacting with plant foods. This will later be updated
+    for additional functional types and interactions.
 
-        The function form converts the original g/min rate into a kg/day rate, where a
-        day is an 8hr foraging window.
+    The function form converts the original g/min rate into a kg/day rate, where a
+    day is an 8hr foraging window.
+
+    TODO: Remove if unused.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
@@ -185,6 +193,7 @@ def prey_group_selection(
     be shifted into functional_group definitions.
 
     TODO: Implement real pred-prey mass ratio.
+    TODO: Remove if unused.
 
     Args:
         diet_type: A value from the DietType enumeration.
@@ -225,6 +234,8 @@ def natural_mortality_scaling(mass: float, terms: tuple) -> float:
     transform daily rate to daily probability
     prob = 1 - e^-M
 
+    TODO: Remove if unused.
+
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         terms: The terms of the mean maximum age equation.
@@ -248,6 +259,8 @@ def background_mortality(u_bg: float) -> float:
     I am leaving it in so there is a clear way to alter the assumptions about
     background mortality as we move into testing and validation.
 
+    Madingley
+
     Args:
         u_bg: The constant of background mortality [day^-1].
 
@@ -270,6 +283,8 @@ def senescence_mortality(
     instantaneous rate of senescence mortality would be lambda_se * exp(1000/1). This
     would also mean that the rate of senescence would decrease over time. Therefore, I
     have inverted the relationship below.
+
+    TODO: Check Madingley code for function implementation
 
     Args:
         lambda_se: The instantaneous rate of senescence mortality at point of maturity
@@ -326,6 +341,8 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
     This is linear scaling of herbivore search times with current body mass.
 
+    TODO: Update name
+
     Madingley
 
     Args:
@@ -343,6 +360,8 @@ def alpha_i_k(alpha_0_herb: float, mass: float) -> float:
 
 def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> float:
     """The potential biomass (g) of plant k eaten by cohort i, per day.
+
+    TODO: update name
 
     Madingley
 
@@ -368,6 +387,8 @@ def H_i_k(h_herb_0: float, M_ref: float, M_i_t: float, b_herb: float) -> float:
 
     Time (days) for an individual of cohort i to handle 1 gram of plant resource.
 
+    TODO: update name
+
     Madingley
 
     Args:
@@ -390,6 +411,8 @@ def theta_opt_i(
     theta_opt_min_f: float, theta_opt_f: float, sigma_opt_f: float
 ) -> float:
     """Optimum predator-prey mass ratio.
+
+    TODO: update name
 
     Madingley
 
@@ -415,6 +438,8 @@ def w_bar_i_j(
     sigma_opt_pred_prey: float,
 ) -> float:
     """The probability of successfully capturing a prey item.
+
+    TODO: update name
 
     Madingley
 
@@ -442,6 +467,8 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 
     This is linear scaling of herbivore search times with current body mass.
 
+    TODO: update name
+
     Madingley
 
 
@@ -464,6 +491,7 @@ def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> fl
 
     TODO: Finish docstring
     TODO: double check output needs to be float, might be int
+    TODO: update name
 
     Madingley
 
@@ -488,6 +516,8 @@ def H_i_j(h_pred_0: float, M_ref: float, M_i_t: float, b_pred: float) -> float:
     """Handling time of prey cohort j by cohort i.
 
     Time (days) for an individual of cohort i to handle 1 individual of cohort j.
+
+    TODO: update name
 
     Madingley
 
