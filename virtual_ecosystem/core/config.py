@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.core.config` module is used to read in the various
 configuration files, validate their contents, and then configure a ready to run instance
 of the virtual ecosystem model. The basic details of how this system is used can be
-found :doc:`here </virtual_ecosystem/core/config>`.
+found :doc:`here </using_the_ve/configuration/config>`.
 
 The validation of configuration documents is done using JSONSchema documents associated
 with the different model components. See the :mod:`~virtual_ecosystem.core.schema`

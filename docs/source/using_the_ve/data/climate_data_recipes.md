@@ -29,12 +29,12 @@ Metadata:
 * Format: NetCDF3
 
 We have used a simple recipe from this data source to create the climate data used in
-the [example data](../virtual_ecosystem/example_data.md). The code in that recipe is
+the [example data](../example_data.md). The code in that recipe is
 shown below:
 
 ````{admonition} climate_example_data.py
 :class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py
+```{literalinclude} ../../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py
 ```
 ````
 
