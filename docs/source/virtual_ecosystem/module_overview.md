@@ -74,8 +74,8 @@ atmospheric $\ce{CO_{2}}$ based on external inputs.
 
 ### Process-based Abiotic Model
 
-The process-based [abiotic](../api/models/abiotic.md) model will
-contain a sub-daily mechanistic representation of the radiation balance, the energy
+The process-based [abiotic](../api/models/abiotic.md) model will contain a sub-daily
+mechanistic representation of the radiation balance, the energy
 balance, and wind profiles. Submodules will be closely coupled to the hydrology and
 plants models through the exchange of energy and water. The model will also provides a
 constant vertical profile of atmospheric pressure and atmospheric $\ce{CO_{2}}$ based on
@@ -127,6 +127,7 @@ Some of the features described here are not yet implemented.
 ```
 
 ### Vertical hydrology components
+
 The vertical component of the hydrology model determines the water balance within each
 grid cell. This includes [above ground](../api/models/hydrology/above_ground.md)
 processes such as rainfall, intercept, and surface runoff out of the grid cell.
@@ -137,6 +138,7 @@ groundwater storage.
 The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`.
 
 ### Horizontal hydrology components
+
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
 discharge rate, [see](../api/models/hydrology/above_ground.md). The flow direction is
