@@ -66,7 +66,16 @@ class LitterModel(
         "lignin_below_structural",
     ),
     populated_by_init_vars=(),
-    required_update_vars=(),
+    required_update_vars=(
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
+        "lignin_above_structural",
+        "lignin_woody",
+        "lignin_below_structural",
+    ),
     vars_updated=(
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
@@ -78,7 +87,7 @@ class LitterModel(
         "lignin_below_structural",
         "litter_C_mineralisation_rate",
     ),
-    populated_by_update_vars=(),
+    populated_by_update_vars=("litter_C_mineralisation_rate",),
 ):
     """A class defining the litter model.
 
@@ -216,8 +225,8 @@ class LitterModel(
 
         # Construct dictionary of data arrays
         updated_litter_variables = {
-            variable: DataArray(updated_variables[variable], dims="cell_id")
-            for variable in updated_variables.keys()
+            variable: DataArray(data, dims="cell_id")
+            for variable, data in updated_variables.items()
         }
 
         # And then use then to update the litter variables
