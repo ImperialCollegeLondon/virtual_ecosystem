@@ -14,8 +14,12 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
-def data_instance():
-    """Creates a simple data instance for use in testing."""
+def fixture_data_instance_for_model_validation():
+    """Data instance with badly dimensioned data.
+
+    Creates a simple data instance for use in testing whether models correctly apply
+    validation of required variables.
+    """
     from xarray import DataArray
 
     from virtual_ecosystem.core.data import Data
@@ -303,7 +307,9 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
         pass
 
     with pytest.raises(TypeError) as err:
-        _ = InitVarModel(data=data_instance, core_components=fixture_core_components)
+        _ = InitVarModel(
+            data=dummy_climate_data, core_components=fixture_core_components
+        )
 
     # Note python version specific exception messages:
     # - Can't instantiate abstract class InitVarModel with abstract methods cleanup,
@@ -366,7 +372,7 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
 )
 def test_check_required_init_vars(
     caplog,
-    data_instance,
+    fixture_data_instance_for_model_validation,
     fixture_core_components,
     req_init_vars,
     raises,
@@ -423,7 +429,7 @@ def test_check_required_init_vars(
     # Create an instance to check the handling
     with raises as err:
         inst = TestCaseModel(
-            data=data_instance,
+            data=fixture_data_instance_for_model_validation,
             core_components=fixture_core_components,
         )
 
@@ -491,7 +497,13 @@ def test_check_required_init_vars(
         ),
     ],
 )
-def test_check_update_speed(caplog, config_string, raises, expected_log):
+def test_check_update_speed(
+    caplog,
+    fixture_data_instance_for_model_validation,
+    config_string,
+    raises,
+    expected_log,
+):
     """Tests check on update speed."""
 
     from virtual_ecosystem.core.base_model import BaseModel
@@ -538,6 +550,9 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
     caplog.clear()
 
     with raises:
-        _ = TimingTestModel(data=data_instance, core_components=core_components)
+        _ = TimingTestModel(
+            data=fixture_data_instance_for_model_validation,
+            core_components=core_components,
+        )
 
     log_check(caplog, expected_log)

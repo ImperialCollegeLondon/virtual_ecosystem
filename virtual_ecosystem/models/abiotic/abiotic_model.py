@@ -23,7 +23,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -293,19 +292,6 @@ class AbioticModel(
         # At the moment this is duplicated in setup() and other parts of the Virtual
         # Ecosystem
 
-        # VIVI - have recalculated these using boolean indices
-        true_canopy_indices = np.logical_and(
-            self.layer_structure.role_indices_bool["canopy"],
-            np.any(~np.isnan(self.data["leaf_area_index"]), axis=1),
-        )
-        true_aboveground_rows = np.logical_or.reduce(
-            (
-                self.layer_structure.role_indices_bool["above"],
-                true_canopy_indices,
-                self.layer_structure.role_indices_bool["surface"],
-            )
-        )
-
         # Wind profiles
 
         # Reduce input variables to true above ground rows
@@ -313,7 +299,7 @@ class AbioticModel(
         #       list[str] indices, which it should.
         wind_update_inputs = self.data[
             ["layer_heights", "leaf_area_index", "air_temperature"]  # type: ignore [index]
-        ].isel(layers=true_aboveground_rows)
+        ].isel(layers=self.layer_structure.index_filled_atmosphere)
 
         wind_update = wind.calculate_wind_profile(
             canopy_height=self.data["layer_heights"][1].to_numpy(),
@@ -339,7 +325,7 @@ class AbioticModel(
         # Store 2D wind outputs using the full vertical structure
         for var in ["wind_speed", "molar_density_air", "specific_heat_air"]:
             var_out = self.layer_structure.from_template()
-            var_out[true_aboveground_rows] = wind_update[var]
+            var_out[self.layer_structure.index_filled_atmosphere] = wind_update[var]
             self.data[var] = var_out
 
         # Store 1D outputs by cell id
@@ -377,7 +363,7 @@ class AbioticModel(
             )
 
         # Update topsoil temperature
-        self.data["soil_temperature"][self.layer_structure.role_indices["topsoil"]] = (
+        self.data["soil_temperature"][self.layer_structure.index_topsoil] = (
             soil_heat_balance["new_surface_temperature"]
         )
 

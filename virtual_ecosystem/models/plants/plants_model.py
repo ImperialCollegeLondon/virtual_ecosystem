@@ -135,7 +135,7 @@ class PlantsModel(
         """A reference to the global data object."""
 
         # This is widely used internally so store it as an attribute.
-        self._canopy_layer_indices = self.layer_structure.role_indices_bool["canopy"]
+        self._canopy_layer_indices = self.layer_structure.index_canopy
         """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
@@ -233,7 +233,7 @@ class PlantsModel(
         # Retrive the canopy model arrays and insert into the data object.
         canopy_data = build_canopy_arrays(
             self.communities,
-            n_canopy_layers=self.layer_structure.canopy_layers,
+            n_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
         # Insert the canopy layers into the data objects
@@ -273,6 +273,7 @@ class PlantsModel(
 
         # Store the absorbed irradiance in the data object and add the remaining
         # irradiance at the surface layer level
+        # NOTE - this is only the _PPFD_ at ground level not the SWDown.
         self.data["canopy_absorption"][:] = absorbed_irradiance
         ground = np.where(self.data["layer_roles"].data == "surface")[0]
         self.data["canopy_absorption"][ground] = ground_irradiance
